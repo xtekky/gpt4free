@@ -1,6 +1,6 @@
-audio_models = ['PollinationsAI:gpt-4o-audio', 'PollinationsAI:hypnosis-tracy', 'PollinationsAI:openai-audio', 'PollinationsAI:gpt-4o-mini-audio', 'openai-audio', 'hypnosis-tracy', 'gpt-4o-mini-audio', 'gpt-4o-audio']
-image_models = ['dall-e-3', 'PollinationsAI:flux', 'PollinationsAI:turbo', 'PollinationsAI:kontext', 'flux', 'turbo', 'kontext', '', 'black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'Qwen/Qwen-Image', 'black-forest-labs/FLUX.1-Krea-dev', 'QuantStack/FLUX.1-Krea-dev-GGUF', 'nunchaku-tech/nunchaku-flux.1-krea-dev', 'city96/Qwen-Image-gguf', 'MintLab/FLUX-Krea-BLAZE', 'kpsss34/Stable-Diffusion-3.5-Small-Preview1', 'stabilityai/stable-diffusion-xl-base-1.0', 'stable-diffusion-v1-5/stable-diffusion-v1-5', 'stabilityai/stable-diffusion-3.5-large', 'flux-dev', 'flux-schnell', 'qwen-image', 'flux-krea-dev', 'flux-krea-dev-gguf', 'nunchaku-flux-krea-dev', 'qwen-image-gguf', 'flux-krea-blaze', 'stable-diffusion-3.5-small-preview1', 'stable-diffusion-xl-base-1.0', 'stable-diffusion-v1-5', 'sd-3.5-large', 'Qwen/Qwen-Image', 'black-forest-labs/FLUX.1-Krea-dev', 'black-forest-labs/FLUX.1-dev', 'stabilityai/stable-diffusion-xl-base-1.0', 'black-forest-labs/FLUX.1-schnell', 'stabilityai/stable-diffusion-3.5-large', 'stabilityai/stable-diffusion-3.5-medium', 'ByteDance/Hyper-SD', 'HiDream-ai/HiDream-I1-Full', 'ByteDance/SDXL-Lightning', 'tarfandoon/farshchian_flux', 'Shakker-Labs/FLUX.1-dev-LoRA-Logo-Design', 'strangerzonehf/Flux-Midjourney-Mix2-LoRA', 'ajinkyaT/flux-kontext-inpaint-lora', '42lux/42lux-Schwarzwald-Klinik', 'alvdansen/softserve_anime', 'UmeAiRT/FLUX.1-dev-LoRA-Modern_Pixel_art', 'prithivMLmods/Retro-Pixel-Flux-LoRA', 'strangerzonehf/Flux-Super-Realism-LoRA', 'nerijs/pixel-art-xl', 'blink7630/storyboard-sketch', 'stabilityai/stable-diffusion-3-medium', 'fofr/sdxl-emoji', 'alvdansen/midsommarcartoon', 'davisbro/half_illustration', 'multimodalart/flux-tarot-v1', 'renderartist/simplevectorflux', 'Efficient-Large-Model/Sana_1600M_1024px', 'tryonlabs/FLUX.1-dev-LoRA-Outfit-Generator', 'glif-loradex-trainer/AP123_movie_shots_ic_lora_experiment_v1', 'glif-loradex-trainer/Lamia-000_Antoinette', 'Efficient-Large-Model/SANA1.5_4.8B_1024px_diffusers', 'HiDream-ai/HiDream-I1-Dev', 'multimodalart/isometric-skeumorphic-3d-bnb', 'nerijs/lego-minifig-xl', 'goofyai/3d_render_style_xl', 'artificialguybr/PixelArtRedmond', 'KappaNeuro/victor-brauner-style', 'ostris/ikea-instructions-lora-sdxl', 'ntc-ai/SDXL-LoRA-slider.pixel-art', 'rikhoffbauer2/naomi-makkelie-seaweed-painting-style-4', 'alexionby/south_park_lora', 'sWizad/pokemon-trainer-sprite-pixelart', 'jasperai/flash-sdxl', 'Kwai-Kolors/Kolors', 'alvdansen/littletinies', 'StableGenius-AI/dana-trippee-sdxl-1.0', 'XLabs-AI/flux-RealismLora', 'Norod78/Flux_1_Dev_LoRA_Paper-Cutout-Style', 'samim/flow-lora-2', 'nerijs/flux-waldo1024-v1', 'alvdansen/haunted_linework_flux', 'aleksa-codes/flux-ghibsky-illustration', 'nerijs/dark-fantasy-illustration-flux', 'multimodalart/vintage-ads-flux', 'Shakker-Labs/FLUX.1-dev-LoRA-Vector-Journey', 'Shakker-Labs/FLUX.1-dev-LoRA-Children-Simple-Sketch', 'punzel/flux_billie_eilish', 'bingbangboom/flux_geopop', 'glif/how2draw', 'glif/90s-anime-art', 'renderartist/coloringbookflux', 'Shakker-Labs/FLUX.1-dev-LoRA-One-Click-Creative-Template', 'renderartist/toyboxflux', 'Purz/choose-your-own-adventure', 'fabdream/Comicbook-vintage', 'prithivMLmods/Canopus-LoRA-Flux-UltraRealism-2.0', 'elifergunes/background_only_game_2', 'gokaygokay/Flux-Game-Assets-LoRA-v2', 'martintomov/ecom-flux-v1', 'Shakker-Labs/FLUX.1-dev-LoRA-Text-Poster', 'glif-loradex-trainer/001_flux_wojaks_v1', 'Keltezaa/flux-chloe-grace-moretz', 'prithivMLmods/Logo-Design-Flux-LoRA', 'prithivMLmods/Minimal-Futuristic-Flux-LoRA', 'gokaygokay/Flux-2D-Game-Assets-LoRA', 'ayrisdev/mobile-ui-design', 'glif-loradex-trainer/insectagon_mugshots1', 'prithivMLmods/Knitted-Character-Flux-LoRA', 'prithivMLmods/Digital-Chaos-Flux-LoRA', 'strangerzonehf/Flux-Ultimate-LoRA-Collection', 'prithivMLmods/Flux.1-Dev-Pov-DoorEye-LoRA', 'mmaluchnick/jessica-simpson-young-flux-model', 'glif-loradex-trainer/kklors_flux_dev_translucency', 'strangerzonehf/Flux-Isometric-3D-LoRA', 'strangerzonehf/Flux-Isometric-3D-Cinematography', 'jwywoo/storyboard-scene-generation-model-flux-v3-FLH', 'strangerzonehf/Flux-Isometric-Site-LoRA', 'mrcuddle/live2d-model-maker', 'alastandy/Add-Dental-Braces-4', 'AIGCDuckBoss/fluxLora_gamecartoon', 'fofr/flux-handwriting', 'strangerzonehf/Flux-Sketch-Smudge-LoRA', 'AiWise/AlbedoBase-XL_v31-Large', 'Keltezaa/kristen-bell', 'Keltezaa/neve-campbell-1990s-flux', 'strangerzonehf/2Color-Illustration', 'prathmeshyelne/ImagiX', 'Jonjew/MargaretQualley', 'Jonjew/GhibliStyleFlux', 'glif-loradex-trainer/Hailey_LostVHS', 'AniPatki23/interior', 'pictgensupport/romancenovels', 'glif-loradex-trainer/Swap_agrawal14_aestheticretrocapturez', 'Svngoku/AfroInfluencerStyle', 'ajinkyaT/Interiorly-gen1-dev', 'Keltezaa/ZhaoLusi', 'CanaryDigital/character_cby_a', 'CultriX/flux-nsfw-highress', 'openfree/flux-chatgpt-ghibli-lora', 'Keltezaa/blowjob-pov-flux-lora', 'lustlyai/Flux_Lustly.ai_Uncensored_nsfw_v1', 'Keltezaa/NSFW_MASTER_FLUX', 'Jonjew/OnlyFansSexyPost', 'uriel353/photorealistic-nsfw', 'AI-Porn/pornworks-characters-dva-from-overwatch-sdxl', 'qwen-image', 'flux-krea-dev', 'flux-dev', 'stable-diffusion-xl-base-1.0', 'flux-schnell', 'sd-3.5-large', 'stable-diffusion-3.5-medium', 'hyper-sd', 'hidream-i1-full', 'sdxl-lightning', 'farshchian.flux', 'flux-dev-lora-logo-design', 'flux-midjourney-mix2-lora', 'flux-kontext-inpaint-lora', '42lux-schwarzwald-klinik', 'softserve.anime', 'flux-dev-lora-modern.pixel.art', 'retro-pixel-flux-lora', 'flux-super-realism-lora', 'pixel-art-xl', 'storyboard-sketch', 'stable-diffusion-3-medium', 'sdxl-emoji', 'midsommarcartoon', 'half.illustration', 'flux-tarot', 'simplevectorflux', 'sana.1600m.1024px', 'flux-dev-lora-outfit-generator', 'ap123.movie.shots.ic.lora.experiment.v1', 'lamia-000.antoinette', 'sana1.5.4.8b.1024px.diffusers', 'hidream-i1-dev', 'isometric-skeumorphic-3d-bnb', 'lego-minifig-xl', '3d.render.style.xl', 'pixelartredmond', 'victor-brauner-style', 'ikea-instructions-lora-sdxl', 'sdxl-lora-slider.pixel-art', 'naomi-makkelie-seaweed-painting-style-4', 'south.park.lora', 'pokemon-trainer-sprite-pixelart', 'flash-sdxl', 'kolors', 'littletinies', 'dana-trippee-sdxl-1.0', 'flux-realismlora', 'flux.1.dev.lora.paper-cutout-style', 'flow-lora-2', 'flux-waldo1024', 'haunted.linework.flux', 'flux-ghibsky-illustration', 'dark-fantasy-illustration-flux', 'vintage-ads-flux', 'flux-dev-lora-vector-journey', 'flux-dev-lora-children-simple-sketch', 'flux.billie.eilish', 'flux.geopop', 'how2draw', '90s-anime-art', 'coloringbookflux', 'flux-dev-lora-one-click-creative-template', 'toyboxflux', 'choose-your-own-adventure', 'comicbook-vintage', 'canopus-lora-flux-ultrarealism-2.0', 'background.only.game.2', 'flux-game-assets-lora', 'ecom-flux', 'flux-dev-lora-text-poster', '001.flux.wojaks.v1', 'flux-chloe-grace-moretz', 'logo-design-flux-lora', 'minimal-futuristic-flux-lora', 'flux-2d-game-assets-lora', 'mobile-ui-design', 'insectagon.mugshots1', 'knitted-character-flux-lora', 'digital-chaos-flux-lora', 'flux-ultimate-lora-collection', 'flux-dev-pov-dooreye-lora', 'jessica-simpson-young-flux-model', 'kklors.flux.dev.translucency', 'flux-isometric-3d-lora', 'flux-isometric-3d-cinematography', 'storyboard-scene-generation-model-flux-v3-flh', 'flux-isometric-site-lora', 'live2d-model-maker', 'add-dental-braces-4', 'fluxlora.gamecartoon', 'flux-handwriting', 'flux-sketch-smudge-lora', 'albedobase-xl.v31-large', 'kristen-bell', 'neve-campbell-1990s-flux', '2color-illustration', 'imagix', 'margaretqualley', 'ghiblistyleflux', 'hailey.lostvhs', 'interior', 'romancenovels', 'swap.agrawal14.aestheticretrocapturez', 'afroinfluencerstyle', 'interiorly-gen1-dev', 'zhaolusi', 'character.cby.a', 'flux-nsfw-highress', 'flux-chatgpt-ghibli-lora', 'blowjob-pov-flux-lora', 'flux.lustly.ai.uncensored.nsfw.v1', 'nsfw.master.flux', 'onlyfanssexypost', 'photorealistic-nsfw', 'pornworks-characters-dva-from-overwatch-sdxl', 'flux-1-kontext-pro', 'gpt-image-1', 'flux-1-kontext-max', 'imagen-4.0-ultra-generate-preview-06-06', 'imagen-3.0-generate-002', 'ideogram-v2', 'photon', 'step1x-edit', 'dall-e-3', 'recraft-v3', 'anonymous-bot-0514', 'flux-1.1-pro', 'ideogram-v3-quality', 'imagen-4.0-generate-preview-06-06', 'seedream-3', 'seededit-3.0', 'flux-1-kontext-dev', 'bagel', 'gemini-2.0-flash-preview-image-generation', 'flux-1-kontext-pro', 'gpt-image-1', 'flux-1-kontext-max', 'imagen-4.0-ultra-generate', 'imagen-3.0-generate-002', 'ideogram', 'photon', 'step1x-edit', 'dall-e-3', 'recraft', 'anonymous-bot-0514', 'flux-1.1-pro', 'ideogram-v3-quality', 'imagen-4.0-generate', 'seedream-3', 'seededit-3.0', 'flux-1-kontext-dev', 'bagel', 'gemini-2.0-flash-preview-image-generation', 'sd-3.5-large', 'flux', 'flux-dev', 'flux-kontext-dev', 'janus-pro-7b-image', 'sd-3.5-large', 'flux', 'flux-dev', 'flux-kontext-dev', 'janus-pro-7b-image']
-vision_models = ['auto', 'gpt-4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.5', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3-mini', 'o3-mini-high', 'o4-mini', 'o4-mini-high', 'PollinationsAI:openai', 'PollinationsAI:evil', 'PollinationsAI:llama-fast-roblox', 'PollinationsAI:mistral-small-3.1-24b', 'PollinationsAI:mistral-roblox', 'PollinationsAI:gpt-4o-mini', 'PollinationsAI:gpt-4o-audio', 'PollinationsAI:gpt-4.1-nano', 'PollinationsAI:gpt-4.1', 'PollinationsAI:openai-roblox', 'PollinationsAI:bidara', 'PollinationsAI:mirexa', 'PollinationsAI:sur', 'PollinationsAI:unity', 'openai', 'llama-fast-roblox', 'mistral-small-3.1-24b', 'mistral-roblox', 'gpt-4o-mini', 'gpt-4o-audio', 'gpt-4.1-nano', 'gpt-4.1', 'openai-roblox', 'bidara', 'evil', 'mirexa', 'sur', 'unity', 'gpt-4', 'gpt-4o', 'gpt-4.1-mini', 'gemini-2.5-pro-preview-05-06', 'o3-2025-04-16', 'o4-mini-2025-04-16', 'mistral-medium-2505', 'gemini-2.5-flash-preview-04-17', 'gpt-4.1-2025-04-14', 'claude-3-7-sonnet-20250219', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e-instruct', 'llama-4-scout-17b-16e-instruct', 'gpt-4.1-mini-2025-04-14', 'gpt-4.1-nano-2025-04-14', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite-preview-02-05', 'gemma-3-27b-it', 'claude-3-5-sonnet-20241022', 'gpt-4o-mini-2024-07-18', 'gpt-4o-2024-11-20', 'gpt-4o-2024-08-06', 'gpt-4o-2024-05-13', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet-20240620', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b-instruct', 'qwen2.5-vl-72b-instruct', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core-20240904', 'reka-flash-20240904', 'c4ai-aya-vision-32b', 'pixtral-12b-2409', 'gemini-2.5-pro', 'o3', 'o4-mini', 'mistral-medium-2505', 'gemini-2.5-flash', 'gpt-4.1', 'claude-3-7-sonnet', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite', 'gemma-3-27b-it', 'claude-3-5-sonnet', 'gpt-4o-mini', 'gpt-4o', 'gpt-4o', 'gpt-4o', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b', 'qwen2.5-vl-72b', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku', 'claude-3-sonnet', 'claude-3-opus', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core', 'reka-flash', 'aya-vision-32b', 'pixtral-12b-2409', 'openai/gpt-oss-120b', 'meta-llama/Llama-3.2-90B-Vision-Instruct', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'gpt-oss-120b', 'llama-3.2-90b-vision', 'gpt-oss-120b', 'gpt-oss-20b', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 'Qwen/Qwen2-VL-7B-Instruct', 'llama-3.2-11b-vision', 'qwen-2vl-7b', 'gemini-2.5-pro-preview-05-06', 'o3-2025-04-16', 'o4-mini-2025-04-16', 'mistral-medium-2505', 'gemini-2.5-flash-preview-04-17', 'gpt-4.1-2025-04-14', 'claude-3-7-sonnet-20250219', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e-instruct', 'llama-4-scout-17b-16e-instruct', 'gpt-4.1-mini-2025-04-14', 'gpt-4.1-nano-2025-04-14', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite-preview-02-05', 'gemma-3-27b-it', 'claude-3-5-sonnet-20241022', 'gpt-4o-mini-2024-07-18', 'gpt-4o-2024-11-20', 'gpt-4o-2024-08-06', 'gpt-4o-2024-05-13', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet-20240620', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b-instruct', 'qwen2.5-vl-72b-instruct', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core-20240904', 'reka-flash-20240904', 'c4ai-aya-vision-32b', 'pixtral-12b-2409', 'gemini-2.5-pro', 'o3', 'o4-mini', 'mistral-medium-2505', 'gemini-2.5-flash', 'gpt-4.1', 'claude-3-7-sonnet', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite', 'gemma-3-27b-it', 'claude-3-5-sonnet', 'gpt-4o-mini', 'gpt-4o', 'gpt-4o', 'gpt-4o', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b', 'qwen2.5-vl-72b', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku', 'claude-3-sonnet', 'claude-3-opus', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core', 'reka-flash', 'aya-vision-32b', 'pixtral-12b-2409', 'flux-1-kontext-pro', 'gpt-4.1-2025-04-14', 'gpt-image-1', 'gemini-2.5-pro', 'flux-1-kontext-max', 'gemini-2.5-flash', 'o3-2025-04-16', 'chatgpt-4o-latest-20250326', 'mistral-small-3.1-24b-instruct-2503', 'gemma-3-27b-it', 'gpt-4.1-mini-2025-04-14', 'amazon.nova-pro-v1:0', 'o4-mini-2025-04-16', 'gemini-2.5-flash-lite-preview-06-17-thinking', 'mistral-medium-2505', 'kling-2-master-image-to-video', 'llama-4-maverick-17b-128e-instruct', 'step1x-edit', 'stonebloom', 'step-1o-turbo-202506', 'stephen-vision-csfix', 'mistral-small-2506', 'wolfstride', 'grok-4-0709', 'seededit-3.0', 'flux-1-kontext-dev', 'gemini-2.0-flash-001', 'bagel', 'hunyuan-large-vision', 'llama-4-scout-17b-16e-instruct', 'gemini-2.0-flash-preview-image-generation', 'seedance-1-lite-image-to-video', 'flux-1-kontext-pro', 'gpt-4.1', 'gpt-image-1', 'gemini-2.5-pro', 'flux-1-kontext-max', 'gemini-2.5-flash', 'o3', 'chatgpt-4o-latest', 'mistral-small-3.1-24b-instruct-2503', 'gemma-3-27b-it', 'gpt-4.1-mini', 'amazon.nova-pro', 'o4-mini', 'gemini-2.5-flash-lite-preview-thinking', 'mistral-medium-2505', 'kling-2-master-image-to-video', 'llama-4-maverick-17b-128e', 'step1x-edit', 'stonebloom', 'step-1o-turbo-202506', 'stephen-vision-csfix', 'mistral-small-2506', 'wolfstride', 'grok-4-0709', 'seededit-3.0', 'flux-1-kontext-dev', 'gemini-2.0-flash-001', 'bagel', 'hunyuan-large-vision', 'llama-4-scout-17b-16e', 'gemini-2.0-flash-preview-image-generation', 'seedance-1-lite-image-to-video', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o1-pro', 'o3', 'o3-mini', 'o4-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5-preview', 'grok-vision-beta', 'grok-2-vision', 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'gpt-4o-search', 'gpt-4o-mini-search', 'o3-mini-high', 'o4-mini-high', 'gpt-4.5', 'phi-4-multimodal', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o1-pro', 'o3', 'o3-mini', 'o4-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5', 'grok-vision-beta', 'grok-2-vision', 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'gpt-4o-search', 'gpt-4o-mini-search', 'o3-mini-high', 'o4-mini-high', 'gpt-4.5', 'phi-4-multimodal', 'phi-4-multimodal', 'janus-pro-7b', 'phi-4-multimodal', 'janus-pro-7b']
+audio_models = ['PollinationsAI:gpt-4o-mini-audio', 'PollinationsAI:hypnosis-tracy', 'PollinationsAI:openai-audio', 'openai-audio', 'hypnosis-tracy', 'gpt-4o-mini-audio']
+image_models = ['dall-e-3', 'gpt-image', 'sdxl-turbo', 'sd-3.5-large', 'flux', 'flux-pro', 'flux-dev', 'flux-schnell', 'flux-redux', 'flux-depth', 'flux-canny', 'flux-kontext', 'flux-dev-lora', 'dall-e-3', 'PollinationsAI:flux', 'PollinationsAI:turbo', 'PollinationsAI:kontext', 'flux', 'turbo', 'kontext', '', 'black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'Qwen/Qwen-Image', 'black-forest-labs/FLUX.1-Krea-dev', 'QuantStack/FLUX.1-Krea-dev-GGUF', 'nunchaku-tech/nunchaku-flux.1-krea-dev', 'city96/Qwen-Image-gguf', 'MintLab/FLUX-Krea-BLAZE', 'kpsss34/Stable-Diffusion-3.5-Small-Preview1', 'stabilityai/stable-diffusion-xl-base-1.0', 'stable-diffusion-v1-5/stable-diffusion-v1-5', 'stabilityai/stable-diffusion-3.5-large', 'flux-dev', 'flux-schnell', 'qwen-image', 'flux-krea-dev', 'flux-krea-dev-gguf', 'nunchaku-flux-krea-dev', 'qwen-image-gguf', 'flux-krea-blaze', 'stable-diffusion-3.5-small-preview1', 'stable-diffusion-xl-base-1.0', 'stable-diffusion-v1-5', 'sd-3.5-large', 'Qwen/Qwen-Image', 'black-forest-labs/FLUX.1-Krea-dev', 'black-forest-labs/FLUX.1-dev', 'stabilityai/stable-diffusion-xl-base-1.0', 'black-forest-labs/FLUX.1-schnell', 'stabilityai/stable-diffusion-3.5-large', 'stabilityai/stable-diffusion-3.5-medium', 'ByteDance/Hyper-SD', 'HiDream-ai/HiDream-I1-Full', 'ByteDance/SDXL-Lightning', 'tarfandoon/farshchian_flux', 'Shakker-Labs/FLUX.1-dev-LoRA-Logo-Design', 'strangerzonehf/Flux-Super-Realism-LoRA', 'strangerzonehf/Flux-Midjourney-Mix2-LoRA', 'ajinkyaT/flux-kontext-inpaint-lora', '42lux/42lux-Schwarzwald-Klinik', 'alvdansen/softserve_anime', 'UmeAiRT/FLUX.1-dev-LoRA-Modern_Pixel_art', 'prithivMLmods/Retro-Pixel-Flux-LoRA', 'nerijs/pixel-art-xl', 'blink7630/storyboard-sketch', 'stabilityai/stable-diffusion-3-medium', 'fofr/sdxl-emoji', 'alvdansen/midsommarcartoon', 'davisbro/half_illustration', 'multimodalart/flux-tarot-v1', 'renderartist/simplevectorflux', 'Efficient-Large-Model/Sana_1600M_1024px', 'tryonlabs/FLUX.1-dev-LoRA-Outfit-Generator', 'glif-loradex-trainer/AP123_movie_shots_ic_lora_experiment_v1', 'glif-loradex-trainer/Lamia-000_Antoinette', 'Efficient-Large-Model/SANA1.5_4.8B_1024px_diffusers', 'HiDream-ai/HiDream-I1-Dev', 'multimodalart/isometric-skeumorphic-3d-bnb', 'nerijs/lego-minifig-xl', 'goofyai/3d_render_style_xl', 'artificialguybr/PixelArtRedmond', 'KappaNeuro/victor-brauner-style', 'ostris/ikea-instructions-lora-sdxl', 'ntc-ai/SDXL-LoRA-slider.pixel-art', 'rikhoffbauer2/naomi-makkelie-seaweed-painting-style-4', 'alexionby/south_park_lora', 'sWizad/pokemon-trainer-sprite-pixelart', 'jasperai/flash-sdxl', 'Kwai-Kolors/Kolors', 'alvdansen/littletinies', 'StableGenius-AI/dana-trippee-sdxl-1.0', 'XLabs-AI/flux-RealismLora', 'Norod78/Flux_1_Dev_LoRA_Paper-Cutout-Style', 'samim/flow-lora-2', 'nerijs/flux-waldo1024-v1', 'alvdansen/haunted_linework_flux', 'aleksa-codes/flux-ghibsky-illustration', 'nerijs/dark-fantasy-illustration-flux', 'multimodalart/vintage-ads-flux', 'Shakker-Labs/FLUX.1-dev-LoRA-Vector-Journey', 'Shakker-Labs/FLUX.1-dev-LoRA-Children-Simple-Sketch', 'punzel/flux_billie_eilish', 'bingbangboom/flux_geopop', 'glif/how2draw', 'glif/90s-anime-art', 'renderartist/coloringbookflux', 'Shakker-Labs/FLUX.1-dev-LoRA-One-Click-Creative-Template', 'renderartist/toyboxflux', 'Purz/choose-your-own-adventure', 'fabdream/Comicbook-vintage', 'prithivMLmods/Canopus-LoRA-Flux-UltraRealism-2.0', 'elifergunes/background_only_game_2', 'gokaygokay/Flux-Game-Assets-LoRA-v2', 'martintomov/ecom-flux-v1', 'Shakker-Labs/FLUX.1-dev-LoRA-Text-Poster', 'glif-loradex-trainer/001_flux_wojaks_v1', 'Keltezaa/flux-chloe-grace-moretz', 'prithivMLmods/Logo-Design-Flux-LoRA', 'prithivMLmods/Minimal-Futuristic-Flux-LoRA', 'gokaygokay/Flux-2D-Game-Assets-LoRA', 'ayrisdev/mobile-ui-design', 'glif-loradex-trainer/insectagon_mugshots1', 'prithivMLmods/Knitted-Character-Flux-LoRA', 'prithivMLmods/Digital-Chaos-Flux-LoRA', 'strangerzonehf/Flux-Ultimate-LoRA-Collection', 'prithivMLmods/Flux.1-Dev-Pov-DoorEye-LoRA', 'mmaluchnick/jessica-simpson-young-flux-model', 'glif-loradex-trainer/kklors_flux_dev_translucency', 'strangerzonehf/Flux-Isometric-3D-LoRA', 'strangerzonehf/Flux-Isometric-3D-Cinematography', 'jwywoo/storyboard-scene-generation-model-flux-v3-FLH', 'strangerzonehf/Flux-Isometric-Site-LoRA', 'mrcuddle/live2d-model-maker', 'alastandy/Add-Dental-Braces-4', 'AIGCDuckBoss/fluxLora_gamecartoon', 'fofr/flux-handwriting', 'strangerzonehf/Flux-Sketch-Smudge-LoRA', 'AiWise/AlbedoBase-XL_v31-Large', 'Keltezaa/kristen-bell', 'Keltezaa/neve-campbell-1990s-flux', 'strangerzonehf/2Color-Illustration', 'prathmeshyelne/ImagiX', 'Jonjew/MargaretQualley', 'Jonjew/GhibliStyleFlux', 'glif-loradex-trainer/Hailey_LostVHS', 'AniPatki23/interior', 'pictgensupport/romancenovels', 'glif-loradex-trainer/Swap_agrawal14_aestheticretrocapturez', 'Svngoku/AfroInfluencerStyle', 'ajinkyaT/Interiorly-gen1-dev', 'Keltezaa/ZhaoLusi', 'CanaryDigital/character_cby_a', 'CultriX/flux-nsfw-highress', 'openfree/flux-chatgpt-ghibli-lora', 'Keltezaa/blowjob-pov-flux-lora', 'lustlyai/Flux_Lustly.ai_Uncensored_nsfw_v1', 'Keltezaa/NSFW_MASTER_FLUX', 'Jonjew/OnlyFansSexyPost', 'uriel353/photorealistic-nsfw', 'AI-Porn/pornworks-characters-dva-from-overwatch-sdxl', 'qwen-image', 'flux-krea-dev', 'flux-dev', 'stable-diffusion-xl-base-1.0', 'flux-schnell', 'sd-3.5-large', 'stable-diffusion-3.5-medium', 'hyper-sd', 'hidream-i1-full', 'sdxl-lightning', 'farshchian.flux', 'flux-dev-lora-logo-design', 'flux-super-realism-lora', 'flux-midjourney-mix2-lora', 'flux-kontext-inpaint-lora', '42lux-schwarzwald-klinik', 'softserve.anime', 'flux-dev-lora-modern.pixel.art', 'retro-pixel-flux-lora', 'pixel-art-xl', 'storyboard-sketch', 'stable-diffusion-3-medium', 'sdxl-emoji', 'midsommarcartoon', 'half.illustration', 'flux-tarot', 'simplevectorflux', 'sana.1600m.1024px', 'flux-dev-lora-outfit-generator', 'ap123.movie.shots.ic.lora.experiment.v1', 'lamia-000.antoinette', 'sana1.5.4.8b.1024px.diffusers', 'hidream-i1-dev', 'isometric-skeumorphic-3d-bnb', 'lego-minifig-xl', '3d.render.style.xl', 'pixelartredmond', 'victor-brauner-style', 'ikea-instructions-lora-sdxl', 'sdxl-lora-slider.pixel-art', 'naomi-makkelie-seaweed-painting-style-4', 'south.park.lora', 'pokemon-trainer-sprite-pixelart', 'flash-sdxl', 'kolors', 'littletinies', 'dana-trippee-sdxl-1.0', 'flux-realismlora', 'flux.1.dev.lora.paper-cutout-style', 'flow-lora-2', 'flux-waldo1024', 'haunted.linework.flux', 'flux-ghibsky-illustration', 'dark-fantasy-illustration-flux', 'vintage-ads-flux', 'flux-dev-lora-vector-journey', 'flux-dev-lora-children-simple-sketch', 'flux.billie.eilish', 'flux.geopop', 'how2draw', '90s-anime-art', 'coloringbookflux', 'flux-dev-lora-one-click-creative-template', 'toyboxflux', 'choose-your-own-adventure', 'comicbook-vintage', 'canopus-lora-flux-ultrarealism-2.0', 'background.only.game.2', 'flux-game-assets-lora', 'ecom-flux', 'flux-dev-lora-text-poster', '001.flux.wojaks.v1', 'flux-chloe-grace-moretz', 'logo-design-flux-lora', 'minimal-futuristic-flux-lora', 'flux-2d-game-assets-lora', 'mobile-ui-design', 'insectagon.mugshots1', 'knitted-character-flux-lora', 'digital-chaos-flux-lora', 'flux-ultimate-lora-collection', 'flux-dev-pov-dooreye-lora', 'jessica-simpson-young-flux-model', 'kklors.flux.dev.translucency', 'flux-isometric-3d-lora', 'flux-isometric-3d-cinematography', 'storyboard-scene-generation-model-flux-v3-flh', 'flux-isometric-site-lora', 'live2d-model-maker', 'add-dental-braces-4', 'fluxlora.gamecartoon', 'flux-handwriting', 'flux-sketch-smudge-lora', 'albedobase-xl.v31-large', 'kristen-bell', 'neve-campbell-1990s-flux', '2color-illustration', 'imagix', 'margaretqualley', 'ghiblistyleflux', 'hailey.lostvhs', 'interior', 'romancenovels', 'swap.agrawal14.aestheticretrocapturez', 'afroinfluencerstyle', 'interiorly-gen1-dev', 'zhaolusi', 'character.cby.a', 'flux-nsfw-highress', 'flux-chatgpt-ghibli-lora', 'blowjob-pov-flux-lora', 'flux.lustly.ai.uncensored.nsfw.v1', 'nsfw.master.flux', 'onlyfanssexypost', 'photorealistic-nsfw', 'pornworks-characters-dva-from-overwatch-sdxl', 'flux-1-kontext-pro', 'gpt-image-1', 'flux-1-kontext-max', 'imagen-4.0-ultra-generate-preview-06-06', 'imagen-3.0-generate-002', 'ideogram-v2', 'photon', 'step1x-edit', 'dall-e-3', 'recraft-v3', 'anonymous-bot-0514', 'flux-1.1-pro', 'ideogram-v3-quality', 'imagen-4.0-generate-preview-06-06', 'seedream-3', 'seededit-3.0', 'flux-1-kontext-dev', 'bagel', 'gemini-2.0-flash-preview-image-generation', 'flux-1-kontext-pro', 'gpt-image-1', 'flux-1-kontext-max', 'imagen-4.0-ultra-generate', 'imagen-3.0-generate-002', 'ideogram', 'photon', 'step1x-edit', 'dall-e-3', 'recraft', 'anonymous-bot-0514', 'flux-1.1-pro', 'ideogram-v3-quality', 'imagen-4.0-generate', 'seedream-3', 'seededit-3.0', 'flux-1-kontext-dev', 'bagel', 'gemini-2.0-flash-preview-image-generation', 'flux-kontext-dev', 'flux-dev', 'janus-pro-7b-image', 'flux', 'sd-3.5-large', 'flux-kontext-dev', 'flux-dev', 'janus-pro-7b-image', 'flux', 'sd-3.5-large']
+vision_models = ['auto', 'gpt-4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.5', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3-mini', 'o3-mini-high', 'o4-mini', 'o4-mini-high', 'PollinationsAI:openai', 'PollinationsAI:evil', 'PollinationsAI:llama-fast-roblox', 'PollinationsAI:mistral-small-3.1-24b', 'PollinationsAI:mistral-roblox', 'PollinationsAI:gpt-4.1-nano', 'PollinationsAI:gpt-4o-mini-audio', 'PollinationsAI:openai-fast', 'PollinationsAI:gpt-4.1', 'PollinationsAI:openai-roblox', 'PollinationsAI:bidara', 'PollinationsAI:mirexa', 'PollinationsAI:sur', 'PollinationsAI:unity', 'openai', 'llama-fast-roblox', 'mistral-small-3.1-24b', 'mistral-roblox', 'gpt-4.1-nano', 'gpt-4o-mini-audio', 'openai-fast', 'gpt-4.1', 'openai-roblox', 'bidara', 'evil', 'mirexa', 'sur', 'unity', 'gemini-2.5-pro-preview-05-06', 'o3-2025-04-16', 'o4-mini-2025-04-16', 'mistral-medium-2505', 'gemini-2.5-flash-preview-04-17', 'gpt-4.1-2025-04-14', 'claude-3-7-sonnet-20250219', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e-instruct', 'llama-4-scout-17b-16e-instruct', 'gpt-4.1-mini-2025-04-14', 'gpt-4.1-nano-2025-04-14', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite-preview-02-05', 'gemma-3-27b-it', 'claude-3-5-sonnet-20241022', 'gpt-4o-mini-2024-07-18', 'gpt-4o-2024-11-20', 'gpt-4o-2024-08-06', 'gpt-4o-2024-05-13', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet-20240620', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b-instruct', 'qwen2.5-vl-72b-instruct', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core-20240904', 'reka-flash-20240904', 'c4ai-aya-vision-32b', 'pixtral-12b-2409', 'gemini-2.5-pro', 'o3', 'o4-mini', 'mistral-medium-2505', 'gemini-2.5-flash', 'gpt-4.1', 'claude-3-7-sonnet', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite', 'gemma-3-27b-it', 'claude-3-5-sonnet', 'gpt-4o-mini', 'gpt-4o', 'gpt-4o', 'gpt-4o', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b', 'qwen2.5-vl-72b', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku', 'claude-3-sonnet', 'claude-3-opus', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core', 'reka-flash', 'aya-vision-32b', 'pixtral-12b-2409', 'openai/gpt-oss-120b', 'meta-llama/Llama-3.2-90B-Vision-Instruct', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'gpt-oss-120b', 'llama-3.2-90b-vision', 'gpt-oss-120b', 'gpt-oss-20b', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 'Qwen/Qwen2-VL-7B-Instruct', 'llama-3.2-11b-vision', 'qwen-2vl-7b', 'gemini-2.5-pro-preview-05-06', 'o3-2025-04-16', 'o4-mini-2025-04-16', 'mistral-medium-2505', 'gemini-2.5-flash-preview-04-17', 'gpt-4.1-2025-04-14', 'claude-3-7-sonnet-20250219', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e-instruct', 'llama-4-scout-17b-16e-instruct', 'gpt-4.1-mini-2025-04-14', 'gpt-4.1-nano-2025-04-14', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite-preview-02-05', 'gemma-3-27b-it', 'claude-3-5-sonnet-20241022', 'gpt-4o-mini-2024-07-18', 'gpt-4o-2024-11-20', 'gpt-4o-2024-08-06', 'gpt-4o-2024-05-13', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet-20240620', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b-instruct', 'qwen2.5-vl-72b-instruct', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core-20240904', 'reka-flash-20240904', 'c4ai-aya-vision-32b', 'pixtral-12b-2409', 'gemini-2.5-pro', 'o3', 'o4-mini', 'mistral-medium-2505', 'gemini-2.5-flash', 'gpt-4.1', 'claude-3-7-sonnet', 'claude-3-7-sonnet-20250219-thinking-32k', 'llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite', 'gemma-3-27b-it', 'claude-3-5-sonnet', 'gpt-4o-mini', 'gpt-4o', 'gpt-4o', 'gpt-4o', 'mistral-small-3.1-24b-instruct-2503', 'claude-3-5-sonnet', 'amazon-nova-pro-v1.0', 'amazon-nova-lite-v1.0', 'qwen2.5-vl-32b', 'qwen2.5-vl-72b', 'gemini-1.5-pro-002', 'gemini-1.5-flash-002', 'gemini-1.5-flash-8b-001', 'gemini-1.5-pro-001', 'gemini-1.5-flash-001', 'pixtral-large-2411', 'step-1o-vision-32k-highres', 'claude-3-haiku', 'claude-3-sonnet', 'claude-3-opus', 'qwen-vl-max-1119', 'qwen-vl-max-0809', 'reka-core', 'reka-flash', 'aya-vision-32b', 'pixtral-12b-2409', 'flux-1-kontext-pro', 'gpt-4.1-2025-04-14', 'gpt-image-1', 'gemini-2.5-pro', 'flux-1-kontext-max', 'gemini-2.5-flash', 'o3-2025-04-16', 'chatgpt-4o-latest-20250326', 'mistral-small-3.1-24b-instruct-2503', 'gemma-3-27b-it', 'gpt-4.1-mini-2025-04-14', 'amazon.nova-pro-v1:0', 'o4-mini-2025-04-16', 'gemini-2.5-flash-lite-preview-06-17-thinking', 'mistral-medium-2505', 'kling-2-master-image-to-video', 'llama-4-maverick-17b-128e-instruct', 'step1x-edit', 'stonebloom', 'step-1o-turbo-202506', 'stephen-vision-csfix', 'mistral-small-2506', 'wolfstride', 'grok-4-0709', 'seededit-3.0', 'flux-1-kontext-dev', 'gemini-2.0-flash-001', 'bagel', 'hunyuan-large-vision', 'llama-4-scout-17b-16e-instruct', 'gemini-2.0-flash-preview-image-generation', 'seedance-1-lite-image-to-video', 'flux-1-kontext-pro', 'gpt-4.1', 'gpt-image-1', 'gemini-2.5-pro', 'flux-1-kontext-max', 'gemini-2.5-flash', 'o3', 'chatgpt-4o-latest', 'mistral-small-3.1-24b-instruct-2503', 'gemma-3-27b-it', 'gpt-4.1-mini', 'amazon.nova-pro', 'o4-mini', 'gemini-2.5-flash-lite-preview-thinking', 'mistral-medium-2505', 'kling-2-master-image-to-video', 'llama-4-maverick-17b-128e', 'step1x-edit', 'stonebloom', 'step-1o-turbo-202506', 'stephen-vision-csfix', 'mistral-small-2506', 'wolfstride', 'grok-4-0709', 'seededit-3.0', 'flux-1-kontext-dev', 'gemini-2.0-flash-001', 'bagel', 'hunyuan-large-vision', 'llama-4-scout-17b-16e', 'gemini-2.0-flash-preview-image-generation', 'seedance-1-lite-image-to-video', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o1-pro', 'o3', 'o3-mini', 'o4-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5-preview', 'grok-vision-beta', 'grok-2-vision', 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'gpt-4o-search', 'gpt-4o-mini-search', 'o3-mini-high', 'o4-mini-high', 'gpt-4.5', 'phi-4-multimodal', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o1-pro', 'o3', 'o3-mini', 'o4-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5', 'grok-vision-beta', 'grok-2-vision', 'gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'gpt-4o-search', 'gpt-4o-mini-search', 'o3-mini-high', 'o4-mini-high', 'gpt-4.5', 'phi-4-multimodal', 'janus-pro-7b', 'phi-4-multimodal', 'janus-pro-7b', 'phi-4-multimodal']
 video_models = ['Wan-AI/Wan2.2-TI2V-5B', 'Wan-AI/Wan2.2-T2V-A14B', 'Wan-AI/Wan2.2-T2V-A14B-Diffusers', 'tencent/HunyuanVideo', 'Wan-AI/Wan2.1-T2V-14B', 'Wan-AI/Wan2.1-T2V-1.3B', 'genmo/mochi-1-preview', 'Lightricks/LTX-Video-0.9.7-dev', 'wan2.2-ti2v-5b', 'wan2.2-t2v-a14b', 'wan2.2-t2v-a14b-diffusers', 'hunyuanvideo', 'wan2.1-t2v-14b', 'wan2.1-t2v-1.3b', 'mochi-1', 'ltx-video-0.9.7-dev', 'video']
 model_map = {
   "default": {
@@ -22,7 +22,6 @@ model_map = {
   },
   "gpt-4": {
     "Blackbox": "gpt-4",
-    "PollinationsAI": "openai",
     "Copilot": "gpt-4",
     "Yqcloud": "gpt-4",
     "WeWordle": "gpt-4",
@@ -50,7 +49,6 @@ model_map = {
   },
   "gpt-4o": {
     "Blackbox": "gpt-4o",
-    "PollinationsAI": "openai",
     "OpenaiChat": "gpt-4o",
     "Copilot": "gpt-4o",
     "CopilotAccount": "Copilot",
@@ -86,7 +84,6 @@ model_map = {
   },
   "gpt-4o-mini": {
     "Blackbox": "gpt-4o-mini",
-    "PollinationsAI": "openai",
     "Chatai": "gpt-4o-mini-2024-07-18",
     "OIVSCodeSer2": "gpt-4o-mini",
     "OpenaiChat": "gpt-4o-mini",
@@ -188,7 +185,6 @@ model_map = {
   "gpt-4.1-mini": {
     "Blackbox": "gpt-4.1-mini",
     "OIVSCodeSer0501": "gpt-4.1-mini",
-    "PollinationsAI": "openai",
     "OpenaiChat": "gpt-4-1-mini",
     "HarProvider": "gpt-4.1-mini-2025-04-14",
     "LegacyLMArena": "gpt-4.1-mini-2025-04-14",
@@ -200,7 +196,7 @@ model_map = {
   },
   "gpt-4.1-nano": {
     "Blackbox": "gpt-4.1-nano",
-    "PollinationsAI": "openai-fast",
+    "PollinationsAI": "openai",
     "HarProvider": "gpt-4.1-nano-2025-04-14",
     "LegacyLMArena": "gpt-4.1-nano-2025-04-14",
     "PuterJS": [
@@ -444,7 +440,7 @@ model_map = {
     "PuterJS": "openrouter:microsoft/phi-4"
   },
   "phi-4-multimodal": {
-    "DeepInfraChat": "openai/gpt-oss-120b",
+    "DeepInfraChat": "microsoft/Phi-4-multimodal-instruct",
     "HuggingSpace": "phi-4-multimodal",
     "PuterJS": "openrouter:microsoft/phi-4-multimodal-instruct"
   },
@@ -1080,6 +1076,9 @@ model_map = {
   "PollinationsAI:evil": {
     "PollinationsAI": "evil"
   },
+  "PollinationsAI:deepseek-r1": {
+    "PollinationsAI": "deepseek-r1"
+  },
   "PollinationsAI:glm": {
     "PollinationsAI": "glm"
   },
@@ -1101,14 +1100,14 @@ model_map = {
   "PollinationsAI:mistral-roblox": {
     "PollinationsAI": "mistral-roblox"
   },
-  "PollinationsAI:gpt-4o-mini": {
-    "PollinationsAI": "gpt-4o-mini"
-  },
-  "PollinationsAI:gpt-4o-audio": {
-    "PollinationsAI": "gpt-4o-audio"
-  },
   "PollinationsAI:gpt-4.1-nano": {
     "PollinationsAI": "gpt-4.1-nano"
+  },
+  "PollinationsAI:gpt-4o-mini-audio": {
+    "PollinationsAI": "gpt-4o-mini-audio"
+  },
+  "PollinationsAI:openai-fast": {
+    "PollinationsAI": "openai-fast"
   },
   "PollinationsAI:gpt-4.1": {
     "PollinationsAI": "gpt-4.1"
@@ -1155,9 +1154,6 @@ model_map = {
   "PollinationsAI:openai-audio": {
     "PollinationsAI": "openai-audio"
   },
-  "PollinationsAI:gpt-4o-mini-audio": {
-    "PollinationsAI": "gpt-4o-mini-audio"
-  },
   "PollinationsAI:alloy": {
     "PollinationsAI": "alloy"
   },
@@ -1201,9 +1197,6 @@ model_map = {
     "PollinationsAI": "grok",
     "LMArenaBeta": "grok-3-mini-high"
   },
-  "gpt-4o-audio": {
-    "PollinationsAI": "openai-audio"
-  },
   "": {
     "Gemini": ""
   },
@@ -1215,247 +1208,46 @@ model_map = {
     "LegacyLMArena": "chatgpt-4o-latest-20250326",
     "LMArenaBeta": "chatgpt-4o-latest-20250326"
   },
-  "amazon-nova-lite-v1.0": {
-    "HarProvider": "amazon-nova-lite-v1.0",
-    "LegacyLMArena": "amazon-nova-lite-v1.0"
+  "jamba-1.5-large": {
+    "HarProvider": "jamba-1.5-large",
+    "LegacyLMArena": "jamba-1.5-large"
   },
-  "gemini-exp-1206": {
-    "HarProvider": "gemini-exp-1206",
-    "LegacyLMArena": "gemini-exp-1206"
+  "qwen1.5-14b": {
+    "HarProvider": "qwen1.5-14b-chat",
+    "LegacyLMArena": "qwen1.5-14b-chat"
   },
-  "grok-2-mini": {
-    "HarProvider": "grok-2-mini-2024-08-13",
-    "LegacyLMArena": "grok-2-mini-2024-08-13"
-  },
-  "gemini-exp-1114": {
-    "HarProvider": "gemini-exp-1114",
-    "LegacyLMArena": "gemini-exp-1114"
-  },
-  "llama-3.1-nemotron-70b": {
-    "HarProvider": "llama-3.1-nemotron-70b-instruct",
-    "LambdaChat": "llama3.1-nemotron-70b-instruct",
-    "LegacyLMArena": "llama-3.1-nemotron-70b-instruct"
-  },
-  "qwen-plus-0125": {
-    "HarProvider": "qwen-plus-0125",
-    "LegacyLMArena": "qwen-plus-0125"
-  },
-  "aya-expanse-8b": {
-    "HarProvider": "c4ai-aya-expanse-8b",
-    "LegacyLMArena": "c4ai-aya-expanse-8b"
-  },
-  "granite-3.0-8b": {
-    "HarProvider": "granite-3.0-8b-instruct",
-    "LegacyLMArena": "granite-3.0-8b-instruct"
-  },
-  "claude-3-5-sonnet": {
-    "HarProvider": "claude-3-5-sonnet-20240620",
-    "LegacyLMArena": "claude-3-5-sonnet-20240620",
-    "LMArenaBeta": "claude-3-5-sonnet-20241022",
-    "PuterJS": "claude-3-5-sonnet-20241022"
-  },
-  "glm-4-plus": {
-    "HarProvider": [
-      "glm-4-plus-0111",
-      "glm-4-plus"
-    ],
-    "LegacyLMArena": [
-      "glm-4-plus-0111",
-      "glm-4-plus"
-    ]
-  },
-  "gemma-1.1-7b-it": {
-    "HarProvider": "gemma-1.1-7b-it",
-    "LegacyLMArena": "gemma-1.1-7b-it"
-  },
-  "glm-4-0116": {
-    "HarProvider": "glm-4-0116",
-    "LegacyLMArena": "glm-4-0116"
-  },
-  "gemini-1.5-flash-002": {
-    "HarProvider": "gemini-1.5-flash-002",
-    "LegacyLMArena": "gemini-1.5-flash-002"
-  },
-  "command-r24": {
-    "HarProvider": "command-r-08-2024",
-    "LegacyLMArena": "command-r-08-2024",
-    "HuggingSpace": "command-r-08-2024"
-  },
-  "olmo-7b": {
-    "HarProvider": "olmo-7b-instruct",
-    "LegacyLMArena": "olmo-7b-instruct"
-  },
-  "qwen2.5-plus-1127": {
-    "HarProvider": "qwen2.5-plus-1127",
-    "LegacyLMArena": "qwen2.5-plus-1127"
-  },
-  "llama-3.1-nemotron-51b": {
-    "HarProvider": "llama-3.1-nemotron-51b-instruct",
-    "LegacyLMArena": "llama-3.1-nemotron-51b-instruct"
-  },
-  "gpt-4-0125": {
-    "HarProvider": "gpt-4-0125-preview",
-    "LegacyLMArena": "gpt-4-0125-preview"
-  },
-  "gemma-3-12b-it": {
-    "HarProvider": "gemma-3-12b-it",
-    "DeepInfraChat": "google/gemma-3-12b-it",
-    "LegacyLMArena": "gemma-3-12b-it",
-    "GeminiPro": "gemma-3-12b-it"
-  },
-  "oasst-pythia-12b": {
-    "HarProvider": "oasst-pythia-12b",
-    "LegacyLMArena": "oasst-pythia-12b"
-  },
-  "fastchat-t5-3b": {
-    "HarProvider": "fastchat-t5-3b",
-    "LegacyLMArena": "fastchat-t5-3b"
-  },
-  "claude-3-opus": {
-    "HarProvider": "claude-3-opus-20240229",
-    "LegacyLMArena": "claude-3-opus-20240229",
-    "PuterJS": [
-      "openrouter:anthropic/claude-3-opus:beta",
-      "openrouter:anthropic/claude-3-opus"
-    ]
-  },
-  "claude-instant-1": {
-    "HarProvider": "claude-instant-1",
-    "LegacyLMArena": "claude-instant-1"
-  },
-  "claude-2.0": {
-    "HarProvider": "claude-2.0",
-    "LegacyLMArena": "claude-2.0",
-    "PuterJS": [
-      "openrouter:anthropic/claude-2.0:beta",
-      "openrouter:anthropic/claude-2.0"
-    ]
-  },
-  "deepseek-v2.5": {
-    "HarProvider": [
-      "deepseek-v2.5-1210",
-      "deepseek-v2.5"
-    ],
-    "LegacyLMArena": [
-      "deepseek-v2.5-1210",
-      "deepseek-v2.5"
-    ]
-  },
-  "ministral-8b-2410": {
-    "HarProvider": "ministral-8b-2410",
-    "LegacyLMArena": "ministral-8b-2410",
-    "PuterJS": "ministral-8b-2410"
-  },
-  "mistral-next": {
-    "HarProvider": "mistral-next",
-    "LegacyLMArena": "mistral-next"
-  },
-  "mistral-7b-instruct-v0.2": {
-    "HarProvider": "mistral-7b-instruct-v0.2",
-    "LegacyLMArena": "mistral-7b-instruct-v0.2"
-  },
-  "claude-2.1": {
-    "HarProvider": "claude-2.1",
-    "LegacyLMArena": "claude-2.1",
-    "PuterJS": [
-      "openrouter:anthropic/claude-2.1:beta",
-      "openrouter:anthropic/claude-2.1"
-    ]
-  },
-  "gemma-2-9b-it": {
-    "HarProvider": "gemma-2-9b-it",
-    "LegacyLMArena": "gemma-2-9b-it"
-  },
-  "deepseek": {
-    "HarProvider": "deepseek-v3",
-    "DeepInfraChat": "deepseek-ai/DeepSeek-V3",
-    "LegacyLMArena": "deepseek-v3",
-    "PuterJS": "deepseek-chat"
-  },
-  "gemini-2.0-flash-thinking-exp-1219": {
-    "HarProvider": "gemini-2.0-flash-thinking-exp-1219",
-    "LegacyLMArena": "gemini-2.0-flash-thinking-exp-1219"
-  },
-  "internlm2.5-20b": {
-    "HarProvider": "internlm2_5-20b-chat",
-    "LegacyLMArena": "internlm2_5-20b-chat"
-  },
-  "gemini-2.0-flash-thinking-exp": {
-    "HarProvider": "gemini-2.0-flash-thinking-exp-01-21",
-    "LegacyLMArena": "gemini-2.0-flash-thinking-exp-01-21",
-    "GeminiPro": "gemini-2.0-flash-thinking-exp"
+  "claude-3-5-haiku": {
+    "HarProvider": "claude-3-5-haiku-20241022",
+    "LegacyLMArena": "claude-3-5-haiku-20241022",
+    "LMArenaBeta": "claude-3-5-haiku-20241022"
   },
   "claude-1": {
     "HarProvider": "claude-1",
     "LegacyLMArena": "claude-1"
   },
-  "claude-3-sonnet": {
-    "HarProvider": "claude-3-sonnet-20240229",
-    "LegacyLMArena": "claude-3-sonnet-20240229",
-    "PuterJS": [
-      "openrouter:anthropic/claude-3-sonnet:beta",
-      "openrouter:anthropic/claude-3-sonnet"
-    ]
+  "gemini-exp-1114": {
+    "HarProvider": "gemini-exp-1114",
+    "LegacyLMArena": "gemini-exp-1114"
   },
-  "yi-1.5-34b": {
-    "HarProvider": "yi-1.5-34b-chat",
-    "LegacyLMArena": "yi-1.5-34b-chat"
+  "qwen2.5-plus-1127": {
+    "HarProvider": "qwen2.5-plus-1127",
+    "LegacyLMArena": "qwen2.5-plus-1127"
   },
-  "guanaco-33b": {
-    "HarProvider": "guanaco-33b",
-    "LegacyLMArena": "guanaco-33b"
+  "llama-3.1-tulu-3-8b": {
+    "HarProvider": "llama-3.1-tulu-3-8b",
+    "LegacyLMArena": "llama-3.1-tulu-3-8b"
   },
-  "gemini-1.5-pro-001": {
-    "HarProvider": "gemini-1.5-pro-001",
-    "LegacyLMArena": "gemini-1.5-pro-001"
+  "internlm2.5-20b": {
+    "HarProvider": "internlm2_5-20b-chat",
+    "LegacyLMArena": "internlm2_5-20b-chat"
   },
-  "gemini-2.0-flash-lite": {
-    "HarProvider": "gemini-2.0-flash-lite-preview-02-05",
-    "LegacyLMArena": "gemini-2.0-flash-lite-preview-02-05",
-    "GeminiPro": "gemini-2.0-flash-lite"
+  "llama-3.1-405b-instruct": {
+    "HarProvider": "llama-3.1-405b-instruct-bf16",
+    "LegacyLMArena": "llama-3.1-405b-instruct-bf16"
   },
-  "mistral-large-2407": {
-    "HarProvider": "mistral-large-2407",
-    "LegacyLMArena": "mistral-large-2407"
-  },
-  "gemma-2-2b-it": {
-    "HarProvider": "gemma-2-2b-it",
-    "LegacyLMArena": "gemma-2-2b-it"
-  },
-  "glm-4-0520": {
-    "HarProvider": "glm-4-0520",
-    "LegacyLMArena": "glm-4-0520"
-  },
-  "mistral-medium": {
-    "HarProvider": [
-      "mistral-medium",
-      "mistral-medium-2505"
-    ],
-    "LegacyLMArena": [
-      "mistral-medium",
-      "mistral-medium-2505"
-    ],
-    "PuterJS": [
-      "openrouter:mistralai/mistral-medium",
-      "openrouter:mistralai/mistral-medium-3"
-    ]
-  },
-  "amazon-nova-micro-v1.0": {
-    "HarProvider": "amazon-nova-micro-v1.0",
-    "LegacyLMArena": "amazon-nova-micro-v1.0"
-  },
-  "gpt-4-0314": {
-    "HarProvider": "gpt-4-0314",
-    "LegacyLMArena": "gpt-4-0314"
-  },
-  "gemma-2b-it": {
-    "HarProvider": "gemma-2b-it",
-    "LegacyLMArena": "gemma-2b-it"
-  },
-  "gemini-2.0-flash-001": {
-    "HarProvider": "gemini-2.0-flash-001",
-    "LegacyLMArena": "gemini-2.0-flash-001",
-    "LMArenaBeta": "gemini-2.0-flash-001"
+  "glm-4-0116": {
+    "HarProvider": "glm-4-0116",
+    "LegacyLMArena": "glm-4-0116"
   },
   "nemotron-4-340b": {
     "HarProvider": [
@@ -1467,18 +1259,99 @@ model_map = {
       "nemotron-4-340b"
     ]
   },
-  "llama-4-maverick-17b-128e": {
-    "HarProvider": "llama-4-maverick-17b-128e-instruct",
-    "LegacyLMArena": "llama-4-maverick-17b-128e-instruct",
-    "LMArenaBeta": "llama-4-maverick-17b-128e-instruct"
+  "stablelm-tuned-alpha-7b": {
+    "HarProvider": "stablelm-tuned-alpha-7b",
+    "LegacyLMArena": "stablelm-tuned-alpha-7b"
   },
-  "gpt-3.5-turbo-1106": {
-    "HarProvider": "gpt-3.5-turbo-1106",
-    "LegacyLMArena": "gpt-3.5-turbo-1106"
+  "amazon-nova-micro-v1.0": {
+    "HarProvider": "amazon-nova-micro-v1.0",
+    "LegacyLMArena": "amazon-nova-micro-v1.0"
   },
-  "gpt-3.5-turbo-0314": {
-    "HarProvider": "gpt-3.5-turbo-0314",
-    "LegacyLMArena": "gpt-3.5-turbo-0314"
+  "qwen-272b": {
+    "HarProvider": "qwen2-72b-instruct",
+    "LegacyLMArena": "qwen2-72b-instruct"
+  },
+  "gemma-2-9b-it": {
+    "HarProvider": "gemma-2-9b-it",
+    "LegacyLMArena": "gemma-2-9b-it"
+  },
+  "qwen-max-0428": {
+    "HarProvider": "qwen-max-0428",
+    "LegacyLMArena": "qwen-max-0428"
+  },
+  "glm-4-0520": {
+    "HarProvider": "glm-4-0520",
+    "LegacyLMArena": "glm-4-0520"
+  },
+  "olmo-7b": {
+    "HarProvider": "olmo-7b-instruct",
+    "LegacyLMArena": "olmo-7b-instruct"
+  },
+  "claude-3-7-sonnet": {
+    "HarProvider": "claude-3-7-sonnet-20250219",
+    "LegacyLMArena": "claude-3-7-sonnet-20250219",
+    "LMArenaBeta": "claude-3-7-sonnet-20250219",
+    "PuterJS": "claude-3-7-sonnet-20250219"
+  },
+  "qwen1.5-32b": {
+    "HarProvider": "qwen1.5-32b-chat",
+    "LegacyLMArena": "qwen1.5-32b-chat"
+  },
+  "claude-3-haiku": {
+    "HarProvider": "claude-3-haiku-20240307",
+    "LegacyLMArena": "claude-3-haiku-20240307",
+    "PuterJS": [
+      "claude-3-haiku-20240307",
+      "openrouter:anthropic/claude-3-haiku:beta",
+      "openrouter:anthropic/claude-3-haiku"
+    ]
+  },
+  "gemini-pro-dev-api": {
+    "HarProvider": "gemini-pro-dev-api",
+    "LegacyLMArena": "gemini-pro-dev-api"
+  },
+  "llama2-70b-steerlm": {
+    "HarProvider": "llama2-70b-steerlm-chat",
+    "LegacyLMArena": "llama2-70b-steerlm-chat"
+  },
+  "mistral-large-2407": {
+    "HarProvider": "mistral-large-2407",
+    "LegacyLMArena": "mistral-large-2407"
+  },
+  "llama-3.1-nemotron-70b": {
+    "HarProvider": "llama-3.1-nemotron-70b-instruct",
+    "LambdaChat": "llama3.1-nemotron-70b-instruct",
+    "LegacyLMArena": "llama-3.1-nemotron-70b-instruct"
+  },
+  "granite-3.1-2b": {
+    "HarProvider": "granite-3.1-2b-instruct",
+    "LegacyLMArena": "granite-3.1-2b-instruct"
+  },
+  "qwen-max-0919": {
+    "HarProvider": "qwen-max-0919",
+    "LegacyLMArena": "qwen-max-0919"
+  },
+  "phi-3-mini-128k": {
+    "HarProvider": "phi-3-mini-128k-instruct",
+    "LegacyLMArena": "phi-3-mini-128k-instruct"
+  },
+  "gpt-4-1106": {
+    "HarProvider": "gpt-4-1106-preview",
+    "LegacyLMArena": "gpt-4-1106-preview"
+  },
+  "qwen2.5-72b": {
+    "HarProvider": "qwen2.5-72b-instruct",
+    "LegacyLMArena": "qwen2.5-72b-instruct"
+  },
+  "claude-3-5-sonnet": {
+    "HarProvider": "claude-3-5-sonnet-20240620",
+    "LegacyLMArena": "claude-3-5-sonnet-20240620",
+    "LMArenaBeta": "claude-3-5-sonnet-20241022",
+    "PuterJS": "claude-3-5-sonnet-20241022"
+  },
+  "athene-70b-0725": {
+    "HarProvider": "athene-70b-0725",
+    "LegacyLMArena": "athene-70b-0725"
   },
   "reka-core": {
     "HarProvider": [
@@ -1492,6 +1365,88 @@ model_map = {
       "reka-core-20240501"
     ]
   },
+  "qwen1.5-72b": {
+    "HarProvider": "qwen1.5-72b-chat",
+    "LegacyLMArena": "qwen1.5-72b-chat"
+  },
+  "vicuna-13b": {
+    "HarProvider": "vicuna-13b",
+    "LegacyLMArena": "vicuna-13b"
+  },
+  "early-grok-3": {
+    "HarProvider": "early-grok-3",
+    "LegacyLMArena": "early-grok-3"
+  },
+  "glm-4-plus-0111": {
+    "HarProvider": "glm-4-plus-0111",
+    "LegacyLMArena": "glm-4-plus-0111"
+  },
+  "gpt-3.5-turbo-0125": {
+    "HarProvider": "gpt-3.5-turbo-0125",
+    "LegacyLMArena": "gpt-3.5-turbo-0125"
+  },
+  "smollm2-1.7b": {
+    "HarProvider": "smollm2-1.7b-instruct",
+    "LegacyLMArena": "smollm2-1.7b-instruct"
+  },
+  "qwen-3235b-a22b": {
+    "HarProvider": "qwen3-235b-a22b",
+    "LegacyLMArena": "qwen3-235b-a22b",
+    "LMArenaBeta": "qwen3-235b-a22b"
+  },
+  "gemini-1.5-flash-8b-001": {
+    "HarProvider": "gemini-1.5-flash-8b-001",
+    "LegacyLMArena": "gemini-1.5-flash-8b-001"
+  },
+  "gemma-2-2b-it": {
+    "HarProvider": "gemma-2-2b-it",
+    "LegacyLMArena": "gemma-2-2b-it"
+  },
+  "qwen1.5-4b": {
+    "HarProvider": "qwen1.5-4b-chat",
+    "LegacyLMArena": "qwen1.5-4b-chat"
+  },
+  "gemini-1.5-flash-002": {
+    "HarProvider": "gemini-1.5-flash-002",
+    "LegacyLMArena": "gemini-1.5-flash-002"
+  },
+  "hunyuan-standard-256k": {
+    "HarProvider": "hunyuan-standard-256k",
+    "LegacyLMArena": "hunyuan-standard-256k"
+  },
+  "deepseek-llm-67b": {
+    "HarProvider": "deepseek-llm-67b-chat",
+    "LegacyLMArena": "deepseek-llm-67b-chat"
+  },
+  "gemini-2.0-flash-exp": {
+    "HarProvider": "gemini-2.0-flash-exp",
+    "LegacyLMArena": "gemini-2.0-flash-exp"
+  },
+  "oasst-pythia-12b": {
+    "HarProvider": "oasst-pythia-12b",
+    "LegacyLMArena": "oasst-pythia-12b"
+  },
+  "granite-3.0-8b": {
+    "HarProvider": "granite-3.0-8b-instruct",
+    "LegacyLMArena": "granite-3.0-8b-instruct"
+  },
+  "amazon-nova-pro-v1.0": {
+    "HarProvider": "amazon-nova-pro-v1.0",
+    "LegacyLMArena": "amazon-nova-pro-v1.0"
+  },
+  "jamba-1.5-mini": {
+    "HarProvider": "jamba-1.5-mini",
+    "LegacyLMArena": "jamba-1.5-mini"
+  },
+  "openhermes-2.5-mistral-7b": {
+    "HarProvider": "openhermes-2.5-mistral-7b",
+    "LegacyLMArena": "openhermes-2.5-mistral-7b",
+    "Cloudflare": "@hf/thebloke/openhermes-2.5-mistral-7b-awq"
+  },
+  "aya-expanse-32b": {
+    "HarProvider": "c4ai-aya-expanse-32b",
+    "LegacyLMArena": "c4ai-aya-expanse-32b"
+  },
   "llama-4-scout-17b-16e": {
     "HarProvider": "llama-4-scout-17b-16e-instruct",
     "LambdaChat": "llama-4-scout-17b-16e-instruct",
@@ -1499,70 +1454,36 @@ model_map = {
     "LegacyLMArena": "llama-4-scout-17b-16e-instruct",
     "LMArenaBeta": "llama-4-scout-17b-16e-instruct"
   },
-  "mistral-large-2402": {
-    "HarProvider": "mistral-large-2402",
-    "LegacyLMArena": "mistral-large-2402"
+  "gemini-1.5-pro-api-0409": {
+    "HarProvider": "gemini-1.5-pro-api-0409-preview",
+    "LegacyLMArena": "gemini-1.5-pro-api-0409-preview"
   },
-  "koala-13b": {
-    "HarProvider": "koala-13b",
-    "LegacyLMArena": "koala-13b"
+  "reka-flash-21b-20240226-online": {
+    "HarProvider": "reka-flash-21b-20240226-online",
+    "LegacyLMArena": "reka-flash-21b-20240226-online"
   },
-  "gemma-3-27b-it": {
-    "HarProvider": "gemma-3-27b-it",
-    "DeepInfraChat": "google/gemma-3-27b-it",
-    "LegacyLMArena": "gemma-3-27b-it",
-    "LMArenaBeta": "gemma-3-27b-it",
-    "GeminiPro": "gemma-3-27b-it"
+  "gemma-3-12b-it": {
+    "HarProvider": "gemma-3-12b-it",
+    "DeepInfraChat": "google/gemma-3-12b-it",
+    "LegacyLMArena": "gemma-3-12b-it",
+    "GeminiPro": "gemma-3-12b-it"
   },
-  "snowflake-arctic": {
-    "HarProvider": "snowflake-arctic-instruct",
-    "LegacyLMArena": "snowflake-arctic-instruct"
+  "codellama-70b": {
+    "HarProvider": "codellama-70b-instruct",
+    "LegacyLMArena": "codellama-70b-instruct"
   },
-  "smollm2-1.7b": {
-    "HarProvider": "smollm2-1.7b-instruct",
-    "LegacyLMArena": "smollm2-1.7b-instruct"
+  "dolly-v2-12b": {
+    "HarProvider": "dolly-v2-12b",
+    "LegacyLMArena": "dolly-v2-12b"
   },
-  "gemini-1.5-pro-exp-0801": {
-    "HarProvider": "gemini-1.5-pro-exp-0801",
-    "LegacyLMArena": "gemini-1.5-pro-exp-0801"
+  "claude-3-7-sonnet-20250219-thinking-32k": {
+    "HarProvider": "claude-3-7-sonnet-20250219-thinking-32k",
+    "LegacyLMArena": "claude-3-7-sonnet-20250219-thinking-32k",
+    "LMArenaBeta": "claude-3-7-sonnet-20250219-thinking-32k"
   },
-  "llama-3.1-tulu-3-70b": {
-    "HarProvider": "llama-3.1-tulu-3-70b",
-    "LegacyLMArena": "llama-3.1-tulu-3-70b"
-  },
-  "phi-3-mini-128k": {
-    "HarProvider": "phi-3-mini-128k-instruct",
-    "LegacyLMArena": "phi-3-mini-128k-instruct"
-  },
-  "claude-3-7-sonnet": {
-    "HarProvider": "claude-3-7-sonnet-20250219",
-    "LegacyLMArena": "claude-3-7-sonnet-20250219",
-    "LMArenaBeta": "claude-3-7-sonnet-20250219",
-    "PuterJS": "claude-3-7-sonnet-20250219"
-  },
-  "wizardlm-13b": {
-    "HarProvider": "wizardlm-13b",
-    "LegacyLMArena": "wizardlm-13b"
-  },
-  "deepseek-v2.5-1210": {
-    "HarProvider": "deepseek-v2.5-1210",
-    "LegacyLMArena": "deepseek-v2.5-1210"
-  },
-  "pplx-7b-online": {
-    "HarProvider": "pplx-7b-online",
-    "LegacyLMArena": "pplx-7b-online"
-  },
-  "llama-13b": {
-    "HarProvider": "llama-13b",
-    "LegacyLMArena": "llama-13b"
-  },
-  "bard-jan-24-gemini-pro": {
-    "HarProvider": "bard-jan-24-gemini-pro",
-    "LegacyLMArena": "bard-jan-24-gemini-pro"
-  },
-  "gemini-pro": {
-    "HarProvider": "gemini-pro",
-    "LegacyLMArena": "gemini-pro"
+  "gemini-2.0-pro-exp": {
+    "HarProvider": "gemini-2.0-pro-exp-02-05",
+    "LegacyLMArena": "gemini-2.0-pro-exp-02-05"
   },
   "reka-flash": {
     "HarProvider": [
@@ -1581,220 +1502,240 @@ model_map = {
     ],
     "PuterJS": "openrouter:rekaai/reka-flash-3:free"
   },
+  "claude-2.0": {
+    "HarProvider": "claude-2.0",
+    "LegacyLMArena": "claude-2.0",
+    "PuterJS": [
+      "openrouter:anthropic/claude-2.0:beta",
+      "openrouter:anthropic/claude-2.0"
+    ]
+  },
   "phi-3-small-8k": {
     "HarProvider": "phi-3-small-8k-instruct",
     "LegacyLMArena": "phi-3-small-8k-instruct"
   },
-  "qwen-3235b-a22b": {
-    "HarProvider": "qwen3-235b-a22b",
-    "LegacyLMArena": "qwen3-235b-a22b",
-    "LMArenaBeta": "qwen3-235b-a22b"
+  "mistral-medium-2505": {
+    "HarProvider": "mistral-medium-2505",
+    "LegacyLMArena": "mistral-medium-2505",
+    "LMArenaBeta": "mistral-medium-2505",
+    "PuterJS": "mistral-medium-2505"
   },
-  "claude-3-haiku": {
-    "HarProvider": "claude-3-haiku-20240307",
-    "LegacyLMArena": "claude-3-haiku-20240307",
-    "PuterJS": [
-      "claude-3-haiku-20240307",
-      "openrouter:anthropic/claude-3-haiku:beta",
-      "openrouter:anthropic/claude-3-haiku"
+  "deepseek-v2.5": {
+    "HarProvider": [
+      "deepseek-v2.5-1210",
+      "deepseek-v2.5"
+    ],
+    "LegacyLMArena": [
+      "deepseek-v2.5-1210",
+      "deepseek-v2.5"
     ]
   },
-  "gemma-2-27b-it": {
-    "HarProvider": "gemma-2-27b-it",
-    "LegacyLMArena": "gemma-2-27b-it"
+  "grok-2-mini": {
+    "HarProvider": "grok-2-mini-2024-08-13",
+    "LegacyLMArena": "grok-2-mini-2024-08-13"
   },
-  "gpt-4-1106": {
-    "HarProvider": "gpt-4-1106-preview",
-    "LegacyLMArena": "gpt-4-1106-preview"
+  "gemma-3-27b-it": {
+    "HarProvider": "gemma-3-27b-it",
+    "DeepInfraChat": "google/gemma-3-27b-it",
+    "LegacyLMArena": "gemma-3-27b-it",
+    "LMArenaBeta": "gemma-3-27b-it",
+    "GeminiPro": "gemma-3-27b-it"
   },
-  "mpt-30b": {
-    "HarProvider": "mpt-30b-chat",
-    "LegacyLMArena": "mpt-30b-chat"
+  "mixtral-8x22b-instruct-v0.1": {
+    "HarProvider": "mixtral-8x22b-instruct-v0.1",
+    "LegacyLMArena": "mixtral-8x22b-instruct-v0.1"
   },
-  "chatglm3-6b": {
-    "HarProvider": "chatglm3-6b",
-    "LegacyLMArena": "chatglm3-6b"
+  "claude-3-opus": {
+    "HarProvider": "claude-3-opus-20240229",
+    "LegacyLMArena": "claude-3-opus-20240229",
+    "PuterJS": [
+      "openrouter:anthropic/claude-3-opus:beta",
+      "openrouter:anthropic/claude-3-opus"
+    ]
   },
-  "deepseek-coder-v2-0724": {
-    "HarProvider": "deepseek-coder-v2-0724",
-    "LegacyLMArena": "deepseek-coder-v2-0724"
+  "starling-lm-7b-alpha": {
+    "HarProvider": "starling-lm-7b-alpha",
+    "LegacyLMArena": "starling-lm-7b-alpha"
   },
-  "mistral-small-24b-instruct-2501": {
-    "HarProvider": "mistral-small-24b-instruct-2501",
-    "LegacyLMArena": "mistral-small-24b-instruct-2501"
+  "gemini-2.0-flash-thinking-exp-1219": {
+    "HarProvider": "gemini-2.0-flash-thinking-exp-1219",
+    "LegacyLMArena": "gemini-2.0-flash-thinking-exp-1219"
   },
-  "dolly-v2-12b": {
-    "HarProvider": "dolly-v2-12b",
-    "LegacyLMArena": "dolly-v2-12b"
-  },
-  "gemma-3-4b-it": {
-    "HarProvider": "gemma-3-4b-it",
-    "DeepInfraChat": "google/gemma-3-4b-it",
-    "LegacyLMArena": "gemma-3-4b-it",
-    "GeminiPro": "gemma-3-4b-it"
+  "llama-3.1-tulu-3-70b": {
+    "HarProvider": "llama-3.1-tulu-3-70b",
+    "LegacyLMArena": "llama-3.1-tulu-3-70b"
   },
   "gemini-1.5-pro-exp-0827": {
     "HarProvider": "gemini-1.5-pro-exp-0827",
     "LegacyLMArena": "gemini-1.5-pro-exp-0827"
   },
-  "yi-lightning": {
-    "HarProvider": "yi-lightning",
-    "LegacyLMArena": "yi-lightning"
-  },
-  "qwen1.5-110b": {
-    "HarProvider": "qwen1.5-110b-chat",
-    "LegacyLMArena": "qwen1.5-110b-chat"
-  },
-  "claude-3-7-sonnet-20250219-thinking-32k": {
-    "HarProvider": "claude-3-7-sonnet-20250219-thinking-32k",
-    "LegacyLMArena": "claude-3-7-sonnet-20250219-thinking-32k",
-    "LMArenaBeta": "claude-3-7-sonnet-20250219-thinking-32k"
-  },
-  "jamba-1.5-mini": {
-    "HarProvider": "jamba-1.5-mini",
-    "LegacyLMArena": "jamba-1.5-mini"
-  },
-  "palm-2": {
-    "HarProvider": "palm-2",
-    "LegacyLMArena": "palm-2"
-  },
-  "llama-3.1-405b-instruct": {
-    "HarProvider": "llama-3.1-405b-instruct-fp8",
-    "LegacyLMArena": "llama-3.1-405b-instruct-fp8"
-  },
-  "granite-3.1-2b": {
-    "HarProvider": "granite-3.1-2b-instruct",
-    "LegacyLMArena": "granite-3.1-2b-instruct"
-  },
-  "pplx-70b-online": {
-    "HarProvider": "pplx-70b-online",
-    "LegacyLMArena": "pplx-70b-online"
-  },
-  "athene-v2": {
-    "HarProvider": "athene-v2-chat",
-    "LegacyLMArena": "athene-v2-chat"
+  "gemini-exp-1121": {
+    "HarProvider": "gemini-exp-1121",
+    "LegacyLMArena": "gemini-exp-1121"
   },
   "yi-large": {
     "HarProvider": "yi-large",
     "LegacyLMArena": "yi-large"
   },
-  "athene-70b-0725": {
-    "HarProvider": "athene-70b-0725",
-    "LegacyLMArena": "athene-70b-0725"
+  "gemini-1.5-flash-exp-0827": {
+    "HarProvider": "gemini-1.5-flash-exp-0827",
+    "LegacyLMArena": "gemini-1.5-flash-exp-0827"
   },
-  "qwen1.5-32b": {
-    "HarProvider": "qwen1.5-32b-chat",
-    "LegacyLMArena": "qwen1.5-32b-chat"
+  "mistral-large-2411": {
+    "HarProvider": "mistral-large-2411",
+    "LegacyLMArena": "mistral-large-2411"
   },
-  "mixtral-8x7b-instruct-v0.1": {
-    "HarProvider": "mixtral-8x7b-instruct-v0.1",
-    "LegacyLMArena": "mixtral-8x7b-instruct-v0.1"
+  "zephyr-7b-beta": {
+    "HarProvider": "zephyr-7b-beta",
+    "LegacyLMArena": "zephyr-7b-beta",
+    "Cloudflare": "@hf/thebloke/zephyr-7b-beta-awq"
   },
-  "gemma-1.1-2b-it": {
-    "HarProvider": "gemma-1.1-2b-it",
-    "LegacyLMArena": "gemma-1.1-2b-it"
+  "chatglm2-6b": {
+    "HarProvider": "chatglm2-6b",
+    "LegacyLMArena": "chatglm2-6b"
+  },
+  "zephyr-7b-alpha": {
+    "HarProvider": "zephyr-7b-alpha",
+    "LegacyLMArena": "zephyr-7b-alpha"
+  },
+  "yi-lightning-lite": {
+    "HarProvider": "yi-lightning-lite",
+    "LegacyLMArena": "yi-lightning-lite"
   },
   "qwen2.5-coder-32b": {
     "HarProvider": "qwen2.5-coder-32b-instruct",
     "HuggingFace": "Qwen/Qwen2.5-Coder-32B-Instruct",
     "LegacyLMArena": "qwen2.5-coder-32b-instruct"
   },
-  "stripedhyena-nous-7b": {
-    "HarProvider": "stripedhyena-nous-7b",
-    "LegacyLMArena": "stripedhyena-nous-7b"
+  "gemini-1.5-pro-exp-0801": {
+    "HarProvider": "gemini-1.5-pro-exp-0801",
+    "LegacyLMArena": "gemini-1.5-pro-exp-0801"
   },
-  "phi-3-medium-4k": {
-    "HarProvider": "phi-3-medium-4k-instruct",
-    "LegacyLMArena": "phi-3-medium-4k-instruct"
+  "yi-1.5-34b": {
+    "HarProvider": "yi-1.5-34b-chat",
+    "LegacyLMArena": "yi-1.5-34b-chat"
   },
-  "starling-lm-7b-alpha": {
-    "HarProvider": "starling-lm-7b-alpha",
-    "LegacyLMArena": "starling-lm-7b-alpha"
+  "llama-3.1-nemotron-51b": {
+    "HarProvider": "llama-3.1-nemotron-51b-instruct",
+    "LegacyLMArena": "llama-3.1-nemotron-51b-instruct"
   },
-  "mixtral-8x22b-instruct-v0.1": {
-    "HarProvider": "mixtral-8x22b-instruct-v0.1",
-    "LegacyLMArena": "mixtral-8x22b-instruct-v0.1"
-  },
-  "qwen1.5-14b": {
-    "HarProvider": "qwen1.5-14b-chat",
-    "LegacyLMArena": "qwen1.5-14b-chat"
-  },
-  "alpaca-13b": {
-    "HarProvider": "alpaca-13b",
-    "LegacyLMArena": "alpaca-13b"
-  },
-  "qwen-max-0919": {
-    "HarProvider": "qwen-max-0919",
-    "LegacyLMArena": "qwen-max-0919"
-  },
-  "gemini-1.5-flash-001": {
-    "HarProvider": "gemini-1.5-flash-001",
-    "LegacyLMArena": "gemini-1.5-flash-001"
-  },
-  "granite-3.0-2b": {
-    "HarProvider": "granite-3.0-2b-instruct",
-    "LegacyLMArena": "granite-3.0-2b-instruct"
-  },
-  "gemini-2.0-pro-exp": {
-    "HarProvider": "gemini-2.0-pro-exp-02-05",
-    "LegacyLMArena": "gemini-2.0-pro-exp-02-05"
-  },
-  "gemma-7b-it": {
-    "HarProvider": "gemma-7b-it",
-    "LegacyLMArena": "gemma-7b-it"
-  },
-  "gemini-1.5-pro-api-0409": {
-    "HarProvider": "gemini-1.5-pro-api-0409-preview",
-    "LegacyLMArena": "gemini-1.5-pro-api-0409-preview"
-  },
-  "reka-flash-21b-20240226-online": {
-    "HarProvider": "reka-flash-21b-20240226-online",
-    "LegacyLMArena": "reka-flash-21b-20240226-online"
-  },
-  "qwen-14b": {
-    "HarProvider": "qwen-14b-chat",
-    "LegacyLMArena": "qwen-14b-chat"
-  },
-  "openchat-3.5": {
-    "HarProvider": "openchat-3.5",
-    "LegacyLMArena": "openchat-3.5"
-  },
-  "vicuna-33b": {
-    "HarProvider": "vicuna-33b",
-    "LegacyLMArena": "vicuna-33b"
-  },
-  "deepseek-llm-67b": {
-    "HarProvider": "deepseek-llm-67b-chat",
-    "LegacyLMArena": "deepseek-llm-67b-chat"
-  },
-  "claude-3-5-haiku": {
-    "HarProvider": "claude-3-5-haiku-20241022",
-    "LegacyLMArena": "claude-3-5-haiku-20241022",
-    "LMArenaBeta": "claude-3-5-haiku-20241022"
-  },
-  "gemini-1.5-flash-8b-001": {
-    "HarProvider": "gemini-1.5-flash-8b-001",
-    "LegacyLMArena": "gemini-1.5-flash-8b-001"
-  },
-  "gpt-3.5-turbo-0125": {
-    "HarProvider": "gpt-3.5-turbo-0125",
-    "LegacyLMArena": "gpt-3.5-turbo-0125"
-  },
-  "chatglm2-6b": {
-    "HarProvider": "chatglm2-6b",
-    "LegacyLMArena": "chatglm2-6b"
+  "wizardlm-13b": {
+    "HarProvider": "wizardlm-13b",
+    "LegacyLMArena": "wizardlm-13b"
   },
   "zephyr-orpo-141b-a35b-v0.1": {
     "HarProvider": "zephyr-orpo-141b-A35b-v0.1",
     "LegacyLMArena": "zephyr-orpo-141b-A35b-v0.1"
   },
-  "gemini-advanced-0514": {
-    "HarProvider": "gemini-advanced-0514",
-    "LegacyLMArena": "gemini-advanced-0514"
+  "granite-3.0-2b": {
+    "HarProvider": "granite-3.0-2b-instruct",
+    "LegacyLMArena": "granite-3.0-2b-instruct"
   },
-  "gemma-2-9b-it-simpo": {
-    "HarProvider": "gemma-2-9b-it-simpo",
-    "LegacyLMArena": "gemma-2-9b-it-simpo"
+  "deepseek-coder": {
+    "HarProvider": "deepseek-coder-v2",
+    "LegacyLMArena": "deepseek-coder-v2",
+    "PuterJS": [
+      "openrouter:deepseek/deepseek-coder"
+    ]
+  },
+  "gemini-2.0-flash-lite": {
+    "HarProvider": "gemini-2.0-flash-lite-preview-02-05",
+    "LegacyLMArena": "gemini-2.0-flash-lite-preview-02-05",
+    "GeminiPro": "gemini-2.0-flash-lite"
+  },
+  "gpt-4-0314": {
+    "HarProvider": "gpt-4-0314",
+    "LegacyLMArena": "gpt-4-0314"
+  },
+  "claude-3-sonnet": {
+    "HarProvider": "claude-3-sonnet-20240229",
+    "LegacyLMArena": "claude-3-sonnet-20240229",
+    "PuterJS": [
+      "openrouter:anthropic/claude-3-sonnet:beta",
+      "openrouter:anthropic/claude-3-sonnet"
+    ]
+  },
+  "command-r24": {
+    "HarProvider": "command-r-08-2024",
+    "LegacyLMArena": "command-r-08-2024",
+    "HuggingSpace": "command-r-08-2024"
+  },
+  "gemini-exp-1206": {
+    "HarProvider": "gemini-exp-1206",
+    "LegacyLMArena": "gemini-exp-1206"
+  },
+  "palm-2": {
+    "HarProvider": "palm-2",
+    "LegacyLMArena": "palm-2"
+  },
+  "ministral-8b-2410": {
+    "HarProvider": "ministral-8b-2410",
+    "LegacyLMArena": "ministral-8b-2410",
+    "PuterJS": "ministral-8b-2410"
+  },
+  "command-r-plus24": {
+    "HarProvider": "command-r-plus-08-2024",
+    "HuggingFace": "CohereForAI/c4ai-command-r-plus-08-2024",
+    "LegacyLMArena": "command-r-plus-08-2024",
+    "HuggingSpace": "command-r-plus-08-2024"
+  },
+  "mistral-medium": {
+    "HarProvider": [
+      "mistral-medium",
+      "mistral-medium-2505"
+    ],
+    "LegacyLMArena": [
+      "mistral-medium",
+      "mistral-medium-2505"
+    ],
+    "PuterJS": [
+      "openrouter:mistralai/mistral-medium",
+      "openrouter:mistralai/mistral-medium-3"
+    ]
+  },
+  "step-2-16k-exp-202412": {
+    "HarProvider": "step-2-16k-exp-202412",
+    "LegacyLMArena": "step-2-16k-exp-202412"
+  },
+  "vicuna-7b": {
+    "HarProvider": "vicuna-7b",
+    "LegacyLMArena": "vicuna-7b"
+  },
+  "phi-3-mini-4k-instruct-june-2024": {
+    "HarProvider": "phi-3-mini-4k-instruct-june-2024",
+    "LegacyLMArena": "phi-3-mini-4k-instruct-june-2024"
+  },
+  "falcon-180b": {
+    "HarProvider": "falcon-180b-chat",
+    "LegacyLMArena": "falcon-180b-chat"
+  },
+  "gemma-1.1-7b-it": {
+    "HarProvider": "gemma-1.1-7b-it",
+    "LegacyLMArena": "gemma-1.1-7b-it"
+  },
+  "llama-4-maverick-17b-128e": {
+    "HarProvider": "llama-4-maverick-17b-128e-instruct",
+    "LegacyLMArena": "llama-4-maverick-17b-128e-instruct",
+    "LMArenaBeta": "llama-4-maverick-17b-128e-instruct"
+  },
+  "starling-lm-7b-beta": {
+    "HarProvider": "starling-lm-7b-beta",
+    "LegacyLMArena": "starling-lm-7b-beta",
+    "Cloudflare": "@hf/nexusflow/starling-lm-7b-beta"
+  },
+  "koala-13b": {
+    "HarProvider": "koala-13b",
+    "LegacyLMArena": "koala-13b"
+  },
+  "gemini-1.5-pro-001": {
+    "HarProvider": "gemini-1.5-pro-001",
+    "LegacyLMArena": "gemini-1.5-pro-001"
+  },
+  "deepseek": {
+    "HarProvider": "deepseek-v3",
+    "DeepInfraChat": "deepseek-ai/DeepSeek-V3",
+    "LegacyLMArena": "deepseek-v3",
+    "PuterJS": "deepseek-chat"
   },
   "gpt-4-turbo": {
     "HarProvider": "gpt-4-turbo-2024-04-09",
@@ -1804,98 +1745,87 @@ model_map = {
       "openrouter:openai/gpt-4-turbo-preview"
     ]
   },
-  "mistral-large-2411": {
-    "HarProvider": "mistral-large-2411",
-    "LegacyLMArena": "mistral-large-2411"
+  "gemma-2-9b-it-simpo": {
+    "HarProvider": "gemma-2-9b-it-simpo",
+    "LegacyLMArena": "gemma-2-9b-it-simpo"
   },
-  "deepseek-coder": {
-    "HarProvider": "deepseek-coder-v2",
-    "LegacyLMArena": "deepseek-coder-v2",
+  "mixtral-8x7b-instruct-v0.1": {
+    "HarProvider": "mixtral-8x7b-instruct-v0.1",
+    "LegacyLMArena": "mixtral-8x7b-instruct-v0.1"
+  },
+  "chatglm-6b": {
+    "HarProvider": "chatglm-6b",
+    "LegacyLMArena": "chatglm-6b"
+  },
+  "chatglm3-6b": {
+    "HarProvider": "chatglm3-6b",
+    "LegacyLMArena": "chatglm3-6b"
+  },
+  "claude-2.1": {
+    "HarProvider": "claude-2.1",
+    "LegacyLMArena": "claude-2.1",
     "PuterJS": [
-      "openrouter:deepseek/deepseek-coder"
+      "openrouter:anthropic/claude-2.1:beta",
+      "openrouter:anthropic/claude-2.1"
     ]
   },
-  "falcon-180b": {
-    "HarProvider": "falcon-180b-chat",
-    "LegacyLMArena": "falcon-180b-chat"
+  "gpt-3.5-turbo-1106": {
+    "HarProvider": "gpt-3.5-turbo-1106",
+    "LegacyLMArena": "gpt-3.5-turbo-1106"
   },
-  "yi-34b": {
-    "HarProvider": "yi-34b-chat",
-    "LegacyLMArena": "yi-34b-chat"
+  "guanaco-33b": {
+    "HarProvider": "guanaco-33b",
+    "LegacyLMArena": "guanaco-33b"
   },
-  "gemini-1.5-pro-002": {
-    "HarProvider": "gemini-1.5-pro-002",
-    "LegacyLMArena": "gemini-1.5-pro-002"
+  "gemma-7b-it": {
+    "HarProvider": "gemma-7b-it",
+    "LegacyLMArena": "gemma-7b-it"
   },
-  "openhermes-2.5-mistral-7b": {
-    "HarProvider": "openhermes-2.5-mistral-7b",
-    "LegacyLMArena": "openhermes-2.5-mistral-7b",
-    "Cloudflare": "@hf/thebloke/openhermes-2.5-mistral-7b-awq"
-  },
-  "solar-10.7b-instruct-v1.0": {
-    "HarProvider": "solar-10.7b-instruct-v1.0",
-    "LegacyLMArena": "solar-10.7b-instruct-v1.0"
-  },
-  "zephyr-7b-alpha": {
-    "HarProvider": "zephyr-7b-alpha",
-    "LegacyLMArena": "zephyr-7b-alpha"
-  },
-  "codellama-70b": {
-    "HarProvider": "codellama-70b-instruct",
-    "LegacyLMArena": "codellama-70b-instruct"
-  },
-  "vicuna-13b": {
-    "HarProvider": "vicuna-13b",
-    "LegacyLMArena": "vicuna-13b"
-  },
-  "qwen-plus-0828": {
-    "HarProvider": "qwen-plus-0828",
-    "LegacyLMArena": "qwen-plus-0828"
-  },
-  "glm-4-plus-0111": {
-    "HarProvider": "glm-4-plus-0111",
-    "LegacyLMArena": "glm-4-plus-0111"
-  },
-  "hunyuan-standard-256k": {
-    "HarProvider": "hunyuan-standard-256k",
-    "LegacyLMArena": "hunyuan-standard-256k"
-  },
-  "jamba-1.5-large": {
-    "HarProvider": "jamba-1.5-large",
-    "LegacyLMArena": "jamba-1.5-large"
-  },
-  "wizardlm-70b": {
-    "HarProvider": "wizardlm-70b",
-    "LegacyLMArena": "wizardlm-70b"
-  },
-  "gemini-exp-1121": {
-    "HarProvider": "gemini-exp-1121",
-    "LegacyLMArena": "gemini-exp-1121"
-  },
-  "gemini-2.0-flash-exp": {
-    "HarProvider": "gemini-2.0-flash-exp",
-    "LegacyLMArena": "gemini-2.0-flash-exp"
-  },
-  "qwen1.5-72b": {
-    "HarProvider": "qwen1.5-72b-chat",
-    "LegacyLMArena": "qwen1.5-72b-chat"
-  },
-  "gemini-1.5-flash-8b-exp-0827": {
-    "HarProvider": "gemini-1.5-flash-8b-exp-0827",
-    "LegacyLMArena": "gemini-1.5-flash-8b-exp-0827"
-  },
-  "zephyr-7b-beta": {
-    "HarProvider": "zephyr-7b-beta",
-    "LegacyLMArena": "zephyr-7b-beta",
-    "Cloudflare": "@hf/thebloke/zephyr-7b-beta-awq"
+  "phi-3-mini-4k": {
+    "HarProvider": "phi-3-mini-4k-instruct",
+    "LegacyLMArena": "phi-3-mini-4k-instruct"
   },
   "qwen1.5-7b": {
     "HarProvider": "qwen1.5-7b-chat",
     "LegacyLMArena": "qwen1.5-7b-chat"
   },
-  "codellama-34b": {
-    "HarProvider": "codellama-34b-instruct",
-    "LegacyLMArena": "codellama-34b-instruct"
+  "mpt-7b": {
+    "HarProvider": "mpt-7b-chat",
+    "LegacyLMArena": "mpt-7b-chat"
+  },
+  "glm-4-plus": {
+    "HarProvider": [
+      "glm-4-plus-0111",
+      "glm-4-plus"
+    ],
+    "LegacyLMArena": [
+      "glm-4-plus-0111",
+      "glm-4-plus"
+    ]
+  },
+  "pplx-7b-online": {
+    "HarProvider": "pplx-7b-online",
+    "LegacyLMArena": "pplx-7b-online"
+  },
+  "qwen-plus-0828": {
+    "HarProvider": "qwen-plus-0828",
+    "LegacyLMArena": "qwen-plus-0828"
+  },
+  "wizardlm-70b": {
+    "HarProvider": "wizardlm-70b",
+    "LegacyLMArena": "wizardlm-70b"
+  },
+  "gpt4all-13b-snoozy": {
+    "HarProvider": "gpt4all-13b-snoozy",
+    "LegacyLMArena": "gpt4all-13b-snoozy"
+  },
+  "gpt-3.5-turbo-0314": {
+    "HarProvider": "gpt-3.5-turbo-0314",
+    "LegacyLMArena": "gpt-3.5-turbo-0314"
+  },
+  "dolphin-2.2.1-mistral-7b": {
+    "HarProvider": "dolphin-2.2.1-mistral-7b",
+    "LegacyLMArena": "dolphin-2.2.1-mistral-7b"
   },
   "o3": {
     "HarProvider": "o3-2025-04-16",
@@ -1906,156 +1836,220 @@ model_map = {
       "openrouter:openai/o3"
     ]
   },
-  "rwkv-4-raven-14b": {
-    "HarProvider": "RWKV-4-Raven-14B",
-    "LegacyLMArena": "RWKV-4-Raven-14B"
+  "solar-10.7b-instruct-v1.0": {
+    "HarProvider": "solar-10.7b-instruct-v1.0",
+    "LegacyLMArena": "solar-10.7b-instruct-v1.0"
   },
-  "chatglm-6b": {
-    "HarProvider": "chatglm-6b",
-    "LegacyLMArena": "chatglm-6b"
+  "gemini-advanced-0514": {
+    "HarProvider": "gemini-advanced-0514",
+    "LegacyLMArena": "gemini-advanced-0514"
   },
-  "deepseek-v2-api-0628": {
-    "HarProvider": "deepseek-v2-api-0628",
-    "LegacyLMArena": "deepseek-v2-api-0628"
+  "phi-3-medium-4k": {
+    "HarProvider": "phi-3-medium-4k-instruct",
+    "LegacyLMArena": "phi-3-medium-4k-instruct"
   },
-  "llama2-70b-steerlm": {
-    "HarProvider": "llama2-70b-steerlm-chat",
-    "LegacyLMArena": "llama2-70b-steerlm-chat"
+  "yi-34b": {
+    "HarProvider": "yi-34b-chat",
+    "LegacyLMArena": "yi-34b-chat"
+  },
+  "qwen-plus-0125": {
+    "HarProvider": "qwen-plus-0125",
+    "LegacyLMArena": "qwen-plus-0125"
+  },
+  "tulu-2-dpo-70b": {
+    "HarProvider": "tulu-2-dpo-70b",
+    "LegacyLMArena": "tulu-2-dpo-70b"
+  },
+  "gemma-2-27b-it": {
+    "HarProvider": "gemma-2-27b-it",
+    "LegacyLMArena": "gemma-2-27b-it"
+  },
+  "deepseek-v2.5-1210": {
+    "HarProvider": "deepseek-v2.5-1210",
+    "LegacyLMArena": "deepseek-v2.5-1210"
+  },
+  "vicuna-33b": {
+    "HarProvider": "vicuna-33b",
+    "LegacyLMArena": "vicuna-33b"
+  },
+  "stripedhyena-nous-7b": {
+    "HarProvider": "stripedhyena-nous-7b",
+    "LegacyLMArena": "stripedhyena-nous-7b"
+  },
+  "bard-jan-24-gemini-pro": {
+    "HarProvider": "bard-jan-24-gemini-pro",
+    "LegacyLMArena": "bard-jan-24-gemini-pro"
+  },
+  "aya-expanse-8b": {
+    "HarProvider": "c4ai-aya-expanse-8b",
+    "LegacyLMArena": "c4ai-aya-expanse-8b"
+  },
+  "gemma-2b-it": {
+    "HarProvider": "gemma-2b-it",
+    "LegacyLMArena": "gemma-2b-it"
+  },
+  "gemini-2.0-flash-thinking-exp": {
+    "HarProvider": "gemini-2.0-flash-thinking-exp-01-21",
+    "LegacyLMArena": "gemini-2.0-flash-thinking-exp-01-21",
+    "GeminiPro": "gemini-2.0-flash-thinking-exp"
+  },
+  "athene-v2": {
+    "HarProvider": "athene-v2-chat",
+    "LegacyLMArena": "athene-v2-chat"
+  },
+  "llama-13b": {
+    "HarProvider": "llama-13b",
+    "LegacyLMArena": "llama-13b"
+  },
+  "reka-flash-21b": {
+    "HarProvider": "reka-flash-21b-20240226",
+    "LegacyLMArena": "reka-flash-21b-20240226"
+  },
+  "gemini-2.0-flash-001": {
+    "HarProvider": "gemini-2.0-flash-001",
+    "LegacyLMArena": "gemini-2.0-flash-001",
+    "LMArenaBeta": "gemini-2.0-flash-001"
+  },
+  "snowflake-arctic": {
+    "HarProvider": "snowflake-arctic-instruct",
+    "LegacyLMArena": "snowflake-arctic-instruct"
+  },
+  "fastchat-t5-3b": {
+    "HarProvider": "fastchat-t5-3b",
+    "LegacyLMArena": "fastchat-t5-3b"
+  },
+  "mpt-30b": {
+    "HarProvider": "mpt-30b-chat",
+    "LegacyLMArena": "mpt-30b-chat"
+  },
+  "mistral-next": {
+    "HarProvider": "mistral-next",
+    "LegacyLMArena": "mistral-next"
+  },
+  "mistral-large-2402": {
+    "HarProvider": "mistral-large-2402",
+    "LegacyLMArena": "mistral-large-2402"
+  },
+  "dbrx-instruct": {
+    "HarProvider": "dbrx-instruct-preview",
+    "LegacyLMArena": "dbrx-instruct-preview"
   },
   "openchat-3.5-0106": {
     "HarProvider": "openchat-3.5-0106",
     "LegacyLMArena": "openchat-3.5-0106",
     "Cloudflare": "@cf/openchat/openchat-3.5-0106"
   },
-  "qwen-max-0428": {
-    "HarProvider": "qwen-max-0428",
-    "LegacyLMArena": "qwen-max-0428"
-  },
-  "phi-3-mini-4k": {
-    "HarProvider": "phi-3-mini-4k-instruct",
-    "LegacyLMArena": "phi-3-mini-4k-instruct"
-  },
-  "gemini-pro-dev-api": {
-    "HarProvider": "gemini-pro-dev-api",
-    "LegacyLMArena": "gemini-pro-dev-api"
-  },
-  "stablelm-tuned-alpha-7b": {
-    "HarProvider": "stablelm-tuned-alpha-7b",
-    "LegacyLMArena": "stablelm-tuned-alpha-7b"
-  },
-  "mistral-medium-2505": {
-    "HarProvider": "mistral-medium-2505",
-    "LegacyLMArena": "mistral-medium-2505",
-    "LMArenaBeta": "mistral-medium-2505",
-    "PuterJS": "mistral-medium-2505"
-  },
-  "phi-3-mini-4k-instruct-june-2024": {
-    "HarProvider": "phi-3-mini-4k-instruct-june-2024",
-    "LegacyLMArena": "phi-3-mini-4k-instruct-june-2024"
-  },
-  "amazon-nova-pro-v1.0": {
-    "HarProvider": "amazon-nova-pro-v1.0",
-    "LegacyLMArena": "amazon-nova-pro-v1.0"
-  },
-  "qwen2.5-72b": {
-    "HarProvider": "qwen2.5-72b-instruct",
-    "LegacyLMArena": "qwen2.5-72b-instruct"
-  },
-  "granite-3.1-8b": {
-    "HarProvider": "granite-3.1-8b-instruct",
-    "LegacyLMArena": "granite-3.1-8b-instruct"
-  },
-  "gemini-1.5-flash-exp-0827": {
-    "HarProvider": "gemini-1.5-flash-exp-0827",
-    "LegacyLMArena": "gemini-1.5-flash-exp-0827"
-  },
-  "gpt-4-0613": {
-    "HarProvider": "gpt-4-0613",
-    "LegacyLMArena": "gpt-4-0613"
-  },
-  "tulu-2-dpo-70b": {
-    "HarProvider": "tulu-2-dpo-70b",
-    "LegacyLMArena": "tulu-2-dpo-70b"
-  },
-  "vicuna-7b": {
-    "HarProvider": "vicuna-7b",
-    "LegacyLMArena": "vicuna-7b"
-  },
-  "gpt4all-13b-snoozy": {
-    "HarProvider": "gpt4all-13b-snoozy",
-    "LegacyLMArena": "gpt4all-13b-snoozy"
-  },
-  "aya-expanse-32b": {
-    "HarProvider": "c4ai-aya-expanse-32b",
-    "LegacyLMArena": "c4ai-aya-expanse-32b"
-  },
-  "llama-3.1-tulu-3-8b": {
-    "HarProvider": "llama-3.1-tulu-3-8b",
-    "LegacyLMArena": "llama-3.1-tulu-3-8b"
-  },
-  "dbrx-instruct": {
-    "HarProvider": "dbrx-instruct-preview",
-    "LegacyLMArena": "dbrx-instruct-preview"
-  },
-  "qwen2.5-max": {
-    "HarProvider": "qwen2.5-max",
-    "LegacyLMArena": "qwen2.5-max"
-  },
-  "dolphin-2.2.1-mistral-7b": {
-    "HarProvider": "dolphin-2.2.1-mistral-7b",
-    "LegacyLMArena": "dolphin-2.2.1-mistral-7b"
-  },
-  "step-2-16k-exp-202412": {
-    "HarProvider": "step-2-16k-exp-202412",
-    "LegacyLMArena": "step-2-16k-exp-202412"
-  },
-  "command-r-plus24": {
-    "HarProvider": "command-r-plus-08-2024",
-    "HuggingFace": "CohereForAI/c4ai-command-r-plus-08-2024",
-    "LegacyLMArena": "command-r-plus-08-2024",
-    "HuggingSpace": "command-r-plus-08-2024"
-  },
-  "yi-lightning-lite": {
-    "HarProvider": "yi-lightning-lite",
-    "LegacyLMArena": "yi-lightning-lite"
-  },
-  "reka-flash-21b": {
-    "HarProvider": "reka-flash-21b-20240226",
-    "LegacyLMArena": "reka-flash-21b-20240226"
-  },
-  "mpt-7b": {
-    "HarProvider": "mpt-7b-chat",
-    "LegacyLMArena": "mpt-7b-chat"
-  },
   "llama-2-13b": {
     "HarProvider": "llama-2-13b-chat",
     "LegacyLMArena": "llama-2-13b-chat",
     "Cloudflare": "@hf/thebloke/llama-2-13b-chat-awq"
   },
+  "mistral-7b-instruct-v0.2": {
+    "HarProvider": "mistral-7b-instruct-v0.2",
+    "HuggingFace": "mistralai/Mistral-7B-Instruct-v0.2",
+    "LegacyLMArena": "mistral-7b-instruct-v0.2"
+  },
+  "qwen-14b": {
+    "HarProvider": "qwen-14b-chat",
+    "LegacyLMArena": "qwen-14b-chat"
+  },
+  "gemma-1.1-2b-it": {
+    "HarProvider": "gemma-1.1-2b-it",
+    "LegacyLMArena": "gemma-1.1-2b-it"
+  },
+  "gemini-1.5-flash-001": {
+    "HarProvider": "gemini-1.5-flash-001",
+    "LegacyLMArena": "gemini-1.5-flash-001"
+  },
+  "mistral-small-24b-instruct-2501": {
+    "HarProvider": "mistral-small-24b-instruct-2501",
+    "LegacyLMArena": "mistral-small-24b-instruct-2501"
+  },
+  "gpt-4-0613": {
+    "HarProvider": "gpt-4-0613",
+    "LegacyLMArena": "gpt-4-0613"
+  },
+  "gemini-1.5-pro-002": {
+    "HarProvider": "gemini-1.5-pro-002",
+    "LegacyLMArena": "gemini-1.5-pro-002"
+  },
+  "yi-lightning": {
+    "HarProvider": "yi-lightning",
+    "LegacyLMArena": "yi-lightning"
+  },
+  "gemini-1.5-flash-8b-exp-0827": {
+    "HarProvider": "gemini-1.5-flash-8b-exp-0827",
+    "LegacyLMArena": "gemini-1.5-flash-8b-exp-0827"
+  },
+  "pplx-70b-online": {
+    "HarProvider": "pplx-70b-online",
+    "LegacyLMArena": "pplx-70b-online"
+  },
+  "openchat-3.5": {
+    "HarProvider": "openchat-3.5",
+    "LegacyLMArena": "openchat-3.5"
+  },
+  "qwen2.5-max": {
+    "HarProvider": "qwen2.5-max",
+    "LegacyLMArena": "qwen2.5-max"
+  },
+  "claude-instant-1": {
+    "HarProvider": "claude-instant-1",
+    "LegacyLMArena": "claude-instant-1"
+  },
+  "gpt-4-0125": {
+    "HarProvider": "gpt-4-0125-preview",
+    "LegacyLMArena": "gpt-4-0125-preview"
+  },
+  "amazon-nova-lite-v1.0": {
+    "HarProvider": "amazon-nova-lite-v1.0",
+    "LegacyLMArena": "amazon-nova-lite-v1.0"
+  },
+  "gemma-3-4b-it": {
+    "HarProvider": "gemma-3-4b-it",
+    "DeepInfraChat": "google/gemma-3-4b-it",
+    "LegacyLMArena": "gemma-3-4b-it",
+    "GeminiPro": "gemma-3-4b-it"
+  },
+  "granite-3.1-8b": {
+    "HarProvider": "granite-3.1-8b-instruct",
+    "LegacyLMArena": "granite-3.1-8b-instruct"
+  },
+  "codellama-34b": {
+    "HarProvider": "codellama-34b-instruct",
+    "LegacyLMArena": "codellama-34b-instruct"
+  },
+  "gemini-pro": {
+    "HarProvider": "gemini-pro",
+    "LegacyLMArena": "gemini-pro"
+  },
   "gpt-3.5-turbo-0613": {
     "HarProvider": "gpt-3.5-turbo-0613",
     "LegacyLMArena": "gpt-3.5-turbo-0613"
   },
-  "starling-lm-7b-beta": {
-    "HarProvider": "starling-lm-7b-beta",
-    "LegacyLMArena": "starling-lm-7b-beta",
-    "Cloudflare": "@hf/nexusflow/starling-lm-7b-beta"
+  "qwen1.5-110b": {
+    "HarProvider": "qwen1.5-110b-chat",
+    "LegacyLMArena": "qwen1.5-110b-chat"
   },
-  "qwen1.5-4b": {
-    "HarProvider": "qwen1.5-4b-chat",
-    "LegacyLMArena": "qwen1.5-4b-chat"
+  "alpaca-13b": {
+    "HarProvider": "alpaca-13b",
+    "LegacyLMArena": "alpaca-13b"
+  },
+  "deepseek-v2-api-0628": {
+    "HarProvider": "deepseek-v2-api-0628",
+    "LegacyLMArena": "deepseek-v2-api-0628"
+  },
+  "rwkv-4-raven-14b": {
+    "HarProvider": "RWKV-4-Raven-14B",
+    "LegacyLMArena": "RWKV-4-Raven-14B"
   },
   "nous-hermes-2-mixtral-8x7b-dpo": {
     "HarProvider": "nous-hermes-2-mixtral-8x7b-dpo",
     "LegacyLMArena": "nous-hermes-2-mixtral-8x7b-dpo"
   },
-  "qwen-272b": {
-    "HarProvider": "qwen2-72b-instruct",
-    "LegacyLMArena": "qwen2-72b-instruct"
-  },
-  "early-grok-3": {
-    "HarProvider": "early-grok-3",
-    "LegacyLMArena": "early-grok-3"
+  "deepseek-coder-v2-0724": {
+    "HarProvider": "deepseek-coder-v2-0724",
+    "LegacyLMArena": "deepseek-coder-v2-0724"
   },
   "claude-3.7-sonnet": {
     "HarProvider": "claude-3-7-sonnet-20250219",
@@ -2445,6 +2439,12 @@ model_map = {
   "qwen-3coder-30b-a3b": {
     "HuggingFace": "Qwen/Qwen3-Coder-30B-A3B-Instruct"
   },
+  "qwen-34b-thinking-2507": {
+    "HuggingFace": "Qwen/Qwen3-4B-Thinking-2507"
+  },
+  "qwen-34b-instruct-2507": {
+    "HuggingFace": "Qwen/Qwen3-4B-Instruct-2507"
+  },
   "smollm3-3b": {
     "HuggingFace": "HuggingFaceTB/SmolLM3-3B"
   },
@@ -2457,11 +2457,14 @@ model_map = {
   "qwen-3coder-480b-a35b-instruct": {
     "HuggingFace": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8"
   },
+  "tinyllama-1.1b-chat-v1.0": {
+    "HuggingFace": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  },
   "dolphin-mistral-24b-venice-edition": {
     "HuggingFace": "dphn/Dolphin-Mistral-24B-Venice-Edition"
   },
-  "tinyllama-1.1b-chat-v1.0": {
-    "HuggingFace": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  "qwen-31.7b": {
+    "HuggingFace": "Qwen/Qwen3-1.7B"
   },
   "llama-3.2-11b-vision": {
     "HuggingFace": "meta-llama/Llama-3.2-11B-Vision-Instruct",
@@ -3283,7 +3286,7 @@ models_count = {
   "deepseek-v2.5": 2,
   "ministral-8b-2410": 3,
   "mistral-next": 2,
-  "mistral-7b-instruct-v0.2": 2,
+  "mistral-7b-instruct-v0.2": 3,
   "claude-2.1": 3,
   "gemma-2-9b-it": 2,
   "deepseek": 4,
@@ -3507,4 +3510,394 @@ parents = {
   "HuggingFace": [
     "HuggingFaceMedia"
   ]
+}
+model_aliases = {
+  "openai": "PollinationsAI:openai",
+  "gpt-4o-mini-2024-07-18": "gpt-4o-mini",
+  "openai-audio": "PollinationsAI:openai-audio",
+  "coral": "PollinationsAI:coral",
+  "Think Deeper": "o1",
+  "openrouter:openai/o3-mini-high": "o3-mini-high",
+  "openai-reasoning": "o4-mini",
+  "o4-mini-2025-04-16": "o4-mini",
+  "openrouter:openai/o4-mini-high": "o4-mini-high",
+  "openai-large": "gpt-4.1",
+  "gpt-4-1": "gpt-4.1",
+  "gpt-4.1-2025-04-14": "gpt-4.1",
+  "gpt-4-1-mini": "gpt-4.1-mini",
+  "gpt-4.1-mini-2025-04-14": "gpt-4.1-mini",
+  "openai-fast": "PollinationsAI:openai-fast",
+  "gpt-4.1-nano-2025-04-14": "gpt-4.1-nano",
+  "gpt-4-5": "gpt-4.5",
+  "openai/gpt-oss-120b": "gpt-oss-120b",
+  "gptimage": "gpt-image",
+  "@cf/meta/llama-2-7b-chat-int8": "llama-2-7b",
+  "llama-2-7b-chat": "llama-2-7b",
+  "openrouter:meta-llama/llama-2-70b-chat": "llama-2-70b",
+  "@hf/meta-llama/meta-llama-3-8b-instruct": "llama-3-8b",
+  "llama-3-8b-instruct": "llama-3-8b",
+  "meta-llama/Meta-Llama-3-8B-Instruct": "llama-3-8b",
+  "openrouter:meta-llama/llama-3-8b-instruct": "llama-3-8b",
+  "llama-3-70b-instruct": "llama-3-70b",
+  "openrouter:meta-llama/llama-3-70b-instruct": "llama-3-70b",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct": "llama-3.1-8b",
+  "@cf/meta/llama-3.1-8b-instruct-fp8": "llama-3.1-8b",
+  "llama-3.1-8b-instruct": "llama-3.1-8b",
+  "meta-llama/Llama-3.1-8B-Instruct": "llama-3.1-8b",
+  "llama-3.1-70b-instruct": "llama-3.1-70b",
+  "openrouter:meta-llama/llama-3.1-70b-instruct": "llama-3.1-70b",
+  "@cf/meta/llama-3.2-1b-instruct": "llama-3.2-1b",
+  "llama-3.2-1b-instruct": "llama-3.2-1b",
+  "llama-3.2-3b-instruct": "llama-3.2-3b",
+  "meta-llama/Llama-3.2-3B-Instruct": "llama-3.2-3b",
+  "@cf/meta/llama-3.2-3b-instruct": "llama-3.2-3b",
+  "meta-llama/Llama-3.2-11B-Vision-Instruct": "llama-3.2-11b-vision",
+  "meta-llama/Llama-3.2-90B-Vision-Instruct": "llama-3.2-90b",
+  "openrouter:meta-llama/llama-3.2-90b-vision-instruct": "llama-3.2-90b",
+  "meta-llama/Llama-3.3-70B-Instruct": "llama-3",
+  "llama3.3-70b-instruct-fp8": "llama-3.3-70b-instruct",
+  "llama": "llama-3.3-70b",
+  "@cf/meta/llama-3.3-70b-instruct-fp8-fast": "llama-3.3-70b",
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct": "llama-4-scout-17b-16e",
+  "llama-4-scout-17b-16e-instruct": "llama-4-scout-17b-16e",
+  "llamascout": "llama-4-scout",
+  "@cf/meta/llama-4-scout-17b-16e-instruct": "llama-4-scout",
+  "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8": "llama-4-maverick-17b-128e-instruct",
+  "llama-4-maverick-17b-128e-instruct-fp8": "llama-4-maverick-17b-128e-instruct",
+  "llama-4-maverick-03-26-experimental": "llama-4-maverick",
+  "mistralai/Mistral-Nemo-Instruct-2407": "mistral-nemo-instruct-2407",
+  "mistralai/Mistral-Small-3.1-24B-Instruct-2503": "mistral-small-3.1-24b",
+  "mistral": "mistral-small-3.1-24b",
+  "@cf/mistralai/mistral-small-3.1-24b-instruct": "mistral-small-3.1-24b",
+  "openrouter:nousresearch/nous-hermes-2-mixtral-8x7b-dpo": "hermes-2-dpo",
+  "microsoft/phi-4": "phi-4",
+  "phi": "phi-4",
+  "openrouter:microsoft/phi-4": "phi-4",
+  "openrouter:microsoft/phi-4-multimodal-instruct": "phi-4-multimodal",
+  "microsoft/phi-4-reasoning-plus": "phi-4-reasoning-plus",
+  "microsoft/WizardLM-2-7B": "wizardlm-2-7b",
+  "microsoft/WizardLM-2-8x22B": "wizardlm-2-8x22b",
+  "openrouter:microsoft/wizardlm-2-8x22b": "wizardlm-2-8x22b",
+  "openrouter:google/gemini-pro-1.5": "gemini-1.5-pro",
+  "gemini-2.5-flash-preview-04-17": "gemini-2.5-flash",
+  "google/gemini-2.5-flash": "gemini-2.5-flash",
+  "openrouter:google/gemini-2.5-flash-preview": "gemini-2.5-flash",
+  "gemini-2.5-pro-preview-05-06": "gemini-2.5-pro",
+  "google/gemini-2.5-pro": "gemini-2.5-pro",
+  "google/codegemma-7b-it": "codegemma-7b",
+  "google/gemma-1.1-7b-it": "gemma-1.1-7b",
+  "google/gemma-2-9b-it": "gemma-2-9b",
+  "google/gemma-2-27b-it": "gemma-2-27b",
+  "openrouter:google/gemma-2-27b-it": "gemma-2-27b",
+  "google/gemma-3-4b-it": "gemma-3-4b-it",
+  "google/gemma-3-12b-it": "gemma-3-12b-it",
+  "@cf/google/gemma-3-12b-it": "gemma-3-12b",
+  "google/gemma-3-27b-it": "gemma-3-27b-it",
+  "command-r-08-2024": "command-r24",
+  "CohereForAI/c4ai-command-r-plus-08-2024": "command-r-plus24",
+  "openrouter:cohere/command-r7b-12-2024": "command-r7b",
+  "command-a-03-2025": "command-a25",
+  "openrouter:cohere/command-a": "command-a",
+  "@cf/qwen/qwen1.5-7b-chat-awq": "qwen-1.5-7b",
+  "qwen1.5-7b-chat": "qwen1.5-7b",
+  "qwen-qwen2-72b-instruct": "qwen-2-72b",
+  "qwen2-72b-instruct": "qwen-272b",
+  "Qwen/Qwen2-72B-Instruct": "qwen-2-72b",
+  "openrouter:qwen/qwen-2-72b-instruct": "qwen-2-72b",
+  "Qwen/Qwen2-VL-7B-Instruct": "qwen-2vl-7b",
+  "qwen-qwen2-5": "qwen-2.5",
+  "qwen2.5-72b-instruct": "qwen2.5-72b",
+  "Qwen/Qwen2.5-Coder-32B-Instruct": "qwen2.5-coder-32b",
+  "qwen-coder": "qwen-2.5-coder-32b",
+  "qwen25-coder-32b-instruct": "qwen25-coder-32b",
+  "qwen2.5-coder-32b-instruct": "qwen2.5-coder-32b",
+  "@cf/qwen/qwen2.5-coder-32b-instruct": "qwen-2.5-coder-32b",
+  "qwen-2.5-1m-demo": "qwen-2.5-1m",
+  "qwen-qwen2-5-max": "qwen-2.5-max",
+  "qwen2.5-vl-72b-instruct": "qwen-2.5-vl-72b",
+  "Qwen/Qwen3-235B-A22B": "qwen-3-235b",
+  "qwen3-235b-a22b": "qwen-3235b-a22b",
+  "Qwen/Qwen3-32B": "qwen-332b",
+  "qwen3-32b-fp8": "qwen-332b",
+  "qwen3-32b": "qwen-3-32b",
+  "Qwen/Qwen3-30B-A3B": "qwen-330b-a3b",
+  "qwen3-30b-a3b": "qwen-330b-a3b",
+  "Qwen/Qwen3-14B": "qwen-314b",
+  "qwen3-14b": "qwen-3-14b",
+  "qwen3-4b": "qwen-3-4b",
+  "openrouter:qwen/qwen3-4b:free": "qwen-3-4b",
+  "qwen3-1.7b": "qwen-3-1.7b",
+  "openrouter:qwen/qwen3-1.7b:free": "qwen-3-1.7b",
+  "qwen3-0.6b": "qwen-3-0.6b",
+  "openrouter:qwen/qwen3-0.6b-04-28:free": "qwen-3-0.6b",
+  "Qwen/QwQ-32B": "qwq-32b",
+  "qwq-32b-preview": "qwq-32b",
+  "@cf/qwen/qwq-32b": "qwq-32b",
+  "openrouter:deepseek/deepseek-v3-base:free": "deepseek-v3",
+  "deepseek-reasoning": "deepseek-r1",
+  "deepseek-ai/DeepSeek-R1": "deepseek-r1",
+  "deepseek-ai/DeepSeek-R1-Turbo": "deepseek-r1-turbo",
+  "deepseek-ai/DeepSeek-R1-Distill-Llama-70B": "deepseek-r1-distill-llama-70b",
+  "openrouter:deepseek/deepseek-r1-distill-qwen-1.5b": "deepseek-r1-distill-qwen-1.5b",
+  "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B": "deepseek-r1-distill-qwen-32b",
+  "deepseek-ai/DeepSeek-Prover-V2-671B": "deepseek-prover-v2-671b",
+  "deepseek-ai/DeepSeek-V3-0324": "deepseek-v3-0324",
+  "deepseek-ai/DeepSeek-V3-0324-Turbo": "deepseek-v3-0324-turbo",
+  "deepseek-ai/DeepSeek-R1-0528": "deepseek-r1-0528",
+  "deepseek-ai/DeepSeek-R1-0528-Turbo": "deepseek-r1-0528-turbo",
+  "grok-2-2024-08-13": "grok-2",
+  "grok-3-preview-02-24": "grok-3",
+  "openrouter:x-ai/grok-3-mini-beta": "grok-3-mini",
+  "moonshotai/Kimi-K2-Instruct": "kimi-k2",
+  "openrouter:perplexity/sonar": "sonar",
+  "openrouter:perplexity/sonar-pro": "sonar-pro",
+  "openrouter:perplexity/sonar-reasoning": "sonar-reasoning",
+  "openrouter:perplexity/sonar-reasoning-pro": "sonar-reasoning-pro",
+  "openrouter:perplexity/r1-1776": "r1-1776",
+  "llama3.1-nemotron-70b-instruct": "llama-3.1-nemotron-70b",
+  "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF": "llama-3.1-nemotron-70b-instruct",
+  "openrouter:nvidia/llama-3.1-nemotron-70b-instruct": "nemotron-70b",
+  "cognitivecomputations/dolphin-2.6-mixtral-8x7b": "dolphin-2.6",
+  "cognitivecomputations/dolphin-2.9.1-llama-3-70b": "dolphin-2.9",
+  "deepinfra/airoboros-70b": "airoboros-70b",
+  "lizpreciatior/lzlv_70b_fp16_hf": "lzlv-70b",
+  "openrouter:liquid/lfm-40b": "lfm-40b",
+  "stabilityai/sdxl-turbo": "sdxl-turbo",
+  "turbo": "PollinationsAI:turbo",
+  "stabilityai/stable-diffusion-3.5-large": "stable-diffusion-3.5-large",
+  "stabilityai-stable-diffusion-3-5-large": "sd-3.5-large",
+  "black-forest-labs/FLUX.1-dev": "flux-dev",
+  "black-forest-labs-flux-1-dev": "flux-dev",
+  "black-forest-labs/FLUX.1-schnell": "flux-schnell",
+  "kontext": "PollinationsAI:kontext",
+  "glm": "PollinationsAI:glm",
+  "llama-fast-roblox": "PollinationsAI:llama-fast-roblox",
+  "llama-roblox": "PollinationsAI:llama-roblox",
+  "mistral-nemo-roblox": "PollinationsAI:mistral-nemo-roblox",
+  "mistral-roblox": "PollinationsAI:mistral-roblox",
+  "openai-roblox": "PollinationsAI:openai-roblox",
+  "qwen": "PollinationsAI:qwen",
+  "bidara": "PollinationsAI:bidara",
+  "hypnosis-tracy": "PollinationsAI:hypnosis-tracy",
+  "midijourney": "PollinationsAI:midijourney",
+  "mirexa": "PollinationsAI:mirexa",
+  "rtist": "PollinationsAI:rtist",
+  "sur": "PollinationsAI:sur",
+  "unity": "PollinationsAI:unity",
+  "alloy": "PollinationsAI:alloy",
+  "echo": "PollinationsAI:echo",
+  "fable": "PollinationsAI:fable",
+  "onyx": "PollinationsAI:onyx",
+  "nova": "PollinationsAI:nova",
+  "shimmer": "PollinationsAI:shimmer",
+  "verse": "PollinationsAI:verse",
+  "ballad": "PollinationsAI:ballad",
+  "ash": "PollinationsAI:ash",
+  "sage": "PollinationsAI:sage",
+  "amuch": "PollinationsAI:amuch",
+  "dan": "PollinationsAI:dan",
+  "chatgpt-4o-latest-20250326": "chatgpt-4o-latest",
+  "qwen1.5-14b-chat": "qwen-1.5-14b",
+  "phi-3-mini-4k-instruct": "phi-3-mini-4k",
+  "claude-3-5-sonnet-20241022": "claude-3-5-sonnet",
+  "dbrx-instruct-preview": "dbrx-instruct",
+  "c4ai-aya-expanse-8b": "aya-expanse-8b",
+  "claude-3-7-sonnet-20250219": "claude-3.7-sonnet",
+  "athene-v2-chat": "athene-v2",
+  "qwen1.5-72b-chat": "qwen-1.5-72b",
+  "openrouter:rekaai/reka-flash-3:free": "reka-flash",
+  "olmo-7b-instruct": "olmo-7b",
+  "@hf/thebloke/openhermes-2.5-mistral-7b-awq": "openhermes-2.5-mistral-7b",
+  "gemini-2.0-flash-thinking-exp-01-21": "gemini-2.0-flash-thinking-exp",
+  "smollm2-1.7b-instruct": "smollm2-1.7b",
+  "mpt-30b-chat": "mpt-30b",
+  "gemini-2.0-flash-lite-preview-02-05": "gemini-2.0-flash-lite",
+  "yi-34b-chat": "yi-34b",
+  "o3-2025-04-16": "o3",
+  "gemini-2.0-pro-exp-02-05": "gemini-2.0-pro",
+  "RWKV-4-Raven-14B": "rwkv-4-raven-14b",
+  "@hf/thebloke/zephyr-7b-beta-awq": "zephyr-7b-beta",
+  "qwen1.5-4b-chat": "qwen-1.5-4b",
+  "internlm2_5-20b-chat": "internlm2.5-20b",
+  "granite-3.1-2b-instruct": "granite-3.1-2b",
+  "codellama-34b-instruct": "codellama-34b",
+  "reka-flash-21b-20240226": "reka-flash-21b",
+  "phi-3-small-8k-instruct": "phi-3-small",
+  "phi-3-mini-128k-instruct": "phi-3-mini-128k",
+  "command-r-plus-08-2024": "command-r-plus24",
+  "@cf/openchat/openchat-3.5-0106": "openchat-3.5-0106",
+  "qwen-14b-chat": "qwen-14b",
+  "granite-3.0-2b-instruct": "granite-3.0-2b",
+  "gemini-1.5-pro-api-0409-preview": "gemini-1.5-pro-api-0409",
+  "deepseek-llm-67b-chat": "deepseek-67b",
+  "gpt-4-1106-preview": "gpt-4-1106",
+  "zephyr-orpo-141b-A35b-v0.1": "zephyr-orpo-141b-a35b-v0.1",
+  "llama-3.1-nemotron-51b-instruct": "nemotron-51b",
+  "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b-instruct-v0.2",
+  "llama-3.1-405b-instruct-bf16": "llama-3.1-405b-instruct",
+  "deepseek-ai/DeepSeek-V3": "deepseek",
+  "llama2-70b-steerlm-chat": "llama2-70b-steerlm",
+  "claude-3-opus-20240229": "claude-3-opus",
+  "llama-2-13b-chat": "llama-2-13b",
+  "@hf/thebloke/llama-2-13b-chat-awq": "llama-2-13b",
+  "granite-3.0-8b-instruct": "granite-3.0-8b",
+  "falcon-180b-chat": "falcon-180b",
+  "claude-3-5-haiku-20241022": "claude-3.5-haiku",
+  "gpt-4-turbo-2024-04-09": "gpt-4-turbo",
+  "claude-3-sonnet-20240229": "claude-3-sonnet",
+  "grok-2-mini-2024-08-13": "grok-2-mini",
+  "@hf/nexusflow/starling-lm-7b-beta": "starling-lm-7b-beta",
+  "codellama-70b-instruct": "codellama-70b",
+  "c4ai-aya-expanse-32b": "aya-expanse-32b",
+  "qwen1.5-32b-chat": "qwen-1.5-32b",
+  "granite-3.1-8b-instruct": "granite-3.1-8b",
+  "snowflake-arctic-instruct": "snowflake-arctic",
+  "mpt-7b-chat": "mpt-7b",
+  "claude-3-haiku-20240307": "claude-3-haiku",
+  "gpt-4-0125-preview": "gpt-4-0125",
+  "phi-3-medium-4k-instruct": "phi-3-medium",
+  "qwen1.5-110b-chat": "qwen-1.5-110b",
+  "yi-1.5-34b-chat": "yi-1.5-34b",
+  "openrouter:anthropic/claude-3.7-sonnet:thinking": "claude-3.7-sonnet-thinking",
+  "openrouter:qwen/qwen-plus": "qwen-plus",
+  "qwen-max-2025-01-25": "qwen-max",
+  "openrouter:qwen/qwen-max": "qwen-max",
+  "qwen2.5-vl-32b-instruct": "qwen-2.5-vl-32b",
+  "llama-3.3-nemotron-49b-super-v1": "nemotron-49b",
+  "llama-3.1-nemotron-ultra-253b-v1": "nemotron-253b",
+  "openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free": "nemotron-253b",
+  "codestral-2405": "codestral",
+  "openrouter:qwen/qwen-vl-max": "qwen-vl-max",
+  "@cf/qwen/qwen1.5-14b-chat-awq": "qwen-1.5-14b",
+  "openrouter:microsoft/phi-3-medium-128k-instruct": "phi-3-medium",
+  "openrouter:microsoft/phi-3-mini-128k-instruct": "phi-3-mini",
+  "deepseek-llama3.3-70b": "deepseek-llama-3.3-70b",
+  "apriel-5b-instruct": "apriel-5b",
+  "hermes-3-llama-3.1-405b-fp8": "hermes-3-llama-3.1-405b",
+  "openrouter:nousresearch/hermes-3-llama-3.1-405b": "hermes-3-405b",
+  "openai/gpt-oss-20b": "gpt-oss-20b",
+  "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo": "qwen-3coder-480b-a35b-instruct-turbo",
+  "allenai/olmOCR-7B-0725-FP8": "olmocr-7b-0725",
+  "zai-org/GLM-4.5": "glm-4.5",
+  "Qwen/Qwen3-235B-A22B-Thinking-2507": "qwen-3235b-a22b-thinking-2507",
+  "Qwen/Qwen3-Coder-480B-A35B-Instruct": "qwen-3coder-480b-a35b",
+  "zai-org/GLM-4.5-Air": "glm-4.5-air",
+  "Qwen/Qwen3-235B-A22B-Instruct-2507": "qwen-3235b-a22b-instruct-2507",
+  "meta-llama/Llama-4-Maverick-17B-128E-Instruct-Turbo": "llama-4-maverick-17b-128e-instruct-turbo",
+  "mistralai/Devstral-Small-2507": "devstral-small-2507",
+  "mistralai/Mistral-Small-3.2-24B-Instruct-2506": "mistral-small-3.2-24b-instruct-2506",
+  "meta-llama/Llama-Guard-4-12B": "llama-guard-4-12b",
+  "anthropic/claude-4-opus": "claude-4-opus",
+  "anthropic/claude-4-sonnet": "claude-4-sonnet",
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo": "llama-3.3-70b-instruct-turbo",
+  "Qwen/Qwen3-Coder-30B-A3B-Instruct": "qwen-3coder-30b-a3b",
+  "Qwen/Qwen3-4B-Thinking-2507": "qwen-34b-thinking-2507",
+  "Qwen/Qwen3-4B-Instruct-2507": "qwen-34b-instruct-2507",
+  "HuggingFaceTB/SmolLM3-3B": "smollm3-3b",
+  "Qwen/Qwen3-8B": "qwen-38b",
+  "Qwen/Qwen3-4B": "qwen-34b",
+  "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": "qwen-3coder-480b-a35b-instruct",
+  "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "tinyllama-1.1b-chat-v1.0",
+  "dphn/Dolphin-Mistral-24B-Venice-Edition": "dolphin-mistral-24b-venice-edition",
+  "Qwen/Qwen3-1.7B": "qwen-31.7b",
+  "@cf/meta/llama-3.2-11b-vision-instruct": "llama-3.2-11b-vision",
+  "microsoft/Phi-3.5-mini-instruct": "phi-3.5-mini",
+  "openrouter:microsoft/phi-3.5-mini-128k-instruct": "phi-3.5-mini",
+  "Qwen/Qwen-Image": "qwen-image",
+  "black-forest-labs/FLUX.1-Krea-dev": "flux-krea-dev",
+  "QuantStack/FLUX.1-Krea-dev-GGUF": "flux-krea-dev-gguf",
+  "nunchaku-tech/nunchaku-flux.1-krea-dev": "nunchaku-flux-krea-dev",
+  "city96/Qwen-Image-gguf": "qwen-image-gguf",
+  "MintLab/FLUX-Krea-BLAZE": "flux-krea-blaze",
+  "kpsss34/Stable-Diffusion-3.5-Small-Preview1": "stable-diffusion-3.5-small-preview1",
+  "stabilityai/stable-diffusion-xl-base-1.0": "sdxl-1.0",
+  "stable-diffusion-v1-5/stable-diffusion-v1-5": "stable-diffusion-v1-5",
+  "Qwen/QVQ-72B-Preview": "qvq-72b",
+  "Wan-AI/Wan2.2-TI2V-5B": "wan2.2-ti2v-5b",
+  "Wan-AI/Wan2.2-T2V-A14B": "wan2.2-t2v-a14b",
+  "Wan-AI/Wan2.2-T2V-A14B-Diffusers": "wan2.2-t2v-a14b-diffusers",
+  "tencent/HunyuanVideo": "hunyuanvideo",
+  "Wan-AI/Wan2.1-T2V-14B": "wan2.1-t2v-14b",
+  "Wan-AI/Wan2.1-T2V-1.3B": "wan2.1-t2v-1.3b",
+  "genmo/mochi-1-preview": "mochi-1",
+  "Lightricks/LTX-Video-0.9.7-dev": "ltx-video-0.9.7-dev",
+  "claude-opus-4-20250514": "claude-opus-4",
+  "amazon.nova-pro-v1:0": "amazon.nova-pro",
+  "gemini-2.5-flash-lite-preview-06-17-thinking": "gemini-2.5-flash-lite-preview-thinking",
+  "amazon-nova-experimental-chat-05-14": "amazon-nova-experimental",
+  "X-preview": "x",
+  "stephen-v2": "stephen",
+  "claude-sonnet-4-20250514": "claude-sonnet-4",
+  "qwen3-235b-a22b-no-thinking": "qwen-3235b-a22b-no-thinking",
+  "hunyuan-turbos-20250416": "hunyuan-turbos",
+  "ernie-x1-turbo-32k-preview": "ernie-x1-turbo-32k",
+  "kimi-k2-0711-preview": "kimi-k2-0711",
+  "imagen-4.0-ultra-generate-preview-06-06": "imagen-4.0-ultra-generate",
+  "ideogram-v2": "ideogram",
+  "recraft-v3": "recraft",
+  "imagen-4.0-generate-preview-06-06": "imagen-4.0-generate",
+  "openrouter:meta-llama/llama-3.3-8b-instruct:free": "llama-3.3-8b",
+  "openrouter:google/gemini-flash-1.5-8b": "gemini-1.5-8b-flash",
+  "openrouter:google/gemini-2.5-flash-preview:thinking": "gemini-2.5-flash-thinking",
+  "openrouter:google/gemma-3-1b-it:free": "gemma-3-1b",
+  "openrouter:openai/gpt-4o-search-preview": "gpt-4o-search",
+  "openrouter:openai/gpt-4o-mini-search-preview": "gpt-4o-mini-search",
+  "openrouter:mistralai/mistral-saba": "mistral-saba",
+  "openrouter:nousresearch/hermes-2-pro-llama-3-8b": "hermes-2-pro",
+  "openrouter:nousresearch/hermes-3-llama-3.1-70b": "hermes-3-70b",
+  "openrouter:nousresearch/deephermes-3-llama-3-8b-preview:free": "deephermes-3-8b",
+  "openrouter:nousresearch/deephermes-3-mistral-24b-preview:free": "deephermes-3-24b",
+  "openrouter:microsoft/phi-4-reasoning:free": "phi-4-reasoning",
+  "openrouter:microsoft/mai-ds-r1:free": "mai-ds-r1",
+  "openrouter:cohere/command": "command",
+  "openrouter:qwen/qwen-vl-plus": "qwen-vl-plus",
+  "openrouter:qwen/qwen-turbo": "qwen-turbo",
+  "openrouter:qwen/qwen2.5-coder-7b-instruct": "qwen-2.5-coder-7b",
+  "openrouter:qwen/qwen2.5-vl-3b-instruct:free": "qwen-2.5-vl-3b",
+  "openrouter:deepseek/deepseek-r1-zero:free": "deepseek-r1-zero",
+  "openrouter:deepseek/deepseek-r1-distill-llama-8b": "deepseek-r1-distill-llama-8b",
+  "openrouter:inflection/inflection-3-productivity": "inflection-3-productivity",
+  "openrouter:inflection/inflection-3-pi": "inflection-3-pi",
+  "openrouter:x-ai/grok-3-beta": "grok-3-beta",
+  "openrouter:perplexity/sonar-deep-research": "sonar-deep-research",
+  "openrouter:perplexity/llama-3.1-sonar-small-128k-online": "llama-3.1-sonar-small-online",
+  "openrouter:perplexity/llama-3.1-sonar-large-128k-online": "llama-3.1-sonar-large-online",
+  "openrouter:thudm/glm-4-9b:free": "glm-4-9b",
+  "openrouter:thudm/glm-z1-9b:free": "glm-z1-9b",
+  "openrouter:thudm/glm-z1-rumination-32b": "glm-z1-rumination-32b",
+  "openrouter:minimax/minimax-01": "minimax",
+  "openrouter:cognitivecomputations/dolphin3.0-r1-mistral-24b:free": "dolphin-3.0-r1-24b",
+  "openrouter:cognitivecomputations/dolphin3.0-mistral-24b:free": "dolphin-3.0-24b",
+  "openrouter:cognitivecomputations/dolphin-mixtral-8x22b": "dolphin-8x22b",
+  "openrouter:agentica-org/deepcoder-14b-preview:free": "deepcoder-14b",
+  "openrouter:moonshotai/kimi-vl-a3b-thinking:free": "kimi-vl-thinking",
+  "openrouter:moonshotai/moonlight-16b-a3b-instruct:free": "moonlight-16b",
+  "openrouter:featherless/qwerky-72b:free": "qwerky-72b",
+  "openrouter:liquid/lfm-7b": "lfm-7b",
+  "openrouter:liquid/lfm-3b": "lfm-3b",
+  "@hf/thebloke/deepseek-coder-6.7b-base-awq": "deepseek-coder-6.7b-base",
+  "@hf/thebloke/deepseek-coder-6.7b-instruct-awq": "deepseek-coder-6.7b",
+  "@cf/deepseek-ai/deepseek-math-7b-instruct": "deepseek-math-7b",
+  "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": "deepseek-distill-qwen-32b",
+  "@cf/tiiuae/falcon-7b-instruct": "falcon-7b",
+  "@hf/google/gemma-7b-it": "gemma-7b",
+  "@hf/nousresearch/hermes-2-pro-mistral-7b": "hermes-2-pro-mistral-7b",
+  "@cf/meta/llama-2-7b-chat-fp16": "llama-2-7b-fp16",
+  "@cf/meta/llama-guard-3-8b": "llama-guard-3-8b",
+  "@hf/thebloke/llamaguard-7b-awq": "llamaguard-7b",
+  "@hf/thebloke/mistral-7b-instruct-v0.1-awq": "mistral-7b-v0.1",
+  "@hf/mistral/mistral-7b-instruct-v0.2": "mistral-7b-v0.2",
+  "@hf/thebloke/neural-chat-7b-v3-1-awq": "neural-7b-v3-1",
+  "@cf/microsoft/phi-2": "phi-2",
+  "@cf/qwen/qwen1.5-0.5b-chat": "qwen1.5-0.5b",
+  "@cf/qwen/qwen1.5-1.8b-chat": "qwen-1.5-1.8b",
+  "@cf/defog/sqlcoder-7b-2": "sqlcoder-7b-2",
+  "@cf/tinyllama/tinyllama-1.1b-chat-v1.0": "tinyllama-1.1b-v1.0",
+  "@cf/thebloke/discolm-german-7b-v1-awq": "discolm-german-7b-v1",
+  "@cf/fblgit/una-cybertron-7b-v2-bf16": "una-cybertron-7b-v2-bf16",
+  "command-r7b-12-2024": "command-r7b24",
+  "command-r7b-arabic-02-2025": "command-r7b-arabic25",
+  "Copilot": "dall-e-3",
+  "microsoft/Phi-4-multimodal-instruct": "phi-4-multimodal",
+  "claude-3-5-sonnet-20240620": "claude-3-5-sonnet"
 }

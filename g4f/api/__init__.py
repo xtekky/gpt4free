@@ -363,6 +363,7 @@ class Api:
                     "owned_by": getattr(provider, "label", provider.__name__),
                     "image": model in getattr(provider, "image_models", []),
                     "vision": model in getattr(provider, "vision_models", []),
+                    "type": "image" if model in getattr(provider, "image_models", []) else "text",
                 } for model in models]
             }
 

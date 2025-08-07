@@ -23,7 +23,10 @@ class Ollama(OpenaiAPI):
                 url = f"http://{host}:{port}/api/tags"
             else:
                 url = api_base.replace("/v1", "/api/tags")
-            models = requests.get(url).json()["models"]
+            try:
+                models = requests.get(url).json()["models"]
+            except requests.exceptions.RequestException as e:
+                return cls.fallback_models
             cls.models = [model["name"] for model in models]
             cls.default_model = cls.models[0]
         return cls.models

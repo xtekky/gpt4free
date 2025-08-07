@@ -6,7 +6,7 @@ import json
 from ..typing import AsyncResult, Messages, MediaListType, Union
 from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
-from ..providers.retry_provider import IterListProvider
+from ..providers.retry_provider import RotatedProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Copilot, Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
@@ -18,7 +18,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
 from .. import debug
-from .any_model_map import audio_models, image_models, vision_models, video_models, model_map, models_count, parents
+from .any_model_map import audio_models, image_models, vision_models, video_models, model_map, models_count, parents, model_aliases
 
 PROVIERS_LIST_1 = [
     CopilotAccount, OpenaiChat, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
@@ -73,6 +73,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
     models_count = models_count
     models = list(model_map.keys())
     model_map: dict[str, dict[str, str]] = model_map
+    model_aliases: dict[str, str] = model_aliases
 
     @classmethod
     def extend_ignored(cls, ignored: list[str]) -> list[str]:
@@ -102,7 +103,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.create_model_map()
         file = os.path.join(os.path.dirname(__file__), "any_model_map.py")
         with open(file, "w", encoding="utf-8") as f:
-            for key in ["audio_models", "image_models", "vision_models", "video_models", "model_map", "models_count", "parents"]:
+            for key in ["audio_models", "image_models", "vision_models", "video_models", "model_map", "models_count", "parents", "model_aliases"]:
                 value = getattr(cls, key)
                 f.write(f"{key} = {json.dumps(value, indent=2) if isinstance(value, dict) else repr(value)}\n")
 
@@ -118,11 +119,14 @@ class AnyModelProviderMixin(ProviderModelMixin):
             "default": {provider.__name__: "" for provider in models.default.best_provider.providers},
         }
         cls.model_map.update({ 
-            model.name: {
+            name: {
                 provider.__name__: model.get_long_name() for provider in providers
                 if provider.working
-            } for _, (model, providers) in models.__models__.items()
+            } for name, (model, providers) in models.__models__.items()
         })
+        for name, (model, providers) in models.__models__.items():
+            if isinstance(model, models.ImageModel):
+                cls.image_models.append(name)
 
         # Process special providers
         for provider in PROVIERS_LIST_2:
@@ -234,6 +238,11 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 elif provider.__name__ not in cls.parents[provider.get_parent()]:
                     cls.parents[provider.get_parent()].append(provider.__name__)
 
+        for model, providers in cls.model_map.items():
+            for provider, alias in providers.items():
+                if alias != model and isinstance(alias, str) and alias not in cls.model_map:
+                    cls.model_aliases[alias] = model
+
     @classmethod
     def get_grouped_models(cls, ignored: list[str] = []) -> dict[str, list[str]]:
         unsorted_models = cls.get_models(ignored=ignored)
@@ -299,7 +308,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 groups["image"].append(model)
                 added = True
             # Check for OpenAI models
-            elif model.startswith(("gpt-", "chatgpt-", "o1", "o1-", "o3-", "o4-")) or model in ("auto", "searchgpt"):
+            elif model.startswith(("gpt-", "chatgpt-", "o1", "o1", "o3", "o4")) or model in ("auto", "searchgpt"):
                 groups["openai"].append(model)
                 added = True
             # Check for video models
@@ -371,10 +380,14 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     providers.append(provider)
                     model = submodel
         else:
+            if model not in cls.model_map:
+                if model in cls.model_aliases:
+                    model = cls.model_aliases[model]
             if model in cls.model_map:
                 for provider, alias in cls.model_map[model].items():
                     provider = Provider.__map__[provider]
-                    provider.model_aliases[model] = alias
+                    if model not in provider.model_aliases:
+                        provider.model_aliases[model] = alias
                     providers.append(provider)
         if not providers:
             for provider in PROVIERS_LIST_1:
@@ -390,7 +403,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
 
         debug.log(f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'")
 
-        async for chunk in IterListProvider(providers).create_async_generator(
+        async for chunk in RotatedProvider(providers).create_async_generator(
             model,
             messages,
             stream=stream,

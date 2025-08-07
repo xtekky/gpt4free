@@ -88,11 +88,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     vision_models = [default_vision_model]
     _models_loaded = False
     model_aliases = {
-        "gpt-4": "openai",
-        "gpt-4o": "openai",
-        "gpt-4.1-mini": "openai",
-        "gpt-4o-mini": "openai",
-        "gpt-4.1-nano": "openai-fast",
+        "gpt-4.1-nano": "openai",
         "gpt-4.1": "openai-large",
         "o4-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",
@@ -106,7 +102,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "grok-3-mini": "grok",
         "grok-3-mini-high": "grok",
         "gpt-4o-mini-audio": "openai-audio",
-        "gpt-4o-audio": "openai-audio",
         "sdxl-turbo": "turbo",
         "gpt-image": "gptimage",
         "flux-dev": "flux",

@@ -127,6 +127,7 @@ class Backend_Api(Api):
             except MissingAuthError as e:
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
             except Exception as e:
+                logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
             return jsonify(response)
 

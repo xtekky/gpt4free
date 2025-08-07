@@ -9,3 +9,4 @@ class OpenaiAPI(OpenaiTemplate):
     api_base = "https://api.openai.com/v1"
     working = True
     needs_auth = True
+    models_needs_auth = True

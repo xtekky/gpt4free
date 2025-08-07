@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import requests
 from .template import OpenaiTemplate
-from ..errors import ModelNotFoundError
 from ..config import DEFAULT_MODEL
-from .. import debug
-
 
 class DeepInfraChat(OpenaiTemplate):
     parent = "DeepInfra"
@@ -86,7 +83,7 @@ class DeepInfraChat(OpenaiTemplate):
 
         # microsoft
         "phi-4": "microsoft/phi-4",
-        "phi-4-multimodal": default_vision_model,
+        "phi-4-multimodal": "microsoft/Phi-4-multimodal-instruct",
         "phi-4-reasoning-plus": "microsoft/phi-4-reasoning-plus",
         "wizardlm-2-7b": "microsoft/WizardLM-2-7B",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
@@ -101,28 +98,3 @@ class DeepInfraChat(OpenaiTemplate):
         "qwen-3-235b": "Qwen/Qwen3-235B-A22B",
         "qwq-32b": "Qwen/QwQ-32B",
     }
-
-    @classmethod
-    def get_model(cls, model: str, **kwargs) -> str:
-        """Get the internal model name from the user-provided model name."""
-        # kwargs can contain api_key, api_base, etc. but we don't need them for model selection
-        if not model:
-            return cls.default_model
-        
-        # Check if the model exists directly in our models list
-        if model in cls.models:
-            return model
-        
-        # Check if there's an alias for this model
-        if model in cls.model_aliases:
-            alias = cls.model_aliases[model]
-            # If the alias is a list, randomly select one of the options
-            if isinstance(alias, list):
-                import random
-                selected_model = random.choice(alias)
-                debug.log(f"DeepInfraChat: Selected model '{selected_model}' from alias '{model}'")
-                return selected_model
-            debug.log(f"DeepInfraChat: Using model '{alias}' for alias '{model}'")
-            return alias
-        
-        raise ModelNotFoundError(f"Model {model} not found")

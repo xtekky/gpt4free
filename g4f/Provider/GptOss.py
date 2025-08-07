@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from ..typing import AsyncResult, Messages
+from ..typing import AsyncResult, Messages, MediaListType
 from ..providers.response import JsonConversation, Reasoning, TitleGeneration
 from ..requests import StreamSession, raise_for_status
 from ..config import DEFAULT_MODEL
@@ -26,11 +26,14 @@ class GptOss(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        media: MediaListType = None,
         conversation: JsonConversation = None,
         reasoning_effort: str = "high",
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        if media:
+            raise ValueError("Media is not supported by gpt-oss")
         model = cls.get_model(model)
         user_message = get_last_user_message(messages)
         cookies = {}
