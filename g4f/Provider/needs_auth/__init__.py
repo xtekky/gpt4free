@@ -24,6 +24,7 @@ from .LMArenaBeta       import LMArenaBeta
 from .MetaAI            import MetaAI
 from .MetaAIAccount     import MetaAIAccount
 from .MicrosoftDesigner import MicrosoftDesigner
+from .Nvidia            import Nvidia
 from .OpenaiAccount     import OpenaiAccount
 from .OpenaiAPI         import OpenaiAPI
 from .OpenaiChat        import OpenaiChat
