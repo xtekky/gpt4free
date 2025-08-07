@@ -49,6 +49,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 cls.vision_models = cls.vision_models.copy()
                 cls.vision_models += [model.get("id", model.get("name")) for model in data if model.get("vision")]
                 cls.models = [model.get("id", model.get("name")) for model in data]
+                cls.models_count = {model.get("id", model.get("name")): len(model.get("providers", [])) for model in data if len(model.get("providers", [])) > 1}
                 if cls.sort_models:
                     cls.models.sort()
             except Exception as e:
