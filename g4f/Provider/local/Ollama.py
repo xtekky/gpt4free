@@ -28,7 +28,7 @@ class Ollama(OpenaiAPI):
             except requests.exceptions.RequestException as e:
                 return cls.fallback_models
             cls.models = [model["name"] for model in models]
-            cls.default_model = cls.models[0]
+            cls.default_model = next(iter(cls.models), None)
         return cls.models
 
     @classmethod

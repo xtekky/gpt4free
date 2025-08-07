@@ -240,7 +240,7 @@ class Api:
                     user_g4f_api_key = await self.security(request)
                     if hasattr(user_g4f_api_key, "credentials"):
                         user_g4f_api_key = user_g4f_api_key.credentials
-                if AppConfig.g4f_api_key is None or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                if AppConfig.g4f_api_key is None or not user_g4f_api_key or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                     if has_crypto and user_g4f_api_key:
                         try:
                             expires, user = decrypt_data(private_key, user_g4f_api_key).split(":", 1)
