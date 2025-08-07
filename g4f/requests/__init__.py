@@ -222,9 +222,15 @@ async def sse_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
         iter_lines = iter_lines.iter_lines()
     async for line in iter_lines:
         if line.startswith(b"data: "):
-            if line[6:].startswith(b"[DONE]"):
+            rest = line[6:].strip()
+            if not rest:
+                continue
+            if rest.startswith(b"[DONE]"):
                 break
-            yield json.loads(line[6:])
+            try:
+                yield json.loads(rest)
+            except json.JSONDecodeError:
+                raise ValueError(f"Invalid JSON data: {rest}")
 
 async def iter_lines(iter_response: AsyncIterator[bytes], delimiter=None):
     """

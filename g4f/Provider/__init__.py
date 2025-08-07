@@ -39,7 +39,9 @@ from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DeepInfraChat        import DeepInfraChat
 from .DuckDuckGo           import DuckDuckGo
+from .EasyChat             import EasyChat
 from .Free2GPT             import Free2GPT
+from .GLM                  import GLM
 from .GptOss               import GptOss
 from .ImageLabs            import ImageLabs
 from .Kimi                 import Kimi

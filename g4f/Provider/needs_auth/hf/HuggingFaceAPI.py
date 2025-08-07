@@ -8,7 +8,7 @@ from ....requests import StreamSession, raise_for_status
 from ....errors import ModelNotFoundError, PaymentRequiredError
 from ....providers.response import ProviderInfo
 from ...template.OpenaiTemplate import OpenaiTemplate
-from .models import model_aliases, vision_models, default_llama_model, default_vision_model, text_models
+from .models import model_aliases, vision_models, default_model, default_vision_model, text_models
 
 class HuggingFaceAPI(OpenaiTemplate):
     label = "HuggingFace (Text Generation)"
@@ -18,7 +18,7 @@ class HuggingFaceAPI(OpenaiTemplate):
     working = True
     needs_auth = True
 
-    default_model = default_llama_model
+    default_model = default_model
     default_vision_model = default_vision_model
     vision_models = vision_models
     model_aliases = model_aliases
@@ -78,7 +78,6 @@ class HuggingFaceAPI(OpenaiTemplate):
         api_base: str = None,
         api_key: str = None,
         max_tokens: int = 2048,
-        # max_inputs_lenght: int = 10000,
         media: MediaListType = None,
         **kwargs
     ):

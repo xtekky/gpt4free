@@ -147,19 +147,13 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         if cache_file.exists() and cache_file.stat().st_mtime > time.time() - 60 * 30:
             with cache_file.open("r") as f:
                 args = json.load(f)
-        elif has_nodriver:
-            try:
-                async def callback(page):
-                    while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
-                        await asyncio.sleep(1)
-                    while not await page.evaluate('document.querySelector(\'textarea\')'):
-                        await asyncio.sleep(1)
-                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
-            except (RuntimeError, FileNotFoundError) as e:
-                debug.log(f"Nodriver is not available:", e)
-                args = {"headers": DEFAULT_HEADERS, "cookies": {}, "impersonate": "chrome"}
         else:
-            args = {"headers": DEFAULT_HEADERS, "cookies": {}, "impersonate": "chrome"}
+            async def callback(page):
+                while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
+                    await asyncio.sleep(1)
+                while not await page.evaluate('document.querySelector(\'textarea\')'):
+                    await asyncio.sleep(1)
+            args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
 
         # Build the JSON payload
         is_image_model = model in image_models

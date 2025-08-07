@@ -300,9 +300,10 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 async for chunk in response.content.iter_any():
                     if chunk:
                         chunk_text = chunk.decode()
-                        full_response.append(chunk_text)
-                        yield chunk_text
-                
+                        if chunk_text != "Login to continue using":
+                            full_response.append(chunk_text)
+                            yield chunk_text
+
                 full_response_text = ''.join(full_response)
                 
                 # Handle conversation history
