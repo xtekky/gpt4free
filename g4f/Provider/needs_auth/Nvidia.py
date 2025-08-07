@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from ..template import OpenaiTemplate
 from ...config import DEFAULT_MODEL
-import os
 
 class Nvidia(OpenaiTemplate):
     label = "Nvidia"
