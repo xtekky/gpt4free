@@ -290,7 +290,6 @@ def iter_run_tools(
             # Note: Using asyncio.run inside sync function is not ideal, but maintaining original pattern
             messages[-1]["content"], sources = asyncio.run(do_search(messages[-1]["content"], search_query))
         except Exception as e:
-            raise e
             debug.error(f"Couldn't do web search:", e)
     
     # Get API key if needed
