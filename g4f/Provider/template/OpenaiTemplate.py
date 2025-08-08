@@ -26,6 +26,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     models_needs_auth = False
     use_model_names = False
     ssl = None
+    add_user = True
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
@@ -129,7 +130,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 top_p=top_p,
                 stop=stop,
                 stream="audio" not in extra_parameters if stream is None else stream,
-                user=user,
+                user=user if cls.add_user else None,
                 **extra_parameters,
                 **extra_body
             )

@@ -13,3 +13,4 @@ class Nvidia(OpenaiTemplate):
     needs_auth = True
     models_needs_auth = True
     default_model = DEFAULT_MODEL
+    add_user = False
