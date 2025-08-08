@@ -24,6 +24,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     fallback_models = []
     sort_models = True
     models_needs_auth = False
+    use_model_names = False
     ssl = None
 
     @classmethod
@@ -45,11 +46,11 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
-                cls.image_models = [model.get("id", model.get("name")) for model in data if model.get("image") or model.get("type") == "image"]
+                cls.image_models = [model.get("name") if cls.use_model_names else model.get("id", model.get("name")) for model in data if model.get("image") or model.get("type") == "image"]
                 cls.vision_models = cls.vision_models.copy()
-                cls.vision_models += [model.get("name", model.get("id")) for model in data if model.get("vision")]
-                cls.models = [model.get("name", model.get("id")) for model in data]
-                cls.models_count = {model.get("name", model.get("id")): len(model.get("providers", [])) for model in data if len(model.get("providers", [])) > 1}
+                cls.vision_models += [model.get("name") if cls.use_model_names else model.get("id", model.get("name")) for model in data if model.get("vision")]
+                cls.models = [model.get("name") if cls.use_model_names else model.get("id", model.get("name")) for model in data]
+                cls.models_count = {model.get("name") if cls.use_model_names else model.get("id", model.get("name")): len(model.get("providers", [])) for model in data if len(model.get("providers", [])) > 1}
                 if cls.sort_models:
                     cls.models.sort()
             except Exception as e:

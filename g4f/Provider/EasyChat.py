@@ -20,6 +20,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     api_endpoint = f"{api_base}/chat/completions"
     working = True
     active_by_default = True
+    use_model_names = True
     
     default_model = "gpt-oss-120b-free"
     model_aliases = {
