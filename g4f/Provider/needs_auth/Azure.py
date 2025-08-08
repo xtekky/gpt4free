@@ -16,6 +16,7 @@ class Azure(OpenaiTemplate):
     api_base = "https://host.g4f.dev/api/Azure"
     working = True
     needs_auth = True
+    models_needs_auth = True
     active_by_default = True
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     routes: dict[str, str] = {}
