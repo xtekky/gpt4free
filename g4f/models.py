@@ -197,20 +197,20 @@ default_vision = VisionModel(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Copilot, Yqcloud, WeWordle, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, Copilot, Yqcloud, WeWordle, OpenaiChat])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Chatai, OIVSCodeSer2, Startnest, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, Chatai, OIVSCodeSer2, Startnest, OpenaiChat])
 )
 
 gpt_4o_mini_audio = AudioModel(

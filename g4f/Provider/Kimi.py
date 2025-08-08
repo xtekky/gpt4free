@@ -16,6 +16,7 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
     active_by_default = True
     default_model = "kimi-k2"
     models = [default_model]
+    model_aliases = {"moonshotai/Kimi-K2-Instruct": default_model}
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:

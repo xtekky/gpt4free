@@ -88,7 +88,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     vision_models = [default_vision_model]
     _models_loaded = False
     model_aliases = {
-        "gpt-4.1-nano": "openai",
+        "gpt-4.1-mini": "openai",
+        "gpt-4.1-nano": "openai-fast",
         "gpt-4.1": "openai-large",
         "o4-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",

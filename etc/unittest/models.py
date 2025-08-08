@@ -19,7 +19,7 @@ class TestProviderHasModel(unittest.TestCase):
                     if model.name in provider.model_aliases:
                         model_name = provider.model_aliases[model.name]
                     else:
-                        model_name = model.name
+                        model_name = model.get_long_name()
                         self.provider_has_model(provider, model_name)
 
     def provider_has_model(self, provider: Type[BaseProvider], model: str):
@@ -29,7 +29,8 @@ class TestProviderHasModel(unittest.TestCase):
             except (MissingRequirementsError, MissingAuthError):
                 return
         if self.cache[provider.__name__]:
-            self.assertIn(model, self.cache[provider.__name__], provider.__name__)
+            if not model in provider.model_aliases:
+                self.assertIn(model, self.cache[provider.__name__], provider.__name__)
 
     def test_all_providers_working(self):
         for model, providers in __models__.values():
