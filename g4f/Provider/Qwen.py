@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import re
@@ -6,8 +8,12 @@ from time import time
 
 import aiohttp
 from ..errors import RateLimitError
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages
+from ..providers.response import JsonConversation, Reasoning, Usage
+from ..requests import sse_stream
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_last_user_message
+from .. import debug
 
 class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     """
@@ -16,6 +22,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     """
     url = "https://chat.qwen.ai"
     working = True
+    active_by_default = True
     supports_stream = True
     supports_message_history = False
 
@@ -46,6 +53,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        conversation: JsonConversation = None,
         proxy: str = None,
         timeout: int = 120,
         stream: bool = True,
@@ -70,13 +78,13 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Source': 'web'
         }
 
-        prompt = messages[-1]["content"]
+        prompt = get_last_user_message(messages)
 
         async with aiohttp.ClientSession(headers=headers) as session:
             for attempt in range(5):
                 try:
                     if not cls._midtoken:
-                        print("[Qwen] INFO: No active midtoken. Fetching a new one...")
+                        debug.log("[Qwen] INFO: No active midtoken. Fetching a new one...")
                         async with session.get('https://sg-wum.alibaba.com/w/wu.json', proxy=proxy) as r:
                             r.raise_for_status()
                             text = await r.text()
@@ -85,42 +93,48 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 raise RuntimeError("Failed to extract bx-umidtoken.")
                             cls._midtoken = match.group(1)
                             cls._midtoken_uses = 1
-                            print(f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
+                            debug.log(f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
                     else:
                         cls._midtoken_uses += 1
-                        print(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
+                        debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
 
                     req_headers = session.headers.copy()
                     req_headers['bx-umidtoken'] = cls._midtoken
                     req_headers['bx-v'] = '2.5.31'
-
-                    chat_payload = {
-                        "title": "New Chat",
-                        "models": [model_name],
-                        "chat_mode": "normal",
-                        "chat_type": "t2t",
-                        "timestamp": int(time() * 1000)
-                    }
-                    async with session.post(
-                        f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers, proxy=proxy
-                    ) as resp:
-                        resp.raise_for_status()
-                        data = await resp.json()
-                        if not (data.get('success') and data['data'].get('id')):
-                            raise RuntimeError(f"Failed to create chat: {data}")
-                        chat_id = data['data']['id']
-
+                    message_id = str(uuid.uuid4())
+                    parent_id = None
+                    if conversation is None:
+                        chat_payload = {
+                            "title": "New Chat",
+                            "models": [model_name],
+                            "chat_mode": "normal",
+                            "chat_type": "t2t",
+                            "timestamp": int(time() * 1000)
+                        }
+                        async with session.post(
+                            f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers, proxy=proxy
+                        ) as resp:
+                            resp.raise_for_status()
+                            data = await resp.json()
+                            if not (data.get('success') and data['data'].get('id')):
+                                raise RuntimeError(f"Failed to create chat: {data}")
+                        conversation = JsonConversation(
+                            chat_id=data['data']['id'],
+                            cookies={key: value for key, value in resp.cookies.items()},
+                            parent_id=None
+                        )
+        
                     msg_payload = {
                         "stream": stream,
                         "incremental_output": stream,
-                        "chat_id": chat_id,
+                        "chat_id": conversation.chat_id,
                         "chat_mode": "normal",
                         "model": model_name,
-                        "parent_id": None,
+                        "parent_id": conversation.parent_id,
                         "messages": [
                             {
-                                "fid": str(uuid.uuid4()),
-                                "parentId": None,
+                                "fid": message_id,
+                                "parentId": conversation.parent_id,
                                 "childrenIds": [],
                                 "role": "user",
                                 "content": prompt,
@@ -145,50 +159,45 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     }
 
                     async with session.post(
-                        f'{cls.url}/api/v2/chat/completions?chat_id={chat_id}', json=msg_payload,
-                        headers=req_headers, proxy=proxy, timeout=timeout
+                        f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}', json=msg_payload,
+                        headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                     ) as resp:
                         first_line = await resp.content.readline()
                         line_str = first_line.decode().strip()
                         if line_str.startswith('{'):
-                            error_data = json.loads(line_str)
-                            if error_data.get("data", {}).get("code") == "RateLimited":
-                                raise RuntimeError("RateLimited by JSON response")
-                        
-                        buffer = first_line
+                            data = json.loads(line_str)
+                            if data.get("data", {}).get("code"):
+                                raise RuntimeError(f"Response: {data}")
+                            conversation.parent_id = data.get("response.created", {}).get("response_id")
+                            yield conversation
+
                         thinking_started = False
-                        async for chunk in resp.content:
-                            buffer += chunk
-                            while b'\n' in buffer:
-                                line, buffer = buffer.split(b'\n', 1)
-                                line_str = line.decode().strip()
-                                if not line_str.startswith("data: "): continue
-                                try:
-                                    data_json = json.loads(line_str.lstrip("data: "))
-                                    choices = data_json.get("choices", [])
-                                    if not choices: continue
-                                    delta = choices[0].get("delta", {})
-                                    phase = delta.get("phase")
-                                    content = delta.get("content")
-                                    if phase == "think" and not thinking_started:
-                                        yield "<think>"
-                                        thinking_started = True
-                                    elif phase == "answer" and thinking_started:
-                                        yield "</think>"
-                                        thinking_started = False
-                                    if content:
-                                        yield content
-                                except (json.JSONDecodeError, KeyError, IndexError):
-                                    continue
-                        if thinking_started:
-                            yield "</think>"
+                        usage = None
+                        async for chunk in sse_stream(resp):
+                            try:
+                                usage = chunk.get("usage", usage)
+                                choices = chunk.get("choices", [])
+                                if not choices: continue
+                                delta = choices[0].get("delta", {})
+                                phase = delta.get("phase")
+                                content = delta.get("content")
+                                if phase == "think" and not thinking_started:
+                                    thinking_started = True
+                                elif phase == "answer" and thinking_started:
+                                    thinking_started = False
+                                if content:
+                                    yield Reasoning(content) if thinking_started else content
+                            except (json.JSONDecodeError, KeyError, IndexError):
+                                continue
+                        if usage:
+                            yield Usage(**usage)
                         return
 
                 except (aiohttp.ClientResponseError, RuntimeError) as e:
                     is_rate_limit = (isinstance(e, aiohttp.ClientResponseError) and e.status == 429) or \
                                     ("RateLimited" in str(e))
                     if is_rate_limit:
-                        print(f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken.")
+                        debug.log(f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken.")
                         cls._midtoken = None
                         cls._midtoken_uses = 0
                         await asyncio.sleep(2)

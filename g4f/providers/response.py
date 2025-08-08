@@ -170,12 +170,18 @@ class Usage(JsonMixin, HiddenResponse):
         self,
         promptTokens: int = None,
         completionTokens: int = None,
+        input_tokens: int = None,
+        output_tokens: int = None,
         **kwargs
     ):
         if promptTokens is not None:
             kwargs["prompt_tokens"] = promptTokens
         if completionTokens is not None:
             kwargs["completion_tokens"] = completionTokens
+        if input_tokens is not None:
+            kwargs["prompt_tokens"] = input_tokens
+        if output_tokens is not None:
+            kwargs["completion_tokens"] = output_tokens
         if "total_tokens" not in kwargs and "prompt_tokens" in kwargs and "completion_tokens" in kwargs:
             kwargs["total_tokens"] = kwargs["prompt_tokens"] + kwargs["completion_tokens"]
         return super().__init__(**kwargs)
