@@ -362,6 +362,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 model = cls.get_model(model)
             except ModelNotFoundError:
                 pass
+            image_model = False
+            if model in cls.image_models:
+                image_model = True
+                model = cls.default_model
             if conversation is None:
                 conversation = Conversation(None, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
             else:
@@ -378,15 +382,17 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if cls._api_key is not None:
                     data = {
                         "action": "next",
-                        "fork_from_shared_post":False,
+                        "fork_from_shared_post": False,
                         "parent_message_id": conversation.message_id,
                         "model": model,
-                        "timezone_offset_min":-120,
-                        "timezone":"Europe/Berlin",
-                        "conversation_mode":{"kind":"primary_assistant"},
-                        "system_hints":[],
-                        "supports_buffering":True,
-                        "supported_encodings":["v1"]
+                        "timezone_offset_min": -120,
+                        "timezone": "Europe/Berlin",
+                        "conversation_mode": {"kind": "primary_assistant"},
+                        "system_hints": [
+                            "picture_v2"
+                        ] if image_model else [],
+                        "supports_buffering": True,
+                        "supported_encodings": ["v1"]
                     }
                     async with session.post(
                         prepare_url,
@@ -835,16 +841,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             await page.reload()
             user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
-            textarea = None
-            while not textarea:
-                try:
-                    textarea = await page.evaluate("document.getElementById('prompt-textarea')?.id")
-                except:
-                    pass
-                await asyncio.sleep(1)
-            while not await page.evaluate("document.querySelector('[data-testid=\"send-button\"]')?.type"):
-                await asyncio.sleep(1)
-            await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').click()")
+            if cls.needs_auth:
+                await page.select('[data-testid="accounts-profile-button"]', 300)
+            textarea = await page.select("#prompt-textarea", 300)
+            await textarea.send_keys("Hello")
+            await asyncio.sleep(1)
+            button = await page.select("[data-testid=\"send-button\"]")
+            if button:
+                await button.click()
             while True:
                 body = await page.evaluate("JSON.stringify(window.__remixContext)", return_by_value=True)
                 if hasattr(body, "value"):

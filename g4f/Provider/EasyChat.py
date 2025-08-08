@@ -30,6 +30,15 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     captchaToken: dict = None
 
     @classmethod
+    def get_models(cls, **kwargs) -> list[str]:
+        if not cls.models:
+            models = super().get_models(**kwargs)
+            models = {m.replace("-free", ""): m for m in models if m.endswith("-free")}
+            cls.model_aliases.update(models)
+            cls.models = list(models)
+        return cls.models
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -38,6 +47,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
+        model = cls.get_model(model)
         args = None
         auth_file = cls.get_cache_file()
         if auth_file.exists():
@@ -47,6 +57,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
             if cls.captchaToken:
                 debug.log("EasyChat: Using cached captchaToken.")
         async def callback(page):
+            cls.captchaToken = None
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
                 if event.request.url != cls.api_endpoint:
                     return
@@ -81,30 +92,33 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 if cls.captchaToken:
                     break
             await asyncio.sleep(3)
-        if not args:
-            args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
-        if extra_body is None:
-            extra_body = {}
-        extra_body.setdefault("captchaToken", cls.captchaToken)
-        try:
-            last_chunk = None
-            async for chunk in super().create_async_generator(
-                model=model,
-                messages=messages,
-                extra_body=extra_body,
-                **args
-            ):
-                # Remove provided by
-                if last_chunk == "\n" and chunk == "\n":
-                    break
-                last_chunk = chunk
-                yield chunk
-        except Exception as e:
-            if "CLEAR-CAPTCHA-TOKEN" in str(e):
-                auth_file.unlink(missing_ok=True)
-                cls.captchaToken = None
-                debug.log("EasyChat: Captcha token cleared, please try again.")
-            raise e
+        for _ in range(2):
+            if not args:
+                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+            if extra_body is None:
+                extra_body = {}
+            extra_body.setdefault("captchaToken", cls.captchaToken)
+            try:
+                last_chunk = None
+                async for chunk in super().create_async_generator(
+                    model=model,
+                    messages=messages,
+                    extra_body=extra_body,
+                    **args
+                ):
+                    # Remove provided by
+                    if last_chunk == "\n" and chunk == "\n":
+                        break
+                    last_chunk = chunk
+                    yield chunk
+            except Exception as e:
+                if "CLEAR-CAPTCHA-TOKEN" in str(e):
+                    debug.log("EasyChat: Captcha token expired, clearing auth file.")
+                    auth_file.unlink(missing_ok=True)
+                    args = None
+                    continue
+                raise e
+            break
         with auth_file.open("w") as f:
             json.dump({**args, "captchaToken": cls.captchaToken}, f)
-        
+            

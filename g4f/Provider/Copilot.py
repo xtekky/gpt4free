@@ -46,11 +46,12 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     active_by_default = True
     
     default_model = "Copilot"
-    models = [default_model, "Think Deeper"]
+    models = [default_model, "Think Deeper", "Smart (GPT-5)"]
     model_aliases = {
         "o1": "Think Deeper",
         "gpt-4": default_model,
         "gpt-4o": default_model,
+        "gpt-5": "GPT-5",
     }
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
@@ -172,6 +173,12 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 uploaded_images.append({"type":"image", "url": media})
 
             wss = await session.ws_connect(cls.websocket_url, timeout=3)
+            if "Think" in model:
+                mode = "reasoning"
+            elif model.startswith("gpt-5") or "GPT-5" in model:
+                mode = "smart"
+            else:
+                mode = "chat"
             await wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
@@ -179,7 +186,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                     "type": "text",
                     "text": prompt,
                 }],
-                "mode": "reasoning" if "Think" in model else "chat",
+                "mode": mode,
             }).encode(), CurlWsFlag.TEXT)
 
             done = False

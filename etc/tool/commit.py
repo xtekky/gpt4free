@@ -100,6 +100,7 @@ from typing import Optional, Any, List
 
 from g4f.client import Client
 from g4f.models import ModelUtils
+from g4f.cookies import read_cookie_files
 
 from g4f import debug
 debug.logging = True
@@ -294,6 +295,8 @@ def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL, max_retr
     """Generate a commit message based on the git diff"""
     if not diff_text or diff_text.strip() == "":
         return "No changes staged for commit"
+    
+    read_cookie_files()  # Load cookies for g4f client
     
     # Filter sensitive data
     filtered_diff = filter_sensitive_data(diff_text)
