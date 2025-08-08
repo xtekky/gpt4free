@@ -13,7 +13,7 @@ from ..Provider import Copilot, Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
 from ..Provider import WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta, Free2GPT
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM
-from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
+from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia, Azure
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
@@ -29,7 +29,7 @@ PROVIERS_LIST_1 = [
 ]
 
 PROVIERS_LIST_2 = [
-    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok
+    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure
 ]
 
 PROVIERS_LIST_3 = [

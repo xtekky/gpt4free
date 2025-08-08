@@ -67,8 +67,8 @@ class Together(OpenaiTemplate):
         #"afm-4.5b": "arcee-ai/AFM-4.5B-Preview", 
         
         # deepseek-ai
-        "deepseek-r1": ["deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-R1-0528-tput"],
-        "deepseek-v3": ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-V3-p-dp"],
+        "deepseek-r1": "deepseek-ai/DeepSeek-R1",
+        "deepseek-v3": "deepseek-ai/DeepSeek-V3",
         "deepseek-r1-distill-llama-70b": ["deepseek-ai/DeepSeek-R1-Distill-Llama-70B", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"],
         "deepseek-r1-distill-qwen-1.5b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
         "deepseek-r1-distill-qwen-14b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
