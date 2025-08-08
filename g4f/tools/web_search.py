@@ -14,7 +14,8 @@ try:
     from ddgs.exceptions import DDGSException
     from bs4 import BeautifulSoup
     has_requirements = True
-except ImportError:
+except ImportError as e:
+    raise e
     has_requirements = False
 
 try:
