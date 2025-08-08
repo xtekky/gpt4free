@@ -261,6 +261,10 @@ class Api:
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if request.method != "OPTIONS":
                         if user_g4f_api_key is None:
+                            ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
+                            country = request.headers.get("Cf-Ipcountry", "")
+                            agent = request.headers.get("User-Agent", "")
+                            debug.log(f"User: '{user}' G4F API key is required. IP: {ip}, Country: {country}, User-Agent: {agent}")
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                         if AppConfig.g4f_api_key is None and user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
