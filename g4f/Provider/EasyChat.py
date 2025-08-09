@@ -22,7 +22,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     active_by_default = True
     use_model_names = True
     
-    default_model = "gpt-oss-120b-free"
+    default_model = DEFAULT_MODEL.split("/")[-1]
     model_aliases = {
         DEFAULT_MODEL: default_model,
     }
