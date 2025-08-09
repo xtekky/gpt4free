@@ -60,7 +60,7 @@ class Ollama(OpenaiAPI):
             port = os.getenv("OLLAMA_PORT", "11434")
             api_base: str = f"http://{host}:{port}/v1"
         if model in cls.local_models or not api_key:
-            for chunk in super().create_async_generator(
+            async for chunk in super().create_async_generator(
                 model, messages, api_base=api_base, proxy=proxy, **kwargs
             ):
                 yield chunk
