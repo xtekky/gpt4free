@@ -101,7 +101,7 @@ class VersionUtils:
         if git_version:
             return git_version
 
-        raise VersionNotFoundError("Could not determine current g4f version.")
+        return None
 
     @property
     def latest_version(self) -> str:
