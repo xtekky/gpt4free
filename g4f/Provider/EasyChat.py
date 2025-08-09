@@ -106,6 +106,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 "model": model,
                 "provider": cls.__name__
             })
+            response.raise_for_status()
             text, *sub = response.text.split("\n" * 10 + "<!--", 1)
             if sub:
                 debug.log("Save args to cache file:", str(cache_file))

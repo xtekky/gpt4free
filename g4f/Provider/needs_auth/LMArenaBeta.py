@@ -190,6 +190,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 "model": model,
                 "provider": cls.__name__
             })
+            response.raise_for_status()
             text, *args = response.text.split("\n" * 10 + "<!--", 1)
             if args:
                 debug.log("Save args to cache file:", str(cache_file))
