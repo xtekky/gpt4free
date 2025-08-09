@@ -13,13 +13,14 @@ from ..Provider import Copilot, Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
 from ..Provider import WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta, Free2GPT
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM
-from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia, Azure
+from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
 from .. import debug
 from .any_model_map import audio_models, image_models, vision_models, video_models, model_map, models_count, parents, model_aliases
 
+# Add all model aliases to the model map
 PROVIERS_LIST_1 = [
     CopilotAccount, OpenaiChat, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
     OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs,
@@ -28,10 +29,12 @@ PROVIERS_LIST_1 = [
     HuggingSpace, HuggingFace, HuggingFaceMedia, GeminiPro, PuterJS, OperaAria, Startnest
 ]
 
+# Add all existing models to the model map
 PROVIERS_LIST_2 = [
-    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure
+    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure, Qwen, EasyChat, GLM
 ]
 
+# Add all models to the model map
 PROVIERS_LIST_3 = [
     HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, LegacyLMArena, LMArenaBeta,
     PuterJS, Cloudflare, HuggingSpace

@@ -4,6 +4,7 @@ import json
 import flask
 import os
 import time
+import base64
 import logging
 import asyncio
 import shutil
@@ -107,6 +108,12 @@ class Backend_Api(Api):
 
             @app.route('/backend-api/v2/public-key', methods=['GET'])
             def get_public_key():
+                if not has_crypto:
+                    return jsonify({"error": {"message": "Crypto support is not available"}}), 501
+                if time.time() - int(base64.b64decode(request.cookies.get("fingerprint", "MA==")).decode()) > 60:
+                    # If the fingerprint is older than 60 seconds, generate a new one
+                    resp = jsonify({"error": {"message": "Please refresh the page"}})
+                    return resp
                 # Send the public key to the client for encryption
                 return jsonify({
                     "public_key": public_key_pem.decode(),
@@ -270,10 +277,6 @@ class Backend_Api(Api):
             )
 
         self.routes = {
-            '/backend-api/v2/version': {
-                'function': self.get_version,
-                'methods': ['GET']
-            },
             '/backend-api/v2/synthesize/<provider>': {
                 'function': self.handle_synthesize,
                 'methods': ['GET']
@@ -291,6 +294,12 @@ class Backend_Api(Api):
                 'methods': ['GET']
             },
         }
+
+        @app.route('/backend-api/v2/version', methods=['GET'])
+        def version():
+            resp = jsonify(self.get_version())
+            resp.set_cookie('fingerprint', base64.b64encode(str(int(time.time())).encode()).decode(), max_age=60, httponly=True, secure=True)
+            return resp
 
         @app.route('/backend-api/v2/create', methods=['GET'])
         def create():
