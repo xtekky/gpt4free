@@ -110,12 +110,12 @@ class Backend_Api(Api):
             def get_public_key():
                 if not has_crypto:
                     return jsonify({"error": {"message": "Crypto support is not available"}}), 501
-                try:
-                    diff = time.time() - int(base64.b64decode(request.cookies.get("fingerprint")).decode())
-                except Exception as e:
-                    return jsonify({"error": {"message": "Invalid fingerprint"}}), 403
-                if diff > 60 * 60 * 2:
-                    return jsonify({"error": {"message": "Please refresh the page"}}), 403
+                # try:
+                #     diff = time.time() - int(base64.b64decode(request.cookies.get("fingerprint")).decode())
+                # except Exception as e:
+                #     return jsonify({"error": {"message": "Invalid fingerprint"}}), 403
+                # if diff > 60 * 60 * 2:
+                #     return jsonify({"error": {"message": "Please refresh the page"}}), 403
                 # Send the public key to the client for encryption
                 return jsonify({
                     "public_key": public_key_pem.decode(),
