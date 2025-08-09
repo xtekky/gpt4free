@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from ..cookies import browsers
+from ..cookies import BROWSERS
 from .. import Provider
 
 def gui_parser():
@@ -11,6 +11,6 @@ def gui_parser():
     parser.add_argument("--ignore-cookie-files", action="store_true", help="Don't read .har and cookie files.")
     parser.add_argument("--ignored-providers", nargs="+", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=[], help="List of providers to ignore when processing request. (incompatible with --reload and --workers)")
-    parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in browsers],
+    parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in BROWSERS],
                             default=[], help="List of browsers to access or retrieve cookies from.")
     return parser

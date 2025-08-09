@@ -7,8 +7,7 @@ import asyncio
 import os
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
-from ...requests import DEFAULT_HEADERS, has_nodriver
+from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, has_nodriver
 from ...errors import ModelNotFoundError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse
 from ...tools.media import merge_media
@@ -122,7 +121,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena (New)"
     url = "https://lmarena.ai"
     api_endpoint = "https://lmarena.ai/api/stream/create-evaluation"
-    working = True
+    working = has_nodriver
+    active_by_default = True
 
     default_model = list(text_models.keys())[0]
     models = list(text_models) + list(image_models)
