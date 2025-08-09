@@ -63,7 +63,6 @@ class Azure(OpenaiTemplate):
         messages: Messages,
         stream: bool = True,
         media: MediaListType = None,
-        extra_body: dict = None,
         api_key: str = None,
         api_endpoint: str = None,
         **kwargs
@@ -118,17 +117,19 @@ class Azure(OpenaiTemplate):
                 async with session.post(api_endpoint, data=form, json=data) as response:
                     data = await response.json()
                     await raise_for_status(response, data)
-                    async for chunk in save_response_media(data["data"][0]["b64_json"], prompt, content_type=f"image/{output_format}"):
+                    async for chunk in save_response_media(
+                        data["data"][0]["b64_json"],
+                        prompt,
+                        content_type=f"image/{output_format.replace('jpg', 'jpeg')}"
+                    ):
                         yield chunk
             return
-        if extra_body is None:
-            if model in cls.model_extra_body:
-                extra_body = cls.model_extra_body[model]
-                stream = False
-            else:
-                extra_body = {}
+        if model in cls.model_extra_body:
+            for key, value in cls.model_extra_body[model].items():
+                kwargs.setdefault(key, value)
+            stream = False
         if stream:
-            extra_body.setdefault("stream_options", {"include_usage": True})
+            kwargs.setdefault("stream_options", {"include_usage": True})
         try:
             async for chunk in super().create_async_generator(
                 model=model,
@@ -137,7 +138,6 @@ class Azure(OpenaiTemplate):
                 media=media,
                 api_key=api_key,
                 api_endpoint=api_endpoint,
-                extra_body=extra_body,
                 **kwargs
             ):
                 yield chunk

@@ -214,7 +214,7 @@ gpt_4o_mini = Model(
 )
 
 gpt_4o_mini_audio = AudioModel(
-    name          = 'gpt-4o-mini-audio',
+    name          = 'gpt-4o-mini-audio-preview',
     base_provider = 'OpenAI',
     best_provider = PollinationsAI
 )
@@ -255,7 +255,7 @@ o3_mini_high = Model(
 o4_mini = Model(
     name          = 'o4-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([PollinationsAI, OpenaiChat])
+    best_provider = OpenaiChat
 )
 
 o4_mini_high = Model(
@@ -274,7 +274,7 @@ gpt_4_1 = Model(
 gpt_4_1_mini = Model(
     name          = 'gpt-4.1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, OIVSCodeSer0501, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, OIVSCodeSer0501])
 )
 
 gpt_4_1_nano = Model(
@@ -390,7 +390,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI, Together, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, Together, HuggingChat, HuggingFace])
 )
 
 # llama-4
@@ -456,7 +456,7 @@ phi_3_5_mini = Model(
 phi_4 = Model(
     name          = "phi-4",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, HuggingSpace])
+    best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 phi_4_multimodal = VisionModel(
@@ -753,7 +753,7 @@ qwq_32b = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Together])
+    best_provider = IterListProvider([DeepInfraChat, Together])
 )
 
 # deepseek-r1
@@ -810,7 +810,7 @@ deepseek_prover_v2_671b = Model(
 deepseek_v3_0324 = Model(
     name = 'deepseek-v3-0324',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat])
 )
 
 deepseek_v3_0324_turbo = Model(
@@ -823,7 +823,7 @@ deepseek_v3_0324_turbo = Model(
 deepseek_r1_0528 = Model(
     name = 'deepseek-r1-0528',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, LambdaChat])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI])
 )
 
 deepseek_r1_0528_turbo = Model(
@@ -850,12 +850,6 @@ grok_3 = Model(
     name = 'grok-3',
     base_provider = 'x.ai',
     best_provider = Grok
-)
-
-grok_3_mini = Model(
-    name = 'grok-3-mini',
-    base_provider = 'x.ai',
-    best_provider = PollinationsAI
 )
 
 grok_3_r1 = Model(

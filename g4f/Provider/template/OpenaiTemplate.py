@@ -80,7 +80,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         headers: dict = None,
         impersonate: str = None,
         download_media: bool = True,
-        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio"],
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio", "stream_options"],
         extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
@@ -88,6 +88,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             api_key = cls.api_key
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
+        print(cls.get_headers(stream, api_key, headers))
         async with StreamSession(
             proxy=proxy,
             headers=cls.get_headers(stream, api_key, headers),
@@ -135,9 +136,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 **extra_body
             )
             if api_endpoint is None:
-                api_endpoint = cls.api_endpoint
-                if api_endpoint is None:
+                if api_base:
                     api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
+                if api_endpoint is None:
+                    api_endpoint = cls.api_endpoint
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
                 async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media):
                     yield chunk
