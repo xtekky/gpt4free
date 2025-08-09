@@ -15,9 +15,9 @@ from typing import (
     Type,
     IO,
     Optional,
-    TypedDict,
     TYPE_CHECKING,
 )
+from typing_extensions import TypedDict
 
 # Only import PIL for type-checkers; no runtime dependency required.
 if TYPE_CHECKING:
