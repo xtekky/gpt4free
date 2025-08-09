@@ -153,7 +153,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         if cache_file.exists() and cache_file.stat().st_mtime > time.time() - 60 * 30:
             with cache_file.open("r") as f:
                 args = json.load(f)
-        elif cls.looked or cls.fallback_url is None:
+        elif has_nodriver or cls.fallback_url is None:
             async def callback(page):
                 button = await page.find("Accept Cookies")
                 if button:
@@ -286,7 +286,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             yield FinishReason(finish["finishReason"])
                         if "usage" in finish:
                             yield Usage(**finish["usage"])
-        if cls.looked:
+        if os.getenv("LMAREANA_SHARE_AUTH"):
             yield "\n" * 10
             yield "<!--"
             yield json.dumps(args)
