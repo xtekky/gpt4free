@@ -6,7 +6,6 @@ import json
 import asyncio
 import os
 import requests
-from pathlib import Path
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, has_nodriver
@@ -122,7 +121,7 @@ vision_models = [model["publicName"] for model in models if "image" in model["ca
 class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena (New)"
     url = "https://lmarena.ai"
-    fallback_url = None
+    share_url = None
     api_endpoint = "https://lmarena.ai/api/stream/create-evaluation"
     working = True
     active_by_default = True
@@ -147,13 +146,13 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         timeout: int = None,
         **kwargs
     ) -> AsyncResult:
-        cls.fallback_url = os.getenv("LMARENA_FALLBACK_URL")
+        cls.share_url = os.getenv("G4F_SHARE_URL")
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
         if cache_file.exists() and cache_file.stat().st_mtime > time.time() - 60 * 30:
             with cache_file.open("r") as f:
                 args = json.load(f)
-        elif has_nodriver or cls.fallback_url is None:
+        elif has_nodriver or cls.share_url is None:
             async def callback(page):
                 button = await page.find("Accept Cookies")
                 if button:
@@ -163,19 +162,19 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                     debug.log("No authentication cookie found, trying to authenticate.")
                     await page.select('#cf-turnstile', 300)
-                    debug.log("Found:'#cf-turnstile'")
+                    debug.log("Found Element: 'cf-turnstile'")
                     await asyncio.sleep(3)
                     for _ in range(3):
                         size = None
                         for idx in range(15):
                             size = await page.js_dumps('document.getElementById("cf-turnstile")?.getBoundingClientRect()||{}')
                             debug.log("Found size:", {size.get("x"), size.get("y")})
-                            if "x" not in size or "y" not in size:
+                            if "x" not in size:
                                 break
                             await page.flash_point(size.get("x") + idx * 2, size.get("y") + idx * 2)
                             await page.mouse_click(size.get("x") + idx * 2, size.get("y") + idx * 2)
                             await asyncio.sleep(1)
-                        if "x" not in size or "y" not in size:
+                        if "x" not in size:
                             break
                     debug.log("Clicked on the turnstile.")
                 while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
@@ -183,21 +182,21 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 while not await page.evaluate('document.querySelector(\'textarea\')'):
                     await asyncio.sleep(1)
             args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
-        else:
+        elif not cls.looked:
             cls.looked = True
             debug.log("No cache file found, trying to fetch from fallback URL.")
-            response = requests.get(cls.fallback_url, params={
+            response = requests.get(cls.share_url, params={
                 "prompt": prompt,
-                "stream": True,
                 "model": model,
                 "provider": cls.__name__
             })
-            _, args = response.text.split("\n" * 10 + "<!--", 1)
+            text, *args = response.text.split("\n" * 10 + "<!--", 1)
             if args:
                 debug.log("Save args to cache file:", str(cache_file))
                 with cache_file.open("w") as f:
-                    f.write(args.strip())
-            yield response.text
+                    f.write(args[0].strip())
+            yield text
+            cls.looked = False
             return
 
         # Build the JSON payload
@@ -286,11 +285,10 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             yield FinishReason(finish["finishReason"])
                         if "usage" in finish:
                             yield Usage(**finish["usage"])
-        if os.getenv("LMAREANA_SHARE_AUTH"):
+        if os.getenv("G4F_SHARE_AUTH"):
             yield "\n" * 10
             yield "<!--"
             yield json.dumps(args)
-            cls.looked = False
         # Save the args to cache file
         with cache_file.open("w") as f:
             json.dump(args, f)

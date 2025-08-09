@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import asyncio
+import requests
 import json
 try:
     import nodriver
@@ -12,6 +14,7 @@ from ..config import DEFAULT_MODEL
 from ..requests import get_args_from_nodriver
 from ..providers.base_provider import AuthFileMixin
 from .template import OpenaiTemplate
+from .helper import get_last_user_message
 from .. import debug
 
 class EasyChat(OpenaiTemplate, AuthFileMixin):
@@ -24,10 +27,12 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     
     default_model = DEFAULT_MODEL.split("/")[-1]
     model_aliases = {
-        DEFAULT_MODEL: default_model,
+        DEFAULT_MODEL: f"{default_model}-free",
     }
 
-    captchaToken: dict = None
+    captchaToken: str = None
+    share_url: str = None
+    looked: bool = False
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
@@ -47,15 +52,10 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
+        cls.share_url = os.getenv("G4F_SHARE_URL")
         model = cls.get_model(model)
         args = None
-        auth_file = cls.get_cache_file()
-        if auth_file.exists():
-            with auth_file.open("r") as f:
-                args = json.load(f)
-            cls.captchaToken = args.pop("captchaToken")
-            if cls.captchaToken:
-                debug.log("EasyChat: Using cached captchaToken.")
+        cache_file = cls.get_cache_file()
         async def callback(page):
             cls.captchaToken = None
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
@@ -92,6 +92,28 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 if cls.captchaToken:
                     break
             await asyncio.sleep(3)
+        if cache_file.exists():
+            with cache_file.open("r") as f:
+                args = json.load(f)
+            cls.captchaToken = args.pop("captchaToken")
+            if cls.captchaToken:
+                debug.log("EasyChat: Using cached captchaToken.")
+        elif not cls.looked and cls.share_url:
+            cls.looked = True
+            debug.log("No cache file found, trying to fetch from fallback URL.")
+            response = requests.get(cls.share_url, params={
+                "prompt": get_last_user_message(messages),
+                "model": model,
+                "provider": cls.__name__
+            })
+            text, *sub = response.text.split("\n" * 10 + "<!--", 1)
+            if sub:
+                debug.log("Save args to cache file:", str(cache_file))
+                with cache_file.open("w") as f:
+                    f.write(sub[0].strip())
+            yield text
+            cls.looked = False
+            return
         for _ in range(2):
             if not args:
                 args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
@@ -104,7 +126,8 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     model=model,
                     messages=messages,
                     extra_body=extra_body,
-                    **args
+                    **args,
+                    **kwargs
                 ):
                     # Remove provided by
                     if last_chunk == "\n" and chunk == "\n":
@@ -113,12 +136,16 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     yield chunk
             except Exception as e:
                 if "CLEAR-CAPTCHA-TOKEN" in str(e):
-                    debug.log("EasyChat: Captcha token expired, clearing auth file.")
-                    auth_file.unlink(missing_ok=True)
+                    debug.log("EasyChat: Captcha token expired, clearing cache file.")
+                    cache_file.unlink(missing_ok=True)
                     args = None
                     continue
                 raise e
             break
-        with auth_file.open("w") as f:
+        if os.getenv("G4F_SHARE_AUTH"):
+            yield "\n" * 10
+            yield "<!--"
+            yield json.dumps({**args, "captchaToken": cls.captchaToken})
+        with cache_file.open("w") as f:
             json.dump({**args, "captchaToken": cls.captchaToken}, f)
             
