@@ -317,7 +317,7 @@ def run_client_args(args):
     input_text = (" ".join(args.input[rest:])).strip() + input_text
     if media:
         input_text = (media, input_text)
-    if not input_text:
+    if not sys.stdin.isatty() and not input_text:
         input_text = sys.stdin.read().strip()
     if not input_text:
         print("No input provided. Use -h for help.", file=sys.stderr)
