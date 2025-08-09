@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
+from functools import lru_cache
 
-# Platform-appropriate directories
+@lru_cache(maxsize=1)
 def get_config_dir() -> Path:
     """Get platform-appropriate config directory."""
     if sys.platform == "win32":
         return Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
     elif sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support"
-    else:  # Linux and other UNIX-like
-        return Path.home() / ".config"
+    return Path.home() / ".config"
+
 
 PACKAGE_NAME = "g4f"
 CONFIG_DIR = get_config_dir() / PACKAGE_NAME

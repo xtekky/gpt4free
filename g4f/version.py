@@ -1,102 +1,114 @@
 from __future__ import annotations
 
-from os import environ
 import requests
-from functools import cached_property
+from os import environ
+from functools import cached_property, lru_cache
 from importlib.metadata import version as get_package_version, PackageNotFoundError
 from subprocess import check_output, CalledProcessError, PIPE
+
 from .errors import VersionNotFoundError
 from .config import PACKAGE_NAME, GITHUB_REPOSITORY
 from . import debug
 
+# Default request timeout (seconds)
+REQUEST_TIMEOUT = 5
+
+
+@lru_cache(maxsize=1)
 def get_pypi_version(package_name: str) -> str:
     """
     Retrieves the latest version of a package from PyPI.
 
-    Args:
-        package_name (str): The name of the package for which to retrieve the version.
-
-    Returns:
-        str: The latest version of the specified package from PyPI.
-
     Raises:
-        VersionNotFoundError: If there is an error in fetching the version from PyPI.
+        VersionNotFoundError: If there is a network or parsing error.
     """
     try:
-        response = requests.get(f"https://pypi.org/pypi/{package_name}/json").json()
-        return response["info"]["version"]
+        response = requests.get(
+            f"https://pypi.org/pypi/{package_name}/json",
+            timeout=REQUEST_TIMEOUT
+        )
+        response.raise_for_status()
+        return response.json()["info"]["version"]
     except requests.RequestException as e:
-        raise VersionNotFoundError(f"Failed to get PyPI version: {e}")
+        raise VersionNotFoundError(
+            f"Failed to get PyPI version for '{package_name}'"
+        ) from e
 
+
+@lru_cache(maxsize=1)
 def get_github_version(repo: str) -> str:
     """
     Retrieves the latest release version from a GitHub repository.
 
-    Args:
-        repo (str): The name of the GitHub repository.
-
-    Returns:
-        str: The latest release version from the specified GitHub repository.
-
     Raises:
-        VersionNotFoundError: If there is an error in fetching the version from GitHub.
+        VersionNotFoundError: If there is a network or parsing error.
     """
     try:
-        response = requests.get(f"https://api.github.com/repos/{repo}/releases/latest")
+        response = requests.get(
+            f"https://api.github.com/repos/{repo}/releases/latest",
+            timeout=REQUEST_TIMEOUT
+        )
         response.raise_for_status()
-        return response.json()["tag_name"]
+        data = response.json()
+        if "tag_name" not in data:
+            raise VersionNotFoundError(f"No tag_name found in latest GitHub release for '{repo}'")
+        return data["tag_name"]
     except requests.RequestException as e:
-        raise VersionNotFoundError(f"Failed to get GitHub release version: {e}")
+        raise VersionNotFoundError(
+            f"Failed to get GitHub release version for '{repo}'"
+        ) from e
 
-def get_git_version() -> str:
-    # Read from git repository
+
+def get_git_version() -> str | None:
+    """Return latest Git tag if available, else None."""
     try:
-        command = ["git", "describe", "--tags", "--abbrev=0"]
-        return check_output(command, text=True, stderr=PIPE).strip()
+        return check_output(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            text=True,
+            stderr=PIPE
+        ).strip()
     except CalledProcessError:
         return None
+
 
 class VersionUtils:
     """
     Utility class for managing and comparing package versions of 'g4f'.
     """
+
     @cached_property
     def current_version(self) -> str:
         """
-        Retrieves the current version of the 'g4f' package.
-
-        Returns:
-            str: The current version of 'g4f'.
-
-        Raises:
-            VersionNotFoundError: If the version cannot be determined from the package manager, 
-                                  Docker environment, or git repository.
+        Returns the current installed version of g4f from:
+        - debug override
+        - package metadata
+        - environment variable (Docker)
+        - git tags
         """
         if debug.version:
             return debug.version
 
-        # Read from package manager
         try:
             return get_package_version(PACKAGE_NAME)
         except PackageNotFoundError:
             pass
 
-        # Read from docker environment
-        version = environ.get("G4F_VERSION")
-        if version:
-            return version
+        version_env = environ.get("G4F_VERSION")
+        if version_env:
+            return version_env
 
-        return get_git_version()
+        git_version = get_git_version()
+        if git_version:
+            return git_version
+
+        raise VersionNotFoundError("Could not determine current g4f version.")
 
     @property
     def latest_version(self) -> str:
         """
-        Retrieves the latest version of the 'g4f' package.
-
-        Returns:
-            str: The latest version of 'g4f'.
+        Returns the latest available version of g4f.
+        If not installed via PyPI, falls back to GitHub releases.
         """
-        # Is installed via package manager?
         try:
             get_package_version(PACKAGE_NAME)
         except PackageNotFoundError:
@@ -107,17 +119,30 @@ class VersionUtils:
     def latest_version_cached(self) -> str:
         return self.latest_version
 
-    def check_version(self) -> None:
+    def check_version(self, silent: bool = False) -> bool:
         """
-        Checks if the current version of 'g4f' is up to date with the latest version.
-
-        Note:
-            If a newer version is available, it prints a message with the new version and update instructions.
+        Checks if the current version is up-to-date.
+        Returns:
+            bool: True if current version is the latest, False otherwise.
         """
         try:
-            if self.current_version != self.latest_version:
-                print(f'New g4f version: {self.latest_version} (current: {self.current_version}) | pip install -U g4f')
+            current = self.current_version
+            latest = self.latest_version
+            up_to_date = current == latest
+            if not silent:
+                if up_to_date:
+                    print(f"g4f is up-to-date (version {current}).")
+                else:
+                    print(
+                        f"New g4f version available: {latest} "
+                        f"(current: {current}) | pip install -U g4f"
+                    )
+            return up_to_date
         except Exception as e:
-            print(f'Failed to check g4f version: {e}')
+            if not silent:
+                print(f"Failed to check g4f version: {e}")
+            return True  # Assume up-to-date if check fails
 
+
+# Singleton instance
 utils = VersionUtils()
