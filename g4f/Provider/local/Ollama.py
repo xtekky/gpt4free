@@ -7,6 +7,7 @@ import os
 from ..needs_auth.OpenaiAPI import OpenaiAPI
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import Usage, Reasoning
+from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 
 class Ollama(OpenaiAPI):
@@ -27,6 +28,8 @@ class Ollama(OpenaiAPI):
     def get_models(cls, api_key: str = None, api_base: str = None, **kwargs):
         if not cls.models:
             cls.models = []
+            if not api_key:
+                api_key = AuthManager.load_api_key(cls)
             if api_key:
                 models = requests.get("https://ollama.com/api/tags", {"headers": {"Authorization": f"Bearer {api_key}"}}).json()["models"]
                 cls.models = [model["name"] for model in models]
