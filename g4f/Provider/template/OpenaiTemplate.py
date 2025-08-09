@@ -88,7 +88,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             api_key = cls.api_key
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
-        print(cls.get_headers(stream, api_key, headers))
         async with StreamSession(
             proxy=proxy,
             headers=cls.get_headers(stream, api_key, headers),
