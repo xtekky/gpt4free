@@ -215,6 +215,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             debug.log(f"Using model alias: {model}")
         else:
             raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
+
         userMessageId = str(uuid.uuid4())
         modelAMessageId = str(uuid.uuid4())
         evaluationSessionId = str(uuid.uuid4())
