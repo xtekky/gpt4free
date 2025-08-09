@@ -5,6 +5,8 @@ import uuid
 import json
 import asyncio
 import os
+import requests
+from pathlib import Path
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, has_nodriver
@@ -120,6 +122,7 @@ vision_models = [model["publicName"] for model in models if "image" in model["ca
 class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena (New)"
     url = "https://lmarena.ai"
+    fallback_url = None
     api_endpoint = "https://lmarena.ai/api/stream/create-evaluation"
     working = has_nodriver
     active_by_default = True
@@ -131,6 +134,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     }
     image_models = list(image_models)
     vision_models = vision_models
+    looked = False
 
     @classmethod
     async def create_async_generator(
@@ -143,17 +147,58 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         timeout: int = None,
         **kwargs
     ) -> AsyncResult:
+        cls.fallback_url = os.getenv("LMARENA_FALLBACK_URL")
+        prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
         if cache_file.exists() and cache_file.stat().st_mtime > time.time() - 60 * 30:
             with cache_file.open("r") as f:
                 args = json.load(f)
-        else:
+        elif cls.looked or cls.fallback_url is None:
             async def callback(page):
+                button = await page.find("Accept Cookies")
+                if button:
+                    await button.click()
+                else:
+                    debug.log("No 'Accept Cookies' button found, skipping.")
+                if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
+                    debug.log("No authentication cookie found, trying to authenticate.")
+                    await page.select('#cf-turnstile', 300)
+                    debug.log("Found:'#cf-turnstile'")
+                    await asyncio.sleep(3)
+                    for _ in range(3):
+                        size = None
+                        for idx in range(15):
+                            size = await page.js_dumps('document.getElementById("cf-turnstile")?.getBoundingClientRect()||{}')
+                            debug.log("Found size:", {size.get("x"), size.get("y")})
+                            if "x" not in size or "y" not in size:
+                                break
+                            await page.flash_point(size.get("x") + idx * 2, size.get("y") + idx * 2)
+                            await page.mouse_click(size.get("x") + idx * 2, size.get("y") + idx * 2)
+                            await asyncio.sleep(1)
+                        if "x" not in size or "y" not in size:
+                            break
+                    debug.log("Clicked on the turnstile.")
                 while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                     await asyncio.sleep(1)
                 while not await page.evaluate('document.querySelector(\'textarea\')'):
                     await asyncio.sleep(1)
             args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+        else:
+            cls.looked = True
+            debug.log("No cache file found, trying to fetch from fallback URL.")
+            response = requests.get(cls.fallback_url, params={
+                "prompt": prompt,
+                "stream": True,
+                "model": model,
+                "provider": cls.__name__
+            })
+            _, args = response.text.split("\n" * 10 + "<!--", 1)
+            if args:
+                debug.log("Save args to cache file:", str(cache_file))
+                with cache_file.open("w") as f:
+                    f.write(args.strip())
+            yield response.text
+            return
 
         # Build the JSON payload
         is_image_model = model in image_models
@@ -173,7 +218,6 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         userMessageId = str(uuid.uuid4())
         modelAMessageId = str(uuid.uuid4())
         evaluationSessionId = str(uuid.uuid4())
-        prompt = get_last_user_message(messages)
         data = {
             "id": evaluationSessionId,
             "mode": "direct",
@@ -241,7 +285,11 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             yield FinishReason(finish["finishReason"])
                         if "usage" in finish:
                             yield Usage(**finish["usage"])
-
+        if cls.looked:
+            yield "\n" * 10
+            yield "<!--"
+            yield json.dumps(args)
+            cls.looked = False
         # Save the args to cache file
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -255,3 +303,16 @@ def get_content_type(url: str) -> str:
         return "image/jpeg"
     else:
         return "application/octet-stream"
+
+async def switch_to_frame(browser, frame_id):
+    """
+    change iframe
+    let iframe = document.querySelector("YOUR_IFRAME_SELECTOR")
+    let iframe_tab = iframe.contentWindow.document.body;
+    """
+    iframe_tab = next(
+        filter(
+        lambda x: str(x.target.target_id) == str(frame_id), browser.targets
+        )
+    )
+    return iframe_tab
