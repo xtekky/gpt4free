@@ -16,7 +16,7 @@ except ImportError:
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, has_nodriver
-from ...errors import ModelNotFoundError, CloudflareError
+from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse
 from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin,AuthFileMixin
@@ -326,7 +326,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 if "usage" in finish:
                                     yield Usage(**finish["usage"])
                 break
-            except CloudflareError:
+            except (CloudflareError, MissingAuthError):
                 args = None
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
