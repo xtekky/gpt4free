@@ -11,11 +11,11 @@ class OpenRouter(OpenaiTemplate):
     working = True
     needs_auth = True
     default_model = DEFAULT_MODEL
+    active_by_default = True
 
 class OpenRouterFree(OpenRouter):
     parent = "OpenRouter"
     label = "OpenRouter (free)"
-    active_by_default = True
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs):
