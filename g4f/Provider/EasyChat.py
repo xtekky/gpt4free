@@ -48,6 +48,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         cls,
         model: str,
         messages: Messages,
+        stream: bool = True,
         proxy: str = None,
         extra_body: dict = None,
         **kwargs
@@ -128,6 +129,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 async for chunk in super().create_async_generator(
                     model=model,
                     messages=messages,
+                    stream=True,
                     extra_body=extra_body,
                     **args,
                     **kwargs
