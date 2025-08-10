@@ -145,6 +145,8 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     continue
                 raise e
             break
+        if not args:
+            raise ValueError("Failed to retrieve arguments for EasyChat.")
         if os.getenv("G4F_SHARE_AUTH"):
             yield "\n" * 10
             yield "<!--"

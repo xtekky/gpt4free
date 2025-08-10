@@ -8,9 +8,9 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..typing import CreateResult, Messages
-from .base_provider import AbstractProvider, ProviderModelMixin
-from .helper import get_last_user_message
+from ...typing import CreateResult, Messages
+from ..base_provider import AbstractProvider, ProviderModelMixin
+from ..helper import get_last_user_message
 
 class DuckDuckGo(AbstractProvider, ProviderModelMixin):
     label = "Duck.ai (duckduckgo_search)"

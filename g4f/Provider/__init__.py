@@ -32,16 +32,17 @@ try:
 except ImportError as e:
     debug.error("Audio providers not loaded:", e)
 
-from .deprecated.ARTA      import ARTA
+from .deprecated.ARTA import ARTA
+from .deprecated.DuckDuckGo import DuckDuckGo
+from .deprecated.Free2GPT import Free2GPT
+
 from .ApiAirforce          import ApiAirforce
 from .Blackbox             import Blackbox
 from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DeepInfraChat        import DeepInfraChat
-from .DuckDuckGo           import DuckDuckGo
 from .EasyChat             import EasyChat
-from .Free2GPT             import Free2GPT
 from .GLM                  import GLM
 from .GptOss               import GptOss
 from .ImageLabs            import ImageLabs

@@ -5,11 +5,11 @@ from hashlib import sha256
 
 from aiohttp import BaseConnector, ClientSession
 
-from ..errors import RateLimitError
-from ..requests import raise_for_status
-from ..requests.aiohttp import get_connector
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...errors import RateLimitError
+from ...requests import raise_for_status
+from ...requests.aiohttp import get_connector
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
 class Free2GPT(AsyncGeneratorProvider, ProviderModelMixin):

@@ -5,9 +5,11 @@ from ..typing import Messages, AsyncResult
 from ..providers.base_provider import AsyncGeneratorProvider
 from ..providers.response import FinishReason
 from ..tools.web_search import fetch_and_scrape 
+from .helper import format_media_prompt
+from .. import debug
 
 class SearXNG(AsyncGeneratorProvider):
-    default_url = os.environ.get("SEARXNG_URL", "http://searxng:8080")
+    url = os.environ.get("SEARXNG_URL", "http://searxng:8080")
     label = "SearXNG"
   
     @classmethod
@@ -15,34 +17,30 @@ class SearXNG(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: Messages,
+        prompt: str = None,
         proxy: str = None,
         timeout: int = 30,
+        language: str = "it",
         max_results: int = 5,
         max_words: int = 2500,
         add_text: bool = True,
         **kwargs
     ) -> AsyncResult:
-        url = cls.default_url
-        query = messages[-1]["content"] if isinstance(messages[-1], dict) else getattr(messages[-1], "content", "")
-
+        prompt = format_media_prompt(messages, prompt)
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
             params = {
-                "q": query,
+                "q": prompt,
                 "format": "json",
-                "language": "it",
+                "language": language,
                 "safesearch": 0,
                 "categories": "general",
             }
-
-            async with session.get(f"{url}/search", params=params) as resp:
-                print(f"Request URL on SearXNG: {resp.url}")
+            async with session.get(f"{cls.url}/search", params=params, proxy=proxy) as resp:
+                debug.log(f"Request URL on SearXNG: {resp.url}")
                 data = await resp.json()
                 results = data.get("results", [])
-
                 if not results:
-                    yield "Nessun risultato trovato."
-                    yield FinishReason("stop")
                     return
 
                 if add_text:
@@ -56,7 +54,7 @@ class SearXNG(AsyncGeneratorProvider):
                 formatted = ""
                 used_words = 0
                 for i, r in enumerate(results[:max_results]):
-                    title = r.get("title", "Senza titolo")
+                    title = r.get("title")
                     url = r.get("url", "#")
                     content = r.get("text") or r.get("snippet") or ""
                     formatted += f"Title: {title}\n\n{content}\n\nSource: [[{i}]]({url})\n\n"
