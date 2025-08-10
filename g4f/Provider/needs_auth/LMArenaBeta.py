@@ -186,12 +186,9 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
         if model in cls.text_models:
-            model = cls.text_models[model]
+            model_id = cls.text_models[model]
         elif model in cls.image_models:
-            model = cls.image_models[model]
-        elif model in cls.model_aliases:
-            model = cls.model_aliases[model]
-            debug.log(f"Using model alias: {model}")
+            model_id = cls.image_models[model]
         else:
             raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
 
@@ -261,7 +258,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             data = {
                 "id": evaluationSessionId,
                 "mode": "direct",
-                "modelAId": model,
+                "modelAId": model_id,
                 "userMessageId": userMessageId,
                 "modelAMessageId": modelAMessageId,
                 "messages": [
