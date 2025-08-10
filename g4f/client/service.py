@@ -55,11 +55,11 @@ def get_model_and_provider(model    : Union[Model, str],
     if isinstance(provider, str):
         provider = convert_to_provider(provider)
 
-    if isinstance(model, str):
-        if model in ModelUtils.convert:
-            model = ModelUtils.convert[model]
-
     if not provider:
+        if isinstance(model, str):
+            if model in ModelUtils.convert:
+                model = ModelUtils.convert[model]
+
         if not model:
             if has_images:
                 model = default_vision

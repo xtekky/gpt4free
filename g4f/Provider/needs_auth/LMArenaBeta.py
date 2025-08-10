@@ -152,19 +152,19 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if cache_file.exists():
                 with cache_file.open("r") as f:
                     args = json.load(f)
-            response = curl_cffi.get(f"{cls.url}/?mode=direct", **args)
-            if response.ok:
-                for line in response.text.splitlines():
-                    if "initialModels" in line:
-                        line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3].replace('\\', '')
-                        models = json.loads(line)
-                        cls.text_models = {model["publicName"]: model["id"] for model in models if "text" in model["capabilities"]["outputCapabilities"]}
-                        cls.image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
-                        cls.vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
-                        cls.models = list(cls.text_models) + list(cls.image_models)
-                        cls.default_model = list(cls.text_models.keys())[0]
-                        cls._models_loaded = True
-                        break
+                response = curl_cffi.get(f"{cls.url}/?mode=direct", **args)
+                if response.ok:
+                    for line in response.text.splitlines():
+                        if "initialModels" in line:
+                            line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3].replace('\\', '')
+                            models = json.loads(line)
+                            cls.text_models = {model["publicName"]: model["id"] for model in models if "text" in model["capabilities"]["outputCapabilities"]}
+                            cls.image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
+                            cls.vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
+                            cls.models = list(cls.text_models) + list(cls.image_models)
+                            cls.default_model = list(cls.text_models.keys())[0]
+                            cls._models_loaded = True
+                            break
             else:
                 debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
         return cls.models

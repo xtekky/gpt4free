@@ -223,6 +223,8 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 elif msg.get("event") == "partialImageGenerated":
                     mime_type = is_accepted_format(base64.b64decode(msg.get("content")[:12]))
                     yield ImagePreview(f"data:{mime_type};base64,{msg.get('content')}", image_prompt)
+                elif msg.get("event") == "chainOfThought":
+                    yield Reasoning(msg.get("text"))
                 elif msg.get("event") == "error":
                     raise RuntimeError(f"Error: {msg}")
                 elif msg.get("event") not in ["received", "startMessage", "partCompleted", "connected"]:

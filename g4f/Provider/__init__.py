@@ -33,6 +33,7 @@ except ImportError as e:
     debug.error("Audio providers not loaded:", e)
 
 from .deprecated.ARTA      import ARTA
+from .ApiAirforce          import ApiAirforce
 from .Blackbox             import Blackbox
 from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
