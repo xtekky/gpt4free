@@ -62,7 +62,7 @@ FOLLOWUPS_DEVELOPER_MESSAGE = [{
 }]
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Pollinations AI"
+    label = "Pollinations AI 🌸"
     url = "https://pollinations.ai"
     login_url = "https://auth.pollinations.ai"
     active_by_default = True

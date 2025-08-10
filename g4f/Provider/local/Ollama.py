@@ -11,7 +11,7 @@ from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 
 class Ollama(OpenaiAPI):
-    label = "Ollama"
+    label = "Ollama 🦙"
     url = "https://ollama.com"
     login_url = "https://ollama.com/settings/keys"
     api_endpoint = "https://ollama.com/api/chat"

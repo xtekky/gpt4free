@@ -12,6 +12,7 @@ from ..template import OpenaiTemplate
 from ..helper import format_media_prompt
 
 class Azure(OpenaiTemplate):
+    label = "Azure ☁️"
     url = "https://ai.azure.com"
     api_base = "https://host.g4f.dev/api/Azure"
     working = True
