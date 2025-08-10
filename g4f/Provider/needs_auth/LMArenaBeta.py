@@ -329,6 +329,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                     yield Usage(**finish["usage"])
                 break
             except CloudflareError:
+                args = None
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
         if os.getenv("G4F_SHARE_AUTH"):
