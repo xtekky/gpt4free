@@ -13,7 +13,7 @@ from .helper import filter_none, format_media_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
 from ..image import is_data_an_audio
-from ..errors import ModelNotFoundError, MissingAuthError
+from ..errors import MissingAuthError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image import use_aspect_ratio
@@ -151,8 +151,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     elif model.get("name") not in cls.text_models:
                         cls.text_models.append(model.get("name"))
 
-                cls._models_loaded = True
-
             except Exception as e:
                 # Save default models in case of an error
                 if not cls.text_models:
@@ -160,6 +158,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 if not cls.image_models:
                     cls.image_models = [cls.default_image_model]
                 debug.error(f"Failed to fetch models: {e}")
+
+            finally:
+                cls._models_loaded = True
 
         # Return unique models across all categories
         all_models = cls.text_models.copy()

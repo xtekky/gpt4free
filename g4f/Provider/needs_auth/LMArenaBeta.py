@@ -138,7 +138,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     model_aliases = {
         "flux-kontext": "flux-1-kontext-pro",
     }
-    image_models = list(image_models)
+    image_models = image_models
+    text_models = text_models
     vision_models = vision_models
     looked = False
     _models_loaded = False
@@ -157,13 +158,11 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     if "initialModels" in line:
                         line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3].replace('\\', '')
                         models = json.loads(line)
-                        text_models = {model["publicName"]: model["id"] for model in models if "text" in model["capabilities"]["outputCapabilities"]}
-                        image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
-                        vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
-                        cls.models = list(text_models) + list(image_models)
-                        cls.image_models = list(image_models)
-                        cls.vision_models = vision_models
-                        cls.default_model = list(text_models.keys())[0]
+                        cls.text_models = {model["publicName"]: model["id"] for model in models if "text" in model["capabilities"]["outputCapabilities"]}
+                        cls.image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
+                        cls.vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
+                        cls.models = list(cls.text_models) + list(cls.image_models)
+                        cls.default_model = list(cls.text_models.keys())[0]
                         cls._models_loaded = True
                         break
             else:
@@ -186,10 +185,10 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             model = cls.default_model
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
-        if model in image_models:
-            model = image_models[model]
-        elif model in text_models:
-            model = text_models[model]
+        if model in cls.text_models:
+            model = cls.text_models[model]
+        elif model in cls.image_models:
+            model = cls.image_models[model]
         elif model in cls.model_aliases:
             model = cls.model_aliases[model]
             debug.log(f"Using model alias: {model}")
