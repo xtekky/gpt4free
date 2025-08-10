@@ -25,9 +25,8 @@ class Startnest(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     
     default_model = 'gpt-4o-mini'
-    default_vision_model = default_model
-    vision_models = [default_model, "gpt-4o-mini"]
-    models = vision_models
+    models = [default_model]
+    vision_models = models
 
     @classmethod
     def generate_signature(cls, timestamp: int) -> str:
@@ -95,7 +94,7 @@ class Startnest(AsyncGeneratorProvider, ProviderModelMixin):
                     
                     # Add images if this is the last user message and media exists
                     if media and role == "user" and i == len(messages) - 1:
-                        for image, image_name in media:
+                        for image, _ in media:
                             image_data_uri = to_data_uri(image)
                             content_array.append({
                                 "image_url": {

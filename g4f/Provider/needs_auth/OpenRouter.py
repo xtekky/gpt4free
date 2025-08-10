@@ -10,5 +10,23 @@ class OpenRouter(OpenaiTemplate):
     api_base = "https://openrouter.ai/api/v1"
     working = True
     needs_auth = True
-    active_by_default = True
     default_model = DEFAULT_MODEL
+
+class OpenRouterFree(OpenRouter):
+    parent = "OpenRouter"
+    label = "OpenRouter (free)"
+    active_by_default = True
+
+    @classmethod
+    def get_models(cls, api_key: str = None, **kwargs):
+        models = super().get_models(api_key=api_key, **kwargs)
+        models = [model for model in models if model.endswith(":free")]
+        cls.model_aliases = {model.replace(":free", ""): model for model in models}
+        return [model.replace(":free", "") for model in models]
+    
+    @classmethod
+    def get_model(cls, model: str, **kwargs) -> str:
+        # Load model aliases if not already done
+        cls.get_models(**kwargs)
+        # Map the model to its alias if it exists
+        return super().get_model(model, **kwargs)

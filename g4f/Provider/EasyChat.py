@@ -76,7 +76,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     modal = await page.find("Verifying...")
                     if not modal:
                         break
-                    debug.log("EasyChaat: Waiting for captcha verification...")
+                    debug.log("EasyChat: Waiting for captcha verification...")
                     await asyncio.sleep(1)
                 if cls.captchaToken:
                     debug.log("EasyChat: Captcha token found, proceeding.")
@@ -100,20 +100,22 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 debug.log("EasyChat: Using cached captchaToken.")
         elif not cls.looked and cls.share_url:
             cls.looked = True
-            debug.log("No cache file found, trying to fetch from fallback URL.")
-            response = requests.get(cls.share_url, params={
-                "prompt": get_last_user_message(messages),
-                "model": model,
-                "provider": cls.__name__
-            })
-            response.raise_for_status()
-            text, *sub = response.text.split("\n" * 10 + "<!--", 1)
-            if sub:
-                debug.log("Save args to cache file:", str(cache_file))
-                with cache_file.open("w") as f:
-                    f.write(sub[0].strip())
-            yield text
-            cls.looked = False
+            try:
+                debug.log("No cache file found, trying to fetch from share URL.")
+                response = requests.get(cls.share_url, params={
+                    "prompt": get_last_user_message(messages),
+                    "model": model,
+                    "provider": cls.__name__
+                })
+                response.raise_for_status()
+                text, *sub = response.text.split("\n" * 10 + "<!--", 1)
+                if sub:
+                    debug.log("Save args to cache file:", str(cache_file))
+                    with cache_file.open("w") as f:
+                        f.write(sub[0].strip())
+                yield text
+            finally:
+                cls.looked = False
             return
         for _ in range(2):
             if not args:

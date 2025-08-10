@@ -13,7 +13,7 @@ from ..Provider import Copilot, Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
 from ..Provider import WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta, Free2GPT
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM
-from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM
+from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM, OpenRouterFree
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
@@ -29,9 +29,9 @@ PROVIERS_LIST_1 = [
     HuggingSpace, HuggingFace, HuggingFaceMedia, GeminiPro, PuterJS, OperaAria, Startnest
 ]
 
-# Add all existing models to the model map
+# Add providers to existing models on map
 PROVIERS_LIST_2 = [
-    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure, Qwen, EasyChat, GLM
+    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure, Qwen, EasyChat, GLM, OpenRouterFree
 ]
 
 # Add all models to the model map
@@ -147,7 +147,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                         if pmodel not in cls.model_map:
                             cls.model_map[pmodel] = {}
                         cls.model_map[pmodel].update({provider.__name__: model})
-                    cls.audio_models.update({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
+                    cls.audio_models.extend({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
                     cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
                     cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
                     for model in provider.model_aliases.keys():
@@ -221,7 +221,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
         # Process audio providers
         for provider in [Microsoft_Phi_4_Multimodal, PollinationsAI]:
             if provider.working:
-                cls.audio_models.update(provider.audio_models)
+                cls.audio_models.extend([model for model in provider.audio_models if model not in cls.audio_models])
 
         # Update model counts
         for model, providers in cls.model_map.items():
@@ -430,12 +430,14 @@ def clean_name(name: str) -> str:
     name = name.replace("_", ".")
     name = name.replace("c4ai-", "")
     name = name.replace("meta-llama-", "llama-")
-    name = name.replace("llama3", "llama-3")
-    name = name.replace("flux.1-", "flux-")
-    name = name.replace("qwen1-", "qwen-1")
-    name = name.replace("qwen2-", "qwen-2")
-    name = name.replace("qwen3-", "qwen-3")
+    name = name.replace("llama-", "llama").replace("llama", "llama-")
+    name = name.replace("qwen-", "qwen").replace("qwen", "qwen-")
     name = name.replace("stable-diffusion-3.5-large", "sd-3.5-large")
+    name = name.replace("flux.1-", "flux-")
+    name = name.replace("-001", "")
+    name = name.replace("-002", "")
+    name = name.replace("-instruct", "")
+    name = name.replace("-latest", "")
     return name
 
 setattr(Provider, "AnyProvider", AnyProvider)
