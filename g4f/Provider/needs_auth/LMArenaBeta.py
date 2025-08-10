@@ -180,6 +180,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         timeout: int = None,
         **kwargs
     ) -> AsyncResult:
+        if not cls._models_loaded:
+            cls.get_models()
         is_image_model = model in image_models
         if not model:
             model = cls.default_model
