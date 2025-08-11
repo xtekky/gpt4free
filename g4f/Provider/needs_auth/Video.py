@@ -119,12 +119,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         if prompt not in RequestConfig.urls:
             RequestConfig.urls[prompt] = []
         def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
-            if ".mp4" in event.request.url:
-                RequestConfig.headers = {}
-                for key, value in event.request.headers.items():
-                    RequestConfig.headers[key.lower()] = value
-                RequestConfig.urls[prompt].append(event.request.url)
-            elif event.request.url.startswith(cls.drive_url):
+            if event.request.url.startswith(cls.drive_url) or ".mp4" in event.request.url:
                 RequestConfig.headers = {}
                 for key, value in event.request.headers.items():
                     RequestConfig.headers[key.lower()] = value
@@ -133,6 +128,8 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                         return
                 debug.log(f"Adding URL: {event.request.url}")
                 RequestConfig.urls[prompt].append(event.request.url)
+        if not page:
+            raise RuntimeError("Failed to open page.")
         for idx in range(300):
             button = await page.find("User menu")
             if button:
@@ -192,6 +189,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             await textarea.click()
             await textarea.clear_input()
             await textarea.send_keys(prompt)
+            await asyncio.sleep(1)
             yield Reasoning(label=f"Sending prompt", token=prompt)
             try:
                 button = await page.select('button[type="submit"]', 5)
@@ -216,15 +214,17 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             for idx in range(60):
                 await asyncio.sleep(1)
                 try:
-                    button = await page.find("Queued")
+                    button = await page.find("New Video")
                     if button:
                         await button.click()
-                        yield Reasoning(label=f"Clicked 'Queued' button")
+                        yield Reasoning(label=f"Clicked 'New Video' button")
                         break
                 except ProtocolException as e:
                     if idx == 59:
                         debug.error(e)
-                        raise RuntimeError("Failed to click 'Queued' button")
+                if idx == 59:
+                    stop_browser()
+                    raise RuntimeError("Failed to click 'New Video' button")
             await asyncio.sleep(3)
             if model != "search" and page is not None:
                 await page.send(nodriver.cdp.network.enable())
