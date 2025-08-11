@@ -92,10 +92,11 @@ async def get_args_from_nodriver(
     wait_for: str = None,
     callback: callable = None,
     cookies: Cookies = None,
-    browser: Browser = None
+    browser: Browser = None,
+    user_data_dir: str = "nodriver"
 ) -> dict:
     if browser is None:
-        browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout)
+        browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout, user_data_dir=user_data_dir)
     else:
         def stop_browser():
             pass

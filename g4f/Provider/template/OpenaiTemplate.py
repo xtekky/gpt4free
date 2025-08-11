@@ -27,6 +27,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     use_model_names = False
     ssl = None
     add_user = True
+    use_image_size = False
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
@@ -101,11 +102,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             # Proxy for image generation feature
             if model and model in cls.image_models:
                 prompt = format_media_prompt(messages, prompt)
-                data = {
-                    "prompt": prompt,
-                    "model": model,
-                    **use_aspect_ratio({"width": kwargs.get("width"), "height": kwargs.get("height")}, kwargs.get("aspect_ratio", None))
-                }
+                size = use_aspect_ratio({"width": kwargs.get("width"), "height": kwargs.get("height")}, kwargs.get("aspect_ratio", None))
+                size = {"size": f"{size['width']}x{size['height']}", **size} if cls.use_image_size and "width" in size and "height" in size else size
+                data = {"prompt": prompt, "model": model, **size}
+
                 # Handle media if provided
                 if media is not None:
                     data["image_url"] = next(iter([data for data, _ in media if data and isinstance(data, str) and data.startswith("http://") or data.startswith("https://")]), None)
@@ -202,19 +202,19 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
                 model_returned = True
             choice = next(iter(data["choices"]), None)
             if choice:
-                if "content" in choice["delta"] and choice["delta"]["content"]:
-                    delta = choice["delta"]["content"]
+                content = choice.get("delta", {}).get("content")
+                if content:
                     if first:
-                        delta = delta.lstrip()
-                    if delta:
+                        content = content.lstrip()
+                    if content:
                         first = False
                         if reasoning:
                             yield Reasoning(status="")
                             reasoning = False
-                        yield delta
+                        yield content
                 tool_calls = choice.get("delta", {}).get("tool_calls")
                 if tool_calls:
-                    yield ToolCalls(choice["delta"]["tool_calls"])
+                    yield ToolCalls(tool_calls)
                 reasoning_content = choice.get("delta", {}).get("reasoning_content", choice.get("delta", {}).get("reasoning"))
                 if reasoning_content:
                     reasoning = True

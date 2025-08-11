@@ -120,7 +120,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
             return
         for _ in range(2):
             if not args:
-                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback, user_data_dir=None)
             if extra_body is None:
                 extra_body = {}
             extra_body.setdefault("captchaToken", cls.captchaToken)

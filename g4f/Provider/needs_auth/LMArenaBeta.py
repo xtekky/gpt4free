@@ -194,7 +194,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         else:
             raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
 
-        cls.share_url = os.getenv("G4F_SHARE_URL")
+        if cls.share_url is None:
+            cls.share_url = os.getenv("G4F_SHARE_URL")
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
         args = None
@@ -233,7 +234,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         await asyncio.sleep(1)
                     while not await page.evaluate('document.querySelector(\'textarea\')'):
                         await asyncio.sleep(1)
-                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback, user_data_dir=None)
             elif not cls.looked:
                 cls.looked = True
                 try:
@@ -275,7 +276,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 "url": url
                             }
                             for url, name in list(merge_media(media, messages))
-                            if url.startswith("https://")
+                            if isinstance(url, str) and url.startswith("https://")
                         ],
                         "parentMessageIds": [] if conversation is None else conversation.message_ids,
                         "participantPosition": "a",
