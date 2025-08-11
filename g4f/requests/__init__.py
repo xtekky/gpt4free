@@ -156,7 +156,7 @@ async def get_nodriver(
 ) -> tuple[Browser, callable]:
     if not has_nodriver:
         raise MissingRequirementsError('Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
-    user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
+    user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if user_data_dir and has_platformdirs else None
     if browser_executable_path is None:
         browser_executable_path = BrowserConfig.browser_executable_path
     if browser_executable_path is None:
@@ -167,6 +167,7 @@ async def get_nodriver(
             browser_executable_path = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
             if not os.path.exists(browser_executable_path):
                 browser_executable_path = None
+    debug.log(f"Browser executable path: {browser_executable_path}")
     lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
     lock_file.parent.mkdir(exist_ok=True)
     # Implement a short delay (milliseconds) to prevent race conditions.
@@ -200,8 +201,9 @@ async def get_nodriver(
         )
     except FileNotFoundError as e:
         raise MissingRequirementsError(e)
-    except:
+    except Exception as e:
         if util.get_registered_instances():
+            debug.error(e)
             browser = util.get_registered_instances().pop()
         else:
             raise
