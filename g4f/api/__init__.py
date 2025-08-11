@@ -98,6 +98,7 @@ async def lifespan(app: FastAPI):
     # Read cookie files if not ignored
     if not AppConfig.ignore_cookie_files:
         read_cookie_files()
+    AppConfig.g4f_api_key = os.environ.get("G4F_API_KEY", AppConfig.g4f_api_key)
     yield
     if has_nodriver:
         for browser in util.get_registered_instances():
@@ -175,7 +176,7 @@ class ErrorResponse(Response):
 
 class AppConfig:
     ignored_providers: Optional[list[str]] = None
-    g4f_api_key: Optional[str] = os.environ.get("G4F_API_KEY", None)
+    g4f_api_key: Optional[str] = None
     ignore_cookie_files: bool = False
     model: str = None
     provider: str = None
@@ -396,6 +397,8 @@ class Api:
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
         @self.app.post("/v1/chat/completions", responses=responses)
+        @self.app.post("/api/{provider}/chat/completions", responses=responses)
+        @self.app.post("/api/{provider}/{conversation_id}/chat/completions", responses=responses)
         async def chat_completions(
             config: ChatCompletionsConfig,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
@@ -486,14 +489,6 @@ class Api:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
 
-        @self.app.post("/api/{provider}/chat/completions", responses=responses)
-        async def provider_chat_completions(
-            provider: str,
-            config: ChatCompletionsConfig,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
-        ):
-            return await chat_completions(config, credentials, provider)
-
         responses = {
             HTTP_200_OK: {"model": ClientResponse},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
@@ -545,15 +540,6 @@ class Api:
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
         ):
             return await v1_responses(config, credentials, provider)
-
-        @self.app.post("/api/{provider}/{conversation_id}/chat/completions", responses=responses)
-        async def provider_chat_completions(
-            provider: str,
-            conversation_id: str,
-            config: ChatCompletionsConfig,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
-        ):
-            return await chat_completions(config, credentials, provider, conversation_id)
 
         responses = {
             HTTP_200_OK: {"model": ImagesResponse},
