@@ -165,8 +165,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             cls.default_model = list(cls.text_models.keys())[0]
                             cls._models_loaded = True
                             break
-            else:
-                debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
+                else:
+                    debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
         return cls.models
 
     @classmethod
