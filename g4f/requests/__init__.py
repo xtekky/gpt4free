@@ -171,31 +171,32 @@ async def get_nodriver(
     lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
     lock_file.parent.mkdir(exist_ok=True)
     # Implement a short delay (milliseconds) to prevent race conditions.
-    await asyncio.sleep(0.1 * random.randint(0, 50))
-    if lock_file.exists():
-        opend_at = float(lock_file.read_text())
-        time_open = time.time() - opend_at
-        if timeout * 2 > time_open:
-            debug.log(f"Nodriver: Browser is already in use since {time_open} secs.")
-            debug.log("Lock file:", lock_file)
-            for idx in range(timeout):
-                if lock_file.exists():
-                    await asyncio.sleep(1)
-                else:
-                    break
-                if idx == timeout - 1:
-                    debug.log("Timeout reached, nodriver is still in use.")
-                    raise TimeoutError("Nodriver is already in use, please try again later.")
-        else:
-            debug.log(f"Nodriver: Browser was opened {time_open} secs ago, closing it.")
-            BrowserConfig.stop_browser()
-            lock_file.unlink(missing_ok=True)
-    lock_file.write_text(str(time.time()))
-    debug.log(f"Open nodriver with user_dir: {user_data_dir}")
+    if user_data_dir:
+        await asyncio.sleep(0.1 * random.randint(0, 50))
+        if lock_file.exists():
+            opend_at = float(lock_file.read_text())
+            time_open = time.time() - opend_at
+            if timeout * 2 > time_open:
+                debug.log(f"Nodriver: Browser is already in use since {time_open} secs.")
+                debug.log("Lock file:", lock_file)
+                for idx in range(timeout):
+                    if lock_file.exists():
+                        await asyncio.sleep(1)
+                    else:
+                        break
+                    if idx == timeout - 1:
+                        debug.log("Timeout reached, nodriver is still in use.")
+                        raise TimeoutError("Nodriver is already in use, please try again later.")
+            else:
+                debug.log(f"Nodriver: Browser was opened {time_open} secs ago, closing it.")
+                BrowserConfig.stop_browser()
+                lock_file.unlink(missing_ok=True)
+        lock_file.write_text(str(time.time()))
+        debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
         browser = await nodriver.start(
             user_data_dir=user_data_dir,
-            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+            browser_args=["--no-sandbox"] if proxy is None else ["--no-sandbox", f"--proxy-server={proxy}"],
             browser_executable_path=browser_executable_path,
             **kwargs
         )
@@ -214,7 +215,8 @@ async def get_nodriver(
         except:
             pass
         finally:
-            lock_file.unlink(missing_ok=True)
+            if user_data_dir:
+                lock_file.unlink(missing_ok=True)
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
 
