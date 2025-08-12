@@ -180,20 +180,6 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         timeout: int = None,
         **kwargs
     ) -> AsyncResult:
-        if not cls._models_loaded:
-            cls.get_models()
-        is_image_model = model in image_models
-        if not model:
-            model = cls.default_model
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
-        if model in cls.text_models:
-            model_id = cls.text_models[model]
-        elif model in cls.image_models:
-            model_id = cls.image_models[model]
-        else:
-            raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
-
         if cls.share_url is None:
             cls.share_url = os.getenv("G4F_SHARE_URL")
         prompt = get_last_user_message(messages)
@@ -234,7 +220,9 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         await asyncio.sleep(1)
                     while not await page.evaluate('document.querySelector(\'textarea\')'):
                         await asyncio.sleep(1)
-                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback, user_data_dir=None)
+                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+                with cache_file.open("w") as f:
+                    json.dump(args, f)
             elif not cls.looked:
                 cls.looked = True
                 try:
@@ -244,7 +232,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         "model": model,
                         "provider": cls.__name__
                     })
-                    response.raise_for_status()
+                    raise_for_status(response)
                     text, *args = response.text.split("\n" * 10 + "<!--", 1)
                     if args:
                         debug.log("Save args to cache file:", str(cache_file))
@@ -254,6 +242,20 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 finally:
                     cls.looked = False
                 return
+
+            if not cls._models_loaded:
+                cls.get_models()
+            is_image_model = model in image_models
+            if not model:
+                model = cls.default_model
+            if model in cls.model_aliases:
+                model = cls.model_aliases[model]
+            if model in cls.text_models:
+                model_id = cls.text_models[model]
+            elif model in cls.image_models:
+                model_id = cls.image_models[model]
+            else:
+                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
 
             userMessageId = str(uuid.uuid4())
             modelAMessageId = str(uuid.uuid4())
@@ -331,13 +333,10 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 args = None
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
-        if os.getenv("G4F_SHARE_AUTH"):
+        if args and os.getenv("G4F_SHARE_AUTH"):
             yield "\n" * 10
             yield "<!--"
             yield json.dumps(args)
-        # Save the args to cache file
-        with cache_file.open("w") as f:
-            json.dump(args, f)
 
 def get_content_type(url: str) -> str:
     if url.endswith(".webp"):
