@@ -1,7 +1,6 @@
-<img width="2048" height="512" alt="image" src="https://github.com/user-attachments/assets/5cb3fa91-0997-4671-8f7c-c5675d0467f2" />
-
-<a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
+<p align="center">
+  <img width="" height="200" alt="1000041598" src="https://github.com/user-attachments/assets/7f60c240-00fa-4c37-bf7f-ae5cc20906a1" />
+</p>
 ---
 
 <p align="center">
