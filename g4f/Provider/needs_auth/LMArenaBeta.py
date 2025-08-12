@@ -152,6 +152,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if cache_file.exists():
                 with cache_file.open("r") as f:
                     args = json.load(f)
+                if not args:
+                    return cls.models
                 response = curl_cffi.get(f"{cls.url}/?mode=direct", **args)
                 if response.ok:
                     for line in response.text.splitlines():
@@ -193,6 +195,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 pass
             elif has_nodriver or cls.share_url is None:
                 async def callback(page):
+                    await page.find("Ask anything…", 120)
                     button = await page.find("Accept Cookies")
                     if button:
                         await button.click()
