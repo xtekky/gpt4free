@@ -45,6 +45,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin):
             "messages": messages,
             "params": {},
             "tool_servers": [],
+            "features": {
+                "enable_thinking": True
+            }
         }
         async with StreamSession(
             impersonate="chrome",
