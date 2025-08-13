@@ -150,8 +150,13 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cache_file = cls.get_cache_file()
             args = {}
             if cache_file.exists():
-                with cache_file.open("r") as f:
-                    args = json.load(f)
+                try:
+                    with cache_file.open("r") as f:
+                        args = json.load(f)
+                except json.JSONDecodeError:
+                    debug.log(f"Cache file {cache_file} is corrupted, removing it.")
+                    cache_file.unlink()
+                    args = {}
                 if not args:
                     return cls.models
                 response = curl_cffi.get(f"{cls.url}/?mode=direct", **args)
@@ -187,9 +192,14 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
         args = None
-        if cache_file.exists() and cache_file.stat().st_mtime > time.time() - 60 * 30:
-            with cache_file.open("r") as f:
-                args = json.load(f)
+        if cache_file.exists():
+            try:
+                with cache_file.open("r") as f:
+                    args = json.load(f)
+            except json.JSONDecodeError:
+                debug.log(f"Cache file {cache_file} is corrupted, removing it.")
+                cache_file.unlink()
+                args = None
         for _ in range(2):
             if args:
                 pass
