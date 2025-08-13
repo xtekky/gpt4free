@@ -340,6 +340,10 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             yield "\n" * 10
             yield "<!--"
             yield json.dumps(args)
+        if args:
+            debug.log("Save args to cache file:", str(cache_file))
+            with cache_file.open("w") as f:
+                f.write(args)
 
 def get_content_type(url: str) -> str:
     if url.endswith(".webp"):
