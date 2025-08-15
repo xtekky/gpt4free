@@ -71,8 +71,8 @@ models = {
     "gemini-2.0-flash-thinking": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"9c17b1863f581b8a"]'},
     "gemini-2.0-flash-thinking-with-apps": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f8f8f5ea629f5d37"]'},
     # Currently used models
-    "gemini-2.5-pro": {"x-goog-ext-525001261-jspb", '[1,null,null,null,"61530e79959ab139",null,null,null,[4]]'},
-    "gemini-2.5-flash": {"x-goog-ext-525001261-jspb", '[1,null,null,null,"9ec249fc9ad08861",null,null,null,[4]]'},
+    "gemini-2.5-pro": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"61530e79959ab139",null,null,null,[4]]'},
+    "gemini-2.5-flash": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"9ec249fc9ad08861",null,null,null,[4]]'},
     "gemini-audio": {}
 }
 
