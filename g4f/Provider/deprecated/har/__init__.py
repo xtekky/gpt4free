@@ -7,17 +7,17 @@ import random
 import asyncio
 from urllib.parse import urlparse
 
-from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import DEFAULT_HEADERS, StreamSession, StreamResponse, FormData, raise_for_status
-from ...providers.response import JsonConversation, AuthResult
-from ...requests import get_args_from_nodriver, has_nodriver
-from ...tools.media import merge_media
-from ...image import to_bytes, is_accepted_format
-from ...errors import ResponseError
-from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
-from ..helper import get_last_user_message
-from ..LegacyLMArena import LegacyLMArena
-from ... import debug
+from ....typing import AsyncResult, Messages, MediaListType
+from ....requests import DEFAULT_HEADERS, StreamSession, StreamResponse, FormData, raise_for_status
+from ....providers.response import JsonConversation, AuthResult
+from ....requests import get_args_from_nodriver, has_nodriver
+from ....tools.media import merge_media
+from ....image import to_bytes, is_accepted_format
+from ....errors import ResponseError
+from ...base_provider import AsyncAuthedProvider, ProviderModelMixin
+from ...helper import get_last_user_message
+from ...deprecated.LegacyLMArena import LegacyLMArena
+from .... import debug
 
 class HarProvider(AsyncAuthedProvider, ProviderModelMixin):
     label = "LMArena (Har)"

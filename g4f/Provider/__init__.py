@@ -14,7 +14,6 @@ except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
 
 from .template         import OpenaiTemplate, BackendApi
-from .har              import HarProvider
 try:
     from .not_working import *
 except ImportError as e:
@@ -32,9 +31,11 @@ try:
 except ImportError as e:
     debug.error("Audio providers not loaded:", e)
 
+from .deprecated.har import HarProvider
 from .deprecated.ARTA import ARTA
 from .deprecated.DuckDuckGo import DuckDuckGo
 from .deprecated.Free2GPT import Free2GPT
+from .deprecated.LegacyLMArena import LegacyLMArena
 
 from .ApiAirforce          import ApiAirforce
 from .Blackbox             import Blackbox
@@ -48,7 +49,6 @@ from .GptOss               import GptOss
 from .ImageLabs            import ImageLabs
 from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
-from .LegacyLMArena        import LegacyLMArena
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer0501      import OIVSCodeSer0501
 from .OperaAria            import OperaAria

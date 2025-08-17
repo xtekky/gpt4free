@@ -11,7 +11,7 @@ except ImportError:
 
 from ..typing import AsyncResult, Messages
 from ..config import DEFAULT_MODEL
-from ..requests import get_args_from_nodriver
+from ..requests import get_args_from_nodriver, raise_for_status
 from ..providers.base_provider import AuthFileMixin
 from .template import OpenaiTemplate
 from .helper import get_last_user_message
@@ -33,6 +33,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     captchaToken: str = None
     share_url: str = None
     looked: bool = False
+    guestId: str = None
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
@@ -92,11 +93,13 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 await asyncio.sleep(1)
                 if cls.captchaToken:
                     break
+            cls.guestId = await page.js_dumps('JSON.parse(localStorage.getItem("user-info") || "{}")?.state?.guestId')
             await asyncio.sleep(3)
         if cache_file.exists():
             with cache_file.open("r") as f:
                 args = json.load(f)
             cls.captchaToken = args.pop("captchaToken")
+            cls.guestId = args.pop("guestId", None)
             if cls.captchaToken:
                 debug.log("EasyChat: Using cached captchaToken.")
         elif not cls.looked and cls.share_url:
@@ -108,7 +111,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     "model": model,
                     "provider": cls.__name__
                 })
-                response.raise_for_status()
+                raise_for_status(response)
                 text, *sub = response.text.split("\n" * 10 + "<!--", 1)
                 if sub:
                     debug.log("Save args to cache file:", str(cache_file))
@@ -131,7 +134,13 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     messages=messages,
                     stream=True,
                     extra_body=extra_body,
-                    **args,
+                    **{
+                        **args,
+                        "headers": {
+                            "X-Guest-Id": cls.guestId,
+                            **args.get("headers", {})
+                        }
+                    },
                     **kwargs
                 ):
                     # Remove provided by
@@ -152,7 +161,6 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         if os.getenv("G4F_SHARE_AUTH"):
             yield "\n" * 10
             yield "<!--"
-            yield json.dumps({**args, "captchaToken": cls.captchaToken})
+            yield json.dumps({**args, "captchaToken": cls.captchaToken, "guestId": cls.guestId})
         with cache_file.open("w") as f:
-            json.dump({**args, "captchaToken": cls.captchaToken}, f)
-            
+            json.dump({**args, "captchaToken": cls.captchaToken, "guestId": cls.guestId}, f)

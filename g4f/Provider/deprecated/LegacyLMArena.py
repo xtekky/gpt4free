@@ -6,15 +6,15 @@ import uuid
 import asyncio
 
 
-from ..typing import AsyncResult, Messages, MediaListType
-from ..requests import StreamSession, StreamResponse, FormData, raise_for_status
-from ..providers.response import JsonConversation, FinishReason
-from ..tools.media import merge_media
-from ..image import to_bytes, is_accepted_format
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import get_last_user_message
-from ..errors import ModelNotFoundError, ResponseError
-from .. import debug
+from ...typing import AsyncResult, Messages, MediaListType
+from ...requests import StreamSession, StreamResponse, FormData, raise_for_status
+from ...providers.response import JsonConversation, FinishReason
+from ...tools.media import merge_media
+from ...image import to_bytes, is_accepted_format
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import get_last_user_message
+from ...errors import ModelNotFoundError, ResponseError
+from ... import debug
 
 class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
     label = "LMArena (Legacy)"
