@@ -9,34 +9,23 @@ from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
-from ..Provider import Copilot, Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
-from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
-from ..Provider import WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta, Free2GPT
-from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM
-from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM, OpenRouterFree
+from ..Provider import Custom, PollinationsImage, OpenaiAccount, Copilot, Cloudflare, Gemini, Grok, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
+from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, LMArenaBeta, EdgeTTS, gTTS, MarkItDown, OpenAIFM
+from ..Provider import HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM, OpenRouterFree, GeminiPro
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
 from .. import debug
 from .any_model_map import audio_models, image_models, vision_models, video_models, model_map, models_count, parents, model_aliases
 
-# Add all model aliases to the model map
-PROVIERS_LIST_1 = [
-    CopilotAccount, OpenaiChat, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
-    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs,
-    # Has lazy loading model lists
-    PollinationsAI, HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, DeepInfraChat,
-    HuggingSpace, HuggingFace, HuggingFaceMedia, GeminiPro, PuterJS, OperaAria, Startnest
-]
-
 # Add providers to existing models on map
-PROVIERS_LIST_2 = [
+PROVIDERS_LIST_2 = [
     OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure, Qwen, EasyChat, GLM, OpenRouterFree
 ]
 
 # Add all models to the model map
-PROVIERS_LIST_3 = [
-    HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, LegacyLMArena, LMArenaBeta,
+PROVIDERS_LIST_3 = [
+    LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, LMArenaBeta,
     PuterJS, Cloudflare, HuggingSpace
 ]
 
@@ -112,7 +101,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
     @classmethod
     def create_model_map(cls):
-        cls.audio_models = {}
+        cls.audio_models = []
         cls.image_models = []
         cls.vision_models = []
         cls.video_models = []
@@ -132,7 +121,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 cls.image_models.append(name)
 
         # Process special providers
-        for provider in PROVIERS_LIST_2:
+        for provider in PROVIDERS_LIST_2:
             if not provider.working:
                 continue
             try:
@@ -172,7 +161,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if hasattr(provider, 'video_models'):
                 cls.video_models.extend(provider.video_models)
 
-        for provider in PROVIERS_LIST_3:
+        for provider in PROVIDERS_LIST_3:
             if not provider.working:
                 continue
             try:
@@ -205,15 +194,16 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 cls.video_models.extend(provider.video_models)
                 cls.video_models.extend([clean_name(model) for model in provider.video_models])
 
-        for provider in PROVIERS_LIST_1:
-            if provider.working:
+        for provider in Provider.__providers__:
+            if provider.working and hasattr(provider, "get_models") and provider not in [AnyProvider, Custom, PollinationsImage, OpenaiAccount]:
                 for model in provider.get_models():
-                    if model in cls.model_map:
-                        cls.model_map[model].update({provider.__name__: model})
+                    clean = clean_name(model)
+                    if clean in cls.model_map:
+                        cls.model_map[clean].update({provider.__name__: model})
                 for alias, model in provider.model_aliases.items():
                     if alias in cls.model_map:
                         cls.model_map[alias].update({provider.__name__: model})
-                if provider.__name__ == "GeminiPro":
+                if provider == GeminiPro:
                     for model in cls.model_map.keys():
                         if "gemini" in model or "gemma" in model:
                             cls.model_map[alias].update({provider.__name__: model})
@@ -230,11 +220,11 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         cls.video_models.append("video")
         cls.model_map["video"] = {"Video": "video"}
-        cls.audio_models = list(cls.audio_models.keys())
+        cls.audio_models = [*cls.audio_models]
 
         # Create a mapping of parent providers to their children
         cls.parents = {}
-        for provider in PROVIERS_LIST_1:
+        for provider in Provider.__providers__:
             if provider.working and provider.__name__ != provider.get_parent():
                 if provider.get_parent() not in cls.parents:
                     cls.parents[provider.get_parent()] = [provider.__name__]
@@ -393,7 +383,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                         provider.model_aliases[model] = alias
                     providers.append(provider)
         if not providers:
-            for provider in PROVIERS_LIST_1:
+            for provider in PROVIDERS_LIST_2 + PROVIDERS_LIST_3:
                 if model in provider.get_models():
                     providers.append(provider)
                 elif model in provider.model_aliases:

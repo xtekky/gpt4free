@@ -226,8 +226,8 @@ async def sse_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
     elif hasattr(iter_lines, "iter_lines"):
         iter_lines = iter_lines.iter_lines()
     async for line in iter_lines:
-        if line.startswith(b"data: "):
-            rest = line[6:].strip()
+        if line.startswith(b"data:"):
+            rest = line[5:].strip()
             if not rest:
                 continue
             if rest.startswith(b"[DONE]"):

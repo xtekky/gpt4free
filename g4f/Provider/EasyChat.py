@@ -93,7 +93,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 await asyncio.sleep(1)
                 if cls.captchaToken:
                     break
-            cls.guestId = await page.js_dumps('JSON.parse(localStorage.getItem("user-info") || "{}")?.state?.guestId')
+            cls.guestId = await page.evaluate('"" + JSON.parse(localStorage.getItem("user-info") || "{}")?.state?.guestId')
             await asyncio.sleep(3)
         if cache_file.exists():
             with cache_file.open("r") as f:

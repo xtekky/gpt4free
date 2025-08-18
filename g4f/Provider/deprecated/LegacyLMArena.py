@@ -21,7 +21,7 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://legacy.lmarena.ai"
     api_endpoint = "/queue/join?"
     
-    working = True
+    working = False
     
     default_model = "chatgpt-4o-latest-20250326"
     models = []
