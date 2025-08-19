@@ -53,7 +53,8 @@ model_map = {
       "openrouter:openai/gpt-4o-2024-05-13"
     ],
     "GithubCopilot": "gpt-4o",
-    "OpenRouter": "openai/gpt-4o:extended"
+    "OpenRouter": "openai/gpt-4o:extended",
+    "Perplexity": "gpt-4o"
   },
   "gpt-4o-mini": {
     "Blackbox": "gpt-4o-mini",
@@ -1320,7 +1321,8 @@ model_map = {
   "claude-3-5-haiku": {
     "PollinationsAI": "claude",
     "LMArenaBeta": "claude-3-5-haiku-20241022",
-    "Anthropic": "claude-3-5-haiku-20241022"
+    "Anthropic": "claude-3-5-haiku-20241022",
+    "Perplexity": "claude-3.5-haiku"
   },
   "gemini-2.5-flash-lite": {
     "PollinationsAI": "gemini",
@@ -2048,7 +2050,8 @@ model_map = {
   "claude-3-5-sonnet": {
     "LMArenaBeta": "claude-3-5-sonnet-20241022",
     "PuterJS": "claude-3-5-sonnet-20240620",
-    "Anthropic": "claude-3-5-sonnet-20241022"
+    "Anthropic": "claude-3-5-sonnet-20241022",
+    "Perplexity": "claude-3.5-sonnet"
   },
   "hunyuan-large-vision": {
     "LMArenaBeta": "hunyuan-large-vision"
