@@ -12,6 +12,7 @@ import random
 import datetime
 from hashlib import sha256
 from urllib.parse import quote_plus
+from functools import lru_cache
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
 from typing import Generator
@@ -123,9 +124,9 @@ class Backend_Api(Api):
                 })
 
         @app.route('/backend-api/v2/models', methods=['GET'])
-        def jsonify_models(**kwargs):
-            response = get_demo_models() if app.demo else self.get_models(**kwargs)
-            return jsonify(response)
+        @lru_cache(maxsize=1)
+        def jsonify_models():
+            return jsonify(self.get_all_models())
 
         @app.route('/backend-api/v2/models/<provider>', methods=['GET'])
         def jsonify_provider_models(**kwargs):

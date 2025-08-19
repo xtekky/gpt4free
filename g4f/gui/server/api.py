@@ -105,6 +105,19 @@ class Api:
             "login_url": getattr(provider, "login_url", None),
         } for provider in Provider.__providers__ if provider.working and safe_get_models(provider)]
 
+    def get_all_models(self) -> dict[str, list]:
+        def safe_get_provider_models(provider: ProviderModelMixin) -> list[str]:
+            try:
+                return list(provider.get_models())
+            except Exception as e:
+                debug.error("{provider.__name__} get_models error:", e)
+                return []
+        return {
+            provider.__name__: safe_get_provider_models(provider)
+            for provider in Provider.__providers__
+            if provider.working and hasattr(provider, "get_models")
+        }
+
     @staticmethod
     def get_version() -> dict:
         current_version = None
