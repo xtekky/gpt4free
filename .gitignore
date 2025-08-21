@@ -45,3 +45,4 @@ dist/
 *.spec
 pyproject.toml.bak
 debian/
+winget/*

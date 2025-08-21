@@ -1,4 +1,4 @@
-PackageIdentifier: Tekky.g4f
+PackageIdentifier: g4f
 PackageVersion: __VERSION__
 Installers:
 - Architecture: x64

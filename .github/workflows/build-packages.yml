@@ -348,7 +348,7 @@ jobs:
             
             **System Packages:**
             - Debian/Ubuntu: Download appropriate `.deb` file for your architecture
-            - WinGet: `winget install Tekky.g4f` (after manifest approval)
+            - WinGet: `winget install g4f` (after manifest approval)
             
             **Docker:**
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}`
