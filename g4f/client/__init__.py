@@ -145,7 +145,7 @@ def iter_response(
             content, finish_reason, completion_id, int(time.time()), usage=usage,
             **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {},
             conversation=None if conversation is None else conversation.get_dict(),
-            reasoning_content=reasoning_content if reasoning_content else None
+            reasoning=reasoning_content if reasoning_content else None
         )
     if provider is not None:
         chat_completion.provider = provider.name
@@ -250,7 +250,7 @@ async def async_iter_response(
                     tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
                 ) if tool_calls is not None else {},
                 conversation=conversation,
-                reasoning_content=reasoning_content if reasoning_content else None
+                reasoning=reasoning_content if reasoning_content else None
             )
         if provider is not None:
             chat_completion.provider = provider.name

@@ -150,7 +150,7 @@ class ChatCompletionMessage(BaseModel):
         return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
 
     @classmethod
-    def model_construct(cls, content: str, reasoning_content: list[Reasoning] = None, tool_calls: list = None):
+    def model_construct(cls, content: str, reasoning: list[Reasoning] = None, tool_calls: list = None):
         if isinstance(content, AudioResponse) and content.data.startswith("data:"):
             return super().model_construct(
                 role="assistant",
@@ -160,9 +160,9 @@ class ChatCompletionMessage(BaseModel):
                 ),
                 content=content
             )
-        if reasoning_content is not None and isinstance(reasoning_content, list):
-            reasoning_content = "".join([str(content) for content in reasoning_content])
-        return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning=reasoning_content))
+        if reasoning is not None and isinstance(reasoning, list):
+            reasoning = "".join([str(content) for content in reasoning])
+        return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning=reasoning))
 
     @field_serializer('content')
     def serialize_content(self, content: str):
@@ -211,7 +211,7 @@ class ChatCompletion(BaseModel):
         tool_calls: list[ToolCallModel] = None,
         usage: UsageModel = None,
         conversation: dict = None,
-        reasoning_content: list[Reasoning] = None
+        reasoning: list[Reasoning] = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
@@ -220,7 +220,7 @@ class ChatCompletion(BaseModel):
             model=None,
             provider=None,
             choices=[ChatCompletionChoice.model_construct(
-                ChatCompletionMessage.model_construct(content, reasoning_content, tool_calls),
+                ChatCompletionMessage.model_construct(content, reasoning, tool_calls),
                 finish_reason,
             )],
             **filter_none(usage=usage, conversation=conversation)

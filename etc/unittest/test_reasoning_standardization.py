@@ -31,9 +31,9 @@ class TestReasoningFieldStandardization(unittest.TestCase):
         delta = ChatCompletionDelta.model_construct(reasoning)
         
         # Check the delta structure
-        self.assertEqual(delta.role, "reasoning")
-        self.assertIsInstance(delta.content, Reasoning)
-        self.assertEqual(delta.reasoning_content, "I need to think about this...")
+        self.assertEqual(delta.role, "assistant")
+        self.assertIsNone(delta.content)
+        self.assertEqual(delta.reasoning, "I need to think about this...")
         
     def test_current_api_format_consistency(self):
         """Test what the API should output for reasoning"""
