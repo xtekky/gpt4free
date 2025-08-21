@@ -273,7 +273,7 @@ class Api:
                     if user_g4f_api_key is not None:
                         if user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                    elif path.startswith("/backend-api/") or path.startswith("/chat/") and path != "/chat/":
+                    elif path.startswith("/backend-api/") or path.startswith("/chat/"):
                         try:
                             user = await self.get_username(request)
                         except HTTPException as e:
