@@ -5,6 +5,12 @@ import logging
 from typing import Union, Optional, Coroutine
 
 from . import debug, version
+
+# Version info
+try:
+    __version__ = version.utils.current_version or "0.0.0-dev"
+except Exception:
+    __version__ = "0.0.0-dev"
 from .models import Model
 from .client import Client, AsyncClient
 from .typing import Messages, CreateResult, AsyncResult, ImageType
