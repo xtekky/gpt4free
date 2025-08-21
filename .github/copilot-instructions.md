@@ -24,7 +24,7 @@ Always reference these instructions first and fallback to search or bash command
 - **CLI Help**: `g4f --help` or `python -m g4f --help`
 - **Client CLI**: `g4f client --help` for interactive text generation
 - **API Server**: `python -m g4f --port 8080` -- starts FastAPI server with web GUI on http://localhost:8080
-- **API Server Only**: `python -m g4f --port 8080 --no-gui` (if supported)
+- **API Server Only**: `python -m g4f.cli api --port 8080`
 - **Python Library**: 
   ```python
   from g4f.client import Client
@@ -101,7 +101,7 @@ python etc/examples/messages.py     # Example script
 ### Installation Alternatives
 - **PyPI**: `pip install -U g4f[all]` (external, not for development)
 - **Docker**: Use provided docker-compose.yml for containerized deployment
-- **Partial installs**: See `/docs/requirements.md` for component-specific installs
+- **Partial installs**: See https://github.com/gpt4free/g4f.dev/tree/main/docs for component-specific installs
 
 ### Known Issues and Workarounds
 - **ffmpeg warning**: Expected from pydub library, does not affect functionality
