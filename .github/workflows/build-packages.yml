@@ -80,7 +80,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-min.txt
+          pip install -r requirements.txt
           pip install pyinstaller
           pip install -e .
       - name: Build Windows executable
@@ -107,7 +107,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-min.txt
+          pip install -r requirements-slim.txt
           pip install pyinstaller
           pip install -e .
       - name: Build Linux executable
@@ -259,11 +259,11 @@ jobs:
           echo "size=${SIZE}" >> $GITHUB_OUTPUT
       - name: Create WinGet manifest
         run: |
-          mkdir -p winget/manifests/t/Tekky/g4f/${{ needs.prepare.outputs.version }}
+          mkdir -p winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}
           
           # Version manifest
-          cat > winget/manifests/t/Tekky/g4f/${{ needs.prepare.outputs.version }}/Tekky.g4f.yaml << EOF
-          PackageIdentifier: Tekky.g4f
+          cat > winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}/g4f.yaml << EOF
+          PackageIdentifier: g4f
           PackageVersion: ${{ needs.prepare.outputs.version }}
           DefaultLocale: en-US
           ManifestType: version
@@ -271,8 +271,8 @@ jobs:
           EOF
           
           # Installer manifest
-          cat > winget/manifests/t/Tekky/g4f/${{ needs.prepare.outputs.version }}/Tekky.g4f.installer.yaml << EOF
-          PackageIdentifier: Tekky.g4f
+          cat > winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}/g4f.installer.yaml << EOF
+          PackageIdentifier: g4f
           PackageVersion: ${{ needs.prepare.outputs.version }}
           Installers:
           - Architecture: x64
@@ -287,11 +287,11 @@ jobs:
           EOF
           
           # Locale manifest
-          cat > winget/manifests/t/Tekky/g4f/${{ needs.prepare.outputs.version }}/Tekky.g4f.locale.en-US.yaml << EOF
-          PackageIdentifier: Tekky.g4f
+          cat > winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}/g4f.locale.en-US.yaml << EOF
+          PackageIdentifier: g4f
           PackageVersion: ${{ needs.prepare.outputs.version }}
           PackageLocale: en-US
-          Publisher: Tekky
+          Publisher: GPT4Free
           PublisherUrl: https://github.com/xtekky/gpt4free
           PackageName: g4f
           PackageUrl: https://github.com/xtekky/gpt4free
