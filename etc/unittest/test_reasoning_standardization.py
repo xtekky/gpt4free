@@ -6,7 +6,6 @@ Create a comprehensive test for reasoning field standardization
 import sys
 import unittest
 import json
-sys.path.append('/home/runner/work/gpt4free/gpt4free')
 
 from g4f.providers.response import Reasoning
 from g4f.client.stubs import ChatCompletionDelta, ChatCompletionChunk
