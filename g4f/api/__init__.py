@@ -630,11 +630,12 @@ class Api:
         }
         @self.app.post("/v1/audio/transcriptions", responses=responses)
         @self.app.post("/api/{path_provider}/audio/transcriptions", responses=responses)
+        @self.app.post("/api/markitdown", responses=responses)
         async def convert(
             file: UploadFile,
             path_provider: str = None,
             model: Annotated[Optional[str], Form()] = None,
-            provider: Annotated[Optional[str], Form()] = None,
+            provider: Annotated[Optional[str], Form()] = "MarkItDown",
             prompt: Annotated[Optional[str], Form()] = "Transcribe this audio"
         ):
             provider = provider if path_provider is None else path_provider
@@ -661,12 +662,6 @@ class Api:
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, None, HTTP_500_INTERNAL_SERVER_ERROR)
-
-        @self.app.post("/api/markitdown", responses=responses)
-        async def markitdown(
-            file: UploadFile
-        ):
-            return await convert(file, "MarkItDown")
 
         responses = {
             HTTP_200_OK: {"content": {"audio/*": {}}},

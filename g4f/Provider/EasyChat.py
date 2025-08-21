@@ -74,6 +74,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
             else:
                 debug.error("No 'Agree' button found.")
             for _ in range(3):
+                await asyncio.sleep(1)
                 for _ in range(300):
                     modal = await page.find("Verifying...")
                     if not modal:
@@ -84,11 +85,12 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     debug.log("EasyChat: Captcha token found, proceeding.")
                     break
                 textarea = await page.select("textarea", 180)
-                await textarea.send_keys("Hello")
-                await asyncio.sleep(1)
-                button = await page.select("button[class*='chat_chat-input-send']")
-                if button:
-                    await button.click()
+                if textarea is not None:
+                    await textarea.send_keys("Hello")
+                    await asyncio.sleep(1)
+                    button = await page.select("button[class*='chat_chat-input-send']")
+                    if button:
+                        await button.click()
             for _ in range(300):
                 await asyncio.sleep(1)
                 if cls.captchaToken:
