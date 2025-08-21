@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from ..template import OpenaiTemplate
-from ...config import DEFAULT_MODEL
 
 class OpenRouter(OpenaiTemplate):
     label = "OpenRouter"
@@ -10,7 +9,7 @@ class OpenRouter(OpenaiTemplate):
     api_base = "https://openrouter.ai/api/v1"
     working = True
     needs_auth = True
-    default_model = DEFAULT_MODEL
+    default_model = "openrouter/auto"
     active_by_default = True
 
 class OpenRouterFree(OpenRouter):
@@ -20,7 +19,7 @@ class OpenRouterFree(OpenRouter):
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs):
         models = super().get_models(api_key=api_key, **kwargs)
-        models = [model for model in models if model.endswith(":free")]
+        models = [model for model in models if model.endswith(":free") or model.endswith("/auto")]
         cls.model_aliases = {model.replace(":free", ""): model for model in models}
         return [model.replace(":free", "") for model in models]
     
