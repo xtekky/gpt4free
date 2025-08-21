@@ -141,7 +141,7 @@ class AudioResponseModel(BaseModel):
 class ChatCompletionMessage(BaseModel):
     role: str
     content: str
-    reasoning_content: Optional[str] = None
+    reasoning: Optional[str] = None
     tool_calls: list[ToolCallModel] = None
     audio: AudioResponseModel = None
 
@@ -162,7 +162,7 @@ class ChatCompletionMessage(BaseModel):
             )
         if reasoning_content is not None and isinstance(reasoning_content, list):
             reasoning_content = "".join([str(content) for content in reasoning_content])
-        return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning_content=reasoning_content))
+        return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning=reasoning_content))
 
     @field_serializer('content')
     def serialize_content(self, content: str):
@@ -272,13 +272,13 @@ class ClientResponse(BaseModel):
 class ChatCompletionDelta(BaseModel):
     role: str
     content: Optional[str]
-    reasoning_content: Optional[str] = None
+    reasoning: Optional[str] = None
     tool_calls: list[ToolCallModel] = None
 
     @classmethod
     def model_construct(cls, content: Optional[str]):
         if isinstance(content, Reasoning):
-            return super().model_construct(role="reasoning", content=content, reasoning_content=str(content))
+            return super().model_construct(role="assistant", content=None, reasoning=str(content))
         elif isinstance(content, ToolCalls):
             return super().model_construct(role="assistant", content=None, tool_calls=[
                 ToolCallModel.model_construct(**tool_call) for tool_call in content.get_list()
