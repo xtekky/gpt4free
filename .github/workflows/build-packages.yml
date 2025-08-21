@@ -87,7 +87,7 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          pyinstaller --onefile --name g4f-windows-${{ needs.prepare.outputs.version }} --icon projects/windows/icon.ico g4f/cli.py
+          pyinstaller --onefile --name g4f-windows-${{ needs.prepare.outputs.version }} --icon projects/windows/icon.ico g4f_cli.py
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
@@ -114,7 +114,7 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          pyinstaller --onefile --name g4f-linux-${{ needs.prepare.outputs.version }} g4f/cli.py
+          pyinstaller --onefile --name g4f-linux-${{ needs.prepare.outputs.version }} g4f_cli.py
       - name: Make executable
         run: chmod +x dist/g4f-linux-*
       - name: Upload Linux executable
@@ -143,7 +143,7 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          pyinstaller --onefile --name g4f-macos-${{ needs.prepare.outputs.version }} g4f/cli.py
+          pyinstaller --onefile --name g4f-macos-${{ needs.prepare.outputs.version }} g4f_cli.py
       - name: Upload macOS executable
         uses: actions/upload-artifact@v4
         with:
