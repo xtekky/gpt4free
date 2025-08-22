@@ -50,6 +50,9 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
+          python -m pip install build twine - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
           python -m pip install build twine
       - name: Build package
         env:
@@ -165,6 +168,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential debhelper dh-python python3-setuptools python3-dev
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
       - name: Create Debian package structure
         run: |
           mkdir -p debian/g4f/usr/bin
