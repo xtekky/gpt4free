@@ -270,10 +270,10 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg-dev build-essential
-          python -m pip install --upgrade pip
-          pip install -r requirements-min.txt
-          pip install -e .
+          sudo apt-get install -y dpkg-dev build-essential python3-setuptools
+          python3 -m pip install --upgrade pip
+          pip3 install -r requirements-min.txt
+          pip3 install -e .
       - name: Build Debian package
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
