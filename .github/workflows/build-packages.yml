@@ -193,60 +193,6 @@ jobs:
           name: macos-exe
           path: dist/g4f-macos-*
 
-  # Debian Package
-  build-deb:
-    runs-on: ubuntu-latest
-    needs: prepare
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Install packaging tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential debhelper
-      - name: Install build tools
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
-      - name: Create Debian package structure
-        run: |
-          mkdir -p debian/g4f/usr/bin
-          mkdir -p debian/g4f/usr/lib/python3/dist-packages
-          mkdir -p debian/g4f/DEBIAN
-      - name: Build Python package
-        env:
-          G4F_VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          python setup.py build
-          python setup.py install --root=debian/g4f --prefix=/usr
-      - name: Create control file
-        run: |
-          cat > debian/g4f/DEBIAN/control << EOF
-          Package: g4f
-          Version: ${{ needs.prepare.outputs.version }}
-          Section: python
-          Priority: optional
-          Architecture: ${{ matrix.arch }}
-          Maintainer: Tekky <support@g4f.ai>
-          Description: The official gpt4free repository
-           Various collection of powerful language models
-          Depends: python3, python3-requests, python3-aiohttp
-          EOF
-      - name: Build .deb package
-        run: |
-          dpkg-deb --build debian/g4f g4f-${{ needs.prepare.outputs.version }}-${{ matrix.arch }}.deb
-      - name: Upload Debian package
-        uses: actions/upload-artifact@v4
-        with:
-          name: deb-${{ matrix.arch }}
-          path: g4f-*.deb
-
   # Docker Images (reuse existing workflow logic)
   build-docker:
     runs-on: ubuntu-latest
@@ -365,7 +311,7 @@ jobs:
   # Release Creation
   create-release:
     runs-on: ubuntu-latest
-    needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, build-deb, create-winget-manifest]
+    needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, create-winget-manifest]
     if: needs.prepare.outputs.is_release == 'true'
     steps:
       - uses: actions/checkout@v4
@@ -394,7 +340,6 @@ jobs:
             - macOS: Download `g4f-macos-${{ needs.prepare.outputs.version }}`
             
             **System Packages:**
-            - Debian/Ubuntu: Download appropriate `.deb` file for your architecture
             - WinGet: `winget install g4f` (after manifest approval)
             
             **Docker:**
