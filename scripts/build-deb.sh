@@ -69,7 +69,7 @@ chmod 755 debian/${PACKAGE_NAME}/DEBIAN/prerm
 
 # Install the package files
 export PYTHONPATH=""
-python3 setup.py install --root=debian/${PACKAGE_NAME} --prefix=/usr --install-lib=/usr/lib/python3/dist-packages
+python3 setup.py install --root=debian/${PACKAGE_NAME} --prefix=/usr --install-lib=/usr/lib/python3/dist-packages --install-scripts=/usr/bin
 
 # Create documentation
 cp README.md debian/${PACKAGE_NAME}/usr/share/doc/${PACKAGE_NAME}/
@@ -93,6 +93,8 @@ EOF
 find debian/${PACKAGE_NAME} -type d -exec chmod 755 {} \;
 find debian/${PACKAGE_NAME} -type f -exec chmod 644 {} \;
 chmod 755 debian/${PACKAGE_NAME}/usr/bin/g4f
+chmod 755 debian/${PACKAGE_NAME}/DEBIAN/postinst
+chmod 755 debian/${PACKAGE_NAME}/DEBIAN/prerm
 
 # Calculate installed size
 INSTALLED_SIZE=$(du -sk debian/${PACKAGE_NAME}/usr | cut -f1)
