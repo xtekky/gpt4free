@@ -254,6 +254,39 @@ jobs:
           build-args: |
             G4F_VERSION=${{ needs.prepare.outputs.version }}
 
+  # Debian Packages
+  build-debian:
+    runs-on: ubuntu-latest
+    needs: prepare
+    strategy:
+      matrix:
+        architecture: [amd64, arm64, armhf]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev build-essential
+          python -m pip install --upgrade pip
+          pip install -r requirements-min.txt
+          pip install -e .
+      - name: Build Debian package
+        env:
+          G4F_VERSION: ${{ needs.prepare.outputs.version }}
+          ARCH: ${{ matrix.architecture }}
+        run: |
+          chmod +x scripts/build-deb.sh
+          ./scripts/build-deb.sh
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-${{ matrix.architecture }}
+          path: g4f-*-${{ matrix.architecture }}.deb
+
   # WinGet Package Manifest
   create-winget-manifest:
     runs-on: ubuntu-latest
@@ -334,7 +367,7 @@ jobs:
   # Release Creation
   create-release:
     runs-on: ubuntu-latest
-    needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, create-winget-manifest]
+    needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, build-debian, create-winget-manifest]
     if: needs.prepare.outputs.is_release == 'true'
     permissions: write-all
     steps:
@@ -343,13 +376,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Display artifact structure
+        run: |
+          echo "Downloaded artifacts:"
+          find ./artifacts -type f -name "*" | sort
+      - name: Create Release with Assets
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
-          release_name: Release ${{ needs.prepare.outputs.version }}
+          name: Release ${{ needs.prepare.outputs.version }}
           body: |
             ## g4f ${{ needs.prepare.outputs.version }}
             
@@ -363,6 +398,11 @@ jobs:
             - Linux: Download `g4f-linux-${{ needs.prepare.outputs.version }}`  
             - macOS: Download `g4f-macos-${{ needs.prepare.outputs.version }}`
             
+            **Debian Packages:**
+            - AMD64: `g4f-${{ needs.prepare.outputs.version }}-amd64.deb`
+            - ARM64: `g4f-${{ needs.prepare.outputs.version }}-arm64.deb`
+            - ARMv7: `g4f-${{ needs.prepare.outputs.version }}-armhf.deb`
+            
             **System Packages:**
             - WinGet: `winget install g4f` (after manifest approval)
             
@@ -371,11 +411,15 @@ jobs:
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-slim`
           draft: false
           prerelease: false
-      - name: Upload Release Assets
-        run: |
-          # Upload all built artifacts as release assets
-          # This would typically use a more sophisticated asset upload action
-          echo "Release created with tag ${{ needs.prepare.outputs.version }}"
+          files: |
+            ./artifacts/pypi-package/*
+            ./artifacts/windows-exe/*
+            ./artifacts/linux-exe/*
+            ./artifacts/macos-exe/*
+            ./artifacts/debian-amd64/*
+            ./artifacts/debian-arm64/*
+            ./artifacts/debian-armhf/*
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # Publish to PyPI (only for releases)
   publish-pypi:
