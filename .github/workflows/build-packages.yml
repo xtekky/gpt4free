@@ -37,21 +37,6 @@ jobs:
           echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
           echo "Building version: ${G4F_VERSION}"
 
-          cat > g4f_cli.py << EOF
-          #!/usr/bin/env python3
-          """
-          Entry point for g4f CLI executable builds
-          """
-
-          import g4f.debug
-          g4f.debug.version_check = False
-          g4f.debug.version = "${G4F_VERSION}"
-
-          if __name__ == "__main__":
-              from g4f.cli import main
-              main()
-          EOF
-
   # PyPI Package
   build-pypi:
     runs-on: ubuntu-latest
@@ -100,6 +85,20 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
+          cat > g4f_cli.py << EOF
+          #!/usr/bin/env python3
+          """
+          Entry point for g4f CLI executable builds
+          """
+
+          import g4f.debug
+          g4f.debug.version_check = False
+          g4f.debug.version = "${{ needs.prepare.outputs.version }}"
+
+          if __name__ == "__main__":
+              from g4f.cli import main
+              main()
+          EOF
           pyinstaller --onefile --name g4f-windows-${{ needs.prepare.outputs.version }} --icon projects/windows/icon.ico g4f_cli.py
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
@@ -127,6 +126,20 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
+          cat > g4f_cli.py << EOF
+          #!/usr/bin/env python3
+          """
+          Entry point for g4f CLI executable builds
+          """
+
+          import g4f.debug
+          g4f.debug.version_check = False
+          g4f.debug.version = "${{ needs.prepare.outputs.version }}"
+
+          if __name__ == "__main__":
+              from g4f.cli import main
+              main()
+          EOF
           pyinstaller --onefile --name g4f-linux-${{ needs.prepare.outputs.version }} g4f_cli.py
       - name: Make executable
         run: chmod +x dist/g4f-linux-*
@@ -156,6 +169,20 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
+          cat > g4f_cli.py << EOF
+          #!/usr/bin/env python3
+          """
+          Entry point for g4f CLI executable builds
+          """
+
+          import g4f.debug
+          g4f.debug.version_check = False
+          g4f.debug.version = "${{ needs.prepare.outputs.version }}"
+
+          if __name__ == "__main__":
+              from g4f.cli import main
+              main()
+          EOF
           pyinstaller --onefile --name g4f-macos-${{ needs.prepare.outputs.version }} g4f_cli.py
       - name: Upload macOS executable
         uses: actions/upload-artifact@v4
