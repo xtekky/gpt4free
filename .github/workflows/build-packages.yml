@@ -11,8 +11,6 @@ on:
         required: false
         type: string
 
-env:
-  G4F_VERSION: ${{ github.ref_name || inputs.version || '0.0.0-dev' }}
 
 jobs:
   prepare:
@@ -26,18 +24,18 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            VERSION="${{ github.ref_name }}"
+            G4F_VERSION="${{ github.ref_name }}"
             IS_RELEASE="true"
           elif [[ -n "${{ inputs.version }}" ]]; then
-            VERSION="${{ inputs.version }}"
+            G4F_VERSION="${{ inputs.version }}"
             IS_RELEASE="false"
           else
-            VERSION="0.0.0-dev"
+            G4F_VERSION="0.0.0-dev"
             IS_RELEASE="false"
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version=${G4F_VERSION}" >> $GITHUB_OUTPUT
           echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
-          echo "Building version: ${VERSION}"
+          echo "Building version: ${G4F_VERSION}"
 
   # PyPI Package
   build-pypi:
