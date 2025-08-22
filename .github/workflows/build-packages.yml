@@ -11,7 +11,6 @@ on:
         required: false
         type: string
 
-
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -102,12 +101,16 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          pyinstaller --onefile --name g4f-windows-${{ needs.prepare.outputs.version }} --icon projects/windows/icon.ico g4f_cli.py
-      - name: Upload Windows executable
+          pyinstaller --name g4f-windows-${{ needs.prepare.outputs.version }} --icon projects/windows/icon.ico g4f_cli.py
+      - name: Zip Windows executable folder
+        shell: pwsh
+        run: |
+          Compress-Archive "dist\g4f-windows-${{ needs.prepare.outputs.version }}" "dist\g4f-windows-${{ needs.prepare.outputs.version }}.zip"
+      - name: Upload Windows zip archive
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
-          path: dist/g4f-windows-*.exe
+          path: dist/g4f-windows-*.zip
 
   # Linux Executable
   build-linux-exe:
@@ -294,22 +297,22 @@ jobs:
     if: needs.prepare.outputs.is_release == 'true'
     steps:
       - uses: actions/checkout@v4
-      - name: Download Windows executable
+      - name: Download Windows executable zip
         uses: actions/download-artifact@v4
         with:
           name: windows-exe
           path: ./artifacts
-      - name: Calculate hash
+      - name: Calculate hash and size of ZIP
         id: hash
         run: |
-          HASH=$(sha256sum ./artifacts/g4f-windows-*.exe | cut -d' ' -f1)
+          HASH=$(sha256sum ./artifacts/g4f-windows-*.zip | cut -d' ' -f1)
           echo "hash=${HASH}" >> $GITHUB_OUTPUT
-          SIZE=$(stat -c%s ./artifacts/g4f-windows-*.exe)
+          SIZE=$(stat -c%s ./artifacts/g4f-windows-*.zip)
           echo "size=${SIZE}" >> $GITHUB_OUTPUT
       - name: Create WinGet manifest
         run: |
           mkdir -p winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}
-          
+
           # Version manifest
           cat > winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}/g4f.yaml << EOF
           PackageIdentifier: g4f
@@ -318,23 +321,20 @@ jobs:
           ManifestType: version
           ManifestVersion: 1.4.0
           EOF
-          
+
           # Installer manifest
           cat > winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}/g4f.installer.yaml << EOF
           PackageIdentifier: g4f
           PackageVersion: ${{ needs.prepare.outputs.version }}
           Installers:
           - Architecture: x64
-            InstallerType: exe
-            InstallerUrl: https://github.com/xtekky/gpt4free/releases/download/${{ needs.prepare.outputs.version }}/g4f-windows-${{ needs.prepare.outputs.version }}.exe
+            InstallerType: zip
+            InstallerUrl: https://github.com/xtekky/gpt4free/releases/download/${{ needs.prepare.outputs.version }}/g4f-windows-${{ needs.prepare.outputs.version }}.zip
             InstallerSha256: ${{ steps.hash.outputs.hash }}
-            InstallerSwitches:
-              Silent: /S
-              SilentWithProgress: /S
           ManifestType: installer
           ManifestVersion: 1.4.0
           EOF
-          
+
           # Locale manifest
           cat > winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}/g4f.locale.en-US.yaml << EOF
           PackageIdentifier: g4f
@@ -388,25 +388,20 @@ jobs:
           name: Release ${{ needs.prepare.outputs.version }}
           body: |
             ## g4f ${{ needs.prepare.outputs.version }}
-            
+
             ### Download Options
-            
+
             **Python Package:**
             - PyPI: `pip install g4f==${{ needs.prepare.outputs.version }}`
-            
+
             **Executables:**
-            - Windows: Download `g4f-windows-${{ needs.prepare.outputs.version }}.exe`
-            - Linux: Download `g4f-linux-${{ needs.prepare.outputs.version }}`  
+            - Windows: Download `g4f-windows-${{ needs.prepare.outputs.version }}.zip`
+            - Linux: Download `g4f-linux-${{ needs.prepare.outputs.version }}`
             - macOS: Download `g4f-macos-${{ needs.prepare.outputs.version }}`
-            
-            **Debian Packages:**
-            - AMD64: `g4f-${{ needs.prepare.outputs.version }}-amd64.deb`
-            - ARM64: `g4f-${{ needs.prepare.outputs.version }}-arm64.deb`
-            - ARMv7: `g4f-${{ needs.prepare.outputs.version }}-armhf.deb`
-            
+
             **System Packages:**
             - WinGet: `winget install g4f` (after manifest approval)
-            
+
             **Docker:**
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}`
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-slim`
