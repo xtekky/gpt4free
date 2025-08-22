@@ -46,6 +46,10 @@ You can also manually trigger builds using the workflow_dispatch event:
 After a successful build, packages are available:
 
 - **GitHub Releases**: All executables and packages as release assets
+  - Python packages (wheel and source distribution)
+  - Standalone executables for Windows, Linux, and macOS
+  - Debian packages for AMD64, ARM64, and ARMv7 architectures
+  - WinGet manifest files
 - **PyPI**: `pip install g4f`
 - **Docker Hub**: `docker pull hlohaus789/g4f:latest`
 - **WinGet**: `winget install g4f` (after manifest approval)
