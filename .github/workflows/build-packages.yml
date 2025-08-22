@@ -369,7 +369,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, build-debian, create-winget-manifest]
     if: needs.prepare.outputs.is_release == 'true'
-    permissions: write-all
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Download all artifacts
