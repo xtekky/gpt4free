@@ -1,9 +1,4 @@
-from __future__ import annotations
+from g4f.cli import main
 
-from .cli import get_api_parser, run_api_args
-
-parser = get_api_parser()
-args = parser.parse_args()
-if args.gui is None:
-    args.gui = True
-run_api_args(args)
+if __name__ == "__main__":
+    main()

@@ -190,10 +190,11 @@ def save_content(content, media: Optional[MediaResponse], filepath: str, allowed
     print("\nUnable to save content.", file=sys.stderr)
     return False
 
-def get_parser():
+def get_parser(exit_on_error=True):
     parser = argparse.ArgumentParser(
         description="G4F CLI client with conversation history",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        exit_on_error=exit_on_error
     )
     parser.add_argument('-d', '--debug', action='store_true', help="Verbose debug")
     parser.add_argument('-p', '--provider', default=None,
@@ -270,7 +271,7 @@ async def run_args(input_val, args):
         sys.exit(1)
 
 
-def run_client_args(args):
+def run_client_args(args, exit_on_error=True):
     input_txt = ""
     media = []
     rest = 0
@@ -317,9 +318,11 @@ def run_client_args(args):
     else:
         val = input_txt.strip()
 
-    if not val:
+    if exit_on_error and not val:
         print("No input provided. Use -h.", file=sys.stderr)
         sys.exit(1)
+    elif not val:
+        raise argparse.ArgumentError(None, "No input provided. Use -h for help.")
 
     asyncio.run(run_args(val, args))
 

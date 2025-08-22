@@ -67,7 +67,7 @@ def get_git_version() -> str | None:
             text=True,
             stderr=PIPE
         ).strip()
-    except CalledProcessError:
+    except (CalledProcessError, FileNotFoundError):
         return None
 
 

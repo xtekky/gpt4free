@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import argparse
 from argparse import ArgumentParser
 from .client import get_parser, run_client_args
@@ -13,7 +14,8 @@ def get_api_parser():
     api_parser.add_argument("--bind", default=None, help="The bind string. (Default: 0.0.0.0:1337)")
     api_parser.add_argument("--port", "-p", default=None, help="Change the port of the server.")
     api_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
-    api_parser.add_argument("--gui", "-g", default=None, action="store_true", help="Start also the gui.")
+    api_parser.add_argument("--gui", "-g", default=None, action="store_true", help="(deprecated)")
+    api_parser.add_argument("--no-gui", "-ng", default=False, action="store_true", help="Start without the gui.")
     api_parser.add_argument("--model", default=None, help="Default model for chat completion. (incompatible with --reload and --workers)")
     api_parser.add_argument("--provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=None, help="Default provider for chat completion. (incompatible with --reload and --workers)")
@@ -48,7 +50,7 @@ def run_api_args(args):
         media_provider=args.media_provider,
         proxy=args.proxy,
         model=args.model,
-        gui=args.gui,
+        gui=not args.no_gui,
         demo=args.demo,
         timeout=args.timeout,
     )
@@ -82,7 +84,9 @@ def main():
         elif args.mode == "client":
             run_client_args(args)
         else:
-            parser.print_help()
-            exit(1)
+            raise argparse.ArgumentError(None, "No valid mode specified. Use 'api', 'gui', or 'client'.")
     except argparse.ArgumentError:
-        run_client_args(get_parser().parse_args())
+        try:
+            run_client_args(get_parser(exit_on_error=False).parse_args(), exit_on_error=False)
+        except argparse.ArgumentError:
+            run_api_args(get_api_parser().parse_args())

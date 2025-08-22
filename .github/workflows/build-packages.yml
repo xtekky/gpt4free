@@ -37,6 +37,21 @@ jobs:
           echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
           echo "Building version: ${G4F_VERSION}"
 
+          cat > g4f_cli.py << EOF
+          #!/usr/bin/env python3
+          """
+          Entry point for g4f CLI executable builds
+          """
+
+          import g4f.debug
+          g4f.debug.version_check = False
+          g4f.debug.version = "${{ needs.prepare.outputs.version }}"
+          
+          if __name__ == "__main__":
+              from g4f.cli import main
+              main()
+          EOF
+
   # PyPI Package
   build-pypi:
     runs-on: ubuntu-latest
