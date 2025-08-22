@@ -255,37 +255,37 @@ jobs:
             G4F_VERSION=${{ needs.prepare.outputs.version }}
 
   # Debian Packages
-  build-debian:
-    runs-on: ubuntu-latest
-    needs: prepare
-    strategy:
-      matrix:
-        architecture: [amd64, arm64, armhf]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y dpkg-dev build-essential python3-setuptools
-          python3 -m pip install --upgrade pip
-          pip3 install -r requirements-min.txt
-          pip3 install -e .
-      - name: Build Debian package
-        env:
-          G4F_VERSION: ${{ needs.prepare.outputs.version }}
-          ARCH: ${{ matrix.architecture }}
-        run: |
-          chmod +x scripts/build-deb.sh
-          ./scripts/build-deb.sh
-      - name: Upload Debian package
-        uses: actions/upload-artifact@v4
-        with:
-          name: debian-${{ matrix.architecture }}
-          path: g4f-*-${{ matrix.architecture }}.deb
+  # build-debian:
+  #   runs-on: ubuntu-latest
+  #   needs: prepare
+  #   strategy:
+  #     matrix:
+  #       architecture: [amd64, arm64, armhf]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.x"
+  #     - name: Install build dependencies
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y dpkg-dev build-essential python3-setuptools
+  #         python3 -m pip install --upgrade pip
+  #         pip3 install -r requirements-min.txt
+  #         pip3 install -e .
+  #     - name: Build Debian package
+  #       env:
+  #         G4F_VERSION: ${{ needs.prepare.outputs.version }}
+  #         ARCH: ${{ matrix.architecture }}
+  #       run: |
+  #         chmod +x scripts/build-deb.sh
+  #         ./scripts/build-deb.sh
+  #     - name: Upload Debian package
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: debian-${{ matrix.architecture }}
+  #         path: g4f-*-${{ matrix.architecture }}.deb
 
   # WinGet Package Manifest
   create-winget-manifest:
@@ -367,7 +367,7 @@ jobs:
   # Release Creation
   create-release:
     runs-on: ubuntu-latest
-    needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, build-debian, create-winget-manifest]
+    needs: [prepare, build-pypi, build-windows-exe, build-linux-exe, build-macos-exe, create-winget-manifest]
     if: needs.prepare.outputs.is_release == 'true'
     permissions:
       contents: write
