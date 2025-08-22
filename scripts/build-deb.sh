@@ -31,7 +31,7 @@ Essential: no
 Maintainer: ${MAINTAINER}
 Description: ${DESCRIPTION}
  ${LONG_DESCRIPTION}
-Depends: python3 (>= 3.10), python3-pip, python3-aiohttp, python3-requests
+Depends: python3 (>= 3.10), python3-pip, python3-setuptools, python3-aiohttp, python3-requests
 Homepage: https://github.com/xtekky/gpt4free
 EOF
 

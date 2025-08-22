@@ -46,3 +46,4 @@ dist/
 pyproject.toml.bak
 debian/
 winget/
+*.deb
