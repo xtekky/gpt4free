@@ -199,7 +199,7 @@ jobs:
     needs: prepare
     strategy:
       matrix:
-        arch: [amd64, arm64, armhf]
+        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
