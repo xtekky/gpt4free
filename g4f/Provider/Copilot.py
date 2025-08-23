@@ -20,7 +20,7 @@ except ImportError:
     has_nodriver = False
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
-from .helper import format_prompt_max_length, render_messages
+from .helper import format_prompt_max_length
 from .openai.har_file import get_headers, get_har_files
 from ..typing import AsyncResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
@@ -29,6 +29,9 @@ from ..tools.media import merge_media
 from ..requests import get_nodriver
 from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
+from ..files import get_bucket_dir
+from ..tools.files import get_filenames
+from pathlib import Path
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -36,6 +39,16 @@ class Conversation(JsonConversation):
 
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
+
+def extract_bucket_ids(messages: Messages) -> list[str]:
+    """Extract bucket_ids from messages content."""
+    bucket_ids = []
+    for message in messages:
+        if isinstance(message, dict) and isinstance(message.get("content"), list):
+            for content_item in message["content"]:
+                if isinstance(content_item, dict) and "bucket_id" in content_item:
+                    bucket_ids.append(content_item["bucket_id"])
+    return bucket_ids
 
 class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
@@ -140,28 +153,26 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 cls._access_token = None
             else:
                 debug.log(f"Copilot: User: {user}")
-            # Process messages to include bucket content once
-            rendered_messages = list(render_messages(messages))
-            
             if conversation is None:
                 response = await session.post(cls.conversation_url)
                 response.raise_for_status()
                 conversation_id = response.json().get("id")
                 conversation = Conversation(conversation_id)
                 if prompt is None:
-                    prompt = format_prompt_max_length(rendered_messages, 10000)
+                    prompt = format_prompt_max_length(messages, 10000)
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
                 conversation_id = conversation.conversation_id
                 if prompt is None:
-                    prompt = get_last_user_message(rendered_messages)
+                    prompt = get_last_user_message(messages)
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
             if return_conversation:
                 yield conversation
 
-            uploaded_images = []
-            # Use rendered messages for media processing to ensure consistency
-            for media, _ in merge_media(media, rendered_messages):
+            uploaded_attachments = []
+            
+            # Upload regular media (images)
+            for media, _ in merge_media(media, messages):
                 if not isinstance(media, str):
                     data = to_bytes(media)
                     response = await session.post(
@@ -174,7 +185,48 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                     )
                     response.raise_for_status()
                     media = response.json().get("url")
-                uploaded_images.append({"type":"image", "url": media})
+                uploaded_attachments.append({"type":"image", "url": media})
+
+            # Upload bucket files
+            bucket_ids = extract_bucket_ids(messages)
+            for bucket_id in bucket_ids:
+                bucket_dir = Path(get_bucket_dir(bucket_id))
+                if bucket_dir.exists():
+                    filenames = get_filenames(bucket_dir)
+                    for filename in filenames:
+                        file_path = bucket_dir / filename
+                        if file_path.exists() and file_path.is_file():
+                            try:
+                                with open(file_path, "rb") as f:
+                                    file_data = f.read()
+                                
+                                # Determine content type based on file extension
+                                content_type = "application/octet-stream"
+                                if filename.endswith(".pdf"):
+                                    content_type = "application/pdf"
+                                elif filename.endswith(".docx"):
+                                    content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                elif filename.endswith(".txt"):
+                                    content_type = "text/plain"
+                                elif filename.endswith(".md"):
+                                    content_type = "text/markdown"
+                                
+                                response = await session.post(
+                                    "https://copilot.microsoft.com/c/api/attachments",
+                                    headers={
+                                        "content-type": content_type,
+                                        "content-length": str(len(file_data)),
+                                    },
+                                    data=file_data
+                                )
+                                response.raise_for_status()
+                                file_url = response.json().get("url")
+                                uploaded_attachments.append({"type": "file", "url": file_url, "name": filename})
+                                debug.log(f"Copilot: Uploaded bucket file: {filename}")
+                            except Exception as e:
+                                debug.log(f"Copilot: Failed to upload bucket file {filename}: {e}")
+                else:
+                    debug.log(f"Copilot: Bucket directory not found: {bucket_id}")
 
             wss = await session.ws_connect(cls.websocket_url, timeout=3)
             if "Think" in model:
@@ -186,7 +238,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             await wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
-                "content": [*uploaded_images, {
+                "content": [*uploaded_attachments, {
                     "type": "text",
                     "text": prompt,
                 }],
