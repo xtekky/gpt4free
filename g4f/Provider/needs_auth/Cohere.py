@@ -66,23 +66,27 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
         chat_history = []
         user_message = None
         
-        for message in messages:
-            role = message.get("role")
-            content = message.get("content", "")
-            
-            if role == "system":
-                system_message = content
-            elif role == "user":
-                if user_message is not None:
-                    # Previous user message becomes part of chat history
-                    chat_history.append({"role": "USER", "message": user_message})
-                user_message = content
-            elif role == "assistant":
-                chat_history.append({"role": "CHATBOT", "message": content})
-
-        # Ensure we have a user message
-        if user_message is None:
-            raise ValueError("No user message found in the conversation")
+        # Filter out system messages first
+        system_messages = [msg for msg in messages if msg.get("role") == "system"]
+        if system_messages:
+            system_message = "\n".join([msg.get("content", "") for msg in system_messages])
+        
+        # Process conversation messages (non-system)
+        conversation_messages = [msg for msg in messages if msg.get("role") != "system"]
+        
+        # The last message should be from user
+        if conversation_messages and conversation_messages[-1].get("role") == "user":
+            user_message = conversation_messages[-1].get("content", "")
+            # All previous messages become chat history
+            for msg in conversation_messages[:-1]:
+                role = msg.get("role")
+                content = msg.get("content", "")
+                if role == "user":
+                    chat_history.append({"role": "USER", "message": content})
+                elif role == "assistant":
+                    chat_history.append({"role": "CHATBOT", "message": content})
+        else:
+            raise ValueError("The last message must be from the user")
 
         async with StreamSession(
             proxy=proxy,
