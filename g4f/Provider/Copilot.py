@@ -30,7 +30,7 @@ from ..requests import get_nodriver
 from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
 from ..files import get_bucket_dir
-from ..tools.files import get_filenames
+from ..tools.files import get_filenames, read_bucket
 from pathlib import Path
 from .. import debug
 
@@ -40,15 +40,15 @@ class Conversation(JsonConversation):
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
 
-def extract_bucket_ids(messages: Messages) -> list[str]:
-    """Extract bucket_ids from messages content."""
-    bucket_ids = []
+def extract_bucket_items(messages: Messages) -> list[dict]:
+    """Extract bucket items from messages content."""
+    bucket_items = []
     for message in messages:
         if isinstance(message, dict) and isinstance(message.get("content"), list):
             for content_item in message["content"]:
-                if isinstance(content_item, dict) and "bucket_id" in content_item:
-                    bucket_ids.append(content_item["bucket_id"])
-    return bucket_ids
+                if isinstance(content_item, dict) and ("bucket_id" in content_item or "bucket" in content_item):
+                    bucket_items.append(content_item)
+    return bucket_items
 
 class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
@@ -188,45 +188,70 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 uploaded_attachments.append({"type":"image", "url": media})
 
             # Upload bucket files
-            bucket_ids = extract_bucket_ids(messages)
-            for bucket_id in bucket_ids:
-                bucket_dir = Path(get_bucket_dir(bucket_id))
-                if bucket_dir.exists():
-                    filenames = get_filenames(bucket_dir)
-                    for filename in filenames:
-                        file_path = bucket_dir / filename
+            bucket_items = extract_bucket_items(messages)
+            for item in bucket_items:
+                try:
+                    if "name" in item:
+                        # Handle specific file from bucket with name
+                        file_path = Path(get_bucket_dir(item["bucket_id"], "media", item["name"]))
                         if file_path.exists() and file_path.is_file():
-                            try:
-                                with open(file_path, "rb") as f:
-                                    file_data = f.read()
-                                
-                                # Determine content type based on file extension
-                                content_type = "application/octet-stream"
-                                if filename.endswith(".pdf"):
-                                    content_type = "application/pdf"
-                                elif filename.endswith(".docx"):
-                                    content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                elif filename.endswith(".txt"):
-                                    content_type = "text/plain"
-                                elif filename.endswith(".md"):
-                                    content_type = "text/markdown"
-                                
-                                response = await session.post(
-                                    "https://copilot.microsoft.com/c/api/attachments",
-                                    headers={
-                                        "content-type": content_type,
-                                        "content-length": str(len(file_data)),
-                                    },
-                                    data=file_data
-                                )
-                                response.raise_for_status()
-                                file_url = response.json().get("url")
-                                uploaded_attachments.append({"type": "file", "url": file_url, "name": filename})
-                                debug.log(f"Copilot: Uploaded bucket file: {filename}")
-                            except Exception as e:
-                                debug.log(f"Copilot: Failed to upload bucket file {filename}: {e}")
-                else:
-                    debug.log(f"Copilot: Bucket directory not found: {bucket_id}")
+                            with open(file_path, "rb") as f:
+                                file_data = f.read()
+                            
+                            filename = item["name"]
+                            # Determine content type based on file extension
+                            content_type = "application/octet-stream"
+                            if filename.endswith(".pdf"):
+                                content_type = "application/pdf"
+                            elif filename.endswith(".docx"):
+                                content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            elif filename.endswith(".txt"):
+                                content_type = "text/plain"
+                            elif filename.endswith(".md"):
+                                content_type = "text/markdown"
+                            elif filename.endswith(".json"):
+                                content_type = "application/json"
+                            
+                            response = await session.post(
+                                "https://copilot.microsoft.com/c/api/attachments",
+                                headers={
+                                    "content-type": content_type,
+                                    "content-length": str(len(file_data)),
+                                },
+                                data=file_data
+                            )
+                            response.raise_for_status()
+                            file_url = response.json().get("url")
+                            uploaded_attachments.append({"type": "file", "url": file_url, "name": filename})
+                            debug.log(f"Copilot: Uploaded bucket file: {filename}")
+                        else:
+                            debug.log(f"Copilot: Bucket file not found: {item.get('name')}")
+                    else:
+                        # Handle plain text content from bucket
+                        bucket_path = Path(get_bucket_dir(item["bucket"]))
+                        plain_text_content = ""
+                        for text_chunk in read_bucket(bucket_path):
+                            plain_text_content += text_chunk
+                        
+                        if plain_text_content.strip():
+                            # Upload plain text as a text file
+                            text_data = plain_text_content.encode('utf-8')
+                            response = await session.post(
+                                "https://copilot.microsoft.com/c/api/attachments",
+                                headers={
+                                    "content-type": "text/plain",
+                                    "content-length": str(len(text_data)),
+                                },
+                                data=text_data
+                            )
+                            response.raise_for_status()
+                            file_url = response.json().get("url")
+                            uploaded_attachments.append({"type": "file", "url": file_url, "name": f"bucket_{item['bucket']}.txt"})
+                            debug.log(f"Copilot: Uploaded bucket text content: {item['bucket']}")
+                        else:
+                            debug.log(f"Copilot: No text content found in bucket: {item['bucket']}")
+                except Exception as e:
+                    debug.log(f"Copilot: Failed to upload bucket item {item}: {e}")
 
             wss = await session.ws_connect(cls.websocket_url, timeout=3)
             if "Think" in model:
