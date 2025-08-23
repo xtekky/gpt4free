@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 
-from ..typing import AsyncResult, Messages, MediaListType
-from ..providers.response import JsonConversation, Reasoning, TitleGeneration
-from ..requests import StreamSession, raise_for_status
-from ..config import DEFAULT_MODEL
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import get_last_user_message
+from ...typing import AsyncResult, Messages, MediaListType
+from ...providers.response import JsonConversation, Reasoning, TitleGeneration
+from ...requests import StreamSession, raise_for_status
+from ...config import DEFAULT_MODEL
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import get_last_user_message
 
 class GptOss(AsyncGeneratorProvider, ProviderModelMixin):
     label = "gpt-oss (playground)"
     url = "https://gpt-oss.com"
     api_endpoint = "https://api.gpt-oss.com/chatkit"
-    working = True
+    working = False
     active_by_default = True
     
     default_model = "gpt-oss-120b"

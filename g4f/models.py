@@ -12,7 +12,6 @@ from .Provider import (
     Copilot,
     DeepInfraChat,
     Free2GPT,
-    GptOss,
     HuggingSpace,
     Grok,
     DeepseekAI_JanusPro7b,
@@ -293,7 +292,7 @@ gpt_oss_120b = Model(
     name          = 'gpt-oss-120b',
     long_name     = 'openai/gpt-oss-120b',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([GptOss, Together, DeepInfraChat, HuggingFace, OpenRouter, Groq])
+    best_provider = IterListProvider([Together, DeepInfraChat, HuggingFace, OpenRouter, Groq])
 )
 
 # dall-e
