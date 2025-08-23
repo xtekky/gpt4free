@@ -35,4 +35,5 @@ from .TypeGPT           import TypeGPT
 from .Upstage           import Upstage
 from .Vercel            import Vercel
 from .Websim            import Websim
+from .GptOss            import GptOss
 

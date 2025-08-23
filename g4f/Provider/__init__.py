@@ -45,7 +45,7 @@ from .Copilot              import Copilot
 from .DeepInfraChat        import DeepInfraChat
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
-from .GptOss               import GptOss
+
 from .ImageLabs            import ImageLabs
 from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat

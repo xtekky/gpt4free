@@ -172,7 +172,6 @@ model_map = {
     ]
   },
   "gpt-oss-120b": {
-    "GptOss": "gpt-oss-120b",
     "Together": "openai/gpt-oss-120b",
     "DeepInfraChat": "openai/gpt-oss-120b",
     "HuggingFace": "openai/gpt-oss-120b",
@@ -1641,7 +1640,6 @@ model_map = {
     "ApiAirforce": "gpt-oss-20b",
     "DeepInfra": "openai/gpt-oss-20b",
     "FenayAI": "gpt-oss-20b",
-    "GptOss": "gpt-oss-20b",
     "Groq": "openai/gpt-oss-20b",
     "HuggingFaceAPI": "openai/gpt-oss-20b",
     "Nvidia": "openai/gpt-oss-20b",
