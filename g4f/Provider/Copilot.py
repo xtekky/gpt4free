@@ -20,7 +20,7 @@ except ImportError:
     has_nodriver = False
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
-from .helper import format_prompt_max_length
+from .helper import format_prompt_max_length, render_messages
 from .openai.har_file import get_headers, get_har_files
 from ..typing import AsyncResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
@@ -140,24 +140,28 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 cls._access_token = None
             else:
                 debug.log(f"Copilot: User: {user}")
+            # Process messages to include bucket content once
+            rendered_messages = list(render_messages(messages))
+            
             if conversation is None:
                 response = await session.post(cls.conversation_url)
                 response.raise_for_status()
                 conversation_id = response.json().get("id")
                 conversation = Conversation(conversation_id)
                 if prompt is None:
-                    prompt = format_prompt_max_length(messages, 10000)
+                    prompt = format_prompt_max_length(rendered_messages, 10000)
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
                 conversation_id = conversation.conversation_id
                 if prompt is None:
-                    prompt = get_last_user_message(messages)
+                    prompt = get_last_user_message(rendered_messages)
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
             if return_conversation:
                 yield conversation
 
             uploaded_images = []
-            for media, _ in merge_media(media, messages):
+            # Use rendered messages for media processing to ensure consistency
+            for media, _ in merge_media(media, rendered_messages):
                 if not isinstance(media, str):
                     data = to_bytes(media)
                     response = await session.post(
