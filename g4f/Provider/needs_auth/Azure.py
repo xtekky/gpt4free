@@ -37,6 +37,7 @@ class Azure(OpenaiTemplate):
         }
     }
     api_keys: dict[str, str] = {}
+    failed: dict[str, int] = {}
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> list[str]:
@@ -131,6 +132,8 @@ class Azure(OpenaiTemplate):
             stream = False
         if stream:
             kwargs.setdefault("stream_options", {"include_usage": True})
+        if cls.failed.get(model, 0) >= 3:
+            raise MissingAuthError(f"Model {model} has failed too many times.")
         try:
             async for chunk in super().create_async_generator(
                 model=model,
@@ -143,4 +146,5 @@ class Azure(OpenaiTemplate):
             ):
                 yield chunk
         except MissingAuthError as e:
+            cls.failed[model] = cls.failed.get(model, 0) + 1
             raise MissingAuthError(f"{e}. Ask for help in the {cls.login_url} Discord server.") from e

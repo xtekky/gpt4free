@@ -444,8 +444,8 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
                     json.dump(auth_result, cache_file, default=toJSON)
             except TypeError as e:
                 raise RuntimeError(f"Failed to save: {auth_result.get_dict()}\n{type(e).__name__}: {e}")
-         elif cache_file.exists():
-            cache_file.unlink()
+         # elif cache_file.exists():
+         #    cache_file.unlink()
 
     @classmethod
     def get_auth_result(cls) -> AuthResult:
@@ -503,8 +503,8 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
             async for chunk in response:
                 yield chunk
         except (MissingAuthError, NoValidHarFileError, CloudflareError):
-            if cache_file.exists():
-                cache_file.unlink()
+            # if cache_file.exists():
+            #     cache_file.unlink()
             response = cls.on_auth_async(**kwargs)
             async for chunk in response:
                 if isinstance(chunk, AuthResult):
