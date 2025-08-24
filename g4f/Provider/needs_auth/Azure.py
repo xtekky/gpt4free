@@ -132,8 +132,8 @@ class Azure(OpenaiTemplate):
             stream = False
         if stream:
             kwargs.setdefault("stream_options", {"include_usage": True})
-        if cls.failed.get(model, 0) >= 3:
-            raise MissingAuthError(f"Model {model} has failed too many times.")
+        if cls.failed.get(api_key, 0) >= 3:
+            raise MissingAuthError(f"API key has failed too many times.")
         try:
             async for chunk in super().create_async_generator(
                 model=model,
@@ -146,5 +146,5 @@ class Azure(OpenaiTemplate):
             ):
                 yield chunk
         except MissingAuthError as e:
-            cls.failed[model] = cls.failed.get(model, 0) + 1
+            cls.failed[api_key] = cls.failed.get(api_key, 0) + 1
             raise MissingAuthError(f"{e}. Ask for help in the {cls.login_url} Discord server.") from e

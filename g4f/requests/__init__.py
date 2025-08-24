@@ -168,10 +168,10 @@ async def get_nodriver(
             if not os.path.exists(browser_executable_path):
                 browser_executable_path = None
     debug.log(f"Browser executable path: {browser_executable_path}")
-    lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
-    lock_file.parent.mkdir(exist_ok=True)
-    # Implement a short delay (milliseconds) to prevent race conditions.
     if user_data_dir:
+        lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
+        lock_file.parent.mkdir(exist_ok=True)
+        # Implement a short delay (milliseconds) to prevent race conditions.
         await asyncio.sleep(0.1 * random.randint(0, 50))
         if lock_file.exists():
             opend_at = float(lock_file.read_text())
@@ -194,9 +194,10 @@ async def get_nodriver(
         lock_file.write_text(str(time.time()))
         debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
+        browser_args = ["--no-sandbox"]
         browser = await nodriver.start(
             user_data_dir=user_data_dir,
-            browser_args=["--no-sandbox"] if proxy is None else ["--no-sandbox", f"--proxy-server={proxy}"],
+            browser_args=[*browser_args, f"--proxy-server={proxy}"] if proxy else browser_args,
             browser_executable_path=browser_executable_path,
             **kwargs
         )
