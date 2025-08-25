@@ -1,3 +1,5 @@
+from .har import HarProvider
+
 from .AI365VIP          import AI365VIP
 from .Aichat            import Aichat
 from .AiChatOnline      import AiChatOnline
@@ -15,15 +17,20 @@ from .ChatGptt          import ChatGptt
 from .DDG               import DDG
 from .Equing            import Equing
 from .FlowGpt           import FlowGpt
+from .Free2GPT          import Free2GPT
 from .FreeGpt           import FreeGpt
 from .FreeNetfly        import FreeNetfly
 from .FreeRouter        import FreeRouter
 from .Glider            import Glider
 from .GPROChat          import GPROChat
+from .GptOss            import GptOss
+from .ImageLabs         import ImageLabs
 from .Koala             import Koala
+from .LegacyLMArena     import LegacyLMArena
 from .Liaobots          import Liaobots
 from .Lockchat          import Lockchat
 from .MagickPen         import MagickPen
+from .PenguinAI         import PenguinAI
 from .Phind             import Phind
 from .Pizzagpt          import Pizzagpt
 from .Poe               import Poe

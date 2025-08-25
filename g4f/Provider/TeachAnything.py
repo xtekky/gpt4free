@@ -15,8 +15,8 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
     
     working = True
     
-    default_model = 'gemini-1.5-pro'
-    models = [default_model, 'gemini-1.5-flash']
+    default_model = 'gemma'
+    models = [default_model]
 
     @classmethod
     async def create_async_generator(

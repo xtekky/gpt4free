@@ -8,7 +8,7 @@ model_map = {
     "OIVSCodeSer2": "",
     "Blackbox": "",
     "Copilot": "",
-    "DeepInfraChat": "",
+    "DeepInfra": "",
     "OperaAria": "",
     "Startnest": "",
     "LambdaChat": "",
@@ -102,7 +102,7 @@ model_map = {
   },
   "o3-mini": {
     "OpenaiChat": "o3-mini",
-    "LMArenaBeta": "o3-mini",
+    "LMArena": "o3-mini",
     "PuterJS": [
       "o3-mini",
       "openrouter:openai/o3-mini",
@@ -119,7 +119,7 @@ model_map = {
   "o4-mini": {
     "OpenaiChat": "o4-mini",
     "Azure": "o4-mini",
-    "LMArenaBeta": "o4-mini-2025-04-16",
+    "LMArena": "o4-mini-2025-04-16",
     "PuterJS": [
       "o4-mini",
       "openrouter:openai/o4-mini"
@@ -135,7 +135,7 @@ model_map = {
     "PollinationsAI": "openai-large",
     "OpenaiChat": "gpt-4-1",
     "Azure": "gpt-4.1",
-    "LMArenaBeta": "gpt-4.1-2025-04-14",
+    "LMArena": "gpt-4.1-2025-04-14",
     "PuterJS": [
       "gpt-4.1",
       "openrouter:openai/gpt-4.1"
@@ -146,7 +146,7 @@ model_map = {
     "Blackbox": "gpt-4.1-mini",
     "OIVSCodeSer0501": "gpt-4.1-mini",
     "OpenaiChat": "gpt-4-1-mini",
-    "LMArenaBeta": "gpt-4.1-mini-2025-04-14",
+    "LMArena": "gpt-4.1-mini-2025-04-14",
     "PuterJS": [
       "gpt-4.1-mini",
       "openrouter:openai/gpt-4.1-mini"
@@ -173,7 +173,7 @@ model_map = {
   },
   "gpt-oss-120b": {
     "Together": "openai/gpt-oss-120b",
-    "DeepInfraChat": "openai/gpt-oss-120b",
+    "DeepInfra": "openai/gpt-oss-120b",
     "HuggingFace": "openai/gpt-oss-120b",
     "OpenRouter": "openai/gpt-oss-120b",
     "Groq": "openai/gpt-oss-120b",
@@ -191,7 +191,7 @@ model_map = {
     "OpenaiAccount": "dall-e-3",
     "MicrosoftDesigner": "dall-e-3",
     "BingCreateImages": "dall-e-3",
-    "LMArenaBeta": "dall-e-3",
+    "LMArena": "dall-e-3",
     "ApiAirforce": "dall-e-3",
     "OpenaiChat": "gpt-image"
   },
@@ -250,7 +250,6 @@ model_map = {
     "Replicate": "meta/meta-llama-3-70b-instruct"
   },
   "llama-3.1-8b": {
-    "DeepInfraChat": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "Together": [
       "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       "blackbox/meta-llama-3-1-8b"
@@ -335,13 +334,11 @@ model_map = {
     "HuggingFaceAPI": "meta-llama/Llama-3.2-11B-Vision-Instruct"
   },
   "llama-3.2-90b": {
-    "DeepInfraChat": "meta-llama/Llama-3.2-90B-Vision-Instruct",
     "Together": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
     "PuterJS": "openrouter:meta-llama/llama-3.2-90b-vision-instruct",
     "DeepInfra": "meta-llama/Llama-3.2-90B-Vision-Instruct"
   },
   "llama-3.3-70b": {
-    "DeepInfraChat": "meta-llama/Llama-3.3-70B-Instruct",
     "LambdaChat": "llama3.3-70b-instruct-fp8",
     "Together": [
       "meta-llama/Llama-3.3-70B-Instruct-Turbo",
@@ -349,7 +346,7 @@ model_map = {
     ],
     "HuggingFace": "meta-llama/Llama-3.3-70B-Instruct",
     "OpenRouterFree": "meta-llama/llama-3.3-70b-instruct",
-    "LMArenaBeta": "llama-3.3-70b-instruct",
+    "LMArena": "llama-3.3-70b-instruct",
     "PuterJS": [
       "openrouter:meta-llama/llama-3.3-70b-instruct:free",
       "openrouter:meta-llama/llama-3.3-70b-instruct"
@@ -364,8 +361,6 @@ model_map = {
     "OpenRouter": "meta-llama/llama-3.3-70b-instruct:free"
   },
   "llama-4-scout": {
-    "DeepInfraChat": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-    "LambdaChat": "llama-4-scout-17b-16e-instruct",
     "PollinationsAI": "llamascout",
     "Together": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
     "Cloudflare": "@cf/meta/llama-4-scout-17b-16e-instruct",
@@ -379,10 +374,8 @@ model_map = {
     "OpenRouter": "meta-llama/llama-4-scout"
   },
   "llama-4-maverick": {
-    "DeepInfraChat": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "LambdaChat": "llama-4-maverick-17b-128e-instruct-fp8",
     "Together": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "LMArenaBeta": "llama-4-maverick-03-26-experimental",
+    "LMArena": "llama-4-maverick-03-26-experimental",
     "PuterJS": [
       "openrouter:meta-llama/llama-4-maverick:free",
       "openrouter:meta-llama/llama-4-maverick"
@@ -436,7 +429,6 @@ model_map = {
     "Nvidia": "mistralai/mistral-small-24b-instruct"
   },
   "mistral-small-3.1-24b": {
-    "DeepInfraChat": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
     "PollinationsAI": "mistral",
     "OpenRouterFree": "mistralai/mistral-small-3.1-24b-instruct",
     "Cloudflare": "@cf/mistralai/mistral-small-3.1-24b-instruct",
@@ -448,7 +440,6 @@ model_map = {
     "PuterJS": "openrouter:nousresearch/nous-hermes-2-mixtral-8x7b-dpo"
   },
   "phi-4": {
-    "DeepInfraChat": "microsoft/phi-4",
     "HuggingSpace": "phi-4-multimodal",
     "PuterJS": "openrouter:microsoft/phi-4",
     "DeepInfra": "microsoft/phi-4",
@@ -457,7 +448,6 @@ model_map = {
     "OpenRouter": "microsoft/phi-4"
   },
   "phi-4-multimodal": {
-    "DeepInfraChat": "microsoft/Phi-4-multimodal-instruct",
     "HuggingSpace": "phi-4-multimodal",
     "PuterJS": "openrouter:microsoft/phi-4-multimodal-instruct",
     "DeepInfra": "microsoft/Phi-4-multimodal-instruct",
@@ -466,7 +456,6 @@ model_map = {
     "OpenRouter": "microsoft/phi-4-multimodal-instruct"
   },
   "phi-4-reasoning-plus": {
-    "DeepInfraChat": "microsoft/phi-4-reasoning-plus",
     "PuterJS": [
       "openrouter:microsoft/phi-4-reasoning-plus:free",
       "openrouter:microsoft/phi-4-reasoning-plus"
@@ -475,11 +464,9 @@ model_map = {
     "OpenRouter": "microsoft/phi-4-reasoning-plus"
   },
   "wizardlm-2-7b": {
-    "DeepInfraChat": "microsoft/WizardLM-2-7B",
     "DeepInfra": "microsoft/WizardLM-2-7B"
   },
   "wizardlm-2-8x22b": {
-    "DeepInfraChat": "microsoft/WizardLM-2-8x22B",
     "PuterJS": "openrouter:microsoft/wizardlm-2-8x22b",
     "DeepInfra": "microsoft/WizardLM-2-8x22B",
     "OpenRouter": "microsoft/wizardlm-2-8x22b"
@@ -488,7 +475,6 @@ model_map = {
     "Gemini": ""
   },
   "gemini-1.5-flash": {
-    "TeachAnything": "gemini-1.5-flash",
     "PuterJS": [
       "gemini-1.5-flash",
       "openrouter:google/gemini-flash-1.5",
@@ -496,7 +482,6 @@ model_map = {
     ]
   },
   "gemini-1.5-pro": {
-    "TeachAnything": "gemini-1.5-pro",
     "PuterJS": "openrouter:google/gemini-pro-1.5"
   },
   "gemini-2.0-flash": {
@@ -507,7 +492,7 @@ model_map = {
     ],
     "GeminiPro": "gemma-7b",
     "EasyChat": "gemini-2.0-flash-free",
-    "LMArenaBeta": "gemini-2.0-flash-001",
+    "LMArena": "gemini-2.0-flash-001",
     "PuterJS": [
       "gemini-2.0-flash",
       "openrouter:google/gemini-2.0-flash-lite-001",
@@ -528,8 +513,7 @@ model_map = {
     "GeminiPro": "gemini-2.5-flash",
     "GeminiCLI": "gemini-2.5-flash",
     "EasyChat": "gemini-2.5-flash-free",
-    "DeepInfraChat": "google/gemini-2.5-flash",
-    "LMArenaBeta": "gemini-2.5-flash",
+    "LMArena": "gemini-2.5-flash",
     "PuterJS": "openrouter:google/gemini-2.5-flash-preview",
     "ApiAirforce": "gemini-2.5-flash",
     "DeepInfra": "google/gemini-2.5-flash",
@@ -539,8 +523,7 @@ model_map = {
     "Gemini": "gemini-2.5-pro",
     "GeminiPro": "gemini-2.5-pro",
     "GeminiCLI": "gemini-2.5-pro",
-    "DeepInfraChat": "google/gemini-2.5-pro",
-    "LMArenaBeta": "gemini-2.5-pro",
+    "LMArena": "gemini-2.5-pro",
     "PuterJS": [
       "openrouter:google/gemini-2.5-pro-preview",
       "openrouter:google/gemini-2.5-pro-exp-03-25"
@@ -550,7 +533,6 @@ model_map = {
     "OpenRouter": "google/gemini-2.5-pro-preview-05-06"
   },
   "codegemma-7b": {
-    "DeepInfraChat": "google/codegemma-7b-it",
     "DeepInfra": "google/codegemma-7b-it",
     "FenayAI": "codegemma-7b",
     "Nvidia": "google/codegemma-7b"
@@ -560,11 +542,9 @@ model_map = {
     "Nvidia": "google/gemma-2b"
   },
   "gemma-1.1-7b": {
-    "DeepInfraChat": "google/gemma-1.1-7b-it",
     "DeepInfra": "google/gemma-1.1-7b-it"
   },
   "gemma-2-9b": {
-    "DeepInfraChat": "google/gemma-2-9b-it",
     "PuterJS": [
       "openrouter:google/gemma-2-9b-it:free",
       "openrouter:google/gemma-2-9b-it"
@@ -573,14 +553,12 @@ model_map = {
   },
   "gemma-2-27b": {
     "Together": "google/gemma-2-27b-it",
-    "DeepInfraChat": "google/gemma-2-27b-it",
     "HuggingFace": "google/gemma-2-27b-it",
     "PuterJS": "openrouter:google/gemma-2-27b-it",
     "DeepInfra": "google/gemma-2-27b-it",
     "HuggingFaceAPI": "google/gemma-2-27b-it"
   },
   "gemma-3-4b": {
-    "DeepInfraChat": "google/gemma-3-4b-it",
     "PuterJS": [
       "openrouter:google/gemma-3-4b-it:free",
       "openrouter:google/gemma-3-4b-it"
@@ -588,7 +566,6 @@ model_map = {
     "DeepInfra": "google/gemma-3-4b-it"
   },
   "gemma-3-12b": {
-    "DeepInfraChat": "google/gemma-3-12b-it",
     "PuterJS": [
       "openrouter:google/gemma-3-12b-it:free",
       "openrouter:google/gemma-3-12b-it"
@@ -597,7 +574,6 @@ model_map = {
     "DeepInfra": "google/gemma-3-12b-it"
   },
   "gemma-3-27b": {
-    "DeepInfraChat": "google/gemma-3-27b-it",
     "Together": "google/gemma-3-27b-it",
     "PuterJS": [
       "openrouter:google/gemma-3-27b-it:free",
@@ -713,7 +689,6 @@ model_map = {
   },
   "qwen-2.5-coder-32b": {
     "PollinationsAI": "qwen-coder",
-    "LambdaChat": "qwen25-coder-32b-instruct",
     "Together": "Qwen/Qwen2.5-Coder-32B-Instruct",
     "Qwen": "qwen2.5-coder-32b-instruct",
     "OpenRouterFree": "qwen/qwen-2.5-coder-32b-instruct",
@@ -747,7 +722,6 @@ model_map = {
     "OpenRouter": "qwen/qwen2.5-vl-72b-instruct:free"
   },
   "qwen-3-235b": {
-    "DeepInfraChat": "Qwen/Qwen3-235B-A22B",
     "Together": [
       "Qwen/Qwen3-235B-A22B-fp8",
       "Qwen/Qwen3-235B-A22B-fp8-tput"
@@ -763,7 +737,6 @@ model_map = {
     "Qwen_Qwen_3": "qwen3-235b-a22b"
   },
   "qwen-3-32b": {
-    "DeepInfraChat": "Qwen/Qwen3-32B",
     "LambdaChat": "qwen3-32b-fp8",
     "Together": "Qwen/Qwen3-32B-FP8",
     "HuggingSpace": "qwen3-32b",
@@ -779,7 +752,6 @@ model_map = {
     "Qwen_Qwen_3": "qwen3-32b"
   },
   "qwen-3-30b": {
-    "DeepInfraChat": "Qwen/Qwen3-30B-A3B",
     "HuggingSpace": "qwen3-30b-a3b",
     "PuterJS": [
       "openrouter:qwen/qwen3-30b-a3b:free",
@@ -790,7 +762,6 @@ model_map = {
     "Qwen_Qwen_3": "qwen3-30b-a3b"
   },
   "qwen-3-14b": {
-    "DeepInfraChat": "Qwen/Qwen3-14B",
     "HuggingSpace": "qwen3-14b",
     "OpenRouterFree": "qwen/qwen3-14b",
     "PuterJS": [
@@ -827,12 +798,11 @@ model_map = {
     "Qwen_Qwen_3": "qwen3-0.6b"
   },
   "qwq-32b": {
-    "DeepInfraChat": "Qwen/QwQ-32B",
     "Together": "Qwen/QwQ-32B",
     "Qwen": "qwq-32b",
     "OpenRouterFree": "qwen/qwq-32b",
     "HuggingFace": "Qwen/QwQ-32B",
-    "LMArenaBeta": "qwq-32b",
+    "LMArena": "qwq-32b",
     "PuterJS": [
       "openrouter:qwen/qwq-32b-preview",
       "openrouter:qwen/qwq-32b:free",
@@ -846,10 +816,6 @@ model_map = {
     "OpenRouter": "qwen/qwq-32b:free"
   },
   "deepseek-v3": {
-    "DeepInfraChat": [
-      "deepseek-ai/DeepSeek-V3",
-      "deepseek-ai/DeepSeek-V3-0324"
-    ],
     "Together": "deepseek-ai/DeepSeek-V3",
     "PuterJS": "openrouter:deepseek/deepseek-v3-base:free",
     "DeepInfra": [
@@ -858,11 +824,6 @@ model_map = {
     ]
   },
   "deepseek-r1": {
-    "DeepInfraChat": [
-      "deepseek-ai/DeepSeek-R1",
-      "deepseek-ai/DeepSeek-R1-0528"
-    ],
-    "LambdaChat": "deepseek-r1",
     "PollinationsAI": "deepseek-reasoning",
     "Together": "deepseek-ai/DeepSeek-R1",
     "HuggingFace": "deepseek-ai/DeepSeek-R1",
@@ -885,11 +846,9 @@ model_map = {
     "OpenRouter": "deepseek/deepseek-r1:free"
   },
   "deepseek-r1-turbo": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-R1-Turbo",
     "DeepInfra": "deepseek-ai/DeepSeek-R1-Turbo"
   },
   "deepseek-r1-distill-llama-70b": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
     "Together": [
       "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
       "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"
@@ -923,7 +882,6 @@ model_map = {
     "OpenRouter": "deepseek/deepseek-r1-distill-qwen-14b:free"
   },
   "deepseek-r1-distill-qwen-32b": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
     "HuggingFace": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
     "PuterJS": [
       "openrouter:deepseek/deepseek-r1-distill-qwen-32b:free",
@@ -935,7 +893,6 @@ model_map = {
     "OpenRouter": "deepseek/deepseek-r1-distill-qwen-32b"
   },
   "deepseek-prover-v2": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-Prover-V2-671B",
     "PuterJS": [
       "openrouter:deepseek/deepseek-prover-v2:free",
       "openrouter:deepseek/deepseek-prover-v2"
@@ -943,14 +900,11 @@ model_map = {
     "DeepInfra": "deepseek-ai/DeepSeek-Prover-V2-671B"
   },
   "deepseek-prover-v2-671b": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-Prover-V2-671B",
     "DeepInfra": "deepseek-ai/DeepSeek-Prover-V2-671B",
     "HuggingFaceAPI": "deepseek-ai/DeepSeek-Prover-V2-671B"
   },
   "deepseek-v3-0324": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-V3-0324",
-    "LambdaChat": "deepseek-v3-0324",
-    "LMArenaBeta": "deepseek-v3-0324",
+    "LMArena": "deepseek-v3-0324",
     "PuterJS": [
       "deepseek-chat",
       "openrouter:deepseek/deepseek-chat-v3-0324:free",
@@ -960,22 +914,18 @@ model_map = {
     "HuggingFaceAPI": "deepseek-ai/DeepSeek-V3-0324"
   },
   "deepseek-v3-0324-turbo": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-V3-0324-Turbo",
     "DeepInfra": "deepseek-ai/DeepSeek-V3-0324-Turbo"
   },
   "deepseek-r1-0528": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-R1-0528",
-    "LambdaChat": "deepseek-r1-0528",
     "PollinationsAI": "deepseek-reasoning",
     "OpenRouterFree": "deepseek/deepseek-r1-0528",
-    "LMArenaBeta": "deepseek-r1-0528",
+    "LMArena": "deepseek-r1-0528",
     "DeepInfra": "deepseek-ai/DeepSeek-R1-0528",
     "HuggingFaceAPI": "deepseek-ai/DeepSeek-R1-0528",
     "Nvidia": "deepseek-ai/deepseek-r1-0528",
     "OpenRouter": "deepseek/deepseek-r1-0528:free"
   },
   "deepseek-r1-0528-turbo": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-R1-0528-Turbo",
     "DeepInfra": "deepseek-ai/DeepSeek-R1-0528-Turbo"
   },
   "janus-pro-7b": {
@@ -993,7 +943,7 @@ model_map = {
     "Grok": "grok-3",
     "Azure": "grok-3",
     "EasyChat": "grok-3-free",
-    "LMArenaBeta": "grok-3-preview-02-24",
+    "LMArena": "grok-3-preview-02-24",
     "PuterJS": "grok-3",
     "OpenRouter": "x-ai/grok-3"
   },
@@ -1003,7 +953,6 @@ model_map = {
   "kimi-k2": {
     "Kimi": "kimi-k2",
     "HuggingFace": "moonshotai/Kimi-K2-Instruct",
-    "DeepInfraChat": "moonshotai/Kimi-K2-Instruct",
     "Groq": "moonshotai/kimi-k2-instruct",
     "OpenRouterFree": "moonshotai/kimi-k2",
     "ApiAirforce": "kimi-k2",
@@ -1040,30 +989,24 @@ model_map = {
     "OpenRouter": "perplexity/r1-1776"
   },
   "nemotron-70b": {
-    "LambdaChat": "llama3.1-nemotron-70b-instruct",
     "Together": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
     "HuggingFace": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
     "PuterJS": "openrouter:nvidia/llama-3.1-nemotron-70b-instruct",
     "HuggingFaceAPI": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF"
   },
   "dolphin-2.6": {
-    "DeepInfraChat": "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
     "DeepInfra": "cognitivecomputations/dolphin-2.6-mixtral-8x7b"
   },
   "dolphin-2.9": {
-    "DeepInfraChat": "cognitivecomputations/dolphin-2.9.1-llama-3-70b",
     "DeepInfra": "cognitivecomputations/dolphin-2.9.1-llama-3-70b"
   },
   "airoboros-70b": {
-    "DeepInfraChat": "deepinfra/airoboros-70b",
     "DeepInfra": "deepinfra/airoboros-70b"
   },
   "lzlv-70b": {
-    "DeepInfraChat": "lizpreciatior/lzlv_70b_fp16_hf",
     "DeepInfra": "lizpreciatior/lzlv_70b_fp16_hf"
   },
   "lfm-40b": {
-    "LambdaChat": "lfm-40b",
     "PuterJS": "openrouter:liquid/lfm-40b",
     "OpenRouter": "liquid/lfm-40b"
   },
@@ -1076,7 +1019,6 @@ model_map = {
   "sdxl-turbo": {
     "HuggingFaceMedia": "stabilityai/sdxl-turbo",
     "PollinationsImage": "sdxl-turbo",
-    "ImageLabs": "sdxl-turbo",
     "PollinationsAI": "turbo",
     "HuggingFace": "stabilityai/sdxl-turbo"
   },
@@ -1157,7 +1099,7 @@ model_map = {
   "flux-kontext": {
     "PollinationsAI": "kontext",
     "Azure": "flux.1-kontext-pro",
-    "LMArenaBeta": "flux-1-kontext-pro",
+    "LMArena": "flux-1-kontext-pro",
     "Together": "flux-kontext"
   },
   "flux-dev-lora": {
@@ -1318,7 +1260,7 @@ model_map = {
   },
   "claude-3-5-haiku": {
     "PollinationsAI": "claude",
-    "LMArenaBeta": "claude-3-5-haiku-20241022",
+    "LMArena": "claude-3-5-haiku-20241022",
     "Anthropic": "claude-3-5-haiku-20241022"
   },
   "gemini-2.5-flash-lite": {
@@ -1327,9 +1269,7 @@ model_map = {
   },
   "llama-4-scout-17b-16e": {
     "PollinationsAI": "llamascout",
-    "LambdaChat": "llama-4-scout-17b-16e-instruct",
-    "DeepInfraChat": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-    "LMArenaBeta": "llama-4-scout-17b-16e-instruct",
+    "LMArena": "llama-4-scout-17b-16e-instruct",
     "DeepInfra": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
     "Groq": "meta-llama/llama-4-scout-17b-16e-instruct",
     "HuggingFaceAPI": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
@@ -1348,7 +1288,7 @@ model_map = {
   },
   "o3": {
     "PollinationsAI": "openai-reasoning",
-    "LMArenaBeta": "o3-2025-04-16",
+    "LMArena": "o3-2025-04-16",
     "PuterJS": [
       "o3",
       "openrouter:openai/o3"
@@ -1371,7 +1311,7 @@ model_map = {
   "qwen-3-235b-a22b": {
     "Qwen": "qwen3-235b-a22b",
     "OpenRouterFree": "qwen/qwen3-235b-a22b",
-    "LMArenaBeta": "qwen3-235b-a22b",
+    "LMArena": "qwen3-235b-a22b",
     "HuggingFaceAPI": "Qwen/Qwen3-235B-A22B-FP8",
     "Nvidia": "qwen/qwen3-235b-a22b",
     "OpenRouter": "qwen/qwen3-235b-a22b:free"
@@ -1382,9 +1322,8 @@ model_map = {
   "qwen-3-30b-a3b": {
     "Qwen": "qwen3-30b-a3b",
     "OpenRouterFree": "qwen/qwen3-30b-a3b",
-    "DeepInfraChat": "Qwen/Qwen3-30B-A3B",
     "HuggingFace": "Qwen/Qwen3-30B-A3B",
-    "LMArenaBeta": "qwen3-30b-a3b",
+    "LMArena": "qwen3-30b-a3b",
     "HuggingSpace": "qwen-3-30b-a3b",
     "DeepInfra": "Qwen/Qwen3-30B-A3B",
     "FenayAI": "qwen3-30b-a3b",
@@ -1399,7 +1338,7 @@ model_map = {
   },
   "qwen-max": {
     "Qwen": "qwen-max-latest",
-    "LMArenaBeta": "qwen-max-2025-01-25",
+    "LMArena": "qwen-max-2025-01-25",
     "PuterJS": "openrouter:qwen/qwen-max",
     "OpenRouter": "qwen/qwen-max"
   },
@@ -1449,7 +1388,6 @@ model_map = {
   },
   "glm-4.5": {
     "GLM": "GLM-4.5",
-    "DeepInfraChat": "zai-org/GLM-4.5",
     "HuggingFace": "zai-org/GLM-4.5",
     "ApiAirforce": "glm-4.5",
     "DeepInfra": "zai-org/GLM-4.5",
@@ -1459,7 +1397,6 @@ model_map = {
   "glm-4.5-air": {
     "GLM": "GLM-4.5-Air",
     "OpenRouterFree": "z-ai/glm-4.5-air",
-    "DeepInfraChat": "zai-org/GLM-4.5-Air",
     "HuggingFace": "zai-org/GLM-4.5-Air",
     "DeepInfra": "zai-org/GLM-4.5-Air",
     "HuggingFaceAPI": "zai-org/GLM-4.5-Air-FP8",
@@ -1467,7 +1404,6 @@ model_map = {
   },
   "glm-4.5v": {
     "GLM": "GLM-4.5V",
-    "DeepInfraChat": "zai-org/GLM-4.5V",
     "DeepInfra": "zai-org/GLM-4.5V",
     "HuggingFaceAPI": "zai-org/GLM-4.5V",
     "OpenRouter": "z-ai/glm-4.5v"
@@ -1546,7 +1482,6 @@ model_map = {
   },
   "gemma-3-12b-it": {
     "OpenRouterFree": "google/gemma-3-12b-it",
-    "DeepInfraChat": "google/gemma-3-12b-it",
     "DeepInfra": "google/gemma-3-12b-it",
     "GeminiPro": "gemma-3-12b-it",
     "HuggingFaceAPI": "google/gemma-3-12b-it",
@@ -1555,8 +1490,7 @@ model_map = {
   },
   "gemma-3-27b-it": {
     "OpenRouterFree": "google/gemma-3-27b-it",
-    "DeepInfraChat": "google/gemma-3-27b-it",
-    "LMArenaBeta": "gemma-3-27b-it",
+    "LMArena": "gemma-3-27b-it",
     "DeepInfra": "google/gemma-3-27b-it",
     "FenayAI": "gemma-3-27b-it",
     "GeminiPro": "gemma-3-27b-it",
@@ -1566,7 +1500,6 @@ model_map = {
   },
   "gemma-3-4b-it": {
     "OpenRouterFree": "google/gemma-3-4b-it",
-    "DeepInfraChat": "google/gemma-3-4b-it",
     "DeepInfra": "google/gemma-3-4b-it",
     "GeminiPro": "gemma-3-4b-it",
     "Nvidia": "google/gemma-3-4b-it",
@@ -1580,7 +1513,7 @@ model_map = {
   },
   "gemma-3n-e4b-it": {
     "OpenRouterFree": "google/gemma-3n-e4b-it",
-    "LMArenaBeta": "gemma-3n-e4b-it",
+    "LMArena": "gemma-3n-e4b-it",
     "ApiAirforce": "gemma-3n-e4b-it",
     "GeminiPro": "gemma-3n-e4b-it",
     "Nvidia": "google/gemma-3n-e4b-it",
@@ -1635,7 +1568,6 @@ model_map = {
   },
   "gpt-oss-20b": {
     "OpenRouterFree": "openai/gpt-oss-20b",
-    "DeepInfraChat": "openai/gpt-oss-20b",
     "HuggingFace": "openai/gpt-oss-20b",
     "ApiAirforce": "gpt-oss-20b",
     "DeepInfra": "openai/gpt-oss-20b",
@@ -1697,15 +1629,10 @@ model_map = {
     "LambdaChat": "apriel-5b-instruct"
   },
   "hermes-3-llama-3.1-405b": {
-    "LambdaChat": "hermes-3-llama-3.1-405b-fp8",
     "HuggingFaceAPI": "NousResearch/Hermes-3-Llama-3.1-405B",
     "OpenRouter": "nousresearch/hermes-3-llama-3.1-405b"
   },
-  "hermes3-405b-fp8-128k": {
-    "LambdaChat": "hermes3-405b-fp8-128k"
-  },
   "llama-3.1-nemotron-70b": {
-    "LambdaChat": "llama3.1-nemotron-70b-instruct",
     "HuggingFace": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
     "GlhfChat": "hf:nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
     "Nvidia": "nvidia/llama-3.1-nemotron-70b-instruct",
@@ -1715,67 +1642,49 @@ model_map = {
     "LambdaChat": "qwen25-coder-32b-instruct"
   },
   "llama-4-maverick-17b-128e": {
-    "LambdaChat": "llama-4-maverick-17b-128e-instruct-fp8",
-    "DeepInfraChat": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "LMArenaBeta": "llama-4-maverick-17b-128e-instruct",
+    "LMArena": "llama-4-maverick-17b-128e-instruct",
     "DeepInfra": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
     "Groq": "meta-llama/llama-4-maverick-17b-128e-instruct",
     "HuggingFaceAPI": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
     "Nvidia": "meta/llama-4-maverick-17b-128e-instruct"
   },
-  "hermes-3": {
-    "LambdaChat": "hermes3-405b-fp8-128k"
-  },
   "hermes-3-405b": {
-    "LambdaChat": [
-      "hermes3-405b-fp8-128k",
-      "hermes-3-llama-3.1-405b-fp8"
-    ],
     "PuterJS": "openrouter:nousresearch/hermes-3-llama-3.1-405b"
   },
   "qwen-3-coder-480b-a35b-turbo": {
-    "DeepInfraChat": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
     "DeepInfra": "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo"
   },
   "olmocr-7b-0725": {
-    "DeepInfraChat": "allenai/olmOCR-7B-0725-FP8",
     "DeepInfra": "allenai/olmOCR-7B-0725-FP8"
   },
   "qwen-3-235b-a22b-thinking-2507": {
-    "DeepInfraChat": "Qwen/Qwen3-235B-A22B-Thinking-2507",
     "HuggingFace": "Qwen/Qwen3-235B-A22B-Thinking-2507",
     "DeepInfra": "Qwen/Qwen3-235B-A22B-Thinking-2507",
     "HuggingFaceAPI": "Qwen/Qwen3-235B-A22B-Thinking-2507",
     "OpenRouter": "qwen/qwen3-235b-a22b-thinking-2507"
   },
   "qwen-3-coder-480b-a35b": {
-    "DeepInfraChat": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
     "HuggingFace": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
     "DeepInfra": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
     "HuggingFaceAPI": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8"
   },
   "qwen-3-235b-a22b-2507": {
-    "DeepInfraChat": "Qwen/Qwen3-235B-A22B-Instruct-2507",
     "HuggingFace": "Qwen/Qwen3-235B-A22B-Instruct-2507",
     "DeepInfra": "Qwen/Qwen3-235B-A22B-Instruct-2507",
     "HuggingFaceAPI": "Qwen/Qwen3-235B-A22B-Instruct-2507",
     "OpenRouter": "qwen/qwen3-235b-a22b-2507"
   },
   "llama-4-maverick-17b-128e-turbo": {
-    "DeepInfraChat": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-Turbo",
     "DeepInfra": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-Turbo"
   },
   "devstral-small-2507": {
-    "DeepInfraChat": "mistralai/Devstral-Small-2507",
     "PuterJS": "devstral-small-2507",
     "DeepInfra": "mistralai/Devstral-Small-2507"
   },
   "mistral-small-3.2-24b-2506": {
-    "DeepInfraChat": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
     "DeepInfra": "mistralai/Mistral-Small-3.2-24B-Instruct-2506"
   },
   "llama-guard-4-12b": {
-    "DeepInfraChat": "meta-llama/Llama-Guard-4-12B",
     "DeepInfra": "meta-llama/Llama-Guard-4-12B",
     "Groq": "meta-llama/llama-guard-4-12b",
     "HuggingFaceAPI": "meta-llama/Llama-Guard-4-12B",
@@ -1783,15 +1692,12 @@ model_map = {
     "OpenRouter": "meta-llama/llama-guard-4-12b"
   },
   "claude-4-opus": {
-    "DeepInfraChat": "anthropic/claude-4-opus",
     "DeepInfra": "anthropic/claude-4-opus"
   },
   "claude-4-sonnet": {
-    "DeepInfraChat": "anthropic/claude-4-sonnet",
     "DeepInfra": "anthropic/claude-4-sonnet"
   },
   "deepseek": {
-    "DeepInfraChat": "deepseek-ai/DeepSeek-V3",
     "HuggingFace": "deepseek-ai/DeepSeek-V3",
     "PuterJS": "deepseek-v3",
     "ApiAirforce": "deepseek-v3",
@@ -1804,7 +1710,6 @@ model_map = {
     "OpenRouter": "deepseek/deepseek-chat"
   },
   "llama-3.3-70b-turbo": {
-    "DeepInfraChat": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
     "BlackboxPro": "Meta-Llama-3.3-70B-Instruct-Turbo",
     "DeepInfra": "meta-llama/Llama-3.3-70B-Instruct-Turbo"
   },
@@ -1915,196 +1820,196 @@ model_map = {
     "HuggingFaceMedia": "Lightricks/LTX-Video-0.9.7-dev:fal-ai"
   },
   "claude-opus-4": {
-    "LMArenaBeta": "claude-opus-4-20250514",
+    "LMArena": "claude-opus-4-20250514",
     "PuterJS": "claude-opus-4-latest",
     "OpenRouter": "anthropic/claude-opus-4"
   },
   "chatgpt-4o": {
-    "LMArenaBeta": "chatgpt-4o-latest-20250326",
+    "LMArena": "chatgpt-4o-latest-20250326",
     "OpenRouter": "openai/chatgpt-4o-latest"
   },
   "mistral-small-3.1-24b-2503": {
-    "LMArenaBeta": "mistral-small-3.1-24b-instruct-2503",
+    "LMArena": "mistral-small-3.1-24b-instruct-2503",
     "HuggingFaceAPI": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
     "Nvidia": "mistralai/mistral-small-3.1-24b-instruct-2503"
   },
   "steve": {
-    "LMArenaBeta": "steve"
+    "LMArena": "steve"
   },
   "command-a25": {
-    "LMArenaBeta": "command-a-03-2025",
+    "LMArena": "command-a-03-2025",
     "HuggingSpace": "command-a-03-2025",
     "CohereForAI_C4AI_Command": "command-a-03-2025"
   },
   "amazon.nova-pro": {
-    "LMArenaBeta": "amazon.nova-pro-v1:0"
+    "LMArena": "amazon.nova-pro-v1:0"
   },
   "grok-3-mini-beta": {
-    "LMArenaBeta": "grok-3-mini-beta",
+    "LMArena": "grok-3-mini-beta",
     "OpenRouter": "x-ai/grok-3-mini-beta"
   },
   "gemini-2.5-flash-lite-preview-thinking": {
-    "LMArenaBeta": "gemini-2.5-flash-lite-preview-06-17-thinking"
+    "LMArena": "gemini-2.5-flash-lite-preview-06-17-thinking"
   },
   "amazon-nova-experimental": {
-    "LMArenaBeta": "amazon-nova-experimental-chat-05-14"
+    "LMArena": "amazon-nova-experimental-chat-05-14"
   },
   "claude-3-7-sonnet-20250219-thinking-32k": {
-    "LMArenaBeta": "claude-3-7-sonnet-20250219-thinking-32k"
+    "LMArena": "claude-3-7-sonnet-20250219-thinking-32k"
   },
   "mistral-medium-2505": {
-    "LMArenaBeta": "mistral-medium-2505"
+    "LMArena": "mistral-medium-2505"
   },
   "magistral-medium-2506": {
-    "LMArenaBeta": "magistral-medium-2506",
+    "LMArena": "magistral-medium-2506",
     "OpenRouter": "mistralai/magistral-medium-2506:thinking"
   },
   "x": {
-    "LMArenaBeta": "X-preview"
+    "LMArena": "X-preview"
   },
   "stephen": {
-    "LMArenaBeta": "stephen-v2"
+    "LMArena": "stephen-v2"
   },
   "glm-4-air-250414": {
-    "LMArenaBeta": "glm-4-air-250414"
+    "LMArena": "glm-4-air-250414"
   },
   "claude-sonnet-4": {
-    "LMArenaBeta": "claude-sonnet-4-20250514",
+    "LMArena": "claude-sonnet-4-20250514",
     "PuterJS": "claude-sonnet-4-latest",
     "ApiAirforce": "claude-sonnet-4",
     "OpenRouter": "anthropic/claude-sonnet-4"
   },
   "stonebloom": {
-    "LMArenaBeta": "stonebloom"
+    "LMArena": "stonebloom"
   },
   "claude-3-7-sonnet": {
-    "LMArenaBeta": "claude-3-7-sonnet-20250219",
+    "LMArena": "claude-3-7-sonnet-20250219",
     "PuterJS": "claude-3-7-sonnet-latest"
   },
   "minimax-m1": {
-    "LMArenaBeta": "minimax-m1",
+    "LMArena": "minimax-m1",
     "OpenRouter": "minimax/minimax-m1"
   },
   "step-1o-turbo-202506": {
-    "LMArenaBeta": "step-1o-turbo-202506"
+    "LMArena": "step-1o-turbo-202506"
   },
   "claude-sonnet-4-20250514-thinking-32k": {
-    "LMArenaBeta": "claude-sonnet-4-20250514-thinking-32k"
+    "LMArena": "claude-sonnet-4-20250514-thinking-32k"
   },
   "qwen-3-235b-a22b-no-thinking": {
-    "LMArenaBeta": "qwen3-235b-a22b-no-thinking"
+    "LMArena": "qwen3-235b-a22b-no-thinking"
   },
   "claude-opus-4-20250514-thinking-16k": {
-    "LMArenaBeta": "claude-opus-4-20250514-thinking-16k"
+    "LMArena": "claude-opus-4-20250514-thinking-16k"
   },
   "stephen-vision-csfix": {
-    "LMArenaBeta": "stephen-vision-csfix"
+    "LMArena": "stephen-vision-csfix"
   },
   "mistral-small-2506": {
-    "LMArenaBeta": "mistral-small-2506",
+    "LMArena": "mistral-small-2506",
     "PuterJS": "mistral-small-2506"
   },
   "wolfstride": {
-    "LMArenaBeta": "wolfstride"
+    "LMArena": "wolfstride"
   },
   "grok-3-mini-high": {
-    "LMArenaBeta": "grok-3-mini-high"
+    "LMArena": "grok-3-mini-high"
   },
   "grok-4-0709": {
-    "LMArenaBeta": "grok-4-0709"
+    "LMArena": "grok-4-0709"
   },
   "cresylux": {
-    "LMArenaBeta": "cresylux"
+    "LMArena": "cresylux"
   },
   "hunyuan-turbos": {
-    "LMArenaBeta": "hunyuan-turbos-20250416"
+    "LMArena": "hunyuan-turbos-20250416"
   },
   "ernie-x1-turbo-32k": {
-    "LMArenaBeta": "ernie-x1-turbo-32k-preview"
+    "LMArena": "ernie-x1-turbo-32k-preview"
   },
   "kimi-k2-0711": {
-    "LMArenaBeta": "kimi-k2-0711-preview"
+    "LMArena": "kimi-k2-0711-preview"
   },
   "nettle": {
-    "LMArenaBeta": "nettle"
+    "LMArena": "nettle"
   },
   "clownfish": {
-    "LMArenaBeta": "clownfish"
+    "LMArena": "clownfish"
   },
   "octopus": {
-    "LMArenaBeta": "octopus"
+    "LMArena": "octopus"
   },
   "kraken-07152025-1": {
-    "LMArenaBeta": "kraken-07152025-1"
+    "LMArena": "kraken-07152025-1"
   },
   "kraken-07152025-2": {
-    "LMArenaBeta": "kraken-07152025-2"
+    "LMArena": "kraken-07152025-2"
   },
   "folsom-07152025-1": {
-    "LMArenaBeta": "folsom-07152025-1"
+    "LMArena": "folsom-07152025-1"
   },
   "claude-3-5-sonnet": {
-    "LMArenaBeta": "claude-3-5-sonnet-20241022",
+    "LMArena": "claude-3-5-sonnet-20241022",
     "PuterJS": "claude-3-5-sonnet-20240620",
     "Anthropic": "claude-3-5-sonnet-20241022"
   },
   "hunyuan-large-vision": {
-    "LMArenaBeta": "hunyuan-large-vision"
+    "LMArena": "hunyuan-large-vision"
   },
   "flux-1-kontext-pro": {
-    "LMArenaBeta": "flux-1-kontext-pro"
+    "LMArena": "flux-1-kontext-pro"
   },
   "gpt-image-1": {
-    "LMArenaBeta": "gpt-image-1"
+    "LMArena": "gpt-image-1"
   },
   "flux-1-kontext-max": {
-    "LMArenaBeta": "flux-1-kontext-max"
+    "LMArena": "flux-1-kontext-max"
   },
   "imagen-4.0-ultra-generate": {
-    "LMArenaBeta": "imagen-4.0-ultra-generate-preview-06-06"
+    "LMArena": "imagen-4.0-ultra-generate-preview-06-06"
   },
   "imagen-3.0-generate": {
-    "LMArenaBeta": "imagen-3.0-generate-002"
+    "LMArena": "imagen-3.0-generate-002"
   },
   "ideogram": {
-    "LMArenaBeta": "ideogram-v2"
+    "LMArena": "ideogram-v2"
   },
   "photon": {
-    "LMArenaBeta": "photon"
+    "LMArena": "photon"
   },
   "step1x-edit": {
-    "LMArenaBeta": "step1x-edit"
+    "LMArena": "step1x-edit"
   },
   "recraft": {
-    "LMArenaBeta": "recraft-v3"
+    "LMArena": "recraft-v3"
   },
   "anonymous-bot-0514": {
-    "LMArenaBeta": "anonymous-bot-0514"
+    "LMArena": "anonymous-bot-0514"
   },
   "flux-1.1-pro": {
-    "LMArenaBeta": "flux-1.1-pro"
+    "LMArena": "flux-1.1-pro"
   },
   "ideogram-v3-quality": {
-    "LMArenaBeta": "ideogram-v3-quality"
+    "LMArena": "ideogram-v3-quality"
   },
   "imagen-4.0-generate": {
-    "LMArenaBeta": "imagen-4.0-generate-preview-06-06"
+    "LMArena": "imagen-4.0-generate-preview-06-06"
   },
   "seedream-3": {
-    "LMArenaBeta": "seedream-3",
+    "LMArena": "seedream-3",
     "ApiAirforce": "seedream-3"
   },
   "seededit-3.0": {
-    "LMArenaBeta": "seededit-3.0"
+    "LMArena": "seededit-3.0"
   },
   "flux-1-kontext-dev": {
-    "LMArenaBeta": "flux-1-kontext-dev"
+    "LMArena": "flux-1-kontext-dev"
   },
   "bagel": {
-    "LMArenaBeta": "bagel"
+    "LMArena": "bagel"
   },
   "gemini-2.0-flash-preview-image-generation": {
-    "LMArenaBeta": "gemini-2.0-flash-preview-image-generation"
+    "LMArena": "gemini-2.0-flash-preview-image-generation"
   },
   "gpt-5-mini": {
     "PuterJS": "gpt-5-mini",
@@ -3078,7 +2983,7 @@ models_count = {
   "llama-3.3-70b-instruct": 4,
   "llama-4-maverick-17b-128e-instruct": 5,
   "qwen-332b": 3,
-  "hermes-3-405b": 2,
+  "hermes-3-405b": 1,
   "gpt-oss-20b": 12,
   "glm-4.5": 7,
   "qwen-3235b-a22b-thinking-2507": 2,
@@ -3256,7 +3161,7 @@ parents = {
     "CopilotAccount"
   ],
   "DeepInfra": [
-    "DeepInfraChat"
+    "DeepInfra"
   ],
   "HuggingFace": [
     "HuggingFaceAPI",
@@ -3418,7 +3323,6 @@ model_aliases = {
   "openrouter:perplexity/sonar-reasoning": "sonar-reasoning",
   "openrouter:perplexity/sonar-reasoning-pro": "sonar-reasoning-pro",
   "openrouter:perplexity/r1-1776": "r1-1776",
-  "llama3.1-nemotron-70b-instruct": "llama-3.1-nemotron-70b",
   "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF": "llama-3.1-nemotron-70b",
   "openrouter:nvidia/llama-3.1-nemotron-70b-instruct": "nemotron-70b",
   "cognitivecomputations/dolphin-2.6-mixtral-8x7b": "dolphin-2.6",
@@ -3537,7 +3441,6 @@ model_aliases = {
   "openrouter:microsoft/phi-3-mini-128k-instruct": "phi-3-mini",
   "deepseek-llama3.3-70b": "deepseek-llama-3.3-70b",
   "apriel-5b-instruct": "apriel-5b",
-  "hermes-3-llama-3.1-405b-fp8": "hermes-3-llama-3.1-405b",
   "openrouter:nousresearch/hermes-3-llama-3.1-405b": "hermes-3-405b",
   "openai/gpt-oss-20b": "gpt-oss-20b",
   "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo": "qwen-3-coder-480b-a35b-turbo",

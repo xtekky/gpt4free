@@ -30,25 +30,25 @@ try:
     from .audio import *
 except ImportError as e:
     debug.error("Audio providers not loaded:", e)
+try:
+    from .search import *
+except ImportError as e:
+    debug.error("Search providers not loaded:", e)
 
-from .deprecated.har import HarProvider
 from .deprecated.ARTA import ARTA
 from .deprecated.DuckDuckGo import DuckDuckGo
-from .deprecated.Free2GPT import Free2GPT
-from .deprecated.LegacyLMArena import LegacyLMArena
 
 from .ApiAirforce          import ApiAirforce
 from .Blackbox             import Blackbox
 from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
-from .DeepInfraChat        import DeepInfraChat
+from .DeepInfra            import DeepInfra
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
-
-from .ImageLabs            import ImageLabs
 from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
+from .Mintlify             import Mintlify
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer0501      import OIVSCodeSer0501
 from .OperaAria            import OperaAria
@@ -59,7 +59,6 @@ from .Startnest            import Startnest
 from .Qwen                 import Qwen
 from .TeachAnything        import TeachAnything
 from .WeWordle             import WeWordle
-from .YouTube              import YouTube
 from .Yqcloud              import Yqcloud
 
 import sys

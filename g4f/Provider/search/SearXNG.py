@@ -1,12 +1,12 @@
 import os
 import aiohttp
 import asyncio
-from ..typing import Messages, AsyncResult
-from ..providers.base_provider import AsyncGeneratorProvider
-from ..providers.response import FinishReason
-from ..tools.web_search import fetch_and_scrape 
-from .helper import format_media_prompt
-from .. import debug
+from ...typing import Messages, AsyncResult
+from ...providers.base_provider import AsyncGeneratorProvider
+from ...providers.response import FinishReason
+from ...tools.web_search import fetch_and_scrape 
+from ..helper import format_media_prompt
+from ... import debug
 
 class SearXNG(AsyncGeneratorProvider):
     url = os.environ.get("SEARXNG_URL", "http://searxng:8080")

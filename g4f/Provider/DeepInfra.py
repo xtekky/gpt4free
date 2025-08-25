@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import requests
-from .template import OpenaiTemplate
 from ..config import DEFAULT_MODEL
+from .template import OpenaiTemplate
 
-class DeepInfraChat(OpenaiTemplate):
-    parent = "DeepInfra"
-    url = "https://deepinfra.com/chat"
+class DeepInfra(OpenaiTemplate):
+    url = "https://deepinfra.com"
     login_url = "https://deepinfra.com/dash/api_keys"
     api_base = "https://api.deepinfra.com/v1/openai"
-    api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
+    
     working = True
-
+    active_by_default = True
+    
     default_model = DEFAULT_MODEL
     default_vision_model = DEFAULT_MODEL
     vision_models = [
@@ -20,26 +20,6 @@ class DeepInfraChat(OpenaiTemplate):
         'openai/gpt-oss-120b',
         'openai/gpt-oss-20b',
     ]
-
-    @classmethod
-    def get_models(cls, **kwargs):
-        if not cls.models:
-            url = 'https://api.deepinfra.com/models/featured'
-            response = requests.get(url)
-            models = response.json()
-            
-            cls.models = []
-            cls.image_models = []
-            
-            for model in models:
-                if model["type"] == "text-generation":
-                    cls.models.append(model['model_name'])
-                elif model["reported_type"] == "text-to-image":
-                    cls.image_models.append(model['model_name'])
-            
-            cls.models.extend(cls.image_models)
-
-        return cls.models
 
     model_aliases = {
         # cognitivecomputations
@@ -98,3 +78,23 @@ class DeepInfraChat(OpenaiTemplate):
         "qwen-3-235b": "Qwen/Qwen3-235B-A22B",
         "qwq-32b": "Qwen/QwQ-32B",
     }
+
+    @classmethod
+    def get_models(cls, **kwargs):
+        if not cls.models:
+            url = 'https://api.deepinfra.com/models/featured'
+            response = requests.get(url)
+            models = response.json()
+            
+            cls.models = []
+            cls.image_models = []
+            
+            for model in models:
+                if model["type"] == "text-generation":
+                    cls.models.append(model['model_name'])
+                elif model["reported_type"] == "text-to-image":
+                    cls.image_models.append(model['model_name'])
+            
+            cls.models.extend(cls.image_models)
+
+        return cls.models

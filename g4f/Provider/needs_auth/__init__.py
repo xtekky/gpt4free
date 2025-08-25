@@ -7,7 +7,6 @@ from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
 from .Custom            import Custom
 from .Custom            import Feature
-from .DeepInfra         import DeepInfra
 from .DeepSeek          import DeepSeek
 from .DeepSeekAPI       import DeepSeekAPI
 from .FenayAI           import FenayAI
@@ -20,7 +19,7 @@ from .GithubCopilotAPI  import GithubCopilotAPI
 from .GlhfChat          import GlhfChat
 from .Grok              import Grok
 from .Groq              import Groq
-from .LMArenaBeta       import LMArenaBeta
+from .LMArena           import LMArena
 from .MetaAI            import MetaAI
 from .MetaAIAccount     import MetaAIAccount
 from .MicrosoftDesigner import MicrosoftDesigner

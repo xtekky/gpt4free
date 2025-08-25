@@ -125,8 +125,8 @@ text_models = {model["publicName"]: model["id"] for model in models if "text" in
 image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
 vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
 
-class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
-    label = "LMArena (New)"
+class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
+    label = "LMArena"
     url = "https://lmarena.ai"
     share_url = None
     api_endpoint = "https://lmarena.ai/api/stream/create-evaluation"
