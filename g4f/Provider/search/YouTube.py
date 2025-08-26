@@ -8,11 +8,11 @@ try:
 except ImportError:
     has_yt_dlp = False
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import AudioResponse, VideoResponse, YouTubeResponse
-from ..image.copy_images import get_media_dir
-from .helper import format_media_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...providers.response import AudioResponse, VideoResponse, YouTubeResponse
+from ...image.copy_images import get_media_dir
+from ..helper import format_media_prompt
 
 class YouTube(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://youtube.com"

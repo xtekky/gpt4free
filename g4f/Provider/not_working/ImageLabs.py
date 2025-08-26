@@ -4,10 +4,10 @@ from aiohttp import ClientSession
 import time
 import asyncio
 
-from ..typing import AsyncResult, Messages
-from ..providers.response import ImageResponse
-from ..image import use_aspect_ratio
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...providers.response import ImageResponse
+from ...image import use_aspect_ratio
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
 class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
