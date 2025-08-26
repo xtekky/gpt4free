@@ -343,9 +343,9 @@ jobs:
       - name: Calculate hash and size of ZIP
         id: hash
         run: |
-          HASH_X64=$(sha256sum ./artifacts/x64/g4f-windows-*_x64.zip | cut -d' ' -f1)
+          HASH_X64=$(sha256sum ./artifacts/x64/g4f-windows-*-x64.zip | cut -d' ' -f1)
           echo "hash_x64=${HASH_X64}" >> $GITHUB_OUTPUT
-          SIZE_X64=$(stat -c%s ./artifacts/x64/g4f-windows-*_x64.zip)
+          SIZE_X64=$(stat -c%s ./artifacts/x64/g4f-windows-*-x64.zip)
           echo "size_x64=${SIZE_X64}" >> $GITHUB_OUTPUT
       - name: Create WinGet manifest
         run: |
@@ -371,7 +371,7 @@ jobs:
             NestedInstallerFiles:
             - RelativeFilePath: g4f-windows-${{ needs.prepare.outputs.version }}-x64.exe
               PortableCommandAlias: g4f
-            InstallerUrl: https://github.com/xtekky/gpt4free/releases/download/${{ needs.prepare.outputs.version }}/g4f-windows-${{ needs.prepare.outputs.version }}_x64.zip
+            InstallerUrl: https://github.com/xtekky/gpt4free/releases/download/${{ needs.prepare.outputs.version }}/g4f-windows-${{ needs.prepare.outputs.version }}-x64.zip
             InstallerSha256: ${{ steps.hash.outputs.hash_x64 }}
           ManifestType: installer
           ManifestVersion: 1.4.0
@@ -437,7 +437,7 @@ jobs:
             - PyPI: `pip install g4f==${{ needs.prepare.outputs.version }}`
 
             **Executables:**
-            - Windows x64: `g4f-windows-${{ needs.prepare.outputs.version }}_x64.zip`
+            - Windows x64: `g4f-windows-${{ needs.prepare.outputs.version }}-x64.zip`
             - Linux x64: `g4f-linux-${{ needs.prepare.outputs.version }}-x64`
             - macOS x64: `g4f-macos-${{ needs.prepare.outputs.version }}-x64`
             - macOS ARM64: `g4f-macos-${{ needs.prepare.outputs.version }}-arm64`
