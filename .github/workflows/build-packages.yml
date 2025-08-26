@@ -64,10 +64,17 @@ jobs:
           name: pypi-package
           path: dist/
 
-  # Windows Executable
+  # Windows Executables with Nuitka
   build-windows-exe:
     runs-on: windows-latest
     needs: prepare
+    strategy:
+      matrix:
+        include:
+          - architecture: x64
+            runner-arch: x86_64
+          # Note: ARM64 cross-compilation on Windows requires additional setup
+          # Keeping architecture in matrix for future expansion
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -78,7 +85,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install nuitka
           pip install -e .
       - name: Write g4f_cli.py
         shell: pwsh
@@ -97,25 +104,41 @@ jobs:
               from g4f.cli import main
               main()
           "@ | Set-Content -Path g4f_cli.py -Encoding utf8
-      - name: Build Windows executable
+      - name: Build Windows executable with Nuitka
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
+          PLATFORM: windows
+          ARCHITECTURE: ${{ matrix.runner-arch }}
+        shell: bash
         run: |
-          pyinstaller --name g4f-windows-${{ needs.prepare.outputs.version }} --icon projects/windows/icon.ico g4f_cli.py
+          chmod +x scripts/build-nuitka.sh
+          ./scripts/build-nuitka.sh
       - name: Zip Windows executable folder
         shell: pwsh
         run: |
-          Compress-Archive "dist\g4f-windows-${{ needs.prepare.outputs.version }}" "dist\g4f-windows-${{ needs.prepare.outputs.version }}_x64.zip"
+          $architecture = "${{ matrix.architecture }}"
+          $version = "${{ needs.prepare.outputs.version }}"
+          $exeName = "g4f-windows-${version}-${architecture}.exe"
+          if (Test-Path "dist\${exeName}") {
+            Compress-Archive "dist\${exeName}" "dist\g4f-windows-${version}_${architecture}.zip"
+          }
       - name: Upload Windows zip archive
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
+          name: windows-exe-${{ matrix.architecture }}
           path: dist/g4f-windows-*.zip
 
-  # Linux Executable
+  # Linux Executables with Nuitka
   build-linux-exe:
     runs-on: ubuntu-latest
     needs: prepare
+    strategy:
+      matrix:
+        include:
+          - architecture: x64
+            runner-arch: x86_64
+          # Note: ARM64 cross-compilation requires additional setup
+          # Keeping architecture in matrix for future expansion
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -126,11 +149,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-slim.txt
-          pip install pyinstaller
+          pip install nuitka
           pip install -e .
-      - name: Build Linux executable
-        env:
-          G4F_VERSION: ${{ needs.prepare.outputs.version }}
+      - name: Write g4f_cli.py
         run: |
           cat > g4f_cli.py << EOF
           #!/usr/bin/env python3
@@ -146,19 +167,31 @@ jobs:
               from g4f.cli import main
               main()
           EOF
-          pyinstaller --onefile --name g4f-linux-${{ needs.prepare.outputs.version }} g4f_cli.py
-      - name: Make executable
-        run: chmod +x dist/g4f-linux-*
+      - name: Build Linux executable with Nuitka
+        env:
+          G4F_VERSION: ${{ needs.prepare.outputs.version }}
+          PLATFORM: linux
+          ARCHITECTURE: ${{ matrix.runner-arch }}
+        run: |
+          chmod +x scripts/build-nuitka.sh
+          ./scripts/build-nuitka.sh
       - name: Upload Linux executable
         uses: actions/upload-artifact@v4
         with:
-          name: linux-exe
+          name: linux-exe-${{ matrix.architecture }}
           path: dist/g4f-linux-*
 
-  # macOS Executable
+  # macOS Executables with Nuitka  
   build-macos-exe:
     runs-on: macos-latest
     needs: prepare
+    strategy:
+      matrix:
+        include:
+          - architecture: x64
+            runner-arch: x86_64
+          - architecture: arm64
+            runner-arch: arm64
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -169,11 +202,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install nuitka
           pip install -e .
-      - name: Build macOS executable
-        env:
-          G4F_VERSION: ${{ needs.prepare.outputs.version }}
+      - name: Write g4f_cli.py
         run: |
           cat > g4f_cli.py << EOF
           #!/usr/bin/env python3
@@ -189,11 +220,18 @@ jobs:
               from g4f.cli import main
               main()
           EOF
-          pyinstaller --onefile --name g4f-macos-${{ needs.prepare.outputs.version }} g4f_cli.py
+      - name: Build macOS executable with Nuitka
+        env:
+          G4F_VERSION: ${{ needs.prepare.outputs.version }}
+          PLATFORM: darwin
+          ARCHITECTURE: ${{ matrix.runner-arch }}
+        run: |
+          chmod +x scripts/build-nuitka.sh
+          ./scripts/build-nuitka.sh
       - name: Upload macOS executable
         uses: actions/upload-artifact@v4
         with:
-          name: macos-exe
+          name: macos-exe-${{ matrix.architecture }}
           path: dist/g4f-macos-*
 
   # Docker Images (reuse existing workflow logic)
@@ -297,18 +335,18 @@ jobs:
     if: needs.prepare.outputs.is_release == 'true'
     steps:
       - uses: actions/checkout@v4
-      - name: Download Windows executable zip
+      - name: Download Windows executable zip (x64)
         uses: actions/download-artifact@v4
         with:
-          name: windows-exe
-          path: ./artifacts
+          name: windows-exe-x64
+          path: ./artifacts/x64
       - name: Calculate hash and size of ZIP
         id: hash
         run: |
-          HASH=$(sha256sum ./artifacts/g4f-windows-*.zip | cut -d' ' -f1)
-          echo "hash=${HASH}" >> $GITHUB_OUTPUT
-          SIZE=$(stat -c%s ./artifacts/g4f-windows-*.zip)
-          echo "size=${SIZE}" >> $GITHUB_OUTPUT
+          HASH_X64=$(sha256sum ./artifacts/x64/g4f-windows-*_x64.zip | cut -d' ' -f1)
+          echo "hash_x64=${HASH_X64}" >> $GITHUB_OUTPUT
+          SIZE_X64=$(stat -c%s ./artifacts/x64/g4f-windows-*_x64.zip)
+          echo "size_x64=${SIZE_X64}" >> $GITHUB_OUTPUT
       - name: Create WinGet manifest
         run: |
           mkdir -p winget/manifests/g/g4f/${{ needs.prepare.outputs.version }}
@@ -331,10 +369,10 @@ jobs:
             InstallerType: zip
             NestedInstallerType: portable
             NestedInstallerFiles:
-            - RelativeFilePath: g4f-windows-${{ needs.prepare.outputs.version }}/g4f-windows-${{ needs.prepare.outputs.version }}.exe
+            - RelativeFilePath: g4f-windows-${{ needs.prepare.outputs.version }}-x64.exe
               PortableCommandAlias: g4f
             InstallerUrl: https://github.com/xtekky/gpt4free/releases/download/${{ needs.prepare.outputs.version }}/g4f-windows-${{ needs.prepare.outputs.version }}_x64.zip
-            InstallerSha256: ${{ steps.hash.outputs.hash }}
+            InstallerSha256: ${{ steps.hash.outputs.hash_x64 }}
           ManifestType: installer
           ManifestVersion: 1.4.0
           EOF
@@ -399,9 +437,10 @@ jobs:
             - PyPI: `pip install g4f==${{ needs.prepare.outputs.version }}`
 
             **Executables:**
-            - Windows: Download `g4f-windows-${{ needs.prepare.outputs.version }}_x64.zip`
-            - Linux: Download `g4f-linux-${{ needs.prepare.outputs.version }}`
-            - macOS: Download `g4f-macos-${{ needs.prepare.outputs.version }}`
+            - Windows x64: `g4f-windows-${{ needs.prepare.outputs.version }}_x64.zip`
+            - Linux x64: `g4f-linux-${{ needs.prepare.outputs.version }}-x64`
+            - macOS x64: `g4f-macos-${{ needs.prepare.outputs.version }}-x64`
+            - macOS ARM64: `g4f-macos-${{ needs.prepare.outputs.version }}-arm64`
 
             **System Packages:**
             - WinGet: `winget install g4f` (after manifest approval)
@@ -413,9 +452,10 @@ jobs:
           prerelease: false
           files: |
             ./artifacts/pypi-package/*
-            ./artifacts/windows-exe/*
-            ./artifacts/linux-exe/*
-            ./artifacts/macos-exe/*
+            ./artifacts/windows-exe-x64/*
+            ./artifacts/linux-exe-x64/*
+            ./artifacts/macos-exe-x64/*
+            ./artifacts/macos-exe-arm64/*
             ./artifacts/debian-amd64/*
             ./artifacts/debian-arm64/*
             ./artifacts/debian-armhf/*

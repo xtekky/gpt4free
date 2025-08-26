@@ -9,9 +9,9 @@ The `.github/workflows/build-packages.yml` workflow automatically builds multipl
 ### Supported Package Formats
 
 1. **PyPI Package** - Python wheel and source distribution
-2. **Windows Executable** - Standalone .exe file built with PyInstaller  
-3. **Linux Executable** - Standalone binary for Linux systems
-4. **macOS Executable** - Standalone binary for macOS systems
+2. **Windows Executable** - Standalone .exe file built with Nuitka  
+3. **Linux Executable** - Standalone binary for Linux systems built with Nuitka
+4. **macOS Executable** - Standalone binary for macOS systems built with Nuitka (x64 and ARM64)
 5. **Debian Packages** - .deb files for Ubuntu/Debian (amd64, arm64, armhf)
 6. **WinGet Package** - Windows Package Manager manifest
 7. **Docker Images** - Multi-architecture container images
@@ -59,7 +59,7 @@ After a successful build, packages are available:
 The workflow handles all dependencies automatically, but for local development:
 
 - Python 3.10+
-- PyInstaller for executables
+- Nuitka for executables (replaces PyInstaller)
 - Docker for container builds
 - dpkg-deb for Debian packages
 
@@ -68,6 +68,7 @@ The workflow handles all dependencies automatically, but for local development:
 Key files for customization:
 
 - `g4f_cli.py` - Entry point for executable builds
+- `scripts/build-nuitka.sh` - Nuitka build script for all platforms
 - `scripts/build-deb.sh` - Debian package build script
 - `winget/manifests/` - WinGet package manifest templates
 - `.github/workflows/build-packages.yml` - Main workflow configuration
