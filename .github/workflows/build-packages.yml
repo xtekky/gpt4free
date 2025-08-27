@@ -120,7 +120,7 @@ jobs:
           $version = "${{ needs.prepare.outputs.version }}"
           $exeName = "g4f-windows-${version}-${architecture}.exe"
           if (Test-Path "dist\${exeName}") {
-            Compress-Archive "dist\${exeName}" "dist\g4f-windows-${version}_${architecture}.zip"
+            Compress-Archive "dist\${exeName}" "dist\g4f-windows-${version}-${architecture}.zip"
           }
       - name: Upload Windows zip archive
         uses: actions/upload-artifact@v4
