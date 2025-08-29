@@ -22,7 +22,7 @@ from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
-from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
+from ...image import ImageRequest, to_image, to_bytes, is_accepted_format, detect_file_type
 from ...errors import MissingAuthError, NoValidHarFileError, ModelNotFoundError
 from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview, ResponseType, format_link
 from ...providers.response import TitleGeneration, RequestLogin, Reasoning
@@ -126,54 +126,66 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         )
 
     @classmethod
-    async def upload_images(
+    async def upload_files(
         cls,
         session: StreamSession,
         auth_result: AuthResult,
         media: MediaListType,
-    ) -> ImageRequest:
+    ) -> list[ImageRequest]:
         """
         Upload an image to the service and get the download URL
         
         Args:
             session: The StreamSession object to use for requests
             headers: The headers to include in the requests
-            media: The images to upload, either a PIL Image object or a bytes object
+            media: The files to upload, either a PIL Image object or a bytes object
         
         Returns:
             An ImageRequest object that contains the download URL, file name, and other data
         """
-        async def upload_image(image, image_name):
-            debug.log(f"Uploading image: {image_name}")
-            # Convert the image to a PIL Image object and get the extension
-            data_bytes = to_bytes(image)
-            image = to_image(data_bytes)
-            extension = image.format.lower()
+        async def upload_file(file, image_name=None):
+            debug.log(f"Uploading file: {image_name}")
+            file_data = {}
+
+            data_bytes = to_bytes(file)
+            extension, mime_type = detect_file_type(data_bytes)
+            if "image" in mime_type:
+                # Convert the image to a PIL Image object
+                file = to_image(data_bytes)
+                use_case = "multimodal"
+                file_data.update({"height": file.height, "width": file.width})
+            else:
+                use_case = "my_files"
+            image_name = (
+                f"file-{len(data_bytes)}{extension}"
+                if image_name is None
+                else image_name
+            )
             data = {
-                "file_name": "" if image_name is None else image_name,
+                "file_name": image_name,
                 "file_size": len(data_bytes),
-                "use_case":	"multimodal"
+                "use_case": use_case,
             }
             # Post the image data to the service and get the image data
             async with session.post(f"{cls.url}/backend-api/files", json=data, headers=cls._headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response, "Create file failed")
-                image_data = {
-                    **data,
-                    **await response.json(),
-                    "mime_type": is_accepted_format(data_bytes),
-                    "extension": extension,
-                    "height": image.height,
-                    "width": image.width
-                }
+                file_data.update(
+                    {
+                        **data,
+                        **await response.json(),
+                        "mime_type": mime_type,
+                        "extension": extension,
+                    }
+                )
             # Put the image bytes to the upload URL and check the status
             await asyncio.sleep(1)
             async with session.put(
-                image_data["upload_url"],
+                file_data["upload_url"],
                 data=data_bytes,
                 headers={
                     **UPLOAD_HEADERS,
-                    "Content-Type": image_data["mime_type"],
+                    "Content-Type": file_data["mime_type"],
                     "x-ms-blob-type": "BlockBlob",
                     "x-ms-version": "2020-04-08",
                     "Origin": "https://chatgpt.com",
@@ -182,15 +194,22 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 await raise_for_status(response)
             # Post the file ID to the service and get the download URL
             async with session.post(
-                f"{cls.url}/backend-api/files/{image_data['file_id']}/uploaded",
+                f"{cls.url}/backend-api/files/{file_data['file_id']}/uploaded",
                 json={},
                 headers=auth_result.headers
             ) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response, "Get download url failed")
-                image_data["download_url"] = (await response.json())["download_url"]
-            return ImageRequest(image_data)
-        return [await upload_image(image, image_name) for image, image_name in media]
+                uploaded_data = await response.json()
+                file_data["download_url"] = uploaded_data["download_url"]
+            return ImageRequest(file_data)
+
+        medias = []
+        for item in media:
+            item = item if isinstance(item, tuple) else (item,)
+            __uploaded_media = await upload_file(*item)
+            medias.append(__uploaded_media)
+        return medias
 
     @classmethod
     def create_messages(cls, messages: Messages, image_requests: ImageRequest = None, system_hints: list = None):
@@ -237,18 +256,27 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "size_bytes": image_request.get("file_size"),
                     "width": image_request.get("width"),
                 }
-                for image_request in image_requests],
+                for image_request in image_requests
+                    # Add For Images Only
+                    if image_request.get("use_case") == "multimodal"
+                ],
                 messages[-1]["content"]["parts"][0]]
             }
             # Add the metadata object with the attachments
             messages[-1]["metadata"] = {
                 "attachments": [{
-                    "height": image_request.get("height"),
                     "id": image_request.get("file_id"),
                     "mimeType": image_request.get("mime_type"),
                     "name": image_request.get("file_name"),
                     "size": image_request.get("file_size"),
-                    "width": image_request.get("width"),
+                    **(
+                        {
+                            "height": image_request.get("height"),
+                            "width": image_request.get("width"),
+                        }
+                        if image_request.get("use_case") == "multimodal"
+                        else {}
+                    ),
                 }
                 for image_request in image_requests]
             }
@@ -308,6 +336,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         return_conversation: bool = True,
         web_search: bool = False,
         prompt: str = None,
+        conversation_mode=None,
+        temporary=False,
         **kwargs
     ) -> AsyncResult:
         """
@@ -353,11 +383,12 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 async with session.get(cls.url, headers=cls._headers) as response:
                     cls._update_request_args(auth_result, session)
                     await raise_for_status(response)
-                try:
-                    image_requests = await cls.upload_images(session, auth_result, media)
-                except Exception as e:
-                    debug.error("OpenaiChat: Upload image failed")
-                    debug.error(e)
+
+                # try:
+                image_requests = await cls.upload_files(session, auth_result, media)
+                # except Exception as e:
+                #     debug.error("OpenaiChat: Upload image failed")
+                #     debug.error(e)
             try:
                 model = cls.get_model(model)
             except ModelNotFoundError:
@@ -370,6 +401,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 conversation = Conversation(None, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
             else:
                 conversation = copy(conversation)
+
+            if conversation_mode is None:
+                conversation_mode = {"kind": "primary_assistant"}
+
             if getattr(auth_result, "cookies", {}).get("oai-did") != getattr(conversation, "user_id", None):
                 conversation = Conversation(None, str(uuid.uuid4()))
             if cls._api_key is None:
@@ -394,6 +429,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         "supports_buffering": True,
                         "supported_encodings": ["v1"]
                     }
+                    if temporary:
+                        data["history_and_training_disabled"] = True
+
                     async with session.post(
                         prepare_url,
                         json=data,
@@ -434,11 +472,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         user_agent=user_agent,
                         proof_token=proof_token
                     )
-                [debug.log(text) for text in (
+                # [debug.log(text) for text in (
                     #f"Arkose: {'False' if not need_arkose else auth_result.arkose_token[:12]+'...'}",
                     #f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
                     #f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
-                )]
+                # )]
                 data = {
                     "action": "next",
                     "parent_message_id": conversation.message_id,
@@ -453,6 +491,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "client_contextual_info":{"is_dark_mode":False,"time_since_loaded":random.randint(20, 500),"page_height":578,"page_width":1850,"pixel_ratio":1,"screen_height":1080,"screen_width":1920},
                     "paragen_cot_summary_display_override":"allow"
                 }
+                if temporary:
+                    data["history_and_training_disabled"] = True
+
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
