@@ -237,7 +237,7 @@ def detect_file_type(binary_data: bytes) -> tuple[str, str] | None:
     elif binary_data.startswith(b"%PDF"):
         return ".pdf", "application/pdf"
     elif binary_data.startswith(b"PK\x03\x04"):
-        return".zip", "application/zip-based",
+        return ".zip", "application/zip-based"
           # could be docx/xlsx/pptx/jar/apk/odt
     elif binary_data.startswith(b"\xd0\xcf\x11\xe0"):
         return ".doc", "application/vnd.ms-office"
