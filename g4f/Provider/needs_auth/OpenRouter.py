@@ -18,10 +18,13 @@ class OpenRouterFree(OpenRouter):
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs):
-        models = super().get_models(api_key=api_key, **kwargs)
-        models = [model for model in models if model.endswith(":free") or model.endswith("/auto")]
-        cls.model_aliases = {model.replace(":free", ""): model for model in models}
-        return [model.replace(":free", "") for model in models]
+        if not cls.models:
+            models = super().get_models(api_key=api_key, **kwargs)
+            models = [model for model in models if model.endswith(":free")]
+            cls.model_aliases = {model.replace(":free", ""): model for model in models}
+            cls.models = [model.replace(":free", "") for model in models]
+            cls.default_model = models[0] if models else cls.default_model
+        return cls.models
     
     @classmethod
     def get_model(cls, model: str, **kwargs) -> str:

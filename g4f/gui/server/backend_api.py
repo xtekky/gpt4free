@@ -102,7 +102,7 @@ class Backend_Api(Api):
                 try:
                     decrypted_secret = decrypt_data(sub_private_key, decrypt_data(private_key_obj, secret))
                     timediff = time.time() - int(decrypted_secret)
-                    return timediff <= 3 and timediff >= 0
+                    return timediff <= 5 and timediff >= 0
                 except Exception as e:
                     logger.error(f"Secret validation failed: {e}")
                     return False
@@ -246,38 +246,6 @@ class Backend_Api(Api):
             with cache_file.open("a" if cache_file.exists() else "w") as f:
                 f.write(f"{json.dumps(data)}\n")
             return {}
-
-        @app.route('/backend-api/v2/memory/<user_id>', methods=['POST'])
-        def add_memory(user_id: str):
-            api_key = request.headers.get("x_api_key")
-            json_data = request.json
-            from mem0 import MemoryClient
-            client = MemoryClient(api_key=api_key)
-            client.add(
-                [{"role": item["role"], "content": item["content"]} for item in json_data.get("items")],
-                user_id=user_id,
-                metadata={"conversation_id": json_data.get("id")}
-            )
-            return {"count": len(json_data.get("items"))}
-
-        @app.route('/backend-api/v2/memory/<user_id>', methods=['GET'])
-        def read_memory(user_id: str):
-            api_key = request.headers.get("x_api_key")
-            from mem0 import MemoryClient
-            client = MemoryClient(api_key=api_key)
-            if request.args.get("search"):
-                return client.search(
-                    request.args.get("search"),
-                    user_id=user_id,
-                    filters=json.loads(request.args.get("filters", "null")),
-                    metadata=json.loads(request.args.get("metadata", "null"))
-                )
-            return client.get_all(
-                user_id=user_id,
-                page=request.args.get("page", 1),
-                page_size=request.args.get("page_size", 100),
-                filters=json.loads(request.args.get("filters", "null")),
-            )
 
         self.routes = {
             '/backend-api/v2/synthesize/<provider>': {

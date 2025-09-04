@@ -21,7 +21,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     url = "https://chat3.eqing.tech"
     api_base = f"{url}/api/openai/v1"
     api_endpoint = f"{api_base}/chat/completions"
-    working = True
+    working = False
     active_by_default = True
     use_model_names = True
     
@@ -55,7 +55,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         **kwargs
     ) -> AsyncResult:
         cls.share_url = os.getenv("G4F_SHARE_URL")
-        model = cls.get_model(model)
+        model = cls.get_model(model.replace("-free", ""))
         args = None
         cache_file = cls.get_cache_file()
         async def callback(page):
@@ -84,7 +84,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                 if cls.captchaToken:
                     debug.log("EasyChat: Captcha token found, proceeding.")
                     break
-                textarea = await page.select("textarea", 180)
+                textarea = await page.select("[contenteditable=\"true\"]", 180)
                 if textarea is not None:
                     await textarea.send_keys("Hello")
                     await asyncio.sleep(1)
