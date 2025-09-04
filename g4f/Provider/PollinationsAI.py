@@ -102,7 +102,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_models(cls, **kwargs):
         def get_alias(model: dict) -> str:
-            return model.get("aliases", model.get("name")).replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
+            alias = model.get("name")
+            if (model.get("aliases")):
+                alias = model.get("aliases")[0]
+            return alias.replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
         if not cls._models_loaded:
             try:
                 # Update of image models
