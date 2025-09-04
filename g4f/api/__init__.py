@@ -241,6 +241,11 @@ class Api:
                     user_g4f_api_key = await self.security(request)
                     if hasattr(user_g4f_api_key, "credentials"):
                         user_g4f_api_key = user_g4f_api_key.credentials
+                if AppConfig.demo and user is None:
+                    ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
+                    country = request.headers.get("Cf-Ipcountry", "")
+                    user = request.headers.get("x-user", ip)
+                    user = f"{country}:{user}" if country else user
                 if AppConfig.g4f_api_key is None or not user_g4f_api_key or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                     if has_crypto and user_g4f_api_key:
                         try:
@@ -249,10 +254,12 @@ class Api:
                             try:
                                 data = json.loads(decrypt_data(session_key, user_g4f_api_key))
                                 expires = int(decrypt_data(private_key, data["data"])) + 86400
-                                user = data.get("user", user)
-                                if not user:
+                                if not data.get("user"):
                                     raise ValueError("User not found")
+                                user = data.get("user")
                             except:
+                                debug.log(f"Invalid G4F API key for user: '{user}'")
+                                debug.log(await request.json())
                                 return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
                         expires = int(expires) - int(time.time())
                         hours, remainder = divmod(expires, 3600)
@@ -278,11 +285,6 @@ class Api:
                             user = await self.get_username(request)
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
-                if user is None:
-                    ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
-                    country = request.headers.get("Cf-Ipcountry", "")
-                    user = request.headers.get("x-user", ip)
-                    user = f"{country}:{user}" if country else user
                 request = update_headers(request, user)
             response = await call_next(request)
             return response
