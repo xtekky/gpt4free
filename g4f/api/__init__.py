@@ -258,7 +258,7 @@ class Api:
                                     raise ValueError("User not found")
                                 user = data.get("user")
                             except:
-                                debug.log(f"Invalid G4F API key for user: '{user}'")
+                                debug.log(f"Invalid G4F API key '{user_g4f_api_key[:6]}...' for user: '{user}'")
                                 return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
                         expires = int(expires) - int(time.time())
                         hours, remainder = divmod(expires, 3600)
