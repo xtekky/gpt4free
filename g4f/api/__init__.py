@@ -70,6 +70,7 @@ from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.providers.types import ProviderType
 from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
+from g4f.providers.any_model_map import model_map, vision_models, image_models, audio_models, video_models
 from g4f import Provider
 from g4f.gui import get_gui_app
 from .stubs import (
@@ -356,6 +357,21 @@ class Api:
         })
         async def models(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
             if provider not in Provider.__map__:
+                if provider in model_map:
+                    return {
+                        "object": "list",
+                        "data": [{
+                            "id": provider,
+                            "object": "model",
+                            "created": 0,
+                            "owned_by": getattr(provider, "label", provider.__name__),
+                            "image": provider in image_models,
+                            "vision": provider in vision_models,
+                            "audio": provider in audio_models,
+                            "video": provider in video_models,
+                            "type": "image" if provider in image_models else "chat",
+                        }]
+                    }
                 return ErrorResponse.from_message("The provider does not exist.", 404)
             provider: ProviderType = Provider.__map__[provider]
             if not hasattr(provider, "get_models"):
@@ -415,6 +431,11 @@ class Api:
             conversation_id: str = None,
             x_user: Annotated[str | None, Header()] = None
         ):
+            if provider is not None and provider not in Provider.__map__:
+                if provider in model_map:
+                    config.model = provider
+                    provider = None
+                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             try:
                 if config.provider is None:
                     config.provider = AppConfig.provider if provider is None else provider
@@ -501,58 +522,6 @@ class Api:
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
 
         responses = {
-            HTTP_200_OK: {"model": ClientResponse},
-            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
-            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
-            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
-            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
-        }
-        @self.app.post("/v1/responses", responses=responses)
-        async def v1_responses(
-            config: ResponsesConfig,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
-            provider: str = None
-        ):
-            try:
-                if config.provider is None:
-                    config.provider = AppConfig.provider if provider is None else provider
-                if config.api_key is None and credentials is not None and credentials.credentials != "secret":
-                    config.api_key = credentials.credentials
-
-                conversation = None
-                if config.conversation is not None:
-                    conversation = JsonConversation(**config.conversation)
-
-                return await self.client.responses.create(
-                    **filter_none(
-                        **{
-                            "model": AppConfig.model,
-                            "proxy": AppConfig.proxy,
-                            **config.dict(exclude_none=True),
-                            "conversation": conversation
-                        },
-                        ignored=AppConfig.ignored_providers
-                    ),
-                )
-            except (ModelNotFoundError, ProviderNotFoundError) as e:
-                logger.exception(e)
-                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
-            except (MissingAuthError, NoValidHarFileError) as e:
-                logger.exception(e)
-                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
-            except Exception as e:
-                logger.exception(e)
-                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
-
-        @self.app.post("/api/{provider}/responses", responses=responses)
-        async def provider_responses(
-            provider: str,
-            config: ChatCompletionsConfig,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
-        ):
-            return await v1_responses(config, credentials, provider)
-
-        responses = {
             HTTP_200_OK: {"model": ImagesResponse},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
@@ -568,6 +537,11 @@ class Api:
             provider: str = None,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
+            if provider is not None and provider not in Provider.__map__:
+                if provider in model_map:
+                    config.model = provider
+                    provider = None
+                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             if config.provider is None:
                 config.provider = provider
             if config.provider is None:
@@ -646,6 +620,11 @@ class Api:
             prompt: Annotated[Optional[str], Form()] = "Transcribe this audio"
         ):
             provider = provider if path_provider is None else path_provider
+            if provider is not None and provider not in Provider.__map__:
+                if provider in model_map:
+                    model = provider
+                    provider = None
+                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             kwargs = {"modalities": ["text"]}
             if provider == "MarkItDown":
                 kwargs = {
@@ -686,6 +665,11 @@ class Api:
             api_key = None
             if credentials is not None and credentials.credentials != "secret":
                 api_key = credentials.credentials
+            if provider is not None and provider not in Provider.__map__:
+                if provider in model_map:
+                    config.model = provider
+                    provider = None
+                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             try:
                 audio = filter_none(voice=config.voice, format=config.response_format, language=config.language)
                 response = await self.client.chat.completions.create(
@@ -743,11 +727,6 @@ class Api:
                         file.file.close()
                 read_cookie_files()
             return response_data
-
-        @self.app.post("/json/{filename}")
-        async def get_json(filename, request: Request):
-            await asyncio.sleep(30)
-            return ""
 
         @self.app.get("/images/{filename}", responses={
             HTTP_200_OK: {"content": {"image/*": {}}},
@@ -854,7 +833,7 @@ class Api:
             return await get_media(filename, request, True)
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
-    last_provider = {} if not image else g4f.get_last_provider(True)
+    last_provider = {}
     provider = (AppConfig.media_provider if image else AppConfig.provider)
     model = AppConfig.model
     if config is not None:
@@ -883,23 +862,23 @@ def run_api(
     **kwargs
 ) -> None:
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
-    
+
     if use_colors is None:
         use_colors = debug
-    
+
     if bind is not None:
         host, port = bind.split(":")
-    
+
     if port is None:
         port = DEFAULT_PORT
-    
+
     if AppConfig.demo and debug:
         method = "create_app_with_demo_and_debug"
     elif AppConfig.gui and debug:
         method = "create_app_with_gui_and_debug"
     else:
         method = "create_app_debug" if debug else "create_app"
-    
+
     uvicorn.run(
         f"g4f.api:{method}",
         host=host,

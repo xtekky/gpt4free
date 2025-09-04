@@ -179,9 +179,7 @@ model_map = {
   },
   "gpt-oss-120b": {
     "Together": "openai/gpt-oss-120b",
-    "DeepInfra": "openai/gpt-oss-120b",
     "HuggingFace": "openai/gpt-oss-120b",
-    "OpenRouter": "openai/gpt-oss-120b:free",
     "Groq": "openai/gpt-oss-120b",
     "Azure": "gpt-oss-120b",
     "OpenRouterFree": "openai/gpt-oss-120b",

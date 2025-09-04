@@ -14,10 +14,16 @@ try:
 except ImportError:
     has_curl_cffi = False
 
+try:
+    import nodriver
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
+
 from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, has_nodriver
+from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError
-from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse
+from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning
 from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin,AuthFileMixin
 from ..helper import get_last_user_message
@@ -416,6 +422,22 @@ text_models = {model["publicName"]: model["id"] for model in models if "text" in
 image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
 vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
 
+if has_nodriver:
+    async def click_trunstile(page: nodriver.Tab, element = 'document.getElementById("cf-turnstile")'):
+        for _ in range(3):
+            size = None
+            for idx in range(15):
+                size = await page.js_dumps(f'{element}?.getBoundingClientRect()||{{}}')
+                debug.log(f"Found size: {size.get('x'), size.get('y')}")
+                if "x" not in size:
+                    break
+                await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
+                await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
+                await asyncio.sleep(2)
+            if "x" not in size:
+                break
+        debug.log("Finished clicking trunstile.")
+
 class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena"
     url = "https://lmarena.ai"
@@ -423,6 +445,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     api_endpoint = "https://lmarena.ai/nextjs-api/stream/create-evaluation"
     working = True
     active_by_default = True
+    use_stream_timeout = False
 
     default_model = list(text_models.keys())[0]
     models = list(text_models) + list(image_models)
@@ -496,6 +519,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 pass
             elif has_nodriver or cls.share_url is None:
                 async def callback(page):
+                    element = await page.select('[style="display: grid;"]')
+                    if element:
+                        await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
                     await page.find("Ask anything…", 120)
                     button = await page.find("Accept Cookies")
                     if button:
@@ -507,19 +533,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         await page.select('#cf-turnstile', 300)
                         debug.log("Found Element: 'cf-turnstile'")
                         await asyncio.sleep(3)
-                        for _ in range(3):
-                            size = None
-                            for idx in range(15):
-                                size = await page.js_dumps('document.getElementById("cf-turnstile")?.getBoundingClientRect()||{}')
-                                debug.log("Found size:", {size.get("x"), size.get("y")})
-                                if "x" not in size:
-                                    break
-                                await page.flash_point(size.get("x") + idx * 2, size.get("y") + idx * 2)
-                                await page.mouse_click(size.get("x") + idx * 2, size.get("y") + idx * 2)
-                                await asyncio.sleep(1)
-                            if "x" not in size:
-                                break
-                        debug.log("Clicked on the turnstile.")
+                        await click_trunstile(page)
                     while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                         await asyncio.sleep(1)
                     while not await page.evaluate('document.querySelector(\'textarea\')'):

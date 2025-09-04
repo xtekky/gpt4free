@@ -22,8 +22,10 @@ from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import BaseRetryProvider
 from ...providers.helper import format_media_prompt
 from ...providers.response import *
+from ...providers.any_model_map import model_map
+from ...providers.any_provider import AnyProvider
+from ...client.service import get_model_and_provider
 from ... import version, models
-from ... import ChatCompletion, get_model_and_provider
 from ... import debug
 
 logger = logging.getLogger(__name__)
@@ -47,11 +49,11 @@ class Api:
 
     @staticmethod
     def get_provider_models(provider: str, api_key: str = None, api_base: str = None, ignored: list = None):
-        def get_model_data(provider: ProviderModelMixin, model: str):
+        def get_model_data(provider: ProviderModelMixin, model: str, default: bool = False) -> dict:
             return {
                 "model": model,
                 "label": model.split(":")[-1] if provider.__name__ == "AnyProvider" and not model.startswith("openrouter:") else model,
-                "default": model == provider.default_model,
+                "default": default or model == provider.default_model,
                 "vision": model in provider.vision_models,
                 "audio": False if provider.audio_models is None else model in provider.audio_models,
                 "video": model in provider.video_models,
@@ -78,6 +80,9 @@ class Api:
                     get_model_data(provider, model)
                     for model in models
                 ]
+        elif provider in model_map:
+            return [get_model_data(AnyProvider, provider, True)]
+
         return []
 
     @staticmethod
@@ -144,10 +149,10 @@ class Api:
 
     def _prepare_conversation_kwargs(self, json_data: dict):
         kwargs = {**json_data}
-        model = json_data.get('model')
-        provider = json_data.get('provider')
-        messages = json_data.get('messages')
-        action = json_data.get('action')
+        model = kwargs.pop('model', None)
+        provider = kwargs.pop('provider', None)
+        messages = kwargs.pop('messages', None)
+        action = kwargs.get('action')
         if action == "continue":
             kwargs["tool_calls"].append({
                 "function": {
@@ -155,7 +160,7 @@ class Api:
                 },
                 "type": "function"
             })
-        conversation = json_data.get("conversation")
+        conversation = kwargs.pop("conversation", None)
         if isinstance(conversation, dict):
             kwargs["conversation"] = JsonConversation(**conversation)
         return {
@@ -174,10 +179,9 @@ class Api:
         if "user" not in kwargs:
             debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
-        provider = kwargs.pop("provider", None)
         try:
             model, provider_handler = get_model_and_provider(
-                kwargs.get("model"), provider,
+                kwargs.get("model"), provider or AnyProvider,
                 has_images="media" in kwargs,
             )
             if "user" in kwargs:

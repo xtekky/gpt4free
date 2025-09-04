@@ -64,7 +64,7 @@ jobs:
           name: pypi-package
           path: dist/
 
-  # Windows Executables with Nuitka
+  # Windows Executables
   build-windows-exe:
     runs-on: windows-latest
     needs: prepare
@@ -128,7 +128,7 @@ jobs:
           name: windows-exe-${{ matrix.architecture }}
           path: dist/g4f-windows-*.zip
 
-  # Linux Executables with Nuitka
+  # Linux Executables
   build-linux-exe:
     runs-on: ubuntu-latest
     needs: prepare
@@ -136,9 +136,11 @@ jobs:
       matrix:
         include:
           - architecture: x64
+            runner: ubuntu-latest
             runner-arch: x86_64
-          # Note: ARM64 cross-compilation requires additional setup
-          # Keeping architecture in matrix for future expansion
+          - architecture: arm64
+            runner: buildjet-4vcpu-ubuntu-2204-arm
+            runner-arch: aarch64
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -148,7 +150,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-slim.txt
+          pip install -r requirements.txt
           pip install nuitka
           pip install -e .
       - name: Write g4f_cli.py
@@ -181,7 +183,7 @@ jobs:
           name: linux-exe-${{ matrix.architecture }}
           path: dist/g4f-linux-*
 
-  # macOS Executables with Nuitka  
+  # macOS Executables  
   build-macos-exe:
     runs-on: macos-latest
     needs: prepare
@@ -234,7 +236,7 @@ jobs:
           name: macos-exe-${{ matrix.architecture }}
           path: dist/g4f-macos-*
 
-  # Docker Images (reuse existing workflow logic)
+  # Docker Images
   build-docker:
     runs-on: ubuntu-latest
     needs: prepare

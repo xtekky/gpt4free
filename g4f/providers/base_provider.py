@@ -284,6 +284,7 @@ class AsyncGeneratorProvider(AbstractProvider):
     Provides asynchronous generator functionality for streaming results.
     """
     supports_stream = True
+    use_stream_timeout = True
 
     @classmethod
     def create_completion(
@@ -309,7 +310,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         """
         return to_sync_generator(
             cls.create_async_generator(model, messages, **kwargs),
-            timeout=timeout if stream_timeout is None else stream_timeout,
+            timeout=stream_timeout if cls.use_stream_timeout is None else timeout,
         )
 
     @staticmethod
@@ -336,7 +337,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         raise NotImplementedError()
 
     @classmethod
-    def async_create_function(cls, *args, **kwargs) -> AsyncResult:
+    async def async_create_function(cls, *args, **kwargs) -> AsyncResult:
         """
         Creates a completion using the synchronous method.
 
@@ -346,7 +347,19 @@ class AsyncGeneratorProvider(AbstractProvider):
         Returns:
             CreateResult: The result of the completion creation.
         """
-        return cls.create_async_generator(*args, **kwargs)
+        response = cls.create_async_generator(*args, **kwargs)
+        if "stream_timeout" in kwargs or "timeout" in kwargs:
+            while True:
+                try:
+                    yield await asyncio.wait_for(
+                        response.__anext__(),
+                        timeout=kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
+                    )
+                except StopAsyncIteration:
+                    break
+        else:
+            async for chunk in response:
+                yield chunk
 
 class ProviderModelMixin:
     default_model: str = None
@@ -501,10 +514,13 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         try:
             auth_result = cls.get_auth_result()
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
-            if "stream_timeout" in kwargs:
+            if "stream_timeout" in kwargs or "timeout" in kwargs:
                 while True:
                     try:
-                        yield await asyncio.wait_for(response.__anext__(), timeout=kwargs["stream_timeout"])
+                        yield await asyncio.wait_for(
+                            response.__anext__(),
+                            timeout=kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
+                        )
                     except StopAsyncIteration:
                         break
             else:

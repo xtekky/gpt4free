@@ -43,22 +43,21 @@ case "${PLATFORM}" in
         ;;
     "darwin"|"macos")
         OUTPUT_NAME="g4f-macos-${VERSION}-${ARCH}"
-        NUITKA_ARGS="--macos-create-app-bundle"
+        NUITKA_ARGS="--macos-create-app-bundle --onefile"
         ;;
     "linux")
         OUTPUT_NAME="g4f-linux-${VERSION}-${ARCH}"
-        NUITKA_ARGS=""
+        NUITKA_ARGS="--onefile"
         ;;
     *)
         OUTPUT_NAME="g4f-${PLATFORM}-${VERSION}-${ARCH}"
-        NUITKA_ARGS=""
+        NUITKA_ARGS="--onefile"
         ;;
 esac
 
 # Basic Nuitka arguments
 NUITKA_COMMON_ARGS="
     --standalone
-    --onefile
     --output-filename=${OUTPUT_NAME}
     --output-dir=${OUTPUT_DIR}
     --remove-output

@@ -47,6 +47,8 @@ from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ...client.service import get_model_and_provider
+from ...providers.any_model_map import model_map
+from ... import Provider
 from ... import models
 from .api import Api
 
@@ -208,11 +210,19 @@ class Backend_Api(Api):
                 json_data["user"] = request.headers.get("x-user", "error")
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
+
             kwargs = self._prepare_conversation_kwargs(json_data)
+            provider = kwargs.pop("provider", None)
+            if provider and provider  not in Provider.__map__:
+                if provider in model_map:
+                    kwargs['model'] = provider
+                    provider = None
+                else:
+                    return jsonify({"error": {"message": "Provider not found"}}), 404
             return self.app.response_class(
                 safe_iter_generator(self._create_response_stream(
                     kwargs,
-                    json_data.get("provider"),
+                    provider,
                     json_data.get("download_media", True),
                     tempfiles
                 )),
@@ -277,18 +287,10 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/create', methods=['GET'])
         def create():
             try:
-                tool_calls = []
                 web_search = request.args.get("web_search")
                 if web_search:
                     is_true_web_search = web_search.lower() in ["true", "1"]
-                    web_search = None if is_true_web_search else web_search
-                    tool_calls.append({
-                        "function": {
-                            "name": "search_tool",
-                            "arguments": {"query": web_search, "instructions": "", "max_words": 1000} if web_search != "true" else {}
-                        },
-                        "type": "function"
-                    })
+                    web_search = True if is_true_web_search else web_search
                 do_filter = request.args.get("filter_markdown", request.args.get("json"))
                 cache_id = request.args.get('cache')
                 model, provider_handler = get_model_and_provider(
@@ -300,7 +302,7 @@ class Backend_Api(Api):
                     "model": model,
                     "messages": [{"role": "user", "content": request.args.get("prompt")}],
                     "stream": not do_filter and not cache_id,
-                    "tool_calls": tool_calls,
+                    "web_search": web_search,
                 }
                 if request.args.get("audio_provider") or request.args.get("audio"):
                     parameters["audio"] = {}
