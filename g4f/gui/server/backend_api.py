@@ -196,6 +196,8 @@ class Backend_Api(Api):
                 json_data['media'] = media
             if app.timeout:
                 json_data['timeout'] = app.timeout
+            if app.stream_timeout:
+                json_data['stream_timeout'] = app.stream_timeout
             if app.demo and not json_data.get("provider"):
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:

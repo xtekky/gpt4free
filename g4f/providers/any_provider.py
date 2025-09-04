@@ -220,6 +220,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         cls.video_models.append("video")
         cls.model_map["video"] = {"Video": "video"}
+        del cls.model_map[""]
         cls.audio_models = [*cls.audio_models]
 
         # Create a mapping of parent providers to their children
@@ -415,7 +416,7 @@ def clean_name(name: str) -> str:
     name = re.sub(r'-\d{2}-\d{2}', '', name)
     name = re.sub(r'-[0-9a-f]{8}$', '', name)
     # Version patterns
-    name = re.sub(r'-(instruct|chat|preview|experimental|v\d+|fp8|bf16|hf|free|tput)$', '', name)
+    name = re.sub(r'-(instruct|preview|experimental|v\d+|fp8|bf16|hf|free|tput)$', '', name)
     # Other replacements
     name = name.replace("_", ".")
     name = name.replace("c4ai-", "")

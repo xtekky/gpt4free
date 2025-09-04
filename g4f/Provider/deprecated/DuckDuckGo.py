@@ -17,7 +17,7 @@ class DuckDuckGo(AbstractProvider, ProviderModelMixin):
     url = "https://duckduckgo.com/aichat"
     api_base = "https://duckduckgo.com/duckchat/v1/"
     
-    working = has_requirements
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

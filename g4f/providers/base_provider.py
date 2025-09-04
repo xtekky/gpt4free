@@ -291,6 +291,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         model: str,
         messages: Messages,
         timeout: int = None,
+        stream_timeout: int = None,
         **kwargs
     ) -> CreateResult:
         """
@@ -308,7 +309,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         """
         return to_sync_generator(
             cls.create_async_generator(model, messages, **kwargs),
-            timeout=timeout
+            timeout=timeout if stream_timeout is None else stream_timeout,
         )
 
     @staticmethod
@@ -482,7 +483,7 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
                     auth_result = chunk
                 else:
                     yield chunk
-            for chunk in to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs)):
+            for chunk in to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs), kwargs.get("stream_timeout", kwargs.get("timeout"))):
                 if cache_file is not None:
                     cls.write_cache_file(cache_file, auth_result)
                     cache_file = None
@@ -500,8 +501,15 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         try:
             auth_result = cls.get_auth_result()
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
-            async for chunk in response:
-                yield chunk
+            if "stream_timeout" in kwargs:
+                while True:
+                    try:
+                        yield await asyncio.wait_for(response.__anext__(), timeout=kwargs["stream_timeout"])
+                    except StopAsyncIteration:
+                        break
+            else:
+                async for chunk in response:
+                    yield chunk
         except (MissingAuthError, NoValidHarFileError, CloudflareError):
             # if cache_file.exists():
             #     cache_file.unlink()

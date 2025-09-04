@@ -23,7 +23,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin):
             cls.api_key = response.json().get("token")
             response = requests.get(f"{cls.url}/api/models", headers={"Authorization": f"Bearer {cls.api_key}"})
             data = response.json().get("data", [])
-            cls.model_aliases = {data.get("name"): data.get("id") for data in data}
+            cls.model_aliases = {data.get("name", "").replace("\u4efb\u52a1\u4e13\u7528", "ChatGLM"): data.get("id") for data in data}
             cls.models = list(cls.model_aliases.keys())
         return cls.models
 

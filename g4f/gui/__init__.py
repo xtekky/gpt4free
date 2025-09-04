@@ -8,12 +8,13 @@ try:
 except ImportError as e:
     import_error = e
 
-def get_gui_app(demo: bool = False, timeout: int = None):
+def get_gui_app(demo: bool = False, timeout: int = None, stream_timeout: int = None):
     if import_error is not None:
         raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
     app = create_app()
     app.demo = demo
     app.timeout = timeout
+    app.stream_timeout = stream_timeout
 
     site = Website(app)
     for route in site.routes:

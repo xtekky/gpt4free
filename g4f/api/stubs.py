@@ -22,6 +22,7 @@ class RequestConfig(BaseModel):
     proxy: Optional[str] = None
     conversation: Optional[dict] = None
     timeout: Optional[int] = None
+    stream_timeout: Optional[int] = None
     tool_calls: list = Field(default=[], examples=[[
 		{
 			"function": {

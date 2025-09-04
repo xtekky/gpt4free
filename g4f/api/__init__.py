@@ -92,6 +92,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PORT = 1337
 DEFAULT_TIMEOUT = 600
+DEFAULT_STREAM_TIMEOUT = 15
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -99,6 +100,8 @@ async def lifespan(app: FastAPI):
     if not AppConfig.ignore_cookie_files:
         read_cookie_files()
     AppConfig.g4f_api_key = os.environ.get("G4F_API_KEY", AppConfig.g4f_api_key)
+    AppConfig.timeout = os.environ.get("G4F_TIMEOUT", AppConfig.timeout)
+    AppConfig.stream_timeout = os.environ.get("G4F_STREAM_TIMEOUT", AppConfig.stream_timeout)
     yield
     if has_nodriver:
         for browser in util.get_registered_instances():
@@ -133,7 +136,7 @@ def create_app():
     if AppConfig.gui:
         if not has_a2wsgi:
             raise MissingRequirementsError("a2wsgi is required for GUI. Install it with: pip install a2wsgi")
-        gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo, AppConfig.timeout))
+        gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo, AppConfig.timeout, AppConfig.stream_timeout))
         app.mount("/", gui_app)
 
     if AppConfig.ignored_providers:
@@ -185,6 +188,7 @@ class AppConfig:
     gui: bool = False
     demo: bool = False
     timeout: int = DEFAULT_TIMEOUT
+    stream_timeout: int = DEFAULT_STREAM_TIMEOUT
 
     @classmethod
     def set_config(cls, **data):
@@ -418,6 +422,8 @@ class Api:
                     config.conversation_id = conversation_id
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
+                if config.stream_timeout is None:
+                    config.stream_timeout = AppConfig.stream_timeout
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
@@ -451,7 +457,7 @@ class Api:
                             "model": AppConfig.model,
                             "provider": AppConfig.provider,
                             "proxy": AppConfig.proxy,
-                            **config.dict(exclude_none=True),
+                            **(config.model_dump(exclude_none=True) if hasattr(config, "model_dump") else config.dict(exclude_none=True)),
                             **{
                                 "conversation_id": None,
                                 "conversation": conversation,
@@ -474,7 +480,7 @@ class Api:
                                         self.conversations[config.conversation_id] = {}
                                     self.conversations[config.conversation_id][config.provider] = chunk
                             else:
-                                yield f"data: {chunk.json()}\n\n"
+                                yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
                     except GeneratorExit:
                         pass
                     except Exception as e:
