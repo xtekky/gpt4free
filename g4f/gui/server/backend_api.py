@@ -580,9 +580,9 @@ class Backend_Api(Api):
         return response
 
     def get_provider_models(self, provider: str):
-        api_key = request.headers.get("x_api_key")
-        api_base = request.headers.get("x_api_base")
-        ignored = request.headers.get("x_ignored", "").split()
+        api_key = request.headers.get("x-api-key")
+        api_base = request.headers.get("x-api-base")
+        ignored = request.headers.get("x-ignored", "").split()
         return super().get_provider_models(provider, api_key, api_base, ignored)
 
     def _format_json(self, response_type: str, content = None, **kwargs) -> str:
