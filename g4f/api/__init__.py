@@ -372,7 +372,7 @@ class Api:
                     "vision": model in getattr(provider, "vision_models", []),
                     "audio": model in getattr(provider, "audio_models", []),
                     "video": model in getattr(provider, "video_models", []),
-                    "type": "image" if model in getattr(provider, "image_models", []) else "text",
+                    "type": "image" if model in getattr(provider, "image_models", []) else "chat",
                 } for model in models]
             }
 
