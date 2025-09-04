@@ -254,9 +254,9 @@ class Api:
                             try:
                                 data = json.loads(decrypt_data(session_key, user_g4f_api_key))
                                 expires = int(decrypt_data(private_key, data["data"])) + 86400
+                                user = data.get("user", user)
                                 if not data.get("user"):
                                     raise ValueError("User not found")
-                                user = data.get("user")
                             except Exception as e:
                                 debug.log(f"Invalid G4F API key '{user_g4f_api_key[:6]}...' for user: '{user}'")
                                 debug.error(e)
