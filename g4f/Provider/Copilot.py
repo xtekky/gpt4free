@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 try:
     from curl_cffi.requests import AsyncSession
-    from curl_cffi import CurlWsFlag
+    from curl_cffi import CurlWsFlag, CurlMime
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -20,7 +20,6 @@ except ImportError:
     has_nodriver = False
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
-from .helper import format_prompt_max_length
 from .openai.har_file import get_headers, get_har_files
 from ..typing import AsyncResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
@@ -29,6 +28,9 @@ from ..tools.media import merge_media
 from ..requests import get_nodriver
 from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
+from ..files import get_bucket_dir
+from ..tools.files import read_bucket
+from pathlib import Path
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -36,6 +38,18 @@ class Conversation(JsonConversation):
 
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
+
+def extract_bucket_items(messages: Messages) -> list[dict]:
+    """Extract bucket items from messages content."""
+    bucket_items = []
+    for message in messages:
+        if isinstance(message, dict) and isinstance(message.get("content"), list):
+            for content_item in message["content"]:
+                if isinstance(content_item, dict) and "bucket_id" in content_item and "name" not in content_item:
+                    bucket_items.append(content_item)
+        if message.get("role") == "assistant":
+            bucket_items = []
+    return bucket_items
 
 class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
@@ -96,6 +110,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         media: MediaListType = None,
         conversation: BaseConversation = None,
         return_conversation: bool = True,
+        useridentitytype: str = "google",
         api_key: str = None,
         **kwargs
     ) -> AsyncResult:
@@ -117,7 +132,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                         cls._access_token, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
                     else:
                         raise h
-            websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}"
+            websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}&X-UserIdentityType={quote(useridentitytype)}"
             headers = {"authorization": f"Bearer {cls._access_token}"}
 
         async with AsyncSession(
@@ -129,7 +144,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         ) as session:
             if cls._access_token is not None:
                 cls._cookies = session.cookies.jar if hasattr(session.cookies, "jar") else session.cookies
-            response = await session.get("https://copilot.microsoft.com/c/api/user")
+            response = await session.get("https://copilot.microsoft.com/c/api/user?api-version=2", headers={"x-useridentitytype": useridentitytype})
             if response.status_code == 401:
                 raise MissingAuthError("Status 401: Invalid access token")
             response.raise_for_status()
@@ -141,22 +156,20 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             else:
                 debug.log(f"Copilot: User: {user}")
             if conversation is None:
-                response = await session.post(cls.conversation_url)
+                response = await session.post(cls.conversation_url, headers={"x-useridentitytype": useridentitytype})
                 response.raise_for_status()
                 conversation_id = response.json().get("id")
                 conversation = Conversation(conversation_id)
-                if prompt is None:
-                    prompt = format_prompt_max_length(messages, 10000)
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
                 conversation_id = conversation.conversation_id
-                if prompt is None:
-                    prompt = get_last_user_message(messages)
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
             if return_conversation:
                 yield conversation
 
-            uploaded_images = []
+            uploaded_attachments = []
+            
+            # Upload regular media (images)
             for media, _ in merge_media(media, messages):
                 if not isinstance(media, str):
                     data = to_bytes(media)
@@ -165,14 +178,45 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                         headers={
                             "content-type": is_accepted_format(data),
                             "content-length": str(len(data)),
+                            "x-useridentitytype": useridentitytype
                         },
                         data=data
                     )
                     response.raise_for_status()
                     media = response.json().get("url")
-                uploaded_images.append({"type":"image", "url": media})
+                uploaded_attachments.append({"type":"image", "url": media})
 
-            wss = await session.ws_connect(cls.websocket_url, timeout=3)
+            # Upload bucket files
+            bucket_items = extract_bucket_items(messages)
+            for item in bucket_items:
+                try:
+                    # Handle plain text content from bucket
+                    bucket_path = Path(get_bucket_dir(item["bucket_id"]))
+                    for text_chunk in read_bucket(bucket_path):
+                        if text_chunk.strip():
+                            # Upload plain text as a text file
+                            text_data = text_chunk.encode('utf-8')
+                            data = CurlMime()
+                            data.addpart("file", filename=f"bucket_{item['bucket_id']}.txt", content_type="text/plain", data=text_data)
+                            response = await session.post(
+                                "https://copilot.microsoft.com/c/api/attachments",
+                                multipart=data,
+                                headers={"x-useridentitytype": useridentitytype}
+                            )
+                            response.raise_for_status()
+                            data = response.json()
+                            uploaded_attachments.append({"type": "document", "attachmentId": data.get("id")})
+                            debug.log(f"Copilot: Uploaded bucket text content: {item['bucket_id']}")
+                        else:
+                            debug.log(f"Copilot: No text content found in bucket: {item['bucket_id']}")
+                except Exception as e:
+                    debug.log(f"Copilot: Failed to upload bucket item: {item}")
+                    debug.error(e)
+
+            if prompt is None:
+                prompt = get_last_user_message(messages, False)
+
+            wss = await session.ws_connect(websocket_url, timeout=3)
             if "Think" in model:
                 mode = "reasoning"
             elif model.startswith("gpt-5") or "GPT-5" in model:
@@ -182,7 +226,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             await wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
-                "content": [*uploaded_images, {
+                "content": [*uploaded_attachments, {
                     "type": "text",
                     "text": prompt,
                 }],
@@ -236,32 +280,32 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             if not wss.closed:
                 await wss.close()
 
-async def get_access_token_and_cookies(url: str, proxy: str = None, target: str = "ChatAI",):
-    browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="copilot")
+async def get_access_token_and_cookies(url: str, proxy: str = None):
+    browser, stop_browser = await get_nodriver(proxy=proxy)
     try:
         page = await browser.get(url)
         access_token = None
         while access_token is None:
-            access_token = await page.evaluate("""
-                (() => {
-                    for (var i = 0; i < localStorage.length; i++) {
-                        try {
-                            item = JSON.parse(localStorage.getItem(localStorage.key(i)));
-                            if (item.credentialType == "AccessToken" 
-                                && item.expiresOn > Math.floor(Date.now() / 1000)
-                                && item.target.includes("target")) {
-                                return item.secret;
-                            }
-                        } catch(e) {}
-                    }
-                })()
-            """.replace('"target"', json.dumps(target)))
-            if access_token is None:
-                await asyncio.sleep(1)
+            for _ in range(2):
+                await asyncio.sleep(3)
+                access_token = await page.evaluate("""
+                    (() => {
+                        for (var i = 0; i < localStorage.length; i++) {
+                            try {
+                                item = JSON.parse(localStorage.getItem(localStorage.key(i)));
+                                if (item?.body?.access_token) {
+                                    return item.body.access_token;
+                                }
+                            } catch(e) {}
+                        }
+                    })()
+                """)
+                if access_token is None:
+                    await asyncio.sleep(1)
         cookies = {}
         for c in await page.send(nodriver.cdp.network.get_cookies([url])):
             cookies[c.name] = c.value
-        await page.close()
+        stop_browser()
         return access_token, cookies
     finally:
         stop_browser()
