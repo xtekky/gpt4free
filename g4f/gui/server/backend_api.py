@@ -102,7 +102,7 @@ class Backend_Api(Api):
                 try:
                     decrypted_secret = decrypt_data(sub_private_key, decrypt_data(private_key_obj, secret))
                     timediff = time.time() - int(decrypted_secret)
-                    return timediff <= 10 and timediff >= 10
+                    return timediff <= 10 and timediff >= 0
                 except Exception as e:
                     logger.error(f"Secret validation failed: {e}")
                     return False
