@@ -283,7 +283,7 @@ gpt_4_1_mini = Model(
 gpt_4_1_nano = Model(
     name          = 'gpt-4.1-nano',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI])
+    best_provider = IterListProvider([Blackbox])
 )
 
 gpt_4_5 = Model(
