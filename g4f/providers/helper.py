@@ -66,15 +66,23 @@ def format_prompt(messages: Messages, add_special_tokens: bool = False, do_conti
 def get_system_prompt(messages: Messages) -> str:
     return "\n".join([m["content"] for m in messages if m["role"] in ("developer", "system")])
 
-def get_last_user_message(messages: Messages) -> str:
+def get_last_user_message(messages: Messages, include_buckets: bool = True) -> str:
     user_messages = []
     for message in messages[::-1]:
         if message.get("role") == "user" or not user_messages:
             if message.get("role") != "user":
                 continue
-            content = to_string(message.get("content")).strip()
-            if content:
+            content = message.get("content")
+            if include_buckets:
+                content = to_string(content).strip()
+            if isinstance(content, str):
                 user_messages.append(content)
+            else:
+                for content_item in content:
+                    if content_item.get("type") == "text":
+                        content = content_item.get("text").strip()
+                        if content:
+                            user_messages.append(content)
         else:
             return "\n".join(user_messages[::-1])
     return "\n".join(user_messages[::-1])
