@@ -102,12 +102,12 @@ class Backend_Api(Api):
                 try:
                     decrypted_secret = decrypt_data(sub_private_key, decrypt_data(private_key_obj, secret))
                     timediff = time.time() - int(decrypted_secret)
-                    return timediff <= 5 and timediff >= 0
+                    return timediff <= 10 and timediff >= 10
                 except Exception as e:
                     logger.error(f"Secret validation failed: {e}")
                     return False
 
-            @app.route('/backend-api/v2/public-key', methods=['GET'])
+            @app.route('/backend-api/v2/public-key', methods=['GET', 'POST'])
             def get_public_key():
                 if not has_crypto:
                     return jsonify({"error": {"message": "Crypto support is not available"}}), 501
