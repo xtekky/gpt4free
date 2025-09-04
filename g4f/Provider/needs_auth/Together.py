@@ -14,6 +14,7 @@ class Together(OpenaiTemplate):
     active_by_default = False
     working = True
     needs_auth = True
+    models_needs_auth = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

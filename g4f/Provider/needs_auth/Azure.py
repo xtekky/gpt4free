@@ -88,7 +88,7 @@ class Azure(OpenaiTemplate):
         if api_endpoint and "/images/" in api_endpoint:
             prompt = format_media_prompt(messages, kwargs.get("prompt"))
             width, height = get_width_height(kwargs.get("aspect_ratio", "1:1"), kwargs.get("width"), kwargs.get("height"))
-            output_format = kwargs.get("output_format", "webp")
+            output_format = kwargs.get("output_format", "png")
             form = None
             data = None
             if media:
