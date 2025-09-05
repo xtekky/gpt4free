@@ -33,6 +33,14 @@ docker pull hlohaus789/g4f
 npm install @gpt4free/g4f.dev
 ```
 
+## 🚀 **Experience Live G4F**
+
+Want to see G4F in action? Explore a live demo now!
+
+[**Click here to explore the live G4F demo!**](https://github.com/user-attachments/assets/83519200-2f27-48c6-9fc3-bff0fcd96f41)
+
+Curious to see what G4F can do? Dive into a live demonstration and visit the [official g4f.dev homepage](https://g4f.dev/) for more.
+
 ## 🆕 What's New
 
 - **Explore the latest features and updates**  
@@ -49,18 +57,6 @@ npm install @gpt4free/g4f.dev
 
 - **Read our Documentation** 📖  
   Find detailed guidance and resources at [g4f.dev/docs](https://github.com/gpt4free/g4f.dev).
-
-## 🔻 Site Takedown
-
-Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
-
-## 🚀 **Experience Live G4F**
-
-Want to see G4F in action? Explore a live demo now!
-
-[**Click here to explore the live G4F demo!**](https://github.com/user-attachments/assets/83519200-2f27-48c6-9fc3-bff0fcd96f41)
-
-Curious to see what G4F can do? Dive into a live demonstration and visit the [official g4f.dev homepage](https://g4f.dev/) for more.
 
 ---
 
@@ -138,7 +134,7 @@ docker run \
 To ensure the seamless operation of our application, please follow the instructions below. These steps are designed to guide you through the installation process on Windows operating systems.
 
 **Installation Steps:**
-1. **Download the Application**: Visit our [releases page](https://github.com/xtekky/gpt4free/releases/tag/0.5.7.0) and download the most recent version of the application, named `g4f.exe.zip`.
+1. **Download the Application**: Visit our [releases page](https://github.com/xtekky/gpt4free/releases/tag/lasted) and download the most recent version of the application, named `g4f.exe.zip`.
 2. **File Placement**: After downloading, locate the `.zip` file in your Downloads folder. Unpack it to a directory of your choice on your system, then execute the `g4f.exe` file to run the app.
 3. **Open GUI**: The app starts a web server with the GUI. Open your favorite browser and navigate to [http://localhost:8080/chat/](http://localhost:8080/chat/) to access the application interface.
 4. **Firewall Configuration (Hotfix)**: Upon installation, it may be necessary to adjust your Windows Firewall settings to allow the application to operate correctly. To do this, access your Windows Firewall settings and allow the application.
@@ -398,7 +394,6 @@ A list of all contributors is available [here](https://github.com/xtekky/gpt4fre
 <img src="https://avatars.githubusercontent.com/u/81407603?v=4&s=45" width="45" title="dsdanielpark">
 <img src="https://avatars.githubusercontent.com/u/55200481?v=4&s=45" width="45" title="missuo">
 
-- The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210)
 - The [`har_file.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/openai/har_file.py) has input from [xqdoo00o/ChatGPT-to-API](https://github.com/xqdoo00o/ChatGPT-to-API)
 - The [`PerplexityLabs.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/PerplexityLabs.py) has input from [nathanrchn/perplexityai](https://github.com/nathanrchn/perplexityai)
 - The [`Gemini.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/needs_auth/Gemini.py) has input from [dsdanielpark/Gemini-API](https://github.com/dsdanielpark/Gemini-API)
@@ -414,7 +409,7 @@ _Having input implies that the AI's code generation utilized it as one of many s
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
 ```
-xtekky/gpt4free: Copyright (C) 2023 xtekky
+xtekky/gpt4free: Copyright (C) 2025 xtekky
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -430,12 +425,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
-
 ## ⭐ Star History
 
 ![Star History Chart](https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date)
-
-<img src="https://github.com/user-attachments/assets/1624121d-4ee1-4553-913e-00dbd937e61f" width="800" alt="Star History Chart">
 
 > [!IMPORTANT]
 > **GPT4Free Manifesto**
@@ -459,6 +451,9 @@ In this spirit, we proclaim: The future of AI does not belong to a few giant cor
 > [!NOTE]
 > Together, we will shape an open, inclusive, and more just digital world. 🤗
 
+## 🔻 Site Takedown
+
+Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
 ## 📄 License
 
