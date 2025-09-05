@@ -28,6 +28,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     ssl = None
     add_user = True
     use_image_size = False
+    max_tokens: int = None
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
@@ -126,7 +127,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 messages=list(render_messages(messages, media)),
                 model=model,
                 temperature=temperature,
-                max_tokens=max_tokens,
+                max_tokens=max_tokens if max_tokens is not None else cls.max_tokens,
                 top_p=top_p,
                 stop=stop,
                 stream="audio" not in extra_parameters if stream is None else stream,

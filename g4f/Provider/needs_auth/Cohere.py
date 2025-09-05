@@ -7,6 +7,7 @@ from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status, sse_stream
 from ...providers.response import FinishReason, Usage
 from ...errors import MissingAuthError
+from ...tools.run_tools import AuthManager
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ... import debug
 
@@ -18,6 +19,7 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     active_by_default = True
     needs_auth = True
+    models_needs_auth = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -25,10 +27,12 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "command-r-plus"
 
     @classmethod
-    def get_models(cls, **kwargs):
+    def get_models(cls, api_key: str = None, **kwargs):
         if not cls.models:
+            if not api_key:
+                api_key = AuthManager.load_api_key(cls)
             url = "https://api.cohere.com/v1/models?page_size=500&endpoint=chat"
-            models = requests.get(url).json().get("models", [])
+            models = requests.get(url, headers={"Authorization": f"Bearer {api_key}" }).json().get("models", [])
             cls.models = [model.get("name") for model in models if "chat" in model.get("endpoints")]
             cls.vision_models = {model.get("name") for model in models if model.get("supports_vision")}
         return cls.models
