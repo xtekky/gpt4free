@@ -39,7 +39,7 @@ echo "Output: ${OUTPUT_DIR}"
 case "${PLATFORM}" in
     "windows"|"win32")
         OUTPUT_NAME="g4f-windows-${VERSION}-${ARCH}.exe"
-        NUITKA_ARGS="--windows-console-mode=attach"
+        NUITKA_ARGS="--windows-console-mode=attach --onefile"
         ;;
     "darwin"|"macos")
         OUTPUT_NAME="g4f-macos-${VERSION}-${ARCH}"
@@ -79,7 +79,7 @@ python -m nuitka ${NUITKA_COMMON_ARGS} ${NUITKA_ARGS} g4f_cli.py
 echo "Build completed: ${OUTPUT_DIR}/${OUTPUT_NAME}"
 
 # Verify the build
-if compgen -G "${OUTPUT_DIR}/*" > /dev/null; then
+if [[ -f "${OUTPUT_DIR}/${OUTPUT_NAME}" ]]; then
     echo "✓ Build successful!"
     ls -la "${OUTPUT_DIR}/${OUTPUT_NAME}"
 else
