@@ -254,17 +254,16 @@ class Api:
                 if AppConfig.g4f_api_key is None or not user_g4f_api_key or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                     if has_crypto and user_g4f_api_key:
                         try:
+                            expires, user = decrypt_data(private_key, user_g4f_api_key).split(":", 1)
+                        except:
                             try:
-                                expires, user = decrypt_data(private_key, user_g4f_api_key).split(":", 1)
-                            except ValueError as e:
-                                pass
-                            data = json.loads(decrypt_data(session_key, user_g4f_api_key))
-                            expires = int(decrypt_data(private_key, data["data"])) + 86400
-                            user = data.get("user", user)
-                        except Exception as e:
-                            debug.log(f"Invalid G4F API key '{user_g4f_api_key[:6]}...' for user: '{user}'")
-                            debug.error(e)
-                            return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
+                                data = json.loads(decrypt_data(session_key, user_g4f_api_key))
+                                expires = int(decrypt_data(private_key, data["data"])) + 86400
+                                user = data.get("user", user)
+                                if not user:
+                                    raise ValueError("User not found")
+                            except:
+                                return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
                         expires = int(expires) - int(time.time())
                         hours, remainder = divmod(expires, 3600)
                         minutes, seconds = divmod(remainder, 60)
