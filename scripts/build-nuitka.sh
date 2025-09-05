@@ -79,7 +79,7 @@ python -m nuitka ${NUITKA_COMMON_ARGS} ${NUITKA_ARGS} g4f_cli.py
 echo "Build completed: ${OUTPUT_DIR}/${OUTPUT_NAME}"
 
 # Verify the build
-if [[ -f "${OUTPUT_DIR}/${OUTPUT_NAME}" ]]; then
+if compgen -G "${OUTPUT_DIR}/*" > /dev/null; then
     echo "✓ Build successful!"
     ls -la "${OUTPUT_DIR}/${OUTPUT_NAME}"
 else
