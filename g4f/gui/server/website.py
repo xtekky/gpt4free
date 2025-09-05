@@ -47,7 +47,7 @@ def render(filename = "home", download_url: str = DOWNLOAD_URL):
             else:
                 response.raise_for_status()
         html = response.text
-        html = html.replace(JSDELIVR_URL, "")
+        html = html.replace(JSDELIVR_URL, "/")
         html = html.replace("../dist/", f"dist/")
         html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         if is_temp:
