@@ -364,7 +364,7 @@ class Api:
                             "id": provider,
                             "object": "model",
                             "created": 0,
-                            "owned_by": getattr(Provider.__map__.get(provider), "label", provider),
+                            "owned_by": provider,
                             "image": provider in image_models,
                             "vision": provider in vision_models,
                             "audio": provider in audio_models,
