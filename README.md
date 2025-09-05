@@ -43,12 +43,16 @@ In this spirit, we proclaim: The future of AI does not belong to a few giant cor
 > <sup><strong>Latest version:</strong></sup><br> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
 > <sup><strong>Stats:</strong></sup><br> [![Downloads](https://static.pepy.tech/badge/g4f)](https://pepy.tech/project/g4f) [![Downloads](https://static.pepy.tech/badge/g4f/month)](https://pepy.tech/project/g4f)
 
-```sh
+```bash
 pip install -U g4f[all]
 ```
 
-```sh
+```bash
 docker pull hlohaus789/g4f
+```
+
+```bash
+npm install @gpt4free/g4f.dev
 ```
 
 ## 🆕 What's New
