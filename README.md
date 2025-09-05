@@ -200,6 +200,24 @@ print(f"Generated image URL: {response.data[0].url}")
 ```
 [![Image with cat](https://g4f.dev/docs/images/cat.jpeg)](https://github.com/gpt4free/g4f.dev/blob/main/docs/client.md)
 
+### 🧙‍♂️ Using GPT4Free.js
+
+Use the **official JS client** right in the browser—no backend needed.
+
+For text generation:
+```html
+<script type="module">
+    import Client from 'https://g4f.dev/dist/js/client.js';
+
+    const client = new Client();
+    const result = await client.chat.completions.create({
+        model: 'gpt-4.1',  // Or "gpt-4o", "deepseek-v3"
+        messages: [{ role: 'user', content: 'Explain quantum computing' }]
+    });
+    console.log(result.choices[0].message.content);
+</script>
+```
+
 ### 🌐 Web Interface
 **Run the GUI using Python:**
 ```python
