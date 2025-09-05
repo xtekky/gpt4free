@@ -5,5 +5,4 @@ This file is used as the main entry point for building executables with Nuitka
 """
 
 if __name__ == "__main__":
-    from g4f.cli import main
-    main()
+    print("Starting g4f CLI...")
