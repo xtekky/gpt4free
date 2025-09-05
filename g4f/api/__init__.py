@@ -435,7 +435,8 @@ class Api:
                 if provider in model_map:
                     config.model = provider
                     provider = None
-                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+                else:
+                    return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             try:
                 if config.provider is None:
                     config.provider = AppConfig.provider if provider is None else provider
@@ -541,7 +542,7 @@ class Api:
                 if provider in model_map:
                     config.model = provider
                     provider = None
-                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+                return ErrorResponse.from_message("", HTTP_404_NOT_FOUND)
             if config.provider is None:
                 config.provider = provider
             if config.provider is None:
@@ -624,7 +625,8 @@ class Api:
                 if provider in model_map:
                     model = provider
                     provider = None
-                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+                else:
+                    return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             kwargs = {"modalities": ["text"]}
             if provider == "MarkItDown":
                 kwargs = {
@@ -669,7 +671,8 @@ class Api:
                 if provider in model_map:
                     config.model = provider
                     provider = None
-                return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+                else:
+                    return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
             try:
                 audio = filter_none(voice=config.voice, format=config.response_format, language=config.language)
                 response = await self.client.chat.completions.create(
