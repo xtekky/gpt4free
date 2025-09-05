@@ -122,7 +122,8 @@ class Backend_Api(Api):
                 # Send the public key to the client for encryption
                 return jsonify({
                     "public_key": public_key_pem.decode(),
-                    "data": encrypt_data(sub_public_key, str(int(time.time())))
+                    "data": encrypt_data(sub_public_key, str(int(time.time()))),
+                    "user": request.headers.get("x-user", "error")
                 })
 
         @app.route('/backend-api/v2/models', methods=['GET'])
