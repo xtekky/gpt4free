@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import sys
 import argparse
 from argparse import ArgumentParser
 from .client import get_parser, run_client_args
+from ..requests import BrowserConfig
 
 from g4f import Provider
 from g4f.gui.run import gui_parser, run_gui_args
@@ -36,7 +36,9 @@ def get_api_parser():
     api_parser.add_argument("--ssl-keyfile", type=str, default=None, help="Path to SSL key file for HTTPS.")
     api_parser.add_argument("--ssl-certfile", type=str, default=None, help="Path to SSL certificate file for HTTPS.")
     api_parser.add_argument("--log-config", type=str, default=None, help="Custom log config.")
-	
+    api_parser.add_argument("--browser-port", type=int, help="Port for the browser automation tool.")
+    api_parser.add_argument("--browser-host", type=str, default="127.0.0.1", help="Host for the browser automation tool.")
+
     return api_parser
 
 def run_api_args(args):
@@ -54,6 +56,9 @@ def run_api_args(args):
         demo=args.demo,
         timeout=args.timeout,
     )
+    if args.browser_port:
+        BrowserConfig.port = args.browser_port
+        BrowserConfig.host = args.browser_host
     if args.cookie_browsers:
         g4f.cookies.BROWSERS = [g4f.cookies[browser] for browser in args.cookie_browsers]
     run_api(

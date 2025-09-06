@@ -46,6 +46,8 @@ from ..cookies import get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
 class BrowserConfig:
+    port: int = None
+    host: str = None
     stop_browser = lambda: None
     browser_executable_path: str = None
 
@@ -168,8 +170,8 @@ async def get_nodriver(
             if not os.path.exists(browser_executable_path):
                 browser_executable_path = None
     debug.log(f"Browser executable path: {browser_executable_path}")
+    lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
     if user_data_dir:
-        lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
         lock_file.parent.mkdir(exist_ok=True)
         # Implement a short delay (milliseconds) to prevent race conditions.
         await asyncio.sleep(0.1 * random.randint(0, 50))
@@ -199,6 +201,8 @@ async def get_nodriver(
             user_data_dir=user_data_dir,
             browser_args=[*browser_args, f"--proxy-server={proxy}"] if proxy else browser_args,
             browser_executable_path=browser_executable_path,
+            port=BrowserConfig.port,
+            host=BrowserConfig.host,
             **kwargs
         )
     except FileNotFoundError as e:
@@ -211,7 +215,7 @@ async def get_nodriver(
             raise
     def on_stop():
         try:
-            if browser.connection:
+            if BrowserConfig.port is None and browser.connection:
                 browser.stop()
         except:
             pass

@@ -264,6 +264,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                 url = "https://api.puter.com/puterai/chat/models/"
                 cls.models = requests.get(url).json().get("models", [])
                 cls.models = [model for model in cls.models if "/" not in model and model not in ["abuse", "costly", "fake", "model-fallback-test-1"]]
+                cls.live += 1
             except Exception as e:
                 debug.log(f"PuterJS: Failed to fetch models from API: {e}")
                 cls.models = []
