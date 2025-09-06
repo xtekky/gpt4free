@@ -40,6 +40,7 @@ except ImportError:
 
 from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
+from .requests import BrowserConfig
 from .config import COOKIES_DIR, CUSTOM_COOKIES_DIR
 from . import debug
 
@@ -183,6 +184,12 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
         debug.log(f"Read cookies: Loaded env vars from {dir_path}/.env")
     except ImportError:
         debug.error("Warning: 'python-dotenv' is not installed. Env vars not loaded.")
+
+    BrowserConfig.port = os.environ.get("G4F_BROWSER_PORT", BrowserConfig.port)
+    BrowserConfig.host = os.environ.get("G4F_BROWSER_HOST", BrowserConfig.host)
+    if BrowserConfig.port:
+        BrowserConfig.port = int(BrowserConfig.port)
+        debug.log(f"Using browser: {BrowserConfig.host}:{BrowserConfig.port}")
 
     har_files, json_files = [], []
     for root, _, files in os.walk(dir_path):

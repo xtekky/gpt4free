@@ -196,6 +196,7 @@ class SharedTokenManager(AuthFileMixin):
         max_attempts = 50
         attempt_interval = 200  # ms
         lock_id = str(uuid.uuid4())
+        os.makedirs(lock_path.parent, exist_ok=True)
 
         for _ in range(max_attempts):
             try:

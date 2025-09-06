@@ -71,7 +71,6 @@ from g4f.providers.types import ProviderType
 from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
 from g4f.providers.any_model_map import model_map, vision_models, image_models, audio_models, video_models
-from g4f.requests import BrowserConfig
 from g4f import Provider
 from g4f.gui import get_gui_app
 from .stubs import (
@@ -103,11 +102,6 @@ async def lifespan(app: FastAPI):
     AppConfig.g4f_api_key = os.environ.get("G4F_API_KEY", AppConfig.g4f_api_key)
     AppConfig.timeout = os.environ.get("G4F_TIMEOUT", AppConfig.timeout)
     AppConfig.stream_timeout = os.environ.get("G4F_STREAM_TIMEOUT", AppConfig.stream_timeout)
-    BrowserConfig.port = os.environ.get("G4F_BROWSER_PORT", BrowserConfig.port)
-    BrowserConfig.host = os.environ.get("G4F_BROWSER_HOST", BrowserConfig.host)
-    if BrowserConfig.port:
-        BrowserConfig.port = int(BrowserConfig.port)
-        print(f"Using browser: {BrowserConfig.host}:{BrowserConfig.port}")
     yield
     if has_nodriver:
         for browser in util.get_registered_instances():
