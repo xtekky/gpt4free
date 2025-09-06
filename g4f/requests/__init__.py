@@ -42,14 +42,8 @@ from .. import debug
 from .raise_for_status import raise_for_status
 from ..errors import MissingRequirementsError
 from ..typing import Cookies
-from ..cookies import get_cookies_dir
+from ..cookies import BrowserConfig, get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
-
-class BrowserConfig:
-    port: int = None
-    host: str = "127.0.0.1"
-    stop_browser = lambda: None
-    browser_executable_path: str = None
 
 if not has_curl_cffi:
     class Session:

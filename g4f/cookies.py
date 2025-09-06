@@ -40,7 +40,6 @@ except ImportError:
 
 from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
-from .requests import BrowserConfig
 from .config import COOKIES_DIR, CUSTOM_COOKIES_DIR
 from . import debug
 
@@ -48,6 +47,11 @@ class CookiesConfig:
     cookies: Dict[str, Cookies] = {}
     cookies_dir: str = CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else str(COOKIES_DIR)
 
+class BrowserConfig:
+    port: int = None
+    host: str = "127.0.0.1"
+    stop_browser = lambda: None
+    browser_executable_path: str = None
 
 DOMAINS = (
     ".bing.com",
