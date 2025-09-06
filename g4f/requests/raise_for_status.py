@@ -37,8 +37,8 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     if message is None or is_html:
         if response.status == 520:
             message = "Unknown error (Cloudflare)"
-        elif response.status in (429, 402):
-            message = "Rate limit"
+    if response.status in (429, 402):
+        raise RateLimitError(f"Response {response.status}: {message}")
     if response.status == 401:
         raise MissingAuthError(f"Response {response.status}: {message}")
     if response.status == 403 and is_cloudflare(message):
@@ -64,8 +64,8 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     if message is None or is_html:
         if response.status_code == 520:
             message = "Unknown error (Cloudflare)"
-        elif response.status_code in (429, 402):
-            raise RateLimitError(f"Response {response.status_code}: Rate Limit")
+    if response.status_code in (429, 402):
+        raise RateLimitError(f"Response {response.status_code}: {message}")
     if response.status_code == 401:
         raise MissingAuthError(f"Response {response.status_code}: {message}")
     if response.status_code == 403 and is_cloudflare(response.text):

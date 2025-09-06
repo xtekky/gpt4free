@@ -22,7 +22,7 @@ except ImportError:
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
-from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError
+from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning
 from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin,AuthFileMixin
@@ -553,15 +553,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         "provider": cls.__name__
                     })
                     raise_for_status(response)
-                    text, *args = response.text.split("\n" * 10 + "<!--", 1)
-                    if args:
-                        debug.log("Save args to cache file:", str(cache_file))
-                        with cache_file.open("w") as f:
-                            f.write(args[0].strip())
-                    yield text
+                    if response.headers.get("Content-Type", "").startswith("image/"):
+                        yield ImageResponse(str(response.url), prompt)
+                    else:
+                        text, *args = response.text.split("\n" * 10 + "<!--", 1)
+                        if args:
+                            debug.log("Save args to cache file:", str(cache_file))
+                            with cache_file.open("w") as f:
+                                f.write(args[0].strip())
+                        yield text
                 finally:
                     cls.looked = False
                 return
+            else:
+                raise MissingRequirementsError("No auth file found and nodriver is not available.")
 
             if not cls._models_loaded:
                 cls.get_models()
