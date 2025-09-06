@@ -40,8 +40,8 @@ class QwenCode(OpenaiTemplate):
                 if chunk != last_chunk:
                     yield chunk
                 last_chunk = chunk
-        except TokenManagerError:
-            raise MissingAuthError("QwenCode: No valid authentication available. Run the oauth flow to authenticate. | python -m g4f.Provider.qwen.oauthFlow")
+        except TokenManagerError as e:
+            raise MissingAuthError(f"QwenCode: No valid authentication available: {e}")
         except MissingAuthError:
             await cls.client.shared_manager.getValidCredentials(cls.client.qwen_client, True)
             creds = await cls.client.get_valid_token()

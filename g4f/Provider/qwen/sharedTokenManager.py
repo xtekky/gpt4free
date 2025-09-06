@@ -60,10 +60,10 @@ class SharedTokenManager(AuthFileMixin):
         return cls._instance
 
     def getCredentialFilePath(self):
-        path = SharedTokenManager.get_cache_file()
+        path = Path(os.path.expanduser(f"~/{QWEN_DIR}/{QWEN_CREDENTIAL_FILENAME}"))
         if path.is_file():
             return path
-        return Path(os.path.expanduser(f"~/{QWEN_DIR}/{QWEN_CREDENTIAL_FILENAME}"))
+        return SharedTokenManager.get_cache_file()
 
     def getLockFilePath(self):
         return Path(os.path.expanduser(f"~/{QWEN_DIR}/{QWEN_LOCK_FILENAME}"))
