@@ -31,7 +31,7 @@ try:
 except ImportError as e:
     has_markitdown = False
 try:
-    from .crypto import rsa, serialization, create_or_read_keys, decrypt_data, encrypt_data, get_session_key
+    from .crypto import serialization, create_or_read_keys, decrypt_data, encrypt_data, get_session_key
     has_crypto = True
 except ImportError:
     has_crypto = False
@@ -42,7 +42,7 @@ from ...providers.response import FinishReason, AudioResponse, MediaResponse, Re
 from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_tempfile
 from ...tools.run_tools import iter_run_tools
-from ...errors import ProviderNotFoundError, MissingAuthError
+from ...errors import ModelNotFoundError, ProviderNotFoundError, MissingAuthError, RateLimitError
 from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
@@ -368,6 +368,12 @@ class Backend_Api(Api):
                     response = response if isinstance(response, str) else "".join(response)
                     return Response(filter_markdown(response, None if is_true_filter else do_filter, response if is_true_filter else ""), mimetype='text/plain')
                 return Response(response, mimetype='text/plain')
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 404
+            except MissingAuthError as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+            except RateLimitError as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 429
             except Exception as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500

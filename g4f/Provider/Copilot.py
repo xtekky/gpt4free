@@ -119,7 +119,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         model = cls.get_model(model)
         websocket_url = cls.websocket_url
         headers = None
-        if cls._access_token:
+        if cls._access_token or cls.needs_auth:
             if api_key is not None:
                 cls._access_token = api_key
             if cls._access_token is None:
@@ -144,17 +144,17 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         ) as session:
             if cls._access_token is not None:
                 cls._cookies = session.cookies.jar if hasattr(session.cookies, "jar") else session.cookies
-            response = await session.get("https://copilot.microsoft.com/c/api/user?api-version=2", headers={"x-useridentitytype": useridentitytype})
-            if response.status_code == 401:
-                raise MissingAuthError("Status 401: Invalid access token")
-            response.raise_for_status()
-            user = response.json().get('firstName')
-            if user is None:
-                if cls.needs_auth:
-                    raise MissingAuthError("No user found, please login first")
-                cls._access_token = None
-            else:
-                debug.log(f"Copilot: User: {user}")
+                response = await session.get("https://copilot.microsoft.com/c/api/user?api-version=2", headers={"x-useridentitytype": useridentitytype})
+                if response.status_code == 401:
+                    raise MissingAuthError("Status 401: Invalid access token")
+                response.raise_for_status()
+                user = response.json().get('firstName')
+                if user is None:
+                    if cls.needs_auth:
+                        raise MissingAuthError("No user found, please login first")
+                    cls._access_token = None
+                else:
+                    debug.log(f"Copilot: User: {user}")
             if conversation is None:
                 response = await session.post(cls.conversation_url, headers={"x-useridentitytype": useridentitytype})
                 response.raise_for_status()
@@ -168,50 +168,50 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 yield conversation
 
             uploaded_attachments = []
-            
-            # Upload regular media (images)
-            for media, _ in merge_media(media, messages):
-                if not isinstance(media, str):
-                    data = to_bytes(media)
-                    response = await session.post(
-                        "https://copilot.microsoft.com/c/api/attachments",
-                        headers={
-                            "content-type": is_accepted_format(data),
-                            "content-length": str(len(data)),
-                            "x-useridentitytype": useridentitytype
-                        },
-                        data=data
-                    )
-                    response.raise_for_status()
-                    media = response.json().get("url")
-                uploaded_attachments.append({"type":"image", "url": media})
+            if cls._access_token is not None:
+                # Upload regular media (images)
+                for media, _ in merge_media(media, messages):
+                    if not isinstance(media, str):
+                        data = to_bytes(media)
+                        response = await session.post(
+                            "https://copilot.microsoft.com/c/api/attachments",
+                            headers={
+                                "content-type": is_accepted_format(data),
+                                "content-length": str(len(data)),
+                                "x-useridentitytype": useridentitytype
+                            },
+                            data=data
+                        )
+                        response.raise_for_status()
+                        media = response.json().get("url")
+                    uploaded_attachments.append({"type":"image", "url": media})
 
-            # Upload bucket files
-            bucket_items = extract_bucket_items(messages)
-            for item in bucket_items:
-                try:
-                    # Handle plain text content from bucket
-                    bucket_path = Path(get_bucket_dir(item["bucket_id"]))
-                    for text_chunk in read_bucket(bucket_path):
-                        if text_chunk.strip():
-                            # Upload plain text as a text file
-                            text_data = text_chunk.encode('utf-8')
-                            data = CurlMime()
-                            data.addpart("file", filename=f"bucket_{item['bucket_id']}.txt", content_type="text/plain", data=text_data)
-                            response = await session.post(
-                                "https://copilot.microsoft.com/c/api/attachments",
-                                multipart=data,
-                                headers={"x-useridentitytype": useridentitytype}
-                            )
-                            response.raise_for_status()
-                            data = response.json()
-                            uploaded_attachments.append({"type": "document", "attachmentId": data.get("id")})
-                            debug.log(f"Copilot: Uploaded bucket text content: {item['bucket_id']}")
-                        else:
-                            debug.log(f"Copilot: No text content found in bucket: {item['bucket_id']}")
-                except Exception as e:
-                    debug.log(f"Copilot: Failed to upload bucket item: {item}")
-                    debug.error(e)
+                # Upload bucket files
+                bucket_items = extract_bucket_items(messages)
+                for item in bucket_items:
+                    try:
+                        # Handle plain text content from bucket
+                        bucket_path = Path(get_bucket_dir(item["bucket_id"]))
+                        for text_chunk in read_bucket(bucket_path):
+                            if text_chunk.strip():
+                                # Upload plain text as a text file
+                                text_data = text_chunk.encode('utf-8')
+                                data = CurlMime()
+                                data.addpart("file", filename=f"bucket_{item['bucket_id']}.txt", content_type="text/plain", data=text_data)
+                                response = await session.post(
+                                    "https://copilot.microsoft.com/c/api/attachments",
+                                    multipart=data,
+                                    headers={"x-useridentitytype": useridentitytype}
+                                )
+                                response.raise_for_status()
+                                data = response.json()
+                                uploaded_attachments.append({"type": "document", "attachmentId": data.get("id")})
+                                debug.log(f"Copilot: Uploaded bucket text content: {item['bucket_id']}")
+                            else:
+                                debug.log(f"Copilot: No text content found in bucket: {item['bucket_id']}")
+                    except Exception as e:
+                        debug.log(f"Copilot: Failed to upload bucket item: {item}")
+                        debug.error(e)
 
             if prompt is None:
                 prompt = get_last_user_message(messages, False)
