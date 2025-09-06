@@ -32,6 +32,8 @@ class Ollama(OpenaiAPI):
                 api_key = AuthManager.load_api_key(cls)
             if api_key:
                 models = requests.get("https://ollama.com/api/tags", {"headers": {"Authorization": f"Bearer {api_key}"}}).json()["models"]
+                if models:
+                    cls.live += 1
                 cls.models = [model["name"] for model in models]
             if api_base is None:
                 host = os.getenv("OLLAMA_HOST", "127.0.0.1")
@@ -43,6 +45,8 @@ class Ollama(OpenaiAPI):
                 models = requests.get(url).json()["models"]
             except requests.exceptions.RequestException as e:
                 return cls.models
+            if cls.live == 0 and models:
+                cls.live += 1
             cls.local_models = [model["name"] for model in models]
             cls.models = cls.models + cls.local_models
             cls.default_model = next(iter(cls.models), None)
