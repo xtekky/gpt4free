@@ -6,14 +6,15 @@ from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 from .. import debug
 
-from .needs_auth       import *
-from .needs_auth.hf    import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
+from .needs_auth import *
+from .needs_auth.hf import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
 try:
     from .needs_auth.mini_max import HailuoAI, MiniMax
 except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
 
-from .template         import OpenaiTemplate, BackendApi
+from .template import OpenaiTemplate, BackendApi
+from .qwen.QwenCode import QwenCode
 try:
     from .not_working import *
 except ImportError as e:

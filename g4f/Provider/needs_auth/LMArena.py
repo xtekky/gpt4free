@@ -651,6 +651,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 args = None
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
+            except:
+                raise
         if args and os.getenv("G4F_SHARE_AUTH"):
             yield "\n" * 10
             yield "<!--"

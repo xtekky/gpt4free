@@ -441,6 +441,7 @@ jobs:
             **Executables:**
             - Windows x64: `g4f-windows-${{ needs.prepare.outputs.version }}-x64.zip`
             - Linux x64: `g4f-linux-${{ needs.prepare.outputs.version }}-x64`
+            - Linux ARM64: `g4f-linux-${{ needs.prepare.outputs.version }}-arm64`
             - macOS x64: `g4f-macos-${{ needs.prepare.outputs.version }}-x64`
             - macOS ARM64: `g4f-macos-${{ needs.prepare.outputs.version }}-arm64`
 
@@ -456,6 +457,7 @@ jobs:
             ./artifacts/pypi-package/*
             ./artifacts/windows-exe-x64/*
             ./artifacts/linux-exe-x64/*
+            ./artifacts/linux-exe-arm64/*
             ./artifacts/macos-exe-x64/*
             ./artifacts/macos-exe-arm64/*
             ./artifacts/debian-amd64/*
