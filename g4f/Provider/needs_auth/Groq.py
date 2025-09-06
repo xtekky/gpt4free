@@ -9,6 +9,7 @@ class Groq(OpenaiTemplate):
     api_base = "https://api.groq.com/openai/v1"
     working = True
     needs_auth = True
+    models_needs_auth = True
     active_by_default = True
     default_model = DEFAULT_MODEL
     fallback_models = [

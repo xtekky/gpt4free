@@ -21,6 +21,7 @@ from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError
+from ..tools.run_tools import AuthManager
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -374,12 +375,16 @@ class ProviderModelMixin:
     models_loaded: bool = False
 
     @classmethod
-    def get_models(cls, **kwargs) -> list[str]:
+    def get_models(cls, api_key: str = None, **kwargs) -> list[str]:
         if not cls.models and cls.default_model is not None:
             cls.models = [cls.default_model]
         if not cls.models_loaded and hasattr(cls, "get_cache_file"):
             if cls.get_cache_file().exists():
                 cls.live += 1
+            elif not api_key:
+                api_key = AuthManager.load_api_key(cls)
+                if api_key:
+                    cls.live += 1
         cls.models_loaded = True
         return cls.models
 
