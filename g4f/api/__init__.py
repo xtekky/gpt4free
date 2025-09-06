@@ -106,6 +106,7 @@ async def lifespan(app: FastAPI):
     BrowserConfig.port = os.environ.get("G4F_BROWSER_PORT", BrowserConfig.port)
     BrowserConfig.host = os.environ.get("G4F_BROWSER_HOST", BrowserConfig.host)
     if BrowserConfig.port:
+        BrowserConfig.port = int(BrowserConfig.port)
         print(f"Using browser: {BrowserConfig.host}:{BrowserConfig.port}")
     yield
     if has_nodriver:
