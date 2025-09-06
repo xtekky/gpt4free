@@ -485,8 +485,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             cls.models = list(cls.text_models) + list(cls.image_models)
                             cls.default_model = list(cls.text_models.keys())[0]
                             cls._models_loaded = True
+                            cls.live += 1
                             break
                 else:
+                    cls.live -= 1
                     debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
         return cls.models
 

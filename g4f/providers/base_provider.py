@@ -371,11 +371,16 @@ class ProviderModelMixin:
     video_models: list = []
     audio_models: dict = {}
     last_model: str = None
+    models_loaded: bool = False
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
         if not cls.models and cls.default_model is not None:
             cls.models = [cls.default_model]
+        if not cls.models_loaded and hasattr(cls, "get_cache_file"):
+            if cls.get_cache_file().exists():
+                cls.live += 1
+        cls.models_loaded = True
         return cls.models
 
     @classmethod

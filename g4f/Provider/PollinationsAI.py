@@ -155,6 +155,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             cls.model_aliases[alias] = model.get("name")
                     elif model.get("name") not in cls.text_models:
                         cls.text_models.append(model.get("name"))
+                cls.live += 1
 
             except Exception as e:
                 # Save default models in case of an error
