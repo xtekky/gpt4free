@@ -143,7 +143,9 @@ def iter_response(
                 content = filter_json(content)
         chat_completion = ChatCompletion.model_construct(
             content, finish_reason, completion_id, int(time.time()), usage=usage,
-            **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {},
+            **(filter_none(
+                tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
+            ) if tool_calls is not None else {}),
             conversation=None if conversation is None else conversation.get_dict(),
             reasoning=reasoning if reasoning else None
         )
@@ -246,9 +248,9 @@ async def async_iter_response(
                     content = filter_json(content)
             chat_completion = ChatCompletion.model_construct(
                 content, finish_reason, completion_id, int(time.time()), usage=usage,
-                **filter_none(
+                **(filter_none(
                     tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
-                ) if tool_calls is not None else {},
+                ) if tool_calls else {}),
                 conversation=conversation,
                 reasoning=reasoning if reasoning else None
             )

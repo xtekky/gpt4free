@@ -279,7 +279,7 @@ class ChatCompletionDelta(BaseModel):
     def model_construct(cls, content: Optional[str]):
         if isinstance(content, Reasoning):
             return super().model_construct(role="assistant", content=None, reasoning=str(content))
-        elif isinstance(content, ToolCalls):
+        elif isinstance(content, ToolCalls) and content.get_list():
             return super().model_construct(role="assistant", content=None, tool_calls=[
                 ToolCallModel.model_construct(**tool_call) for tool_call in content.get_list()
             ])
