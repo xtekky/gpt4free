@@ -156,7 +156,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 else:
                     debug.log(f"Copilot: User: {user}")
             if conversation is None:
-                response = await session.post(cls.conversation_url, headers={"x-useridentitytype": useridentitytype})
+                response = await session.post(cls.conversation_url, headers={"x-useridentitytype": useridentitytype} if cls._access_token else {})
                 response.raise_for_status()
                 conversation_id = response.json().get("id")
                 conversation = Conversation(conversation_id)
@@ -178,7 +178,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                             headers={
                                 "content-type": is_accepted_format(data),
                                 "content-length": str(len(data)),
-                                "x-useridentitytype": useridentitytype
+                                **({"x-useridentitytype": useridentitytype} if cls._access_token else {})
                             },
                             data=data
                         )
