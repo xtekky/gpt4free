@@ -253,18 +253,23 @@ async def async_iter_run_tools(
     # Generate response
     response = to_async_iterator(provider.async_create_function(model=model, messages=messages, **kwargs))
     
-    model_info = model
-    async for chunk in response:
-        if isinstance(chunk, ProviderInfo):
-            model_info = getattr(chunk, 'model', model_info)
-        elif isinstance(chunk, Usage):
-            usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
-            usage_dir = Path(get_cookies_dir()) / ".usage"
-            usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
-            usage_dir.mkdir(parents=True, exist_ok=True)
-            with usage_file.open("a" if usage_file.exists() else "w") as f:
-                f.write(f"{json.dumps(usage)}\n")
-        yield chunk
+    try:
+        model_info = model
+        async for chunk in response:
+            if isinstance(chunk, ProviderInfo):
+                model_info = getattr(chunk, 'model', model_info)
+            elif isinstance(chunk, Usage):
+                usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
+                usage_dir = Path(get_cookies_dir()) / ".usage"
+                usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+                usage_dir.mkdir(parents=True, exist_ok=True)
+                with usage_file.open("a" if usage_file.exists() else "w") as f:
+                    f.write(f"{json.dumps(usage)}\n")
+            yield chunk
+        provider.live += 1
+    except:
+        provider.live -= 1
+        raise
 
     # Yield sources if available
     if sources:
@@ -338,33 +343,38 @@ def iter_run_tools(
     thinking_start_time = 0
     processor = ThinkingProcessor()
     model_info = model
-    for chunk in provider.create_function(model=model, messages=messages, provider=provider, **kwargs):
-        if isinstance(chunk, FinishReason):
-            if sources is not None:
-                yield sources
+    try:
+        for chunk in provider.create_function(model=model, messages=messages, provider=provider, **kwargs):
+            if isinstance(chunk, FinishReason):
+                if sources is not None:
+                    yield sources
+                    sources = None
+                yield chunk
+                continue
+            elif isinstance(chunk, Sources):
                 sources = None
-            yield chunk
-            continue
-        elif isinstance(chunk, Sources):
-            sources = None
-        elif isinstance(chunk, ProviderInfo):
-            model_info = getattr(chunk, 'model', model_info)
-        elif isinstance(chunk, Usage):
-            usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
-            usage_dir = Path(get_cookies_dir()) / ".usage"
-            usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
-            usage_dir.mkdir(parents=True, exist_ok=True)
-            with usage_file.open("a" if usage_file.exists() else "w") as f:
-                f.write(f"{json.dumps(usage)}\n")
-
-        if not isinstance(chunk, str):
-            yield chunk
-            continue
+            elif isinstance(chunk, ProviderInfo):
+                model_info = getattr(chunk, 'model', model_info)
+            elif isinstance(chunk, Usage):
+                usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
+                usage_dir = Path(get_cookies_dir()) / ".usage"
+                usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+                usage_dir.mkdir(parents=True, exist_ok=True)
+                with usage_file.open("a" if usage_file.exists() else "w") as f:
+                    f.write(f"{json.dumps(usage)}\n")
+            if not isinstance(chunk, str):
+                yield chunk
+                continue
+                
+            thinking_start_time, results = processor.process_thinking_chunk(chunk, thinking_start_time)
             
-        thinking_start_time, results = processor.process_thinking_chunk(chunk, thinking_start_time)
-        
-        for result in results:
-            yield result
+            for result in results:
+                yield result
+
+        provider.live += 1
+    except:
+        provider.live -= 1
+        raise
 
     if sources is not None:
         yield sources

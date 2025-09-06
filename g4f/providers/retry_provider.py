@@ -99,9 +99,11 @@ class RotatedProvider(BaseRetryProvider):
                         if is_content(chunk):
                             started = True
                 if started:
+                    provider.live += 1
                     # Success, so we return and do not rotate
                     return
             except Exception as e:
+                provider.live -= 1
                 exceptions[provider.__name__] = e
                 debug.error(f"{provider.__name__} failed: {e}")
         
@@ -161,8 +163,10 @@ class RotatedProvider(BaseRetryProvider):
                         if is_content(chunk):
                             started = True
                 if started:
+                    provider.live += 1
                     return # Success
             except Exception as e:
+                provider.live -= 1
                 exceptions[provider.__name__] = e
                 debug.error(f"{provider.__name__} failed: {e}")
                 

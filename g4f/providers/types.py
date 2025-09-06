@@ -28,6 +28,7 @@ class BaseProvider(ABC):
     params: str
     create_function: callable
     async_create_function: callable
+    live: int = 0
 
     @classmethod
     def get_dict(cls) -> Dict[str, str]:
