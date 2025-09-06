@@ -96,5 +96,7 @@ class DeepInfra(OpenaiTemplate):
                     cls.image_models.append(model['model_name'])
             
             cls.models.extend(cls.image_models)
+            if models:
+                cls.live += 1
 
         return cls.models

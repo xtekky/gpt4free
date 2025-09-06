@@ -49,7 +49,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
-                if (not cls.needs_auth or cls.models_needs_auth) and data:
+                if (not cls.needs_auth or cls.models_needs_auth or api_key) and data:
                     cls.live += 1
                 cls.image_models = [model.get("name") if cls.use_model_names else model.get("id", model.get("name")) for model in data if model.get("image") or model.get("type") == "image" or model.get("supports_images")]
                 cls.vision_models = cls.vision_models.copy()

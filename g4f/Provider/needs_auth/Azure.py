@@ -55,6 +55,8 @@ class Azure(OpenaiTemplate):
                 raise ValueError(f"Invalid AZURE_ROUTES environment variable format: {routes}")
             cls.routes = routes
         if cls.routes:
+            if cls.live == 0 and cls.api_keys:
+                cls.live += 1
             return list(cls.routes.keys())
         return super().get_models(api_key=api_key, **kwargs)
 
