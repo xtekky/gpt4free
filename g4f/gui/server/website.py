@@ -39,8 +39,9 @@ def render(filename = "home", download_url: str = DOWNLOAD_URL):
             is_temp = True
         else:
             os.makedirs(cache_dir, exist_ok=True)
+        version = quote(unquote(request.query_string.decode())) or str(version.utils.current_version)
         if html is None:
-            response = requests.get(f"{download_url}{filename}")
+            response = requests.get(f"{download_url}{filename}{'?' + version if version and download_url == DOWNLOAD_URL else ''}")
             if not response.ok:
                 found = None
                 for root, _, files in os.walk(cache_dir):
@@ -56,7 +57,7 @@ def render(filename = "home", download_url: str = DOWNLOAD_URL):
             html = html.replace("../dist/", f"dist/")
             html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         html = html.replace(JSDELIVR_URL, "/")
-        html = html.replace("{{ v }}", quote(unquote(request.query_string.decode())) or str(version.utils.current_version))
+        html = html.replace("{{ v }}", version)
         if is_temp:
             return html
         with open(cache_file, 'w', encoding='utf-8') as f:
