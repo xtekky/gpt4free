@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import requests
 from datetime import datetime
+from urllib.parse import quote, unquote
 from flask import send_from_directory, redirect, request
 
 from ...image.copy_images import secure_filename
@@ -17,10 +18,14 @@ def redirect_home():
 def render(filename = "home", download_url: str = DOWNLOAD_URL):
     if download_url == DOWNLOAD_URL:
         filename += ("" if "." in filename else ".html")
+    html = None
     if os.path.exists(DIST_DIR) and not request.args.get("debug"):
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), filename))
         if os.path.exists(path):
-            return send_from_directory(os.path.dirname(path), os.path.basename(path))
+            if download_url == DOWNLOAD_URL:
+                html = open(path, 'r', encoding='utf-8').read()
+            else:
+                return send_from_directory(os.path.dirname(path), os.path.basename(path))
     try:
         latest_version = version.utils.latest_version
     except VersionNotFoundError:
@@ -34,22 +39,24 @@ def render(filename = "home", download_url: str = DOWNLOAD_URL):
             is_temp = True
         else:
             os.makedirs(cache_dir, exist_ok=True)
-        response = requests.get(f"{download_url}{filename}")
-        if not response.ok:
-            found = None
-            for root, _, files in os.walk(cache_dir):
-                for file in files:
-                    if file.startswith(secure_filename(filename)):
-                        found = os.path.abspath(root), file
-                break
-            if found:
-                return send_from_directory(found[0], found[1])
-            else:
-                response.raise_for_status()
-        html = response.text
+        if html is None:
+            response = requests.get(f"{download_url}{filename}")
+            if not response.ok:
+                found = None
+                for root, _, files in os.walk(cache_dir):
+                    for file in files:
+                        if file.startswith(secure_filename(filename)):
+                            found = os.path.abspath(root), file
+                    break
+                if found:
+                    return send_from_directory(found[0], found[1])
+                else:
+                    response.raise_for_status()
+            html = response.text
+            html = html.replace("../dist/", f"dist/")
+            html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         html = html.replace(JSDELIVR_URL, "/")
-        html = html.replace("../dist/", f"dist/")
-        html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
+        html = html.replace("{{ v }}", quote(unquote(request.query_string.decode())) or str(version.utils.current_version))
         if is_temp:
             return html
         with open(cache_file, 'w', encoding='utf-8') as f:
