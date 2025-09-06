@@ -15,12 +15,11 @@ class QwenCode(OpenaiTemplate):
     needs_auth = True
     active_by_default = True
     default_model = "qwen3-coder-plus"
+    models = [default_model]
     client = QwenContentGenerator(QwenOAuth2Client())
 
     @classmethod
     def get_models(cls, **kwargs):
-        if not cls.models:
-            cls.models = [cls.default_model]
         if cls.live == 0 and cls.client.shared_manager.isTokenValid(cls.client.shared_manager.getCurrentCredentials()):
             cls.live += 1
         return cls.models

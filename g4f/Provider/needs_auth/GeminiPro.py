@@ -59,6 +59,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     if "generateContent" in model.get("supportedGenerationMethods")
                 ]
                 cls.models.sort()
+                cls.live += 1
             except Exception as e:
                 debug.error(e)
                 if api_key is not None:

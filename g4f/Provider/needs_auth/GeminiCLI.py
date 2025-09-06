@@ -511,6 +511,15 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     auth_manager: AuthManager = None
 
     @classmethod
+    def get_models(cls, **kwargs):
+        if cls.live == 0:
+            if cls.auth_manager is None:
+                cls.auth_manager = AuthManager(env=os.environ)
+            if cls.auth_manager.get_access_token() is not None:
+                cls.live += 1
+        return cls.models
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
