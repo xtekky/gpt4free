@@ -47,7 +47,7 @@ from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
 class BrowserConfig:
     port: int = None
-    host: str = None
+    host: str = "127.0.0.1"
     stop_browser = lambda: None
     browser_executable_path: str = None
 

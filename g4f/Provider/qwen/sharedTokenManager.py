@@ -118,7 +118,7 @@ class SharedTokenManager(AuthFileMixin):
             stat = file_path.stat()
             file_mod_time = int(stat.st_mtime * 1000)
             if file_mod_time > self.memory_cache["file_mod_time"]:
-                await self.reloadCredentialsFromFile()
+                self.reloadCredentialsFromFile()
                 self.memory_cache["file_mod_time"] = file_mod_time
         except FileNotFoundError:
             self.memory_cache["file_mod_time"] = 0
@@ -126,7 +126,7 @@ class SharedTokenManager(AuthFileMixin):
             self.memory_cache["credentials"] = None
             raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, str(e), e)
 
-    async def reloadCredentialsFromFile(self):
+    def reloadCredentialsFromFile(self):
         file_path = self.getCredentialFilePath()
         try:
             with open(file_path, "r") as fs:

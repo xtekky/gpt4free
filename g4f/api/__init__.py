@@ -103,8 +103,10 @@ async def lifespan(app: FastAPI):
     AppConfig.g4f_api_key = os.environ.get("G4F_API_KEY", AppConfig.g4f_api_key)
     AppConfig.timeout = os.environ.get("G4F_TIMEOUT", AppConfig.timeout)
     AppConfig.stream_timeout = os.environ.get("G4F_STREAM_TIMEOUT", AppConfig.stream_timeout)
-    BrowserConfig.port = os.environ.get("G4F_BROWSER_PORT", BrowserConfig.port)
+    BrowserConfig.port = int(os.environ.get("G4F_BROWSER_PORT", BrowserConfig.port))
     BrowserConfig.host = os.environ.get("G4F_BROWSER_HOST", BrowserConfig.host)
+    if BrowserConfig.port:
+        print(f"Using browser: {BrowserConfig.host}:{BrowserConfig.port}")
     yield
     if has_nodriver:
         for browser in util.get_registered_instances():
