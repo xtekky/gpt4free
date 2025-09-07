@@ -9,20 +9,20 @@ from flask import send_from_directory, redirect, request
 from ...image.copy_images import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
-from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, JSDELIVR_URL
+from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, JSDELIVR_URL, GITHUB_URL
 from ... import version
 
 def redirect_home():
     return redirect('/chat/')
 
-def render(filename = "home", download_url: str = DOWNLOAD_URL):
+def render(filename = "home", download_url: str = GITHUB_URL):
     if download_url == DOWNLOAD_URL:
         filename += ("" if "." in filename else ".html")
     html = None
     if os.path.exists(DIST_DIR) and not request.args.get("debug"):
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), filename))
         if os.path.exists(path):
-            if download_url == DOWNLOAD_URL:
+            if download_url == GITHUB_URL:
                 html = open(path, 'r', encoding='utf-8').read()
             else:
                 return send_from_directory(os.path.dirname(path), os.path.basename(path))
@@ -41,18 +41,24 @@ def render(filename = "home", download_url: str = DOWNLOAD_URL):
             os.makedirs(cache_dir, exist_ok=True)
         latest_version = quote(unquote(request.query_string.decode())) or str(latest_version)
         if html is None:
-            response = requests.get(f"{download_url}{filename}{'?' + latest_version if latest_version and download_url == DOWNLOAD_URL else ''}")
-            if not response.ok:
-                found = None
-                for root, _, files in os.walk(cache_dir):
-                    for file in files:
-                        if file.startswith(secure_filename(filename)):
-                            found = os.path.abspath(root), file
-                    break
-                if found:
-                    return send_from_directory(found[0], found[1])
-                else:
+            try:
+                response = requests.get(f"{download_url}{filename}{'?' + latest_version if latest_version and download_url == GITHUB_URL else ''}")
+                response.raise_for_status()
+            except requests.RequestException:
+                try:
+                    response = requests.get(f"{DOWNLOAD_URL}{filename}{'?' + latest_version if latest_version and download_url == GITHUB_URL else ''}")
                     response.raise_for_status()
+                except requests.RequestException:
+                    found = None
+                    for root, _, files in os.walk(cache_dir):
+                        for file in files:
+                            if file.startswith(secure_filename(filename)):
+                                found = os.path.abspath(root), file
+                        break
+                    if found:
+                        return send_from_directory(found[0], found[1])
+                    else:
+                        raise
             html = response.text
             html = html.replace("../dist/", f"dist/")
             html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
