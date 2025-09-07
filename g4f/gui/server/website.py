@@ -32,6 +32,7 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         latest_version = version.utils.current_version
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
+    latest_version = str(latest_version) +quote(unquote(request.query_string.decode())) or str(latest_version)
     cache_file = os.path.join(cache_dir, f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}")
     is_temp = False
     if not os.path.exists(cache_file):
@@ -39,7 +40,6 @@ def render(filename = "home", download_url: str = GITHUB_URL):
             is_temp = True
         else:
             os.makedirs(cache_dir, exist_ok=True)
-        latest_version = quote(unquote(request.query_string.decode())) or str(latest_version)
         if html is None:
             try:
                 response = requests.get(f"{download_url}{filename}")
