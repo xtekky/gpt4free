@@ -42,11 +42,11 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         latest_version = quote(unquote(request.query_string.decode())) or str(latest_version)
         if html is None:
             try:
-                response = requests.get(f"{download_url}{filename}{'?' + latest_version if latest_version and download_url == GITHUB_URL else ''}")
+                response = requests.get(f"{download_url}{filename}")
                 response.raise_for_status()
             except requests.RequestException:
                 try:
-                    response = requests.get(f"{DOWNLOAD_URL}{filename}{'?' + latest_version if latest_version and download_url == GITHUB_URL else ''}")
+                    response = requests.get(f"{DOWNLOAD_URL}{filename}")
                     response.raise_for_status()
                 except requests.RequestException:
                     found = None
