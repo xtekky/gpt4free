@@ -16,7 +16,7 @@ def redirect_home():
     return redirect('/chat/')
 
 def render(filename = "home", download_url: str = GITHUB_URL):
-    if download_url == DOWNLOAD_URL:
+    if download_url == GITHUB_URL:
         filename += ("" if "." in filename else ".html")
     html = None
     if os.path.exists(DIST_DIR) and not request.args.get("debug"):
