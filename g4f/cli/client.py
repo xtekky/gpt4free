@@ -130,7 +130,11 @@ async def stream_response(
             continue
         if is_content(delta):
             response_tokens.append(delta)
-        print(delta, end="", flush=True)
+        try:
+            print(delta, end="", flush=True)
+        except UnicodeEncodeError as e:
+            debug.error(e)
+            pass
     print()
 
     if last_chunk and hasattr(last_chunk, "conversation"):
