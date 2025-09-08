@@ -139,7 +139,7 @@ jobs:
             runner: ubuntu-latest
             runner-arch: x86_64
           - architecture: arm64
-            runner: buildjet-4vcpu-ubuntu-2204-arm
+            runner: ubuntu-24.04-arm
             runner-arch: aarch64
     steps:
       - uses: actions/checkout@v4
