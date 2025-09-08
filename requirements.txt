@@ -14,10 +14,8 @@ flask
 brotli
 beautifulsoup4
 setuptools
-cryptography
 nodriver
 python-multipart
-markitdown[all]
 a2wsgi
 python-dotenv
 ddgs
