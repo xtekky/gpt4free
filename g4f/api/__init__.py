@@ -60,9 +60,10 @@ except ImportError:
 
 import g4f
 import g4f.debug
-from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, ClientResponse
+from g4f.client import AsyncClient, ChatCompletion, ImagesResponse
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
+from g4f.config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
 from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image
 from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError, MissingRequirementsError
@@ -90,18 +91,14 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_PORT = 1337
-DEFAULT_TIMEOUT = 600
-DEFAULT_STREAM_TIMEOUT = 15
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Read cookie files if not ignored
     if not AppConfig.ignore_cookie_files:
         read_cookie_files()
     AppConfig.g4f_api_key = os.environ.get("G4F_API_KEY", AppConfig.g4f_api_key)
-    AppConfig.timeout = os.environ.get("G4F_TIMEOUT", AppConfig.timeout)
-    AppConfig.stream_timeout = os.environ.get("G4F_STREAM_TIMEOUT", AppConfig.stream_timeout)
+    AppConfig.timeout = int(os.environ.get("G4F_TIMEOUT", AppConfig.timeout))
+    AppConfig.stream_timeout = int(os.environ.get("G4F_STREAM_TIMEOUT", AppConfig.stream_timeout))
     yield
     if has_nodriver:
         for browser in util.get_registered_instances():
@@ -442,7 +439,7 @@ class Api:
                     config.conversation_id = conversation_id
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
-                if config.stream_timeout is None:
+                if config.stream_timeout is None and config.stream:
                     config.stream_timeout = AppConfig.stream_timeout
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials

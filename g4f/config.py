@@ -14,6 +14,9 @@ def get_config_dir() -> Path:
         return Path.home() / "Library" / "Application Support"
     return Path.home() / ".config"
 
+DEFAULT_PORT = 1337
+DEFAULT_TIMEOUT = 600
+DEFAULT_STREAM_TIMEOUT = 15
 
 PACKAGE_NAME = "g4f"
 CONFIG_DIR = get_config_dir() / PACKAGE_NAME

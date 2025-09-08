@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import argparse
 from argparse import ArgumentParser
+
 from .client import get_parser, run_client_args
 from ..requests import BrowserConfig
-
-from g4f import Provider
-from g4f.gui.run import gui_parser, run_gui_args
-import g4f.cookies
+from ..gui.run import gui_parser, run_gui_args
+from ..config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
+from .. import Provider
+from .. import cookies
 
 def get_api_parser():
     api_parser = ArgumentParser(description="Run the API and GUI")
-    api_parser.add_argument("--bind", default=None, help="The bind string. (Default: 0.0.0.0:1337)")
-    api_parser.add_argument("--port", "-p", default=None, help="Change the port of the server.")
+    api_parser.add_argument("--bind", default=None, help=f"The bind string. (Default: 0.0.0.0:{DEFAULT_PORT})")
+    api_parser.add_argument("--port", "-p", default=None, help=f"Change the port of the server. (Default: {DEFAULT_PORT})")
     api_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
     api_parser.add_argument("--gui", "-g", default=None, action="store_true", help="(deprecated)")
     api_parser.add_argument("--no-gui", "-ng", default=False, action="store_true", help="Start without the gui.")
@@ -28,11 +29,12 @@ def get_api_parser():
     api_parser.add_argument("--g4f-api-key", type=str, default=None, help="Sets an authentication key for your API. (incompatible with --reload and --workers)")
     api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=[], help="List of providers to ignore when processing request. (incompatible with --reload and --workers)")
-    api_parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in g4f.cookies.BROWSERS],
+    api_parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in cookies.BROWSERS],
                             default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
     api_parser.add_argument("--demo", action="store_true", help="Enable demo mode.")
-    api_parser.add_argument("--timeout", type=int, default=600, help="Default timeout for requests in seconds. (incompatible with --reload and --workers)")
+    api_parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Default timeout for requests in seconds. (incompatible with --reload and --workers)")
+    api_parser.add_argument("--stream-timeout", type=int, default=DEFAULT_STREAM_TIMEOUT, help="Default timeout for streaming requests in seconds. (incompatible with --reload and --workers)")
     api_parser.add_argument("--ssl-keyfile", type=str, default=None, help="Path to SSL key file for HTTPS.")
     api_parser.add_argument("--ssl-certfile", type=str, default=None, help="Path to SSL certificate file for HTTPS.")
     api_parser.add_argument("--log-config", type=str, default=None, help="Custom log config.")
@@ -55,12 +57,15 @@ def run_api_args(args):
         gui=not args.no_gui,
         demo=args.demo,
         timeout=args.timeout,
+        stream_timeout=args.stream_timeout
     )
+
     if args.browser_port:
         BrowserConfig.port = args.browser_port
         BrowserConfig.host = args.browser_host
     if args.cookie_browsers:
-        g4f.cookies.BROWSERS = [g4f.cookies[browser] for browser in args.cookie_browsers]
+        cookies.BROWSERS = [cookies[browser] for browser in args.cookie_browsers]
+
     run_api(
         bind=args.bind,
         port=args.port,
