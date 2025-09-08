@@ -653,6 +653,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                     yield FinishReason(finish["finishReason"])
                                 if "usage" in finish:
                                     yield Usage(**finish["usage"])
+                            elif line.startswith("a3:"):
+                                raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+                            else:
+                                debug.log(f"LMArena: Unknown line prefix: {line}")
                 break
             except (CloudflareError, MissingAuthError):
                 args = None
@@ -660,7 +664,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 continue
             except:
                 raise
-        if args and os.getenv("G4F_SHARE_AUTH"):
+        if args and os.getenv("G4F_SHARE_AUTH") and not kwargs.get("action"):
             yield "\n" * 10
             yield "<!--"
             yield json.dumps(args)

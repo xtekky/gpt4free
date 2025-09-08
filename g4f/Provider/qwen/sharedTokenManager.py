@@ -9,6 +9,7 @@ from pathlib import Path
 import threading
 
 from ..base_provider import AuthFileMixin
+from ... import debug
 
 QWEN_DIR = ".qwen"
 QWEN_CREDENTIAL_FILENAME = "oauth_creds.json"
@@ -105,7 +106,7 @@ class SharedTokenManager(AuthFileMixin):
         except Exception as e:
             if isinstance(e, TokenManagerError):
                 raise
-            raise TokenManagerError(TokenError.REFRESH_FAILED, str(e), e)
+            raise TokenManagerError(TokenError.REFRESH_FAILED, str(e), e) from e
 
     def checkAndReloadIfNeeded(self):
         now = int(time.time() * 1000)
@@ -128,13 +129,21 @@ class SharedTokenManager(AuthFileMixin):
 
     def reloadCredentialsFromFile(self):
         file_path = self.getCredentialFilePath()
+        debug.log(f"Reloading credentials from {file_path}")
         try:
             with open(file_path, "r") as fs:
                 data = json.load(fs)
                 credentials = self.validateCredentials(data)
                 self.memory_cache["credentials"] = credentials
+        except FileNotFoundError:
+            self.memory_cache["credentials"] = None
+            raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, "Credentials file not found", e) from e
+        except json.JSONDecodeError as e:
+            self.memory_cache["credentials"] = None
+            raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, "Invalid JSON format", e) from e
         except Exception as e:
             self.memory_cache["credentials"] = None
+            raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, str(e), e) from e
 
     def validateCredentials(self, data):
         if not data or not isinstance(data, dict):
@@ -149,6 +158,8 @@ class SharedTokenManager(AuthFileMixin):
     async def performTokenRefresh(self, qwen_client: IQwenOAuth2Client, force_refresh: bool):
         lock_path = self.getLockFilePath()
         try:
+            if self.memory_cache["credentials"] is None:
+                self.reloadCredentialsFromFile()
             qwen_client.setCredentials(self.memory_cache["credentials"])
             current_credentials = qwen_client.getCredentials()
             if not current_credentials.get("refresh_token"):

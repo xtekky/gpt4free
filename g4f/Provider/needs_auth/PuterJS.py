@@ -26,12 +26,12 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = 'gpt-4o'
     default_vision_model = default_model
     openai_models = [default_vision_model,"gpt-4o-mini", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4.5-preview"]
-    claude_models = ["claude-3-7-sonnet-20250219", "claude-3-7-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20240620", "claude-3-haiku-20240307"]
     mistral_models = ["ministral-3b-2410","ministral-3b-latest","ministral-8b-2410","ministral-8b-latest","open-mistral-7b","mistral-tiny","mistral-tiny-2312","open-mixtral-8x7b","mistral-small","mistral-small-2312","open-mixtral-8x22b","open-mixtral-8x22b-2404","mistral-large-2411","mistral-large-latest","pixtral-large-2411","pixtral-large-latest","mistral-large-pixtral-2411","codestral-2501","codestral-latest","codestral-2412","codestral-2411-rc5","pixtral-12b-2409","pixtral-12b","pixtral-12b-latest","mistral-small-2503","mistral-small-latest"]
+
     model_aliases = {              
         ### mistral_models ###
-        "mixtral-8x22b": ["open-mixtral-8x22b", "open-mixtral-8x22b-2404"],
-        "pixtral-large": ["pixtral-large-2411","pixtral-large-latest", "mistral-large-pixtral-2411"],
+        "mixtral-8x22b": "open-mixtral-8x22b",
+        "pixtral-large": "pixtral-large-latest",
 
         ### openrouter_models ###
         # llama
@@ -67,56 +67,6 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         "gemma-3-12b": ["openrouter:google/gemma-3-12b-it:free", "openrouter:google/gemma-3-12b-it"],
         "gemma-3-27b": ["openrouter:google/gemma-3-27b-it:free", "openrouter:google/gemma-3-27b-it"],
 
-        # openai (gpt-3.5)
-        "gpt-3.5-turbo": ["openrouter:openai/gpt-3.5-turbo-0613", "openrouter:openai/gpt-3.5-turbo-1106", "openrouter:openai/gpt-3.5-turbo-0125", "openrouter:openai/gpt-3.5-turbo", "openrouter:openai/gpt-3.5-turbo-instruct", "openrouter:openai/gpt-3.5-turbo-16k"],
-
-        # openai (gpt-4)
-        "gpt-4": ["openrouter:openai/gpt-4-1106-preview", "openrouter:openai/gpt-4-32k", "openrouter:openai/gpt-4-32k-0314", "openrouter:openai/gpt-4", "openrouter:openai/gpt-4-0314",],
-        "gpt-4-turbo": ["openrouter:openai/gpt-4-turbo", "openrouter:openai/gpt-4-turbo-preview"],
-
-        # openai (gpt-4o)
-        "gpt-4o": ["gpt-4o", "openrouter:openai/gpt-4o-2024-08-06", "openrouter:openai/gpt-4o-2024-11-20", "openrouter:openai/chatgpt-4o-latest", "openrouter:openai/gpt-4o", "openrouter:openai/gpt-4o:extended", "openrouter:openai/gpt-4o-2024-05-13",],
-        "gpt-4o-search": "openrouter:openai/gpt-4o-search-preview",
-        "gpt-4o-mini": ["gpt-4o-mini", "openrouter:openai/gpt-4o-mini",  "openrouter:openai/gpt-4o-mini-2024-07-18"],
-        "gpt-4o-mini-search": "openrouter:openai/gpt-4o-mini-search-preview",
-
-        # openai (o1)
-        "o1": ["o1", "openrouter:openai/o1", "openrouter:openai/o1-preview", "openrouter:openai/o1-preview-2024-09-12"],
-        "o1-mini": ["o1-mini", "openrouter:openai/o1-mini", "openrouter:openai/o1-mini-2024-09-12"],
-        "o1-pro": ["o1-pro", "openrouter:openai/o1-pro"],
-
-        # openai (o3)
-        "o3": ["o3", "openrouter:openai/o3"],
-        "o3-mini": ["o3-mini", "openrouter:openai/o3-mini", "openrouter:openai/o3-mini-high"],
-        "o3-mini-high": "openrouter:openai/o3-mini-high",
-
-        # openai (o4)
-        "o4-mini": ["o4-mini", "openrouter:openai/o4-mini"],
-        "o4-mini-high": "openrouter:openai/o4-mini-high",
-
-        # openai (gpt-4.1)
-        "gpt-4.1": ["gpt-4.1", "openrouter:openai/gpt-4.1"],
-        "gpt-4.1-mini": ["gpt-4.1-mini", "openrouter:openai/gpt-4.1-mini"],
-        "gpt-4.1-nano": ["gpt-4.1-nano", "openrouter:openai/gpt-4.1-nano"],
-    
-        # openai (gpt-4.5)
-        "gpt-4.5": ["gpt-4.5-preview", "openrouter:openai/gpt-4.5-preview"],
-
-        # mistralai
-        "mistral-large": ["openrouter:mistralai/mistral-large", "openrouter:mistralai/mistral-large-2411", "openrouter:mistralai/mistral-large-2407", "openrouter:mistralai/pixtral-large-2411"], 
-        "mistral-medium": ["openrouter:mistralai/mistral-medium", "openrouter:mistralai/mistral-medium-3"], 
-        "mistral-small": ["mistral-small", "mistral-small-2312", "mistral-small-2503","mistral-small-latest", "openrouter:mistralai/mistral-small", "openrouter:mistralai/mistral-small-3.1-24b-instruct:free", "openrouter:mistralai/mistral-small-3.1-24b-instruct", "openrouter:mistralai/mistral-small-24b-instruct-2501:free", "openrouter:mistralai/mistral-small-24b-instruct-2501"], 
-        "mistral-tiny": ["mistral-tiny", "mistral-tiny-2312", "openrouter:mistralai/mistral-tiny"], 
-        "mistral-7b": ["open-mistral-7b", "openrouter:mistralai/mistral-7b-instruct", "openrouter:mistralai/mistral-7b-instruct:free", "openrouter:mistralai/mistral-7b-instruct-v0.1", "openrouter:mistralai/mistral-7b-instruct-v0.2", "openrouter:mistralai/mistral-7b-instruct-v0.3",], 
-        "mixtral-8x7b": ["open-mixtral-8x7b", "openrouter:mistralai/mixtral-8x7b-instruct"], 
-        "mixtral-8x22b": ["open-mixtral-8x22b", "open-mixtral-8x22b-2404", "openrouter:mistralai/mixtral-8x7b-instruct", "openrouter:mistralai/mixtral-8x22b-instruct"], 
-        "ministral-8b": ["ministral-8b-2410", "ministral-8b-latest", "openrouter:mistral/ministral-8b", "openrouter:mistralai/ministral-8b"],
-        "mistral-nemo": ["openrouter:mistralai/mistral-nemo:free", "openrouter:mistralai/mistral-nemo"],
-        "ministral-3b": ["ministral-3b-2410", "ministral-3b-latest", "openrouter:mistralai/ministral-3b"],
-        "mistral-saba": "openrouter:mistralai/mistral-saba",
-        "codestral": ["codestral-2501","codestral-latest","codestral-2412","codestral-2411-rc5", "openrouter:mistralai/codestral-2501", "openrouter:mistralai/codestral-mamba"],
-        "pixtral-12b": ["pixtral-12b-2409","pixtral-12b","pixtral-12b-latest", "openrouter:mistralai/pixtral-12b"],
-
         # nousresearch
         "hermes-2-dpo": "openrouter:nousresearch/nous-hermes-2-mixtral-8x7b-dpo",
         "hermes-2-pro": "openrouter:nousresearch/hermes-2-pro-llama-3-8b",
@@ -133,9 +83,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         "phi-4-multimodal": "openrouter:microsoft/phi-4-multimodal-instruct",
         "phi-4-reasoning": "openrouter:microsoft/phi-4-reasoning:free",
         "phi-4-reasoning-plus": ["openrouter:microsoft/phi-4-reasoning-plus:free", "openrouter:microsoft/phi-4-reasoning-plus"],
-
         "wizardlm-2-8x22b": "openrouter:microsoft/wizardlm-2-8x22b",
-
         "mai-ds-r1": "openrouter:microsoft/mai-ds-r1:free",     
 
         # anthropic
@@ -263,7 +211,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 url = "https://api.puter.com/puterai/chat/models/"
                 cls.models = requests.get(url).json().get("models", [])
-                cls.models = [model for model in cls.models if "/" not in model and model not in ["abuse", "costly", "fake", "model-fallback-test-1"]]
+                cls.models = [model for model in cls.models if model.startswith("openrouter:") or "/" not in model and model not in ["abuse", "costly", "fake", "model-fallback-test-1"]]
                 cls.live += 1
             except Exception as e:
                 debug.log(f"PuterJS: Failed to fetch models from API: {e}")
