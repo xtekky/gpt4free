@@ -130,7 +130,7 @@ jobs:
 
   # Linux Executables
   build-linux-exe:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     needs: prepare
     strategy:
       matrix:
