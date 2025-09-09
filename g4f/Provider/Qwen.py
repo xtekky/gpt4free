@@ -28,6 +28,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     # Complete list of models, extracted from the API
     models = [
+        "qwen3-max-preview",
         "qwen3-235b-a22b",
         "qwen3-coder-plus",
         "qwen3-30b-a3b",
@@ -206,3 +207,4 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         raise e
 
             raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
+
