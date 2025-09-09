@@ -135,7 +135,7 @@ class SharedTokenManager(AuthFileMixin):
                 data = json.load(fs)
                 credentials = self.validateCredentials(data)
                 self.memory_cache["credentials"] = credentials
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             self.memory_cache["credentials"] = None
             raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, "Credentials file not found", e) from e
         except json.JSONDecodeError as e:

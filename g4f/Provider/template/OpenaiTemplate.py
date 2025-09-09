@@ -29,6 +29,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     add_user = True
     use_image_size = False
     max_tokens: int = None
+    supports_text_plain = True  # Whether the provider can handle text/plain responses
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
@@ -61,8 +62,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             except MissingAuthError:
                 raise
             except Exception as e:
-                debug.error(e)
-                return cls.fallback_models
+                if cls.fallback_models:
+                    debug.error(e)
+                    return cls.fallback_models
+                raise e
         return cls.models
 
     @classmethod
@@ -145,7 +148,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if api_endpoint is None:
                     api_endpoint = cls.api_endpoint
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
-                async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media):
+                async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media, cls.supports_text_plain):
                     yield chunk
 
     @classmethod
@@ -160,9 +163,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             **({} if headers is None else headers)
         }
     
-async def read_response(response: StreamResponse, stream: bool, prompt: str, provider_info: dict, download_media: bool):
+async def read_response(response: StreamResponse, stream: bool, prompt: str, provider_info: dict, download_media: bool, supports_text_plain: bool = True) -> AsyncResult:
     content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
-    if content_type.startswith("text/plain"):
+    if supports_text_plain and content_type.startswith("text/plain"):
         yield await response.text()
     elif content_type.startswith("application/json"):
         data = await response.json()
