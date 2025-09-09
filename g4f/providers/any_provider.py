@@ -385,10 +385,13 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     providers.append(provider)
         if not providers:
             for provider in PROVIDERS_LIST_2 + PROVIDERS_LIST_3:
-                if model in provider.get_models():
-                    providers.append(provider)
-                elif model in provider.model_aliases:
-                    providers.append(provider)
+                try:
+                    if model in provider.get_models():
+                        providers.append(provider)
+                    elif model in provider.model_aliases:
+                        providers.append(provider)
+                except Exception as e:
+                    debug.error(f"Error checking provider {provider.__name__} for model {model}:", e)
         providers = [provider for provider in providers if provider.working and provider.get_parent() not in ignored]
         providers = list({provider.__name__: provider for provider in providers}.values())
 
