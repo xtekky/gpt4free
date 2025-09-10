@@ -116,7 +116,7 @@ class Api:
             try:
                 return list(provider.get_models())
             except Exception as e:
-                debug.error("{provider.__name__} get_models error:", e)
+                debug.error(f"{provider.__name__}: get_models error:", e)
                 return []
         return {
             provider.__name__: safe_get_provider_models(provider)

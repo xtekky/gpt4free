@@ -28,7 +28,8 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
             error = message.get("error")
             if isinstance(error, dict):
                 message = error.get("message")
-            message = message.get("message", message)
+            else:
+                message = message.get("message", message)
             if isinstance(error, str):
                 message = f"{error}: {message}"
         else:
