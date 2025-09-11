@@ -66,7 +66,7 @@ def render(filename = "home", download_url: str = GITHUB_URL):
             html = response.text
             html = html.replace("../dist/", f"dist/")
             html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
-        html = html.replace(JSDELIVR_URL, "/")
+        # html = html.replace(JSDELIVR_URL, "/")
         html = html.replace("{{ v }}", latest_version)
         if is_temp:
             return html
