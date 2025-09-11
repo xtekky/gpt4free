@@ -378,8 +378,13 @@ class Backend_Api(Api):
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
 
+     
+        @app.route('/backend-api/v2/files/<bucket_id>/stream', methods=['GET'])
+        def stream_files(bucket_id: str, event_stream=True):
+            return manage_files(bucket_id, event_stream)
+
         @app.route('/backend-api/v2/files/<bucket_id>', methods=['GET', 'DELETE'])
-        def manage_files(bucket_id: str):
+        def manage_files(bucket_id: str, event_stream=False):
             bucket_id = secure_filename(bucket_id)
             bucket_dir = get_bucket_dir(bucket_id)
 
@@ -397,7 +402,7 @@ class Backend_Api(Api):
 
             delete_files = request.args.get('delete_files', True)
             refine_chunks_with_spacy = request.args.get('refine_chunks_with_spacy', False)
-            event_stream = 'text/event-stream' in request.headers.get('Accept', '')
+            event_stream = event_stream or 'text/event-stream' in request.headers.get('Accept', '')
             mimetype = "text/event-stream" if event_stream else "text/plain"
             return Response(get_streaming(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream), mimetype=mimetype)
 
