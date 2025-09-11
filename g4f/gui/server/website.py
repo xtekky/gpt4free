@@ -35,6 +35,8 @@ def render(filename = "home", download_url: str = GITHUB_URL):
     latest_version = str(latest_version) +quote(unquote(request.query_string.decode())) or str(latest_version)
     cache_file = os.path.join(cache_dir, f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}")
     is_temp = False
+    if os.path.isfile(cache_file + ".js"):
+        cache_file += ".js"
     if not os.path.exists(cache_file):
         if os.access(cache_file, os.W_OK):
             is_temp = True
@@ -59,6 +61,8 @@ def render(filename = "home", download_url: str = GITHUB_URL):
                         return send_from_directory(found[0], found[1])
                     else:
                         raise
+            if not cache_file.endswith(".js") and response.headers.get("Content-Type", "").startswith("application/javascript"):
+                cache_file += ".js"
             html = response.text
             html = html.replace("../dist/", f"dist/")
             html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")

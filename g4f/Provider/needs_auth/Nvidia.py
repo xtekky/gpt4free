@@ -14,4 +14,3 @@ class Nvidia(OpenaiTemplate):
     models_needs_auth = True
     default_model = DEFAULT_MODEL
     add_user = False
-    supports_text_plain = False

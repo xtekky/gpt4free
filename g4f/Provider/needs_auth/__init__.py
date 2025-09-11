@@ -4,6 +4,7 @@ from .BingCreateImages  import BingCreateImages
 from .BlackboxPro       import BlackboxPro
 from .CablyAI           import CablyAI
 from .Cerebras          import Cerebras
+from .Claude            import Claude
 from .Cohere            import Cohere
 from .CopilotAccount    import CopilotAccount
 from .Custom            import Custom

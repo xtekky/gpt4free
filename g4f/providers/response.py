@@ -139,6 +139,11 @@ class JsonMixin:
             if not key.startswith("__")
         }
 
+    @classmethod
+    def from_dict(cls, data: Dict) -> JsonMixin:
+        """Create an instance from a dictionary."""
+        return cls(**data)
+
     def reset(self) -> None:
         """Reset all attributes."""
         self.__dict__ = {}
