@@ -682,16 +682,3 @@ def get_content_type(url: str) -> str:
         return "image/jpeg"
     else:
         return "application/octet-stream"
-
-async def switch_to_frame(browser, frame_id):
-    """
-    change iframe
-    let iframe = document.querySelector("YOUR_IFRAME_SELECTOR")
-    let iframe_tab = iframe.contentWindow.document.body;
-    """
-    iframe_tab = next(
-        filter(
-        lambda x: str(x.target.target_id) == str(frame_id), browser.targets
-        )
-    )
-    return iframe_tab
