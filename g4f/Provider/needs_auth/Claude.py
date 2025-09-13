@@ -13,7 +13,7 @@ class Claude(OpenaiTemplate):
     working = True
     active_by_default = True
     login_url = "https://discord.gg/qXA4Wf4Fsm"
-    orginization_id = None
+    organization_id = None
 
     @classmethod
     async def create_async_generator(
