@@ -22,13 +22,5 @@ class OpenRouterFree(OpenRouter):
         models = super().get_models(api_key=api_key, **kwargs)
         models = [model for model in models if model.endswith(":free")]
         cls.model_aliases = {model.replace(":free", ""): model for model in models}
-        cls.models = [model.replace(":free", "") for model in models]
         cls.default_model = models[0] if models else cls.default_model
-        return cls.models
-
-    @classmethod
-    def get_model(cls, model: str, **kwargs) -> str:
-        # Load model aliases if not already done
-        cls.get_models(**kwargs)
-        # Map the model to its alias if it exists
-        return super().get_model(model, **kwargs)
+        return models
