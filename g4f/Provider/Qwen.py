@@ -5,15 +5,48 @@ import json
 import re
 import uuid
 from time import time
+from typing import Literal, Optional
 
 import aiohttp
 from ..errors import RateLimitError
-from ..typing import AsyncResult, Messages
-from ..providers.response import JsonConversation, Reasoning, Usage
+from ..typing import AsyncResult, Messages, MediaListType
+from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
 from ..requests import sse_stream
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from .. import debug
+
+try:
+    import curl_cffi
+
+    has_curl_cffi = True
+except ImportError:
+    has_curl_cffi = False
+
+text_models = [
+    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwq-32b', 'qwen-turbo-2025-02-11',
+    'qwen2.5-omni-7b', 'qvq-72b-preview-0310', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m',
+    'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
+
+image_models = [
+    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwen-turbo-2025-02-11',
+    'qwen2.5-omni-7b', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m', 'qwen2.5-coder-32b-instruct',
+    'qwen2.5-72b-instruct']
+
+vision_models = [
+    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwen-turbo-2025-02-11',
+    'qwen2.5-omni-7b', 'qvq-72b-preview-0310', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m',
+    'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
+
+models = [
+    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwq-32b', 'qwen-turbo-2025-02-11',
+    'qwen2.5-omni-7b', 'qvq-72b-preview-0310', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m',
+    'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
+
 
 class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     """
@@ -26,42 +59,69 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
     supports_message_history = False
 
+    _models_loaded = True
     # Complete list of models, extracted from the API
-    models = [
-        "qwen3-max-preview",
-        "qwen3-235b-a22b",
-        "qwen3-coder-plus",
-        "qwen3-30b-a3b",
-        "qwen3-coder-30b-a3b-instruct",
-        "qwen-max-latest",
-        "qwen-plus-2025-01-25",
-        "qwq-32b",
-        "qwen-turbo-2025-02-11",
-        "qwen2.5-omni-7b",
-        "qvq-72b-preview-0310",
-        "qwen2.5-vl-32b-instruct",
-        "qwen2.5-14b-instruct-1m",
-        "qwen2.5-coder-32b-instruct",
-        "qwen2.5-72b-instruct",
-    ]
+    image_models = image_models
+    text_models = text_models
+    vision_models = vision_models
+    models = models
     default_model = "qwen3-235b-a22b"
 
     _midtoken: str = None
     _midtoken_uses: int = 0
 
     @classmethod
+    def get_models(cls) -> list[str]:
+        if not cls._models_loaded and has_curl_cffi:
+            response = curl_cffi.get(f"{cls.url}/api/models")
+            if response.ok:
+                models = response.json().get("data", [])
+                cls.text_models = [model["id"] for model in models if "t2t" in model["info"]["meta"]["chat_type"]]
+
+                cls.image_models = [
+                    model["id"] for model in models if
+                    "image_edit" in model["info"]["meta"]["chat_type"] or "t2i" in model["info"]["meta"]["chat_type"]
+                ]
+
+                cls.vision_models = [model["id"] for model in models if model["info"]["meta"]["capabilities"]["vision"]]
+
+                cls.models = [model["id"] for model in models]
+                cls.default_model = cls.models[0]
+                cls._models_loaded = True
+
+            else:
+                debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
+        return cls.models
+
+    @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        conversation: JsonConversation = None,
-        proxy: str = None,
-        timeout: int = 120,
-        stream: bool = True,
-        enable_thinking: bool = True,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            media: MediaListType = None,
+            conversation: JsonConversation = None,
+            proxy: str = None,
+            timeout: int = 120,
+            stream: bool = True,
+            enable_thinking: bool = True,
+            chat_type: Literal[
+                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+            ] = "t2t",
+            image_size: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+            **kwargs
     ) -> AsyncResult:
-        
+        """
+        chat_type:
+            DeepResearch = "deep_research"
+            Artifacts = "artifacts"
+            WebSearch = "search"
+            ImageGeneration = "t2i"
+            ImageEdit = "image_edit"
+            VideoGeneration = "t2v"
+            Txt2Txt = "t2t"
+            WebDev = "web_dev"
+        """
+
         model_name = cls.get_model(model)
 
         headers = {
@@ -94,7 +154,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 raise RuntimeError("Failed to extract bx-umidtoken.")
                             cls._midtoken = match.group(1)
                             cls._midtoken_uses = 1
-                            debug.log(f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
+                            debug.log(
+                                f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
                     else:
                         cls._midtoken_uses += 1
                         debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
@@ -109,11 +170,11 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             "title": "New Chat",
                             "models": [model_name],
                             "chat_mode": "normal",
-                            "chat_type": "t2t",
+                            "chat_type": chat_type,
                             "timestamp": int(time() * 1000)
                         }
                         async with session.post(
-                            f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers, proxy=proxy
+                                f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers, proxy=proxy
                         ) as resp:
                             resp.raise_for_status()
                             data = await resp.json()
@@ -124,7 +185,31 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             cookies={key: value for key, value in resp.cookies.items()},
                             parent_id=None
                         )
-        
+                    files = []
+                    if media:
+                        for index, (_file, file_name) in enumerate(media):
+                            file_class: Literal["default", "vision", "video", "audio", "document"] = "vision"
+                            _type: Literal["file", "image", "video", "audio"] = "image"
+                            file_type = "image/jpeg"
+                            showType: Literal["file", "image", "video", "audio"] = "image"
+
+                            if isinstance(_file, str) and _file.startswith('http'):
+                                if chat_type == "image_edit":
+                                    file_class = "vision"
+                                    _type = "image"
+                                    file_type = "image"
+                                    showType = "image"
+
+                                files.append(
+                                    {
+                                        "type": _type,
+                                        "name": file_name,
+                                        "file_type": file_type,
+                                        "showType": showType,
+                                        "file_class": file_class,  # "document"
+                                        "url": _file
+                                    }
+                                )
                     msg_payload = {
                         "stream": stream,
                         "incremental_output": stream,
@@ -140,9 +225,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 "role": "user",
                                 "content": prompt,
                                 "user_action": "chat",
-                                "files": [],
+                                "files": files,
                                 "models": [model_name],
-                                "chat_type": "t2t",
+                                "chat_type": chat_type,
                                 "feature_config": {
                                     "thinking_enabled": enable_thinking,
                                     "output_schema": "phase",
@@ -150,18 +235,20 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 },
                                 "extra": {
                                     "meta": {
-                                        "subChatType": "t2t"
+                                        "subChatType": chat_type
                                     }
                                 },
-                                "sub_chat_type": "t2t",
+                                "sub_chat_type": chat_type,
                                 "parent_id": None
                             }
                         ]
                     }
+                    if image_size:
+                        msg_payload["size"] = image_size
 
                     async with session.post(
-                        f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}', json=msg_payload,
-                        headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
+                            f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}', json=msg_payload,
+                            headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                     ) as resp:
                         first_line = await resp.content.readline()
                         line_str = first_line.decode().strip()
@@ -182,10 +269,18 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 delta = choices[0].get("delta", {})
                                 phase = delta.get("phase")
                                 content = delta.get("content")
+                                status = delta.get("status")
+                                extra = delta.get("extra", {})
                                 if phase == "think" and not thinking_started:
                                     thinking_started = True
                                 elif phase == "answer" and thinking_started:
                                     thinking_started = False
+                                elif phase == "image_gen" and status == "typing":
+                                    yield ImageResponse([content], "", extra)
+                                    continue
+                                elif phase == "image_gen" and status == "finished":
+                                    yield FinishReason(status)
+
                                 if content:
                                     yield Reasoning(content) if thinking_started else content
                             except (json.JSONDecodeError, KeyError, IndexError):
@@ -198,13 +293,14 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     is_rate_limit = (isinstance(e, aiohttp.ClientResponseError) and e.status == 429) or \
                                     ("RateLimited" in str(e))
                     if is_rate_limit:
-                        debug.log(f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken.")
+                        debug.log(
+                            f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken.")
                         cls._midtoken = None
                         cls._midtoken_uses = 0
+                        conversation = None
                         await asyncio.sleep(2)
                         continue
                     else:
                         raise e
 
             raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
-
