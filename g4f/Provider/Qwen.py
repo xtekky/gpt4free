@@ -97,20 +97,20 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        media: MediaListType = None,
-        conversation: JsonConversation = None,
-        proxy: str = None,
-        timeout: int = 120,
-        stream: bool = True,
-        enable_thinking: bool = True,
-        chat_type: Literal[
-            "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
-        ] = "t2t",
-        aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            media: MediaListType = None,
+            conversation: JsonConversation = None,
+            proxy: str = None,
+            timeout: int = 120,
+            stream: bool = True,
+            enable_thinking: bool = True,
+            chat_type: Literal[
+                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+            ] = "t2t",
+            aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+            **kwargs
     ) -> AsyncResult:
         """
         chat_type:
@@ -187,7 +187,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             parent_id=None
                         )
                     files = []
-                    media = list(merge_media(media))
+                    media = list(merge_media(media, messages))
                     if media:
                         for _file, file_name in media:
                             file_class: Literal["default", "vision", "video", "audio", "document"] = "vision"
