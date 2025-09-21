@@ -89,7 +89,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     vision_models = [default_vision_model]
     _models_loaded = False
     model_aliases = {
-        "openai-fast": "gpt-4.1-nano",
+        "gpt-4.1-nano": "openai-fast",
         "llama-4-scout": "llamascout",
         "deepseek-r1": "deepseek-reasoning",
         "sdxl-turbo": "turbo",
@@ -100,6 +100,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "flux": "flux",
         "flux-kontext": "kontext",
     }
+    swap_model_aliases = {v: k for k, v in model_aliases.items()}
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -107,8 +108,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             alias = model.get("name")
             if (model.get("aliases")):
                 alias = model.get("aliases")[0]
-            elif alias in cls.model_aliases:
-                alias = cls.model_aliases[alias]
+            elif alias in cls.swap_model_aliases:
+                alias = cls.swap_model_aliases[alias]
             return alias.replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
 
         if not cls._models_loaded:
@@ -396,6 +397,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             if cls.login_url in str(item):
                                 raise MissingAuthError(item)
                             raise item
+                        else:
+                            finished += 1
+                            yield Reasoning(
+                                label=f"Image {finished}/{n} failed after {time.time() - start:.2f}s: {item}")
                     else:
                         finished += 1
                         yield Reasoning(label=f"Image {finished}/{n} generated in {time.time() - start:.2f}s")
