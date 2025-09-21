@@ -187,7 +187,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             parent_id=None
                         )
                     files = []
-                    media = list(merge_media(media))
+                    media = list(merge_media(media, messages))
                     if media:
                         for _file, file_name in media:
                             file_class: Literal["default", "vision", "video", "audio", "document"] = "vision"
