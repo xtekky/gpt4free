@@ -61,6 +61,7 @@ FOLLOWUPS_DEVELOPER_MESSAGE = [{
     "content": "Provide conversation options.",
 }]
 
+
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI 🌸"
     url = "https://pollinations.ai"
@@ -106,6 +107,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             if (model.get("aliases")):
                 alias = model.get("aliases")[0]
             return alias.replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
+
         if not cls._models_loaded:
             try:
                 # Update of image models
@@ -117,12 +119,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
                 # Combine image models without duplicates
                 image_models = cls.image_models.copy()  # Start with default model
-                
+
                 # Add extra image models if not already in the list
                 for model in new_image_models:
                     if model not in image_models:
                         image_models.append(model)
-                
+
                 cls.image_models = image_models
 
                 text_response = requests.get("https://g4f.dev/api/pollinations.ai/models")
@@ -188,36 +190,37 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        stream: bool = True,
-        proxy: str = None,
-        cache: bool = None,
-        referrer: str = STATIC_URL,
-        api_key: str = None,
-        extra_body: dict = None,
-        # Image generation parameters
-        prompt: str = None,
-        aspect_ratio: str = None,
-        width: int = None,
-        height: int = None,
-        seed: Optional[int] = None,
-        nologo: bool = True,
-        private: bool = False,
-        enhance: bool = None,
-        safe: bool = False,
-        transparent: bool = False,
-        n: int = 1,
-        # Text generation parameters
-        media: MediaListType = None,
-        temperature: float = None,
-        presence_penalty: float = None,
-        top_p: float = None,
-        frequency_penalty: float = None,
-        response_format: Optional[dict] = None,
-        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            stream: bool = True,
+            proxy: str = None,
+            cache: bool = None,
+            referrer: str = STATIC_URL,
+            api_key: str = None,
+            extra_body: dict = None,
+            # Image generation parameters
+            prompt: str = None,
+            aspect_ratio: str = None,
+            width: int = None,
+            height: int = None,
+            seed: Optional[int] = None,
+            nologo: bool = True,
+            private: bool = False,
+            enhance: bool = None,
+            safe: bool = False,
+            transparent: bool = False,
+            n: int = 1,
+            # Text generation parameters
+            media: MediaListType = None,
+            temperature: float = None,
+            presence_penalty: float = None,
+            top_p: float = None,
+            frequency_penalty: float = None,
+            response_format: Optional[dict] = None,
+            extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort",
+                                           "logit_bias", "voice", "modalities", "audio"],
+            **kwargs
     ) -> AsyncResult:
         if cache is None:
             cache = kwargs.get("action") == "next"
@@ -237,23 +240,23 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         debug.log(f"Using model: {model}")
         if model in cls.image_models:
             async for chunk in cls._generate_image(
-                model="gptimage" if model == "transparent" else model,
-                prompt=format_media_prompt(messages, prompt),
-                media=media,
-                proxy=proxy,
-                aspect_ratio=aspect_ratio,
-                width=width,
-                height=height,
-                seed=seed,
-                cache=cache,
-                nologo=nologo,
-                private=private,
-                enhance=enhance,
-                safe=safe,
-                transparent=transparent or model == "transparent",
-                n=n,
-                referrer=referrer,
-                api_key=api_key
+                    model="gptimage" if model == "transparent" else model,
+                    prompt=format_media_prompt(messages, prompt),
+                    media=media,
+                    proxy=proxy,
+                    aspect_ratio=aspect_ratio,
+                    width=width,
+                    height=height,
+                    seed=seed,
+                    cache=cache,
+                    nologo=nologo,
+                    private=private,
+                    enhance=enhance,
+                    safe=safe,
+                    transparent=transparent or model == "transparent",
+                    n=n,
+                    referrer=referrer,
+                    api_key=api_key
             ):
                 yield chunk
         else:
@@ -268,47 +271,47 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 }
                 model = cls.default_audio_model
             async for result in cls._generate_text(
-                model=model,
-                messages=messages,
-                media=media,
-                proxy=proxy,
-                temperature=temperature,
-                presence_penalty=presence_penalty,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                response_format=response_format,
-                seed=seed,
-                cache=cache,
-                stream=stream,
-                extra_parameters=extra_parameters,
-                referrer=referrer,
-                api_key=api_key,
-                extra_body=extra_body,
-                **kwargs
+                    model=model,
+                    messages=messages,
+                    media=media,
+                    proxy=proxy,
+                    temperature=temperature,
+                    presence_penalty=presence_penalty,
+                    top_p=top_p,
+                    frequency_penalty=frequency_penalty,
+                    response_format=response_format,
+                    seed=seed,
+                    cache=cache,
+                    stream=stream,
+                    extra_parameters=extra_parameters,
+                    referrer=referrer,
+                    api_key=api_key,
+                    extra_body=extra_body,
+                    **kwargs
             ):
                 yield result
 
     @classmethod
     async def _generate_image(
-        cls,
-        model: str,
-        prompt: str,
-        media: MediaListType,
-        proxy: str,
-        aspect_ratio: str,
-        width: int,
-        height: int,
-        seed: Optional[int],
-        cache: bool,
-        nologo: bool,
-        private: bool,
-        enhance: bool,
-        safe: bool,
-        transparent: bool,
-        n: int,
-        referrer: str,
-        api_key: str,
-        timeout: int = 120
+            cls,
+            model: str,
+            prompt: str,
+            media: MediaListType,
+            proxy: str,
+            aspect_ratio: str,
+            width: int,
+            height: int,
+            seed: Optional[int],
+            cache: bool,
+            nologo: bool,
+            private: bool,
+            enhance: bool,
+            safe: bool,
+            transparent: bool,
+            n: int,
+            referrer: str,
+            api_key: str,
+            timeout: int = 120
     ) -> AsyncResult:
         if enhance is None:
             enhance = True if model == "flux" else False
@@ -335,37 +338,47 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         encoded_prompt = prompt.strip(". \n")
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
-        encoded_prompt = quote_plus(encoded_prompt)[:4096-len(cls.image_api_endpoint)-len(query)-8].rstrip("%")
+        encoded_prompt = quote_plus(encoded_prompt)[:4096 - len(cls.image_api_endpoint) - len(query) - 8].rstrip("%")
         url = f"{cls.image_api_endpoint}prompt/{encoded_prompt}?{query}"
+
         def get_url_with_seed(i: int, seed: Optional[int] = None):
             if model == "gptimage":
                 return url
             if i == 0:
                 if not cache and seed is None:
-                    seed = random.randint(0, 2**32)
+                    seed = random.randint(0, 2 ** 32)
             else:
-                seed = random.randint(0, 2**32)
+                seed = random.randint(0, 2 ** 32)
             return f"{url}&seed={seed}" if seed else url
+
         headers = {"referer": referrer}
         if api_key:
             headers["authorization"] = f"Bearer {api_key}"
         async with ClientSession(
-            headers=DEFAULT_HEADERS,
-            connector=get_connector(proxy=proxy),
-            timeout=ClientTimeout(timeout)
+                headers=DEFAULT_HEADERS,
+                connector=get_connector(proxy=proxy),
+                timeout=ClientTimeout(timeout)
         ) as session:
             responses = set()
             yield Reasoning(label=f"Generating {n} {'image' if n == 1 else 'images'}")
             finished = 0
             start = time.time()
+
             async def get_image(responses: set, i: int, seed: Optional[int] = None):
                 try:
-                    async with session.get(get_url_with_seed(i, seed), allow_redirects=False, headers=headers) as response:
+                    async with session.get(get_url_with_seed(i, seed), allow_redirects=False,
+                                           headers=headers) as response:
                         await raise_for_status(response)
                 except Exception as e:
                     responses.add(e)
                     debug.error(f"Error fetching image: {e}")
-                responses.add(ImageResponse(str(response.url), prompt, {"headers": headers}))
+                if response.headers['content-type'].startswith("image/"):
+                    responses.add(ImageResponse(str(response.url), prompt, {"headers": headers}))
+                else:
+                    t_ = await response.text()
+                    debug.error(f"UnHandel Error fetching image: {t_}")
+                    responses.add(t_)
+
             tasks: list[asyncio.Task] = []
             for i in range(int(n)):
                 tasks.append(asyncio.create_task(get_image(responses, i, seed)))
@@ -380,7 +393,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             if cls.login_url in str(item):
                                 raise MissingAuthError(item)
                             raise item
-                    else: 
+                    else:
                         finished += 1
                         yield Reasoning(label=f"Image {finished}/{n} generated in {time.time() - start:.2f}s")
                         yield item
@@ -390,27 +403,27 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def _generate_text(
-        cls,
-        model: str,
-        messages: Messages,
-        media: MediaListType,
-        proxy: str,
-        temperature: float,
-        presence_penalty: float,
-        top_p: float,
-        frequency_penalty: float,
-        response_format: Optional[dict],
-        seed: Optional[int],
-        cache: bool,
-        stream: bool,
-        extra_parameters: list[str],
-        referrer: str,
-        api_key: str,
-        extra_body: dict,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            media: MediaListType,
+            proxy: str,
+            temperature: float,
+            presence_penalty: float,
+            top_p: float,
+            frequency_penalty: float,
+            response_format: Optional[dict],
+            seed: Optional[int],
+            cache: bool,
+            stream: bool,
+            extra_parameters: list[str],
+            referrer: str,
+            api_key: str,
+            extra_body: dict,
+            **kwargs
     ) -> AsyncResult:
         if not cache and seed is None:
-            seed = random.randint(0, 2**32)
+            seed = random.randint(0, 2 ** 32)
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             extra_body.update({param: kwargs[param] for param in extra_parameters if param in kwargs})
@@ -433,7 +446,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 frequency_penalty=frequency_penalty,
                 response_format=response_format,
                 stream=stream,
-                seed=None if model =="grok" else seed,
+                seed=None if model == "grok" else seed,
                 referrer=referrer,
                 **extra_body
             )
@@ -444,7 +457,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 if response.status in (400, 500):
                     debug.error(f"Error: {response.status} - Bad Request: {data}")
                 full_resposne = []
-                async for chunk in read_response(response, stream, format_media_prompt(messages), cls.get_dict(), kwargs.get("download_media", True)):
+                async for chunk in read_response(response, stream, format_media_prompt(messages), cls.get_dict(),
+                                                 kwargs.get("download_media", True)):
                     if isinstance(chunk, str):
                         full_resposne.append(chunk)
                     yield chunk
@@ -472,7 +486,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         async with session.post(cls.openai_endpoint, json=data, headers=headers) as response:
                             try:
                                 await raise_for_status(response)
-                                tool_calls = (await response.json()).get("choices", [{}])[0].get("message", {}).get("tool_calls", [])
+                                tool_calls = (await response.json()).get("choices", [{}])[0].get("message", {}).get(
+                                    "tool_calls", [])
                                 if tool_calls:
                                     arguments = json.loads(tool_calls.pop().get("function", {}).get("arguments"))
                                     if arguments.get("title"):

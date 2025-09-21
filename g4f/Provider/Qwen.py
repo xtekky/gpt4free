@@ -276,7 +276,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 elif phase == "answer" and thinking_started:
                                     thinking_started = False
                                 elif phase == "image_gen" and status == "typing":
-                                    yield ImageResponse([content], "", extra)
+                                    yield ImageResponse([content], prompt, extra)
                                     continue
                                 elif phase == "image_gen" and status == "finished":
                                     yield FinishReason(status)
