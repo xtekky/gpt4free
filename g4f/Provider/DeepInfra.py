@@ -77,6 +77,8 @@ class DeepInfra(OpenaiTemplate):
         "qwen-3-32b": "Qwen/Qwen3-32B",
         "qwen-3-235b": "Qwen/Qwen3-235B-A22B",
         "qwq-32b": "Qwen/QwQ-32B",
+
+        "moonshotai/Kimi-K2-Instruct": "moonshotai/Kimi-K2-Instruct-0905",
     }
 
     @classmethod

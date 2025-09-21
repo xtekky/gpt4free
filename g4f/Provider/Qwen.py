@@ -12,6 +12,7 @@ from ..errors import RateLimitError
 from ..typing import AsyncResult, Messages, MediaListType
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
 from ..requests import sse_stream
+from ..tools.media import merge_media
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from .. import debug
@@ -60,7 +61,6 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = False
 
     _models_loaded = True
-    # Complete list of models, extracted from the API
     image_models = image_models
     text_models = text_models
     vision_models = vision_models
@@ -88,6 +88,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.models = [model["id"] for model in models]
                 cls.default_model = cls.models[0]
                 cls._models_loaded = True
+                cls.live += 1
+                debug.log(f"Loaded {len(cls.models)} models from {cls.url}")
 
             else:
                 debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
@@ -95,20 +97,20 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-            cls,
-            model: str,
-            messages: Messages,
-            media: MediaListType = None,
-            conversation: JsonConversation = None,
-            proxy: str = None,
-            timeout: int = 120,
-            stream: bool = True,
-            enable_thinking: bool = True,
-            chat_type: Literal[
-                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
-            ] = "t2t",
-            image_size: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
-            **kwargs
+        cls,
+        model: str,
+        messages: Messages,
+        media: MediaListType = None,
+        conversation: JsonConversation = None,
+        proxy: str = None,
+        timeout: int = 120,
+        stream: bool = True,
+        enable_thinking: bool = True,
+        chat_type: Literal[
+            "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+        ] = "t2t",
+        aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+        **kwargs
     ) -> AsyncResult:
         """
         chat_type:
@@ -164,7 +166,6 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     req_headers['bx-umidtoken'] = cls._midtoken
                     req_headers['bx-v'] = '2.5.31'
                     message_id = str(uuid.uuid4())
-                    parent_id = None
                     if conversation is None:
                         chat_payload = {
                             "title": "New Chat",
@@ -186,8 +187,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             parent_id=None
                         )
                     files = []
+                    media = list(merge_media(media))
                     if media:
-                        for index, (_file, file_name) in enumerate(media):
+                        for _file, file_name in media:
                             file_class: Literal["default", "vision", "video", "audio", "document"] = "vision"
                             _type: Literal["file", "image", "video", "audio"] = "image"
                             file_type = "image/jpeg"
@@ -206,7 +208,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                         "name": file_name,
                                         "file_type": file_type,
                                         "showType": showType,
-                                        "file_class": file_class,  # "document"
+                                        "file_class": file_class,
                                         "url": _file
                                     }
                                 )
@@ -243,8 +245,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             }
                         ]
                     }
-                    if image_size:
-                        msg_payload["size"] = image_size
+                    if aspect_ratio:
+                        msg_payload["size"] = aspect_ratio
 
                     async with session.post(
                             f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}', json=msg_payload,
@@ -279,8 +281,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                     yield ImageResponse([content], prompt, extra)
                                     continue
                                 elif phase == "image_gen" and status == "finished":
-                                    yield FinishReason(status)
-
+                                    yield FinishReason("stop")
                                 if content:
                                     yield Reasoning(content) if thinking_started else content
                             except (json.JSONDecodeError, KeyError, IndexError):

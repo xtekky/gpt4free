@@ -113,7 +113,6 @@ async def get_args_from_nodriver(
             await callback(page)
         for c in await page.send(nodriver.cdp.network.get_cookies([url])):
             cookies[c.name] = c.value
-        await page.close()
         stop_browser()
         return {
             "impersonate": "chrome",
@@ -219,7 +218,7 @@ async def get_nodriver(
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
 
-async def sse_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
+async def sse_stream(iter_lines: AsyncIterator[bytes]) -> AsyncIterator[dict]:
     if hasattr(iter_lines, "content"):
         iter_lines = iter_lines.content
     elif hasattr(iter_lines, "iter_lines"):
