@@ -271,7 +271,7 @@ o4_mini_high = Model(
 gpt_4_1 = Model(
     name          = 'gpt-4.1',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([PollinationsAI, OpenaiChat])
+    best_provider = IterListProvider([OpenaiChat])
 )
 
 gpt_4_1_mini = Model(
@@ -283,7 +283,7 @@ gpt_4_1_mini = Model(
 gpt_4_1_nano = Model(
     name          = 'gpt-4.1-nano',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox])
+    best_provider = IterListProvider([Blackbox, PollinationsAI])
 )
 
 gpt_4_5 = Model(

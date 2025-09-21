@@ -32,6 +32,7 @@ model_aliases = {
     "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
     "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
     "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
+    "moonshotai/Kimi-K2-Instruct": "moonshotai/Kimi-K2-Instruct-0905",
     ### Used in other providers ###
     "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
     "gemma-2-27b": "google/gemma-2-27b-it",
