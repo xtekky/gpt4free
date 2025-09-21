@@ -71,7 +71,14 @@ async def launch_browser_for_oauth():
                 print("\nAuthorization successful.")
                 print("Access Token:", token_response["access_token"])
                 # Save token_response to a file or config
-                await client.sharedManager.saveCredentialsToFile(token_response)
+                credentials = {
+                    "access_token": token_response["access_token"],
+                    "token_type": token_response["token_type"],
+                    "refresh_token": token_response.get("refresh_token"),
+                    "resource_url": token_response.get("resource_url"),
+                    "expiry_date": int(time.time() * 1000) + token_response.get("expires_in", 0) * 1000,
+                }
+                await client.sharedManager.saveCredentialsToFile(credentials)
                 print(f"Credentials saved to: {client.sharedManager.getCredentialFilePath()}")
                 return
             else:
