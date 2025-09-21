@@ -111,7 +111,7 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             "code_challenge": options["code_challenge"],
             "code_challenge_method": options["code_challenge_method"],
         }
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={"user-agent": ""}) as session:
             async with session.post(QWEN_OAUTH_DEVICE_CODE_ENDPOINT, headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json",
@@ -133,7 +133,7 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             "device_code": options["device_code"],
             "code_verifier": options["code_verifier"],
         }
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={"user-agent": ""}) as session:
             async with session.post(QWEN_OAUTH_TOKEN_ENDPOINT, headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json",
@@ -158,7 +158,7 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             "refresh_token": self.credentials["refresh_token"],
             "client_id": QWEN_OAUTH_CLIENT_ID,
         }
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={"user-agent": ""}) as session:
             async with session.post(QWEN_OAUTH_TOKEN_ENDPOINT, headers={
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Accept": "application/json",

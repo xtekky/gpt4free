@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from ...typing import Messages, AsyncResult
-from ...errors import MissingAuthError
 from ..template import OpenaiTemplate
 from .qwenContentGenerator import QwenContentGenerator
 from .qwenOAuth2 import QwenOAuth2Client
@@ -15,7 +14,9 @@ class QwenCode(OpenaiTemplate):
     needs_auth = True
     active_by_default = True
     default_model = "qwen3-coder-plus"
-    models = [default_model]
+    default_vision_model = "qwen-vl-max-latest"
+    models = [default_model, default_vision_model]
+    vision_models = [default_vision_model]
     client = QwenContentGenerator(QwenOAuth2Client())
 
     @classmethod
