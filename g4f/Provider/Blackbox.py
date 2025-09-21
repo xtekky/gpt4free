@@ -8,7 +8,6 @@ import random
 import string
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, timedelta
 
 from ..typing import AsyncResult, Messages, MediaListType
 from ..requests.raise_for_status import raise_for_status
