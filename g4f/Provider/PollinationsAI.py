@@ -88,6 +88,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     vision_models = [default_vision_model]
     _models_loaded = False
     model_aliases = {
+        "openai-fast": "gpt-4.1-nano",
         "llama-4-scout": "llamascout",
         "deepseek-r1": "deepseek-reasoning",
         "sdxl-turbo": "turbo",
@@ -105,6 +106,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             alias = model.get("name")
             if (model.get("aliases")):
                 alias = model.get("aliases")[0]
+            elif alias in cls.model_aliases:
+                alias = cls.model_aliases[alias]
             return alias.replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
         if not cls._models_loaded:
             try:
