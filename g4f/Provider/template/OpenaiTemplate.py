@@ -89,7 +89,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         headers: dict = None,
         impersonate: str = None,
         download_media: bool = True,
-        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio", "stream_options"],
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio", "stream_options", "include_reasoning", "response_format", "max_completion_tokens", "reasoning_effort", "search_settings"],
         extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
@@ -127,6 +127,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
 
+            if stream:
+                kwargs.setdefault("stream_options", {"include_usage": True})
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             if extra_body is None:
                 extra_body = {}

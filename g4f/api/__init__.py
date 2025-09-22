@@ -11,7 +11,6 @@ import time
 from email.utils import formatdate
 import os.path
 import hashlib
-import asyncio
 import base64
 from contextlib import asynccontextmanager
 from urllib.parse import quote_plus
@@ -109,7 +108,7 @@ async def lifespan(app: FastAPI):
             try:
                 os.remove(lock_file)
             except Exception as e:
-                debug.error(f"Failed to remove lock file {lock_file}:" ,e)
+                debug.error(f"Failed to remove lock file {lock_file}:", e)
 
 def create_app():
     app = FastAPI(lifespan=lifespan)
@@ -270,7 +269,7 @@ class Api:
                     user = "admin"
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
-                    if request.method != "OPTIONS":
+                    if request.method != "OPTIONS" and not path.endswith("/models"):
                         if user_g4f_api_key is None:
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                         if AppConfig.g4f_api_key is None and user is None:
