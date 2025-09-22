@@ -8,7 +8,7 @@ from time import time
 from typing import Literal, Optional
 
 import aiohttp
-from ..errors import RateLimitError
+from ..errors import RateLimitError, ResponseError
 from ..typing import AsyncResult, Messages, MediaListType
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
 from ..requests import sse_stream
@@ -265,6 +265,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         usage = None
                         async for chunk in sse_stream(resp):
                             try:
+                                error = chunk.get("error", {})
+                                if error:
+                                    raise ResponseError(f'{error["code"]}: {error["details"]}')
                                 usage = chunk.get("usage", usage)
                                 choices = chunk.get("choices", [])
                                 if not choices: continue
