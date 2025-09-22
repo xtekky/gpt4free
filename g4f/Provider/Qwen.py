@@ -8,7 +8,7 @@ from time import time
 from typing import Literal, Optional
 
 import aiohttp
-from ..errors import RateLimitError
+from ..errors import RateLimitError, ResponseError
 from ..typing import AsyncResult, Messages, MediaListType
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
 from ..requests import sse_stream
@@ -97,20 +97,20 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        media: MediaListType = None,
-        conversation: JsonConversation = None,
-        proxy: str = None,
-        timeout: int = 120,
-        stream: bool = True,
-        enable_thinking: bool = True,
-        chat_type: Literal[
-            "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
-        ] = "t2t",
-        aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            media: MediaListType = None,
+            conversation: JsonConversation = None,
+            proxy: str = None,
+            timeout: int = 120,
+            stream: bool = True,
+            enable_thinking: bool = True,
+            chat_type: Literal[
+                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+            ] = "t2t",
+            aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+            **kwargs
     ) -> AsyncResult:
         """
         chat_type:
@@ -265,6 +265,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         usage = None
                         async for chunk in sse_stream(resp):
                             try:
+                                error = chunk.get("error", {})
+                                if error:
+                                    raise ResponseError(f'{error["code"]}: {error["details"]}')
                                 usage = chunk.get("usage", usage)
                                 choices = chunk.get("choices", [])
                                 if not choices: continue
