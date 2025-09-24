@@ -248,7 +248,7 @@ print(f"Generated image URL: {response.data[0].url}")
 
 Async client example:
 ```python
-from g4f.async_client import AsyncClient
+from g4f.client import AsyncClient
 import asyncio
 
 async def main():
