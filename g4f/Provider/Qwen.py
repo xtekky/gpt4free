@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import mimetypes
 import re
 import uuid
 from time import time
@@ -94,6 +95,34 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             else:
                 debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
         return cls.models
+
+    @classmethod
+    async def prepare_files(cls, media, chat_type="")->list:
+        files = []
+        for _file, file_name in media:
+            file_class: Literal["default", "vision", "video", "audio", "document"] = "default"
+            _type: Literal["file", "image", "video", "audio"] = "file"
+            file_type, _ = mimetypes.guess_type(file_name)
+            showType: Literal["file", "image", "video", "audio"] = "file"
+
+            if isinstance(_file, str) and _file.startswith('http'):
+                if chat_type == "image_edit":
+                    file_class = "vision"
+                    _type = "image"
+                    file_type = file_type or "image"
+                    showType = "image"
+
+                files.append(
+                    {
+                        "type": _type,
+                        "name": file_name,
+                        "file_type": file_type,
+                        "showType": showType,
+                        "file_class": file_class,
+                        "url": _file
+                    }
+                )
+        return files
 
     @classmethod
     async def create_async_generator(
@@ -189,29 +218,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     files = []
                     media = list(merge_media(media, messages))
                     if media:
-                        for _file, file_name in media:
-                            file_class: Literal["default", "vision", "video", "audio", "document"] = "vision"
-                            _type: Literal["file", "image", "video", "audio"] = "image"
-                            file_type = "image/jpeg"
-                            showType: Literal["file", "image", "video", "audio"] = "image"
+                        files = await cls.prepare_files(media, chat_type=chat_type)
 
-                            if isinstance(_file, str) and _file.startswith('http'):
-                                if chat_type == "image_edit":
-                                    file_class = "vision"
-                                    _type = "image"
-                                    file_type = "image"
-                                    showType = "image"
-
-                                files.append(
-                                    {
-                                        "type": _type,
-                                        "name": file_name,
-                                        "file_type": file_type,
-                                        "showType": showType,
-                                        "file_class": file_class,
-                                        "url": _file
-                                    }
-                                )
                     msg_payload = {
                         "stream": stream,
                         "incremental_output": stream,
