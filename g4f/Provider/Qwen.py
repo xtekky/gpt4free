@@ -100,13 +100,13 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     async def prepare_files(cls, media, chat_type="")->list:
         files = []
         for _file, file_name in media:
+            file_type, _ = mimetypes.guess_type(file_name)
             file_class: Literal["default", "vision", "video", "audio", "document"] = "default"
             _type: Literal["file", "image", "video", "audio"] = "file"
-            file_type, _ = mimetypes.guess_type(file_name)
             showType: Literal["file", "image", "video", "audio"] = "file"
 
             if isinstance(_file, str) and _file.startswith('http'):
-                if chat_type == "image_edit":
+                if chat_type == "image_edit" or (file_type and file_type.startswith("image")):
                     file_class = "vision"
                     _type = "image"
                     file_type = file_type or "image"
