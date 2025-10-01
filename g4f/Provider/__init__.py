@@ -53,6 +53,7 @@ from .Mintlify             import Mintlify
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer0501      import OIVSCodeSer0501
 from .OperaAria            import OperaAria
+from .Perplexity           import Perplexity
 from .PerplexityLabs       import PerplexityLabs
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
