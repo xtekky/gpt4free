@@ -6,7 +6,7 @@ import uuid
 from ..typing import AsyncResult, Messages
 from ..requests import StreamSession, raise_for_status
 from ..errors import ResponseError
-from ..providers.response import FinishReason
+from ..providers.response import FinishReason, Sources
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
@@ -124,6 +124,9 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
             ) as response:
                 await raise_for_status(response)
                 
+                # Track last message position for incremental updates
+                last_message = 0
+                
                 # Parse SSE stream
                 async for line in response.content:
                     if line:
@@ -135,17 +138,41 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                             try:
                                 json_data = json.loads(data_str)
                                 
-                                # Handle different response types
-                                if "text" in json_data:
+                                # Handle error responses
+                                if json_data.get("status") == "failed":
+                                    error_message = json_data.get("text", "Unknown API error")
+                                    raise ResponseError(f"API Error: {error_message}")
+                                
+                                # Handle normal responses with 'output' field (like PerplexityLabs)
+                                if "output" in json_data:
+                                    # Yield incremental output
+                                    output = json_data["output"]
+                                    if len(output) > last_message:
+                                        yield output[last_message:]
+                                        last_message = len(output)
+                                    
+                                    # Check if response is final
+                                    if json_data.get("final", False):
+                                        # Yield citations if available
+                                        if json_data.get("citations"):
+                                            yield Sources(json_data["citations"])
+                                        yield FinishReason("stop")
+                                        break
+                                
+                                # Handle alternative response format with 'text' field
+                                elif "text" in json_data:
                                     text = json_data["text"]
                                     if text:
                                         yield text
-                                
-                                # Check if response is final
-                                if json_data.get("final", False):
-                                    yield FinishReason("stop")
-                                    break
+                                    
+                                    # Check if response is final
+                                    if json_data.get("final", False):
+                                        yield FinishReason("stop")
+                                        break
                                     
                             except json.JSONDecodeError:
                                 # Skip malformed JSON
                                 continue
+                            except ResponseError:
+                                # Re-raise ResponseError directly
+                                raise
