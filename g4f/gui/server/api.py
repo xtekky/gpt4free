@@ -274,6 +274,10 @@ class Api:
                     yield self._format_json("continue", chunk.log)
                 elif isinstance(chunk, RawResponse):
                     yield self._format_json(chunk.type, **chunk.get_dict())
+                elif isinstance(chunk, JsonRequest):
+                    yield self._format_json("request", chunk.get_dict())
+                elif isinstance(chunk, JsonResponse):
+                    yield self._format_json("response", chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
         except MissingAuthError as e:

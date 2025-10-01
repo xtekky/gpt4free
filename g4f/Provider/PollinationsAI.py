@@ -17,7 +17,7 @@ from ..errors import MissingAuthError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image import use_aspect_ratio
-from ..providers.response import ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups
+from ..providers.response import ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups, JsonRequest
 from ..tools.media import render_messages
 from ..config import STATIC_URL
 from .template.OpenaiTemplate import read_response
@@ -461,6 +461,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             headers = {"referer": referrer}
             if api_key:
                 headers["authorization"] = f"Bearer {api_key}"
+            yield JsonRequest.from_dict(data)
             async with session.post(cls.openai_endpoint, json=data, headers=headers) as response:
                 if response.status in (400, 500):
                     debug.error(f"Error: {response.status} - Bad Request: {data}")
