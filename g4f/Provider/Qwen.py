@@ -109,7 +109,10 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 if chat_type == "image_edit" or (file_type and file_type.startswith("image")):
                     file_class = "vision"
                     _type = "image"
-                    file_type = file_type or "image"
+                    if not file_type:
+                        # Try to infer from file extension, fallback to generic
+                        ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
+                        file_type = mimetypes.types_map.get(f'.{ext}', 'application/octet-stream')
                     showType = "image"
 
                 files.append(
