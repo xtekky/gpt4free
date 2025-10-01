@@ -520,8 +520,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 if response.ok:
                     for line in response.text.splitlines():
                         if "initialModels" in line:
-                            line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][
-                                3:-3].replace('\\', '')
+                            line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3]
+                            line = line.encode("utf-8").decode("unicode_escape")
                             models = json.loads(line)
                             cls.text_models = {model["publicName"]: model["id"] for model in models if
                                                "text" in model["capabilities"]["outputCapabilities"]}
