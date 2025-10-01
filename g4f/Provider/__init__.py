@@ -38,6 +38,7 @@ except ImportError as e:
 
 from .deprecated.ARTA import ARTA
 from .deprecated.DuckDuckGo import DuckDuckGo
+from .deprecated.PerplexityLabs import PerplexityLabs
 
 from .ApiAirforce          import ApiAirforce
 from .Blackbox             import Blackbox
@@ -50,10 +51,9 @@ from .GLM                  import GLM
 from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
 from .Mintlify             import Mintlify
-from .OIVSCodeSer2         import OIVSCodeSer2
-from .OIVSCodeSer0501      import OIVSCodeSer0501
+from .OIVSCodeSer          import OIVSCodeSer2, OIVSCodeSer0501
 from .OperaAria            import OperaAria
-from .PerplexityLabs       import PerplexityLabs
+from .Perplexity           import Perplexity
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .Startnest            import Startnest

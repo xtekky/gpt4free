@@ -41,11 +41,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_key = cls.api_key
                 if not api_key:
                     api_key = AuthManager.load_api_key(cls)
+                print(f"API Key: {api_key}")
                 if cls.models_needs_auth and not api_key:
                     raise MissingAuthError('Add a "api_key"')
-                if api_key is not None:
-                    headers["authorization"] = f"Bearer {api_key}"
-                response = requests.get(f"{api_base}/models", headers=headers, verify=cls.ssl)
+                response = requests.get(f"{api_base}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl)
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
