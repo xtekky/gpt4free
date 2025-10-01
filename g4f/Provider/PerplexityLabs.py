@@ -15,7 +15,7 @@ WS_URL = "wss://www.perplexity.ai/socket.io/"
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Perplexity Labs"
     url = "https://labs.perplexity.ai"
-    working = True
+    working = False
     active_by_default = True
 
     default_model = "r1-1776"
