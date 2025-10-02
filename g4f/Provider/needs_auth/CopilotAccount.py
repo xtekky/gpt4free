@@ -29,7 +29,7 @@ class CopilotAccount(Copilot):
             debug.log(f"Copilot: {h}")
             if has_nodriver:
                 yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                cls._access_token, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
+                cls._access_token, cls._useridentitytype, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
             else:
                 raise h
         yield AuthResult(

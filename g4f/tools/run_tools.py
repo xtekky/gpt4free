@@ -3,11 +3,18 @@ from __future__ import annotations
 import os
 import re
 import json
+import math
 import asyncio
 import time
 import datetime
 from pathlib import Path
 from typing import Optional, AsyncIterator, Iterator, Dict, Any, Tuple, List, Union
+
+try:
+    from aiofile import async_open
+    has_aiofile = True
+except ImportError:
+    has_aiofile = False
 
 from ..typing import Messages
 from ..providers.helper import filter_none
@@ -254,25 +261,45 @@ async def async_iter_run_tools(
     response = to_async_iterator(provider.async_create_function(model=model, messages=messages, **kwargs))
     
     try:
-        model_info = model
+        usage_model = model
+        usage_provider = provider.__name__
+        completion_tokens = 0
+        usage = None
         async for chunk in response:
-            if isinstance(chunk, ProviderInfo):
-                model_info = getattr(chunk, 'model', model_info)
+            if isinstance(chunk, FinishReason):
+                if sources is not None:
+                    yield sources
+                    sources = None
+                yield chunk
+                continue
+            elif isinstance(chunk, Sources):
+                sources = None
+            elif isinstance(chunk, str):
+                completion_tokens += 1
+            elif isinstance(chunk, ProviderInfo):
+                usage_model = getattr(chunk, "model", usage_model)
+                usage_provider = getattr(chunk, "name", usage_provider)
             elif isinstance(chunk, Usage):
-                usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
-                usage_dir = Path(get_cookies_dir()) / ".usage"
-                usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
-                usage_dir.mkdir(parents=True, exist_ok=True)
-                with usage_file.open("a" if usage_file.exists() else "w") as f:
-                    f.write(f"{json.dumps(usage)}\n")
+                usage = chunk
             yield chunk
-        provider.live += 1
+        if has_aiofile:
+            if usage is None:
+                usage = get_usage(messages, completion_tokens)
+                yield usage
+            usage = {"user": kwargs.get("user"), "model": usage_model, "provider": usage_provider, **usage.get_dict()}
+            usage_dir = Path(get_cookies_dir()) / ".usage"
+            usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+            usage_dir.mkdir(parents=True, exist_ok=True)
+            async with async_open(usage_file, "a") as f:
+                await f.write(f"{json.dumps(usage)}\n")
+        if completion_tokens > 0:
+            provider.live += 1
     except:
         provider.live -= 1
         raise
 
     # Yield sources if available
-    if sources:
+    if sources is not None:
         yield sources
 
 def iter_run_tools(
@@ -340,10 +367,13 @@ def iter_run_tools(
                             messages[-1]["content"] = last_message + BUCKET_INSTRUCTIONS
     
     # Process response chunks
-    thinking_start_time = 0
-    processor = ThinkingProcessor()
-    model_info = model
     try:
+        thinking_start_time = 0
+        processor = ThinkingProcessor()
+        usage_model = model
+        usage_provider = provider.__name__
+        completion_tokens = 0
+        usage = None
         for chunk in provider.create_function(model=model, messages=messages, provider=provider, **kwargs):
             if isinstance(chunk, FinishReason):
                 if sources is not None:
@@ -353,28 +383,58 @@ def iter_run_tools(
                 continue
             elif isinstance(chunk, Sources):
                 sources = None
+            elif isinstance(chunk, str):
+                completion_tokens += 1
             elif isinstance(chunk, ProviderInfo):
-                model_info = getattr(chunk, 'model', model_info)
+                usage_model = getattr(chunk, "model", usage_model)
+                usage_provider = getattr(chunk, "name", usage_provider)
             elif isinstance(chunk, Usage):
-                usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
-                usage_dir = Path(get_cookies_dir()) / ".usage"
-                usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
-                usage_dir.mkdir(parents=True, exist_ok=True)
-                with usage_file.open("a" if usage_file.exists() else "w") as f:
-                    f.write(f"{json.dumps(usage)}\n")
+                usage = chunk
             if not isinstance(chunk, str):
                 yield chunk
                 continue
                 
             thinking_start_time, results = processor.process_thinking_chunk(chunk, thinking_start_time)
-            
             for result in results:
                 yield result
-
-        provider.live += 1
+        if usage is None:
+            usage = get_usage(messages, completion_tokens)
+            yield usage
+        usage = {"user": kwargs.get("user"), "model": usage_model, "provider": usage_provider, **usage.get_dict()}
+        usage_dir = Path(get_cookies_dir()) / ".usage"
+        usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+        usage_dir.mkdir(parents=True, exist_ok=True)
+        with usage_file.open("a") as f:
+            f.write(f"{json.dumps(usage)}\n")
+        if completion_tokens > 0:
+            provider.live += 1
     except:
         provider.live -= 1
         raise
 
     if sources is not None:
         yield sources
+
+def caculate_prompt_tokens(messages: Messages) -> int:
+    """Calculate the total number of tokens in messages"""
+    token_count = 1 # Bos Token
+    for message in messages:
+        if isinstance(message.get("content"), str):
+            token_count += math.floor(len(message["content"].encode("utf-8")) / 4)
+            token_count += 4 # Role and start/end message token
+        elif isinstance(message.get("content"), list):
+            for item in message["content"]:
+                if isinstance(item, str):
+                    token_count += math.floor(len(item.encode("utf-8")) / 4)
+                elif isinstance(item, dict) and "text" in item and isinstance(item["text"], str):
+                    token_count += math.floor(len(item["text"].encode("utf-8")) / 4)
+                token_count += 4 # Role and start/end message token
+    return token_count
+
+def get_usage(messages: Messages, completion_tokens: int) -> Usage:
+    prompt_tokens = caculate_prompt_tokens(messages)
+    return Usage(
+        completion_tokens=completion_tokens,
+        prompt_tokens=prompt_tokens,
+        total_tokens=prompt_tokens + completion_tokens
+    )

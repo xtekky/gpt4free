@@ -125,9 +125,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
 
-            if stream:
+            if stream or stream is None:
                 kwargs.setdefault("stream_options", {"include_usage": True})
-            extra_parameters = filter_none(**{key: kwargs.get(key) for key in extra_parameters})
+            extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             if extra_body is None:
                 extra_body = {}
             data = filter_none(

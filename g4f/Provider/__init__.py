@@ -39,6 +39,7 @@ except ImportError as e:
 from .deprecated.ARTA import ARTA
 from .deprecated.Blackbox import Blackbox
 from .deprecated.DuckDuckGo import DuckDuckGo
+from .deprecated.Kimi import Kimi
 from .deprecated.PerplexityLabs import PerplexityLabs
 
 from .ApiAirforce          import ApiAirforce
@@ -48,7 +49,6 @@ from .Copilot              import Copilot
 from .DeepInfra            import DeepInfra
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
-from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
 from .Mintlify             import Mintlify
 from .OIVSCodeSer          import OIVSCodeSer2, OIVSCodeSer0501
