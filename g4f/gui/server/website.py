@@ -98,6 +98,14 @@ class Website:
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
+            '/private/': {
+                'function': self._private,
+                'methods': ['GET', 'POST']
+            },
+            '/private/<path:filename>': {
+                'function': self._private,
+                'methods': ['GET', 'POST']
+            },
             '/media/': {
                 'function': redirect_home,
                 'methods': ['GET', 'POST']
@@ -127,6 +135,10 @@ class Website:
 
     def _chat(self, filename = ""):
         filename = f"chat/{filename}" if filename else "chat/index"
+        return render(filename)
+
+    def _private(self, filename = ""):
+        filename = f"private/{filename}" if filename else "private/index"
         return render(filename)
 
     def _dist(self, name: str):
