@@ -191,6 +191,8 @@ async def get_nodriver(
         debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
         browser_args = ["--no-sandbox"]
+        if BrowserConfig.port:
+            browser_executable_path = "/bin/google-chrome"
         browser = await nodriver.start(
             user_data_dir=user_data_dir,
             browser_args=[*browser_args, f"--proxy-server={proxy}"] if proxy else browser_args,
