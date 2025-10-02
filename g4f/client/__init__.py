@@ -98,9 +98,7 @@ def iter_response(
             continue
         elif isinstance(chunk, Reasoning):
             reasoning.append(chunk)
-        elif isinstance(chunk, HiddenResponse):
-            continue
-        elif isinstance(chunk, Exception):
+        elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
             continue
         elif not chunk:
             continue
@@ -203,9 +201,7 @@ async def async_iter_response(
                 continue
             elif isinstance(chunk, Reasoning) and not stream:
                 reasoning.append(chunk)
-            elif isinstance(chunk, HiddenResponse):
-                continue
-            elif isinstance(chunk, Exception):
+            elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
                 continue
             elif not chunk:
                 continue
