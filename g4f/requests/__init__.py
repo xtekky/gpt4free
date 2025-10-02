@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from typing import Iterator, AsyncIterator
 from http.cookies import Morsel
 from pathlib import Path
+from contextlib import asynccontextmanager
 import asyncio
 try:
     from curl_cffi.requests import Session, Response
@@ -217,6 +218,12 @@ async def get_nodriver(
                 lock_file.unlink(missing_ok=True)
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
+
+@asynccontextmanager
+async def get_nodriver_session(**kwargs):
+    browser, stop_browser = await get_nodriver(**kwargs)
+    yield browser
+    stop_browser()
 
 async def sse_stream(iter_lines: AsyncIterator[bytes]) -> AsyncIterator[dict]:
     if hasattr(iter_lines, "content"):
