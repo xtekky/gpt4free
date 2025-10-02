@@ -200,20 +200,20 @@ default_vision = VisionModel(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, Copilot, Yqcloud, WeWordle, OpenaiChat])
+    best_provider = IterListProvider([Copilot, Yqcloud, WeWordle, OpenaiChat])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, OpenaiChat])
+    best_provider = IterListProvider([OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, Chatai, OIVSCodeSer2, Startnest, OpenaiChat])
+    best_provider = IterListProvider([Chatai, OIVSCodeSer2, Startnest, OpenaiChat, OIVSCodeSer0501])
 )
 
 gpt_4o_mini_audio = AudioModel(
@@ -277,13 +277,13 @@ gpt_4_1 = Model(
 gpt_4_1_mini = Model(
     name          = 'gpt-4.1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, OIVSCodeSer0501])
+    best_provider = IterListProvider([OpenaiChat])
 )
 
 gpt_4_1_nano = Model(
     name          = 'gpt-4.1-nano',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI])
+    best_provider = IterListProvider([PollinationsAI])
 )
 
 gpt_4_5 = Model(
@@ -584,13 +584,6 @@ gemma_3n_e4b = Model(
     name          = 'gemma-3n-e4b',
     base_provider = 'Google',
     best_provider = Together
-)
-
-### Blackbox AI ###
-blackboxai = Model(
-    name = 'blackboxai',
-    base_provider = 'Blackbox AI',
-    best_provider = Blackbox
 )
 
 ### CohereForAI ###

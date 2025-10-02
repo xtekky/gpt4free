@@ -37,11 +37,11 @@ except ImportError as e:
     debug.error("Search providers not loaded:", e)
 
 from .deprecated.ARTA import ARTA
+from .deprecated.Blackbox import Blackbox
 from .deprecated.DuckDuckGo import DuckDuckGo
 from .deprecated.PerplexityLabs import PerplexityLabs
 
 from .ApiAirforce          import ApiAirforce
-from .Blackbox             import Blackbox
 from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
