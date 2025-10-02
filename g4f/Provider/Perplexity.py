@@ -273,6 +273,8 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                             if value and isinstance(value, str):
                                 if value.startswith(full_response):
                                     value = value[len(full_response):]
+                                elif full_response.endswith(value):
+                                    value = ""
                                 if value:
                                     full_response += value
                                     yield value
