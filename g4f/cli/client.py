@@ -55,7 +55,7 @@ class ConversationManager:
         try:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            if self.model is None:
+            if self.provider is None and self.model is None:
                 self.model = data.get("model")
             if self.provider is None:
                 self.provider = data.get("provider")

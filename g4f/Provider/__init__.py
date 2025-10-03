@@ -12,9 +12,6 @@ try:
     from .needs_auth.mini_max import HailuoAI, MiniMax
 except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
-
-from .template import OpenaiTemplate, BackendApi
-from .qwen.QwenCode import QwenCode
 try:
     from .not_working import *
 except ImportError as e:
@@ -36,24 +33,26 @@ try:
 except ImportError as e:
     debug.error("Search providers not loaded:", e)
 
+from .template import OpenaiTemplate, BackendApi
+from .qwen.QwenCode import QwenCode
 from .deprecated.ARTA import ARTA
+from .deprecated.Blackbox import Blackbox
 from .deprecated.DuckDuckGo import DuckDuckGo
+from .deprecated.Kimi import Kimi
+from .deprecated.PerplexityLabs import PerplexityLabs
 
 from .ApiAirforce          import ApiAirforce
-from .Blackbox             import Blackbox
 from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DeepInfra            import DeepInfra
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
-from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
 from .Mintlify             import Mintlify
-from .OIVSCodeSer2         import OIVSCodeSer2
-from .OIVSCodeSer0501      import OIVSCodeSer0501
+from .OIVSCodeSer          import OIVSCodeSer2, OIVSCodeSer0501
 from .OperaAria            import OperaAria
-from .PerplexityLabs       import PerplexityLabs
+from .Perplexity           import Perplexity
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .Startnest            import Startnest

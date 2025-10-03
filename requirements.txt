@@ -19,3 +19,4 @@ python-multipart
 a2wsgi
 python-dotenv
 ddgs
+aiofile

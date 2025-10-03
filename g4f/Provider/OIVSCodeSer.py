@@ -5,23 +5,16 @@ import string
 
 from .template import OpenaiTemplate
 
-class OIVSCodeSer0501(OpenaiTemplate):
-    label = "OI VSCode Server 0501"
-    url = "https://oi-vscode-server-0501.onrender.com"
-    api_base = "https://oi-vscode-server-0501.onrender.com/v1"
-    api_endpoint = "https://oi-vscode-server-0501.onrender.com/v1/chat/completions"
-    
+class OIVSCodeSer2(OpenaiTemplate):
+    label = "OI VSCode Server 2"
+    url = "https://oi-vscode-server-2.onrender.com"
+    api_base = "https://oi-vscode-server-2.onrender.com/v1"
+
     working = True
-    needs_auth = False
-    supports_stream = True
-    supports_system_message = True
-    supports_message_history = True
-    
-    default_model = "gpt-4.1-mini"
-    default_vision_model = default_model
+    default_model = "*"
+    default_vision_model = "gpt-4o-mini"
     vision_models = [default_vision_model]
-    models = vision_models
-    
+
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
         # Generate a random user ID similar to the JavaScript code
@@ -37,3 +30,12 @@ class OIVSCodeSer0501(OpenaiTemplate):
             ),
             **({} if headers is None else headers)
         }
+
+class OIVSCodeSer0501(OIVSCodeSer2):
+    label = "OI VSCode Server 0501"
+    url = "https://oi-vscode-server-0501.onrender.com"
+    api_base = "https://oi-vscode-server-0501.onrender.com/v1"
+    
+    default_model = "gpt-4.1-mini"
+    default_vision_model = default_model
+    vision_models = [default_vision_model]

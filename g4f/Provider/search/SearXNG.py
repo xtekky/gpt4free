@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import os
 import aiohttp
 import asyncio
+
 from ...typing import Messages, AsyncResult
 from ...providers.base_provider import AsyncGeneratorProvider
 from ...providers.response import FinishReason
-from ...tools.web_search import fetch_and_scrape 
 from ..helper import format_media_prompt
+from .DDGS import fetch_and_scrape 
 from ... import debug
 
 class SearXNG(AsyncGeneratorProvider):
@@ -20,7 +23,7 @@ class SearXNG(AsyncGeneratorProvider):
         prompt: str = None,
         proxy: str = None,
         timeout: int = 30,
-        language: str = "it",
+        language: str = None,
         max_results: int = 5,
         max_words: int = 2500,
         add_text: bool = True,

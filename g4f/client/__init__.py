@@ -98,9 +98,7 @@ def iter_response(
             continue
         elif isinstance(chunk, Reasoning):
             reasoning.append(chunk)
-        elif isinstance(chunk, HiddenResponse):
-            continue
-        elif isinstance(chunk, Exception):
+        elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
             continue
         elif not chunk:
             continue
@@ -203,9 +201,7 @@ async def async_iter_response(
                 continue
             elif isinstance(chunk, Reasoning) and not stream:
                 reasoning.append(chunk)
-            elif isinstance(chunk, HiddenResponse):
-                continue
-            elif isinstance(chunk, Exception):
+            elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
                 continue
             elif not chunk:
                 continue
@@ -261,53 +257,6 @@ async def async_iter_response(
     finally:
         await safe_aclose(response)
 
-async def async_response(
-    response: AsyncIterator[Union[str, ResponseType]]
-) -> ClientResponse:
-    content = ""
-    response_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
-    idx = 0
-    usage = None
-    provider: ProviderInfo = None
-    conversation: JsonConversation = None
-
-    async for chunk in response:
-        if isinstance(chunk, FinishReason):
-            continue
-        elif isinstance(chunk, JsonConversation):
-            conversation = chunk
-            continue
-        elif isinstance(chunk, ToolCalls):
-            continue
-        elif isinstance(chunk, Usage):
-            usage = chunk
-            continue
-        elif isinstance(chunk, ProviderInfo):
-            provider = chunk
-            continue
-        elif isinstance(chunk, HiddenResponse):
-            continue
-        elif isinstance(chunk, Exception):
-            continue
-
-        content = add_chunk(content, chunk)
-        if not content:
-            continue
-        idx += 1
-
-    if usage is None:
-        usage = UsageModel.model_construct(completion_tokens=idx, total_tokens=idx)
-    else:
-        usage = UsageModel.model_construct(**usage.get_dict())
-
-    response = ClientResponse.model_construct(
-        content, response_id, int(time.time()), usage=usage, conversation=conversation
-    )
-    if provider is not None:
-        response.provider = provider.name
-        response.model = provider.model
-    return response
-
 async def async_iter_append_model_and_provider(
         response: AsyncChatCompletionResponseType,
         last_model: str,
@@ -361,6 +310,7 @@ class Completions:
         stop: Optional[Union[list[str], str]] = None,
         api_key: Optional[str] = None,
         ignore_stream: Optional[bool] = False,
+        raw: Optional[bool] = False,
         **kwargs
     ) -> ChatCompletion:
         if isinstance(messages, str):
@@ -392,12 +342,29 @@ class Completions:
             **kwargs
         )
 
-        response = iter_response(response, stream, response_format, max_tokens, stop)
-        response = iter_append_model_and_provider(response, model, provider)
+        def fallback(response):
+            response = async_iter_response(response, stream, response_format, max_tokens, stop)
+            return async_iter_append_model_and_provider(response, model, provider)
+
+        if raw:
+            def raw_response(response):
+                chunks = []
+                started = False
+                for chunk in response:
+                    if isinstance(chunk, JsonResponse):
+                        yield chunk
+                        started = True
+                    else:
+                        chunks.append(chunk)
+                if not started:
+                    for chunk in fallback(chunks):
+                        yield chunk
+            if stream:
+                return raw_response(response)
+            return next(raw_response())
         if stream:
-            return response
-        else:
-            return next(response)
+            return fallback(response)
+        return next(fallback(response))
 
     def stream(
         self,
@@ -655,7 +622,6 @@ class AsyncClient(BaseClient):
         self.models: ClientModels = ClientModels(self, provider, media_provider)
         self.images: AsyncImages = AsyncImages(self, media_provider)
         self.media: AsyncImages = self.images
-        self.responses: AsyncResponses = AsyncResponses(self, provider)
 
 class AsyncChat:
     completions: AsyncCompletions
@@ -682,6 +648,7 @@ class AsyncCompletions:
         stop: Optional[Union[list[str], str]] = None,
         api_key: Optional[str] = None,
         ignore_stream: Optional[bool] = False,
+        raw: Optional[bool] = False,
         **kwargs
     ) -> Awaitable[ChatCompletion]:
         if isinstance(messages, str):
@@ -713,13 +680,29 @@ class AsyncCompletions:
             **kwargs
         )
 
-        response = async_iter_response(response, stream, response_format, max_tokens, stop)
-        response = async_iter_append_model_and_provider(response, model, provider)
+        def fallback(response):
+            response = async_iter_response(response, stream, response_format, max_tokens, stop)
+            return async_iter_append_model_and_provider(response, model, provider)
 
+        if raw:
+            async def raw_response(response):
+                chunks = []
+                started = False
+                async for chunk in response:
+                    if isinstance(chunk, JsonResponse):
+                        yield chunk
+                        started = True
+                    else:
+                        chunks.append(chunk)
+                if not started:
+                    async for chunk in fallback(chunks):
+                        yield chunk
+            if stream:
+                return raw_response(response)
+            return anext(raw_response())
         if stream:
-            return response
-        else:
-            return anext(response)
+            return fallback(response)
+        return anext(fallback(response))
 
     def stream(
         self,
@@ -755,51 +738,3 @@ class AsyncImages(Images):
         return await self.async_create_variation(
            image=image, model=model, provider=provider, response_format=response_format, **kwargs
         )
-
-class AsyncResponses():
-    def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):
-        self.client: AsyncClient = client
-        self.provider: ProviderType = provider
-
-    async def create(
-        self,
-        input: str,
-        model: str = "",
-        provider: Optional[ProviderType] = None,
-        instructions: Optional[str] = None,
-        proxy: Optional[str] = None,
-        api_key: Optional[str] = None,
-        **kwargs
-    ) -> ClientResponse:
-        if isinstance(input, str):
-            input = [{"role": "user", "content": input}]
-        if instructions is not None:
-            input = [{"role": "developer", "content": instructions}] + input
-        for idx, message in enumerate(input):
-            if isinstance(message["content"], list):
-                for key, value in enumerate(message["content"]):
-                    if isinstance(value, dict) and value.get("type") == "input_text":
-                        message["content"][key] = {"type": "text", "text": value.get("text")}
-                    input[idx] = {"role": message["role"], "content": message["content"]}
-        resolve_media(kwargs)
-        if hasattr(model, "name"):
-            model = model.get_long_name()
-        if provider is None:
-            provider = self.provider
-            if provider is None:
-                provider = AnyProvider
-        if isinstance(provider, str):
-            provider = convert_to_provider(provider)
-
-        response = async_iter_run_tools(
-            provider,
-            model=model,
-            messages=input,
-            **filter_none(
-                proxy=self.client.proxy if proxy is None else proxy,
-                api_key=self.client.api_key if api_key is None else api_key
-            ),
-            **kwargs
-        )
-
-        return await async_response(response)

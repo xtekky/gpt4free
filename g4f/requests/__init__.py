@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from typing import Iterator, AsyncIterator
 from http.cookies import Morsel
 from pathlib import Path
+from contextlib import asynccontextmanager
 import asyncio
 try:
     from curl_cffi.requests import Session, Response
@@ -190,6 +191,8 @@ async def get_nodriver(
         debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
         browser_args = ["--no-sandbox"]
+        if BrowserConfig.port:
+            browser_executable_path = "/bin/google-chrome"
         browser = await nodriver.start(
             user_data_dir=user_data_dir,
             browser_args=[*browser_args, f"--proxy-server={proxy}"] if proxy else browser_args,
@@ -217,6 +220,12 @@ async def get_nodriver(
                 lock_file.unlink(missing_ok=True)
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
+
+@asynccontextmanager
+async def get_nodriver_session(**kwargs):
+    browser, stop_browser = await get_nodriver(**kwargs)
+    yield browser
+    stop_browser()
 
 async def sse_stream(iter_lines: AsyncIterator[bytes]) -> AsyncIterator[dict]:
     if hasattr(iter_lines, "content"):

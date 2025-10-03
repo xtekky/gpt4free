@@ -3,16 +3,16 @@ from __future__ import annotations
 import random
 from typing import AsyncIterator
 
-from .base_provider import AsyncAuthedProvider, ProviderModelMixin
-from ..providers.helper import get_last_user_message
-from ..requests import StreamSession, sse_stream, raise_for_status
-from ..providers.response import AuthResult, TitleGeneration, JsonConversation, FinishReason
-from ..typing import AsyncResult, Messages
-from ..errors import MissingAuthError
+from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
+from ...providers.helper import get_last_user_message
+from ...requests import StreamSession, sse_stream, raise_for_status
+from ...providers.response import AuthResult, TitleGeneration, JsonConversation, FinishReason
+from ...typing import AsyncResult, Messages
+from ...errors import MissingAuthError
 
 class Kimi(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://www.kimi.com"
-    working = True
+    working = False
     active_by_default = True
     default_model = "kimi-k2"
     models = [default_model]

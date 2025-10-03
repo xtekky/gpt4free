@@ -16,7 +16,6 @@ from ..requests.aiohttp import get_connector
 from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
 from ..tools.files import secure_filename
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse, quote_url
-from ..Provider.template import BackendApi
 from . import is_accepted_format, extract_data_uri
 from .. import debug
 
@@ -171,15 +170,8 @@ async def copy_media(
                     with open(target_path, "wb") as f:
                         f.write(extract_data_uri(image))
                 elif not os.path.exists(target_path) or os.lstat(target_path).st_size <= 0:
-                    # Apply BackendApi settings if needed
-                    if BackendApi.working and image.startswith(BackendApi.url):
-                        request_headers = BackendApi.headers if headers is None else headers
-                        request_ssl = BackendApi.ssl
-                    else:
-                        request_headers = headers
-                        request_ssl = ssl
                     # Use aiohttp to fetch the image
-                    async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
+                    async with session.get(image, ssl=ssl) as response:
                         response.raise_for_status()
                         if target is None:
                             filename = update_filename(response, filename)

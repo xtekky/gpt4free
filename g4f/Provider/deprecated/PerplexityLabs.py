@@ -3,11 +3,11 @@ from __future__ import annotations
 import random
 import json
 
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession, raise_for_status
-from ..errors import ResponseError
-from ..providers.response import FinishReason, Sources
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...requests import StreamSession, raise_for_status
+from ...errors import ResponseError
+from ...providers.response import FinishReason, Sources
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 API_URL = "https://www.perplexity.ai/socket.io/"
 WS_URL = "wss://www.perplexity.ai/socket.io/"
@@ -15,7 +15,7 @@ WS_URL = "wss://www.perplexity.ai/socket.io/"
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Perplexity Labs"
     url = "https://labs.perplexity.ai"
-    working = True
+    working = False
     active_by_default = True
 
     default_model = "r1-1776"

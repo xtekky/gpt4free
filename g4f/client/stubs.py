@@ -33,15 +33,20 @@ class BaseModel(BaseModel):
             return super().model_construct(**data)
         return cls.construct(**data)
 
-class TokenDetails(BaseModel):
+class PromptTokenDetails(BaseModel):
     cached_tokens: int
+    audio_tokens: int
+
+class CompletionTokenDetails(BaseModel):
+    reasoning_tokens: int
+    image_tokens: int
 
 class UsageModel(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    prompt_tokens_details: TokenDetails
-    completion_tokens_details: TokenDetails
+    prompt_tokens_details: PromptTokenDetails
+    completion_tokens_details: CompletionTokenDetails
 
     @classmethod
     def model_construct(cls, prompt_tokens=0, completion_tokens=0, total_tokens=0, prompt_tokens_details=None, completion_tokens_details=None, **kwargs):
@@ -49,8 +54,8 @@ class UsageModel(BaseModel):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
-            prompt_tokens_details=TokenDetails.model_construct(**prompt_tokens_details if prompt_tokens_details else {"cached_tokens": 0}),
-            completion_tokens_details=TokenDetails.model_construct(**completion_tokens_details if completion_tokens_details else {}),
+            prompt_tokens_details=PromptTokenDetails.model_construct(**prompt_tokens_details if prompt_tokens_details else {"cached_tokens": 0}),
+            completion_tokens_details=CompletionTokenDetails.model_construct(**completion_tokens_details if completion_tokens_details else {}),
             **kwargs
         )
 

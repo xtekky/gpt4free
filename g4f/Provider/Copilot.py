@@ -30,6 +30,7 @@ from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
 from ..files import get_bucket_dir
 from ..tools.files import read_bucket
+from ..cookies import get_cookies
 from pathlib import Path
 from .. import debug
 
@@ -54,31 +55,50 @@ def extract_bucket_items(messages: Messages) -> list[dict]:
 class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
     url = "https://copilot.microsoft.com"
+    cookie_domain = ".microsoft.com"
+    anon_cookie_name = "__Host-copilot-anon"
     
-    working = True
-    supports_stream = True
+    working = has_curl_cffi
+    use_nodriver = has_nodriver
     active_by_default = True
     
     default_model = "Copilot"
-    models = [default_model, "Think Deeper", "Smart (GPT-5)"]
+    models = [default_model, "Think Deeper", "Smart (GPT-5)", "Study"]
     model_aliases = {
         "o1": "Think Deeper",
         "gpt-4": default_model,
         "gpt-4o": default_model,
         "gpt-5": "GPT-5",
+        "study": "Study",
     }
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
     conversation_url = f"{url}/c/api/conversations"
 
-    _access_token: str = None
-    _cookies: dict = {}
-
     @classmethod
-    async def on_auth_async(cls, **kwargs) -> AsyncIterator:
+    async def on_auth_async(cls, cookies: dict = None, api_key: str = None, proxy: str = None, **kwargs) -> AsyncIterator:
+        if api_key:
+            if not cookies:
+                cookies = {}
+            cookies[cls.anon_cookie_name] = api_key
+        elif cookies is None:
+            cookies = get_cookies(cls.cookie_domain, False, cache_result=False)
+        access_token = None
+        useridentitytype = None
+        if cls.needs_auth or cls.anon_cookie_name not in cookies:
+            try:
+                access_token, useridentitytype, cookies = readHAR(cls.url)
+            except NoValidHarFileError as h:
+                debug.log(f"Copilot: {h}")
+                if has_nodriver:
+                    yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
+                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy)
+                else:
+                    raise h
         yield AuthResult(
-            api_key=cls._access_token,
-            cookies=cls.cookies_to_dict()
+            access_token=access_token,
+            useridentitytype=useridentitytype,
+            cookies=cookies
         )
 
     @classmethod
@@ -87,31 +107,12 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         auth_result: AuthResult,
-        **kwargs
-    ) -> AsyncResult:
-        cls._access_token = getattr(auth_result, "api_key")
-        cls._cookies = getattr(auth_result, "cookies")
-        async for chunk in cls.create(model, messages, **kwargs):
-            yield chunk
-        auth_result.cookies = cls.cookies_to_dict()
-
-    @classmethod
-    def cookies_to_dict(cls):
-        return cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}
-
-    @classmethod
-    async def create(
-        cls,
-        model: str,
-        messages: Messages,
         proxy: str = None,
         timeout: int = 30,
         prompt: str = None,
         media: MediaListType = None,
         conversation: BaseConversation = None,
         return_conversation: bool = True,
-        useridentitytype: str = "google",
-        api_key: str = None,
         **kwargs
     ) -> AsyncResult:
         if not has_curl_cffi:
@@ -119,56 +120,76 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         model = cls.get_model(model)
         websocket_url = cls.websocket_url
         headers = None
-        if cls._access_token or cls.needs_auth:
-            if api_key is not None:
-                cls._access_token = api_key
-            if cls._access_token is None:
-                try:
-                    cls._access_token, cls._cookies = readHAR(cls.url)
-                except NoValidHarFileError as h:
-                    debug.log(f"Copilot: {h}")
-                    if has_nodriver:
-                        yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                        cls._access_token, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
-                    else:
-                        raise h
-            websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}&X-UserIdentityType={quote(useridentitytype)}"
-            headers = {"authorization": f"Bearer {cls._access_token}"}
+        if auth_result.access_token:
+            websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype", None) else "")
+            headers = {"authorization": f"Bearer {auth_result.access_token}"}
 
         async with AsyncSession(
             timeout=timeout,
             proxy=proxy,
             impersonate="chrome",
             headers=headers,
-            cookies=cls._cookies,
+            cookies=auth_result.cookies
         ) as session:
-            if cls._access_token is not None:
-                cls._cookies = session.cookies.jar if hasattr(session.cookies, "jar") else session.cookies
-                response = await session.get("https://copilot.microsoft.com/c/api/user?api-version=2", headers={"x-useridentitytype": useridentitytype})
-                if response.status_code == 401:
-                    raise MissingAuthError("Status 401: Invalid access token")
-                response.raise_for_status()
-                user = response.json().get('firstName')
-                if user is None:
-                    if cls.needs_auth:
-                        raise MissingAuthError("No user found, please login first")
-                    cls._access_token = None
-                else:
-                    debug.log(f"Copilot: User: {user}")
             if conversation is None:
-                response = await session.post(cls.conversation_url, headers={"x-useridentitytype": useridentitytype} if cls._access_token else {})
+                # har_file = os.path.join(os.path.dirname(__file__), "copilot", "copilot.microsoft.com.har")
+                # with open(har_file, "r") as f:
+                #     har_entries = json.load(f).get("log", {}).get("entries", [])
+                # conversationId = ""
+                # for har_entry in har_entries:
+                #     if har_entry.get("request"):
+                #         if "/c/api/" in har_entry.get("request").get("url", ""):
+                #             try:
+                #                 response = await getattr(session, har_entry.get("request").get("method").lower())(
+                #                     har_entry.get("request").get("url", "").replace("cvqBJw7kyPAp1RoMTmzC6", conversationId),
+                #                     data=har_entry.get("request").get("postData", {}).get("text"),
+                #                     headers={header["name"]: header["value"] for header in har_entry.get("request").get("headers")}
+                #                 )
+                #                 response.raise_for_status()
+                #                 if response.headers.get("content-type", "").startswith("application/json"):
+                #                     conversationId = response.json().get("currentConversationId", conversationId)
+                #             except Exception as e:
+                #                 debug.log(f"Copilot: Failed request to {har_entry.get('request').get('url', '')}: {e}")
+                data = {
+                    "timeZone": "America/Los_Angeles",
+                    "startNewConversation": True,
+                    "teenSupportEnabled": True,
+                    "correctPersonalizationSetting": True,
+                    "performUserMerge": True,
+                    "deferredDataUseCapable": True
+                }
+                response = await session.post(
+                    "https://copilot.microsoft.com/c/api/start",
+                    headers={
+                        "content-type": "application/json",
+                        **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}),
+                        **(headers or {})
+                    },
+                    json=data
+                )
                 response.raise_for_status()
-                conversation_id = response.json().get("id")
-                conversation = Conversation(conversation_id)
-                debug.log(f"Copilot: Created conversation: {conversation_id}")
+                conversation = Conversation(response.json().get("currentConversationId"))
+                debug.log(f"Copilot: Created conversation: {conversation.conversation_id}")
             else:
-                conversation_id = conversation.conversation_id
-                debug.log(f"Copilot: Use conversation: {conversation_id}")
+                debug.log(f"Copilot: Use conversation: {conversation.conversation_id}")
             if return_conversation:
                 yield conversation
 
+            # response = await session.get("https://copilot.microsoft.com/c/api/user?api-version=4", headers={"x-useridentitytype": useridentitytype} if cls._access_token else {})
+            # if response.status_code == 401:
+            #     raise MissingAuthError("Status 401: Invalid session")
+            # response.raise_for_status()
+            # print(response.json())
+            # user = response.json().get('firstName')
+            # if user is None:
+            #     if cls.needs_auth:
+            #         raise MissingAuthError("No user found, please login first")
+            #     cls._access_token = None
+            # else:
+            #     debug.log(f"Copilot: User: {user}")
+
             uploaded_attachments = []
-            if cls._access_token is not None:
+            if auth_result.access_token:
                 # Upload regular media (images)
                 for media, _ in merge_media(media, messages):
                     if not isinstance(media, str):
@@ -178,7 +199,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                             headers={
                                 "content-type": is_accepted_format(data),
                                 "content-length": str(len(data)),
-                                **({"x-useridentitytype": useridentitytype} if cls._access_token else {})
+                                **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {})
                             },
                             data=data
                         )
@@ -201,7 +222,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                                 response = await session.post(
                                     "https://copilot.microsoft.com/c/api/attachments",
                                     multipart=data,
-                                    headers={"x-useridentitytype": useridentitytype}
+                                    headers={"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}
                                 )
                                 response.raise_for_status()
                                 data = response.json()
@@ -225,7 +246,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 mode = "chat"
             await wss.send(json.dumps({
                 "event": "send",
-                "conversationId": conversation_id,
+                "conversationId": conversation.conversation_id,
                 "content": [*uploaded_attachments, {
                     "type": "text",
                     "text": prompt,
@@ -274,7 +295,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 elif msg.get("event") not in ["received", "startMessage", "partCompleted", "connected"]:
                     debug.log(f"Copilot Message: {msg_txt[:100]}...")
             if not done:
-                raise RuntimeError(f"Invalid response: {last_msg}")
+                raise MissingAuthError(f"Invalid response: {last_msg}")
             if sources:
                 yield Sources(sources.values())
             if not wss.closed:
@@ -285,6 +306,7 @@ async def get_access_token_and_cookies(url: str, proxy: str = None):
     try:
         page = await browser.get(url)
         access_token = None
+        useridentitytype = None
         while access_token is None:
             for _ in range(2):
                 await asyncio.sleep(3)
@@ -292,9 +314,12 @@ async def get_access_token_and_cookies(url: str, proxy: str = None):
                     (() => {
                         for (var i = 0; i < localStorage.length; i++) {
                             try {
-                                item = JSON.parse(localStorage.getItem(localStorage.key(i)));
+                                const key = localStorage.key(i);
+                                const item = JSON.parse(localStorage.getItem(key));
                                 if (item?.body?.access_token) {
-                                    return item.body.access_token;
+                                    return ["" + item?.body?.access_token, "google"];
+                                } else if (key.includes("chatai")) {
+                                    return "" + item.secret;
                                 }
                             } catch(e) {}
                         }
@@ -302,16 +327,24 @@ async def get_access_token_and_cookies(url: str, proxy: str = None):
                 """)
                 if access_token is None:
                     await asyncio.sleep(1)
+                    continue
+                if isinstance(access_token, list):
+                    access_token, useridentitytype = access_token
+                access_token = access_token.get("value") if isinstance(access_token, dict) else access_token
+                useridentitytype = useridentitytype.get("value") if isinstance(useridentitytype, dict) else None
+                print(f"Got access token: {access_token[:10]}..., useridentitytype: {useridentitytype}")
+                break
         cookies = {}
         for c in await page.send(nodriver.cdp.network.get_cookies([url])):
             cookies[c.name] = c.value
         stop_browser()
-        return access_token, cookies
+        return access_token, useridentitytype, cookies
     finally:
         stop_browser()
 
 def readHAR(url: str):
     api_key = None
+    useridentitytype = None
     cookies = None
     for path in get_har_files():
         with open(path, 'rb') as file:
@@ -325,9 +358,11 @@ def readHAR(url: str):
                     v_headers = get_headers(v)
                     if "authorization" in v_headers:
                         api_key = v_headers["authorization"].split(maxsplit=1).pop()
+                    if "x-useridentitytype" in v_headers:
+                        useridentitytype = v_headers["x-useridentitytype"]
                     if v['request']['cookies']:
                         cookies = {c['name']: c['value'] for c in v['request']['cookies']}
     if api_key is None:
         raise NoValidHarFileError("No access token found in .har files")
 
-    return api_key, cookies
+    return api_key, useridentitytype, cookies

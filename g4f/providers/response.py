@@ -151,6 +151,33 @@ class JsonMixin:
 class RawResponse(ResponseType, JsonMixin):
     pass
 
+class ObjectMixin:
+    def __init__(self, **kwargs) -> None:
+        """Initialize with keyword arguments as attributes."""
+        for key, value in kwargs.items():
+            setattr(self, key, ObjectMixin.from_dict(value) if isinstance(value, dict) else [ObjectMixin.from_dict(v) if isinstance(v, dict) else v for v in value] if isinstance(value, list) else value)
+
+    def get_dict(self) -> Dict:
+        """Return a dictionary of non-private attributes."""
+        return {
+            key: value.get_dict() if isinstance(value, ObjectMixin) else [v.get_dict() if isinstance(v, ObjectMixin) else v for v in value] if isinstance(value, list) else value
+            for key, value in self.__dict__.items()
+            if not key.startswith("__")
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> JsonMixin:
+        """Create an instance from a dictionary."""
+        return cls(**data)
+
+class JsonResponse(ResponseType, ObjectMixin):
+    def __str__(self) -> str:
+        return str(self.get_dict())
+
+class JsonRequest(ResponseType, ObjectMixin):
+    def __str__(self) -> str:
+        return str(self.get_dict())
+
 class HiddenResponse(ResponseType):
     def __str__(self) -> str:
         """Hidden responses return an empty string."""
@@ -204,10 +231,13 @@ class DebugResponse(HiddenResponse):
         """Initialize with a log message."""
         self.log = log
 
+class PlainTextResponse(HiddenResponse):
+    def __init__(self, text: str) -> None:
+        self.text = text
+
 class ContinueResponse(HiddenResponse):
-    def __init__(self, log: str) -> None:
-        """Initialize with a log message."""
-        self.log = log
+    def __init__(self, text: str) -> None:
+        self.text = text
 
 class Reasoning(ResponseType):
     def __init__(

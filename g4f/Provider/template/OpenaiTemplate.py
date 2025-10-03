@@ -8,7 +8,7 @@ from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, StreamResponse, raise_for_status, sse_stream
 from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
-from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse, ProviderInfo, AudioResponse, Reasoning, JsonConversation
+from ...providers.response import *
 from ...tools.media import render_messages
 from ...tools.run_tools import AuthManager
 from ...errors import MissingAuthError
@@ -43,9 +43,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_key = AuthManager.load_api_key(cls)
                 if cls.models_needs_auth and not api_key:
                     raise MissingAuthError('Add a "api_key"')
-                if api_key is not None:
-                    headers["authorization"] = f"Bearer {api_key}"
-                response = requests.get(f"{api_base}/models", headers=headers, verify=cls.ssl)
+                response = requests.get(f"{api_base}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl)
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
@@ -127,7 +125,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
 
-            if stream:
+            if stream or stream is None:
                 kwargs.setdefault("stream_options", {"include_usage": True})
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             if extra_body is None:
@@ -150,6 +148,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
                 if api_endpoint is None:
                     api_endpoint = cls.api_endpoint
+            yield JsonRequest.from_dict(data)
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
                 async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media):
                     yield chunk
@@ -170,6 +169,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
     content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
     if content_type.startswith("application/json"):
         data = await response.json()
+        yield JsonResponse.from_dict(data)
         OpenaiTemplate.raise_error(data, response.status)
         await raise_for_status(response)
         model = data.get("model")
@@ -206,6 +206,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
         first = True
         model_returned = False
         async for data in sse_stream(response):
+            yield JsonResponse.from_dict(data)
             OpenaiTemplate.raise_error(data)
             model = data.get("model")
             if not model_returned and model:

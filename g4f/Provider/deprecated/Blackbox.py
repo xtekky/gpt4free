@@ -9,14 +9,14 @@ import string
 from pathlib import Path
 from typing import Optional
 
-from ..typing import AsyncResult, Messages, MediaListType
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import to_data_uri
-from .helper import render_messages
-from ..providers.response import JsonConversation
-from ..tools.media import merge_media
-from .. import debug
+from ...typing import AsyncResult, Messages, MediaListType
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import to_data_uri
+from ..helper import render_messages
+from ...providers.response import JsonConversation
+from ...tools.media import merge_media
+from ... import debug
 
 class Conversation(JsonConversation):
     validated_value: str = None
@@ -31,7 +31,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
     api_endpoint = "https://www.blackbox.ai/api/chat"
     
-    working = True
+    working = False
     active_by_default = True
     supports_stream = True
     supports_system_message = True
