@@ -75,18 +75,30 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
     conversation_url = f"{url}/c/api/conversations"
 
-    _access_token: str = None
-    _useridentitytype: str = None
-    _cookies: dict = {}
-
     @classmethod
-    async def on_auth_async(cls, api_key: str = None, **kwargs) -> AsyncIterator:
-        cookies = cls.cookies_to_dict()
+    async def on_auth_async(cls, cookies: dict = None, api_key: str = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if api_key:
+            if not cookies:
+                cookies = {}
             cookies[cls.anon_cookie_name] = api_key
+        elif cookies is None:
+            cookies = get_cookies(cls.cookie_domain, False, cache_result=False)
+        access_token = None
+        useridentitytype = None
+        if cls.needs_auth or cls.anon_cookie_name not in cookies:
+            try:
+                access_token, useridentitytype, cookies = readHAR(cls.url)
+            except NoValidHarFileError as h:
+                debug.log(f"Copilot: {h}")
+                if has_nodriver:
+                    yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
+                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy)
+                else:
+                    raise h
         yield AuthResult(
-            access_token=cls._access_token,
-            cookies=cls.cookies_to_dict() or get_cookies(cls.cookie_domain, False)
+            access_token=access_token,
+            useridentitytype=useridentitytype,
+            cookies=cookies
         )
 
     @classmethod
@@ -95,23 +107,6 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         auth_result: AuthResult,
-        **kwargs
-    ) -> AsyncResult:
-        cls._access_token = getattr(auth_result, "access_token", None)
-        cls._cookies = getattr(auth_result, "cookies")
-        async for chunk in cls.create(model, messages, **kwargs):
-            yield chunk
-        auth_result.cookies = cls.cookies_to_dict()
-
-    @classmethod
-    def cookies_to_dict(cls):
-        return cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}
-
-    @classmethod
-    async def create(
-        cls,
-        model: str,
-        messages: Messages,
         proxy: str = None,
         timeout: int = 30,
         prompt: str = None,
@@ -125,29 +120,17 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         model = cls.get_model(model)
         websocket_url = cls.websocket_url
         headers = None
-        if cls._access_token or cls.needs_auth:
-            if cls._access_token is None:
-                try:
-                    cls._access_token, cls._useridentitytype, cls._cookies = readHAR(cls.url)
-                except NoValidHarFileError as h:
-                    debug.log(f"Copilot: {h}")
-                    if has_nodriver:
-                        yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                        cls._access_token, cls._useridentitytype, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
-                    else:
-                        raise h
-            websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}" + (f"&X-UserIdentityType={quote(cls._useridentitytype)}" if cls._useridentitytype else "")
-            headers = {"authorization": f"Bearer {cls._access_token}"}
-    
+        if auth_result.access_token:
+            websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype", None) else "")
+            headers = {"authorization": f"Bearer {auth_result.access_token}"}
 
         async with AsyncSession(
             timeout=timeout,
             proxy=proxy,
             impersonate="chrome",
             headers=headers,
-            cookies=cls._cookies,
+            cookies=auth_result.cookies
         ) as session:
-            cls._cookies = session.cookies.jar if hasattr(session.cookies, "jar") else session.cookies
             if conversation is None:
                 # har_file = os.path.join(os.path.dirname(__file__), "copilot", "copilot.microsoft.com.har")
                 # with open(har_file, "r") as f:
@@ -179,7 +162,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                     "https://copilot.microsoft.com/c/api/start",
                     headers={
                         "content-type": "application/json",
-                        **({"x-useridentitytype": cls._useridentitytype} if cls._useridentitytype else {}),
+                        **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}),
                         **(headers or {})
                     },
                     json=data
@@ -206,7 +189,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             #     debug.log(f"Copilot: User: {user}")
 
             uploaded_attachments = []
-            if cls._access_token is not None:
+            if auth_result.access_token:
                 # Upload regular media (images)
                 for media, _ in merge_media(media, messages):
                     if not isinstance(media, str):
@@ -216,7 +199,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                             headers={
                                 "content-type": is_accepted_format(data),
                                 "content-length": str(len(data)),
-                                **({"x-useridentitytype": cls._useridentitytype} if cls._useridentitytype else {})
+                                **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {})
                             },
                             data=data
                         )
@@ -239,7 +222,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                                 response = await session.post(
                                     "https://copilot.microsoft.com/c/api/attachments",
                                     multipart=data,
-                                    headers={"x-useridentitytype": cls._useridentitytype} if cls._useridentitytype else {}
+                                    headers={"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}
                                 )
                                 response.raise_for_status()
                                 data = response.json()
@@ -312,7 +295,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 elif msg.get("event") not in ["received", "startMessage", "partCompleted", "connected"]:
                     debug.log(f"Copilot Message: {msg_txt[:100]}...")
             if not done:
-                raise RuntimeError(f"Invalid response: {last_msg}")
+                raise MissingAuthError(f"Invalid response: {last_msg}")
             if sources:
                 yield Sources(sources.values())
             if not wss.closed:

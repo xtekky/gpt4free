@@ -531,7 +531,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     headers=headers
                 ) as response:
                     cls._update_request_args(auth_result, session)
-                    if response.status in (401, 403, 429):
+                    if response.status in (401, 403, 429, 500):
                         raise MissingAuthError("Access token is not valid")
                     elif response.status == 422:
                         raise RuntimeError((await response.json()), data)
