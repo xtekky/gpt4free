@@ -74,7 +74,7 @@ try:
 except ImportError:
     has_markitdown = False
 
-from .web_search import scrape_text
+from .fetch_and_scrape import scrape_text
 from ..files import secure_filename, get_bucket_dir
 from ..image import is_allowed_extension
 from ..requests.aiohttp import get_connector

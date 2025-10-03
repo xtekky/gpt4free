@@ -12,9 +12,6 @@ try:
     from .needs_auth.mini_max import HailuoAI, MiniMax
 except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
-
-from .template import OpenaiTemplate, BackendApi
-from .qwen.QwenCode import QwenCode
 try:
     from .not_working import *
 except ImportError as e:
@@ -36,6 +33,8 @@ try:
 except ImportError as e:
     debug.error("Search providers not loaded:", e)
 
+from .template import OpenaiTemplate, BackendApi
+from .qwen.QwenCode import QwenCode
 from .deprecated.ARTA import ARTA
 from .deprecated.Blackbox import Blackbox
 from .deprecated.DuckDuckGo import DuckDuckGo

@@ -38,7 +38,8 @@ EXTRA_REQUIRE = {
         "plyer",
         "setuptools",
         "markitdown[all]",
-        "python-dotenv"
+        "python-dotenv",
+        "aiofile"
     ],
     'slim': [
         "curl_cffi>=0.6.2",

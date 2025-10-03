@@ -21,7 +21,7 @@ from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError
-from ..tools.run_tools import AuthManager
+from ..tools.auth import AuthManager
 from .. import debug
 
 SAFE_PARAMETERS = [

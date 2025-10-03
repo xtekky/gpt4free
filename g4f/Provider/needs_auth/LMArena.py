@@ -25,7 +25,7 @@ except ImportError:
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError
-from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning
+from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, JsonRequest
 from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_last_user_message
@@ -675,6 +675,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 ],
                 "modality": "image" if is_image_model else "chat"
             }
+            yield JsonRequest.from_dict(data)
             try:
                 async with StreamSession(**args, timeout=timeout) as session:
                     async with session.post(
@@ -686,6 +687,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         args["cookies"] = merge_cookies(args["cookies"], response)
                         async for chunk in response.iter_lines():
                             line = chunk.decode()
+                            yield PlainTextResponse(line)
                             if line.startswith("af:"):
                                 yield JsonConversation(message_ids=[modelAMessageId])
                             elif line.startswith("a0:"):
@@ -693,6 +695,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 if chunk == "hasArenaError":
                                     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
                                 yield chunk
+                            elif line.startswith("ag:"):
+                                chunk = json.loads(line[3:])
+                                yield Reasoning(chunk)
                             elif line.startswith("a2:"):
                                 yield ImageResponse([image.get("image") for image in json.loads(line[3:])], prompt)
                             elif line.startswith("ad:"):
