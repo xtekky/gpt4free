@@ -89,7 +89,7 @@ class HuggingFaceAPI(OpenaiTemplate):
             raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__}")
         error = None
         for provider_key in provider_mapping:
-            api_path = "novita/v3/openai" if provider_key == "novita" else f"{provider_key}/v1"
+            api_path = "groq/openai/v1" if provider_key == "groq" else "novita/v3/openai" if provider_key == "novita" else f"{provider_key}/v1"
             api_base = f"https://router.huggingface.co/{api_path}"
             task = provider_mapping[provider_key]["task"]
             if task != "conversational":
