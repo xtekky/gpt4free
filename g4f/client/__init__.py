@@ -342,21 +342,29 @@ class Completions:
             **kwargs
         )
 
+        def fallback(response):
+            response = async_iter_response(response, stream, response_format, max_tokens, stop)
+            return async_iter_append_model_and_provider(response, model, provider)
+
         if raw:
-            def filter_raw(response):
+            def raw_response(response):
+                chunks = []
+                started = False
                 for chunk in response:
                     if isinstance(chunk, JsonResponse):
                         yield chunk
-            raw_response = filter_raw(response)
+                        started = True
+                    else:
+                        chunks.append(chunk)
+                if not started:
+                    for chunk in fallback(chunks):
+                        yield chunk
             if stream:
-                return raw_response
-            return next(raw_response)
-
-        response = iter_response(response, stream, response_format, max_tokens, stop)
-        response = iter_append_model_and_provider(response, model, provider)
+                return raw_response(response)
+            return next(raw_response())
         if stream:
-            return response
-        return next(response)
+            return fallback(response)
+        return next(fallback(response))
 
     def stream(
         self,
@@ -672,22 +680,29 @@ class AsyncCompletions:
             **kwargs
         )
 
+        def fallback(response):
+            response = async_iter_response(response, stream, response_format, max_tokens, stop)
+            return async_iter_append_model_and_provider(response, model, provider)
+
         if raw:
-            async def filter_raw(response):
+            async def raw_response(response):
+                chunks = []
+                started = False
                 async for chunk in response:
                     if isinstance(chunk, JsonResponse):
                         yield chunk
-            raw_response = filter_raw(response)
+                        started = True
+                    else:
+                        chunks.append(chunk)
+                if not started:
+                    async for chunk in fallback(chunks):
+                        yield chunk
             if stream:
-                return raw_response
-            return next(raw_response)
-
-        response = async_iter_response(response, stream, response_format, max_tokens, stop)
-        response = async_iter_append_model_and_provider(response, model, provider)
-
+                return raw_response(response)
+            return anext(raw_response())
         if stream:
-            return response
-        return anext(response)
+            return fallback(response)
+        return anext(fallback(response))
 
     def stream(
         self,
