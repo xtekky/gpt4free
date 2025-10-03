@@ -6,6 +6,7 @@ class Custom(OpenaiTemplate):
     label = "Custom Provider"
     working = True
     needs_auth = False
+    models_needs_auth = False
     api_base = "http://localhost:8080/v1"
     sort_models = False
 

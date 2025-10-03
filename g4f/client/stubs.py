@@ -40,6 +40,7 @@ class PromptTokenDetails(BaseModel):
 class CompletionTokenDetails(BaseModel):
     reasoning_tokens: int
     image_tokens: int
+    audio_tokens: int
 
 class UsageModel(BaseModel):
     prompt_tokens: int

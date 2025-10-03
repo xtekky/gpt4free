@@ -110,7 +110,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 alias = model.get("aliases")[0]
             elif alias in cls.swap_model_aliases:
                 alias = cls.swap_model_aliases[alias]
-            return alias.replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
+            return str(alias).replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
 
         if not cls._models_loaded:
             try:
