@@ -46,7 +46,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 response = requests.get(f"{api_base}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl)
                 raise_for_status(response)
                 data = response.json()
-                data = data.get("data") if isinstance(data, dict) else data
+                data = data.get("data", data.get("models")) if isinstance(data, dict) else data
                 if (not cls.needs_auth or cls.models_needs_auth or api_key) and data:
                     cls.live += 1
                 cls.image_models = [model.get("name") if cls.use_model_names else model.get("id", model.get("name")) for model in data if model.get("image") or model.get("type") == "image" or model.get("supports_images")]
@@ -144,10 +144,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 **extra_body
             )
             if api_endpoint is None:
-                if api_base:
-                    api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
                 if api_endpoint is None:
                     api_endpoint = cls.api_endpoint
+                if api_endpoint is None:
+                    api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             yield JsonRequest.from_dict(data)
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
                 async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media):
