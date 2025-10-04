@@ -10,6 +10,11 @@ try:
 except:
     has_requirements = False
 try:
+    from g4f.tools.web_search import search
+    has_search = True
+except:
+    has_search = False
+try:
     from ddgs.exceptions import DDGSException
 except ImportError:
     class DDGSException(Exception):
@@ -39,7 +44,9 @@ class TestBackendApi(unittest.TestCase):
         self.assertTrue(len(response) > 0)
 
     def test_search(self):
-        from g4f.gui.server.internet import search
+        if not has_search:
+            self.skipTest("import error")
+            return
         try:
             result = asyncio.run(search("Hello"))
         except DDGSException as e:

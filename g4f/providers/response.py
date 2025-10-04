@@ -174,14 +174,13 @@ class JsonResponse(ResponseType, ObjectMixin):
     def __str__(self) -> str:
         return str(self.get_dict())
 
-class JsonRequest(ResponseType, ObjectMixin):
-    def __str__(self) -> str:
-        return str(self.get_dict())
-
 class HiddenResponse(ResponseType):
     def __str__(self) -> str:
         """Hidden responses return an empty string."""
         return ""
+
+class JsonRequest(HiddenResponse, ObjectMixin):
+    pass
 
 class FinishReason(JsonMixin, HiddenResponse):
     def __init__(self, reason: str) -> None:
@@ -204,6 +203,7 @@ class Usage(JsonMixin, HiddenResponse):
         completionTokens: int = None,
         input_tokens: int = None,
         output_tokens: int = None,
+        output_tokens_details: Dict = None,
         **kwargs
     ):
         if promptTokens is not None:
@@ -214,6 +214,9 @@ class Usage(JsonMixin, HiddenResponse):
             kwargs["prompt_tokens"] = input_tokens
         if output_tokens is not None:
             kwargs["completion_tokens"] = output_tokens
+        if output_tokens_details is not None:
+            for key, value in output_tokens_details.items():
+                kwargs[key] = value
         if "total_tokens" not in kwargs and "prompt_tokens" in kwargs and "completion_tokens" in kwargs:
             kwargs["total_tokens"] = kwargs["prompt_tokens"] + kwargs["completion_tokens"]
         return super().__init__(**kwargs)
@@ -425,7 +428,7 @@ class VideoResponse(MediaResponse):
             return "\n".join(result)
         return "\n".join([f'<video src="{quote_url(video)}"></video>' for video in self.get_list()])
 
-class ImagePreview(ImageResponse, HiddenResponse):
+class ImagePreview(HiddenResponse, ImageResponse):
     pass
 
 class PreviewResponse(HiddenResponse):
@@ -442,5 +445,5 @@ class Parameters(ResponseType, JsonMixin):
         """Return an empty string."""
         return ""
 
-class ProviderInfo(JsonMixin, HiddenResponse):
+class ProviderInfo(HiddenResponse, JsonMixin):
     pass

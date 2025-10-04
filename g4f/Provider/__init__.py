@@ -57,6 +57,7 @@ from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .Startnest            import Startnest
 from .Qwen                 import Qwen
+from .StringableInference  import StringableInference
 from .TeachAnything        import TeachAnything
 from .WeWordle             import WeWordle
 from .Yqcloud              import Yqcloud

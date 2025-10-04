@@ -239,7 +239,7 @@ class Backend_Api(Api):
             cache_dir = Path(get_cookies_dir()) / ".usage"
             cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
             cache_dir.mkdir(parents=True, exist_ok=True)
-            data = {**request.json, "user": request.headers.get("x-user", "unknown")}
+            data = {"user": request.headers.get("x-user", "unknown"), **request.json}
             with cache_file.open("a" if cache_file.exists() else "w") as f:
                 f.write(f"{json.dumps(data)}\n")
             return {}

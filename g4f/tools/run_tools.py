@@ -251,7 +251,7 @@ async def async_iter_run_tools(
             elif isinstance(chunk, Sources):
                 sources = None
             elif isinstance(chunk, str):
-                completion_tokens += 1
+                completion_tokens += round(len(chunk.encode("utf-8"))/4)
             elif isinstance(chunk, ProviderInfo):
                 usage_model = getattr(chunk, "model", usage_model)
                 usage_provider = getattr(chunk, "name", usage_provider)
@@ -360,7 +360,7 @@ def iter_run_tools(
             elif isinstance(chunk, Sources):
                 sources = None
             elif isinstance(chunk, str):
-                completion_tokens += 1
+                completion_tokens += round(len(chunk.encode("utf-8"))/4)
             elif isinstance(chunk, ProviderInfo):
                 usage_model = getattr(chunk, "model", usage_model)
                 usage_provider = getattr(chunk, "name", usage_provider)

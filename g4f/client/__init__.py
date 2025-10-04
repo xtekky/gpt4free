@@ -343,8 +343,8 @@ class Completions:
         )
 
         def fallback(response):
-            response = async_iter_response(response, stream, response_format, max_tokens, stop)
-            return async_iter_append_model_and_provider(response, model, provider)
+            response = iter_response(response, stream, response_format, max_tokens, stop)
+            return iter_append_model_and_provider(response, model, provider)
 
         if raw:
             def raw_response(response):
