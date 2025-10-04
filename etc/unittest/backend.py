@@ -10,8 +10,7 @@ try:
 except:
     has_requirements = False
 try:
-    from g4f.tools.web_search import
- search
+    from g4f.tools.web_search import search
     has_search = True
 except:
     has_search = False
