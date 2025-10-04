@@ -58,7 +58,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     cookie_domain = ".microsoft.com"
     anon_cookie_name = "__Host-copilot-anon"
     
-    working = has_curl_cffi
+    working = True
     use_nodriver = has_nodriver
     active_by_default = True
     
