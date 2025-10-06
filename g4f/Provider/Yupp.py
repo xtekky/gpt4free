@@ -8,7 +8,7 @@ import threading
 import requests
 
 from ..providers.base_provider import AbstractProvider, ProviderModelMixin
-from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, VariantResponse
+from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, ProviderInfo
 from ..errors import RateLimitError, ProviderException
 from ..cookies import get_cookies
 from ..tools.auth import AuthManager
@@ -135,9 +135,7 @@ def claim_yupp_reward(account: Dict[str, Any], reward_id: str):
         url = "https://yupp.ai/api/trpc/reward.claim?batch=1"
         payload = {"0": {"json": {"rewardId": reward_id}}}
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
             "Content-Type": "application/json",
-            "sec-fetch-site": "same-origin",
             "Cookie": f"__Secure-yupp.session-token={account['token']}",
         }
         session = create_requests_session()
@@ -192,23 +190,22 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         conversation: JsonConversation = None,
         **kwargs,
     ) -> Generator[str, Any, None]:
-        if not api_key:
-            api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
-        
-        # Initialize Yupp accounts and models
-        if api_key:
-            load_yupp_accounts(api_key)
-
-        log_debug(f"Yupp provider initialized with {len(YUPP_ACCOUNTS)} accounts")
-
         """
         Create completion using Yupp.ai API with account rotation
         """
+        # Initialize Yupp accounts and models
+        if not api_key and len(YUPP_ACCOUNTS) <= 1:
+            api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+        if api_key:
+            load_yupp_accounts(api_key)
+            log_debug(f"Yupp provider initialized with {len(YUPP_ACCOUNTS)} accounts")
+        elif YUPP_ACCOUNTS:
+            log_debug(f"Yupp provider using existing accounts: {len(YUPP_ACCOUNTS)}")
+        else:
+            raise ProviderException("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
+
         if messages is None:
             messages = []
-        
-        if not YUPP_ACCOUNTS:
-            raise ProviderException("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
         
         # Format messages
         if conversation is None or True:
@@ -220,7 +217,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             if prompt is None:
                 prompt = get_last_message(messages)
             url_uuid = conversation.url_uuid
-        log_debug(f"Use url uuid: {url_uuid}, Formatted prompt length: {len(prompt)}")
+        log_debug(f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}")
         
         # Try all accounts with rotation
         max_attempts = len(YUPP_ACCOUNTS)
@@ -275,18 +272,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         
         headers = {
             "accept": "text/x-component",
-            "accept-language": "en-US",
-            "cache-control": "no-cache",
             "content-type": "text/plain;charset=UTF-8",
             "next-action": next_action,
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "sec-ch-ua": "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Google Chrome\";v=\"140\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Linux\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
             "cookie": f"__Secure-yupp.session-token={account['token']}",
         }
         
@@ -318,7 +305,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         response.raise_for_status()
         
         yield from cls._process_stream_response(
-            response.iter_lines(), account, session, question
+            response.iter_lines(), account, session, question, model_id
         )
     
     @classmethod
@@ -327,7 +314,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         response_lines: Iterable[bytes],
         account: Dict[str, Any],
         session: requests.Session,
-        prompt: Optional[str] = None,
+        prompt: str,
+        model_id: str
     ) -> Generator[str, Any, None]:
         """Process Yupp stream response and convert to OpenAI format"""
 
@@ -379,7 +367,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             line_count = 0
             quick_response_id = None
             variant_stream_id = None
-            found_image: Optional[ImageResponse] = None
+            is_started: bool = False
             variant_image: Optional[ImageResponse] = None
             variant_text = ""
             
@@ -419,13 +407,20 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 elif chunk_id == "e":
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
+                        provider_info = cls.get_dict()
+                        provider_info['model'] = model_id
                         for i, selection in enumerate(data.get("modelSelections", [])):
                             if selection.get("selectionSource") == "USER_SELECTED":
                                 target_stream_id = extract_ref_id(select_stream[i].get("next"))
+                                provider_info["modelLabel"] = selection.get("shortLabel")
+                                provider_info["modelUrl"] = selection.get("externalUrl")
                                 log_debug(f"Found target stream ID: {target_stream_id}")
                             else:
                                 variant_stream_id = extract_ref_id(select_stream[i].get("next"))
+                                provider_info["variantLabel"] = selection.get("shortLabel")
+                                provider_info["variantUrl"] = selection.get("externalUrl")
                                 log_debug(f"Found variant stream ID: {variant_stream_id}")
+                        yield ProviderInfo.from_dict(provider_info)
                 
                 # Process target stream content
                 elif target_stream_id and chunk_id == target_stream_id:
@@ -435,8 +430,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                         content = data.get("curr", "")
                         if content:
                             for chunk in process_content_chunk(content, chunk_id, line_count):
-                                if isinstance(chunk, ImageResponse):
-                                    found_image = chunk
+                                is_started = True
                                 yield chunk
                 
                 elif variant_stream_id and chunk_id == variant_stream_id:
@@ -449,9 +443,10 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                                 if isinstance(chunk, ImageResponse):
                                     variant_image = chunk
                                     yield PreviewResponse(str(variant_image))
-                                elif found_image is None:
+                                else:
                                     variant_text += str(chunk)
-                                    yield PreviewResponse(variant_text)
+                                    if not is_started:
+                                        yield PreviewResponse(variant_text)
                 
                 elif quick_response_id and chunk_id == quick_response_id:
                     yield PlainTextResponse("[Quick] " + line.decode(errors="ignore"))
@@ -468,6 +463,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             
             if variant_image is not None:
                 yield variant_image
+            elif variant_text:
+                yield PreviewResponse(variant_text)
 
             log_debug(f"Finished processing {line_count} lines")
             
