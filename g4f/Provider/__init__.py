@@ -61,6 +61,7 @@ from .StringableInference  import StringableInference
 from .TeachAnything        import TeachAnything
 from .WeWordle             import WeWordle
 from .Yqcloud              import Yqcloud
+from .Yupp                 import Yupp
 
 import sys
 
