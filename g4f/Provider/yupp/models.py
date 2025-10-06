@@ -3,8 +3,6 @@ import os
 import requests
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from dotenv import load_dotenv
-
 
 @dataclass
 class ModelConfig:
@@ -262,7 +260,6 @@ class YuppModelManager:
     
     def run_interactive(self) -> bool:
         """Run in interactive mode (for CLI use)"""
-        load_dotenv()
         
         print("=== Yupp Model Data Tool ===")
         
