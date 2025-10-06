@@ -3,14 +3,17 @@ import time
 import uuid
 import re
 import os
-from typing import Optional, Dict, Any, Generator, List
+from typing import Iterable, Optional, Dict, Any, Generator, List
 import threading
+import requests
+
 from ..providers.base_provider import AbstractProvider, ProviderModelMixin
-from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse
+from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, VariantResponse
 from ..errors import RateLimitError, ProviderException
 from ..cookies import get_cookies
 from ..tools.auth import AuthManager
 from .yupp.models import YuppModelManager
+from .helper import get_last_message
 from ..debug import log
 
 # Global variables to manage Yupp accounts (should be set by your main application)
@@ -94,6 +97,9 @@ def get_best_yupp_account() -> Optional[Dict[str, Any]]:
 
 def format_messages_for_yupp(messages: List[Dict[str, str]]) -> str:
     """Format multi-turn conversation for Yupp single-turn format"""
+    if len(messages) == 1:
+        return messages[0].get("content", "").strip()
+
     formatted = []
 
     # Handle system messages
@@ -171,6 +177,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             manager = YuppModelManager(api_key=api_key)
             models = manager.client.fetch_models()
             if models:
+                cls.models_tags = {model.get("name"): manager.processor.generate_tags(model) for model in models}
                 cls.models = [model.get("name") for model in models]
         return cls.models
 
@@ -181,8 +188,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         messages: List[Dict[str, str]] = None,
         stream: bool = False,
         api_key: Optional[str] = None,
-        temperature: float = 0.7,
-        max_tokens: int = 1000,
+        prompt: Optional[str] = None,
+        conversation: JsonConversation = None,
         **kwargs,
     ) -> Generator[str, Any, None]:
         if not api_key:
@@ -204,8 +211,16 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             raise ProviderException("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
         
         # Format messages
-        question = format_messages_for_yupp(messages)
-        log_debug(f"Formatted question length: {len(question)}")
+        if conversation is None or True:
+            if prompt is None:
+                prompt = format_messages_for_yupp(messages)
+            url_uuid = str(uuid.uuid4())
+            yield JsonConversation(url_uuid=url_uuid)
+        else:
+            if prompt is None:
+                prompt = get_last_message(messages)
+            url_uuid = conversation.url_uuid
+        log_debug(f"Use url uuid: {url_uuid}, Formatted prompt length: {len(prompt)}")
         
         # Try all accounts with rotation
         max_attempts = len(YUPP_ACCOUNTS)
@@ -216,8 +231,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             
             try:
                 yield from cls._make_yupp_request(
-                    account, question, model, model, stream, 
-                    temperature, max_tokens, **kwargs
+                    account, prompt, model, url_uuid, **kwargs
                 )
                 return  # Success, exit the loop
                 
@@ -247,25 +261,24 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         cls,
         account: Dict[str, Any],
         question: str,
-        model_name: str,
         model_id: str,
-        stream: bool,
-        temperature: float,
-        max_tokens: int,
+        url_uuid: Optional[str] = None,
+        next_action: str = "7f2a2308b5fc462a2c26df714cb2cccd02a9c10fbb",
         **kwargs
     ) -> Generator[str, Any, None]:
         """Make actual request to Yupp.ai"""
         
         # Build request
-        url_uuid = str(uuid.uuid4())
+        if url_uuid is None:
+            url_uuid = str(uuid.uuid4())
         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
         
         headers = {
             "accept": "text/x-component",
-            "accept-language": "de,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6",
+            "accept-language": "en-US",
             "cache-control": "no-cache",
             "content-type": "text/plain;charset=UTF-8",
-            "next-action": "7f2a2308b5fc462a2c26df714cb2cccd02a9c10fbb",
+            "next-action": next_action,
             "pragma": "no-cache",
             "priority": "u=1, i",
             "sec-ch-ua": "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Google Chrome\";v=\"140\"",
@@ -277,7 +290,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             "cookie": f"__Secure-yupp.session-token={account['token']}",
         }
         
-        log_debug(f"Sending request to Yupp.ai with account ...{account['token'][-4:]}")
+        log_debug(f"Sending request to Yupp.ai with account: {account['token'][:10]}...")
 
         payload = [
             url_uuid,
@@ -287,7 +300,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             "$undefined",
             [],
             "$undefined",
-            [{"modelName": model_name, "promptModifierId": "$undefined"}]  if model_name else "none",
+            [{"modelName": model_id, "promptModifierId": "$undefined"}]  if model_id else "none",
             "text",
             False,
             "$undefined",
@@ -305,14 +318,16 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         response.raise_for_status()
         
         yield from cls._process_stream_response(
-            response.iter_lines(), account
+            response.iter_lines(), account, session, question
         )
     
     @classmethod
     def _process_stream_response(
         cls,
-        response_lines,
-        account: Dict[str, Any]
+        response_lines: Iterable[bytes],
+        account: Dict[str, Any],
+        session: requests.Session,
+        prompt: Optional[str] = None,
     ) -> Generator[str, Any, None]:
         """Process Yupp stream response and convert to OpenAI format"""
 
@@ -324,7 +339,6 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         thinking_content = ""
         normal_content = ""
         select_stream = [None, None]
-        processed_content = set()
         
         def extract_ref_id(ref):
             """Extract ID from reference string, e.g., from '$@123' extract '123'"""
@@ -335,25 +349,21 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             if not content or content in [None, "", "$undefined"]:
                 return False
             
-            if content.startswith("\\n\\<streaming stopped") or content.startswith("\n\\<streaming stopped"):
-                return False
-            
-            if re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", content.strip()):
-                return False
-            
-            if len(content.strip()) == 0:
-                return False
-            
-            if content.strip() in ["$undefined", "undefined", "null", "NULL"]:
-                return False
-            
             return True
 
         def process_content_chunk(content: str, chunk_id: str, line_count: int):
             """Process single content chunk"""
-            nonlocal is_thinking, thinking_content, normal_content
+            nonlocal is_thinking, thinking_content, normal_content, session
             
             if not is_valid_content(content):
+                return
+            
+            if '<yapp class="image-gen">' in content:
+                content = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
+                url = f"https://yupp.ai/api/trpc/chat.getSignedImage"
+                response = session.get(url, params={"batch": "1", "input": json.dumps({"0": {"json": {"imageId": json.loads(content).get("image_id")}}})})
+                response.raise_for_status()
+                yield ImageResponse(response.json()[0]["result"]["data"]["json"]["signed_url"], prompt)
                 return
             
             # log_debug(f"Processing chunk #{line_count} with content: '{content[:50]}...'")
@@ -368,6 +378,10 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             # log_debug("Starting to process Yupp stream response...")
             line_count = 0
             quick_response_id = None
+            variant_stream_id = None
+            found_image: Optional[ImageResponse] = None
+            variant_image: Optional[ImageResponse] = None
+            variant_text = ""
             
             for line in response_lines:
 
@@ -407,10 +421,11 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                     if isinstance(data, dict):
                         for i, selection in enumerate(data.get("modelSelections", [])):
                             if selection.get("selectionSource") == "USER_SELECTED":
-                                if i < len(select_stream) and isinstance(select_stream[i], dict):
-                                    target_stream_id = extract_ref_id(select_stream[i].get("next"))
-                                    log_debug(f"Found target stream ID: {target_stream_id}")
-                                break
+                                target_stream_id = extract_ref_id(select_stream[i].get("next"))
+                                log_debug(f"Found target stream ID: {target_stream_id}")
+                            else:
+                                variant_stream_id = extract_ref_id(select_stream[i].get("next"))
+                                log_debug(f"Found variant stream ID: {variant_stream_id}")
                 
                 # Process target stream content
                 elif target_stream_id and chunk_id == target_stream_id:
@@ -419,10 +434,27 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                         target_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            yield from process_content_chunk(content, chunk_id, line_count)
+                            for chunk in process_content_chunk(content, chunk_id, line_count):
+                                if isinstance(chunk, ImageResponse):
+                                    found_image = chunk
+                                yield chunk
+                
+                elif variant_stream_id and chunk_id == variant_stream_id:
+                    yield PlainTextResponse("[Variant] " + line.decode(errors="ignore"))
+                    if isinstance(data, dict):
+                        variant_stream_id = extract_ref_id(data.get("next"))
+                        content = data.get("curr", "")
+                        if content:
+                            for chunk in process_content_chunk(content, chunk_id, line_count):
+                                if isinstance(chunk, ImageResponse):
+                                    variant_image = chunk
+                                    yield PreviewResponse(str(variant_image))
+                                elif found_image is None:
+                                    variant_text += str(chunk)
+                                    yield PreviewResponse(variant_text)
                 
                 elif quick_response_id and chunk_id == quick_response_id:
-                    yield PlainTextResponse(line.decode(errors="ignore"))
+                    yield PlainTextResponse("[Quick] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         content = data.get("curr", "")
                         if content:
@@ -432,8 +464,11 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 elif isinstance(data, dict) and "curr" in data:
                     content = data.get("curr", "")
                     if content:
-                        pass #yield from process_content_chunk(content, chunk_id)
+                        yield PlainTextResponse("[Extra] " + line.decode(errors="ignore"))
             
+            if variant_image is not None:
+                yield variant_image
+
             log_debug(f"Finished processing {line_count} lines")
             
         except:

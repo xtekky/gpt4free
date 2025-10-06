@@ -238,6 +238,10 @@ class PlainTextResponse(HiddenResponse):
     def __init__(self, text: str) -> None:
         self.text = text
 
+class VariantResponse(HiddenResponse):
+    def __init__(self, text: str) -> None:
+        self.text = text
+
 class ContinueResponse(HiddenResponse):
     def __init__(self, text: str) -> None:
         self.text = text
