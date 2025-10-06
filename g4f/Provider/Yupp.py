@@ -9,6 +9,7 @@ from ..providers.base_provider import AbstractProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse
 from ..errors import RateLimitError, ProviderException
 from ..cookies import get_cookies
+from ..tools.auth import AuthManager
 from .yupp.models import YuppModelManager
 from ..debug import log
 
@@ -161,11 +162,16 @@ class Yupp(AbstractProvider, ProviderModelMixin):
     active_by_default = True
 
     @classmethod
-    def get_models(cls) -> List[Dict[str, Any]]:
+    def get_models(cls, api_key: str = None, **kwargs) -> List[Dict[str, Any]]:
         if not cls.models:
-            manager = YuppModelManager()
+            if not api_key:
+                api_key = AuthManager.load_api_key(cls)
+            if not api_key:
+                api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+            manager = YuppModelManager(api_key=api_key)
             models = manager.client.fetch_models()
-            cls.models = [model.get("name") for model in models]
+            if models:
+                cls.models = [model.get("name") for model in models]
         return cls.models
 
     @classmethod

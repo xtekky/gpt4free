@@ -17,11 +17,12 @@ class ModelConfig:
 class YuppAPIClient:
     """Yupp API client for fetching model data"""
     
-    def __init__(self, config: ModelConfig = None):
+    def __init__(self, config: ModelConfig = None, api_key: str = None):
         self.config = config or ModelConfig()
         self.session = requests.Session()
+        self.api_key = api_key
         self._setup_session()
-    
+
     def _setup_session(self) -> None:
         """Setup session with headers and cookies"""
         self.session.headers.update(self._get_headers())
@@ -47,6 +48,8 @@ class YuppAPIClient:
             self.session.cookies.set("__Secure-yupp.session-token", token)
     
     def _get_session_token(self) -> Optional[str]:
+        if self.api_key:
+            return self.api_key
         """Get session token from environment variable"""
         env_tokens = os.getenv("YUPP_TOKENS")
         if not env_tokens:
@@ -221,9 +224,9 @@ class DataManager:
 class YuppModelManager:
     """Main manager class for Yupp model operations"""
     
-    def __init__(self, config: ModelConfig = None):
+    def __init__(self, config: ModelConfig = None, api_key: str = None):
         self.config = config or ModelConfig()
-        self.client = YuppAPIClient(config)
+        self.client = YuppAPIClient(config, api_key)
         self.processor = ModelProcessor()
         self.data_manager = DataManager()
     
