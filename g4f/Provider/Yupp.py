@@ -162,6 +162,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
     Uses multiple account rotation and smart error handling
     """
 
+    url = "https://yupp.ai"
+    login_url = "https://discord.gg/qXA4Wf4Fsm"
     working = True
     active_by_default = True
 
