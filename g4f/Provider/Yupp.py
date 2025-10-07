@@ -9,7 +9,7 @@ import requests
 
 from ..providers.base_provider import AbstractProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, ProviderInfo
-from ..errors import RateLimitError, ProviderException
+from ..errors import RateLimitError, ProviderException, MissingAuthError
 from ..cookies import get_cookies
 from ..tools.auth import AuthManager
 from .yupp.models import YuppModelManager
@@ -174,6 +174,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 api_key = AuthManager.load_api_key(cls)
             if not api_key:
                 api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+            if not api_key:
+                raise MissingAuthError("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
             manager = YuppModelManager(api_key=api_key)
             models = manager.client.fetch_models()
             if models:
@@ -204,7 +206,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         elif YUPP_ACCOUNTS:
             log_debug(f"Yupp provider using existing accounts: {len(YUPP_ACCOUNTS)}")
         else:
-            raise ProviderException("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
+            raise MissingAuthError("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
 
         if messages is None:
             messages = []
