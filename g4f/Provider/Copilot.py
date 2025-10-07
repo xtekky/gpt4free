@@ -92,7 +92,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 debug.log(f"Copilot: {h}")
                 if has_nodriver:
                     yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy)
+                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy, cls.needs_auth)
                 else:
                     raise h
         yield AuthResult(
@@ -120,7 +120,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         model = cls.get_model(model)
         websocket_url = cls.websocket_url
         headers = None
-        if auth_result.access_token:
+        if getattr(auth_result, "access_token", None):
             websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype", None) else "")
             headers = {"authorization": f"Bearer {auth_result.access_token}"}
 
@@ -303,7 +303,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             if not wss.closed:
                 await wss.close()
 
-async def get_access_token_and_cookies(url: str, proxy: str = None):
+async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: bool = False):
     browser, stop_browser = await get_nodriver(proxy=proxy)
     try:
         page = await browser.get(url)
@@ -334,11 +334,16 @@ async def get_access_token_and_cookies(url: str, proxy: str = None):
                     access_token, useridentitytype = access_token
                 access_token = access_token.get("value") if isinstance(access_token, dict) else access_token
                 useridentitytype = useridentitytype.get("value") if isinstance(useridentitytype, dict) else None
-                print(f"Got access token: {access_token[:10]}..., useridentitytype: {useridentitytype}")
+                debug.log(f"Got access token: {access_token[:10]}..., useridentitytype: {useridentitytype}")
+                break
+            if not needs_auth:
                 break
         cookies = {}
-        for c in await page.send(nodriver.cdp.network.get_cookies([url])):
-            cookies[c.name] = c.value
+        while Copilot.anon_cookie_name not in cookies:
+            await asyncio.sleep(2)
+            cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([url]))}
+            if not needs_auth and Copilot.anon_cookie_name in cookies:
+                break
         stop_browser()
         return access_token, useridentitytype, cookies
     finally:
