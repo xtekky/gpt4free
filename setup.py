@@ -34,8 +34,6 @@ EXTRA_REQUIRE = {
         "nodriver",
         "python-multipart",
         "a2wsgi",
-        "pywebview",
-        "plyer",
         "setuptools",
         "markitdown[all]",
         "python-dotenv",
@@ -52,10 +50,12 @@ EXTRA_REQUIRE = {
         "werkzeug", "flask",       # gui
         "fastapi",                 # api
         "uvicorn",                 # api
+        "nodriver",
         "python-multipart",
         "a2wsgi",
-        "markitdown[all]",
-        "python-dotenv"
+        "markitdown[docx,pdf,pptx]",
+        "python-dotenv",
+        "aiofile"
     ],
     "image": [
         "pillow",
