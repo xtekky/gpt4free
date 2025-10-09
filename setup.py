@@ -53,7 +53,8 @@ EXTRA_REQUIRE = {
         "nodriver",
         "python-multipart",
         "a2wsgi",
-        "markitdown[docx,pdf,pptx]",
+        "pypdf2",
+        "python-docx",
         "python-dotenv",
         "aiofile"
     ],
@@ -72,11 +73,11 @@ EXTRA_REQUIRE = {
         "loguru", "fastapi",
         "uvicorn",
         "python-multipart",
+        "a2wsgi",
     ],
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
-        "ddgs",
     ],
     "search": [
         "beautifulsoup4",
