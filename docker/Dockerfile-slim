@@ -12,7 +12,7 @@ ENV G4F_USER_ID $G4F_USER_ID
 ENV G4F_DIR /app
 
 RUN apt-get update && apt-get upgrade -y \
-  && apt-get install -y git cron ffmpeg flac \
+  && apt-get install -y git cron ffmpeg flac gcc \
 # Add user and user group
   && groupadd -g $G4F_USER_ID $G4F_USER \
   && useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
@@ -32,8 +32,5 @@ ENV PATH "${HOME}/.local/bin:${PATH}"
 
 RUN git clone https://github.com/xtekky/gpt4free.git $G4F_DIR \
  && pip install --no-cache-dir -r requirements-slim.txt
-RUN git clone https://github.com/hlohaus/deepseek4free.git \
- && cd deepseek4free && git checkout 21Feb \
- && pip install --no-cache-dir . && cd .. && rm -rf deepseek4free
 
 CMD python -m etc.tool.update && docker/update.sh & docker/start.sh
