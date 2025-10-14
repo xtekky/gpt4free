@@ -97,38 +97,6 @@ def get_best_yupp_account() -> Optional[Dict[str, Any]]:
         account["last_used"] = now
         return account
 
-def format_messages_for_yupp(messages: List[Dict[str, str]]) -> str:
-    """Format multi-turn conversation for Yupp single-turn format"""
-    if len(messages) == 1:
-        return messages[0].get("content", "").strip()
-
-    formatted = []
-
-    # Handle system messages
-    system_messages = [msg for msg in messages if msg.get("role") == "system"]
-    if system_messages:
-        for sys_msg in system_messages:
-            content = sys_msg.get("content", "")
-            formatted.append(content)
-
-    # Handle user and assistant messages
-    user_assistant_msgs = [msg for msg in messages if msg.get("role") != "system"]
-    for msg in user_assistant_msgs:
-        role = "Human" if msg.get("role") == "user" else "Assistant"
-        content = msg.get("content", "")
-        formatted.append(f"\n\n{role}: {content}")
-
-    # Ensure it ends with Assistant:
-    if not formatted or not formatted[-1].strip().startswith("Assistant:"):
-        formatted.append("\n\nAssistant:")
-
-    result = "".join(formatted)
-    # Remove leading \n\n if present
-    if result.startswith("\n\n"):
-        result = result[2:]
-
-    return result
-
 def claim_yupp_reward(account: Dict[str, Any], reward_id: str):
     """Claim Yupp reward synchronously"""
     try:
@@ -371,19 +339,6 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         yield from cls._process_stream_response(
             response.iter_lines(), account, session, prompt, model_id
         )
-
-        session.post("https://yupp.ai/api/trpc/chat.generateRetake?batch=1", data={
-            "0": {
-                "json": {
-                    "attachmentIds": files,
-                    "chatId": url_uuid,
-                    "prompt": prompt,
-                    "turnId": turn_id
-                }
-            }
-        }, cookies={
-            "__Secure-yupp.session-token": account["token"]
-        })
 
     @classmethod
     def _process_stream_response(
