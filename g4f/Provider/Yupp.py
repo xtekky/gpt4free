@@ -15,7 +15,7 @@ from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..image import is_accepted_format, to_bytes
 from .yupp.models import YuppModelManager
-from .helper import get_last_message
+from .helper import get_last_user_message
 from ..debug import log
 
 # Global variables to manage Yupp accounts (should be set by your main application)
@@ -212,14 +212,9 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             messages = []
         
         # Format messages
-        if conversation is None or True:
-            if prompt is None:
-                prompt = format_messages_for_yupp(messages)
-            url_uuid = str(uuid.uuid4())
-            yield JsonConversation(url_uuid=url_uuid)
-        else:
-            if prompt is None:
-                prompt = get_last_message(messages)
+        prompt = get_last_user_message(messages, prompt)
+        url_uuid = None
+        if conversation is not None:
             url_uuid = conversation.url_uuid
         log_debug(f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}")
         
@@ -320,11 +315,39 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 "chatMessageId": ""
             })
         
+        # Build request 
+        log_debug(f"Sending request to Yupp.ai with account: {account['token'][:10]}...")
 
-        # Build request
+        turn_id = str(uuid.uuid4())
         if url_uuid is None:
             url_uuid = str(uuid.uuid4())
-        url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
+            payload = [
+                url_uuid,
+                turn_id,
+                prompt,
+                "$undefined",
+                "$undefined",
+                files,
+                "$undefined",
+                [{"modelName": model_id, "promptModifierId": "$undefined"}]  if model_id else "none",
+                "text",
+                False,
+                "$undefined",
+            ]
+            yield JsonConversation(url_uuid=url_uuid)
+        else:
+            payload = [
+                url_uuid,
+                turn_id,
+                prompt,
+                False,
+                [],
+                [{"modelName": model_id, "promptModifierId": "$undefined"}] if model_id else [],
+                "text",
+                files
+            ]
+            url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
+            next_action = "7f1e9eec4ab22c8bfc73a50c026db603cd8380f87d"
         
         headers = {
             "accept": "text/x-component",
@@ -332,22 +355,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             "next-action": next_action,
             "cookie": f"__Secure-yupp.session-token={account['token']}",
         }
-        
-        log_debug(f"Sending request to Yupp.ai with account: {account['token'][:10]}...")
 
-        payload = [
-            url_uuid,
-            str(uuid.uuid4()),
-            prompt,
-            "$undefined",
-            "$undefined",
-            files,
-            "$undefined",
-            [{"modelName": model_id, "promptModifierId": "$undefined"}]  if model_id else "none",
-            "text",
-            False,
-            "$undefined",
-        ]
+        log_debug(f"Request uuid: {url_uuid}, Model: {model_id}, Prompt length: {len(prompt)}, Files: {len(files)}")
         
         # Send request
         response = session.post(
@@ -362,7 +371,20 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         yield from cls._process_stream_response(
             response.iter_lines(), account, session, prompt, model_id
         )
-    
+
+        session.post("https://yupp.ai/api/trpc/chat.generateRetake?batch=1", data={
+            "0": {
+                "json": {
+                    "attachmentIds": files,
+                    "chatId": url_uuid,
+                    "prompt": prompt,
+                    "turnId": turn_id
+                }
+            }
+        }, cookies={
+            "__Secure-yupp.session-token": account["token"]
+        })
+
     @classmethod
     def _process_stream_response(
         cls,
