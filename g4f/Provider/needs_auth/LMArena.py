@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 import uuid
 import json
 import asyncio
@@ -27,6 +26,7 @@ from ...requests import StreamSession, get_args_from_nodriver, raise_for_status,
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, JsonRequest
 from ...tools.media import merge_media
+from ...integration import uuid
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_last_user_message
 from ... import debug
@@ -630,9 +630,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             else:
                 raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
 
-            userMessageId = str(uuid.uuid4())
-            modelAMessageId = str(uuid.uuid4())
-            evaluationSessionId = str(uuid.uuid4())
+            userMessageId = str(uuid.uuid7())
+            modelAMessageId = str(uuid.uuid7())
+            evaluationSessionId = str(uuid.uuid7())
             data = {
                 "id": evaluationSessionId,
                 "mode": "direct",
