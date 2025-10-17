@@ -806,7 +806,7 @@ deepseek_v3_0324_turbo = Model(
 deepseek_r1_0528 = Model(
     name = 'deepseek-r1-0528',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfra, PollinationsAI])
+    best_provider = DeepInfra
 )
 
 deepseek_r1_0528_turbo = Model(
