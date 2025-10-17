@@ -62,7 +62,7 @@ import os
 import sys
 import time
 
-from enum import Enum, _simple_enum
+from enum import Enum
 
 
 __author__ = 'Ka-Ping Yee <ping@zesty.ca>'
@@ -93,8 +93,7 @@ int_ = int      # The built-in int type
 bytes_ = bytes  # The built-in bytes type
 
 
-@_simple_enum(Enum)
-class SafeUUID:
+class SafeUUID(Enum):
     safe = 0
     unsafe = -1
     unknown = None
