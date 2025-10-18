@@ -283,7 +283,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         return messages
 
     @classmethod
-    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str], prompt: str = None, conversation_id: str = None) -> AsyncIterator:
+    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str], prompt: str = None, conversation_id: str = None) -> ImagePreview|ImageResponse|None:
         download_urls = []
         is_sediment = False
         if prompt is None:
@@ -319,7 +319,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.error("OpenaiChat: Download image failed")
             debug.error(e)
         if download_urls:
-            return ImagePreview(download_urls, prompt) if is_sediment else ImageResponse(download_urls, prompt)
+            return ImagePreview(download_urls, prompt, {"headers":auth_result.headers}) if is_sediment else ImageResponse(download_urls, prompt, {"headers":auth_result.headers})
 
     @classmethod
     async def create_authed(
@@ -643,7 +643,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if sources.list:
                     yield sources
                 if conversation.generated_images:
-                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt)
+                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt, {"headers":auth_result.headers})
                     conversation.generated_images = None
                 conversation.prompt = None
                 if return_conversation:
