@@ -59,6 +59,7 @@ class Api:
                 "video": model in provider.video_models,
                 "image": model in provider.image_models,
                 "count": False if provider.models_count is None else provider.models_count.get(model),
+                "tags": [] if provider.models_tags is None else provider.models_tags.get(model, []),
             }
         if provider in Provider.__map__:
             provider = Provider.__map__[provider]

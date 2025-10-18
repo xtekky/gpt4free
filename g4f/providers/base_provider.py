@@ -373,6 +373,7 @@ class ProviderModelMixin:
     audio_models: dict = {}
     last_model: str = None
     models_loaded: bool = False
+    models_tags: dict[str, list[str]] = None
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> list[str]:

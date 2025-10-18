@@ -451,6 +451,10 @@ jobs:
             **Docker:**
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}`
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-slim`
+
+            💻 **Having trouble with the .exe from this release?**  
+            👉 Check out the Windows launcher for GPT4Free instead:  
+            🔗 [https://github.com/gpt4free/g4f.exe](https://github.com/gpt4free/g4f.exe) 🚀  
           draft: false
           prerelease: false
           files: |

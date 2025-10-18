@@ -34,8 +34,6 @@ EXTRA_REQUIRE = {
         "nodriver",
         "python-multipart",
         "a2wsgi",
-        "pywebview",
-        "plyer",
         "setuptools",
         "markitdown[all]",
         "python-dotenv",
@@ -52,10 +50,13 @@ EXTRA_REQUIRE = {
         "werkzeug", "flask",       # gui
         "fastapi",                 # api
         "uvicorn",                 # api
+        "nodriver",
         "python-multipart",
         "a2wsgi",
-        "markitdown[all]",
-        "python-dotenv"
+        "pypdf2",
+        "python-docx",
+        "python-dotenv",
+        "aiofile"
     ],
     "image": [
         "pillow",
@@ -72,11 +73,11 @@ EXTRA_REQUIRE = {
         "loguru", "fastapi",
         "uvicorn",
         "python-multipart",
+        "a2wsgi",
     ],
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
-        "ddgs",
     ],
     "search": [
         "beautifulsoup4",

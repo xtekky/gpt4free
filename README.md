@@ -139,6 +139,10 @@ Notes:
 - In this example, the Interference API is mapped to 1337.
 
 ### Windows Guide (.exe)
+
+👉 Check out the Windows launcher for GPT4Free:  
+🔗 [https://github.com/gpt4free/g4f.exe](https://github.com/gpt4free/g4f.exe) 🚀  
+
 1. Download the release artifact `g4f.exe.zip` from:
    https://github.com/xtekky/gpt4free/releases/latest
 2. Unzip and run `g4f.exe`.

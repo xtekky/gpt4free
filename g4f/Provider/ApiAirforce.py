@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from ..typing import Messages, AsyncResult
 from .template import OpenaiTemplate
-from ..config import DEFAULT_MODEL
+from ..errors import RateLimitError
 
 class ApiAirforce(OpenaiTemplate):
     label = "Api.Airforce"
@@ -11,3 +12,28 @@ class ApiAirforce(OpenaiTemplate):
     working = True
     active_by_default = True
     use_image_size = True
+
+    @classmethod
+    async def create_async_generator(
+        cls,
+        model: str,
+        messages: Messages = None,
+        **kwargs
+    ) -> AsyncResult:
+        ratelimit_message = "Ratelimit Exceeded!"
+        buffer = ""
+        async for chunk in super().create_async_generator(
+            model=model,
+            messages=messages,
+            **kwargs
+        ):
+            if not isinstance(chunk, str):
+                yield chunk
+                continue
+            buffer += chunk
+            if ratelimit_message in buffer:
+                raise RateLimitError(ratelimit_message)
+            if ratelimit_message.startswith(buffer):
+                continue
+            yield buffer
+            buffer = ""

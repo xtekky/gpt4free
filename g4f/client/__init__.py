@@ -695,11 +695,11 @@ class AsyncCompletions:
                     else:
                         chunks.append(chunk)
                 if not started:
-                    async for chunk in fallback(chunks):
+                    for chunk in fallback(chunks):
                         yield chunk
             if stream:
                 return raw_response(response)
-            return anext(raw_response())
+            return anext(raw_response(response))
         if stream:
             return fallback(response)
         return anext(fallback(response))
