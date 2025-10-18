@@ -99,7 +99,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def on_auth_async(cls, cookies: dict = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if cookies is None:
-            cookies = get_cookies(cls.cookie_domain, False, cache_result=False)
+            cookies = get_fake_cookie() or get_cookies(cls.cookie_domain, False, cache_result=False)
         access_token = None
         useridentitytype = None
         if cls.needs_auth or cls.anon_cookie_name not in cookies:
