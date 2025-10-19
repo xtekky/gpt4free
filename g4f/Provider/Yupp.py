@@ -214,7 +214,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     working = True
     active_by_default = True
-
+    supports_stream = True
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
         if not cls.models:
