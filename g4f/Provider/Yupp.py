@@ -240,10 +240,15 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         api_key: Optional[str] = None,
         prompt: Optional[str] = None,
         conversation: JsonConversation = None,
+        mode:str = "text",
+        timeout:float = 60,
         **kwargs,
     ) -> Generator[str, Any, None]:
         """
         Create completion using Yupp.ai API with account rotation
+        :mode: Mode can be 'text' or 'image'
+
+
         """
         # Initialize Yupp accounts and models
         if not api_key:
@@ -327,7 +332,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                         files,
                         "$undefined",
                         [{"modelName": model, "promptModifierId": "$undefined"}] if model else "none",
-                        "text",
+                        mode,
                         True,
                         "$undefined",
                     ]
@@ -344,7 +349,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                         False,
                         [],
                         [{"modelName": model, "promptModifierId": "$undefined"}] if model else [],
-                        "text",
+                        mode,
                         files
                     ]
                     url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
@@ -361,7 +366,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
 
                 # Send request
-                response = session.post(url, data=json.dumps(payload), headers=headers, stream=True, timeout=60)
+                response = session.post(url, data=json.dumps(payload), headers=headers, stream=True, timeout=timeout)
                 response.raise_for_status()
 
                 # Attempt to make chat private
