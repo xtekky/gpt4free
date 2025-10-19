@@ -119,12 +119,90 @@ def claim_yupp_reward(account: Dict[str, Any], reward_id: str):
         log_debug(f"Failed to claim reward {reward_id}. Error: {e}")
         return None
 
+def make_chat_private(account: Dict[str, Any], chat_id: str) -> bool:
+    """
+    Set a Yupp chat's sharing status to PRIVATE.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        log_debug(f"Setting chat {chat_id} to PRIVATE...")
+        url = "https://yupp.ai/api/trpc/chat.updateSharingSettings?batch=1"
+        payload = {
+            "0": {
+                "json": {
+                    "chatId": chat_id,
+                    "status": "PRIVATE"
+                }
+            }
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Cookie": f"__Secure-yupp.session-token={account['token']}",
+        }
+
+        session = create_requests_session()
+        response = session.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+
+        data = response.json()
+        # Expected: [{"result":{"data":{"json":{}}}}]
+        if (
+            isinstance(data, list) and len(data) > 0
+            and "json" in data[0].get("result", {}).get("data", {})
+        ):
+            log_debug(f"Chat {chat_id} is now PRIVATE ✅")
+            return True
+
+        log_debug(f"Unexpected response while setting chat private: {data}")
+        return False
+
+    except Exception as e:
+        log_debug(f"Failed to make chat {chat_id} private: {e}")
+        return False
+
 def log_debug(message: str):
     """Debug logging (can be replaced with your logging system)"""
     if os.getenv("DEBUG_MODE", "false").lower() == "true":
         print(f"[DEBUG] {message}")
     else:
         log(f"[Yupp] {message}")
+
+def format_messages_for_yupp(messages: List[Dict[str, str]]) -> str:
+    """Format multi-turn conversation for Yupp single-turn format"""
+    if not messages:
+        return ""
+        
+    if len(messages) == 1 and isinstance(messages[0].get("content"), str):
+        return messages[0].get("content", "").strip()
+
+    formatted = []
+
+    # Handle system messages
+    system_messages = [msg for msg in messages if msg.get("role") in ["developer", "system"]]
+    if system_messages:
+        for sys_msg in system_messages:
+            content = sys_msg.get("content", "")
+            formatted.append(content)
+
+    # Handle user and assistant messages
+    user_assistant_msgs = [msg for msg in messages if msg.get("role") in ["user", "assistant"]]
+    for msg in user_assistant_msgs:
+        role = "Human" if msg.get("role") == "user" else "Assistant"
+        content = msg.get("content", "")
+        for part in content if isinstance(content, list) else [{"text": content}]:
+            if part.get("text", "").strip():
+                formatted.append(f"\n\n{role}: {part.get('text', '')}")
+
+    # Ensure it ends with Assistant: for the model to continue
+    if not formatted or not formatted[-1].strip().startswith("Assistant:"):
+        formatted.append("\n\nAssistant:")
+
+    result = "".join(formatted)
+    # Remove leading \n\n if present
+    if result.startswith("\n\n"):
+        result = result[2:]
+
+    return result
 
 class Yupp(AbstractProvider, ProviderModelMixin):
     """
@@ -178,27 +256,125 @@ class Yupp(AbstractProvider, ProviderModelMixin):
 
         if messages is None:
             messages = []
-        
-        # Format messages
-        prompt = get_last_user_message(messages, prompt)
+
+        # Format messages - use the new format_messages_for_yupp function
         url_uuid = None
         if conversation is not None:
             url_uuid = conversation.url_uuid
-        log_debug(f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}")
-        
+            
+        # Determine the prompt based on conversation context
+        is_new_conversation = url_uuid is None
+        if prompt is None:
+            if is_new_conversation:
+                # New conversation - format all messages
+                prompt = format_messages_for_yupp(messages)
+            else:
+                # Continuing conversation - use only the last user message
+                prompt = get_last_user_message(messages, prompt)
+                
+        log_debug(f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}")
+
         # Try all accounts with rotation
         max_attempts = len(YUPP_ACCOUNTS)
         for attempt in range(max_attempts):
             account = get_best_yupp_account()
             if not account:
                 raise ProviderException("No valid Yupp accounts available")
-            
+
             try:
-                yield from cls._make_yupp_request(
-                    account, messages, prompt, model, url_uuid, **kwargs
-                )
-                return  # Success, exit the loop
-                
+                # Prepare the request
+                session = create_requests_session()
+                turn_id = str(uuid.uuid4())
+                files = []
+
+                # Handle media attachments if any
+                media = kwargs.get("media", None)
+                if media:
+                    for file, name in list(merge_media(media, messages)):
+                        data = to_bytes(file)
+                        presigned_resp = session.post(
+                            "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1",
+                            json={"0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
+                            headers={"Content-Type": "application/json", "Cookie": f"__Secure-yupp.session-token={account['token']}"}
+                        )
+                        presigned_resp.raise_for_status()
+                        upload_info = presigned_resp.json()[0]["result"]["data"]["json"]
+                        upload_url = upload_info["signedUrl"]
+                        session.put(upload_url, data=data, headers={"Content-Type": is_accepted_format(data), "Content-Length": str(len(data))})
+                        attachment_resp = session.post(
+                            "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
+                            json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data), "fileId": upload_info["fileId"]}}},
+                            cookies={"__Secure-yupp.session-token": account["token"]}
+                        )
+                        attachment_resp.raise_for_status()
+                        attachment = attachment_resp.json()[0]["result"]["data"]["json"]
+                        files.append({
+                            "fileName": attachment["file_name"],
+                            "contentType": attachment["content_type"],
+                            "attachmentId": attachment["attachment_id"],
+                            "chatMessageId": ""
+                        })
+
+                # Build payload and URL - FIXED: Use consistent url_uuid handling
+                if is_new_conversation:
+                    url_uuid = str(uuid.uuid4())
+                    payload = [
+                        url_uuid,
+                        turn_id,
+                        prompt,
+                        "$undefined",
+                        "$undefined",
+                        files,
+                        "$undefined",
+                        [{"modelName": model, "promptModifierId": "$undefined"}] if model else "none",
+                        "text",
+                        True,
+                        "$undefined",
+                    ]
+                    url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
+                    # Yield the conversation info first
+                    yield JsonConversation(url_uuid=url_uuid)
+                    next_action = kwargs.get("next_action", "7f2a2308b5fc462a2c26df714cb2cccd02a9c10fbb")
+                else:
+                    # Continuing existing conversation
+                    payload = [
+                        url_uuid,
+                        turn_id,
+                        prompt,
+                        False,
+                        [],
+                        [{"modelName": model, "promptModifierId": "$undefined"}] if model else [],
+                        "text",
+                        files
+                    ]
+                    url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
+                    next_action = kwargs.get("next_action", "7f1e9eec4ab22c8bfc73a50c026db603cd8380f87d")
+
+                headers = {
+                    "accept": "text/x-component",
+                    "content-type": "text/plain;charset=UTF-8",
+                    "next-action": next_action,
+                    "cookie": f"__Secure-yupp.session-token={account['token']}",
+                }
+
+                log_debug(f"Sending request to: {url}")
+                log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
+
+                # Send request
+                response = session.post(url, data=json.dumps(payload), headers=headers, stream=True, timeout=60)
+                response.raise_for_status()
+
+                # Attempt to make chat private
+                try:
+                    make_chat_private(account, url_uuid)
+                except Exception as e:
+                    log_debug(f"Failed to set chat private for {url_uuid}: {e}")
+
+                # Yield streaming responses
+                yield from cls._process_stream_response(response.iter_lines(), account, session, prompt, model)
+
+                return  # Exit after successful completion
+
             except RateLimitError:
                 log_debug(f"Account ...{account['token'][-4:]} hit rate limit, rotating")
                 with account_rotation_lock:
@@ -217,128 +393,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 with account_rotation_lock:
                     account["error_count"] += 1
                 raise ProviderException(f"Yupp request failed: {str(e)}") from e
-        
+
         raise ProviderException("All Yupp accounts failed after rotation attempts")
-    
-    @classmethod
-    def _make_yupp_request(
-        cls,
-        account: Dict[str, Any],
-        messages: List[Dict[str, str]],
-        prompt: str,
-        model_id: str,
-        url_uuid: Optional[str] = None,
-        media: List[str] = None,
-        next_action: str = "7f2a2308b5fc462a2c26df714cb2cccd02a9c10fbb",
-        **kwargs
-    ) -> Generator[str, Any, None]:
-        """Make actual request to Yupp.ai"""
-
-        session = create_requests_session()
-
-        files = []
-        for file, name in list(merge_media(media, messages)):
-            data = to_bytes(file)
-            url = "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1"
-            payload = {
-                "0": {
-                    "json": {
-                        "fileName": name,
-                        "fileSize": len(data),
-                        "contentType": is_accepted_format(data)
-                    }
-                }
-            }
-            response = session.post(url, json=payload, headers={
-                "Content-Type": "application/json",
-                "Cookie": f"__Secure-yupp.session-token={account['token']}",
-            })
-            response.raise_for_status()
-            upload_info = response.json()[0]["result"]["data"]["json"]
-            upload_url = upload_info["signedUrl"]
-            upload_resp = session.put(upload_url, data=data, headers={
-                "Content-Type": is_accepted_format(data),
-                "Cookie": f"__Secure-yupp.session-token={account['token']}",
-                "Content-Length": str(len(data)),
-            })
-            upload_resp.raise_for_status()
-            url = "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1"
-            response = session.post(url, json={
-                "0": {
-                    "json": {
-                        "fileName": name,
-                        "contentType": is_accepted_format(data),
-                        "fileId": upload_info["fileId"],
-                    }
-                }
-            }, cookies={
-                "__Secure-yupp.session-token": account["token"]
-            })
-            response.raise_for_status()
-            attachment = response.json()[0]["result"]["data"]["json"]
-            files.append({
-                "fileName": attachment["file_name"],
-                "contentType": attachment["content_type"],
-                "attachmentId": attachment["attachment_id"],
-                "chatMessageId": ""
-            })
-        
-        # Build request 
-        log_debug(f"Sending request to Yupp.ai with account: {account['token'][:10]}...")
-
-        turn_id = str(uuid.uuid4())
-        if url_uuid is None:
-            url_uuid = str(uuid.uuid4())
-            payload = [
-                url_uuid,
-                turn_id,
-                prompt,
-                "$undefined",
-                "$undefined",
-                files,
-                "$undefined",
-                [{"modelName": model_id, "promptModifierId": "$undefined"}]  if model_id else "none",
-                "text",
-                False,
-                "$undefined",
-            ]
-            yield JsonConversation(url_uuid=url_uuid)
-        else:
-            payload = [
-                url_uuid,
-                turn_id,
-                prompt,
-                False,
-                [],
-                [{"modelName": model_id, "promptModifierId": "$undefined"}] if model_id else [],
-                "text",
-                files
-            ]
-            url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
-            next_action = "7f1e9eec4ab22c8bfc73a50c026db603cd8380f87d"
-        
-        headers = {
-            "accept": "text/x-component",
-            "content-type": "text/plain;charset=UTF-8",
-            "next-action": next_action,
-            "cookie": f"__Secure-yupp.session-token={account['token']}",
-        }
-
-        log_debug(f"Request uuid: {url_uuid}, Model: {model_id}, Prompt length: {len(prompt)}, Files: {len(files)}")
-        
-        # Send request
-        response = session.post(
-            url,
-            data=json.dumps(payload),
-            headers=headers,
-            stream=True,
-            timeout=60
-        )
-        response.raise_for_status()
-        
-        yield from cls._process_stream_response(
-            response.iter_lines(), account, session, prompt, model_id
-        )
 
     @classmethod
     def _process_stream_response(
@@ -528,7 +584,7 @@ def init_yupp_provider():
 # Example usage and testing
 if __name__ == "__main__":
     # Set up environment for testing
-    # os.environ["DEBUG_MODE"] = "true"
+    os.environ["DEBUG_MODE"] = "true"
     
     # Initialize provider
     provider = init_yupp_provider()
