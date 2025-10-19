@@ -216,7 +216,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
     active_by_default = True
 
     @classmethod
-    def get_models(cls, api_key: str = None, **kwargs) -> List[Dict[str, Any]]:
+    def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
         if not cls.models:
             if not api_key:
                 api_key = AuthManager.load_api_key(cls)
@@ -229,6 +229,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             if models:
                 cls.models_tags = {model.get("name"): manager.processor.generate_tags(model) for model in models}
                 cls.models = [model.get("name") for model in models]
+                cls.image_models = [model.get("name") for model in models if model.get("isImageGeneration")]
+                cls.vision_models = [model.get("name") for model in models if "image/*" in model.get("supportedAttachmentMimeTypes", [])]
         return cls.models
 
     @classmethod
