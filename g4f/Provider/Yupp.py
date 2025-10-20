@@ -214,9 +214,9 @@ class Yupp(AbstractProvider, ProviderModelMixin):
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     working = True
     active_by_default = True
-
+    supports_stream = True
     @classmethod
-    def get_models(cls, api_key: str = None, **kwargs) -> List[Dict[str, Any]]:
+    def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
         if not cls.models:
             if not api_key:
                 api_key = AuthManager.load_api_key(cls)
@@ -229,6 +229,8 @@ class Yupp(AbstractProvider, ProviderModelMixin):
             if models:
                 cls.models_tags = {model.get("name"): manager.processor.generate_tags(model) for model in models}
                 cls.models = [model.get("name") for model in models]
+                cls.image_models = [model.get("name") for model in models if model.get("isImageGeneration")]
+                cls.vision_models = [model.get("name") for model in models if "image/*" in model.get("supportedAttachmentMimeTypes", [])]
         return cls.models
 
     @classmethod
@@ -240,10 +242,15 @@ class Yupp(AbstractProvider, ProviderModelMixin):
         api_key: Optional[str] = None,
         prompt: Optional[str] = None,
         conversation: JsonConversation = None,
+        mode:str = "text",
+        timeout:float = 60,
         **kwargs,
     ) -> Generator[str, Any, None]:
         """
         Create completion using Yupp.ai API with account rotation
+        :mode: Mode can be 'text' or 'image'
+
+
         """
         # Initialize Yupp accounts and models
         if not api_key:
@@ -327,7 +334,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                         files,
                         "$undefined",
                         [{"modelName": model, "promptModifierId": "$undefined"}] if model else "none",
-                        "text",
+                        mode,
                         True,
                         "$undefined",
                     ]
@@ -344,7 +351,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                         False,
                         [],
                         [{"modelName": model, "promptModifierId": "$undefined"}] if model else [],
-                        "text",
+                        mode,
                         files
                     ]
                     url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
@@ -361,7 +368,7 @@ class Yupp(AbstractProvider, ProviderModelMixin):
                 log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
 
                 # Send request
-                response = session.post(url, data=json.dumps(payload), headers=headers, stream=True, timeout=60)
+                response = session.post(url, data=json.dumps(payload), headers=headers, stream=True, timeout=timeout)
                 response.raise_for_status()
 
                 # Attempt to make chat private
