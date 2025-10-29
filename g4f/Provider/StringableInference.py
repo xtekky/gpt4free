@@ -11,7 +11,7 @@ class StringableInference(OpenaiTemplate):
     api_base = "https://stringableinf.com/api"
     api_endpoint = "https://stringableinf.com/api/v1/chat/completions"
 
-    working = True
+    working = False
     active_by_default = True
     default_model = "deepseek-v3.2"
     default_vision_model = "gpt-oss-120b"

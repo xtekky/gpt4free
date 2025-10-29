@@ -15,7 +15,7 @@ from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..image import is_accepted_format, to_bytes
 from .yupp.models import YuppModelManager
-from .helper import get_last_user_message, format_prompt
+from .helper import get_last_user_message
 from ..debug import log
 
 # Global variables to manage Yupp accounts
@@ -325,7 +325,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
                         # Yield the conversation info first
                         yield JsonConversation(url_uuid=url_uuid)
-                        next_action = kwargs.get("next_action", "7f2a2308b5fc462a2c26df714cb2cccd02a9c10fbb")
+                        next_action = kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
                     else:
                         # Continuing existing conversation
                         payload = [
@@ -339,7 +339,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             files
                         ]
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
-                        next_action = kwargs.get("next_action", "7f1e9eec4ab22c8bfc73a50c026db603cd8380f87d")
+                        next_action = kwargs.get("next_action", "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
 
                     headers = {
                         "accept": "text/x-component",
