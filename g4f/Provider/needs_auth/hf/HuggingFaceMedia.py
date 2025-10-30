@@ -111,7 +111,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         height: int = None,
         width: int = None,
         # Video Generation
-        resolution: str = "480p",
+        resolution: str = "720p",
         **kwargs
     ):
         if not api_key:
