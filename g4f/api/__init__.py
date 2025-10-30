@@ -267,6 +267,13 @@ class Api:
                             return ErrorResponse.from_message("G4F API key expired", HTTP_401_UNAUTHORIZED)
                 else:
                     user = "admin"
+
+                count = 0
+                for char in string:
+                    if char.isupper():
+                        count += 1
+                if count > 5:
+                    return ErrorResponse.from_message("Invalid user name", HTTP_401_UNAUTHORIZED)
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if request.method != "OPTIONS" and not path.endswith("/models"):
