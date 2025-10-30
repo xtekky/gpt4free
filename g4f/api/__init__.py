@@ -267,7 +267,6 @@ class Api:
                             return ErrorResponse.from_message("G4F API key expired", HTTP_401_UNAUTHORIZED)
                 else:
                     user = "admin"
-
                 count = 0
                 for char in string:
                     if char.isupper():
