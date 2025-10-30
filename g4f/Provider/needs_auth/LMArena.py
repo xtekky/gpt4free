@@ -568,15 +568,22 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 pass
             elif has_nodriver or cls.share_url is None:
                 async def callback(page):
-                    element = await page.select('[style="display: grid;"]')
-                    if element:
-                        await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
-                    await page.find("Ask anything…", 120)
                     button = await page.find("Accept Cookies")
                     if button:
                         await button.click()
                     else:
                         debug.log("No 'Accept Cookies' button found, skipping.")
+                    await asyncio.sleep(1)
+                    textarea = await page.find("Ask anything…")
+                    if textarea:
+                        await textarea.send_keys("Hello")
+                    await asyncio.sleep(1)
+                    button = await page.select('[type="submit"]:has([data-sentry-element="ArrowUp"])')
+                    if button:
+                        await button.click()
+                    element = await page.select('[style="display: grid;"]')
+                    if element:
+                        await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
                     if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                         debug.log("No authentication cookie found, trying to authenticate.")
                         await page.select('#cf-turnstile', 300)
@@ -628,7 +635,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             elif model in cls.image_models:
                 model_id = cls.image_models[model]
             else:
-                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
+                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
 
             userMessageId = str(uuid.uuid7())
             modelAMessageId = str(uuid.uuid7())

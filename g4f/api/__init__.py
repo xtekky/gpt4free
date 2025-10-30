@@ -239,8 +239,7 @@ class Api:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
                     user_g4f_api_key = await self.security(request)
-                    if hasattr(user_g4f_api_key, "credentials"):
-                        user_g4f_api_key = user_g4f_api_key.credentials
+                    user_g4f_api_key = getattr(user_g4f_api_key, "credentials", user_g4f_api_key)
                 if AppConfig.demo and user is None:
                     ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
                     country = request.headers.get("Cf-Ipcountry", "")
@@ -265,14 +264,14 @@ class Api:
                         debug.log(f"User: '{user}' G4F API key expires in {hours}h {minutes}m {seconds}s")
                         if expires < 0:
                             return ErrorResponse.from_message("G4F API key expired", HTTP_401_UNAUTHORIZED)
+                        count = 0
+                        for char in user:
+                            if char.isupper():
+                                count += 1
+                        if count > 4:
+                            return ErrorResponse.from_message("Invalid user name (screaming)", HTTP_401_UNAUTHORIZED)
                 else:
                     user = "admin"
-                count = 0
-                for char in string:
-                    if char.isupper():
-                        count += 1
-                if count > 4:
-                    return ErrorResponse.from_message("Invalid user name", HTTP_401_UNAUTHORIZED)
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if request.method != "OPTIONS" and not path.endswith("/models"):

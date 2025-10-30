@@ -1,48 +1,11 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
-
-# Ignore local python virtual environment
-venv/
-
-# Ignore streamlit_chat_app.py conversations pickle
-conversations.pkl
-*.pkl
-.idea/
-**/__pycache__/
-__pycache__/
-
-*.log
-*.pyc
-*.egg-info/
-*.egg
-*.egg-info
-.DS_Store
-*~
-*.gguf
-.buildozer
-har_and_cookies
+bin
+dist
+__pycache__
+generated_media
+site-packages
+projects
 node_modules
-models
-projects/windows/g4f
-generated_images/
-generated_media/
-projects/windows/
-
-*.bak
-*.backup
-.env
-g4f.dev/
-
-# Build artifacts
-build/
-dist/
-*.spec
-pyproject.toml.bak
-debian/
-winget/
+g4f.egg-info
+models/models.json
+pyvenv.cfg
+lib64
