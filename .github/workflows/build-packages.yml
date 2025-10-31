@@ -430,6 +430,7 @@ jobs:
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           name: Release ${{ needs.prepare.outputs.version }}
+          append_body: true
           body: |
             ## g4f ${{ needs.prepare.outputs.version }}
 
@@ -446,7 +447,7 @@ jobs:
             - macOS ARM64: `g4f-macos-${{ needs.prepare.outputs.version }}-arm64`
 
             **System Packages:**
-            - WinGet: `winget install g4f` (after manifest approval)
+            - WinGet: `winget install gpt4free`
 
             **Docker:**
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}`

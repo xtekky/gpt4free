@@ -14,6 +14,7 @@ from markitdown._exceptions import (
 
 from ._audio_converter import AudioConverter
 from ._image_converter import ImageConverter
+from ._youtube_converter import YouTubeConverter
 
 class MarkItDown(BaseMarkItDown):
     """(In preview) An extremely simple text-based document reader, suitable for LLM use.
@@ -26,6 +27,7 @@ class MarkItDown(BaseMarkItDown):
         super().__init__(**kwargs)
         self.register_converter(AudioConverter())
         self.register_converter(ImageConverter())
+        self.register_converter(YouTubeConverter())
 
     def _convert(
         self, *, file_stream: BinaryIO, stream_info_guesses: List[StreamInfo], **kwargs
