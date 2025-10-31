@@ -75,7 +75,6 @@ class YouTubeConverter(DocumentConverter):
     ) -> DocumentConverterResult:
         # Parse the stream
         encoding = "utf-8" if stream_info.charset is None else stream_info.charset
-        print(file_stream)
         soup = bs4.BeautifulSoup(file_stream, "html.parser", from_encoding=encoding)
 
         # Read the meta tags
@@ -95,8 +94,6 @@ class YouTubeConverter(DocumentConverter):
                     if key and content:  # Only add non-empty content
                         metadata[key] = content
                     break
-        
-        print(f"Extracted metadata keys: {list(metadata.keys())}")
 
         # Try reading the description
         try:

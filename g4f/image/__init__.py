@@ -107,11 +107,12 @@ def is_data_an_media(data, filename: str = None) -> str:
         return content_type
     if isinstance(data, bytes):
         return is_accepted_format(data)
-    if isinstance(data, str) and data.startswith("http"):
+    if isinstance(data, str) and data.startswith(("http://", "https://")):
         path = urlparse(data).path
         extension = get_extension(path)
         if extension is not None:
-            return EXTENSIONS_MAP[extension]       
+            return EXTENSIONS_MAP[extension]
+        return "binary/octet-stream"
     return is_data_uri_an_image(data)
 
 def is_valid_media(data: ImageType = None, filename: str = None) -> str:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import asyncio
-from typing import Any
 
 try:
     from ...integration.markitdown import MarkItDown as MaItDo, StreamInfo
@@ -23,7 +22,6 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         media: MediaListType = None,
-        llm_client: Any = None,
         **kwargs
     ) -> AsyncResult:
         if media is None:
@@ -34,12 +32,10 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
         for file, filename in media:
             text = None
             try:
-                result = md.convert(
-                    file,
-                    stream_info=StreamInfo(filename=filename) if filename else None,
-                    llm_client=llm_client,
-                    llm_model=model
-                )
+                if isinstance(file, str) and file.startswith(("http://", "https://")):
+                    result = md.convert_url(file)
+                else:
+                    result = md.convert(file, stream_info=StreamInfo(filename=filename) if filename else None)
                 if asyncio.iscoroutine(result.text_content):
                     text = await result.text_content
                 else:
@@ -47,11 +43,7 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
             except TypeError:
                 copyfile = get_tempfile(file, filename)
                 try:
-                    result = md.convert(
-                        copyfile, 
-                        llm_client=llm_client,
-                        llm_model=model
-                    )
+                    result = md.convert(copyfile)
                     if asyncio.iscoroutine(result.text_content):
                         text = await result.text_content
                     else:

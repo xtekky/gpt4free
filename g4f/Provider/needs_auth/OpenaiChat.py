@@ -24,7 +24,7 @@ from ...requests import StreamSession
 from ...requests import get_nodriver_session
 from ...image import ImageRequest, to_image, to_bytes, is_accepted_format, detect_file_type
 from ...errors import MissingAuthError, NoValidHarFileError, ModelNotFoundError
-from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview, ResponseType, format_link
+from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview, ResponseType, JsonRequest, format_link
 from ...providers.response import TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
 from ..helper import format_cookies, format_media_prompt, to_string
@@ -330,14 +330,15 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 360,
         auto_continue: bool = False,
-        action: str = "next",
+        action: Optional[str] = None,
         conversation: Conversation = None,
         media: MediaListType = None,
         return_conversation: bool = True,
         web_search: bool = False,
         prompt: str = None,
-        conversation_mode=None,
-        temporary=False,
+        conversation_mode: Optional[dict] = None,
+        temporary: Optional[bool] = None,
+        conversation_id: Optional[str] = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -351,7 +352,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             api_key (str): Access token for authentication.
             auto_continue (bool): Flag to automatically continue the conversation.
             action (str): Type of action ('next', 'continue', 'variant').
-            conversation_id (str): ID of the conversation.
             media (MediaListType): Images to include in the conversation.
             return_conversation (bool): Flag to include response fields in the output.
             **kwargs: Additional keyword arguments.
@@ -362,6 +362,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
+        if temporary is None:
+            temporary = action is not None and conversation_id is not None
+        if action is None:
+            action = "next"
         async with StreamSession(
             proxy=proxy,
             impersonate="chrome",
@@ -431,7 +435,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     }
                     if temporary:
                         data["history_and_training_disabled"] = True
-
                     async with session.post(
                         prepare_url,
                         json=data,
@@ -494,7 +497,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if temporary:
                     data["history_and_training_disabled"] = True
 
-                if conversation.conversation_id is not None:
+                if conversation.conversation_id is not None and not temporary:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
                 prompt = conversation.prompt = format_media_prompt(messages, prompt)
@@ -510,6 +513,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                             else:
                                 new_messages.append(message)
                     data["messages"] = cls.create_messages(new_messages, image_requests, ["search"] if web_search else None)
+                yield JsonRequest.from_dict(data)
                 headers = {
                     **cls._headers,
                     "accept": "text/event-stream",
