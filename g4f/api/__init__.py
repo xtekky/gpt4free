@@ -258,6 +258,7 @@ class Api:
                                     raise ValueError("User not found")
                             except:
                                 return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
+                        user = f"{country}:{user}" if country else user
                         expires = int(expires) - int(time.time())
                         hours, remainder = divmod(expires, 3600)
                         minutes, seconds = divmod(remainder, 60)
@@ -268,10 +269,9 @@ class Api:
                         for char in user:
                             if char.isupper():
                                 count += 1
-                        if count > 4:
+                        if count >= 6:
                             debug.log(f"Invalid user name (screaming): '{user}'")
                             return ErrorResponse.from_message("Invalid user name (screaming)", HTTP_401_UNAUTHORIZED)
-                        user = f"{country}:{user}" if country else user
                         debug.log(f"User: '{user}' G4F API key expires in {hours}h {minutes}m {seconds}s")
                 else:
                     user = "admin"
