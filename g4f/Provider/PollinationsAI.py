@@ -31,37 +31,6 @@ DEFAULT_HEADERS = {
     "origin": "https://pollinations.ai",
 }
 
-FOLLOWUPS_TOOLS = [{
-    "type": "function",
-    "function": {
-        "name": "options",
-        "description": "Provides options for the conversation",
-        "parameters": {
-            "properties": {
-                "title": {
-                    "title": "Conversation title. Prefixed with one or more emojies",
-                    "type": "string"
-                },
-                "followups": {
-                    "items": {
-                        "type": "string"
-                    },
-                    "title": "Suggested 4 Followups (only user messages)",
-                    "type": "array"
-                }
-            },
-            "title": "Conversation",
-            "type": "object"
-        }
-    }
-}]
-
-FOLLOWUPS_DEVELOPER_MESSAGE = [{
-    "role": "developer",
-    "content": "Provide conversation options.",
-}]
-
-
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI 🌸"
     url = "https://pollinations.ai"
@@ -375,12 +344,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         await raise_for_status(response)
                 except Exception as e:
                     responses.add(e)
-                    debug.error(f"Error fetching image: {e}")
+                    debug.error(f"Error fetching image:", e)
                 if response.headers['content-type'].startswith("image/"):
                     responses.add(ImageResponse(str(response.url), prompt, {"headers": headers}))
                 else:
                     t_ = await response.text()
-                    debug.error(f"UnHandel Error fetching image: {t_}")
+                    debug.error(f"UnHandel Error fetching image:", t_)
                     responses.add(t_)
 
             tasks: list[asyncio.Task] = []
@@ -465,43 +434,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(cls.openai_endpoint, json=data, headers=headers) as response:
                 if response.status in (400, 500):
                     debug.error(f"Error: {response.status} - Bad Request: {data}")
-                full_resposne = []
                 async for chunk in read_response(response, stream, format_media_prompt(messages), cls.get_dict(),
                                                  kwargs.get("download_media", True)):
-                    if isinstance(chunk, str):
-                        full_resposne.append(chunk)
                     yield chunk
-                if full_resposne:
-                    full_content = "".join(full_resposne)
-                    if kwargs.get("action") == "next" and model != "evil":
-                        tool_messages = []
-                        for message in messages:
-                            if message.get("role") == "user":
-                                if isinstance(message.get("content"), str):
-                                    tool_messages.append({"role": "user", "content": message.get("content")})
-                                elif isinstance(message.get("content"), list):
-                                    next_value = message.get("content").pop()
-                                    if isinstance(next_value, dict):
-                                        next_value = next_value.get("text")
-                                        if next_value:
-                                            tool_messages.append({"role": "user", "content": next_value})
-                        tool_messages.append({"role": "assistant", "content": full_content})
-                        data = {
-                            "model": "openai",
-                            "messages": tool_messages + FOLLOWUPS_DEVELOPER_MESSAGE,
-                            "tool_choice": "required",
-                            "tools": FOLLOWUPS_TOOLS
-                        }
-                        async with session.post(cls.openai_endpoint, json=data, headers=headers) as response:
-                            try:
-                                await raise_for_status(response)
-                                tool_calls = (await response.json()).get("choices", [{}])[0].get("message", {}).get(
-                                    "tool_calls", [])
-                                if tool_calls:
-                                    arguments = json.loads(tool_calls.pop().get("function", {}).get("arguments"))
-                                    if arguments.get("title"):
-                                        yield TitleGeneration(arguments.get("title"))
-                                    if arguments.get("followups"):
-                                        yield SuggestedFollowups(arguments.get("followups"))
-                            except Exception as e:
-                                debug.error("Error generating title and followups:", e)

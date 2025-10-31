@@ -284,7 +284,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             sources = {}
             while not wss.closed:
                 try:
-                    msg_txt, _ = await asyncio.wait_for(wss.recv(), 3 if done else timeout)
+                    msg_txt, _ = await asyncio.wait_for(wss.recv(), 1 if done else timeout)
                     msg = json.loads(msg_txt)
                 except:
                     break
@@ -369,7 +369,7 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
                 button = await page.select("[data-testid=\"submit-button\"]")
                 if button:
                     await button.click()
-                    turnstile = await page.select('#cf-turnstile', 300)
+                    turnstile = await page.select('#cf-turnstile')
                     if turnstile:
                         debug.log("Found Element: 'cf-turnstile'")
                         await asyncio.sleep(3)
