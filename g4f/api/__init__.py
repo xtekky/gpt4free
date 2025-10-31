@@ -252,9 +252,10 @@ class Api:
                         except:
                             try:
                                 data = json.loads(decrypt_data(session_key, user_g4f_api_key))
-                                expires = int(decrypt_data(private_key, data["data"])) + 86400
+                                debug.log(f"Decrypted G4F API key data: {data}")
+                                expires = int(decrypt_data(private_key, data.pop("data"))) + 86400
                                 user = data.get("user", user)
-                                if not user:
+                                if not user or "referrer" not in data:
                                     raise ValueError("User not found")
                             except:
                                 return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
