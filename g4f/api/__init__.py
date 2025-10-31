@@ -240,9 +240,9 @@ class Api:
                 except HTTPException:
                     user_g4f_api_key = await self.security(request)
                     user_g4f_api_key = getattr(user_g4f_api_key, "credentials", user_g4f_api_key)
+                country = request.headers.get("Cf-Ipcountry", "")
                 if AppConfig.demo and user is None:
                     ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
-                    country = request.headers.get("Cf-Ipcountry", "")
                     user = request.headers.get("x-user", ip)
                     user = f"{country}:{user}" if country else user
                 if AppConfig.g4f_api_key is None or not user_g4f_api_key or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
@@ -261,15 +261,18 @@ class Api:
                         expires = int(expires) - int(time.time())
                         hours, remainder = divmod(expires, 3600)
                         minutes, seconds = divmod(remainder, 60)
-                        debug.log(f"User: '{user}' G4F API key expires in {hours}h {minutes}m {seconds}s")
                         if expires < 0:
+                            debug.log(f"G4F API key expired for user '{user}'")
                             return ErrorResponse.from_message("G4F API key expired", HTTP_401_UNAUTHORIZED)
                         count = 0
                         for char in user:
                             if char.isupper():
                                 count += 1
                         if count > 4:
+                            debug.log(f"Invalid user name (screaming): '{user}'")
                             return ErrorResponse.from_message("Invalid user name (screaming)", HTTP_401_UNAUTHORIZED)
+                        user = f"{country}:{user}" if country else user
+                        debug.log(f"User: '{user}' G4F API key expires in {hours}h {minutes}m {seconds}s")
                 else:
                     user = "admin"
                 path = request.url.path

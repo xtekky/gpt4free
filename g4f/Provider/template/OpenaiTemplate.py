@@ -34,7 +34,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
         if not cls.models:
             try:
-                headers = {}
                 if api_base is None:
                     api_base = cls.api_base
                 if api_key is None and cls.api_key is not None:
@@ -62,7 +61,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if cls.fallback_models:
                     debug.error(e)
                     return cls.fallback_models
-                raise e
+                raise
         return cls.models
 
     @classmethod
