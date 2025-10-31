@@ -14,7 +14,6 @@ flask
 brotli
 beautifulsoup4
 setuptools
-nodriver
 python-multipart
 a2wsgi
 python-dotenv

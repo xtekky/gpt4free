@@ -341,7 +341,6 @@ def process_image(image: Image.Image, new_width: int = 400, new_height: int = 40
         Image: The processed image.
     """
     image = ImageOps.exif_transpose(image)
-    image.thumbnail((new_width, new_height))
     # Remove transparency
     if image.mode == "RGBA":
         # image.load()
@@ -352,8 +351,11 @@ def process_image(image: Image.Image, new_width: int = 400, new_height: int = 40
     # Convert to RGB for jpg format
     elif image.mode != "RGB":
         image = image.convert("RGB")
+    image_size = image.size
+    image.thumbnail((new_width, new_height))
     if save is not None:
         image.save(save, exif=b"")
+        return image_size
     return image
 
 def to_bytes(image: ImageType) -> bytes:
