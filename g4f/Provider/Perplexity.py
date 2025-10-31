@@ -6,7 +6,7 @@ import uuid
 from ..typing import AsyncResult, Messages, Cookies
 from ..requests import StreamSession, raise_for_status, sse_stream
 from ..cookies import get_cookies
-from ..providers.response import ProviderInfo, JsonConversation, JsonRequest, JsonResponse, Reasoning
+from ..providers.response import ProviderInfo, JsonConversation, JsonRequest, JsonResponse, Reasoning, Sources, SuggestedFollowups, ImageResponse, PreviewResponse, YouTubeResponse
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import debug
 
@@ -254,6 +254,19 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                 async for json_data in sse_stream(response):
                     yield JsonResponse.from_dict(json_data)
                     for block in json_data.get("blocks", []):
+                        if block.get("intended_usage") == "sources_answer_mode":
+                            yield Sources(block.get("sources_mode_block", {}).get("web_results", []))
+                            continue
+                        if block.get("intended_usage") == "media_items":
+                            yield PreviewResponse([
+                                ImageResponse(item.get("url"), item.get("name"), {
+                                    "height": item.get("image_height"),
+                                    "width": item.get("image_width"),
+                                    **item
+                                }) if item.get("medium") == "image" else YouTubeResponse(item.get("url").split("=").pop())
+                                for item in block.get("media_block", {}).get("media_items", [])
+                            ])
+                            continue
                         for patch in block.get("diff_block", {}).get("patches", []):
                             if patch.get("path") == "/progress":
                                 continue
@@ -278,3 +291,8 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                                 if value:
                                     full_response += value
                                     yield value
+                    if "related_query_items" in json_data:
+                        followups = []
+                        for item in json_data["related_query_items"]:
+                            followups.append(item.get("text", ""))
+                        yield SuggestedFollowups(followups)
