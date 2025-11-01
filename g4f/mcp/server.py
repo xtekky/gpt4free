@@ -14,7 +14,11 @@ import sys
 import json
 import asyncio
 from typing import Any, Dict, List, Optional, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
+
+from ..debug import enable_logging
+
+enable_logging()
 
 from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
 
@@ -232,7 +236,7 @@ class MCPServer:
                 if response.error is not None:
                     response_dict["error"] = response.error
                 
-                return web.json_response(response_dict)
+                return web.json_response(response_dict, headers={"access-control-allow-origin": "*"})
                 
             except json.JSONDecodeError as e:
                 return web.json_response({
@@ -262,6 +266,7 @@ class MCPServer:
         
         # Create aiohttp application
         app = web.Application()
+        app.router.add_options('/mcp', lambda request: web.Response(headers={"access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "Content-Type"}))
         app.router.add_post('/mcp', handle_mcp_request)
         app.router.add_get('/health', handle_health)
         

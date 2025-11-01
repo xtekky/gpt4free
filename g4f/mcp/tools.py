@@ -72,7 +72,7 @@ class WebSearchTool(MCPTool):
         Returns:
             Dict[str, Any]: Search results or error message
         """
-        from ..tools.web_search import do_search
+        from ..Provider.search.CachedSearch import CachedSearch
         
         query = arguments.get("query", "")
         max_results = arguments.get("max_results", 5)
@@ -85,26 +85,15 @@ class WebSearchTool(MCPTool):
         try:
             # Perform search - query parameter is used for search execution
             # and prompt parameter holds the content to be searched
-            result, sources = await do_search(
-                prompt=query,
-                query=query,
-                instructions=""
-            )
-            
-            # Format results
-            search_results = []
-            if sources:
-                for i, source in enumerate(sources[:max_results]):
-                    search_results.append({
-                        "title": source.get("title", ""),
-                        "url": source.get("url", ""),
-                        "snippet": source.get("snippet", "")
-                    })
+            search_results = await anext(CachedSearch.create_async_generator(
+                "",
+                [],
+                prompt=query
+            ))
             
             return {
                 "query": query,
-                "results": search_results,
-                "count": len(search_results)
+                **search_results.get_dict()
             }
         
         except Exception as e:
@@ -224,8 +213,6 @@ class ImageGenerationTool(MCPTool):
             Dict[str, Any]: Generated image data or error message
         """
         from ..client import AsyncClient
-        from ..image import to_data_uri
-        import base64
         
         prompt = arguments.get("prompt", "")
         model = arguments.get("model", "flux")
