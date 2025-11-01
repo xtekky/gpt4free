@@ -1,7 +1,8 @@
-"""MCP Server implementation using stdio transport
+"""MCP Server implementation with stdio and HTTP transports
 
 This module implements a Model Context Protocol (MCP) server that communicates
-over standard input/output using JSON-RPC 2.0. The server exposes tools for:
+over standard input/output using JSON-RPC 2.0, or via HTTP POST endpoints.
+The server exposes tools for:
 - Web search
 - Web scraping
 - Image generation
@@ -190,12 +191,115 @@ class MCPServer:
             except Exception as e:
                 sys.stderr.write(f"Error: {e}\n")
                 sys.stderr.flush()
+    
+    async def run_http(self, host: str = "0.0.0.0", port: int = 8765):
+        """Run the MCP server with HTTP transport
+        
+        Args:
+            host: Host to bind the HTTP server to
+            port: Port to bind the HTTP server to
+        """
+        try:
+            from aiohttp import web
+        except ImportError:
+            sys.stderr.write("Error: aiohttp is required for HTTP transport\n")
+            sys.stderr.write("Install it with: pip install aiohttp\n")
+            sys.exit(1)
+        
+        async def handle_mcp_request(request: web.Request) -> web.Response:
+            """Handle MCP JSON-RPC request over HTTP POST"""
+            try:
+                # Parse JSON-RPC request from POST body
+                request_data = await request.json()
+                
+                mcp_request = MCPRequest(
+                    jsonrpc=request_data.get("jsonrpc", "2.0"),
+                    id=request_data.get("id"),
+                    method=request_data.get("method"),
+                    params=request_data.get("params")
+                )
+                
+                # Handle request
+                response = await self.handle_request(mcp_request)
+                
+                # Build response dict
+                response_dict = {
+                    "jsonrpc": response.jsonrpc,
+                    "id": response.id
+                }
+                if response.result is not None:
+                    response_dict["result"] = response.result
+                if response.error is not None:
+                    response_dict["error"] = response.error
+                
+                return web.json_response(response_dict)
+                
+            except json.JSONDecodeError as e:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {
+                        "code": -32700,
+                        "message": f"Parse error: {str(e)}"
+                    }
+                }, status=400)
+            except Exception as e:
+                return web.json_response({
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {
+                        "code": -32603,
+                        "message": f"Internal error: {str(e)}"
+                    }
+                }, status=500)
+        
+        async def handle_health(request: web.Request) -> web.Response:
+            """Health check endpoint"""
+            return web.json_response({
+                "status": "ok",
+                "server": self.server_info
+            })
+        
+        # Create aiohttp application
+        app = web.Application()
+        app.router.add_post('/mcp', handle_mcp_request)
+        app.router.add_get('/health', handle_health)
+        
+        # Start server
+        sys.stderr.write(f"Starting {self.server_info['name']} v{self.server_info['version']} (HTTP mode)\n")
+        sys.stderr.write(f"Listening on http://{host}:{port}\n")
+        sys.stderr.write(f"MCP endpoint: http://{host}:{port}/mcp\n")
+        sys.stderr.write(f"Health check: http://{host}:{port}/health\n")
+        sys.stderr.flush()
+        
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host, port)
+        await site.start()
+        
+        # Keep server running
+        try:
+            await asyncio.Event().wait()
+        except KeyboardInterrupt:
+            sys.stderr.write("\nShutting down HTTP server...\n")
+            sys.stderr.flush()
+        finally:
+            await runner.cleanup()
 
 
-def main():
-    """Main entry point for MCP server"""
+def main(http: bool = False, host: str = "0.0.0.0", port: int = 8765):
+    """Main entry point for MCP server
+    
+    Args:
+        http: If True, use HTTP transport instead of stdio
+        host: Host to bind HTTP server to (only used when http=True)
+        port: Port to bind HTTP server to (only used when http=True)
+    """
     server = MCPServer()
-    asyncio.run(server.run())
+    if http:
+        asyncio.run(server.run_http(host, port))
+    else:
+        asyncio.run(server.run())
 
 
 if __name__ == "__main__":

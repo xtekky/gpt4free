@@ -33,6 +33,8 @@ pip install -e .
 
 ### 2. Start the MCP Server
 
+**Stdio Mode (Default):**
+
 ```bash
 # Using g4f command
 g4f mcp
@@ -49,7 +51,32 @@ The server will:
 - Write responses to stdout
 - Write debug/error messages to stderr
 
+**HTTP Mode:**
+
+```bash
+# Start HTTP server on default port 8765
+g4f mcp --http
+
+# Custom port
+g4f mcp --http --port 3000
+
+# Custom host and port
+g4f mcp --http --host 127.0.0.1 --port 8765
+```
+
+The HTTP server provides:
+- `POST http://localhost:8765/mcp` - JSON-RPC endpoint
+- `GET http://localhost:8765/health` - Health check endpoint
+
+HTTP mode is useful for:
+- Web-based integrations
+- Testing with HTTP clients
+- Remote access
+- Debugging with tools like curl or Postman
+
 ### 3. Test the Server
+
+**Stdio Mode:**
 
 ```bash
 # Send a test request
@@ -59,6 +86,21 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | python -m g4
 Expected output:
 ```json
 {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2024-11-05", "serverInfo": {...}}}
+```
+
+**HTTP Mode:**
+
+```bash
+# Start server
+g4f mcp --http --port 8765
+
+# In another terminal, test with curl
+curl -X POST http://localhost:8765/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+
+# Health check
+curl http://localhost:8765/health
 ```
 
 ## Configuration

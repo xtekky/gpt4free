@@ -22,6 +22,8 @@ pip install -e .
 
 ### Running the MCP Server
 
+**Stdio Mode (Default)**
+
 Start the MCP server using:
 
 ```bash
@@ -36,11 +38,31 @@ g4f mcp
 
 The server communicates over stdin/stdout using JSON-RPC 2.0 protocol.
 
+**HTTP Mode**
+
+Start the MCP server with HTTP transport:
+
+```bash
+g4f mcp --http --port 8765
+```
+
+This starts an HTTP server with the following endpoints:
+- `POST http://localhost:8765/mcp` - MCP JSON-RPC endpoint
+- `GET http://localhost:8765/health` - Health check endpoint
+
+HTTP mode is useful for:
+- Web-based integrations
+- Testing with curl or HTTP clients
+- Remote access (configure host with `--host`)
+
+Options:
+- `--http`: Enable HTTP transport instead of stdio
+- `--host HOST`: Host to bind to (default: 0.0.0.0)
+- `--port PORT`: Port to bind to (default: 8765)
+
 ### Configuration for AI Assistants
 
-To use this MCP server with an AI assistant like Claude Desktop, add the following to your MCP configuration:
-
-**For Claude Desktop** (`claude_desktop_config.json`):
+**For Claude Desktop (Stdio)** - `claude_desktop_config.json`:
 
 ```json
 {
@@ -51,6 +73,17 @@ To use this MCP server with an AI assistant like Claude Desktop, add the followi
     }
   }
 }
+```
+
+**For HTTP-based clients**:
+
+Make POST requests to `http://localhost:8765/mcp` with JSON-RPC payloads.
+
+Example with curl:
+```bash
+curl -X POST http://localhost:8765/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
 **For VS Code with Cline**:
