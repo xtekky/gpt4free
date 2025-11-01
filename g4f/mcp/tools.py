@@ -61,6 +61,10 @@ class WebSearchTool(MCPTool):
                     "type": "integer",
                     "description": "Maximum number of results to return (default: 5)",
                     "default": 5
+                },
+                "region": {
+                    "type": "string",
+                    "description": "Search region (default: en-us)"
                 }
             },
             "required": ["query"]
@@ -76,6 +80,7 @@ class WebSearchTool(MCPTool):
         
         query = arguments.get("query", "")
         max_results = arguments.get("max_results", 5)
+        region = arguments.get("region", "en-us")
         
         if not query:
             return {
@@ -88,7 +93,9 @@ class WebSearchTool(MCPTool):
             search_results = await anext(CachedSearch.create_async_generator(
                 "",
                 [],
-                prompt=query
+                prompt=query,
+                max_results=max_results,
+                region=region
             ))
             
             return {
@@ -232,7 +239,8 @@ class ImageGenerationTool(MCPTool):
                 model=model,
                 prompt=prompt,
                 width=width,
-                height=height
+                height=height,
+                response_format="url"
             )
             
             # Get the image data with proper validation

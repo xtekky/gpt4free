@@ -456,7 +456,7 @@ class Api:
                 else:
                     most_wanted[x_forwarded_for] = 1
                 sorted_most_wanted = dict(sorted(most_wanted.items(), key=lambda item: item[1], reverse=True))
-                debug.log(f"Most wanted IPs: {sorted_most_wanted}")
+                print(f"Most wanted IPs: {json.dumps(sorted_most_wanted, indent=2)}")
                 if is_most_wanted:
                     return ErrorResponse.from_message("You are most wanted! Please wait before making another request.", status_code=HTTP_429_TOO_MANY_REQUESTS)
             if provider is not None and provider not in Provider.__map__:
