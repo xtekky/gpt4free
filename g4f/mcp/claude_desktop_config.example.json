@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "gpt4free": {
+      "command": "python",
+      "args": ["-m", "g4f.mcp"],
+      "description": "gpt4free MCP server providing web search, scraping, and image generation"
+    }
+  }
+}
