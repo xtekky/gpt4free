@@ -12,7 +12,7 @@ from __future__ import annotations
 import sys
 import json
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass, asdict
 
 from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
@@ -22,7 +22,7 @@ from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
 class MCPRequest:
     """MCP request following JSON-RPC 2.0 format"""
     jsonrpc: str = "2.0"
-    id: Optional[int | str] = None
+    id: Optional[Union[int, str]] = None
     method: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
 
@@ -31,7 +31,7 @@ class MCPRequest:
 class MCPResponse:
     """MCP response following JSON-RPC 2.0 format"""
     jsonrpc: str = "2.0"
-    id: Optional[int | str] = None
+    id: Optional[Union[int, str]] = None
     result: Optional[Any] = None
     error: Optional[Dict[str, Any]] = None
 
