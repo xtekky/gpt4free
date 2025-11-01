@@ -156,6 +156,8 @@ class Api:
         messages = kwargs.pop('messages', None)
         action = kwargs.get('action')
         if action == "continue":
+            if "tool_calls" not in kwargs:
+                kwargs["tool_calls"] = []
             kwargs["tool_calls"].append({
                 "function": {
                     "name": "continue_tool"

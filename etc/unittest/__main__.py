@@ -15,5 +15,6 @@ from .retry_provider import *
 from .thinking import *
 from .web_search import *
 from .models import *
+from .mcp import *
 
 unittest.main()

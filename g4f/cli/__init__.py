@@ -78,12 +78,25 @@ def run_api_args(args):
         log_config=args.log_config,
     )
 
+def get_mcp_parser():
+    mcp_parser = ArgumentParser(description="Run the MCP (Model Context Protocol) server")
+    mcp_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
+    mcp_parser.add_argument("--http", action="store_true", help="Use HTTP transport instead of stdio.")
+    mcp_parser.add_argument("--host", default="0.0.0.0", help="Host to bind HTTP server to (default: 0.0.0.0)")
+    mcp_parser.add_argument("--port", type=int, default=8765, help="Port to bind HTTP server to (default: 8765)")
+    return mcp_parser
+
+def run_mcp_args(args):
+    from ..mcp.server import main as mcp_main
+    mcp_main(http=args.http, host=args.host, port=args.port)
+
 def main():
     parser = argparse.ArgumentParser(description="Run gpt4free", exit_on_error=False)
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
     subparsers.add_parser("api", parents=[get_api_parser()], add_help=False)
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
     subparsers.add_parser("client", parents=[get_parser()], add_help=False)
+    subparsers.add_parser("mcp", parents=[get_mcp_parser()], add_help=False)
 
     try:
         args = parser.parse_args()
@@ -93,8 +106,10 @@ def main():
             run_gui_args(args)
         elif args.mode == "client":
             run_client_args(args)
+        elif args.mode == "mcp":
+            run_mcp_args(args)
         else:
-            raise argparse.ArgumentError(None, "No valid mode specified. Use 'api', 'gui', or 'client'.")
+            raise argparse.ArgumentError(None, "No valid mode specified. Use 'api', 'gui', 'client', or 'mcp'.")
     except argparse.ArgumentError:
         try:
             run_client_args(get_parser(exit_on_error=False).parse_args(), exit_on_error=False)

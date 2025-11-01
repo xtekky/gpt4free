@@ -114,7 +114,10 @@ setup(
     install_requires=INSTALL_REQUIRE,
     extras_require=EXTRA_REQUIRE,
     entry_points={
-        'console_scripts': ['g4f=g4f.cli:main'],
+        'console_scripts': [
+            'g4f=g4f.cli:main',
+            'g4f-mcp=g4f.mcp.server:main',
+        ],
     },
     url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
     project_urls={
