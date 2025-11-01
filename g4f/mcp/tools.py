@@ -291,3 +291,83 @@ class ImageGenerationTool(MCPTool):
             return {
                 "error": f"Image generation failed: {str(e)}"
             }
+
+class MarkItDownTool(MCPTool):
+    """MarkItDown tool for converting URLs to markdown format"""
+    
+    @property
+    def description(self) -> str:
+        return "Convert a URL to markdown format using MarkItDown. Supports HTTP/HTTPS URLs and returns formatted markdown content."
+    
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The URL to convert to markdown format (must be HTTP/HTTPS)"
+                },
+                "max_content_length": {
+                    "type": "integer",
+                    "description": "Maximum content length for processing (default: 10000)",
+                    "default": 10000
+                }
+            },
+            "required": ["url"]
+        }
+    
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute MarkItDown conversion
+        
+        Returns:
+            Dict[str, Any]: Markdown content or error message
+        """
+        try:
+            from ..integration.markitdown import MarkItDown
+        except ImportError as e:
+            return {
+                "error": f"MarkItDown is not installed: {str(e)}"
+            }
+        
+        url = arguments.get("url", "")
+        max_content_length = arguments.get("max_content_length", 10000)
+        
+        if not url:
+            return {
+                "error": "URL parameter is required"
+            }
+        
+        # Validate URL format
+        if not url.startswith(("http://", "https://")):
+            return {
+                "error": "URL must start with http:// or https://"
+            }
+        
+        try:
+            # Initialize MarkItDown
+            md = MarkItDown()
+            
+            # Convert URL to markdown
+            result = md.convert_url(url)
+            
+            if not result:
+                return {
+                    "error": "Failed to convert URL to markdown"
+                }
+            
+            # Truncate if content exceeds max length
+            if len(result) > max_content_length:
+                result = result[:max_content_length] + "\n\n[Content truncated...]"
+            
+            return {
+                "url": url,
+                "markdown_content": result,
+                "content_length": len(result),
+                "truncated": len(result) > max_content_length
+            }
+        
+        except Exception as e:
+            return {
+                "error": f"MarkItDown conversion failed: {str(e)}"
+            }
