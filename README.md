@@ -204,6 +204,39 @@ python -m g4f --port 8080 --debug
 python -m g4f.cli gui --port 8080 --debug
 ```
 
+### MCP Server
+GPT4Free now includes a Model Context Protocol (MCP) server that allows AI assistants like Claude to access web search, scraping, and image generation capabilities.
+
+**Starting the MCP server:**
+```bash
+# Using g4f command
+g4f mcp
+
+# Or using Python module
+python -m g4f.mcp
+```
+
+**Configuring with Claude Desktop:**
+
+Add to your `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "gpt4free": {
+      "command": "python",
+      "args": ["-m", "g4f.mcp"]
+    }
+  }
+}
+```
+
+**Available MCP Tools:**
+- `web_search` - Search the web using DuckDuckGo
+- `web_scrape` - Extract text content from web pages  
+- `image_generation` - Generate images from text prompts
+
+For detailed MCP documentation, see [g4f/mcp/README.md](g4f/mcp/README.md)
+
 ### Optional provider login (desktop within container)
 - Accessible at:
   ```
