@@ -20,6 +20,7 @@ from ..debug import enable_logging
 
 enable_logging()
 
+from .tools import MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool
 from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
 
 
@@ -54,6 +55,8 @@ class MCPServer:
             'web_search': WebSearchTool(),
             'web_scrape': WebScrapeTool(),
             'image_generation': ImageGenerationTool(),
+            'text_to_audio': TextToAudioTool(),
+            'mark_it_down': MarkItDownTool()
         }
         self.server_info = {
             "name": "gpt4free-mcp-server",

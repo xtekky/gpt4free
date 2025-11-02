@@ -8,6 +8,6 @@ through the Model Context Protocol standard, allowing AI assistants to access:
 """
 
 from .server import MCPServer
-from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
+from .tools import MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool
 
-__all__ = ['MCPServer', 'WebSearchTool', 'WebScrapeTool', 'ImageGenerationTool']
+__all__ = ['MCPServer', 'MarkItDownTool', 'TextToAudioTool', 'WebSearchTool', 'WebScrapeTool', 'ImageGenerationTool']

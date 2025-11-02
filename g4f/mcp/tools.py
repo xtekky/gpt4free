@@ -8,7 +8,6 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Dict
 from abc import ABC, abstractmethod
 
@@ -158,7 +157,7 @@ class WebScrapeTool(MCPTool):
                     session=session,
                     url=url,
                     max_words=max_words,
-                    add_source=True
+                    add_metadata=True
                 )
             
             if not content:
@@ -183,7 +182,7 @@ class ImageGenerationTool(MCPTool):
     
     @property
     def description(self) -> str:
-        return "Generate images from text prompts using AI image generation providers. Returns base64-encoded image data."
+        return "Generate images from text prompts using AI image generation providers. Returns a URL to the generated image."
     
     @property
     def input_schema(self) -> Dict[str, Any]:
@@ -290,4 +289,164 @@ class ImageGenerationTool(MCPTool):
         except Exception as e:
             return {
                 "error": f"Image generation failed: {str(e)}"
+            }
+
+class MarkItDownTool(MCPTool):
+    """MarkItDown tool for converting URLs to markdown format"""
+    
+    @property
+    def description(self) -> str:
+        return "Convert a URL to markdown format using MarkItDown. Supports HTTP/HTTPS URLs and returns formatted markdown content."
+    
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The URL to convert to markdown format (must be HTTP/HTTPS)"
+                },
+                "max_content_length": {
+                    "type": "integer",
+                    "description": "Maximum content length for processing (default: 10000)",
+                    "default": 10000
+                }
+            },
+            "required": ["url"]
+        }
+    
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute MarkItDown conversion
+        
+        Returns:
+            Dict[str, Any]: Markdown content or error message
+        """
+        try:
+            from ..integration.markitdown import MarkItDown
+        except ImportError as e:
+            return {
+                "error": f"MarkItDown is not installed: {str(e)}"
+            }
+        
+        url = arguments.get("url", "")
+        max_content_length = arguments.get("max_content_length", 10000)
+        
+        if not url:
+            return {
+                "error": "URL parameter is required"
+            }
+        
+        # Validate URL format
+        if not url.startswith(("http://", "https://")):
+            return {
+                "error": "URL must start with http:// or https://"
+            }
+        
+        try:
+            # Initialize MarkItDown
+            md = MarkItDown()
+            
+            # Convert URL to markdown
+            result = md.convert_url(url)
+            
+            if not result:
+                return {
+                    "error": "Failed to convert URL to markdown"
+                }
+            
+            # Truncate if content exceeds max length
+            if len(result) > max_content_length:
+                result = result[:max_content_length] + "\n\n[Content truncated...]"
+            
+            return {
+                "url": url,
+                "markdown_content": result,
+                "content_length": len(result),
+                "truncated": len(result) > max_content_length
+            }
+        
+        except Exception as e:
+            return {
+                "error": f"MarkItDown conversion failed: {str(e)}"
+            }
+
+class TextToAudioTool(MCPTool):
+    """TextToAudio tool for generating audio from text prompts using Pollinations AI"""
+    
+    @property
+    def description(self) -> str:
+        return "Generate an audio URL from a text prompt using Pollinations AI text-to-speech service. Returns a direct URL to the generated audio file."
+    
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "prompt": {
+                    "type": "string",
+                    "description": "The text prompt to the audio model (example: 'Read this: Hello, world!')"
+                },
+                "voice": {
+                    "type": "string",
+                    "description": "Voice option for text-to-speech (default: 'alloy')",
+                    "default": "alloy"
+                },
+                "url_encode": {
+                    "type": "boolean",
+                    "description": "Whether to URL-encode the prompt text (default: True)",
+                    "default": True
+                }
+            },
+            "required": ["prompt"]
+        }
+    
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute text-to-speech conversion
+        
+        Returns:
+            Dict[str, Any]: Audio URL or error message
+        """
+        try:
+            import urllib.parse
+        except ImportError as e:
+            return {
+                "error": f"urllib is not available: {str(e)}"
+            }
+        
+        prompt = arguments.get("prompt", "")
+        voice = arguments.get("voice", "alloy")
+        url_encode = arguments.get("url_encode", True)
+        
+        if not prompt:
+            return {
+                "error": "Prompt parameter is required"
+            }
+        
+        # Validate prompt length (reasonable limit for text-to-speech)
+        if len(prompt) > 5000:
+            return {
+                "error": "Prompt is too long (max 5000 characters)"
+            }
+        
+        try:
+            # Prepare the prompt for URL
+            if url_encode:
+                encoded_prompt = urllib.parse.quote(prompt)
+            else:
+                encoded_prompt = prompt.replace(" ", "%20")  # Basic space encoding
+            
+            # Construct the Pollinations AI text-to-speech URL
+            base_url = "https://text.pollinations.ai"
+            audio_url = f"{base_url}/{encoded_prompt}?voice={voice}"
+            
+            return {
+                "prompt": prompt,
+                "voice": voice,
+                "audio_url": audio_url
+            }
+        
+        except Exception as e:
+            return {
+                "error": f"Text-to-speech URL generation failed: {str(e)}"
             }
