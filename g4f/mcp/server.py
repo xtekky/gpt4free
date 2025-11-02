@@ -216,19 +216,20 @@ class MCPServer:
             sys.exit(1)
         
         async def handle_mcp_request(request: web.Request) -> web.Response:
+            nonlocal origin
             """Handle MCP JSON-RPC request over HTTP POST"""
             try:
                 # Parse JSON-RPC request from POST body
                 request_data = await request.json()
                 if origin is None:
-                    request_origin = request.headers.get("origin")
+                    origin = request.headers.get("origin")
                 
                 mcp_request = MCPRequest(
                     jsonrpc=request_data.get("jsonrpc", "2.0"),
                     id=request_data.get("id"),
                     method=request_data.get("method"),
                     params=request_data.get("params"),
-                    origin=request_origin
+                    origin=origin
                 )
                 
                 # Handle request
