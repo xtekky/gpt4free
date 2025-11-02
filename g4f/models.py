@@ -213,7 +213,7 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Chatai, OIVSCodeSer2, Startnest, OpenaiChat, OIVSCodeSer0501])
+    best_provider = IterListProvider([Chatai, OIVSCodeSer2, Startnest, OpenaiChat])
 )
 
 gpt_4o_mini_audio = AudioModel(

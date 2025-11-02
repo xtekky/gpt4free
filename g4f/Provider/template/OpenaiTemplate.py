@@ -31,7 +31,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     max_tokens: int = None
 
     @classmethod
-    def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
+    def get_models(cls, api_key: str = None, api_base: str = None, timeout: int = None) -> list[str]:
         if not cls.models:
             try:
                 if api_base is None:
@@ -42,7 +42,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_key = AuthManager.load_api_key(cls)
                 if cls.models_needs_auth and not api_key:
                     raise MissingAuthError('Add a "api_key"')
-                response = requests.get(f"{api_base}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl)
+                response = requests.get(f"{api_base}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl, timeout=timeout)
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data", data.get("models")) if isinstance(data, dict) else data

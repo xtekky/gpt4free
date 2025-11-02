@@ -22,7 +22,7 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         server = MCPServer()
         self.assertIsNotNone(server)
         self.assertEqual(server.server_info["name"], "gpt4free-mcp-server")
-        self.assertEqual(len(server.tools), 3)
+        self.assertEqual(len(server.tools), 5)
         self.assertIn('web_search', server.tools)
         self.assertIn('web_scrape', server.tools)
         self.assertIn('image_generation', server.tools)
@@ -57,7 +57,7 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.id, 2)
         self.assertIsNotNone(response.result)
         self.assertIn("tools", response.result)
-        self.assertEqual(len(response.result["tools"]), 3)
+        self.assertEqual(len(response.result["tools"]), 5)
         
         # Check tool structure
         tool_names = [tool["name"] for tool in response.result["tools"]]

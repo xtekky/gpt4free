@@ -502,7 +502,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     _models_loaded = False
 
     @classmethod
-    def get_models(cls) -> list[str]:
+    def get_models(cls, timeout: int = None) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
             cache_file = cls.get_cache_file()
             args = {}
@@ -516,7 +516,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     args = {}
                 if not args:
                     return cls.models
-                response = curl_cffi.get(f"{cls.url}/?mode=direct", **args)
+                response = curl_cffi.get(f"{cls.url}/?mode=direct", **args, timeout=timeout)
                 if response.ok:
                     for line in response.text.splitlines():
                         if "initialModels" in line:

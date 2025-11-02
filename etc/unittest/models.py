@@ -1,6 +1,6 @@
 import unittest
 from typing import Type
-import asyncio
+from requests.exceptions import RequestException
 
 from g4f.models import __models__
 from g4f.providers.base_provider import BaseProvider, ProviderModelMixin
@@ -15,12 +15,15 @@ class TestProviderHasModel(unittest.TestCase):
                 if provider.needs_auth:
                     continue
                 if issubclass(provider, ProviderModelMixin):
-                    provider.get_models() # Update models
-                    if model.name in provider.model_aliases:
-                        model_name = provider.model_aliases[model.name]
-                    else:
-                        model_name = model.get_long_name()
-                        self.provider_has_model(provider, model_name)
+                    try:
+                        provider.get_models(timeout=5) # Update models
+                        if model.name in provider.model_aliases:
+                            model_name = provider.model_aliases[model.name]
+                        else:
+                            model_name = model.get_long_name()
+                            self.provider_has_model(provider, model_name)
+                    except RequestException:
+                        continue
 
     def provider_has_model(self, provider: Type[BaseProvider], model: str):
         if provider.__name__ not in self.cache:

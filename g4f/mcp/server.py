@@ -18,8 +18,6 @@ from dataclasses import dataclass
 
 from ..debug import enable_logging
 
-enable_logging()
-
 from .tools import MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool
 from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
 
@@ -214,6 +212,8 @@ class MCPServer:
             sys.stderr.write("Error: aiohttp is required for HTTP transport\n")
             sys.stderr.write("Install it with: pip install aiohttp\n")
             sys.exit(1)
+
+        enable_logging()
         
         async def handle_mcp_request(request: web.Request) -> web.Response:
             nonlocal origin
