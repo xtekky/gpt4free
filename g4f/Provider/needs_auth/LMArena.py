@@ -636,10 +636,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 model_id = cls.image_models[model]
             else:
                 raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
-
+            
+            evaluationSessionId = str(uuid.uuid7())
             userMessageId = str(uuid.uuid7())
             modelAMessageId = str(uuid.uuid7())
-            evaluationSessionId = str(uuid.uuid7())
             data = {
                 "id": evaluationSessionId,
                 "mode": "direct",
