@@ -84,11 +84,12 @@ def get_mcp_parser():
     mcp_parser.add_argument("--http", action="store_true", help="Use HTTP transport instead of stdio.")
     mcp_parser.add_argument("--host", default="0.0.0.0", help="Host to bind HTTP server to (default: 0.0.0.0)")
     mcp_parser.add_argument("--port", type=int, default=8765, help="Port to bind HTTP server to (default: 8765)")
+    mcp_parser.add_argument("--origin", type=str, default=None, help="Origin URL for CORS (default: None)")
     return mcp_parser
 
 def run_mcp_args(args):
     from ..mcp.server import main as mcp_main
-    mcp_main(http=args.http, host=args.host, port=args.port)
+    mcp_main(http=args.http, host=args.host, port=args.port, origin=args.origin)
 
 def main():
     parser = argparse.ArgumentParser(description="Run gpt4free", exit_on_error=False)

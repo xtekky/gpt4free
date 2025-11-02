@@ -356,11 +356,13 @@ class Backend_Api(Api):
                     if response.startswith("/media/"):
                         media_dir = get_media_dir()
                         filename = os.path.basename(response.split("?")[0])
-                        try:
-                            return send_from_directory(os.path.abspath(media_dir), filename)
-                        finally:
-                            if not cache_id:
+                        if not cache_id:
+                            try:
+                                return send_from_directory(os.path.abspath(media_dir), filename)
+                            finally:
                                 os.remove(os.path.join(media_dir, filename))
+                        else:
+                            return redirect(response)
                     elif response.startswith("https://") or response.startswith("http://"):
                         return redirect(response)
                 if do_filter:

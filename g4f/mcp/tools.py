@@ -11,6 +11,8 @@ from __future__ import annotations
 from typing import Any, Dict
 from abc import ABC, abstractmethod
 
+from aiohttp import ClientSession
+
 
 class MCPTool(ABC):
     """Base class for MCP tools"""
@@ -278,6 +280,8 @@ class ImageGenerationTool(MCPTool):
                     "image": image_url
                 }
             else:
+                if arguments.get("origin") and image_url.startswith("/media/"):
+                    image_url = f"{arguments.get('origin')}{image_url}"
                 return {
                     "prompt": prompt,
                     "model": model,
@@ -437,8 +441,13 @@ class TextToAudioTool(MCPTool):
                 encoded_prompt = prompt.replace(" ", "%20")  # Basic space encoding
             
             # Construct the Pollinations AI text-to-speech URL
-            base_url = "https://text.pollinations.ai"
-            audio_url = f"{base_url}/{encoded_prompt}?voice={voice}"
+            audio_url = f"/backend-api/v2/create?provider=Gemini&model=gemini-audio&cache=true&prompt={encoded_prompt}"
+
+            if arguments.get("origin"):
+                audio_url = f"{arguments.get('origin')}{audio_url}"
+                async with ClientSession() as session:
+                    async with session.get(audio_url, max_redirects=0) as resp:
+                        audio_url = str(resp.url)
             
             return {
                 "prompt": prompt,

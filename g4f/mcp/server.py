@@ -31,6 +31,7 @@ class MCPRequest:
     id: Optional[Union[int, str]] = None
     method: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
+    origin: Optional[str] = None
 
 
 @dataclass
@@ -101,6 +102,7 @@ class MCPServer:
             elif method == "tools/call":
                 tool_name = params.get("name")
                 tool_arguments = params.get("arguments", {})
+                tool_arguments.setdefault("origin", request.origin)
                 
                 if tool_name not in self.tools:
                     return MCPResponse(
@@ -173,7 +175,7 @@ class MCPServer:
                     jsonrpc=request_data.get("jsonrpc", "2.0"),
                     id=request_data.get("id"),
                     method=request_data.get("method"),
-                    params=request_data.get("params")
+                    params=request_data.get("params"),
                 )
                 
                 # Handle request
@@ -199,7 +201,7 @@ class MCPServer:
                 sys.stderr.write(f"Error: {e}\n")
                 sys.stderr.flush()
     
-    async def run_http(self, host: str = "0.0.0.0", port: int = 8765):
+    async def run_http(self, host: str = "0.0.0.0", port: int = 8765, origin: Optional[str] = None):
         """Run the MCP server with HTTP transport
         
         Args:
@@ -218,12 +220,15 @@ class MCPServer:
             try:
                 # Parse JSON-RPC request from POST body
                 request_data = await request.json()
+                if origin is None:
+                    request_origin = request.headers.get("origin")
                 
                 mcp_request = MCPRequest(
                     jsonrpc=request_data.get("jsonrpc", "2.0"),
                     id=request_data.get("id"),
                     method=request_data.get("method"),
-                    params=request_data.get("params")
+                    params=request_data.get("params"),
+                    origin=request_origin
                 )
                 
                 # Handle request
@@ -295,7 +300,7 @@ class MCPServer:
             await runner.cleanup()
 
 
-def main(http: bool = False, host: str = "0.0.0.0", port: int = 8765):
+def main(http: bool = False, host: str = "0.0.0.0", port: int = 8765, origin: Optional[str] = None):
     """Main entry point for MCP server
     
     Args:
@@ -305,7 +310,7 @@ def main(http: bool = False, host: str = "0.0.0.0", port: int = 8765):
     """
     server = MCPServer()
     if http:
-        asyncio.run(server.run_http(host, port))
+        asyncio.run(server.run_http(host, port, origin))
     else:
         asyncio.run(server.run())
 
