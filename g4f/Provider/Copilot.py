@@ -380,6 +380,8 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
             cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([url]))}
             if not needs_auth and Copilot.anon_cookie_name in cookies:
                 break
+            elif needs_auth and next(filter(lambda x: "auth0" in x, cookies), None):
+                break
         stop_browser()
         return access_token, useridentitytype, cookies
     finally:
