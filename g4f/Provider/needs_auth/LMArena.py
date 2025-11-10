@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import uuid
 import json
 import asyncio
 import os
 import requests
 import json
+import time
+import secrets
 
 try:
     import curl_cffi
@@ -26,10 +27,25 @@ from ...requests import StreamSession, get_args_from_nodriver, raise_for_status,
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, JsonRequest
 from ...tools.media import merge_media
-from ...integration import uuid
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_last_user_message
 from ... import debug
+
+def uuid7():
+    """
+    Generate a UUIDv7 using Unix epoch (milliseconds since 1970-01-01)
+    matching the browser's implementation.
+    """
+    timestamp_ms = int(time.time() * 1000)
+    rand_a = secrets.randbits(12)
+    rand_b = secrets.randbits(62)
+    
+    uuid_int = timestamp_ms << 80
+    uuid_int |= (0x7000 | rand_a) << 64
+    uuid_int |= (0x8000000000000000 | rand_b)
+    
+    hex_str = f"{uuid_int:032x}"
+    return f"{hex_str[0:8]}-{hex_str[8:12]}-{hex_str[12:16]}-{hex_str[16:20]}-{hex_str[20:32]}"
 
 models = [
     {'id': '812c93cc-5f88-4cff-b9ca-c11a26599b0e', 'publicName': 'qwen3-max-preview',
@@ -485,7 +501,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena"
     url = "https://lmarena.ai"
     share_url = None
-    api_endpoint = "https://lmarena.ai/nextjs-api/stream/create-evaluation"
+    create_evaluation = "https://lmarena.ai/nextjs-api/stream/create-evaluation"
+    post_to_evaluation = "https://lmarena.ai/nextjs-api/stream/post-to-evaluation/{id}"
     working = True
     active_by_default = True
     use_stream_timeout = False
@@ -637,21 +654,23 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             else:
                 raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
             
-            evaluationSessionId = str(uuid.uuid7())
-            userMessageId = str(uuid.uuid7())
-            modelAMessageId = str(uuid.uuid7())
+            if conversation and getattr(conversation, "evaluationSessionId", None):
+                url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
+                evaluationSessionId = conversation.evaluationSessionId
+            else:
+                url = cls.create_evaluation
+                evaluationSessionId = str(uuid7())
+            userMessageId = str(uuid7())
+            modelAMessageId = str(uuid7())
             data = {
                 "id": evaluationSessionId,
                 "mode": "direct",
                 "modelAId": model_id,
                 "userMessageId": userMessageId,
                 "modelAMessageId": modelAMessageId,
-                "messages": [
-                    {
-                        "id": userMessageId,
-                        "role": "user",
-                        "content": prompt,
-                        "experimental_attachments": [
+                "userMessage": {
+                    "content": prompt,
+                    "experimental_attachments": [
                             {
                                 "name": name or os.path.basename(url),
                                 "contentType": get_content_type(url),
@@ -660,33 +679,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             for url, name in list(merge_media(media, messages))
                             if isinstance(url, str) and url.startswith("https://")
                         ],
-                        "parentMessageIds": [] if conversation is None else conversation.message_ids,
-                        "participantPosition": "a",
-                        "modelId": None,
-                        "evaluationSessionId": evaluationSessionId,
-                        "status": "pending",
-                        "failureReason": None
-                    },
-                    {
-                        "id": modelAMessageId,
-                        "role": "assistant",
-                        "content": "",
-                        "experimental_attachments": [],
-                        "parentMessageIds": [userMessageId],
-                        "participantPosition": "a",
-                        "modelId": model,
-                        "evaluationSessionId": evaluationSessionId,
-                        "status": "pending",
-                        "failureReason": None
-                    }
-                ],
-                "modality": "image" if is_image_model else "chat"
+                },
+                "modality": "image" if is_image_model else "chat",
             }
             yield JsonRequest.from_dict(data)
             try:
                 async with StreamSession(**args, timeout=timeout) as session:
                     async with session.post(
-                            cls.api_endpoint,
+                            url,
                             json=data,
                             proxy=proxy
                     ) as response:
@@ -695,9 +695,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         async for chunk in response.iter_lines():
                             line = chunk.decode()
                             yield PlainTextResponse(line)
-                            if line.startswith("af:"):
-                                yield JsonConversation(message_ids=[modelAMessageId])
-                            elif line.startswith("a0:"):
+                            if line.startswith("a0:"):
                                 chunk = json.loads(line[3:])
                                 if chunk == "hasArenaError":
                                     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
@@ -708,6 +706,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             elif line.startswith("a2:"):
                                 yield ImageResponse([image.get("image") for image in json.loads(line[3:])], prompt)
                             elif line.startswith("ad:"):
+                                yield JsonConversation(evaluationSessionId=evaluationSessionId)
                                 finish = json.loads(line[3:])
                                 if "finishReason" in finish:
                                     yield FinishReason(finish["finishReason"])

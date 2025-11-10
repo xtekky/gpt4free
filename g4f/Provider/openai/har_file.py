@@ -9,8 +9,10 @@ import uuid
 import random
 from urllib.parse import unquote
 from copy import deepcopy
-
-from .crypt import decrypt, encrypt
+try:
+    from .crypt import decrypt, encrypt
+except ImportError:
+    pass
 from ...requests import StreamSession
 from ...cookies import get_cookies_dir
 from ...errors import NoValidHarFileError

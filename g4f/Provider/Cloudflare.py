@@ -36,7 +36,7 @@ def clean_name(name: str) -> str:
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
-    working = has_curl_cffi
+    working = False
     use_nodriver = True
     active_by_default = True
     api_endpoint = "https://playground.ai.cloudflare.com/api/inference"
