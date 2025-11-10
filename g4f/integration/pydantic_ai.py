@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 
 from pydantic_ai import ModelResponsePart, ThinkingPart, ToolCallPart
 from pydantic_ai.models import Model, ModelResponse, KnownModelName, infer_model
-from pydantic_ai.models.openai import OpenAIChatModel, UnexpectedModelBehavior
-from pydantic_ai.models.openai import OpenAISystemPromptRole, _CHAT_FINISH_REASON_MAP, _map_usage, _now_utc, number_to_datetime, split_content_into_text_and_thinking, replace
+from pydantic_ai.usage import RequestUsage
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.openai import OpenAISystemPromptRole, _now_utc, split_content_into_text_and_thinking, replace
 
 import pydantic_ai.models.openai
 pydantic_ai.models.openai.NOT_GIVEN = None
@@ -31,7 +32,7 @@ class AIModel(OpenAIChatModel):
         provider: str | None = None,
         *,
         system_prompt_role: OpenAISystemPromptRole | None = None,
-        system: str | None = 'openai',
+        system: str | None = 'g4f',
         **kwargs
     ):
         """Initialize an AI model.
@@ -46,7 +47,7 @@ class AIModel(OpenAIChatModel):
                 customize the `base_url` and `api_key` to use a different provider.
         """
         self._model_name = model_name
-        self._provider = provider
+        self._provider = getattr(provider, '__name__', provider)
         self.client = AsyncClient(provider=provider, **kwargs)
         self.system_prompt_role = system_prompt_role
         self._system = system
@@ -58,35 +59,11 @@ class AIModel(OpenAIChatModel):
     
     def _process_response(self, response: ChatCompletion | str) -> ModelResponse:
         """Process a non-streamed response, and prepare a message to return."""
-        # Although the OpenAI SDK claims to return a Pydantic model (`ChatCompletion`) from the chat completions function:
-        # * it hasn't actually performed validation (presumably they're creating the model with `model_construct` or something?!)
-        # * if the endpoint returns plain text, the return type is a string
-        # Thus we validate it fully here.
-        if not isinstance(response, ChatCompletion):
-            raise UnexpectedModelBehavior('Invalid response from OpenAI chat completions endpoint, expected JSON data')
-
-        if response.created:
-            timestamp = number_to_datetime(response.created)
-        else:
-            timestamp = _now_utc()
-            response.created = int(timestamp.timestamp())
-
-        # Workaround for local Ollama which sometimes returns a `None` finish reason.
-        if response.choices and (choice := response.choices[0]) and choice.finish_reason is None:  # pyright: ignore[reportUnnecessaryComparison]
-            choice.finish_reason = 'stop'
-
         choice = response.choices[0]
         items: list[ModelResponsePart] = []
 
-        # The `reasoning` field is only present in gpt-oss via Ollama and OpenRouter.
-        # - https://cookbook.openai.com/articles/gpt-oss/handle-raw-cot#chat-completions-api
-        # - https://openrouter.ai/docs/use-cases/reasoning-tokens#basic-usage-with-reasoning-tokens
         if reasoning := getattr(choice.message, 'reasoning', None):
             items.append(ThinkingPart(id='reasoning', content=reasoning, provider_name=self.system))
-
-        # NOTE: We don't currently handle OpenRouter `reasoning_details`:
-        # - https://openrouter.ai/docs/use-cases/reasoning-tokens#preserving-reasoning-blocks
-        # If you need this, please file an issue.
 
         if choice.message.content:
             items.extend(
@@ -95,20 +72,21 @@ class AIModel(OpenAIChatModel):
             )
         if choice.message.tool_calls is not None:
             for c in choice.message.tool_calls:
-                items.append(ToolCallPart(c.get("function").get("name"), c.get("function").get("arguments"), tool_call_id=c.get("id")))
-
-        raw_finish_reason = choice.finish_reason
-        finish_reason = _CHAT_FINISH_REASON_MAP.get(raw_finish_reason)
+                items.append(ToolCallPart(c.function.name, c.function.arguments, tool_call_id=c.id))
+        usage = RequestUsage(
+            input_tokens=response.usage.prompt_tokens,
+            output_tokens=response.usage.completion_tokens,
+        )
 
         return ModelResponse(
             parts=items,
-            usage=_map_usage(response, self._provider, "", self._model_name),
+            usage=usage,
             model_name=response.model,
-            timestamp=timestamp,
+            timestamp=_now_utc(),
             provider_details=None,
             provider_response_id=response.id,
             provider_name=self._provider,
-            finish_reason=finish_reason,
+            finish_reason=choice.finish_reason,
         )
 
 def new_infer_model(model: Model | KnownModelName, api_key: str = None) -> Model:
@@ -126,4 +104,3 @@ def patch_infer_model(api_key: str | None = None):
     import pydantic_ai.models
 
     pydantic_ai.models.infer_model = partial(new_infer_model, api_key=api_key)
-    pydantic_ai.models.OpenAIChatModel = AIModel

@@ -348,7 +348,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                         has_audio = True
                         break
                     has_image = True
-            if "tools" in kwargs:
+            if kwargs.get("tools", None):
                 providers = [PollinationsAI]
             elif "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 if kwargs.get("audio", {}).get("language") is None:

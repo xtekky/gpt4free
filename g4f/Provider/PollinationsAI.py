@@ -206,7 +206,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if is_data_an_audio(media_data, filename):
                         has_audio = True
                         break
-            model = cls.default_audio_model if has_audio else model
+            model = cls.default_audio_model if has_audio else cls.default_model
         elif cls._models_loaded or cls.get_models():
             if model in cls.model_aliases:
                 model = cls.model_aliases[model]
