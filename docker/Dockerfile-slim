@@ -17,7 +17,6 @@ RUN apt-get update && apt-get upgrade -y \
   && groupadd -g $G4F_USER_ID $G4F_USER \
   && useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
   && echo "${G4F_USER}:${G4F_USER}" | chpasswd \
-  && python -m pip install --upgrade pip \
   && apt-get clean \
   && rm --recursive --force /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

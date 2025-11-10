@@ -18,8 +18,7 @@ RUN apt-get update && apt-get upgrade -y \
   && useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
   && mkdir -p /var/log/supervisor \
   && chown "${G4F_USER_ID}:${G4F_USER_ID}" /var/log/supervisor \
-  && echo "${G4F_USER}:${G4F_USER}" | chpasswd \
-  && python -m pip install --upgrade pip
+  && echo "${G4F_USER}:${G4F_USER}" | chpasswd
 
 USER $G4F_USER_ID
 WORKDIR $G4F_DIR
