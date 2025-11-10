@@ -319,7 +319,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.error("OpenaiChat: Download image failed")
             debug.error(e)
         if download_urls:
-            return ImagePreview(download_urls, prompt, {"headers":auth_result.headers}) if is_sediment else ImageResponse(download_urls, prompt, {"headers":auth_result.headers})
+            return ImagePreview(download_urls, prompt, {"headers": auth_result.headers}) if is_sediment else ImageResponse(download_urls, prompt, {"headers": auth_result.headers})
 
     @classmethod
     async def create_authed(
@@ -363,7 +363,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             RuntimeError: If an error occurs during processing.
         """
         if temporary is None:
-            temporary = action is not None and conversation_id is not None
+            temporary = action is not None and conversation_id is None
         if action is None:
             action = "next"
         async with StreamSession(
@@ -647,7 +647,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if sources.list:
                     yield sources
                 if conversation.generated_images:
-                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt, {"headers":auth_result.headers})
+                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt, {"headers": auth_result.headers})
                     conversation.generated_images = None
                 conversation.prompt = None
                 if return_conversation:
