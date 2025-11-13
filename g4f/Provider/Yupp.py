@@ -1,3 +1,4 @@
+import hashlib
 import json
 import time
 import uuid
@@ -21,6 +22,9 @@ from ..debug import log
 # Global variables to manage Yupp accounts
 YUPP_ACCOUNTS: List[Dict[str, Any]] = []
 account_rotation_lock = asyncio.Lock()
+
+# Global variables to manage Yupp Image Cache
+ImagesCache:Dict[str, dict] = {}
 
 class YuppAccount:
     """Yupp account representation"""
@@ -202,6 +206,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     active_by_default = True
     supports_stream = True
+    image_cache = True
     
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
@@ -220,6 +225,59 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models = [model.get("name") for model in models if model.get("isImageGeneration")]
                 cls.vision_models = [model.get("name") for model in models if "image/*" in model.get("supportedAttachmentMimeTypes", [])]
         return cls.models
+
+    @classmethod
+    async def prepare_files(cls, media, session:aiohttp.ClientSession, account:Dict[str, ...])->list:
+        files = []
+        if not media:
+            return files
+        for file, name in media:
+            data = to_bytes(file)
+            hasher = hashlib.md5()
+            hasher.update(data)
+            image_hash = hasher.hexdigest()
+            file = ImagesCache.get(image_hash)
+            if cls.image_cache and file:
+                log_debug("Using cached image")
+                files.append(file)
+                continue
+            presigned_resp = await session.post(
+                "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1",
+                json={
+                    "0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
+                headers={"Content-Type": "application/json",
+                         "Cookie": f"__Secure-yupp.session-token={account['token']}"}
+            )
+            presigned_resp.raise_for_status()
+            upload_info = (await presigned_resp.json())[0]["result"]["data"]["json"]
+            upload_url = upload_info["signedUrl"]
+
+            await session.put(
+                upload_url,
+                data=data,
+                headers={
+                    "Content-Type": is_accepted_format(data),
+                    "Content-Length": str(len(data))
+                }
+            )
+
+            attachment_resp = await session.post(
+                "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
+                json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data),
+                                     "fileId": upload_info["fileId"]}}},
+                cookies={"__Secure-yupp.session-token": account["token"]}
+            )
+            attachment_resp.raise_for_status()
+            attachment = (await attachment_resp.json())[0]["result"]["data"]["json"]
+            file = {
+                "fileName": attachment["file_name"],
+                "contentType": attachment["content_type"],
+                "attachmentId": attachment["attachment_id"],
+                "chatMessageId": ""
+            }
+            ImagesCache[image_hash] = file
+            files.append(file)
+        return files
 
     @classmethod
     async def create_async_generator(
@@ -266,44 +324,15 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 async with aiohttp.ClientSession() as session:
                     turn_id = str(uuid.uuid4())
-                    files = []
+
 
                     # Handle media attachments
                     media = kwargs.get("media")
                     if media:
-                        for file, name in list(merge_media(media, messages)):
-                            data = to_bytes(file)
-                            presigned_resp = await session.post(
-                                "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1",
-                                json={"0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
-                                headers={"Content-Type": "application/json", "Cookie": f"__Secure-yupp.session-token={account['token']}"}
-                            )
-                            presigned_resp.raise_for_status()
-                            upload_info = (await presigned_resp.json())[0]["result"]["data"]["json"]
-                            upload_url = upload_info["signedUrl"]
-                            
-                            await session.put(
-                                upload_url,
-                                data=data,
-                                headers={
-                                    "Content-Type": is_accepted_format(data),
-                                    "Content-Length": str(len(data))
-                                }
-                            )
-                            
-                            attachment_resp = await session.post(
-                                "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
-                                json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data), "fileId": upload_info["fileId"]}}},
-                                cookies={"__Secure-yupp.session-token": account["token"]}
-                            )
-                            attachment_resp.raise_for_status()
-                            attachment = (await attachment_resp.json())[0]["result"]["data"]["json"]
-                            files.append({
-                                "fileName": attachment["file_name"],
-                                "contentType": attachment["content_type"],
-                                "attachmentId": attachment["attachment_id"],
-                                "chatMessageId": ""
-                            })
+                        media_ = list(merge_media(media, messages))
+                        files = await cls.prepare_files(media_, session=session, account=account)
+                    else:
+                        files = []
                     mode = "image" if model in cls.image_models else "text"
 
                     # Build payload and URL - FIXED: Use consistent url_uuid handling
@@ -451,7 +480,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 match = line_pattern.match(line)
                 if not match:
                     continue
-                
+
                 chunk_id, chunk_data = match.groups()
                 chunk_id = chunk_id.decode()
                 
