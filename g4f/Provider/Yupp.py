@@ -6,6 +6,7 @@ import re
 import os
 import asyncio
 import aiohttp
+from aiohttp import ClientResponseError
 
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -407,6 +408,15 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         account["error_count"] += 1
                 continue
+            except ClientResponseError as e:
+                log_debug(f"Account ...{account['token'][-4:]} failed: {str(e)}")
+                # No Available Yupp credits
+                if e.status == 500 and 'Internal Server Error' in e.message:
+                    account["is_valid"] = False
+                else:
+                    async with account_rotation_lock:
+                        account["error_count"] += 1
+                    raise ProviderException(f"Yupp request failed: {str(e)}") from e
             except Exception as e:
                 log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {str(e)}")
                 async with account_rotation_lock:
