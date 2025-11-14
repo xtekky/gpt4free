@@ -9,7 +9,8 @@ import aiohttp
 
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, ProviderInfo
+from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
+    ProviderInfo, FinishReason, JsonResponse
 from ..errors import RateLimitError, ProviderException, MissingAuthError
 from ..cookies import get_cookies
 from ..tools.auth import AuthManager
@@ -428,9 +429,20 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         line_pattern = re.compile(b"^([0-9a-fA-F]+):(.*)")
         target_stream_id = None
         reward_info = None
+        # Stream segmentation buffers
         is_thinking = False
-        thinking_content = ""
+        thinking_content = ""  # model's "thinking" channel (if activated later)
         normal_content = ""
+        quick_content = ""  # quick-response short message
+        variant_text = ""  # variant model output (comparison stream)
+        stream = {
+            "target": [],
+            "variant": [],
+            "quick": [],
+            "thinking": [] ,
+            "extra": []
+        }
+        # Holds leftStream / rightStream definitions to determine target/variant
         select_stream = [None, None]
         
         def extract_ref_id(ref):
@@ -442,28 +454,44 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 return False
             return True
 
-        async def process_content_chunk(content: str, chunk_id: str, line_count: int):
-            """Process single content chunk"""
-            nonlocal is_thinking, thinking_content, normal_content, session
-            
+        async def process_content_chunk(content: str, chunk_id: str, line_count: int, *, for_target: bool = False):
+            """
+            Process a single content chunk from a stream.
+
+            - If for_target=True → chunk belongs to the target model output.
+            """
+            nonlocal is_thinking, thinking_content, normal_content, variant_text, session
+
             if not is_valid_content(content):
                 return
-            
+
+            # Handle image-gen chunks
             if '<yapp class="image-gen">' in content:
-                content = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
+                img_block = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
                 url = "https://yupp.ai/api/trpc/chat.getSignedImage"
-                async with session.get(url, params={"batch": "1", "input": json.dumps({"0": {"json": {"imageId": json.loads(content).get("image_id")}}})}) as resp:
+                async with session.get(
+                        url,
+                        params={
+                            "batch": "1",
+                            "input": json.dumps(
+                                {"0": {"json": {"imageId": json.loads(img_block).get("image_id")}}}
+                            )
+                        }
+                ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
-                    yield ImageResponse(data[0]["result"]["data"]["json"]["signed_url"], prompt)
+                    img = ImageResponse(
+                        data[0]["result"]["data"]["json"]["signed_url"],
+                        prompt
+                    )
+                    yield img
                 return
-            
-            # log_debug(f"Processing chunk #{line_count} with content: '{content[:50]}...'")
-            
+            # Optional: thinking-mode support (disabled by default)
             if is_thinking:
                 yield Reasoning(content)
             else:
-                normal_content += content
+                if for_target:
+                    normal_content += content
                 yield content
         
         try:
@@ -472,8 +500,16 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             variant_stream_id = None
             is_started: bool = False
             variant_image: Optional[ImageResponse] = None
-            variant_text = ""
-            
+            # "a" use as default then extract from "1"
+            reward_id = "a"
+            routing_id = "e"
+            turn_id = None
+            persisted_turn_id = None
+            left_message_id = None
+            right_message_id = None
+            nudge_new_chat_id = None
+            nudge_new_chat = False
+
             async for line in response_content:
                 line_count += 1
                 
@@ -488,9 +524,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     data = json.loads(chunk_data) if chunk_data != b"{}" else {}
                 except json.JSONDecodeError:
                     continue
-                
                 # Process reward info
-                if chunk_id == "a":
+                if chunk_id == reward_id and isinstance(data, dict) and "unclaimedRewardInfo" in data:
                     reward_info = data
                     log_debug(f"Found reward info")
                 
@@ -500,14 +535,29 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     if isinstance(data, dict):
                         left_stream = data.get("leftStream", {})
                         right_stream = data.get("rightStream", {})
-                        quick_response_id = extract_ref_id(data.get("quickResponse", {}).get("stream", {}).get("next"))
+                        if data.get("quickResponse", {}) != "$undefined":
+                            quick_response_id = extract_ref_id(data.get("quickResponse", {}).get("stream", {}).get("next"))
+
+                        if data.get("turnId", {}) != "$undefined":
+                            turn_id = extract_ref_id(data.get("turnId", {}).get("next"))
+                        if data.get("persistedTurn", {}) != "$undefined":
+                            persisted_turn_id = extract_ref_id(data.get("persistedTurn", {}).get("next"))
+                        if data.get("leftMessageId", {}) != "$undefined":
+                            left_message_id = extract_ref_id(data.get("leftMessageId", {}).get("next"))
+                        if data.get("rightMessageId", {}) != "$undefined":
+                            right_message_id = extract_ref_id(data.get("rightMessageId", {}).get("next"))
+
+                        reward_id = extract_ref_id(data.get("pendingRewardActionResult", "")) or reward_id
+                        routing_id = extract_ref_id(data.get("routingResultPromise", "")) or routing_id
+                        nudge_new_chat_id = extract_ref_id(data.get("nudgeNewChatPromise", "")) or nudge_new_chat_id
                         select_stream = [left_stream, right_stream]
-                
-                elif chunk_id == "e":
+                # Routing / model selection block
+                elif chunk_id == routing_id:
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         provider_info = cls.get_dict()
                         provider_info['model'] = model_id
+                        # Determine target & variant stream IDs
                         for i, selection in enumerate(data.get("modelSelections", [])):
                             if selection.get("selectionSource") == "USER_SELECTED":
                                 target_stream_id = extract_ref_id(select_stream[i].get("next"))
@@ -528,41 +578,80 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         target_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            async for chunk in process_content_chunk(content, chunk_id, line_count):
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=True
+                            ):
+                                stream["target"].append(chunk)
                                 is_started = True
                                 yield chunk
-                
+                # Variant stream (comparison)
                 elif variant_stream_id and chunk_id == variant_stream_id:
                     yield PlainTextResponse("[Variant] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         variant_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            async for chunk in process_content_chunk(content, chunk_id, line_count):
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=False
+                            ):
+                                stream["variant"].append(chunk)
                                 if isinstance(chunk, ImageResponse):
                                     yield PreviewResponse(str(chunk))
                                 else:
                                     variant_text += str(chunk)
                                     if not is_started:
                                         yield PreviewResponse(variant_text)
-                
+                # Quick response (short preview)
                 elif quick_response_id and chunk_id == quick_response_id:
                     yield PlainTextResponse("[Quick] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         content = data.get("curr", "")
                         if content:
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=False
+                            ):
+                                stream["quick"].append(chunk)
+                            quick_content += content
                             yield PreviewResponse(content)
 
+                elif chunk_id in [turn_id, persisted_turn_id]:
+                    ...
+                elif chunk_id == right_message_id:
+                    ...
+                elif chunk_id == left_message_id:
+                    ...
+                elif chunk_id == nudge_new_chat_id:
+                    nudge_new_chat = data
+                # Miscellaneous extra content
                 elif isinstance(data, dict) and "curr" in data:
                     content = data.get("curr", "")
                     if content:
+                        async for chunk in process_content_chunk(
+                                content,
+                                chunk_id,
+                                line_count,
+                                for_target=False
+                        ):
+                            stream["extra"].append(chunk)
+                            if isinstance(chunk,str) and "<streaming stopped unexpectedly" in chunk:
+                                yield FinishReason(chunk)
+
                         yield PlainTextResponse("[Extra] " + line.decode(errors="ignore"))
             
             if variant_image is not None:
                 yield variant_image
             elif variant_text:
                 yield PreviewResponse(variant_text)
-
+            yield JsonResponse(**stream)
             log_debug(f"Finished processing {line_count} lines")
             
         except:
