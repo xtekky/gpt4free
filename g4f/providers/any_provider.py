@@ -195,18 +195,22 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 cls.video_models.extend([clean_name(model) for model in provider.video_models])
 
         for provider in Provider.__providers__:
-            if provider.working and hasattr(provider, "get_models") and provider not in [AnyProvider, Custom, PollinationsImage, OpenaiAccount]:
-                for model in provider.get_models():
-                    clean = clean_name(model)
-                    if clean in cls.model_map:
-                        cls.model_map[clean].update({provider.__name__: model})
-                for alias, model in provider.model_aliases.items():
-                    if alias in cls.model_map:
-                        cls.model_map[alias].update({provider.__name__: model})
-                if provider == GeminiPro:
-                    for model in cls.model_map.keys():
-                        if "gemini" in model or "gemma" in model:
-                            cls.model_map[alias].update({provider.__name__: model})
+            try:
+                    if provider.working and hasattr(provider, "get_models") and provider not in [AnyProvider, Custom, PollinationsImage, OpenaiAccount]:
+                        for model in provider.get_models():
+                            clean = clean_name(model)
+                            if clean in cls.model_map:
+                                cls.model_map[clean].update({provider.__name__: model})
+                        for alias, model in provider.model_aliases.items():
+                            if alias in cls.model_map:
+                                cls.model_map[alias].update({provider.__name__: model})
+                        if provider == GeminiPro:
+                            for model in cls.model_map.keys():
+                                if "gemini" in model or "gemma" in model:
+                                    cls.model_map[alias].update({provider.__name__: model})
+            except Exception as e:
+                debug.error(f"Error getting models for provider {provider.__name__}:", e)
+                continue
 
         # Process audio providers
         for provider in [Microsoft_Phi_4_Multimodal, PollinationsAI]:
@@ -220,7 +224,6 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         cls.video_models.append("video")
         cls.model_map["video"] = {"Video": "video"}
-        del cls.model_map[""]
         cls.audio_models = [*cls.audio_models]
 
         # Create a mapping of parent providers to their children

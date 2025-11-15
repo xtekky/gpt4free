@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   gpt4free:
     image: hlohaus789/g4f:latest

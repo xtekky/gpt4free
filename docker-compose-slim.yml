@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   g4f-slim:
     container_name: g4f-slim
