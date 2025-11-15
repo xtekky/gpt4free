@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/xtekky-gpt4free-badge.png)](https://mseep.ai/app/xtekky-gpt4free)
+
 # GPT4Free (g4f)
 
 [![PyPI](https://img.shields.io/pypi/v/g4f)](https://pypi.org/project/g4f) [![Docker Hub](https://img.shields.io/badge/docker-hlohaus789%2Fg4f-blue)](https://hub.docker.com/r/hlohaus789/g4f) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-red.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
