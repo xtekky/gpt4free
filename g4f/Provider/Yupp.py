@@ -108,6 +108,8 @@ async def claim_yupp_reward(session: aiohttp.ClientSession, account: Dict[str, A
         headers = {
             "Content-Type": "application/json",
             "Cookie": f"__Secure-yupp.session-token={account['token']}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
         }
         async with session.post(url, json=payload, headers=headers) as response:
             response.raise_for_status()
@@ -135,6 +137,8 @@ async def make_chat_private(session: aiohttp.ClientSession, account: Dict[str, A
         headers = {
             "Content-Type": "application/json",
             "Cookie": f"__Secure-yupp.session-token={account['token']}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
         }
 
         async with session.post(url, json=payload, headers=headers) as response:
@@ -248,7 +252,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 json={
                     "0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
                 headers={"Content-Type": "application/json",
-                         "Cookie": f"__Secure-yupp.session-token={account['token']}"}
+                         "Cookie": f"__Secure-yupp.session-token={account['token']}",
+                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
+                         }
             )
             presigned_resp.raise_for_status()
             upload_info = (await presigned_resp.json())[0]["result"]["data"]["json"]
@@ -377,6 +384,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         "content-type": "text/plain;charset=UTF-8",
                         "next-action": next_action,
                         "cookie": f"__Secure-yupp.session-token={account['token']}",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
                     }
 
                     log_debug(f"Sending request to: {url}")
@@ -413,6 +421,9 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 # No Available Yupp credits
                 if e.status == 500 and 'Internal Server Error' in e.message:
                     account["is_valid"] = False
+                # Need User-Agent
+                # elif e.status == 429 and 'Too Many Requests' in e.message:
+                #     account["is_valid"] = False
                 else:
                     async with account_rotation_lock:
                         account["error_count"] += 1
