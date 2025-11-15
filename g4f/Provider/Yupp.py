@@ -1,3 +1,4 @@
+import hashlib
 import json
 import time
 import uuid
@@ -5,10 +6,12 @@ import re
 import os
 import asyncio
 import aiohttp
+from aiohttp import ClientResponseError
 
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, ProviderInfo
+from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
+    ProviderInfo, FinishReason, JsonResponse
 from ..errors import RateLimitError, ProviderException, MissingAuthError
 from ..cookies import get_cookies
 from ..tools.auth import AuthManager
@@ -19,8 +22,12 @@ from .helper import get_last_user_message
 from ..debug import log
 
 # Global variables to manage Yupp accounts
-YUPP_ACCOUNTS: List[Dict[str, Any]] = []
+YUPP_ACCOUNT = Dict[str, Any]
+YUPP_ACCOUNTS: List[YUPP_ACCOUNT] = []
 account_rotation_lock = asyncio.Lock()
+
+# Global variables to manage Yupp Image Cache
+ImagesCache:Dict[str, dict] = {}
 
 class YuppAccount:
     """Yupp account representation"""
@@ -59,7 +66,7 @@ def create_headers() -> Dict[str, str]:
         "Sec-Fetch-Site": "same-origin",
     }
 
-async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
+async def get_best_yupp_account() -> Optional[YUPP_ACCOUNT]:
     """Get the best available Yupp account using smart selection algorithm"""
     max_error_count = int(os.getenv("MAX_ERROR_COUNT", "3"))
     error_cooldown = int(os.getenv("ERROR_COOLDOWN", "300"))
@@ -93,7 +100,7 @@ async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
         account["last_used"] = now
         return account
 
-async def claim_yupp_reward(session: aiohttp.ClientSession, account: Dict[str, Any], reward_id: str):
+async def claim_yupp_reward(session: aiohttp.ClientSession, account: YUPP_ACCOUNT, reward_id: str):
     """Claim Yupp reward asynchronously"""
     try:
         log_debug(f"Claiming reward {reward_id}...")
@@ -102,6 +109,8 @@ async def claim_yupp_reward(session: aiohttp.ClientSession, account: Dict[str, A
         headers = {
             "Content-Type": "application/json",
             "Cookie": f"__Secure-yupp.session-token={account['token']}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
         }
         async with session.post(url, json=payload, headers=headers) as response:
             response.raise_for_status()
@@ -113,7 +122,7 @@ async def claim_yupp_reward(session: aiohttp.ClientSession, account: Dict[str, A
         log_debug(f"Failed to claim reward {reward_id}. Error: {e}")
         return None
 
-async def make_chat_private(session: aiohttp.ClientSession, account: Dict[str, Any], chat_id: str) -> bool:
+async def make_chat_private(session: aiohttp.ClientSession, account: YUPP_ACCOUNT, chat_id: str) -> bool:
     """Set a Yupp chat's sharing status to PRIVATE"""
     try:
         log_debug(f"Setting chat {chat_id} to PRIVATE...")
@@ -129,6 +138,8 @@ async def make_chat_private(session: aiohttp.ClientSession, account: Dict[str, A
         headers = {
             "Content-Type": "application/json",
             "Cookie": f"__Secure-yupp.session-token={account['token']}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
         }
 
         async with session.post(url, json=payload, headers=headers) as response:
@@ -202,6 +213,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     active_by_default = True
     supports_stream = True
+    image_cache = True
     
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
@@ -220,6 +232,62 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models = [model.get("name") for model in models if model.get("isImageGeneration")]
                 cls.vision_models = [model.get("name") for model in models if "image/*" in model.get("supportedAttachmentMimeTypes", [])]
         return cls.models
+
+    @classmethod
+    async def prepare_files(cls, media, session:aiohttp.ClientSession, account:YUPP_ACCOUNT)->list:
+        files = []
+        if not media:
+            return files
+        for file, name in media:
+            data = to_bytes(file)
+            hasher = hashlib.md5()
+            hasher.update(data)
+            image_hash = hasher.hexdigest()
+            file = ImagesCache.get(image_hash)
+            if cls.image_cache and file:
+                log_debug("Using cached image")
+                files.append(file)
+                continue
+            presigned_resp = await session.post(
+                "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1",
+                json={
+                    "0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
+                headers={"Content-Type": "application/json",
+                         "Cookie": f"__Secure-yupp.session-token={account['token']}",
+                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
+                         }
+            )
+            presigned_resp.raise_for_status()
+            upload_info = (await presigned_resp.json())[0]["result"]["data"]["json"]
+            upload_url = upload_info["signedUrl"]
+
+            await session.put(
+                upload_url,
+                data=data,
+                headers={
+                    "Content-Type": is_accepted_format(data),
+                    "Content-Length": str(len(data))
+                }
+            )
+
+            attachment_resp = await session.post(
+                "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
+                json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data),
+                                     "fileId": upload_info["fileId"]}}},
+                cookies={"__Secure-yupp.session-token": account["token"]}
+            )
+            attachment_resp.raise_for_status()
+            attachment = (await attachment_resp.json())[0]["result"]["data"]["json"]
+            file = {
+                "fileName": attachment["file_name"],
+                "contentType": attachment["content_type"],
+                "attachmentId": attachment["attachment_id"],
+                "chatMessageId": ""
+            }
+            ImagesCache[image_hash] = file
+            files.append(file)
+        return files
 
     @classmethod
     async def create_async_generator(
@@ -266,44 +334,15 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 async with aiohttp.ClientSession() as session:
                     turn_id = str(uuid.uuid4())
-                    files = []
+
 
                     # Handle media attachments
                     media = kwargs.get("media")
                     if media:
-                        for file, name in list(merge_media(media, messages)):
-                            data = to_bytes(file)
-                            presigned_resp = await session.post(
-                                "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1",
-                                json={"0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
-                                headers={"Content-Type": "application/json", "Cookie": f"__Secure-yupp.session-token={account['token']}"}
-                            )
-                            presigned_resp.raise_for_status()
-                            upload_info = (await presigned_resp.json())[0]["result"]["data"]["json"]
-                            upload_url = upload_info["signedUrl"]
-                            
-                            await session.put(
-                                upload_url,
-                                data=data,
-                                headers={
-                                    "Content-Type": is_accepted_format(data),
-                                    "Content-Length": str(len(data))
-                                }
-                            )
-                            
-                            attachment_resp = await session.post(
-                                "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
-                                json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data), "fileId": upload_info["fileId"]}}},
-                                cookies={"__Secure-yupp.session-token": account["token"]}
-                            )
-                            attachment_resp.raise_for_status()
-                            attachment = (await attachment_resp.json())[0]["result"]["data"]["json"]
-                            files.append({
-                                "fileName": attachment["file_name"],
-                                "contentType": attachment["content_type"],
-                                "attachmentId": attachment["attachment_id"],
-                                "chatMessageId": ""
-                            })
+                        media_ = list(merge_media(media, messages))
+                        files = await cls.prepare_files(media_, session=session, account=account)
+                    else:
+                        files = []
                     mode = "image" if model in cls.image_models else "text"
 
                     # Build payload and URL - FIXED: Use consistent url_uuid handling
@@ -346,6 +385,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         "content-type": "text/plain;charset=UTF-8",
                         "next-action": next_action,
                         "cookie": f"__Secure-yupp.session-token={account['token']}",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
                     }
 
                     log_debug(f"Sending request to: {url}")
@@ -377,6 +417,18 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         account["error_count"] += 1
                 continue
+            except ClientResponseError as e:
+                log_debug(f"Account ...{account['token'][-4:]} failed: {str(e)}")
+                # No Available Yupp credits
+                if e.status == 500 and 'Internal Server Error' in e.message:
+                    account["is_valid"] = False
+                # Need User-Agent
+                # elif e.status == 429 and 'Too Many Requests' in e.message:
+                #     account["is_valid"] = False
+                else:
+                    async with account_rotation_lock:
+                        account["error_count"] += 1
+                    raise ProviderException(f"Yupp request failed: {str(e)}") from e
             except Exception as e:
                 log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {str(e)}")
                 async with account_rotation_lock:
@@ -389,7 +441,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     async def _process_stream_response(
         cls,
         response_content,
-        account: Dict[str, Any],
+        account: YUPP_ACCOUNT,
         session: aiohttp.ClientSession,
         prompt: str,
         model_id: str
@@ -399,9 +451,20 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         line_pattern = re.compile(b"^([0-9a-fA-F]+):(.*)")
         target_stream_id = None
         reward_info = None
+        # Stream segmentation buffers
         is_thinking = False
-        thinking_content = ""
+        thinking_content = ""  # model's "thinking" channel (if activated later)
         normal_content = ""
+        quick_content = ""  # quick-response short message
+        variant_text = ""  # variant model output (comparison stream)
+        stream = {
+            "target": [],
+            "variant": [],
+            "quick": [],
+            "thinking": [] ,
+            "extra": []
+        }
+        # Holds leftStream / rightStream definitions to determine target/variant
         select_stream = [None, None]
         
         def extract_ref_id(ref):
@@ -413,28 +476,44 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 return False
             return True
 
-        async def process_content_chunk(content: str, chunk_id: str, line_count: int):
-            """Process single content chunk"""
-            nonlocal is_thinking, thinking_content, normal_content, session
-            
+        async def process_content_chunk(content: str, chunk_id: str, line_count: int, *, for_target: bool = False):
+            """
+            Process a single content chunk from a stream.
+
+            - If for_target=True → chunk belongs to the target model output.
+            """
+            nonlocal is_thinking, thinking_content, normal_content, variant_text, session
+
             if not is_valid_content(content):
                 return
-            
+
+            # Handle image-gen chunks
             if '<yapp class="image-gen">' in content:
-                content = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
+                img_block = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
                 url = "https://yupp.ai/api/trpc/chat.getSignedImage"
-                async with session.get(url, params={"batch": "1", "input": json.dumps({"0": {"json": {"imageId": json.loads(content).get("image_id")}}})}) as resp:
+                async with session.get(
+                        url,
+                        params={
+                            "batch": "1",
+                            "input": json.dumps(
+                                {"0": {"json": {"imageId": json.loads(img_block).get("image_id")}}}
+                            )
+                        }
+                ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
-                    yield ImageResponse(data[0]["result"]["data"]["json"]["signed_url"], prompt)
+                    img = ImageResponse(
+                        data[0]["result"]["data"]["json"]["signed_url"],
+                        prompt
+                    )
+                    yield img
                 return
-            
-            # log_debug(f"Processing chunk #{line_count} with content: '{content[:50]}...'")
-            
+            # Optional: thinking-mode support (disabled by default)
             if is_thinking:
                 yield Reasoning(content)
             else:
-                normal_content += content
+                if for_target:
+                    normal_content += content
                 yield content
         
         try:
@@ -443,15 +522,23 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             variant_stream_id = None
             is_started: bool = False
             variant_image: Optional[ImageResponse] = None
-            variant_text = ""
-            
+            # "a" use as default then extract from "1"
+            reward_id = "a"
+            routing_id = "e"
+            turn_id = None
+            persisted_turn_id = None
+            left_message_id = None
+            right_message_id = None
+            nudge_new_chat_id = None
+            nudge_new_chat = False
+
             async for line in response_content:
                 line_count += 1
                 
                 match = line_pattern.match(line)
                 if not match:
                     continue
-                
+
                 chunk_id, chunk_data = match.groups()
                 chunk_id = chunk_id.decode()
                 
@@ -459,9 +546,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     data = json.loads(chunk_data) if chunk_data != b"{}" else {}
                 except json.JSONDecodeError:
                     continue
-                
                 # Process reward info
-                if chunk_id == "a":
+                if chunk_id == reward_id and isinstance(data, dict) and "unclaimedRewardInfo" in data:
                     reward_info = data
                     log_debug(f"Found reward info")
                 
@@ -471,14 +557,29 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     if isinstance(data, dict):
                         left_stream = data.get("leftStream", {})
                         right_stream = data.get("rightStream", {})
-                        quick_response_id = extract_ref_id(data.get("quickResponse", {}).get("stream", {}).get("next"))
+                        if data.get("quickResponse", {}) != "$undefined":
+                            quick_response_id = extract_ref_id(data.get("quickResponse", {}).get("stream", {}).get("next"))
+
+                        if data.get("turnId", {}) != "$undefined":
+                            turn_id = extract_ref_id(data.get("turnId", {}).get("next"))
+                        if data.get("persistedTurn", {}) != "$undefined":
+                            persisted_turn_id = extract_ref_id(data.get("persistedTurn", {}).get("next"))
+                        if data.get("leftMessageId", {}) != "$undefined":
+                            left_message_id = extract_ref_id(data.get("leftMessageId", {}).get("next"))
+                        if data.get("rightMessageId", {}) != "$undefined":
+                            right_message_id = extract_ref_id(data.get("rightMessageId", {}).get("next"))
+
+                        reward_id = extract_ref_id(data.get("pendingRewardActionResult", "")) or reward_id
+                        routing_id = extract_ref_id(data.get("routingResultPromise", "")) or routing_id
+                        nudge_new_chat_id = extract_ref_id(data.get("nudgeNewChatPromise", "")) or nudge_new_chat_id
                         select_stream = [left_stream, right_stream]
-                
-                elif chunk_id == "e":
+                # Routing / model selection block
+                elif chunk_id == routing_id:
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         provider_info = cls.get_dict()
                         provider_info['model'] = model_id
+                        # Determine target & variant stream IDs
                         for i, selection in enumerate(data.get("modelSelections", [])):
                             if selection.get("selectionSource") == "USER_SELECTED":
                                 target_stream_id = extract_ref_id(select_stream[i].get("next"))
@@ -499,41 +600,80 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         target_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            async for chunk in process_content_chunk(content, chunk_id, line_count):
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=True
+                            ):
+                                stream["target"].append(chunk)
                                 is_started = True
                                 yield chunk
-                
+                # Variant stream (comparison)
                 elif variant_stream_id and chunk_id == variant_stream_id:
                     yield PlainTextResponse("[Variant] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         variant_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            async for chunk in process_content_chunk(content, chunk_id, line_count):
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=False
+                            ):
+                                stream["variant"].append(chunk)
                                 if isinstance(chunk, ImageResponse):
                                     yield PreviewResponse(str(chunk))
                                 else:
                                     variant_text += str(chunk)
                                     if not is_started:
                                         yield PreviewResponse(variant_text)
-                
+                # Quick response (short preview)
                 elif quick_response_id and chunk_id == quick_response_id:
                     yield PlainTextResponse("[Quick] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         content = data.get("curr", "")
                         if content:
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=False
+                            ):
+                                stream["quick"].append(chunk)
+                            quick_content += content
                             yield PreviewResponse(content)
 
+                elif chunk_id in [turn_id, persisted_turn_id]:
+                    ...
+                elif chunk_id == right_message_id:
+                    ...
+                elif chunk_id == left_message_id:
+                    ...
+                elif chunk_id == nudge_new_chat_id:
+                    nudge_new_chat = data
+                # Miscellaneous extra content
                 elif isinstance(data, dict) and "curr" in data:
                     content = data.get("curr", "")
                     if content:
+                        async for chunk in process_content_chunk(
+                                content,
+                                chunk_id,
+                                line_count,
+                                for_target=False
+                        ):
+                            stream["extra"].append(chunk)
+                            if isinstance(chunk,str) and "<streaming stopped unexpectedly" in chunk:
+                                yield FinishReason(chunk)
+
                         yield PlainTextResponse("[Extra] " + line.decode(errors="ignore"))
             
             if variant_image is not None:
                 yield variant_image
             elif variant_text:
                 yield PreviewResponse(variant_text)
-
+            yield JsonResponse(**stream)
             log_debug(f"Finished processing {line_count} lines")
             
         except:

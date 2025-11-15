@@ -9,3 +9,4 @@ g4f.egg-info
 models/models.json
 pyvenv.cfg
 lib64
+/.idea
