@@ -22,7 +22,8 @@ from .helper import get_last_user_message
 from ..debug import log
 
 # Global variables to manage Yupp accounts
-YUPP_ACCOUNTS: List[Dict[str, Any]] = []
+YUPP_ACCOUNT = Dict[str, Any]
+YUPP_ACCOUNTS: List[YUPP_ACCOUNT] = []
 account_rotation_lock = asyncio.Lock()
 
 # Global variables to manage Yupp Image Cache
@@ -65,7 +66,7 @@ def create_headers() -> Dict[str, str]:
         "Sec-Fetch-Site": "same-origin",
     }
 
-async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
+async def get_best_yupp_account() -> Optional[YUPP_ACCOUNT]:
     """Get the best available Yupp account using smart selection algorithm"""
     max_error_count = int(os.getenv("MAX_ERROR_COUNT", "3"))
     error_cooldown = int(os.getenv("ERROR_COOLDOWN", "300"))
@@ -99,7 +100,7 @@ async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
         account["last_used"] = now
         return account
 
-async def claim_yupp_reward(session: aiohttp.ClientSession, account: Dict[str, Any], reward_id: str):
+async def claim_yupp_reward(session: aiohttp.ClientSession, account: YUPP_ACCOUNT, reward_id: str):
     """Claim Yupp reward asynchronously"""
     try:
         log_debug(f"Claiming reward {reward_id}...")
@@ -121,7 +122,7 @@ async def claim_yupp_reward(session: aiohttp.ClientSession, account: Dict[str, A
         log_debug(f"Failed to claim reward {reward_id}. Error: {e}")
         return None
 
-async def make_chat_private(session: aiohttp.ClientSession, account: Dict[str, Any], chat_id: str) -> bool:
+async def make_chat_private(session: aiohttp.ClientSession, account: YUPP_ACCOUNT, chat_id: str) -> bool:
     """Set a Yupp chat's sharing status to PRIVATE"""
     try:
         log_debug(f"Setting chat {chat_id} to PRIVATE...")
@@ -233,7 +234,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    async def prepare_files(cls, media, session:aiohttp.ClientSession, account:Dict[str, ...])->list:
+    async def prepare_files(cls, media, session:aiohttp.ClientSession, account:YUPP_ACCOUNT)->list:
         files = []
         if not media:
             return files
@@ -440,7 +441,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     async def _process_stream_response(
         cls,
         response_content,
-        account: Dict[str, Any],
+        account: YUPP_ACCOUNT,
         session: aiohttp.ClientSession,
         prompt: str,
         model_id: str
