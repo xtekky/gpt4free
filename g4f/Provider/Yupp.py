@@ -475,10 +475,27 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         }
         # Holds leftStream / rightStream definitions to determine target/variant
         select_stream = [None, None]
-        
+        # State for capturing a multi-line <think> + <yapp> block (fa-style)
+        capturing_ref_id: Optional[str] = None
+        capturing_lines: List[bytes] = []
+
+        # Storage for special referenced blocks like $fa
+        think_blocks: Dict[str, str] = {}
+        image_blocks: Dict[str, str] = {}
+
         def extract_ref_id(ref):
             """Extract ID from reference string, e.g., from '$@123' extract '123'"""
             return ref[2:] if ref and isinstance(ref, str) and ref.startswith("$@") else None
+
+        def extract_ref_name(ref: str) -> Optional[str]:
+            """Extract simple ref name from '$fa' → 'fa'"""
+            if not isinstance(ref, str):
+                return None
+            if ref.startswith("$@"):
+                return ref[2:]
+            if ref.startswith("$") and len(ref) > 1:
+                return ref[1:]
+            return None
         def is_valid_content(content: str) -> bool:
             """Check if content is valid"""
             if not content or content in [None, "", "$undefined"]:
@@ -524,7 +541,27 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 if for_target:
                     normal_content += content
                 yield content
-        
+
+        def finalize_capture_block(ref_id: str, lines: List[bytes]):
+            """Parse captured <think> + <yapp> block for a given ref ID."""
+            text = b"".join(lines).decode("utf-8", errors="ignore")
+
+            # Extract <think>...</think>
+            think_start = text.find("<think>")
+            think_end = text.find("</think>")
+            if think_start != -1 and think_end != -1 and think_end > think_start:
+                inner = text[think_start + len("<think>"):think_end].strip()
+                if inner:
+                    think_blocks[ref_id] = inner
+
+            # Extract <yapp class="image-gen">...</yapp>
+            yapp_start = text.find('<yapp class="image-gen">')
+            if yapp_start != -1:
+                yapp_end = text.find("</yapp>", yapp_start)
+                if yapp_end != -1:
+                    yapp_block = text[yapp_start:yapp_end + len("</yapp>")]
+                    image_blocks[ref_id] = yapp_block
+
         try:
             line_count = 0
             quick_response_id = None
@@ -540,17 +577,55 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             right_message_id = None
             nudge_new_chat_id = None
             nudge_new_chat = False
-
             async for line in response_content:
                 line_count += 1
-                
+                # If we are currently capturing a think/image block for some ref ID
+                if capturing_ref_id is not None:
+                    capturing_lines.append(line)
+
+                    # Check if this line closes the <yapp> block; after that, block is complete
+                    if b"</yapp>" in line: # or b':{"curr"' in line:
+                        # We may have trailing "2:{...}" after </yapp> on the same line
+                        # Get id using re
+                        idx = line.find(b"</yapp>")
+                        suffix = line[idx + len(b"</yapp>"):]
+
+                        # Finalize captured block for this ref ID
+                        finalize_capture_block(capturing_ref_id, capturing_lines)
+                        capturing_ref_id = None
+                        capturing_lines = []
+
+                        # If there is trailing content (e.g. '2:{"curr":"$fa"...}')
+                        if suffix.strip():
+                            # Process suffix as a new "line" in the same iteration
+                            line = suffix
+                        else:
+                            # Nothing more on this line
+                            continue
+                    else:
+                        # Still inside captured block; skip normal processing
+                        continue
+
+                # Detect start of a <think> block assigned to a ref like 'fa:...<think>'
+                if b"<think>" in line:
+                    m = line_pattern.match(line)
+                    if m:
+                        capturing_ref_id = m.group(1).decode()
+                        capturing_lines = [line]
+                        # Skip normal parsing; the rest of the block will be captured until </yapp>
+                        continue
+
                 match = line_pattern.match(line)
                 if not match:
                     continue
 
                 chunk_id, chunk_data = match.groups()
                 chunk_id = chunk_id.decode()
-                
+
+                if nudge_new_chat_id and chunk_id == nudge_new_chat_id:
+                    nudge_new_chat = chunk_data.decode()
+                    continue
+
                 try:
                     data = json.loads(chunk_data) if chunk_data != b"{}" else {}
                 except json.JSONDecodeError:
@@ -609,15 +684,41 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         target_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            async for chunk in process_content_chunk(
-                                    content,
-                                    chunk_id,
-                                    line_count,
-                                    for_target=True
-                            ):
-                                stream["target"].append(chunk)
-                                is_started = True
-                                yield chunk
+                            # Handle special "$fa" / "$<id>" reference
+                            ref_name = extract_ref_name(content)
+                            if ref_name and (ref_name in think_blocks or ref_name in image_blocks):
+                                # Thinking block
+                                if ref_name in think_blocks:
+                                    t_text = think_blocks[ref_name]
+                                    if t_text:
+                                        reasoning = Reasoning(t_text)
+                                        # thinking_content += t_text
+                                        stream["thinking"].append(reasoning)
+                                        # yield reasoning
+
+                                # Image-gen block
+                                if ref_name in image_blocks:
+                                    img_block_text = image_blocks[ref_name]
+                                    async for chunk in process_content_chunk(
+                                            img_block_text,
+                                            ref_name,
+                                            line_count,
+                                            for_target=True
+                                    ):
+                                        stream["target"].append(chunk)
+                                        is_started = True
+                                        yield chunk
+                            else:
+                                # Normal textual chunk
+                                async for chunk in process_content_chunk(
+                                        content,
+                                        chunk_id,
+                                        line_count,
+                                        for_target=True
+                                ):
+                                    stream["target"].append(chunk)
+                                    is_started = True
+                                    yield chunk
                 # Variant stream (comparison)
                 elif variant_stream_id and chunk_id == variant_stream_id:
                     yield PlainTextResponse("[Variant] " + line.decode(errors="ignore"))
@@ -660,8 +761,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     ...
                 elif chunk_id == left_message_id:
                     ...
-                elif chunk_id == nudge_new_chat_id:
-                    nudge_new_chat = data
                 # Miscellaneous extra content
                 elif isinstance(data, dict) and "curr" in data:
                     content = data.get("curr", "")
@@ -684,7 +783,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 yield PreviewResponse(variant_text)
             yield JsonResponse(**stream)
             log_debug(f"Finished processing {line_count} lines")
-            
         except:
             raise
         
