@@ -6,7 +6,7 @@ import re
 import os
 import asyncio
 import aiohttp
-from aiohttp import ClientResponseError
+from aiohttp import ClientResponseError, ClientTimeout
 
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -44,15 +44,19 @@ def load_yupp_accounts(tokens_str: str):
         return
     
     tokens = [token.strip() for token in tokens_str.split(',') if token.strip()]
-    YUPP_ACCOUNTS = [
-        {
+    # reuse history of accounts
+    old_account = YUPP_ACCOUNTS.copy()
+    YUPP_ACCOUNTS.clear()
+    YUPP_ACCOUNTS.extend([
+        next(filter(lambda x:x.get("token")==token, old_account),
+             {
             "token": token,
             "is_valid": True,
             "error_count": 0,
             "last_used": 0.0
-        }
+            })
         for token in tokens
-    ]
+    ])
 
 def create_headers() -> Dict[str, str]:
     """Create headers for requests"""
@@ -390,9 +394,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
                     log_debug(f"Sending request to: {url}")
                     log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
-
+                    _timeout = kwargs.get("timeout")
+                    if isinstance(_timeout, ClientTimeout):
+                        timeout = _timeout
+                    else:
+                        total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
+                        timeout = ClientTimeout(total=total)
                     # Send request
-                    async with session.post(url, json=payload, headers=headers, proxy=proxy) as response:
+                    async with session.post(url, json=payload, headers=headers, proxy=proxy, timeout=timeout) as response:
                         response.raise_for_status()
 
                         # Make chat private in background
