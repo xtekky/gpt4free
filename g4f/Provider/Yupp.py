@@ -41,21 +41,16 @@ def load_yupp_accounts(tokens_str: str):
     global YUPP_ACCOUNTS
     if not tokens_str:
         return
-    
     tokens = [token.strip() for token in tokens_str.split(',') if token.strip()]
-    # reuse history of accounts
-    old_account = YUPP_ACCOUNTS.copy()
-    YUPP_ACCOUNTS.clear()
-    YUPP_ACCOUNTS.extend([
-        next(filter(lambda x:x.get("token")==token, old_account),
-             {
+    YUPP_ACCOUNTS = [
+        {
             "token": token,
             "is_valid": True,
             "error_count": 0,
             "last_used": 0.0
-            })
+        }
         for token in tokens
-    ])
+    ]
 
 def create_headers() -> Dict[str, str]:
     """Create headers for requests"""
