@@ -6,8 +6,7 @@ import re
 import os
 import asyncio
 import aiohttp
-from aiohttp import ClientResponseError, ClientTimeout
-
+from ..requests.aiohttp import StreamSession
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
@@ -336,7 +335,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 raise ProviderException("No valid Yupp accounts available")
 
             try:
-                async with aiohttp.ClientSession() as session:
+                async with StreamSession() as session:
                     turn_id = str(uuid.uuid4())
 
 
@@ -395,11 +394,11 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     log_debug(f"Sending request to: {url}")
                     log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
                     _timeout = kwargs.get("timeout")
-                    if isinstance(_timeout, ClientTimeout):
+                    if isinstance(_timeout, aiohttp.ClientTimeout):
                         timeout = _timeout
                     else:
                         total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
-                        timeout = ClientTimeout(total=total)
+                        timeout = aiohttp.ClientTimeout(total=total)
                     # Send request
                     async with session.post(url, json=payload, headers=headers, proxy=proxy, timeout=timeout) as response:
                         response.raise_for_status()
@@ -426,7 +425,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         account["error_count"] += 1
                 continue
-            except ClientResponseError as e:
+            except aiohttp.ClientResponseError as e:
                 log_debug(f"Account ...{account['token'][-4:]} failed: {str(e)}")
                 # No Available Yupp credits
                 if e.status == 500 and 'Internal Server Error' in e.message:

@@ -9,6 +9,7 @@ from time import time
 from typing import Literal, Optional
 
 import aiohttp
+from ..requests.aiohttp import StreamSession
 from ..errors import RateLimitError, ResponseError
 from ..typing import AsyncResult, Messages, MediaListType
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
@@ -175,7 +176,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
         prompt = get_last_user_message(messages)
 
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with StreamSession(headers=headers) as session:
             for attempt in range(5):
                 try:
                     if not cls._midtoken:
