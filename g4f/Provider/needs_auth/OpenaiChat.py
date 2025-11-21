@@ -283,7 +283,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         return messages
 
     @classmethod
-    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str], prompt: str = None, conversation_id: str = None, status:str="loading") -> ImagePreview|ImageResponse|None:
+    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str], prompt: str = None, conversation_id: str = None, status: Optional[str]=None) -> ImagePreview|ImageResponse|None:
         download_urls = []
         is_sediment = False
         if prompt is None:
@@ -319,8 +319,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.error("OpenaiChat: Download image failed")
             debug.error(e)
         if download_urls:
-            # status = loading, finished_successfully
-            if is_sediment and status == "loading":
+            # status = None, finished_successfully
+            if is_sediment and status is None:
                 return ImagePreview(download_urls, prompt, {"status": status, "headers": auth_result.headers})
             else:
                 return ImageResponse(download_urls, prompt, {"status": status, "headers": auth_result.headers})
@@ -710,7 +710,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     elif m.get("p") == "/message/metadata/image_gen_title":
                         fields.prompt = m.get("v")
                     elif m.get("p") == "/message/content/parts/0/asset_pointer":
-                        status = next(filter(lambda x:x.get("p") == '/message/status' ,v), {}).get('v', "loading")
+                        status = next(filter(lambda x:x.get("p") == '/message/status' ,v), {}).get('v', None)
                         generated_images = fields.generated_images = await cls.get_generated_image(session, auth_result, m.get("v"), fields.prompt, fields.conversation_id, status)
                         if generated_images is not None:
                             if buffer: 
