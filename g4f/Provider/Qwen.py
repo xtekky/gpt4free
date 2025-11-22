@@ -122,14 +122,14 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = image_models
     text_models = text_models
     vision_models = vision_models
-    models: list = models
+    models: list[str] = models
     default_model = "qwen3-235b-a22b"
 
     _midtoken: str = None
     _midtoken_uses: int = 0
 
     @classmethod
-    def get_models(cls) -> list[str]:
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
             response = curl_cffi.get(f"{cls.url}/api/models")
             if response.ok:
@@ -264,7 +264,6 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             media: MediaListType = None,
             conversation: JsonConversation = None,
             proxy: str = None,
-            timeout: int = 120,
             stream: bool = True,
             enable_thinking: bool = True,
             chat_type: Literal[
@@ -303,7 +302,12 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         prompt = get_last_user_message(messages)
-
+        _timeout = kwargs.get("timeout")
+        if isinstance(_timeout, aiohttp.ClientTimeout):
+            timeout = _timeout
+        else:
+            total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
+            timeout = aiohttp.ClientTimeout(total=total)
         async with StreamSession(headers=headers) as session:
             try:
                 async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
