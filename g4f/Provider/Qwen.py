@@ -32,7 +32,7 @@ try:
 except ImportError:
     has_curl_cffi = False
 
-# Global variables to manage Yupp Image Cache
+# Global variables to manage Qwen Image Cache
 ImagesCache: Dict[str, dict] = {}
 
 

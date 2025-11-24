@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-import os
-import re
 import asyncio
-import uuid
-import json
 import base64
-import time
+import hashlib
+import json
+import os
 import random
-from typing import AsyncIterator, Iterator, Optional, Generator, Dict, Union, List, Any
+import re
+import time
+import uuid
 from copy import copy
+from typing import AsyncIterator, Iterator, Optional, Generator, Dict, Union, List, Any
 
 try:
     import nodriver
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -22,15 +24,17 @@ from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver_session
-from ...image import ImageRequest, to_image, to_bytes, is_accepted_format, detect_file_type
+from ...image import ImageRequest, to_image, to_bytes, detect_file_type
 from ...errors import MissingAuthError, NoValidHarFileError, ModelNotFoundError
-from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview, ResponseType, JsonRequest, format_link
+from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, \
+    ImagePreview, ResponseType, JsonRequest, format_link
 from ...providers.response import TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
 from ..helper import format_cookies, format_media_prompt, to_string
 from ..openai.models import default_model, default_image_model, models, image_models, text_models, model_aliases
 from ..openai.har_file import get_request_config
-from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, prepare_url, backend_anon_url
+from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, prepare_url, \
+    backend_anon_url
 from ..openai.proofofwork import generate_proof_token
 from ..openai.new import get_requirements_token, get_config
 from ... import debug
@@ -87,6 +91,9 @@ UPLOAD_HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 }
 
+ImagesCache: Dict[str, dict] = {}
+
+
 class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     """A class for creating and managing conversations with OpenAI chat service"""
 
@@ -95,6 +102,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     working = True
     active_by_default = True
     use_nodriver = True
+    image_cache = True
     supports_gpt_4 = True
     supports_message_history = True
     supports_system_message = True
@@ -127,11 +135,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def upload_files(
-        cls,
-        session: StreamSession,
-        auth_result: AuthResult,
-        media: MediaListType,
-    ) -> list[ImageRequest]:
+            cls,
+            session: StreamSession,
+            auth_result: AuthResult,
+            media: MediaListType,
+    ) -> List[ImageRequest]:
         """
         Upload an image to the service and get the download URL
         
@@ -143,11 +151,20 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         Returns:
             An ImageRequest object that contains the download URL, file name, and other data
         """
-        async def upload_file(file, image_name=None):
+
+        async def upload_file(file, image_name=None) -> ImageRequest:
             debug.log(f"Uploading file: {image_name}")
             file_data = {}
 
             data_bytes = to_bytes(file)
+            # Check Cache
+            hasher = hashlib.md5()
+            hasher.update(data_bytes)
+            image_hash = hasher.hexdigest()
+            cache_file = ImagesCache.get(image_hash)
+            if cls.image_cache and file:
+                debug.log("Using cached image")
+                return ImageRequest(cache_file)
             extension, mime_type = detect_file_type(data_bytes)
             if "image" in mime_type:
                 # Convert the image to a PIL Image object
@@ -181,30 +198,31 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             # Put the image bytes to the upload URL and check the status
             await asyncio.sleep(1)
             async with session.put(
-                file_data["upload_url"],
-                data=data_bytes,
-                headers={
-                    **UPLOAD_HEADERS,
-                    "Content-Type": file_data["mime_type"],
-                    "x-ms-blob-type": "BlockBlob",
-                    "x-ms-version": "2020-04-08",
-                    "Origin": "https://chatgpt.com",
-                }
+                    file_data["upload_url"],
+                    data=data_bytes,
+                    headers={
+                        **UPLOAD_HEADERS,
+                        "Content-Type": file_data["mime_type"],
+                        "x-ms-blob-type": "BlockBlob",
+                        "x-ms-version": "2020-04-08",
+                        "Origin": "https://chatgpt.com",
+                    }
             ) as response:
                 await raise_for_status(response)
             # Post the file ID to the service and get the download URL
             async with session.post(
-                f"{cls.url}/backend-api/files/{file_data['file_id']}/uploaded",
-                json={},
-                headers=auth_result.headers
+                    f"{cls.url}/backend-api/files/{file_data['file_id']}/uploaded",
+                    json={},
+                    headers=auth_result.headers
             ) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response, "Get download url failed")
                 uploaded_data = await response.json()
                 file_data["download_url"] = uploaded_data["download_url"]
+            ImagesCache[image_hash] = file_data.copy()
             return ImageRequest(file_data)
 
-        medias = []
+        medias: List["ImageRequest"] = []
         for item in media:
             item = item if isinstance(item, tuple) else (item,)
             __uploaded_media = await upload_file(*item)
@@ -242,7 +260,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             "id": str(uuid.uuid4()),
             "author": {"role": message["role"]},
             "content": {"content_type": "text", "parts": [to_string(message["content"])]},
-            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, **({"system_hints": system_hints} if system_hints else {})},
+            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []},
+                         **({"system_hints": system_hints} if system_hints else {})},
             "create_time": time.time(),
         } for message in messages]
         # Check if there is an image response
@@ -256,11 +275,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "size_bytes": image_request.get("file_size"),
                     "width": image_request.get("width"),
                 }
-                for image_request in image_requests
+                    for image_request in image_requests
                     # Add For Images Only
                     if image_request.get("use_case") == "multimodal"
                 ],
-                messages[-1]["content"]["parts"][0]]
+                          messages[-1]["content"]["parts"][0]]
             }
             # Add the metadata object with the attachments
             messages[-1]["metadata"] = {
@@ -278,12 +297,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         else {}
                     ),
                 }
-                for image_request in image_requests]
+                    for image_request in image_requests]
             }
         return messages
 
     @classmethod
-    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str], prompt: str = None, conversation_id: str = None, status: Optional[str]=None) -> ImagePreview|ImageResponse|None:
+    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str],
+                                  prompt: str = None, conversation_id: str = None,
+                                  status: Optional[str] = None) -> ImagePreview | ImageResponse | None:
         download_urls = []
         is_sediment = False
         if prompt is None:
@@ -292,7 +313,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             except KeyError:
                 pass
         if "asset_pointer" in element:
-            element = element["asset_pointer"] 
+            element = element["asset_pointer"]
         if isinstance(element, str) and element.startswith("file-service://"):
             element = element.split("file-service://", 1)[-1]
         elif isinstance(element, str) and element.startswith("sediment://"):
@@ -303,7 +324,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if is_sediment:
             url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{element}/download"
         else:
-            url =f"{cls.url}/backend-api/files/{element}/download"
+            url = f"{cls.url}/backend-api/files/{element}/download"
         try:
             async with session.get(url, headers=auth_result.headers) as response:
                 cls._update_request_args(auth_result, session)
@@ -327,23 +348,23 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def create_authed(
-        cls,
-        model: str,
-        messages: Messages,
-        auth_result: AuthResult,
-        proxy: str = None,
-        timeout: int = 360,
-        auto_continue: bool = False,
-        action: Optional[str] = None,
-        conversation: Conversation = None,
-        media: MediaListType = None,
-        return_conversation: bool = True,
-        web_search: bool = False,
-        prompt: str = None,
-        conversation_mode: Optional[dict] = None,
-        temporary: Optional[bool] = None,
-        conversation_id: Optional[str] = None,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            auth_result: AuthResult,
+            proxy: str = None,
+            timeout: int = 360,
+            auto_continue: bool = False,
+            action: Optional[str] = None,
+            conversation: Conversation = None,
+            media: MediaListType = None,
+            return_conversation: bool = True,
+            web_search: bool = False,
+            prompt: str = None,
+            conversation_mode: Optional[dict] = None,
+            temporary: Optional[bool] = None,
+            conversation_id: Optional[str] = None,
+            **kwargs
     ) -> AsyncResult:
         """
         Create an asynchronous generator for the conversation.
@@ -371,12 +392,12 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if action is None:
             action = "next"
         async with StreamSession(
-            proxy=proxy,
-            impersonate="chrome",
-            timeout=timeout
+                proxy=proxy,
+                impersonate="chrome",
+                timeout=timeout
         ) as session:
             image_requests = None
-            media  = merge_media(media, messages)
+            media = merge_media(media, messages)
             if not cls.needs_auth and not media:
                 if cls._headers is None:
                     cls._create_request_args(cls._cookies)
@@ -440,18 +461,19 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     if temporary:
                         data["history_and_training_disabled"] = True
                     async with session.post(
-                        prepare_url,
-                        json=data,
-                        headers=cls._headers
+                            prepare_url,
+                            json=data,
+                            headers=cls._headers
                     ) as response:
                         await raise_for_status(response)
                         conduit_token = (await response.json())["conduit_token"]
                 async with session.post(
-                    f"{cls.url}/backend-anon/sentinel/chat-requirements"
-                    if cls._api_key is None else
-                    f"{cls.url}/backend-api/sentinel/chat-requirements",
-                    json={"p": None if not getattr(auth_result, "proof_token", None) else get_requirements_token(getattr(auth_result, "proof_token", None))},
-                    headers=cls._headers
+                        f"{cls.url}/backend-anon/sentinel/chat-requirements"
+                        if cls._api_key is None else
+                        f"{cls.url}/backend-api/sentinel/chat-requirements",
+                        json={"p": None if not getattr(auth_result, "proof_token", None) else get_requirements_token(
+                            getattr(auth_result, "proof_token", None))},
+                        headers=cls._headers
                 ) as response:
                     if response.status in (401, 403):
                         raise MissingAuthError(f"Response status: {response.status}")
@@ -460,10 +482,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     await raise_for_status(response)
                     chat_requirements = await response.json()
                     need_turnstile = chat_requirements.get("turnstile", {}).get("required", False)
-                    need_arkose = chat_requirements.get("arkose", {}).get("required", False) 
-                    chat_token = chat_requirements.get("token")  
+                    need_arkose = chat_requirements.get("arkose", {}).get("required", False)
+                    chat_token = chat_requirements.get("token")
 
-                # if need_arkose and cls.request_config.arkose_token is None:
+                    # if need_arkose and cls.request_config.arkose_token is None:
                 #     await get_request_config(proxy)
                 #     cls._create_request_args(auth_result.cookies, auth_result.headers)
                 #     cls._set_api_key(auth_result.access_token)
@@ -480,23 +502,25 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         proof_token=proof_token
                     )
                 # [debug.log(text) for text in (
-                    #f"Arkose: {'False' if not need_arkose else auth_result.arkose_token[:12]+'...'}",
-                    #f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
-                    #f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
+                # f"Arkose: {'False' if not need_arkose else auth_result.arkose_token[:12]+'...'}",
+                # f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
+                # f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
                 # )]
                 data = {
                     "action": "next",
                     "parent_message_id": conversation.message_id,
                     "model": model,
-                    "timezone_offset_min":-120,
-                    "timezone":"Europe/Berlin",
-                    "conversation_mode":{"kind":"primary_assistant"},
-                    "enable_message_followups":True,
+                    "timezone_offset_min": -120,
+                    "timezone": "Europe/Berlin",
+                    "conversation_mode": {"kind": "primary_assistant"},
+                    "enable_message_followups": True,
                     "system_hints": ["search"] if web_search else None,
-                    "supports_buffering":True,
-                    "supported_encodings":["v1"],
-                    "client_contextual_info":{"is_dark_mode":False,"time_since_loaded":random.randint(20, 500),"page_height":578,"page_width":1850,"pixel_ratio":1,"screen_height":1080,"screen_width":1920},
-                    "paragen_cot_summary_display_override":"allow"
+                    "supports_buffering": True,
+                    "supported_encodings": ["v1"],
+                    "client_contextual_info": {"is_dark_mode": False, "time_since_loaded": random.randint(20, 500),
+                                               "page_height": 578, "page_width": 1850, "pixel_ratio": 1,
+                                               "screen_height": 1080, "screen_width": 1920},
+                    "paragen_cot_summary_display_override": "allow"
                 }
                 if temporary:
                     data["history_and_training_disabled"] = True
@@ -516,7 +540,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                 new_messages = []
                             else:
                                 new_messages.append(message)
-                    data["messages"] = cls.create_messages(new_messages, image_requests, ["search"] if web_search else None)
+                    data["messages"] = cls.create_messages(new_messages, image_requests,
+                                                           ["search"] if web_search else None)
                 yield JsonRequest.from_dict(data)
                 headers = {
                     **cls._headers,
@@ -525,18 +550,18 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "openai-sentinel-chat-requirements-token": chat_token,
                     **({} if conduit_token is None else {"x-conduit-token": conduit_token})
                 }
-                #if cls.request_config.arkose_token:
+                # if cls.request_config.arkose_token:
                 #    headers["openai-sentinel-arkose-token"] = cls.request_config.arkose_token
                 if proofofwork is not None:
                     headers["openai-sentinel-proof-token"] = proofofwork
                 if need_turnstile and getattr(auth_result, "turnstile_token", None) is not None:
                     headers['openai-sentinel-turnstile-token'] = auth_result.turnstile_token
                 async with session.post(
-                    backend_anon_url
-                    if cls._api_key is None else
-                    backend_url,
-                    json=data,
-                    headers=headers
+                        backend_anon_url
+                        if cls._api_key is None else
+                        backend_url,
+                        json=data,
+                        headers=headers
                 ) as response:
                     cls._update_request_args(auth_result, session)
                     if response.status in (401, 403, 429, 500):
@@ -552,10 +577,12 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                             if match.group(0) in matches:
                                 continue
                             matches.append(match.group(0))
-                            generated_image = await cls.get_generated_image(session, auth_result, match.group(0), prompt)
+                            generated_image = await cls.get_generated_image(session, auth_result, match.group(0),
+                                                                            prompt)
                             if generated_image is not None:
                                 yield generated_image
-                        async for chunk in cls.iter_messages_line(session, auth_result, line, conversation, sources, references):
+                        async for chunk in cls.iter_messages_line(session, auth_result, line, conversation, sources,
+                                                                  references):
                             if isinstance(chunk, str):
                                 chunk = chunk.replace("\ue203", "").replace("\ue204", "").replace("\ue206", "")
                                 buffer += chunk
@@ -565,9 +592,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                             def citation_replacer(match: re.Match[str]):
                                                 ref_type = match.group(1)
                                                 ref_index = int(match.group(2))
-                                                if ((ref_type == "image" and is_image_embedding) or 
-                                                    is_video_embedding or 
-                                                    ref_type == "forecast"):
+                                                if ((ref_type == "image" and is_image_embedding) or
+                                                        is_video_embedding or
+                                                        ref_type == "forecast"):
 
                                                     reference = references.get_reference({
                                                         "ref_index": ref_index,
@@ -575,7 +602,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                     })
                                                     if not reference:
                                                         return ""
-                                                    
+
                                                     if ref_type == "forecast":
                                                         if reference.get("alt"):
                                                             return reference.get("alt")
@@ -584,11 +611,13 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
                                                     if is_image_embedding and reference.get("content_url", ""):
                                                         return f"![{reference.get('title', '')}]({reference.get('content_url')})"
-                                                    
+
                                                     if is_video_embedding:
-                                                        if reference.get("url", "") and reference.get("thumbnail_url", ""):
+                                                        if reference.get("url", "") and reference.get("thumbnail_url",
+                                                                                                      ""):
                                                             return f"[![{reference.get('title', '')}]({reference['thumbnail_url']})]({reference['url']})"
-                                                        video_match = re.match(r"video\n(.*?)\nturn[0-9]+", match.group(0))
+                                                        video_match = re.match(r"video\n(.*?)\nturn[0-9]+",
+                                                                               match.group(0))
                                                         if video_match:
                                                             return video_match.group(1)
                                                     return ""
@@ -599,9 +628,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                 })
                                                 if source_index is not None and len(sources.list) > source_index:
                                                     link = sources.list[source_index]["url"]
-                                                    return f"[[{source_index+1}]]({link})"
+                                                    return f"[[{source_index + 1}]]({link})"
                                                 return f""
-                                            
+
                                             def products_replacer(match: re.Match[str]):
                                                 try:
                                                     products_data = json.loads(match.group(1))
@@ -616,25 +645,30 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                     return ""
 
                                             sequence_content = match.group(1)
-                                            sequence_content = sequence_content.replace("\ue200", "").replace("\ue202", "\n").replace("\ue201", "")
+                                            sequence_content = sequence_content.replace("\ue200", "").replace("\ue202",
+                                                                                                              "\n").replace(
+                                                "\ue201", "")
                                             sequence_content = sequence_content.replace("navlist\n", "#### ")
-                                            
+
                                             # Handle search, news, view and image citations
                                             is_image_embedding = sequence_content.startswith("i\nturn")
                                             is_video_embedding = sequence_content.startswith("video\n")
                                             sequence_content = re.sub(
-                                                r'(?:cite\nturn[0-9]+|forecast\nturn[0-9]+|video\n.*?\nturn[0-9]+|i?\n?turn[0-9]+)(search|news|view|image|forecast)(\d+)', 
-                                                citation_replacer, 
+                                                r'(?:cite\nturn[0-9]+|forecast\nturn[0-9]+|video\n.*?\nturn[0-9]+|i?\n?turn[0-9]+)(search|news|view|image|forecast)(\d+)',
+                                                citation_replacer,
                                                 sequence_content
                                             )
-                                            sequence_content = re.sub(r'products\n(.*)', products_replacer, sequence_content)
-                                            sequence_content = re.sub(r'product_entity\n\[".*","(.*)"\]', lambda x: x.group(1), sequence_content)
+                                            sequence_content = re.sub(r'products\n(.*)', products_replacer,
+                                                                      sequence_content)
+                                            sequence_content = re.sub(r'product_entity\n\[".*","(.*)"\]',
+                                                                      lambda x: x.group(1), sequence_content)
                                             return sequence_content
-                                        
+
                                         # process only completed sequences and do not touch start of next not completed sequence
-                                        buffer = re.sub(r'\ue200(.*?)\ue201', sequence_replacer, buffer, flags=re.DOTALL)
-                                        
-                                        if buffer.find(u"\ue200") != -1: # still have uncompleted sequence
+                                        buffer = re.sub(r'\ue200(.*?)\ue201', sequence_replacer, buffer,
+                                                        flags=re.DOTALL)
+
+                                        if buffer.find(u"\ue200") != -1:  # still have uncompleted sequence
                                             continue
                                     else:
                                         # do not yield to consume rest part of special sequence
@@ -651,7 +685,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if sources.list:
                     yield sources
                 if conversation.generated_images:
-                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt, {"headers": auth_result.headers})
+                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt,
+                                        {"headers": auth_result.headers})
                     conversation.generated_images = None
                 conversation.prompt = None
                 if return_conversation:
@@ -671,7 +706,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             yield FinishReason(conversation.finish_reason)
 
     @classmethod
-    async def iter_messages_line(cls, session: StreamSession, auth_result: AuthResult, line: bytes, fields: Conversation, sources: OpenAISources, references: ContentReferences) -> AsyncIterator:
+    async def iter_messages_line(cls, session: StreamSession, auth_result: AuthResult, line: bytes,
+                                 fields: Conversation, sources: OpenAISources,
+                                 references: ContentReferences) -> AsyncIterator:
         if not line.startswith(b"data: "):
             return
         elif line.startswith(b"data: [DONE]"):
@@ -710,10 +747,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     elif m.get("p") == "/message/metadata/image_gen_title":
                         fields.prompt = m.get("v")
                     elif m.get("p") == "/message/content/parts/0/asset_pointer":
-                        status = next(filter(lambda x:x.get("p") == '/message/status' ,v), {}).get('v', None)
-                        generated_images = fields.generated_images = await cls.get_generated_image(session, auth_result, m.get("v"), fields.prompt, fields.conversation_id, status)
+                        status = next(filter(lambda x: x.get("p") == '/message/status', v), {}).get('v', None)
+                        generated_images = fields.generated_images = await cls.get_generated_image(session, auth_result,
+                                                                                                   m.get("v"),
+                                                                                                   fields.prompt,
+                                                                                                   fields.conversation_id,
+                                                                                                   status)
                         if generated_images is not None:
-                            if buffer: 
+                            if buffer:
                                 yield buffer
                             yield generated_images
                     elif m.get("p") == "/message/metadata/search_result_groups":
@@ -740,41 +781,48 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         if match and m.get("o") == "append" and isinstance(m.get("v"), dict):
                             idx = int(match.group(1))
                             references.merge_reference(idx, m.get("v"))
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/fallback_items$", m.get("p")) and isinstance(m.get("v"), list):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/fallback_items$",
+                                                 m.get("p")) and isinstance(m.get("v"), list):
                         for link in m.get("v", []) or []:
                             sources.add_source(link)
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/items$", m.get("p")) and isinstance(m.get("v"), list):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/items$",
+                                                 m.get("p")) and isinstance(m.get("v"), list):
                         for link in m.get("v", []) or []:
                             sources.add_source(link)
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/refs$", m.get("p")) and isinstance(m.get("v"), list):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/refs$",
+                                                 m.get("p")) and isinstance(m.get("v"), list):
                         match = re.match(r"^/message/metadata/content_references/(\d+)/refs$", m.get("p"))
                         if match:
                             idx = int(match.group(1))
                             references.update_reference(idx, m.get("o"), "refs", m.get("v"))
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/alt$", m.get("p")) and isinstance(m.get("v"), list):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/alt$",
+                                                 m.get("p")) and isinstance(m.get("v"), list):
                         match = re.match(r"^/message/metadata/content_references/(\d+)/alt$", m.get("p"))
                         if match:
                             idx = int(match.group(1))
                             references.update_reference(idx, m.get("o"), "alt", m.get("v"))
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/prompt_text$", m.get("p")) and isinstance(m.get("v"), list):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/prompt_text$",
+                                                 m.get("p")) and isinstance(m.get("v"), list):
                         match = re.match(r"^/message/metadata/content_references/(\d+)/prompt_text$", m.get("p"))
                         if match:
                             idx = int(match.group(1))
                             references.update_reference(idx, m.get("o"), "prompt_text", m.get("v"))
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/refs/\d+$", m.get("p")) and isinstance(m.get("v"), dict):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/refs/\d+$",
+                                                 m.get("p")) and isinstance(m.get("v"), dict):
                         match = re.match(r"^/message/metadata/content_references/(\d+)/refs/(\d+)$", m.get("p"))
                         if match:
                             reference_idx = int(match.group(1))
                             ref_idx = int(match.group(2))
                             references.update_reference(reference_idx, m.get("o"), "refs", m.get("v"), ref_idx)
-                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/images$", m.get("p")) and isinstance(m.get("v"), list):
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+/images$",
+                                                 m.get("p")) and isinstance(m.get("v"), list):
                         match = re.match(r"^/message/metadata/content_references/(\d+)/images$", m.get("p"))
                         if match:
                             idx = int(match.group(1))
                             references.update_reference(idx, m.get("o"), "images", m.get("v"))
                     elif m.get("p") == "/message/metadata/finished_text":
                         fields.is_thinking = False
-                        if buffer: 
+                        if buffer:
                             yield buffer
                         yield Reasoning(status=m.get("v"))
                     elif m.get("p") == "/message/metadata" and fields.recipient == "all":
@@ -790,10 +838,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 fields.recipient = m.get("recipient", fields.recipient)
                 if fields.recipient == "all":
                     c = m.get("content", {})
-                    if c.get("content_type") == "text" and m.get("author", {}).get("role") == "tool" and "initial_text" in m.get("metadata", {}):
+                    if c.get("content_type") == "text" and m.get("author", {}).get(
+                            "role") == "tool" and "initial_text" in m.get("metadata", {}):
                         fields.is_thinking = True
                         yield Reasoning(status=m.get("metadata", {}).get("initial_text"))
-                    #if c.get("content_type") == "multimodal_text":
+                    # if c.get("content_type") == "multimodal_text":
                     #    for part in c.get("parts"):
                     #        if isinstance(part, dict) and part.get("content_type") == "image_asset_pointer":
                     #            yield await cls.get_generated_image(session, auth_result, part, fields.prompt, fields.conversation_id)
@@ -808,13 +857,13 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def synthesize(cls, params: dict) -> AsyncIterator[bytes]:
         async with StreamSession(
-            impersonate="chrome",
-            timeout=0
+                impersonate="chrome",
+                timeout=0
         ) as session:
             async with session.get(
-                f"{cls.url}/backend-api/synthesize",
-                params=params,
-                headers=cls._headers
+                    f"{cls.url}/backend-api/synthesize",
+                    params=params,
+                    headers=cls._headers
             ) as response:
                 await raise_for_status(response)
                 async for chunk in response.iter_content():
@@ -822,15 +871,15 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def login(
-        cls,
-        proxy: str = None,
-        api_key: str = None,
-        proof_token: str = None,
-        cookies: Cookies = None,
-        headers: dict = None,
-        **kwargs
+            cls,
+            proxy: str = None,
+            api_key: str = None,
+            proof_token: str = None,
+            cookies: Cookies = None,
+            headers: dict = None,
+            **kwargs
     ) -> AsyncIterator:
-        if cls._expires is not None and (cls._expires - 60*10) < time.time():
+        if cls._expires is not None and (cls._expires - 60 * 10) < time.time():
             cls._headers = cls._api_key = None
         if cls._headers is None or headers is not None:
             cls._headers = {} if headers is None else headers
@@ -863,6 +912,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     async def nodriver_auth(cls, proxy: str = None):
         async with get_nodriver_session(proxy=proxy) as browser:
             page = await browser.get(cls.url)
+
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
                 if event.request.url == start_url or event.request.url.startswith(conversation_url):
                     if cls.request_config.headers is None:
@@ -871,9 +921,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         cls.request_config.headers[key.lower()] = value
                 elif event.request.url in (backend_url, backend_anon_url):
                     if "OpenAI-Sentinel-Proof-Token" in event.request.headers:
-                            cls.request_config.proof_token = json.loads(base64.b64decode(
-                                event.request.headers["OpenAI-Sentinel-Proof-Token"].split("gAAAAAB", 1)[-1].split("~")[0].encode()
-                            ).decode())
+                        cls.request_config.proof_token = json.loads(base64.b64decode(
+                            event.request.headers["OpenAI-Sentinel-Proof-Token"].split("gAAAAAB", 1)[-1].split("~")[
+                                0].encode()
+                        ).decode())
                     if "OpenAI-Sentinel-Turnstile-Token" in event.request.headers:
                         cls.request_config.turnstile_token = event.request.headers["OpenAI-Sentinel-Turnstile-Token"]
                     if "Authorization" in event.request.headers:
@@ -886,6 +937,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         arkBody=event.request.post_data,
                         userAgent=event.request.headers.get("User-Agent")
                     )
+
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             await page.reload()
@@ -917,7 +969,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if cls._api_key is not None or not cls.needs_auth:
                     break
                 await asyncio.sleep(1)
-            debug.log(f"OpenaiChat: Access token: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}")
+            debug.log(f"OpenaiChat: Access token: {'False' if cls._api_key is None else cls._api_key[:12] + '...'}")
             while True:
                 if cls.request_config.proof_token:
                     break
@@ -975,11 +1027,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if cls._cookies:
             cls._headers["cookie"] = format_cookies(cls._cookies)
 
+
 class Conversation(JsonConversation):
     """
     Class to encapsulate response fields.
     """
-    def __init__(self, conversation_id: str = None, message_id: str = None, user_id: str = None, finish_reason: str = None, parent_message_id: str = None, is_thinking: bool = False):
+
+    def __init__(self, conversation_id: str = None, message_id: str = None, user_id: str = None,
+                 finish_reason: str = None, parent_message_id: str = None, is_thinking: bool = False):
         self.conversation_id = conversation_id
         self.message_id = message_id
         self.finish_reason = finish_reason
@@ -992,8 +1047,9 @@ class Conversation(JsonConversation):
         self.prompt = None
         self.generated_images: ImagePreview = None
 
+
 def get_cookies(
-    urls: Optional[Iterator[str]] = None
+        urls: Optional[Iterator[str]] = None
 ) -> Generator[Dict, Dict, Dict[str, str]]:
     params = {}
     if urls is not None:
@@ -1004,6 +1060,7 @@ def get_cookies(
     }
     json = yield cmd_dict
     return {c["name"]: c["value"] for c in json['cookies']} if 'cookies' in json else {}
+
 
 class OpenAISources(ResponseType):
     list: List[Dict[str, str]]
@@ -1030,7 +1087,7 @@ class OpenAISources(ResponseType):
             if existing_source and idx is not None:
                 self.list[idx] = source
                 return
-        
+
         existing_source, idx = self.find_by_url(source["url"])
         if existing_source and idx is not None:
             self.list[idx] = source
@@ -1043,52 +1100,53 @@ class OpenAISources(ResponseType):
         if not self.list:
             return ""
         return "\n\n\n\n" + ("\n>\n".join([
-            f"> [{idx+1}] {format_link(link['url'], link.get('title', ''))}"
+            f"> [{idx + 1}] {format_link(link['url'], link.get('title', ''))}"
             for idx, link in enumerate(self.list)
         ]))
-    
-    def get_ref_info(self, source: Dict[str, str]) -> dict[str, str|int] | None:
+
+    def get_ref_info(self, source: Dict[str, str]) -> dict[str, str | int] | None:
         ref_index = source.get("ref_id", {}).get("ref_index", None)
         ref_type = source.get("ref_id", {}).get("ref_type", None)
         if isinstance(ref_index, int):
             return {
-                "ref_index": ref_index, 
+                "ref_index": ref_index,
                 "ref_type": ref_type,
             }
-        
+
         for ref_info in source.get('refs') or []:
             ref_index = ref_info.get("ref_index", None)
             ref_type = ref_info.get("ref_type", None)
             if isinstance(ref_index, int):
                 return {
-                    "ref_index": ref_index, 
+                    "ref_index": ref_index,
                     "ref_type": ref_type,
                 }
-        
+
         return None
 
-    def find_by_ref_info(self, ref_info: dict[str, str|int]):
+    def find_by_ref_info(self, ref_info: dict[str, str | int]):
         for idx, source in enumerate(self.list):
             source_ref_info = self.get_ref_info(source)
-            if (source_ref_info and 
-                source_ref_info["ref_index"] == ref_info["ref_index"] and 
-                source_ref_info["ref_type"] == ref_info["ref_type"]):
-                return source, idx 
+            if (source_ref_info and
+                    source_ref_info["ref_index"] == ref_info["ref_index"] and
+                    source_ref_info["ref_type"] == ref_info["ref_type"]):
+                return source, idx
 
         return None, None
-    
+
     def find_by_url(self, url: str):
         for idx, source in enumerate(self.list):
             if source["url"] == url:
                 return source, idx
-        return None, None 
+        return None, None
 
-    def get_index(self, ref_info: dict[str, str|int]) -> int | None: 
+    def get_index(self, ref_info: dict[str, str | int]) -> int | None:
         _, index = self.find_by_ref_info(ref_info)
         if index is not None:
-            return index 
+            return index
 
         return None
+
 
 class ContentReferences:
     def __init__(self) -> None:
@@ -1103,16 +1161,16 @@ class ContentReferences:
 
         self.list[idx] = {**self.list[idx], **reference_part}
 
-    def update_reference(self, idx: int, operation: str, field: str, value: Any, ref_idx = None) -> None:
+    def update_reference(self, idx: int, operation: str, field: str, value: Any, ref_idx=None) -> None:
         while len(self.list) <= idx:
             self.list.append({})
-        
+
         if operation == "append" or operation == "add":
             if not isinstance(self.list[idx].get(field, None), list):
                 self.list[idx][field] = []
             if isinstance(value, list):
                 self.list[idx][field].extend(value)
-            else:    
+            else:
                 self.list[idx][field].append(value)
 
         if operation == "replace" and ref_idx is not None:
@@ -1128,10 +1186,10 @@ class ContentReferences:
                 self.list[idx][field] = value
 
     def get_ref_info(
-        self, 
-        source: Dict[str, str], 
-        target_ref_info: Dict[str, Union[str, int]]
-    ) -> dict[str, str|int] | None:
+            self,
+            source: Dict[str, str],
+            target_ref_info: Dict[str, Union[str, int]]
+    ) -> dict[str, str | int] | None:
         for idx, ref_info in enumerate(source.get("refs", [])) or []:
             if not isinstance(ref_info, dict):
                 continue
@@ -1139,11 +1197,11 @@ class ContentReferences:
             ref_index = ref_info.get("ref_index", None)
             ref_type = ref_info.get("ref_type", None)
             if isinstance(ref_index, int) and isinstance(ref_type, str):
-                if (not target_ref_info or 
-                    (target_ref_info["ref_index"] == ref_index and 
-                     target_ref_info["ref_type"] == ref_type)):
+                if (not target_ref_info or
+                        (target_ref_info["ref_index"] == ref_index and
+                         target_ref_info["ref_type"] == ref_type)):
                     return {
-                        "ref_index": ref_index, 
+                        "ref_index": ref_index,
                         "ref_type": ref_type,
                         "idx": idx
                     }
@@ -1154,9 +1212,9 @@ class ContentReferences:
         for reference in self.list:
             reference_ref_info = self.get_ref_info(reference, ref_info)
 
-            if (not reference_ref_info or 
-                reference_ref_info["ref_index"] != ref_info["ref_index"] or 
-                reference_ref_info["ref_type"] != ref_info["ref_type"]):
+            if (not reference_ref_info or
+                    reference_ref_info["ref_index"] != ref_info["ref_index"] or
+                    reference_ref_info["ref_type"] != ref_info["ref_type"]):
                 continue
 
             if ref_info["ref_type"] != "image":
