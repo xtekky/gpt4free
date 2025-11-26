@@ -92,7 +92,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
             while True:
                 if has_headers:
                     break
-               input_element = None
+                input_element = None
                 try:
                     input_element = await page.select("div.ProseMirror", 2)
                 except Exception:
