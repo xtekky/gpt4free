@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
+import requests
+
 try:
     from PIL import Image, ImageOps
     has_requirements = True
@@ -383,6 +385,13 @@ def to_bytes(image: ImageType) -> bytes:
                     return Path(path).read_bytes()
                 else:
                     raise FileNotFoundError(f"File not found: {path}")
+            else:
+                resp = requests.get(image, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+                })
+                if resp.ok and is_accepted_format(resp.content):
+                    return resp.content
+                raise ValueError("Invalid image url. Expected bytes, str, or PIL Image.")
         else:
             raise ValueError("Invalid image format. Expected bytes, str, or PIL Image.")
     elif isinstance(image, Image.Image):

@@ -642,7 +642,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
             if not cls._models_loaded:
                 cls.get_models()
-            is_image_model = model in image_models
+            is_image_model = model in cls.image_models
             if not model:
                 model = cls.default_model
             if model in cls.model_aliases:

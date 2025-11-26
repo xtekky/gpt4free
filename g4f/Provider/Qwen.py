@@ -1,22 +1,29 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
+import hashlib
+import hmac
 import json
-import mimetypes
 import re
 import uuid
 from time import time
-from typing import Literal, Optional
+from typing import Literal, Optional, Dict
+from urllib.parse import quote
 
 import aiohttp
-from ..errors import RateLimitError, ResponseError
-from ..typing import AsyncResult, Messages, MediaListType
-from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
-from ..requests import sse_stream
-from ..tools.media import merge_media
+
+from g4f.image import to_bytes, detect_file_type
+from g4f.requests import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from .. import debug
+from ..errors import RateLimitError, ResponseError
+from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
+from ..requests import sse_stream
+from ..requests.aiohttp import StreamSession
+from ..tools.media import merge_media
+from ..typing import AsyncResult, Messages, MediaListType
 
 try:
     import curl_cffi
@@ -24,6 +31,56 @@ try:
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
+
+# Global variables to manage Qwen Image Cache
+ImagesCache: Dict[str, dict] = {}
+
+
+def get_oss_headers(method: str, date_str: str, sts_data: dict, content_type: str) -> dict[str, str]:
+    bucket_name = sts_data.get('bucketname', 'qwen-webui-prod')
+    file_path = sts_data.get('file_path', '')
+    access_key_id = sts_data.get('access_key_id')
+    access_key_secret = sts_data.get('access_key_secret')
+    security_token = sts_data.get('security_token')
+    headers = {
+        'Content-Type': content_type,
+        'x-oss-content-sha256': 'UNSIGNED-PAYLOAD',
+        'x-oss-date': date_str,
+        'x-oss-security-token': security_token,
+        'x-oss-user-agent': 'aliyun-sdk-js/6.23.0 Chrome 132.0.0.0 on Windows 10 64-bit'
+    }
+    headers_lower = {k.lower(): v for k, v in headers.items()}
+
+    canonical_headers_list = []
+    signed_headers_list = []
+    required_headers = ['content-md5', 'content-type', 'x-oss-content-sha256', 'x-oss-date', 'x-oss-security-token',
+                        'x-oss-user-agent']
+    for header_name in sorted(required_headers):
+        if header_name in headers_lower:
+            canonical_headers_list.append(f"{header_name}:{headers_lower[header_name]}")
+            signed_headers_list.append(header_name)
+
+    canonical_headers = '\n'.join(canonical_headers_list) + '\n'
+    canonical_uri = f"/{bucket_name}/{quote(file_path, safe='/')}"
+
+    canonical_request = f"{method}\n{canonical_uri}\n\n{canonical_headers}\n\nUNSIGNED-PAYLOAD"
+
+    date_parts = date_str.split('T')
+    date_scope = f"{date_parts[0]}/ap-southeast-1/oss/aliyun_v4_request"
+    string_to_sign = f"OSS4-HMAC-SHA256\n{date_str}\n{date_scope}\n{hashlib.sha256(canonical_request.encode()).hexdigest()}"
+
+    def sign(key, msg):
+        return hmac.new(key, msg.encode() if isinstance(msg, str) else msg, hashlib.sha256).digest()
+
+    date_key = sign(f"aliyun_v4{access_key_secret}".encode(), date_parts[0])
+    region_key = sign(date_key, "ap-southeast-1")
+    service_key = sign(region_key, "oss")
+    signing_key = sign(service_key, "aliyun_v4_request")
+    signature = hmac.new(signing_key, string_to_sign.encode(), hashlib.sha256).hexdigest()
+
+    headers['authorization'] = f"OSS4-HMAC-SHA256 Credential={access_key_id}/{date_scope},Signature={signature}"
+    return headers
+
 
 text_models = [
     'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
@@ -60,19 +117,19 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     supports_stream = True
     supports_message_history = False
-
+    image_cache = True
     _models_loaded = True
     image_models = image_models
     text_models = text_models
     vision_models = vision_models
-    models = models
+    models: list[str] = models
     default_model = "qwen3-235b-a22b"
 
     _midtoken: str = None
     _midtoken_uses: int = 0
 
     @classmethod
-    def get_models(cls) -> list[str]:
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
             response = curl_cffi.get(f"{cls.url}/api/models")
             if response.ok:
@@ -97,34 +154,106 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    async def prepare_files(cls, media, chat_type="")->list:
+    async def prepare_files(cls, media, session: aiohttp.ClientSession, headers=None) -> list:
+        if headers is None:
+            headers = {}
         files = []
-        for _file, file_name in media:
-            file_type, _ = mimetypes.guess_type(file_name)
-            file_class: Literal["default", "vision", "video", "audio", "document"] = "default"
-            _type: Literal["file", "image", "video", "audio"] = "file"
-            showType: Literal["file", "image", "video", "audio"] = "file"
+        for index, (_file, file_name) in enumerate(media):
 
-            if isinstance(_file, str) and _file.startswith('http'):
-                if chat_type == "image_edit" or (file_type and file_type.startswith("image")):
-                    file_class = "vision"
-                    _type = "image"
-                    if not file_type:
-                        # Try to infer from file extension, fallback to generic
-                        ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
-                        file_type = mimetypes.types_map.get(f'.{ext}', 'application/octet-stream')
-                    showType = "image"
+            data_bytes = to_bytes(_file)
+            # Check Cache
+            hasher = hashlib.md5()
+            hasher.update(data_bytes)
+            image_hash = hasher.hexdigest()
+            file = ImagesCache.get(image_hash)
+            if cls.image_cache and file:
+                debug.log("Using cached image")
+                files.append(file)
+                continue
 
-                files.append(
-                    {
-                        "type": _type,
+            extension, file_type = detect_file_type(data_bytes)
+            file_name = file_name or f"file-{len(data_bytes)}{extension}"
+            file_size = len(data_bytes)
+
+            # Get File Url
+            async with session.post(
+                    f'{cls.url}/api/v2/files/getstsToken',
+                    json={"filename": file_name,
+                          "filesize": file_size, "filetype": file_type},
+                    headers=headers
+
+            ) as r:
+                await raise_for_status(r, "Create file failed")
+                res_data = await r.json()
+                data = res_data.get("data")
+
+                if res_data["success"] is False:
+                    raise RateLimitError(f"{data['code']}:{data['details']}")
+                file_url = data.get("file_url")
+                file_id = data.get("file_id")
+
+            # Put File into Url
+            str_date = datetime.datetime.now(datetime.UTC).strftime('%Y%m%dT%H%M%SZ')
+            headers = get_oss_headers('PUT', str_date, data, file_type)
+            async with session.put(
+                    file_url.split("?")[0],
+                    data=data_bytes,
+                    headers=headers
+            ) as response:
+                await raise_for_status(response)
+
+            file_class: Literal["default", "vision", "video", "audio", "document"]
+            _type: Literal["file", "image", "video", "audio"]
+            show_type: Literal["file", "image", "video", "audio"]
+            if "image" in file_type:
+                _type = "image"
+                show_type = "image"
+                file_class = "vision"
+            elif "video" in file_type:
+                _type = "video"
+                show_type = "video"
+                file_class = "video"
+            elif "audio" in file_type:
+                _type = "audio"
+                show_type = "audio"
+                file_class = "audio"
+            else:
+                _type = "file"
+                show_type = "file"
+                file_class = "document"
+
+            file = {
+                "type": _type,
+                "file": {
+                    "created_at": int(time() * 1000),
+                    "data": {},
+                    "filename": file_name,
+                    "hash": None,
+                    "id": file_id,
+                    "meta": {
                         "name": file_name,
-                        "file_type": file_type,
-                        "showType": showType,
-                        "file_class": file_class,
-                        "url": _file
-                    }
-                )
+                        "size": file_size,
+                        "content_type": file_type
+                    },
+                    "update_at": int(time() * 1000),
+                },
+                "id": file_id,
+                "url": file_url,
+                "name": file_name,
+                "collection_name": "",
+                "progress": 0,
+                "status": "uploaded",
+                "greenNet": "success",
+                "size": file_size,
+                "error": "",
+                "itemId": str(uuid.uuid4()),
+                "file_type": file_type,
+                "showType": show_type,
+                "file_class": file_class,
+                "uploadTaskId": str(uuid.uuid4())
+            }
+            ImagesCache[image_hash] = file
+            files.append(file)
         return files
 
     @classmethod
@@ -135,7 +264,6 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             media: MediaListType = None,
             conversation: JsonConversation = None,
             proxy: str = None,
-            timeout: int = 120,
             stream: bool = True,
             enable_thinking: bool = True,
             chat_type: Literal[
@@ -157,7 +285,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         """
 
         model_name = cls.get_model(model)
-
+        token = kwargs.get("token")
         headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             'Accept': '*/*',
@@ -169,13 +297,24 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
             'Connection': 'keep-alive',
-            'Authorization': 'Bearer',
+            'Authorization': f'Bearer {token}' if token else "Bearer",
             'Source': 'web'
         }
 
         prompt = get_last_user_message(messages)
-
-        async with aiohttp.ClientSession(headers=headers) as session:
+        _timeout = kwargs.get("timeout")
+        if isinstance(_timeout, aiohttp.ClientTimeout):
+            timeout = _timeout
+        else:
+            total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
+            timeout = aiohttp.ClientTimeout(total=total)
+        async with StreamSession(headers=headers) as session:
+            try:
+                async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
+                    user_info_res.raise_for_status()
+                    debug.log(await user_info_res.json())
+            except:
+                ...
             for attempt in range(5):
                 try:
                     if not cls._midtoken:
@@ -221,7 +360,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     files = []
                     media = list(merge_media(media, messages))
                     if media:
-                        files = await cls.prepare_files(media, chat_type=chat_type)
+                        files = await cls.prepare_files(media, session=session,
+                                                        headers=req_headers)
 
                     msg_payload = {
                         "stream": stream,

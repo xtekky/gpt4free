@@ -31,17 +31,21 @@ class StreamResponse(ClientResponse):
                 except json.JSONDecodeError:
                     continue
 
-class StreamSession():
+class StreamSession:
     def __init__(
         self,
-        headers: dict = {},
+        headers=None,
         timeout: int = None,
         connector: BaseConnector = None,
         proxy: str = None,
-        proxies: dict = {},
+        proxies=None,
         impersonate = None,
         **kwargs
     ):
+        if proxies is None:
+            proxies = {}
+        if headers is None:
+            headers = {}
         if impersonate:
             headers = {
                 **DEFAULT_HEADERS,
@@ -49,7 +53,7 @@ class StreamSession():
             }
         connect = None
         if isinstance(timeout, tuple):
-            connect, timeout = timeout;
+            connect, timeout = timeout
         if timeout is not None:
             timeout = ClientTimeout(timeout, connect)
         if proxy is None:
