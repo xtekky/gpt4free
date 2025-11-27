@@ -162,7 +162,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             hasher.update(data_bytes)
             image_hash = hasher.hexdigest()
             cache_file = ImagesCache.get(image_hash)
-            if cls.image_cache and file:
+            if cls.image_cache and cache_file:
                 debug.log("Using cached image")
                 return ImageRequest(cache_file)
             extension, mime_type = detect_file_type(data_bytes)
