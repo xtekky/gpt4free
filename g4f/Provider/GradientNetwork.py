@@ -84,7 +84,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
         if enable_thinking:
-            payload["enableThinking"] = True
+            payload["enableThinking"] = enable_thinking
 
         async with StreamSession(headers=headers, proxy=proxy) as session:
             async with session.post(
@@ -117,8 +117,9 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
                             # Stream complete
                             break
 
-                        # Ignore clusterInfo and blockUpdate messages
-                        # as they are for GPU cluster visualization only
+                        elif msg_type in ("clusterInfo", "blockUpdate"):
+                            # Skip GPU cluster visualization messages
+                            continue
 
                     except json.JSONDecodeError:
                         # Skip non-JSON lines (may be partial data or empty)
