@@ -48,6 +48,7 @@ from .Copilot              import Copilot
 from .DeepInfra            import DeepInfra
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
+from .GradientNetwork      import GradientNetwork
 from .LambdaChat           import LambdaChat
 from .Mintlify             import Mintlify
 from .OIVSCodeSer          import OIVSCodeSer2, OIVSCodeSer0501
