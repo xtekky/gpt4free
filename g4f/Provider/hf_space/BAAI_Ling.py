@@ -5,7 +5,7 @@ import json
 import uuid
 
 from ...typing import AsyncResult, Messages
-from ...providers.response import JsonConversation, Reasoning
+from ...providers.response import JsonConversation
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_last_user_message
@@ -22,11 +22,10 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = False
 
     default_model = "ling-1t"
-    models = [default_model]
     model_aliases = {
-        "ling-1t": default_model,
         "ling": default_model,
     }
+    models = [default_model]
 
     @classmethod
     async def create_async_generator(
@@ -37,10 +36,11 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
         conversation: JsonConversation = None,
         **kwargs
     ) -> AsyncResult:
-        if conversation is None or not hasattr(conversation, 'session_hash'):
+        is_new_conversation = conversation is None or not hasattr(conversation, 'session_hash')
+        if is_new_conversation:
             conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace('-', '')[:12])
 
-        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
+        prompt = format_prompt(messages) if is_new_conversation else get_last_user_message(messages)
 
         headers = {
             'accept': '*/*',
@@ -62,6 +62,7 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
         async with aiohttp.ClientSession() as session:
             async with session.post(cls.api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
                 await raise_for_status(response)
+                # Response body must be consumed for the request to complete
                 await response.json()
 
             data_url = f'{cls.url}/gradio_api/queue/data?session_hash={conversation.session_hash}'
