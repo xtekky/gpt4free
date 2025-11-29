@@ -11,7 +11,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Provider for chat.gradient.network
-    Supports streaming text generation with various Qwen models.
+    Supports streaming text generation with Qwen and GPT OSS models.
     """
     label = "Gradient Network"
     url = "https://chat.gradient.network"
@@ -23,18 +23,15 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
 
-    default_model = "qwen3-235b"
+    default_model = "Qwen3 235B"
     models = [
         default_model,
-        "qwen3-32b",
-        "deepseek-r1-0528",
-        "deepseek-v3-0324",
-        "llama-4-maverick",
+        "GPT OSS 120B",
     ]
     model_aliases = {
-        "qwen-3-235b": "qwen3-235b",
-        "deepseek-r1": "deepseek-r1-0528",
-        "deepseek-v3": "deepseek-v3-0324",
+        "qwen-3-235b": "Qwen3 235B",
+        "qwen3-235b": "Qwen3 235B",
+        "gpt-oss-120b": "GPT OSS 120B",
     }
 
     @classmethod
@@ -62,7 +59,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
 
         Yields:
             str: Content chunks from the response
-            Reasoning: Thinking content when enable_thinking is True
+            Reasoning: Reasoning content when enable_thinking is True
         """
         model = cls.get_model(model)
 
@@ -101,21 +98,16 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
                         data = json.loads(line)
                         msg_type = data.get("type")
 
-                        if msg_type == "text":
-                            # Regular text content
-                            content = data.get("data")
+                        if msg_type == "reply":
+                            # Response chunks with content or reasoningContent
+                            reply_data = data.get("data", {})
+                            content = reply_data.get("content")
+                            reasoning_content = reply_data.get("reasoningContent")
+
+                            if reasoning_content:
+                                yield Reasoning(reasoning_content)
                             if content:
                                 yield content
-
-                        elif msg_type == "thinking":
-                            # Thinking/reasoning content
-                            content = data.get("data")
-                            if content:
-                                yield Reasoning(content)
-
-                        elif msg_type == "done":
-                            # Stream complete
-                            break
 
                         elif msg_type in ("clusterInfo", "blockUpdate"):
                             # Skip GPU cluster visualization messages
