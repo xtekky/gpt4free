@@ -109,9 +109,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
                             if content:
                                 yield content
 
-                        elif msg_type in ("clusterInfo", "blockUpdate"):
-                            # Skip GPU cluster visualization messages
-                            continue
+                        # Skip clusterInfo and blockUpdate GPU visualization messages
 
                     except json.JSONDecodeError:
                         # Skip non-JSON lines (may be partial data or empty)
