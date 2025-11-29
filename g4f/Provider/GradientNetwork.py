@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import json
 
-from aiohttp import ClientSession
-
 from ..typing import AsyncResult, Messages
 from ..providers.response import Reasoning
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
@@ -58,7 +57,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
             proxy: Optional proxy URL
             temperature: Optional temperature parameter
             max_tokens: Optional max tokens parameter
-            enable_thinking: Enable the thinking/analysis channel
+            enable_thinking: Enable the thinking/analysis channel (maps to enableThinking in API)
             **kwargs: Additional arguments
 
         Yields:
@@ -87,19 +86,14 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
         if enable_thinking:
             payload["enableThinking"] = True
 
-        async with ClientSession(headers=headers) as session:
+        async with StreamSession(headers=headers, proxy=proxy) as session:
             async with session.post(
                 cls.api_endpoint,
                 json=payload,
-                proxy=proxy
             ) as response:
                 response.raise_for_status()
 
-                async for line_bytes in response.content:
-                    if not line_bytes:
-                        continue
-
-                    line = line_bytes.decode("utf-8").strip()
+                async for line in response.iter_lines():
                     if not line:
                         continue
 
@@ -127,5 +121,5 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
                         # as they are for GPU cluster visualization only
 
                     except json.JSONDecodeError:
-                        # Skip non-JSON lines
+                        # Skip non-JSON lines (may be partial data or empty)
                         continue
