@@ -6,6 +6,7 @@ from ...typing import AsyncResult, Messages, MediaListType
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
+from .BAAI_Ling                       import BAAI_Ling
 from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
 from .BlackForestLabs_Flux1KontextDev import BlackForestLabs_Flux1KontextDev
 from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
@@ -27,6 +28,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = BlackForestLabs_Flux1Dev.default_model
     default_vision_model = Microsoft_Phi_4_Multimodal.default_model
     providers = [
+        BAAI_Ling,
         BlackForestLabs_Flux1Dev,
         BlackForestLabs_Flux1KontextDev,
         CohereForAI_C4AI_Command,
