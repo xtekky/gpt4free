@@ -1,5 +1,6 @@
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages
+from ..requests import DEFAULT_HEADERS
 from aiohttp import ClientSession
 
 class ItalyGPT(AsyncGeneratorProvider, ProviderModelMixin):
@@ -23,10 +24,10 @@ class ItalyGPT(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         model = cls.get_model(model)
         headers = {
+            **DEFAULT_HEADERS,
             "content-type": "application/json",
             "origin": "https://italygpt.it",
             "referer": "https://italygpt.it/",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
         }
         payload = {
             "messages": messages,
@@ -34,12 +35,12 @@ class ItalyGPT(AsyncGeneratorProvider, ProviderModelMixin):
         }
         async with ClientSession() as session:
             async with session.post(
-                f"{cls.url}/api/chat/",
+                f"{cls.url}/api/chat",
                 json=payload,
                 headers=headers,
                 proxy=proxy,
             ) as resp:
                 resp.raise_for_status()
-                async for chunk in resp.content:
+                async for chunk in resp.content.iter_any():
                     if chunk:
                         yield chunk.decode()

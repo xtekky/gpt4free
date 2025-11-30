@@ -8,12 +8,12 @@ from ...typing import AsyncResult, Messages
 from ...providers.response import JsonConversation
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_prompt, get_last_user_message
+from ..helper import format_prompt, get_last_user_message, get_system_prompt
 from ... import debug
 
 class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "BAAI Ling"
-    url = "https://instspace-ling-playground.hf.space"
+    label = "Ling & Ring Playground"
+    url = "https://cafe3310-ling-playground.hf.space"
     api_endpoint = f"{url}/gradio_api/queue/join"
 
     working = True
@@ -25,7 +25,7 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "ling": default_model,
     }
-    models = [default_model]
+    models = ['ling-mini-2.0', 'ling-1t', 'ling-flash-2.0', 'ring-1t', 'ring-flash-2.0', 'ring-mini-2.0']
 
     @classmethod
     async def create_async_generator(
@@ -40,6 +40,7 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
         if is_new_conversation:
             conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace('-', '')[:12])
 
+        model = cls.get_model(model)
         prompt = format_prompt(messages) if is_new_conversation else get_last_user_message(messages)
 
         headers = {
@@ -52,10 +53,21 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         payload = {
-            "data": [prompt],
+            "data": [
+                prompt,
+                [
+                    [
+                        None,
+                        "Hello! I'm Ling. Try selecting a scenario and a message example below to get started."
+                    ]
+                ],
+                get_system_prompt(messages),
+                1,
+                model
+            ],
             "event_data": None,
-            "fn_index": 0,
-            "trigger_id": 5,
+            "fn_index": 11,
+            "trigger_id": 14,
             "session_hash": conversation.session_hash
         }
 
@@ -79,27 +91,22 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
                     if decoded_line.startswith('data: '):
                         try:
                             json_data = json.loads(decoded_line[6:])
-
                             if json_data.get('msg') == 'process_generating':
                                 if 'output' in json_data and 'data' in json_data['output']:
                                     output_data = json_data['output']['data']
                                     if output_data and len(output_data) > 0:
-                                        text = output_data[0]
-                                        if isinstance(text, str) and text.startswith(full_response):
-                                            yield text[len(full_response):]
-                                            full_response = text
-                                        elif isinstance(text, str):
-                                            yield text
-                                            full_response = text
+                                        parts = output_data[0][0]
+                                        if len(parts) == 2:
+                                            new_text = output_data[0][1].pop()
+                                            full_response += new_text
+                                            yield new_text
+                                        if len(parts) > 2:
+                                            new_text = parts[2]
+                                            full_response += new_text
+                                            yield new_text
 
                             elif json_data.get('msg') == 'process_completed':
-                                if 'output' in json_data and 'data' in json_data['output']:
-                                    output_data = json_data['output']['data']
-                                    if output_data and len(output_data) > 0:
-                                        final_text = output_data[0]
-                                        if isinstance(final_text, str) and len(final_text) > len(full_response):
-                                            yield final_text[len(full_response):]
-                                break
+                               break
 
                         except json.JSONDecodeError:
                             debug.log("Could not parse JSON:", decoded_line)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from ..typing import AsyncResult, Messages
-from ..providers.response import Reasoning
+from ..providers.response import Reasoning, JsonResponse
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
@@ -23,7 +23,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
 
-    default_model = "Qwen3 235B"
+    default_model = "GPT OSS 120B"
     models = [
         default_model,
         "GPT OSS 120B",
@@ -40,9 +40,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        temperature: float = None,
-        max_tokens: int = None,
-        enable_thinking: bool = False,
+        enable_thinking: bool = True,
         **kwargs
     ) -> AsyncResult:
         """
@@ -52,8 +50,6 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
             model: The model name to use
             messages: List of message dictionaries
             proxy: Optional proxy URL
-            temperature: Optional temperature parameter
-            max_tokens: Optional max tokens parameter
             enable_thinking: Enable the thinking/analysis channel (maps to enableThinking in API)
             **kwargs: Additional arguments
 
@@ -66,24 +62,18 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "Accept": "application/x-ndjson",
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             "Origin": cls.url,
             "Referer": f"{cls.url}/",
         }
 
         payload = {
+            "clusterMode": "nvidia" if "GPT OSS" in model else "hybrid",
             "model": model,
             "messages": messages,
         }
-
-        if temperature is not None:
-            payload["temperature"] = temperature
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
         if enable_thinking:
             payload["enableThinking"] = enable_thinking
-
-        async with StreamSession(headers=headers, proxy=proxy) as session:
+        async with StreamSession(headers=headers, proxy=proxy, impersonate="chrome") as session:
             async with session.post(
                 cls.api_endpoint,
                 json=payload,
@@ -96,6 +86,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
 
                     try:
                         data = json.loads(line)
+                        yield JsonResponse.from_dict(data)
                         msg_type = data.get("type")
 
                         if msg_type == "reply":
@@ -113,4 +104,4 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
 
                     except json.JSONDecodeError:
                         # Skip non-JSON lines (may be partial data or empty)
-                        continue
+                        raise
