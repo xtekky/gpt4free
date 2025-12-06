@@ -285,7 +285,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         """
 
         model_name = cls.get_model(model)
-        token = kwargs.get("token")
+        cookie = kwargs.get("cookie", "") # ssxmod_itna=1-...
         headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             'Accept': '*/*',
@@ -297,7 +297,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
             'Connection': 'keep-alive',
-            'Authorization': f'Bearer {token}' if token else "Bearer",
+            'Cookie': cookie,
             'Source': 'web'
         }
 

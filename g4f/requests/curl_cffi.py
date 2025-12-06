@@ -148,7 +148,8 @@ if has_curl_cffi and has_curl_ws:
         def __init__(self, session, url, **kwargs) -> None:
             self.session: StreamSession = session
             self.url: str = url
-            del kwargs["autoping"]
+            if "autoping" in kwargs:
+                del kwargs["autoping"]
             self.options: dict = kwargs
 
         async def __aenter__(self):
