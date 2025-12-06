@@ -12,7 +12,7 @@ import uuid
 from copy import copy
 from typing import AsyncIterator, Iterator, Optional, Generator, Dict, Union, List, Any, AsyncGenerator, Set
 
-from curl_cffi import AsyncSession
+from ...requests.curl_cffi import AsyncSession
 
 try:
     import nodriver
