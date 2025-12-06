@@ -440,7 +440,7 @@ class Backend_Api(Api):
                     os.remove(copyfile)
                     continue
                 if not is_media and result:
-                    with open(os.path.join(bucket_dir, f"{filename}.md"), 'w') as f:
+                    with open(os.path.join(bucket_dir, f"{filename}.md"), 'w', encoding="utf-8") as f:
                         f.write(f"{result}\n")
                     filenames.append(f"{filename}.md")
                 if is_media:
@@ -477,7 +477,7 @@ class Backend_Api(Api):
                 except OSError:
                     shutil.copyfile(copyfile, newfile)
                     os.remove(copyfile)
-            with open(os.path.join(bucket_dir, "files.txt"), 'w') as f:
+            with open(os.path.join(bucket_dir, "files.txt"), 'w', encoding="utf-8") as f:
                 for filename in filenames:
                     f.write(f"{filename}\n")
             return {"bucket_id": bucket_id, "files": filenames, "media": media}
@@ -572,7 +572,7 @@ class Backend_Api(Api):
             share_id = secure_filename(share_id)
             bucket_dir = get_bucket_dir(share_id)
             os.makedirs(bucket_dir, exist_ok=True)
-            with open(os.path.join(bucket_dir, "chat.json"), 'w') as f:
+            with open(os.path.join(bucket_dir, "chat.json"), 'w', encoding="utf-8") as f:
                 json.dump(chat_data, f)
             self.chat_cache[share_id] = updated
             return {"share_id": share_id}
