@@ -414,12 +414,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
                         # Make chat private in background
                         asyncio.create_task(make_chat_private(session, account, url_uuid))
-
+                        # ٍSolve ValueError: Chunk too big
+                        response.content._high_water = 10 * 1024 * 1024  # 10MB per line
                         # Process stream
                         async for chunk in cls._process_stream_response(response.content, account, session, prompt,
                                                                         model):
                             yield chunk
-
                     return
 
             except RateLimitError:
