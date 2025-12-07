@@ -197,6 +197,12 @@ class ToolCalls(HiddenResponse):
         return self.list
 
 class Usage(JsonMixin, HiddenResponse):
+    """
+    Usage statistics for API responses.
+    
+    For text generation, this includes token counts.
+    For image generation, this includes image metadata (width, height, file_size, images).
+    """
     def __init__(
         self,
         promptTokens: int = None,

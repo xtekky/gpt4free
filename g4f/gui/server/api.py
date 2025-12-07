@@ -251,13 +251,14 @@ class Api:
                                     logger.exception(e)
                             options["target_paths"] = target_paths
                             # Collect image metadata for usage statistics
+                            # For image generation, we show dimensions and file size instead of token counts
                             if isinstance(chunk, ImageResponse):
                                 image_metadata = {
                                     "images": len(target_paths),
                                     "width": width,
                                     "height": height,
                                 }
-                                # Calculate total file size
+                                # Calculate total file size across all generated images
                                 total_size = 0
                                 for path in target_paths:
                                     try:
