@@ -223,6 +223,7 @@ class Api:
                     yield self._format_json("preview", chunk.to_string(), urls=chunk.urls, alt=chunk.alt)
                 elif isinstance(chunk, MediaResponse):
                     media = chunk
+                    image_metadata = None
                     if download_media or chunk.get("cookies"):
                         chunk.alt = format_media_prompt(kwargs.get("messages"), chunk.alt)
                         width, height = get_width_height(chunk.get("width"), chunk.get("height"))
@@ -249,8 +250,27 @@ class Api:
                                 except Exception as e:
                                     logger.exception(e)
                             options["target_paths"] = target_paths
+                            # Collect image metadata for usage statistics
+                            if isinstance(chunk, ImageResponse):
+                                image_metadata = {
+                                    "images": len(target_paths),
+                                    "width": width,
+                                    "height": height,
+                                }
+                                # Calculate total file size
+                                total_size = 0
+                                for path in target_paths:
+                                    try:
+                                        total_size += os.path.getsize(path)
+                                    except OSError:
+                                        pass
+                                if total_size > 0:
+                                    image_metadata["file_size"] = total_size
                         media = ImageResponse(urls, chunk.alt, options) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
                     yield self._format_json("content", str(media), urls=media.urls, alt=media.alt)
+                    # Yield usage statistics with image metadata for image responses
+                    if image_metadata:
+                        yield self._format_json("usage", image_metadata)
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):
