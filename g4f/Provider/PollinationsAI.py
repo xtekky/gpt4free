@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-import json
 import random
 import requests
 import asyncio
@@ -34,7 +33,7 @@ DEFAULT_HEADERS = {
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI 🌸"
     url = "https://pollinations.ai"
-    login_url = "https://auth.pollinations.ai"
+    login_url = "https://enter.pollinations.ai"
     active_by_default = True
     working = True
     supports_system_message = True

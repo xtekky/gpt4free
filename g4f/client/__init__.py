@@ -361,7 +361,7 @@ class Completions:
                         yield chunk
             if stream:
                 return raw_response(response)
-            return next(raw_response())
+            return next(raw_response(response))
         if stream:
             return fallback(response)
         return next(fallback(response))
