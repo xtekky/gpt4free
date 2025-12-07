@@ -223,6 +223,7 @@ class Api:
                     yield self._format_json("preview", chunk.to_string(), urls=chunk.urls, alt=chunk.alt)
                 elif isinstance(chunk, MediaResponse):
                     media = chunk
+                    image_metadata = None
                     if download_media or chunk.get("cookies"):
                         chunk.alt = format_media_prompt(kwargs.get("messages"), chunk.alt)
                         width, height = get_width_height(chunk.get("width"), chunk.get("height"))
@@ -240,7 +241,6 @@ class Api:
                         ))
                         options = {}
                         target_paths, urls = get_target_paths_and_urls(media)
-                        image_metadata = None
                         if target_paths:
                             if has_pillow:
                                 try:
@@ -268,8 +268,6 @@ class Api:
                                 if total_size > 0:
                                     image_metadata["file_size"] = total_size
                         media = ImageResponse(urls, chunk.alt, options) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
-                    else:
-                        image_metadata = None
                     yield self._format_json("content", str(media), urls=media.urls, alt=media.alt)
                     # Yield usage statistics with image metadata for image responses
                     if image_metadata:
