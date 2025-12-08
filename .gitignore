@@ -10,3 +10,10 @@ models/models.json
 pyvenv.cfg
 lib64
 /.idea
+
+# Reverse proxy configuration (keep .example files)
+Caddyfile
+nginx.conf
+apache.conf
+traefik.yml
+dynamic.yml
