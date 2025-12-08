@@ -275,6 +275,8 @@ class Api:
                     yield self._format_json("log", chunk.log)
                 elif isinstance(chunk, ContinueResponse):
                     yield self._format_json("continue", chunk.log)
+                elif isinstance(chunk, ToolCalls):
+                    yield self._format_json("tool_calls", chunk.list)
                 elif isinstance(chunk, RawResponse):
                     yield self._format_json(chunk.type, **chunk.get_dict())
                 elif isinstance(chunk, JsonRequest):

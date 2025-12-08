@@ -18,7 +18,7 @@ from ..requests.aiohttp import get_connector
 from ..image import use_aspect_ratio
 from ..providers.response import ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups, JsonRequest
 from ..tools.media import render_messages
-from ..config import STATIC_URL
+from ..config import REFFERER_URL
 from .template.OpenaiTemplate import read_response
 from .. import debug
 
@@ -168,7 +168,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             stream: bool = True,
             proxy: str = None,
             cache: bool = None,
-            referrer: str = STATIC_URL,
+            referrer: str = REFFERER_URL,
             api_key: str = None,
             extra_body: dict = None,
             # Image generation parameters
@@ -422,7 +422,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 frequency_penalty=frequency_penalty,
                 response_format=response_format,
                 stream=stream,
-                seed=None if model == "grok" else seed,
+                seed=None if "tools" in extra_body else seed,
                 referrer=referrer,
                 **extra_body
             )

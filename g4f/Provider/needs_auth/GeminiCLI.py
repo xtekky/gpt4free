@@ -353,6 +353,21 @@ class GeminiCLIProvider():
         if system_prompt:
             requestData["system_instruction"] = {"parts": {"text": system_prompt}}
 
+        # Convert OpenAI-style tools to Gemini format
+        gemini_tools = None
+        if tools:
+            function_declarations = []
+            for tool in tools:
+                if tool.get("type") == "function" and "function" in tool:
+                    func = tool["function"]
+                    function_declarations.append({
+                        "name": func.get("name"),
+                        "description": func.get("description", ""),
+                        "parameters": func.get("parameters", {})
+                    })
+            if function_declarations:
+                gemini_tools = [{"functionDeclarations": function_declarations}]
+
         # Compose request body
         req_body = {
             "model": model,
@@ -373,13 +388,13 @@ class GeminiCLIProvider():
                         "includeThoughts": True
                     } if thinking_budget else None,
                 },
-                "tools": tools or [],
+                "tools": gemini_tools,
                 "toolConfig": {
                     "functionCallingConfig": {
                         "mode": tool_choice.upper(),
-                        "allowedFunctionNames": [tool["function"]["name"] for tool in tools]
+                        "allowedFunctionNames": [fd["name"] for fd in function_declarations]
                     }
-                } if tool_choice else None,
+                } if tool_choice and gemini_tools else None,
                 **requestData
             },
         }
@@ -485,12 +500,20 @@ class GeminiCLIProvider():
                             yield ImageResponse(file_data.get("fileUri"))
 
                     if tool_calls:
-                        yield ToolCalls(tool_calls)
-                    if usage_metadata:
-                        yield Usage(
-                            promptTokens=usage_metadata.get("promptTokenCount", 0),
-                            completionTokens=usage_metadata.get("candidatesTokenCount", 0),
-                        )
+                        # Convert Gemini tool calls to OpenAI format
+                        openai_tool_calls = []
+                        for i, tc in enumerate(tool_calls):
+                            openai_tool_calls.append({
+                                "id": f"call_{i}_{tc.get('name', 'unknown')}",
+                                "type": "function",
+                                "function": {
+                                    "name": tc.get("name"),
+                                    "arguments": json.dumps(tc.get("args", {}))
+                                }
+                            })
+                        yield ToolCalls(openai_tool_calls)
+                if usage_metadata:
+                    yield Usage(**usage_metadata)
 
 class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini CLI"

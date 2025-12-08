@@ -18,7 +18,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileM
 class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     url = "https://chat.z.ai"
     api_endpoint = "https://chat.z.ai/api/chat/completions"
-    working = True
+    working = False
     active_by_default = True
     default_model = "GLM-4.5"
 

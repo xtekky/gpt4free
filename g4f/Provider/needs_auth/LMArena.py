@@ -598,6 +598,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     button = await page.select('[type="submit"]:has([data-sentry-element="ArrowUp"])')
                     if button:
                         await button.click()
+                    button = await page.find("Agree")
+                    if button:
+                        await button.click()
+                    else:
+                        debug.log("No 'Agree' button found, skipping.")
+                    await asyncio.sleep(1)
                     element = await page.select('[style="display: grid;"]')
                     if element:
                         await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
