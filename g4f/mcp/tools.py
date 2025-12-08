@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 from abc import ABC, abstractmethod
+import urllib.parse
 
 from aiohttp import ClientSession
 
@@ -269,6 +270,8 @@ class ImageGenerationTool(MCPTool):
                 }
             
             image_url = image_data.url
+
+            template = 'Display the image using this template: <a href="{image}" data-width="{width}" data-height="{height}"><img src="{image}" alt="{prompt}"></a>'
             
             # Return result based on URL type
             if image_url.startswith('data:'):
@@ -277,7 +280,8 @@ class ImageGenerationTool(MCPTool):
                     "model": model,
                     "width": width,
                     "height": height,
-                    "image": image_url
+                    "image": image_url,
+                    "template": template
                 }
             else:
                 if arguments.get("origin") and image_url.startswith("/media/"):
@@ -287,7 +291,8 @@ class ImageGenerationTool(MCPTool):
                     "model": model,
                     "width": width,
                     "height": height,
-                    "image_url": image_url
+                    "image_url": image_url,
+                    "template": template
                 }
         
         except Exception as e:
@@ -411,13 +416,6 @@ class TextToAudioTool(MCPTool):
         Returns:
             Dict[str, Any]: Audio URL or error message
         """
-        try:
-            import urllib.parse
-        except ImportError as e:
-            return {
-                "error": f"urllib is not available: {str(e)}"
-            }
-        
         prompt = arguments.get("prompt", "")
         voice = arguments.get("voice", "alloy")
         url_encode = arguments.get("url_encode", True)
@@ -428,9 +426,9 @@ class TextToAudioTool(MCPTool):
             }
         
         # Validate prompt length (reasonable limit for text-to-speech)
-        if len(prompt) > 5000:
+        if len(prompt) > 10000:
             return {
-                "error": "Prompt is too long (max 5000 characters)"
+                "error": "Prompt is too long (max 10000 characters)"
             }
         
         try:
@@ -441,18 +439,21 @@ class TextToAudioTool(MCPTool):
                 encoded_prompt = prompt.replace(" ", "%20")  # Basic space encoding
             
             # Construct the Pollinations AI text-to-speech URL
-            audio_url = f"/backend-api/v2/create?provider=Gemini&model=gemini-audio&cache=true&prompt={encoded_prompt}"
+            audio_url = f"/backend-api/v2/synthesize/Gemini?text={encoded_prompt}"
 
             if arguments.get("origin"):
                 audio_url = f"{arguments.get('origin')}{audio_url}"
                 async with ClientSession() as session:
                     async with session.get(audio_url, max_redirects=0) as resp:
                         audio_url = str(resp.url)
+
+            template = 'Play the audio using this template: <audio controls src="{audio_url}">'
             
             return {
                 "prompt": prompt,
                 "voice": voice,
-                "audio_url": audio_url
+                "audio_url": audio_url,
+                "template": template
             }
         
         except Exception as e:
