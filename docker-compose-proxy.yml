@@ -20,6 +20,8 @@ services:
     networks:
       - gpt4free-network
     environment:
+      # Optional: Only needed if using Ollama for local model inference
+      # Remove this line if not using Ollama
       - OLLAMA_HOST=host.docker.internal
 
   # Caddy reverse proxy with automatic HTTPS

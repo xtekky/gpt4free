@@ -42,14 +42,11 @@ your-domain.com {
     }
 
     # Optional: Rate limiting
-    # Uncomment to enable
-    # rate_limit {
-    #     zone dynamic {
-    #         key {remote_host}
-    #         events 100
-    #         window 1m
-    #     }
-    # }
+    # Note: Rate limiting in Caddy requires a plugin or external middleware
+    # For built-in rate limiting, consider using:
+    # 1. Caddy rate-limit plugin: https://github.com/mholt/caddy-ratelimit
+    # 2. External rate limiting service
+    # 3. Nginx as described in docs/reverse-proxy.md
 }
 
 # For local development without a domain (comment out the above and use this instead)
