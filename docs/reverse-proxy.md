@@ -543,6 +543,21 @@ Note: Binding to `127.0.0.1:8080` ensures the service is only accessible locally
 
 ### 2. Configure Nginx with HTTPS
 
+First, add the rate limit zone to your main nginx configuration `/etc/nginx/nginx.conf` in the `http` block:
+
+```nginx
+http {
+    # ... other http settings ...
+    
+    # Rate limiting zone
+    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+    
+    # ... rest of http block ...
+}
+```
+
+Then create the site configuration `/etc/nginx/sites-available/gpt4free`:
+
 ```nginx
 # /etc/nginx/sites-available/gpt4free
 server {
@@ -565,10 +580,8 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
 
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
-
     location / {
+        # Apply rate limiting
         limit_req zone=api_limit burst=20 nodelay;
         
         proxy_pass http://127.0.0.1:8080;
