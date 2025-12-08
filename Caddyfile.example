@@ -1,0 +1,58 @@
+# Caddyfile for GPT4Free Reverse Proxy
+# Place this file in the same directory as docker-compose-proxy.yml
+
+# Replace with your actual domain name
+# For local testing, you can use localhost or your IP address
+{
+    # Global options
+    email your-email@example.com
+}
+
+# Main site configuration
+your-domain.com {
+    # Automatic HTTPS with Let's Encrypt
+    
+    # Reverse proxy to GPT4Free backend
+    reverse_proxy gpt4free:8080 {
+        # Preserve client information
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # Timeouts for long-running requests
+        transport http {
+            read_timeout 60s
+            write_timeout 60s
+        }
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Logging
+    log {
+        output file /data/logs/access.log
+        format console
+    }
+
+    # Optional: Rate limiting
+    # Uncomment to enable
+    # rate_limit {
+    #     zone dynamic {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+}
+
+# For local development without a domain (comment out the above and use this instead)
+# localhost {
+#     reverse_proxy gpt4free:8080
+# }

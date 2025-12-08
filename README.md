@@ -50,6 +50,7 @@ Table of contents
 - [Providers & models (overview)](#providers--models-overview)
 - [Local inference & media](#local-inference--media)
 - [Configuration & customization](#configuration--customization)
+- [Production deployment & reverse proxy](#production-deployment--reverse-proxy)
 - [Running on smartphone](#running-on-smartphone)
 - [Interference API (OpenAI‑compatible)](#interference-api-openai-compatible)
 - [Examples & common patterns](#examples--common-patterns)
@@ -362,6 +363,20 @@ Provider requirements may include:
 - To reduce install size, use partial requirement groups. See [docs/requirements.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/requirements.md).
 - Provider selection: learn how to set defaults and override per-request at [docs/selecting_a_provider.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/selecting_a_provider.md).
 - Persistence: HAR files, cookies, and generated media persist in mapped directories (e.g., har_and_cookies, generated_media).
+
+---
+
+## Production deployment & reverse proxy
+For production environments, it's recommended to deploy GPT4Free behind a reverse proxy for SSL/TLS termination, security, and load balancing.
+
+- **Reverse Proxy Guide**: [docs/reverse-proxy.md](docs/reverse-proxy.md)
+- Includes configuration examples for:
+  - **Nginx** (with Let's Encrypt SSL)
+  - **Caddy** (automatic HTTPS)
+  - **Apache** (with WebSocket support)
+  - **Traefik** (Docker-native)
+- Security features: rate limiting, IP whitelisting, authentication
+- Production best practices and troubleshooting tips
 
 ---
 

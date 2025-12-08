@@ -1,0 +1,49 @@
+# Docker Compose with Reverse Proxy Example
+# This example shows how to deploy GPT4Free with a Caddy reverse proxy
+# for production use with automatic HTTPS
+
+version: '3.8'
+
+services:
+  # GPT4Free service (backend only, not exposed directly)
+  gpt4free:
+    image: hlohaus789/g4f:latest
+    shm_size: 2gb
+    container_name: gpt4free-backend
+    restart: unless-stopped
+    volumes:
+      - ./har_and_cookies:/app/har_and_cookies
+      - ./generated_media:/app/generated_media
+    # Only expose to internal network, not to host
+    expose:
+      - "8080"
+    networks:
+      - gpt4free-network
+    environment:
+      - OLLAMA_HOST=host.docker.internal
+
+  # Caddy reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2-alpine
+    container_name: gpt4free-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - gpt4free-network
+    depends_on:
+      - gpt4free
+
+networks:
+  gpt4free-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
