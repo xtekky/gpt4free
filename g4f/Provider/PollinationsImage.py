@@ -55,8 +55,12 @@ class PollinationsImage(PollinationsAI):
     ) -> AsyncResult:
         # Calling model updates before creating a generator
         cls.get_models()
+        alias = cls.swap_model_aliases.get(model, model)
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
         async for chunk in cls._generate_image(
             model=model,
+            alias=alias,
             prompt=format_media_prompt(messages, prompt),
             media=media,
             proxy=proxy,

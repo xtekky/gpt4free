@@ -76,7 +76,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
         return ignored
 
     @classmethod
-    def get_models(cls, ignored: list[str] = []) -> list[str]:
+    def get_models(cls, ignored: list[str] = [], **kwargs) -> list[str]:
         if not cls.models:
             cls.update_model_map()
         if not ignored:

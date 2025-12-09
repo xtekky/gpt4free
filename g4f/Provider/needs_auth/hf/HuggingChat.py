@@ -47,7 +47,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     text_models = fallback_models
 
     @classmethod
-    def get_models(cls):
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             try:
                 models = requests.get(f"{cls.url}/api/v2/models").json().get("json")

@@ -115,7 +115,7 @@ class Api:
     def get_all_models(self) -> dict[str, list]:
         def safe_get_provider_models(provider: ProviderModelMixin) -> list[str]:
             try:
-                return list(provider.get_models())
+                return list(provider.get_models(timeout=10))
             except Exception as e:
                 debug.error(f"{provider.__name__}: get_models error:", e)
                 return []
@@ -223,7 +223,7 @@ class Api:
                     yield self._format_json("preview", chunk.to_string(), urls=chunk.urls, alt=chunk.alt)
                 elif isinstance(chunk, MediaResponse):
                     media = chunk
-                    if download_media or chunk.get("cookies"):
+                    if download_media or chunk.get("cookies") or chunk.get("headers"):
                         chunk.alt = format_media_prompt(kwargs.get("messages"), chunk.alt)
                         width, height = get_width_height(chunk.get("width"), chunk.get("height"))
                         tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution")]
