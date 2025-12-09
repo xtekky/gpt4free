@@ -42,7 +42,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     ]
 
     @classmethod
-    def get_models(cls, api_key: str = None, api_base: str = api_base) -> list[str]:
+    def get_models(cls, api_key: str = None, api_base: str = api_base, **kwargs) -> list[str]:
         if not api_key:
             return cls.fallback_models
         if not cls.models:

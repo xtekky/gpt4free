@@ -1992,7 +1992,7 @@ class BlackboxPro(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.fallback_models
         
     @classmethod
-    def get_models(cls) -> list:
+    def get_models(cls, **kwargs) -> list:
         """
         Returns a list of available models based on authorization status.
         Authorized users get the full list of models.
