@@ -1,3 +1,4 @@
+from .AIBadgr           import AIBadgr
 from .Anthropic         import Anthropic
 from .Azure             import Azure
 from .BingCreateImages  import BingCreateImages
