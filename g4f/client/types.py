@@ -15,11 +15,13 @@ class Client():
         self,
         api_key: str = None,
         proxies: Proxies = None,
+        base_url: str = None,
         **kwargs
     ) -> None:
         self.api_key: str = api_key
         self.proxies = proxies 
         self.proxy: str = self.get_proxy()
+        self.base_url: str = base_url
 
     def get_proxy(self) -> Union[str, None]:
         if isinstance(self.proxies, str):
