@@ -11,7 +11,6 @@ from ..requests import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from ..providers.response import TitleGeneration, Reasoning, FinishReason
-from ..errors import ModelNotFoundError
 from .. import debug
 
 
@@ -20,7 +19,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://lambda.chat"
     conversation_url = f"{url}/conversation"
 
-    working = True
+    working = False
     active_by_default = True
 
     default_model = "deepseek-llama3.3-70b"

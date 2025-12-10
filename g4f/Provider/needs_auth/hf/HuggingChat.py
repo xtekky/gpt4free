@@ -36,6 +36,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     url = f"{origin}/chat"
 
     working = True
+    active_by_default = True
     use_nodriver = True
     supports_stream = True
     needs_auth = True
