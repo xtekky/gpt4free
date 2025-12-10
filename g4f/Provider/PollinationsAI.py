@@ -127,10 +127,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         if isinstance(model, str) or "image" in model.get("output_modalities", []):
                             image_models.append(alias)
                     if isinstance(model, dict) and alias != model.get("name"):
-                        cls.model_aliases[alias] = model.get("name") if isinstance(model, dict) else model
+                        cls.model_aliases[alias] = model.get("name")
 
                 cls.image_models = image_models
-                cls.video_models = [get_alias(model) for model in new_image_models if "video" in model.get("output_modalities", [])]
+                cls.video_models = [get_alias(model) for model in new_image_models if isinstance(model, dict) and "video" in model.get("output_modalities", [])]
 
                 text_response = requests.get(cls.nectar_text_models_endpoint if api_key else cls.g4f_text_models_endpoint, timeout=timeout)
                 if not text_response.ok:
@@ -156,22 +156,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
                 for model in models:
                     alias = get_alias(model)
+                    if alias != model.get("name"):
+                        cls.model_aliases[alias] = model.get("name")
                     if alias not in cls.text_models:
                         cls.text_models.append(alias)
-                        if alias != model.get("name"):
-                            cls.model_aliases[alias] = model.get("name")
                     elif model.get("name") not in cls.text_models:
                         cls.text_models.append(model.get("name"))
                 cls.live += 1
                 cls.swap_model_aliases = {v: k for k, v in cls.model_aliases.items()}
-
-            except Exception as e:
-                # Save default models in case of an error
-                if not cls.text_models:
-                    cls.text_models = [cls.default_model]
-                if not cls.image_models:
-                    cls.image_models = [cls.default_image_model]
-                debug.error(f"Failed to fetch models: {e}")
 
             finally:
                 if api_key:
