@@ -14,14 +14,13 @@ from .Provider import (
     Grok,
     DeepseekAI_JanusPro7b,
     GLM,
-    Kimi,
     LambdaChat,
     OIVSCodeSer2,
     OIVSCodeSer0501,
     OperaAria,
+    Perplexity,
     Startnest,
     OpenAIFM,
-    PerplexityLabs,
     PollinationsAI,
     PollinationsImage,
     Qwen,
@@ -48,6 +47,7 @@ from .Provider import (
     OpenaiAccount,
     OpenaiChat,
     OpenRouter,
+    PuterJS,
 )
 
 class ModelRegistry:
@@ -838,7 +838,7 @@ grok_3_r1 = Model(
 kimi = Model(
     name = 'kimi-k2',
     base_provider = 'kimi.com',
-    best_provider = IterListProvider([Kimi, HuggingFace, DeepInfra, Groq]),
+    best_provider = IterListProvider([HuggingFace, DeepInfra, Groq]),
     long_name = "moonshotai/Kimi-K2-Instruct"
 )
 
@@ -846,31 +846,31 @@ kimi = Model(
 sonar = Model(
     name = 'sonar',
     base_provider = 'Perplexity AI',
-    best_provider = PerplexityLabs
+    best_provider = PuterJS
 )
 
 sonar_pro = Model(
     name = 'sonar-pro',
     base_provider = 'Perplexity AI',
-    best_provider = PerplexityLabs
+    best_provider = PuterJS
 )
 
 sonar_reasoning = Model(
     name = 'sonar-reasoning',
     base_provider = 'Perplexity AI',
-    best_provider = PerplexityLabs
+    best_provider = PuterJS
 )
 
 sonar_reasoning_pro = Model(
     name = 'sonar-reasoning-pro',
     base_provider = 'Perplexity AI',
-    best_provider = PerplexityLabs
+    best_provider = PuterJS
 )
 
 r1_1776 = Model(
     name = 'r1-1776',
     base_provider = 'Perplexity AI',
-    best_provider = IterListProvider([Together, PerplexityLabs])
+    best_provider = IterListProvider([Together, PuterJS, Perplexity])
 )
 
 ### Nvidia ### 

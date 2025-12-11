@@ -13,10 +13,6 @@ try:
 except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
 try:
-    from .not_working import *
-except ImportError as e:
-    debug.error("Not working providers not loaded:", e)
-try:
     from .local import *
 except ImportError as e:
     debug.error("Local providers not loaded:", e)
@@ -35,11 +31,6 @@ except ImportError as e:
 
 from .template import OpenaiTemplate, BackendApi
 from .qwen.QwenCode import QwenCode
-from .deprecated.ARTA import ARTA
-from .deprecated.Blackbox import Blackbox
-from .deprecated.DuckDuckGo import DuckDuckGo
-from .deprecated.Kimi import Kimi
-from .deprecated.PerplexityLabs import PerplexityLabs
 
 from .ApiAirforce          import ApiAirforce
 from .Chatai               import Chatai
