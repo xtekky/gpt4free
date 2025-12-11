@@ -9,7 +9,7 @@ from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
-from ..Provider import Custom, PollinationsImage, OpenaiAccount, Copilot, Cloudflare, Gemini, Grok, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
+from ..Provider import Custom, PollinationsImage, OpenaiAccount, Copilot, Cloudflare, Gemini, Grok, Perplexity, LambdaChat, PollinationsAI, PuterJS
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfra, LMArena, EdgeTTS, gTTS, MarkItDown, OpenAIFM
 from ..Provider import HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM, OpenRouterFree, GeminiPro
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -20,7 +20,7 @@ from .any_model_map import audio_models, image_models, vision_models, video_mode
 
 # Add providers to existing models on map
 PROVIDERS_LIST_2 = [
-    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, Azure, Qwen, EasyChat, GLM, OpenRouterFree
+    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, Perplexity, Gemini, Grok, Azure, Qwen, EasyChat, GLM, OpenRouterFree
 ]
 
 # Add all models to the model map
