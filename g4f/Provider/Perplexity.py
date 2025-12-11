@@ -69,6 +69,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "gpt-5": "gpt5",
         "gpt-5-thinking": "gpt5_thinking",
+        "r1-1776": "r1",
     }
 
     @classmethod
