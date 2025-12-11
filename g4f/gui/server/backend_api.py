@@ -248,7 +248,10 @@ class Backend_Api(Api):
         def get_usage(date: str):
             cache_dir = Path(get_cookies_dir()) / ".usage"
             cache_file = cache_dir / f"{date}.jsonl"
-            return cache_file.read_text() if cache_file.exists() else (jsonify({"error": {"message": "No usage data found for this date"}}), 404)
+            if cache_file.exists():
+                return Response(cache_file.read_text(), mimetype='text/plain')
+            else:
+                return (jsonify({"error": {"message": "No usage data found for this date"}}), 404)
 
         @app.route('/backend-api/v2/log', methods=['POST'])
         def add_log():
@@ -344,10 +347,10 @@ class Backend_Api(Api):
                             response = f.read()
                     if not response:
                         response = iter_run_tools(provider_handler, **parameters)
-                        cache_dir.mkdir(parents=True, exist_ok=True)
                         response = cast_str(response)
                         response = response if isinstance(response, str) else "".join(response)
                         if response:
+                            cache_dir.mkdir(parents=True, exist_ok=True)
                             with cache_file.open("w") as f:
                                 f.write(response)
                 else:
@@ -380,7 +383,6 @@ class Backend_Api(Api):
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
 
-     
         @app.route('/backend-api/v2/files/<bucket_id>/stream', methods=['GET'])
         def stream_files(bucket_id: str, event_stream=True):
             return manage_files(bucket_id, event_stream)
