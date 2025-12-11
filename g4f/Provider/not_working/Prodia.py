@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiohttp import ClientSession
 import asyncio
 import random
+from typing import Optional
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin

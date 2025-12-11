@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider
+
+if TYPE_CHECKING:
+    # Legacy imports for type checking only - these are not_working providers
+    from typing import Any as WebDriver
 
 class Aura(AsyncGeneratorProvider):
     url = "https://openchat.team"
@@ -20,6 +25,10 @@ class Aura(AsyncGeneratorProvider):
         webdriver = None,
         **kwargs
     ) -> AsyncResult:
+        # Legacy code - get_args_from_browser is no longer available
+        raise NotImplementedError("This provider is not working and uses deprecated dependencies")
+        """
+        # Original code below uses get_args_from_browser which is no longer available
         args = get_args_from_browser(cls.url, webdriver, proxy)
         async with ClientSession(**args) as session:
             new_messages = []
@@ -45,3 +54,4 @@ class Aura(AsyncGeneratorProvider):
                 response.raise_for_status()
                 async for chunk in response.content.iter_any():
                     yield chunk.decode(error="ignore")
+        """
