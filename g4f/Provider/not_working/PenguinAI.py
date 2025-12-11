@@ -42,7 +42,7 @@ class PenguinAI(OpenaiTemplate):
                 vision_model_prefixes = ["vision", "multimodal", "o1", "o3", "o4", "gpt-4", "claude-3", "claude-opus", "claude-sonnet"]
                 for model in cls.models:
                     for tag in vision_model_prefixes:
-                        if tag in model and not "search" in model:
+                        if tag in model and "search" not in model:
                             cls.vision_models.append(model)
             except Exception as e:
                 debug.error(e)

@@ -64,5 +64,5 @@ class Raycast(AbstractProvider):
                 continue
             completion_chunk = json.loads(token.decode().replace('data: ', ''))
             token = completion_chunk['text']
-            if token != None:
+            if token is not None:
                 yield token
