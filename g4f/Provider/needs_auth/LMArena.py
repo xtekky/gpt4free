@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import secrets
 import time
+from typing import Dict
 
 import requests
+
+from g4f.image import to_bytes, detect_file_type
 
 try:
     import curl_cffi
@@ -25,10 +29,9 @@ except ImportError:
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
-    ResponseStatusError, RateLimitError
+    RateLimitError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
     JsonRequest
-from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_last_user_message
 from ... import debug
@@ -50,6 +53,9 @@ def uuid7():
     hex_str = f"{uuid_int:032x}"
     return f"{hex_str[0:8]}-{hex_str[8:12]}-{hex_str[12:16]}-{hex_str[16:20]}-{hex_str[20:32]}"
 
+
+# Global variables to manage Image Cache
+ImagesCache: Dict[str, dict[str, str]] = {}
 
 models = [
     {'id': '812c93cc-5f88-4cff-b9ca-c11a26599b0e', 'publicName': 'qwen3-max-preview',
@@ -521,6 +527,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     vision_models = vision_models
     looked = False
     _models_loaded = False
+    image_cache = True
 
     @classmethod
     def get_models(cls, timeout: int = None) -> list[str]:
@@ -586,7 +593,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             # partition_key=c.partition_key,  # if you use partitioned cookies
                         )
                     )
-        async def callback(page:nodriver.Tab):
+
+        async def callback(page: nodriver.Tab):
             if force:
                 await clear_cookies_for_url(page.browser, cls.url)
                 await page.reload()
@@ -622,7 +630,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 await asyncio.sleep(1)
             while not await page.evaluate('document.querySelector(\'textarea\')'):
                 await asyncio.sleep(1)
-            captcha = await page.evaluate("""window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""", await_promise=True)
+            captcha = await page.evaluate(
+                """window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""",
+                await_promise=True)
             grecaptcha.append(captcha)
 
         args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
@@ -635,16 +645,109 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     async def get_grecaptcha(cls, args, proxy):
         cache_file = cls.get_cache_file()
         grecaptcha = []
-        async def callback(page:nodriver.Tab):
+
+        async def callback(page: nodriver.Tab):
             while not await page.evaluate('window.grecaptcha'):
                 await asyncio.sleep(1)
-            captcha = await page.evaluate("""window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""", await_promise=True)
-            grecaptcha.append(captcha)
+            captcha = await page.evaluate(
+                """window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""",
+                await_promise=True)
+            if isinstance(captcha, str):
+                grecaptcha.append(captcha)
+            else:
+                raise Exception(captcha)
 
         args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback, cookies=args.get("cookies", {}))
         with cache_file.open("w") as f:
             json.dump(args, f)
         return args, next(iter(grecaptcha))
+
+    @classmethod
+    async def prepare_images(cls, args, media: list[tuple]) -> list[dict[str, str]]:
+        ACTION_ID_STEP1 = "706fb74c63900f0a45ebcbaf9e9e9c9ac9862b3cbb"
+        ACTION_ID_STEP3 = "6035a84a6564b9f08bb48759fab3e91698d75f2ed2"
+        url = "https://lmarena.ai/?chat-modality=image"
+        files = []
+        async with StreamSession(**args, ) as session:
+
+            for index, (_file, file_name) in enumerate(media):
+
+                data_bytes = to_bytes(_file)
+                # Check Cache
+                hasher = hashlib.md5()
+                hasher.update(data_bytes)
+                image_hash = hasher.hexdigest()
+                file = ImagesCache.get(image_hash)
+                if cls.image_cache and file:
+                    debug.log("Using cached image")
+                    files.append(file)
+                    continue
+
+                extension, file_type = detect_file_type(data_bytes)
+                file_name = file_name or f"file-{len(data_bytes)}{extension}"
+
+                async with session.post(
+                        url="https://lmarena.ai/?chat-modality=image",
+                        json=[file_name, file_type],
+                        headers={
+                            "accept": "text/x-component",
+                            "content-type": "text/plain;charset=UTF-8",
+                            "next-action": ACTION_ID_STEP1,
+                            "Referer": url
+
+                        }
+                ) as response:
+                    await raise_for_status(response)
+                    text = await response.text()
+                    line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
+                    if not line:
+                        raise Exception("Failed to get upload URL")
+                    chunk = json.loads(line[2:])
+                    if not chunk.get("success"):
+                        raise Exception("Failed to get upload URL")
+                    uploadUrl = chunk.get("data", {}).get("uploadUrl")
+                    key = chunk.get("data", {}).get("key")
+                    if not uploadUrl:
+                        raise Exception("Failed to get upload URL")
+
+                async with session.put(
+                        url=uploadUrl,
+                        headers={
+                            "content-type": file_type,
+                        },
+                        data=data_bytes,
+                ) as response:
+                    await raise_for_status(response)
+                async with session.post(
+                        url=url,
+                        json=[key],
+                        headers={
+                            "accept": "text/x-component",
+                            "content-type": "text/plain;charset=UTF-8",
+                            "next-action": ACTION_ID_STEP3,
+                            "Referer": url
+
+                        }
+                ) as response:
+                    await raise_for_status(response)
+                    text = await response.text()
+                    line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
+                    if not line:
+                        raise Exception("Failed to get download URL")
+
+                    chunk = json.loads(line[2:])
+                    if not chunk.get("success"):
+                        raise Exception("Failed to get download URL")
+                    image_url = chunk.get("data", {}).get("url")
+                    uploaded_file = {
+                        "name": key,
+                        "contentType": file_type,
+                        "url": image_url
+                    }
+                debug.log(f"Uploaded image to: {image_url}")
+                ImagesCache[image_hash] = uploaded_file
+                files.append(uploaded_file)
+        return files
 
     @classmethod
     async def create_async_generator(
@@ -728,6 +831,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if not grecaptcha:
                 debug.log("get grecaptcha")
                 args, grecaptcha = await cls.get_grecaptcha(args, proxy)
+            files = await cls.prepare_images(args, media)
             data = {
                 "id": evaluationSessionId,
                 "mode": "direct",
@@ -736,18 +840,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 "modelAMessageId": modelAMessageId,
                 "userMessage": {
                     "content": prompt,
-                    "experimental_attachments": [
-                        {
-                            "name": name or os.path.basename(url),
-                            "contentType": get_content_type(url),
-                            "url": url
-                        }
-                        for url, name in list(merge_media(media, messages))
-                        if isinstance(url, str) and url.startswith("https://")
-                    ],
+                    "experimental_attachments": files,
                 },
                 "modality": "image" if is_image_model else "chat",
-                "recaptchaV3Token":grecaptcha
+                "recaptchaV3Token": grecaptcha
             }
             yield JsonRequest.from_dict(data)
             try:
