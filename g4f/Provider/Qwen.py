@@ -348,7 +348,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             user_info_res.raise_for_status()
                             debug.log(await user_info_res.json())
                     except ClientResponseError as e:
-                        debug.log(e)
+                        debug.error(e)
                     except:
                         ...
                     for attempt in range(5):
