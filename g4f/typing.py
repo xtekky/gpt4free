@@ -85,7 +85,7 @@ __all__ = [
     "Message",
     "ContentPart",
     "Cookies",
-    "Image",
+    "PILImage",  # Changed from "Image" to "PILImage" to match the actual class name
     "ImageType",
     "MediaListType",
     "ResponseType",

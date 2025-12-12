@@ -18,7 +18,7 @@ class Azure(OpenaiTemplate):
     working = True
     needs_auth = True
     models_needs_auth = True
-    active_by_default = True
+    active_by_default = False
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     routes: dict[str, str] = {}
     audio_models = ["gpt-4o-mini-audio-preview"]

@@ -308,7 +308,6 @@ class Completions:
         response_format: Optional[dict] = None,
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
-        api_key: Optional[str] = None,
         ignore_stream: Optional[bool] = False,
         raw: Optional[bool] = False,
         **kwargs
@@ -337,7 +336,8 @@ class Completions:
                 proxy=self.client.proxy if proxy is None else proxy,
                 max_tokens=max_tokens,
                 stop=stop,
-                api_key=self.client.api_key if api_key is None else api_key
+                api_key=self.client.api_key,
+                api_base=self.client.base_url
             ),
             **kwargs
         )
@@ -361,7 +361,7 @@ class Completions:
                         yield chunk
             if stream:
                 return raw_response(response)
-            return next(raw_response())
+            return next(raw_response(response))
         if stream:
             return fallback(response)
         return next(fallback(response))
@@ -646,7 +646,6 @@ class AsyncCompletions:
         response_format: Optional[dict] = None,
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
-        api_key: Optional[str] = None,
         ignore_stream: Optional[bool] = False,
         raw: Optional[bool] = False,
         **kwargs
@@ -675,7 +674,8 @@ class AsyncCompletions:
                 proxy=self.client.proxy if proxy is None else proxy,
                 max_tokens=max_tokens,
                 stop=stop,
-                api_key=self.client.api_key if api_key is None else api_key
+                api_key=self.client.api_key,
+                api_base=self.client.base_url
             ),
             **kwargs
         )

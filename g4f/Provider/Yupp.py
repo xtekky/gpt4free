@@ -518,7 +518,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
             - If for_target=True → chunk belongs to the target model output.
             """
-            nonlocal is_thinking, thinking_content, normal_content, variant_text, session
+            nonlocal normal_content
 
             if not is_valid_content(content):
                 return

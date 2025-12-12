@@ -34,8 +34,7 @@ def get_providers() -> list[ProviderType]:
     return [
         provider
         for provider in __providers__
-        if provider.__name__ not in dir(Provider.deprecated)
-        and provider.url is not None
+        if provider.url is not None
     ]
 
 def create_response(provider: ProviderType) -> str:

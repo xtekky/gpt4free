@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import json
-import re
 import os
 import requests
 import base64
-import uuid
 from typing import AsyncIterator
 
 try:
@@ -37,7 +35,8 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     origin = f"https://{domain}"
     url = f"{origin}/chat"
 
-    working = False
+    working = True
+    active_by_default = True
     use_nodriver = True
     supports_stream = True
     needs_auth = True
@@ -48,7 +47,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     text_models = fallback_models
 
     @classmethod
-    def get_models(cls):
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             try:
                 models = requests.get(f"{cls.url}/api/v2/models").json().get("json")
@@ -64,27 +63,18 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if cookies is None:
             cookies = get_cookies(cls.domain, single_browser=True)
-        if "hf-chat" in cookies:
-            yield AuthResult(
-                cookies=cookies,
-                headers=DEFAULT_HEADERS,
-                impersonate="chrome"
-            )
-            return
-        if cls.needs_auth:
+        try:
             yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
             yield AuthResult(
                 **await get_args_from_nodriver(
                     cls.url,
                     proxy=proxy,
-                    wait_for='form[action$="/logout"]'
+                    wait_for='div div nav div div img'
                 )
             )
-        else:
+        except MissingRequirementsError:
             yield AuthResult(
-                cookies={
-                    "hf-chat": str(uuid.uuid4())  # Generate a session ID
-                },
+                cookies=cookies,
                 headers=DEFAULT_HEADERS,
                 impersonate="chrome"
             )
@@ -198,7 +188,10 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         if response.status_code == 400:
             raise ResponseError(f"{response.text}: Model: {model}")
         raise_for_status(response)
-        return response.json().get('conversationId')
+        try:
+            return response.json().get('conversationId')
+        except json.JSONDecodeError as e:
+            raise MissingAuthError(f"Failed to decode JSON: {e}") from e
 
     @classmethod
     def fetch_message_id(cls, session: Session, conversation_id: str):

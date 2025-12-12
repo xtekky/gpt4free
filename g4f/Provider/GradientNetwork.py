@@ -26,7 +26,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "GPT OSS 120B"
     models = [
         default_model,
-        "GPT OSS 120B",
+        "Qwen3 235B",
     ]
     model_aliases = {
         "qwen-3-235b": "Qwen3 235B",

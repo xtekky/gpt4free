@@ -131,7 +131,7 @@ class GithubCopilot(AsyncGeneratorProvider, ProviderModelMixin):
                 "streaming": stream,
                 "confirmations": [],
                 "customInstructions": [],
-                "model": api_model,
+                "model": model,
                 "mode": "immersive"
             }
             
