@@ -571,8 +571,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cls.share_url = os.getenv("G4F_SHARE_URL")
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
-        args = None
-        if cache_file.exists():
+        args = kwargs.get("lmarena_args", {})
+        if not args and cache_file.exists():
             try:
                 with cache_file.open("r") as f:
                     args = json.load(f)
