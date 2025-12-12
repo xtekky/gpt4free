@@ -50,7 +50,11 @@ class CookiesConfig:
 class BrowserConfig:
     port: int = None
     host: str = "127.0.0.1"
-    stop_browser = lambda: None
+    
+    @staticmethod
+    def stop_browser():
+        return None
+    
     browser_executable_path: str = None
 
 DOMAINS = (

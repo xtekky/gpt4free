@@ -4,6 +4,12 @@ import re
 import json
 import uuid
 
+try:
+    import nodriver
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
+
 from ...typing import AsyncResult, Messages, ImageType, Cookies
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt

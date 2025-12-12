@@ -25,6 +25,7 @@ def scrape_text(html: str, max_words: Optional[int] = None, add_source: bool = T
     soup = BeautifulSoup(html, "html.parser")
 
     # Read the meta tags
+    seen_texts = []  # Initialize seen_texts list to track already processed text
     if add_metadata:
         metadata: Dict[str, str] = {}
 
