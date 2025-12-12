@@ -18,7 +18,7 @@ from g4f.requests import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from .. import debug
-from ..errors import RateLimitError, ResponseError
+from ..errors import RateLimitError, ResponseError, CloudflareError
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
 from ..requests import sse_stream
 from ..requests.aiohttp import StreamSession
@@ -405,6 +405,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     ) as resp:
                         first_line = await resp.content.readline()
                         line_str = first_line.decode().strip()
+                        if line_str.startswith('<!doctypehtml>') and "aliyun_waf_aa" in line_str:
+                            raise CloudflareError(line_str)
                         if line_str.startswith('{'):
                             data = json.loads(line_str)
                             if data.get("data", {}).get("code"):
