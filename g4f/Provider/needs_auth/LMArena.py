@@ -1436,10 +1436,23 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         grecaptcha = []
 
         async def callback(page: nodriver.Tab):
-            while not await page.evaluate('window.grecaptcha'):
+            while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
                 await asyncio.sleep(1)
             captcha = await page.evaluate(
-                """window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""",
+                """new Promise((resolve) => {
+                    window.grecaptcha.enterprise.ready(async () => {
+                        try {
+                            const token = await window.grecaptcha.enterprise.execute(
+                                '6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',
+                                { action: 'chat_submit' }
+                            );
+                            resolve(token);
+                        } catch (e) {
+                            console.error("[LMArena API] reCAPTCHA execute failed:", e);
+                            resolve(null);
+                        }
+                    });
+                });""",
                 await_promise=True)
             if isinstance(captcha, str):
                 grecaptcha.append(captcha)
@@ -1636,8 +1649,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             }
             yield JsonRequest.from_dict(data)
             try:
-
-                async with StreamSession(**args, timeout=timeout) as session:
+                async with StreamSession(**args, timeout=timeout or 5 * 60) as session:
                     async with session.post(
                             url,
                             json=data,
