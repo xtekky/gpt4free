@@ -1357,7 +1357,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
-    async def get_args_from_nodriver(cls, proxy, force=False):
+    async def get_args_from_nodriver(cls, proxy, force=True):
         cache_file = cls.get_cache_file()
         grecaptcha = []
         from urllib.parse import urlparse
@@ -1581,7 +1581,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if args:
                 pass
             elif has_nodriver or cls.share_url is None:
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy, force)
+                args, grecaptcha = await cls.get_args_from_nodriver(proxy)
 
             elif not cls.looked:
                 cls.looked = True
