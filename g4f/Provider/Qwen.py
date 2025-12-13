@@ -12,18 +12,15 @@ from typing import Literal, Optional, Dict
 from urllib.parse import quote
 
 import aiohttp
-from aiohttp import ClientResponseError
 
-from g4f.image import to_bytes, detect_file_type
-from g4f.providers.base_provider import AuthFileMixin
-from g4f.requests import raise_for_status, get_args_from_nodriver, merge_cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from .. import debug
 from ..errors import RateLimitError, ResponseError, CloudflareError
+from ..image import to_bytes, detect_file_type
+from ..providers.base_provider import AuthFileMixin
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
-from ..requests import sse_stream
-from ..requests.aiohttp import StreamSession
+from ..requests import sse_stream, StreamSession, raise_for_status, get_args_from_nodriver, merge_cookies
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, MediaListType
 
@@ -161,7 +158,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
-    async def prepare_files(cls, media, session: aiohttp.ClientSession, headers=None) -> list:
+    async def prepare_files(cls, media, session: StreamSession, headers=None) -> list:
         if headers is None:
             headers = {}
         files = []
@@ -274,6 +271,16 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return args
 
     @classmethod
+    async def raise_for_status(cls, response, message=None):
+        await raise_for_status(response, message)
+        content_type = response.headers.get("content-type", "")
+        is_html = content_type.startswith("text/html")
+        if is_html:
+            html = (await response.text()).strip()
+            if html.startswith('<!doctypehtml>') and "aliyun_waf_aa" in html:
+                raise CloudflareError(message or html)
+
+    @classmethod
     async def create_async_generator(
             cls,
             model: str,
@@ -320,12 +327,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
-        _timeout = kwargs.get("timeout")
-        if isinstance(_timeout, aiohttp.ClientTimeout):
-            timeout = _timeout
-        else:
-            total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
-            timeout = aiohttp.ClientTimeout(total=total)
+        timeout = kwargs.get("timeout") or 5 * 60
         for _ in range(2):
             headers = {
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
@@ -345,12 +347,10 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 async with StreamSession(headers=headers) as session:
                     try:
                         async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
-                            user_info_res.raise_for_status()
+                            await cls.raise_for_status(user_info_res)
                             debug.log(await user_info_res.json())
-                    except ClientResponseError as e:
+                    except Exception as e:
                         debug.error(e)
-                    except:
-                        ...
                     for attempt in range(5):
                         try:
                             if not cls._midtoken:
@@ -385,7 +385,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                         f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
                                         proxy=proxy
                                 ) as resp:
-                                    resp.raise_for_status()
+                                    await cls.raise_for_status(resp)
                                     data = await resp.json()
                                     if not (data.get('success') and data['data'].get('id')):
                                         raise RuntimeError(f"Failed to create chat: {data}")
@@ -441,22 +441,18 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                     json=msg_payload,
                                     headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                             ) as resp:
-                                first_line = await resp.content.readline()
-                                line_str = first_line.decode().strip()
-                                if line_str.startswith('<!doctypehtml>') and "aliyun_waf_aa" in line_str:
-                                    raise CloudflareError(line_str)
+                                await cls.raise_for_status(resp)
                                 args["cookies"] = merge_cookies(args.get("cookies"), resp)
-                                if line_str.startswith('{'):
-                                    data = json.loads(line_str)
-                                    if data.get("data", {}).get("code"):
-                                        raise RuntimeError(f"Response: {data}")
-                                    conversation.parent_id = data.get("response.created", {}).get("response_id")
-                                    yield conversation
-
                                 thinking_started = False
                                 usage = None
                                 async for chunk in sse_stream(resp):
                                     try:
+                                        if chunk.get("data", {}).get("code"):
+                                            raise RuntimeError(f"Response: {chunk}")
+                                        if "response.created" in chunk:
+                                            conversation.parent_id = chunk.get("response.created", {}).get(
+                                                "response_id")
+                                            yield conversation
                                         error = chunk.get("error", {})
                                         if error:
                                             raise ResponseError(f'{error["code"]}: {error["details"]}')

@@ -40,7 +40,7 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
                 message = await response.text()
         else:
             message = (await response.text()).strip()
-            is_html = content_type.startswith("text/html") or message.startswith("<!DOCTYPE")
+            is_html = content_type.startswith("text/html") or message.lower().startswith("<!DOCTYPE".lower())
     if message is None or is_html:
         if response.status == 520:
             message = "Unknown error (Cloudflare)"
