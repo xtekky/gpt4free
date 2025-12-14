@@ -15,12 +15,12 @@ import aiohttp
 
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
+from .qwen.cookie_generator import generate_cookies
 from .. import debug
 from ..errors import RateLimitError, ResponseError, CloudflareError
 from ..image import to_bytes, detect_file_type
-from ..providers.base_provider import AuthFileMixin
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
-from ..requests import sse_stream, StreamSession, raise_for_status, get_args_from_nodriver, merge_cookies
+from ..requests import sse_stream, StreamSession, raise_for_status
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, MediaListType
 
@@ -111,7 +111,7 @@ models = [
     'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
 
 
-class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
+class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Provider for Qwen's chat service (chat.qwen.ai), with configurable
     parameters (stream, enable_thinking) and print logs.
@@ -260,15 +260,15 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             files.append(file)
         return files
 
-    @classmethod
-    async def get_args(cls, proxy, **kwargs):
-        cache_file = cls.get_cache_file()
-        args = await get_args_from_nodriver(cls.url, proxy=proxy)
-        with cache_file.open("w") as f:
-            json.dump(args, f)
-        if not args:
-            args["cookies"] = {}
-        return args
+    # @classmethod
+    # async def get_args(cls, proxy, **kwargs):
+    #     cache_file = cls.get_cache_file()
+    #     args = await get_args_from_nodriver(cls.url, proxy=proxy)
+    #     with cache_file.open("w") as f:
+    #         json.dump(args, f)
+    #     if not args:
+    #         args["cookies"] = {}
+    #     return args
 
     @classmethod
     async def raise_for_status(cls, response, message=None):
@@ -307,198 +307,199 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             Txt2Txt = "t2t"
             WebDev = "web_dev"
         """
-        cache_file = cls.get_cache_file()
-        cookie: str = kwargs.get("cookie", "")  # ssxmod_itna=1-...
-        args = kwargs.get("qwen_args", {})
-        args.setdefault("cookies", {})
+        # cache_file = cls.get_cache_file()
+        # cookie: str = kwargs.get("cookie", "")  # ssxmod_itna=1-...
+        # args = kwargs.get("qwen_args", {})
+        # args.setdefault("cookies", {})
+        token = kwargs.get("token")
 
-        if not args and cache_file.exists():
-            try:
-                with cache_file.open("r") as f:
-                    args = json.load(f)
-            except json.JSONDecodeError:
-                debug.log(f"Cache file {cache_file} is corrupted, removing it.")
-                cache_file.unlink()
-
-        if not cookie:
-            if not args:
-                args = await cls.get_args(proxy, **kwargs)
-
-            cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
+        # if not args and cache_file.exists():
+        #     try:
+        #         with cache_file.open("r") as f:
+        #             args = json.load(f)
+        #     except json.JSONDecodeError:
+        #         debug.log(f"Cache file {cache_file} is corrupted, removing it.")
+        #         cache_file.unlink()
+        # if not cookie:
+        #     if not args:
+        #         args = await cls.get_args(proxy, **kwargs)
+        #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
         timeout = kwargs.get("timeout") or 5 * 60
-        for _ in range(2):
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Origin': cls.url,
-                'Referer': f'{cls.url}/',
-                'Content-Type': 'application/json',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
-                'Connection': 'keep-alive',
-                'Cookie': cookie,
-                'Source': 'web'
-            }
+        # for _ in range(2):
+        data = generate_cookies()
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Origin': cls.url,
+            'Referer': f'{cls.url}/',
+            'Content-Type': 'application/json',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Connection': 'keep-alive',
+            'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
+            'Authorization': f'Bearer {token}' if token else "Bearer",
+            'Source': 'web'
+        }
+        # try:
+        async with StreamSession(headers=headers) as session:
             try:
-                async with StreamSession(headers=headers) as session:
-                    try:
-                        async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
-                            await cls.raise_for_status(user_info_res)
-                            debug.log(await user_info_res.json())
-                    except Exception as e:
-                        debug.error(e)
-                    for attempt in range(5):
-                        try:
-                            if not cls._midtoken:
-                                debug.log("[Qwen] INFO: No active midtoken. Fetching a new one...")
-                                async with session.get('https://sg-wum.alibaba.com/w/wu.json', proxy=proxy) as r:
-                                    r.raise_for_status()
-                                    text = await r.text()
-                                    match = re.search(r"(?:umx\.wu|__fycb)\('([^']+)'\)", text)
-                                    if not match:
-                                        raise RuntimeError("Failed to extract bx-umidtoken.")
-                                    cls._midtoken = match.group(1)
-                                    cls._midtoken_uses = 1
-                                    debug.log(
-                                        f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
-                            else:
-                                cls._midtoken_uses += 1
-                                debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
+                async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
+                    await cls.raise_for_status(user_info_res)
+                    debug.log(await user_info_res.json())
+            except Exception as e:
+                debug.error(e)
+            for attempt in range(5):
+                try:
+                    if not cls._midtoken:
+                        debug.log("[Qwen] INFO: No active midtoken. Fetching a new one...")
+                        async with session.get('https://sg-wum.alibaba.com/w/wu.json', proxy=proxy) as r:
+                            r.raise_for_status()
+                            text = await r.text()
+                            match = re.search(r"(?:umx\.wu|__fycb)\('([^']+)'\)", text)
+                            if not match:
+                                raise RuntimeError("Failed to extract bx-umidtoken.")
+                            cls._midtoken = match.group(1)
+                            cls._midtoken_uses = 1
+                            debug.log(
+                                f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
+                    else:
+                        cls._midtoken_uses += 1
+                        debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
 
-                            req_headers = session.headers.copy()
-                            req_headers['bx-umidtoken'] = cls._midtoken
-                            req_headers['bx-v'] = '2.5.31'
-                            message_id = str(uuid.uuid4())
-                            if conversation is None:
-                                chat_payload = {
-                                    "title": "New Chat",
-                                    "models": [model_name],
-                                    "chat_mode": "normal",
-                                    "chat_type": chat_type,
-                                    "timestamp": int(time() * 1000)
-                                }
-                                async with session.post(
-                                        f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
-                                        proxy=proxy
-                                ) as resp:
-                                    await cls.raise_for_status(resp)
-                                    data = await resp.json()
-                                    if not (data.get('success') and data['data'].get('id')):
-                                        raise RuntimeError(f"Failed to create chat: {data}")
-                                conversation = JsonConversation(
-                                    chat_id=data['data']['id'],
-                                    cookies={key: value for key, value in resp.cookies.items()},
-                                    parent_id=None
-                                )
-                            files = []
-                            media = list(merge_media(media, messages))
-                            if media:
-                                files = await cls.prepare_files(media, session=session,
-                                                                headers=req_headers)
+                    req_headers = session.headers.copy()
+                    req_headers['bx-umidtoken'] = cls._midtoken
+                    req_headers['bx-v'] = '2.5.31'
+                    message_id = str(uuid.uuid4())
+                    if conversation is None:
+                        chat_payload = {
+                            "title": "New Chat",
+                            "models": [model_name],
+                            "chat_mode": "normal",# local
+                            "chat_type": chat_type,
+                            "timestamp": int(time() * 1000)
+                        }
+                        async with session.post(
+                                f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
+                                proxy=proxy
+                        ) as resp:
+                            await cls.raise_for_status(resp)
+                            data = await resp.json()
+                            if not (data.get('success') and data['data'].get('id')):
+                                raise RuntimeError(f"Failed to create chat: {data}")
+                        conversation = JsonConversation(
+                            chat_id=data['data']['id'],
+                            cookies={key: value for key, value in resp.cookies.items()},
+                            parent_id=None
+                        )
+                    files = []
+                    media = list(merge_media(media, messages))
+                    if media:
+                        files = await cls.prepare_files(media, session=session,
+                                                        headers=req_headers)
 
-                            msg_payload = {
-                                "stream": stream,
-                                "incremental_output": stream,
-                                "chat_id": conversation.chat_id,
-                                "chat_mode": "normal",
-                                "model": model_name,
-                                "parent_id": conversation.parent_id,
-                                "messages": [
-                                    {
-                                        "fid": message_id,
-                                        "parentId": conversation.parent_id,
-                                        "childrenIds": [],
-                                        "role": "user",
-                                        "content": prompt,
-                                        "user_action": "chat",
-                                        "files": files,
-                                        "models": [model_name],
-                                        "chat_type": chat_type,
-                                        "feature_config": {
-                                            "thinking_enabled": enable_thinking,
-                                            "output_schema": "phase",
-                                            "thinking_budget": 81920
-                                        },
-                                        "extra": {
-                                            "meta": {
-                                                "subChatType": chat_type
-                                            }
-                                        },
-                                        "sub_chat_type": chat_type,
-                                        "parent_id": None
+                    msg_payload = {
+                        "stream": stream,
+                        "incremental_output": stream,
+                        "chat_id": conversation.chat_id,
+                        "chat_mode": "normal",# local
+                        "model": model_name,
+                        "parent_id": conversation.parent_id,
+                        "messages": [
+                            {
+                                "fid": message_id,
+                                "parentId": conversation.parent_id,
+                                "childrenIds": [],
+                                "role": "user",
+                                "content": prompt,
+                                "user_action": "chat",
+                                "files": files,
+                                "models": [model_name],
+                                "chat_type": chat_type,
+                                "feature_config": {
+                                    "thinking_enabled": enable_thinking,
+                                    "output_schema": "phase",
+                                    "thinking_budget": 81920
+                                },
+                                "extra": {
+                                    "meta": {
+                                        "subChatType": chat_type
                                     }
-                                ]
+                                },
+                                "sub_chat_type": chat_type,
+                                "parent_id": None
                             }
-                            if aspect_ratio:
-                                msg_payload["size"] = aspect_ratio
+                        ]
+                    }
+                    if aspect_ratio:
+                        msg_payload["size"] = aspect_ratio
 
-                            async with session.post(
-                                    f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
-                                    json=msg_payload,
-                                    headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
-                            ) as resp:
-                                await cls.raise_for_status(resp)
-                                args["cookies"] = merge_cookies(args.get("cookies"), resp)
-                                thinking_started = False
-                                usage = None
-                                async for chunk in sse_stream(resp):
-                                    try:
-                                        if chunk.get("data", {}).get("code"):
-                                            raise RuntimeError(f"Response: {chunk}")
-                                        if "response.created" in chunk:
-                                            conversation.parent_id = chunk.get("response.created", {}).get(
-                                                "response_id")
-                                            yield conversation
-                                        error = chunk.get("error", {})
-                                        if error:
-                                            raise ResponseError(f'{error["code"]}: {error["details"]}')
-                                        usage = chunk.get("usage", usage)
-                                        choices = chunk.get("choices", [])
-                                        if not choices: continue
-                                        delta = choices[0].get("delta", {})
-                                        phase = delta.get("phase")
-                                        content = delta.get("content")
-                                        status = delta.get("status")
-                                        extra = delta.get("extra", {})
-                                        if phase == "think" and not thinking_started:
-                                            thinking_started = True
-                                        elif phase == "answer" and thinking_started:
-                                            thinking_started = False
-                                        elif phase == "image_gen" and status == "typing":
-                                            yield ImageResponse(content, prompt, extra)
-                                            continue
-                                        elif phase == "image_gen" and status == "finished":
-                                            yield FinishReason("stop")
-                                        if content:
-                                            yield Reasoning(content) if thinking_started else content
-                                    except (json.JSONDecodeError, KeyError, IndexError):
-                                        continue
-                                if usage:
-                                    yield Usage(**usage)
-                                return
-
-                        except (aiohttp.ClientResponseError, RuntimeError) as e:
-                            is_rate_limit = (isinstance(e, aiohttp.ClientResponseError) and e.status == 429) or \
-                                            ("RateLimited" in str(e))
-                            if is_rate_limit:
-                                debug.log(
-                                    f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken.")
-                                cls._midtoken = None
-                                cls._midtoken_uses = 0
-                                conversation = None
-                                await asyncio.sleep(2)
+                    async with session.post(
+                            f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
+                            json=msg_payload,
+                            headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
+                    ) as resp:
+                        await cls.raise_for_status(resp)
+                        # args["cookies"] = merge_cookies(args.get("cookies"), resp)
+                        thinking_started = False
+                        usage = None
+                        async for chunk in sse_stream(resp):
+                            try:
+                                if chunk.get("data", {}).get("code"):
+                                    raise RuntimeError(f"Response: {chunk}")
+                                if "response.created" in chunk:
+                                    conversation.parent_id = chunk.get("response.created", {}).get(
+                                        "response_id")
+                                    yield conversation
+                                error = chunk.get("error", {})
+                                if error:
+                                    raise ResponseError(f'{error["code"]}: {error["details"]}')
+                                usage = chunk.get("usage", usage)
+                                choices = chunk.get("choices", [])
+                                if not choices: continue
+                                delta = choices[0].get("delta", {})
+                                phase = delta.get("phase")
+                                content = delta.get("content")
+                                status = delta.get("status")
+                                extra = delta.get("extra", {})
+                                if phase == "think" and not thinking_started:
+                                    thinking_started = True
+                                elif phase == "answer" and thinking_started:
+                                    thinking_started = False
+                                elif phase == "image_gen" and status == "typing":
+                                    yield ImageResponse(content, prompt, extra)
+                                    continue
+                                elif phase == "image_gen" and status == "finished":
+                                    yield FinishReason("stop")
+                                if content:
+                                    yield Reasoning(content) if thinking_started else content
+                            except (json.JSONDecodeError, KeyError, IndexError):
                                 continue
-                            else:
-                                raise e
-                    raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
+                        if usage:
+                            yield Usage(**usage)
+                        return
 
-            except CloudflareError as e:
-                debug.error(f"{cls.__name__}: {e}")
-                args = await cls.get_args(proxy, **kwargs)
-                cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
-                continue
+                except (aiohttp.ClientResponseError, RuntimeError) as e:
+                    is_rate_limit = (isinstance(e, aiohttp.ClientResponseError) and e.status == 429) or \
+                                    ("RateLimited" in str(e))
+                    if is_rate_limit:
+                        debug.log(
+                            f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken.")
+                        cls._midtoken = None
+                        cls._midtoken_uses = 0
+                        conversation = None
+                        await asyncio.sleep(2)
+                        continue
+                    else:
+                        raise e
+            raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
+
+            # except CloudflareError as e:
+            #     debug.error(f"{cls.__name__}: {e}")
+            #     args = await cls.get_args(proxy, **kwargs)
+            #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
+            #     continue
         raise RateLimitError("The Qwen provider reached the limit Cloudflare.")
