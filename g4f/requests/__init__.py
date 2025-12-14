@@ -1,25 +1,29 @@
 from __future__ import annotations
 
-import os
-import time
-import random
+import asyncio
 import json
-from urllib.parse import urlparse
-from typing import Iterator, AsyncIterator
+import os
+import random
+import time
+from contextlib import asynccontextmanager
 from http.cookies import Morsel
 from pathlib import Path
-from contextlib import asynccontextmanager
-import asyncio
+from typing import Iterator, AsyncIterator
+from urllib.parse import urlparse
+
 try:
     from curl_cffi.requests import Session, Response
     from .curl_cffi import StreamResponse, StreamSession, FormData
+
     has_curl_cffi = True
 except ImportError:
     from typing import Type as Response
     from .aiohttp import StreamResponse, StreamSession, FormData
+
     has_curl_cffi = False
 try:
     import webview
+
     has_webview = True
 except ImportError:
     has_webview = False
@@ -28,13 +32,16 @@ try:
     from nodriver.cdp.network import CookieParam
     from nodriver.core.config import find_chrome_executable
     from nodriver import Browser, Tab, util
+
     has_nodriver = True
 except ImportError:
     from typing import Type as Browser
     from typing import Type as Tab
+
     has_nodriver = False
 try:
     from platformdirs import user_config_dir
+
     has_platformdirs = True
 except ImportError:
     has_platformdirs = False
@@ -50,6 +57,7 @@ if not has_curl_cffi:
     class Session:
         def __init__(self, **kwargs):
             raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
+
 
 async def get_args_from_webview(url: str) -> dict:
     if not has_webview:
@@ -74,6 +82,7 @@ async def get_args_from_webview(url: str) -> dict:
     window.destroy()
     return {"headers": headers, "cookies": cookies}
 
+
 def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
     [CookieParam.from_json({
         "name": key,
@@ -82,18 +91,20 @@ def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str =
         "domain": domain
     }) for key, value in cookies.items()]
 
+
 async def get_args_from_nodriver(
-    url: str,
-    proxy: str = None,
-    timeout: int = 120,
-    wait_for: str = None,
-    callback: callable = None,
-    cookies: Cookies = None,
-    browser: Browser = None,
-    user_data_dir: str = "nodriver"
+        url: str,
+        proxy: str = None,
+        timeout: int = 120,
+        wait_for: str = None,
+        callback: callable = None,
+        cookies: Cookies = None,
+        browser: Browser = None,
+        user_data_dir: str = "nodriver",
+        browser_args: list = None
 ) -> dict:
     if browser is None:
-        browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout, user_data_dir=user_data_dir)
+        browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout, user_data_dir=user_data_dir, browser_args=browser_args)
     else:
         def stop_browser():
             pass
@@ -129,6 +140,7 @@ async def get_args_from_nodriver(
         stop_browser()
         raise
 
+
 def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     if cookies is None:
         cookies = {}
@@ -140,18 +152,21 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
             cookies[key] = value
     return cookies
 
+
 def set_browser_executable_path(browser_executable_path: str):
     BrowserConfig.browser_executable_path = browser_executable_path
 
+
 async def get_nodriver(
-    proxy: str = None,
-    user_data_dir = "nodriver",
-    timeout: int = 300,
-    browser_executable_path: str = None,
-    **kwargs
+        proxy: str = None,
+        user_data_dir="nodriver",
+        timeout: int = 300,
+        browser_executable_path: str = None,
+        **kwargs
 ) -> tuple[Browser, callable]:
     if not has_nodriver:
-        raise MissingRequirementsError('Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
+        raise MissingRequirementsError(
+            'Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if user_data_dir and has_platformdirs else None
     if browser_executable_path is None:
         browser_executable_path = BrowserConfig.browser_executable_path
@@ -190,7 +205,8 @@ async def get_nodriver(
         lock_file.write_text(str(time.time()))
         debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
-        browser_args = ["--no-sandbox"]
+        browser_args = kwargs.pop("browser_args", None) or ["--no-sandbox"]
+
         if BrowserConfig.port:
             browser_executable_path = "/bin/google-chrome"
         browser = await nodriver.start(
@@ -209,6 +225,7 @@ async def get_nodriver(
             browser = util.get_registered_instances().pop()
         else:
             raise
+
     def on_stop():
         try:
             if BrowserConfig.port is None and browser.connection:
@@ -218,14 +235,17 @@ async def get_nodriver(
         finally:
             if user_data_dir:
                 lock_file.unlink(missing_ok=True)
+
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
+
 
 @asynccontextmanager
 async def get_nodriver_session(**kwargs):
     browser, stop_browser = await get_nodriver(**kwargs)
     yield browser
     stop_browser()
+
 
 async def sse_stream(iter_lines: AsyncIterator[bytes]) -> AsyncIterator[dict]:
     if hasattr(iter_lines, "content"):
@@ -243,6 +263,7 @@ async def sse_stream(iter_lines: AsyncIterator[bytes]) -> AsyncIterator[dict]:
                 yield json.loads(rest)
             except json.JSONDecodeError:
                 raise ValueError(f"Invalid JSON data: {rest}")
+
 
 async def iter_lines(iter_response: AsyncIterator[bytes], delimiter=None):
     """

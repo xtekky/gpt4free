@@ -496,8 +496,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 raise e
                     raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
 
-            except CloudflareError:
-                debug.log(f"{cls.__name__}: Cloudflare error")
+            except CloudflareError as e:
+                debug.error(f"{cls.__name__}: {e}")
                 args = await cls.get_args(proxy, **kwargs)
                 cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
                 continue
