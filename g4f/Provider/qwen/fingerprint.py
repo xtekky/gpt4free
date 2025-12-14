@@ -108,7 +108,7 @@ def generate_hash() -> int:
 # CORE LOGIC
 # =========================
 
-def generate_fingerprint(options: Dict[str, Any] | None = None) -> str:
+def generate_fingerprint(options: Dict[str, Any] = None) -> str:
     if options is None:
         options = {}
 
@@ -186,7 +186,7 @@ def generate_fingerprint(options: Dict[str, Any] | None = None) -> str:
     return "^".join(map(str, fields))
 
 
-def generate_fingerprint_batch(count: int, options: Dict[str, Any] | None = None) -> List[str]:
+def generate_fingerprint_batch(count: int, options: Dict[str, Any] = None) -> List[str]:
     return [generate_fingerprint(options) for _ in range(count)]
 
 
