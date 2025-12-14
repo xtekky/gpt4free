@@ -274,11 +274,11 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     async def raise_for_status(cls, response, message=None):
         await raise_for_status(response, message)
         content_type = response.headers.get("content-type", "")
-        is_html = content_type.startswith("text/html")
-        if is_html:
+        if content_type.startswith("text/html"):
             html = (await response.text()).strip()
             if html.startswith('<!doctypehtml>') and "aliyun_waf_aa" in html:
                 raise CloudflareError(message or html)
+
 
     @classmethod
     async def create_async_generator(
@@ -443,13 +443,15 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                     ) as resp:
                         await cls.raise_for_status(resp)
+                        if resp.headers.get("content-type", "").startswith("application/json"):
+                            resp_json = await resp.json()
+                            if resp_json.get("success") is False or resp_json.get("data", {}).get("code"):
+                                raise RuntimeError(f"Response: {resp_json}")
                         # args["cookies"] = merge_cookies(args.get("cookies"), resp)
                         thinking_started = False
                         usage = None
                         async for chunk in sse_stream(resp):
                             try:
-                                if chunk.get("data", {}).get("code"):
-                                    raise RuntimeError(f"Response: {chunk}")
                                 if "response.created" in chunk:
                                     conversation.parent_id = chunk.get("response.created", {}).get(
                                         "response_id")
