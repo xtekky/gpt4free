@@ -405,7 +405,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     async with session.post(url, json=payload, headers=headers, proxy=proxy,
                                             timeout=timeout) as response:
                         response.raise_for_status()
-                        print(response.status, await response.text())
                         if response.status == 303:
                             ...
                         # Make chat private in background
