@@ -346,7 +346,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 async with StreamSession() as session:
                     turn_id = str(uuid.uuid4())
-
                     # Handle media attachments
                     media = kwargs.get("media")
                     if media:
@@ -401,17 +400,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
                     log_debug(f"Sending request to: {url}")
                     log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
-                    _timeout = kwargs.get("timeout")
-                    if isinstance(_timeout, aiohttp.ClientTimeout):
-                        timeout = _timeout
-                    else:
-                        total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
-                        timeout = aiohttp.ClientTimeout(total=total)
+                    timeout = kwargs.get("timeout") or 5 * 60
                     # Send request
                     async with session.post(url, json=payload, headers=headers, proxy=proxy,
                                             timeout=timeout) as response:
                         response.raise_for_status()
-
+                        print(response.status, await response.text())
+                        if response.status == 303:
+                            ...
                         # Make chat private in background
                         asyncio.create_task(make_chat_private(session, account, url_uuid))
                         # ٍSolve ValueError: Chunk too big
