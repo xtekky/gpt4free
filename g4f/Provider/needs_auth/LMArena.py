@@ -1469,10 +1469,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
     @classmethod
     async def prepare_images(cls, args, media: list[tuple]) -> list[dict[str, str]]:
+        files = []
+        if not media:
+            return files
         ACTION_ID_STEP1 = "706fb74c63900f0a45ebcbaf9e9e9c9ac9862b3cbb"
         ACTION_ID_STEP3 = "6035a84a6564b9f08bb48759fab3e91698d75f2ed2"
         url = "https://lmarena.ai/?chat-modality=image"
-        files = []
+
         async with StreamSession(**args, ) as session:
 
             for index, (_file, file_name) in enumerate(media):

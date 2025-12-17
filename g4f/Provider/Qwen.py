@@ -20,7 +20,7 @@ from .. import debug
 from ..errors import RateLimitError, ResponseError, CloudflareError
 from ..image import to_bytes, detect_file_type
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
-from ..requests import sse_stream, StreamSession, raise_for_status
+from ..requests import sse_stream, StreamSession, raise_for_status, get_args_from_nodriver
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, MediaListType
 
@@ -256,19 +256,27 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 "file_class": file_class,
                 "uploadTaskId": str(uuid.uuid4())
             }
+            debug.log(f"Uploading file: {file_url}")
             ImagesCache[image_hash] = file
             files.append(file)
         return files
 
-    # @classmethod
-    # async def get_args(cls, proxy, **kwargs):
-    #     cache_file = cls.get_cache_file()
-    #     args = await get_args_from_nodriver(cls.url, proxy=proxy)
-    #     with cache_file.open("w") as f:
-    #         json.dump(args, f)
-    #     if not args:
-    #         args["cookies"] = {}
-    #     return args
+    @classmethod
+    async def get_args(cls, proxy, **kwargs):
+        grecaptcha = []
+        async def callback(page: nodriver.Tab):
+            while not await page.evaluate('window.__baxia__ && window.__baxia__.getFYModule'):
+                await asyncio.sleep(1)
+            captcha = await page.evaluate(
+                """window.baxiaCommon.getUA()""",
+                await_promise=True)
+            if isinstance(captcha, str):
+                grecaptcha.append(captcha)
+            else:
+                raise Exception(captcha)
+        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+
+        return args, next(iter(grecaptcha))
 
     @classmethod
     async def raise_for_status(cls, response, message=None):
@@ -328,7 +336,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = get_last_user_message(messages)
         timeout = kwargs.get("timeout") or 5 * 60
         # for _ in range(2):
-        data = generate_cookies()
+        # data = generate_cookies()
+        # args,ua  = await cls.get_args(proxy, **kwargs)
         headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             'Accept': '*/*',
@@ -340,10 +349,11 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
             'Connection': 'keep-alive',
-            'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
+            # 'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
             'Authorization': f'Bearer {token}' if token else "Bearer",
             'Source': 'web'
         }
+
         # try:
         async with StreamSession(headers=headers) as session:
             try:
@@ -373,6 +383,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     req_headers = session.headers.copy()
                     req_headers['bx-umidtoken'] = cls._midtoken
                     req_headers['bx-v'] = '2.5.31'
+                    # req_headers['bx-ua'] = ua
                     message_id = str(uuid.uuid4())
                     if conversation is None:
                         chat_payload = {

@@ -290,7 +290,6 @@ def process_fields(fields: List[str]) -> List[Union[str, int]]:
 
     return processed
 
-
 # ==================== Cookie generation ====================
 
 def generate_cookies(
@@ -329,7 +328,6 @@ def generate_cookies(
         "rawData": ssxmod_itna_data,
         "rawData2": ssxmod_itna2_data,
     }
-
 
 def generate_batch(
     count: int = 10,
@@ -465,9 +463,13 @@ async def get_cookies() -> Dict[str, Any]:
 # Example usage
 # -----------------------
 if __name__ == "__main__":
-    async def main():
-        print(await refresh_cookies())
+    raw = generate_fingerprint()
+    data = raw.encode("utf-8")
+    import zlib
 
+    compressed = zlib.compress(data)
+    import base64
 
-
-    asyncio.run(main())
+    b64_payload = base64.b64encode(compressed).decode("ascii")
+    print(data)
+    header_value = f"231!{b64_payload}"
