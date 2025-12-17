@@ -1340,7 +1340,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3]
                             line = line.encode("utf-8").decode("unicode_escape")
                             models = json.loads(line)
-                            print(models)
                             cls.text_models = {model["publicName"]: model["id"] for model in models if
                                                "text" in model["capabilities"]["outputCapabilities"]}
                             cls.image_models = {model["publicName"]: model["id"] for model in models if
