@@ -521,6 +521,12 @@ gemini_2_5_pro = Model(
     best_provider = IterListProvider([Gemini, GeminiPro, GeminiCLI])
 )
 
+gemini_3_pro_preview = Model(
+    name          = 'gemini-3-pro-preview',
+    base_provider = 'Google',
+    best_provider = GeminiCLI
+)
+
 # codegemma
 codegemma_7b = Model(
     name          = 'codegemma-7b',
