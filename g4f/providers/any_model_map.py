@@ -406,7 +406,7 @@ model_map = {
     "Yupp": "gemini-2.5-pro"
   },
   "gemini-3-pro-preview": {
-    "GeminiCLI": "gemini-3-pro-preview",
+    "GeminiCLI": "gemini-3-pro-preview"
   },
   "codegemma-7b": {
     "DeepInfra": "google/codegemma-7b-it",
