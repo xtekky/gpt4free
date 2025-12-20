@@ -301,7 +301,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return files
 
     @classmethod
-    async def user_info(cls, account: dict, kwargs: dict):
+    async def user_info(cls, account: YUPP_ACCOUNT, kwargs: dict):
         history: dict = {}
         user_info = {}
 
