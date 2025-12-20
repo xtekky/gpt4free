@@ -9,7 +9,7 @@ import uuid
 import aiohttp
 
 from .helper import get_last_user_message
-from .yupp.models import YuppModelManager
+from .yupp.models import YuppModelManager, ModelProcessor
 from ..cookies import get_cookies
 from ..debug import log
 from ..errors import RateLimitError, ProviderException, MissingAuthError
@@ -301,6 +301,99 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return files
 
     @classmethod
+    async def user_info(cls, account: dict):
+        history: dict = {}
+        user_info = {}
+
+        def pars_children(data):
+            data = data["children"]
+            if len(data) < 4:
+                return
+            if data[1] in ["div", "defs", "style", "script"]:
+                return
+            pars_data(data[3])
+
+        def pars_data(data):
+            if not isinstance(data, (list, dict)):
+                return
+            if isinstance(data, dict):
+                json_data = data.get("json") or {}
+            elif data[0] == "$":
+                if data[1] in ["div", "defs", "style", "script"]:
+                    return
+                json_data = data[3]
+            else:
+                return
+
+            if 'session' in json_data:
+                user_info.update(json_data['session']['user'])
+            elif "state" in json_data:
+                for query in json_data["state"]["queries"]:
+                    if query["state"]["dataUpdateCount"] == 0:
+                        continue
+                    if "getCredits" in query["queryHash"]:
+                        credits = query["state"]["data"]["json"]
+                        user_info["credits"] = credits
+                    elif "getSidebarChatsV2" in query["queryHash"]:
+                        for page in query["state"]["data"]["json"]["pages"]:
+                            for item in page["items"]:
+                                history[item["id"]] = item
+
+            elif 'categories' in json_data:
+                ...
+            elif 'children' in json_data:
+                pars_children(json_data)
+            elif isinstance(json_data, list):
+                if "supportedAttachmentMimeTypes" in json_data[0]:
+                    models = json_data
+                    cls.models_tags = {model.get("name"): ModelProcessor.generate_tags(model) for
+                                       model in models}
+                    cls.models = [model.get("name") for model in models]
+                    cls.image_models = [model.get("name") for model in models if
+                                        model.get("isImageGeneration")]
+                    cls.vision_models = [model.get("name") for model in models if
+                                         "image/*" in model.get("supportedAttachmentMimeTypes", [])]
+
+        try:
+            async with StreamSession() as session:
+                headers = {
+                    "content-type": "text/plain;charset=UTF-8",
+                    "cookie": f"__Secure-yupp.session-token={account['token']}",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+                }
+                async with session.get("https://yupp.ai", headers=headers, ) as response:
+                    response.raise_for_status()
+                    response.content._high_water = 10 * 1024 * 1024  # 10MB per line
+                    line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
+                    async for line in response.content:
+                        line = line.decode()
+                        # Pattern to match self.__next_f.push([...])
+                        pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
+                        matches = re.findall(pattern, line)
+                        for match in matches:
+                            # Parse the JSON array
+                            data = json.loads(match)
+                            for chunk in data[1].split("\n"):
+                                match = line_pattern.match(chunk)
+                                if not match:
+                                    continue
+                                chunk_id, chunk_data = match.groups()
+                                if chunk_data.startswith(("[", "{")):
+                                    try:
+                                        data = json.loads(chunk_data)
+                                        pars_data(data)
+                                    except json.decoder.JSONDecodeError:
+                                        ...
+                                    except Exception as e:
+                                        log_debug(f"[Yupp] user_info error: {str(e)}")
+        except Exception as e:
+            log_debug(f"[Yupp] user_info error: {str(e)}")
+        if user_info:
+            log_debug(
+                f"[Yupp] user:{user_info.get('name')} credits:{user_info.get('credits')} onboardingStatus:{user_info.get('onboardingStatus')}")
+        return user_info
+
+    @classmethod
     async def create_async_generator(
             cls,
             model: str,
@@ -331,7 +424,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if is_new_conversation:
                 prompt = format_messages_for_yupp(messages)
             else:
-                prompt = get_last_user_message(messages, prompt)
+                prompt = get_last_user_message(messages, bool(prompt))
 
         log_debug(
             f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}")
@@ -342,7 +435,9 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             account = await get_best_yupp_account()
             if not account:
                 raise ProviderException("No valid Yupp accounts available")
-
+            # user_info, models. prev conversation, credits
+            user_info: dict = await cls.user_info(account)
+            yield PlainTextResponse(str(user_info))
             try:
                 async with StreamSession() as session:
                     turn_id = str(uuid.uuid4())
