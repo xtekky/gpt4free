@@ -301,7 +301,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return files
 
     @classmethod
-    async def user_info(cls, account: dict):
+    async def user_info(cls, account: dict, kwargs: dict):
         history: dict = {}
         user_info = {}
 
@@ -378,19 +378,35 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                 if not match:
                                     continue
                                 chunk_id, chunk_data = match.groups()
-                                if chunk_data.startswith(("[", "{")):
+
+                                if chunk_data.startswith("I["):
+                                    data = json.loads(chunk_data[1:])
+                                    if data[2] == "HomePagePromptForm":
+                                        for js in data[1][::-1]:
+                                            js_url = f"{cls.url}{js}"
+                                            async with session.get(js_url, headers=headers, ) as js_response:
+                                                js_text = await js_response.text()
+                                                if "startNewChat" in js_text:
+                                                    # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
+                                                    start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+                                                    if start_id:
+                                                        for v, k in start_id:
+                                                            kwargs[k] = v
+                                                    break
+                                elif chunk_data.startswith(("[", "{")):
                                     try:
                                         data = json.loads(chunk_data)
                                         pars_data(data)
                                     except json.decoder.JSONDecodeError:
                                         ...
                                     except Exception as e:
-                                        log_debug(f"[Yupp] user_info error: {str(e)}")
+                                        log_debug(f"user_info error: {str(e)}")
+
         except Exception as e:
-            log_debug(f"[Yupp] user_info error: {str(e)}")
+            log_debug(f"user_info error: {str(e)}")
         if user_info:
             log_debug(
-                f"[Yupp] user:{user_info.get('name')} credits:{user_info.get('credits')} onboardingStatus:{user_info.get('onboardingStatus')}")
+                f"user:{user_info.get('name')} credits:{user_info.get('credits')} onboardingStatus:{user_info.get('onboardingStatus')}")
         return user_info
 
     @classmethod
@@ -436,7 +452,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if not account:
                 raise ProviderException("No valid Yupp accounts available")
             # user_info, models. prev conversation, credits
-            user_info: dict = await cls.user_info(account)
+            user_info: dict = await cls.user_info(account, kwargs)
             yield PlainTextResponse(str(user_info))
             try:
                 async with StreamSession() as session:
@@ -469,7 +485,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
                         # Yield the conversation info first
                         yield JsonConversation(url_uuid=url_uuid)
-                        next_action = kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
+                        next_action =  kwargs.get("startNewChat") or kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
                     else:
                         # Continuing existing conversation
                         payload = [
@@ -483,8 +499,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             files
                         ]
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
-                        next_action = kwargs.get("next_action", "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
-
+                        next_action = kwargs.get("continueChat") or  kwargs.get("next_action", "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
                     headers = {
                         "accept": "text/x-component",
                         "content-type": "text/plain;charset=UTF-8",
