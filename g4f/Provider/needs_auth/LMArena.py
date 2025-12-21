@@ -154,6 +154,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
+    async def get_models_async(cls) -> list[str]:
+        if not cls._models_loaded:
+            async with StreamSession() as session:
+                async with session.get(f"{cls.url}/?mode=direct",) as response:
+                    await cls.__load_actions(await response.text())
+        return cls.models
+
+    @classmethod
     async def get_args_from_nodriver(cls, proxy, force=True):
         cache_file = cls.get_cache_file()
         grecaptcha = []
@@ -306,7 +314,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 return
             if not json_data:
                 return
-            if 'initialModels' in json_data:
+            if 'userState' in json_data:
+                debug.log(json_data)
+            elif 'initialModels' in json_data:
                 models = json_data["initialModels"]
                 cls.text_models = {model["publicName"]: model["id"] for model in models if
                                    "text" in model["capabilities"]["outputCapabilities"]}
@@ -319,8 +329,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 cls._models_loaded = True
             elif 'children' in json_data:
                 pars_children(json_data)
-            elif 'userState' in json_data:
-                debug.log(json_data)
+
 
         line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
         pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
@@ -514,7 +523,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 raise MissingRequirementsError("No auth file found and nodriver is not available.")
 
             if not cls._models_loaded:
-                cls.get_models()
+                # change to async
+                await cls.get_models_async()
             is_image_model = model in cls.image_models
             if not model:
                 model = cls.default_model
