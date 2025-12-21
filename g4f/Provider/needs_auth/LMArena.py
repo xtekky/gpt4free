@@ -9,7 +9,7 @@ import secrets
 import time
 from typing import Dict
 from urllib.parse import urlparse
-from nodriver import cdp
+
 import requests
 
 from g4f.image import to_bytes, detect_file_type
@@ -23,7 +23,7 @@ except ImportError:
 
 try:
     import nodriver
-
+    from nodriver import cdp
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -533,7 +533,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 evaluationSessionId = str(uuid7())
             userMessageId = str(uuid7())
             modelAMessageId = str(uuid7())
-            if not grecaptcha:
+            if not grecaptcha and has_nodriver:
                 debug.log("get grecaptcha")
                 args, grecaptcha = await cls.get_grecaptcha(args, proxy)
             files = await cls.prepare_images(args, media)
