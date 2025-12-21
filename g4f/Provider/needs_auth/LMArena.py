@@ -29,7 +29,8 @@ except ImportError:
     has_nodriver = False
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
+from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
+from ...requests.aiohttp import StreamSession
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
     RateLimitError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
@@ -162,7 +163,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([cls.url]))}
             return any("arena-auth-prod" in cookie for cookie in cookies)
 
-        async def clear_cookies_for_url(browser, url: str):
+        async def clear_cookies_for_url(browser: nodriver.Browser, url: str):
             debug.log(f"Clearing cookies for {url}")
             host = urlparse(url).hostname
             if not host:
@@ -173,6 +174,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             for c in cookies:
                 dom = (c.domain or "").lstrip(".")
                 if dom and (host == dom or host.endswith("." + dom)):
+                    if c.name == "cf_clearance":
+                        continue
                     await tab.send(
                         cdp.network.delete_cookies(
                             name=c.name,
@@ -431,7 +434,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             "content-type": "text/plain;charset=UTF-8",
                             "next-action": cls._next_actions["getSignedUrl"],
                             "Referer": url
-
                         }
                 ) as response:
                     await raise_for_status(response)
@@ -558,7 +560,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             url,
                             json=data,
                             proxy=proxy,
-                            impersonate="chrome136"
+                            # impersonate="chrome136"
                     ) as response:
                         await raise_for_status(response)
                         args["cookies"] = merge_cookies(args["cookies"], response)
