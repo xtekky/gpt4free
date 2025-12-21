@@ -389,9 +389,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                                 if "startNewChat" in js_text:
                                                     # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
                                                     start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
-                                                    if start_id:
-                                                        for v, k in start_id:
-                                                            kwargs[k] = v
+                                                    for v, k in start_id:
+                                                        kwargs[k] = v
                                                     break
                                 elif chunk_data.startswith(("[", "{")):
                                     try:
@@ -485,7 +484,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
                         # Yield the conversation info first
                         yield JsonConversation(url_uuid=url_uuid)
-                        next_action =  kwargs.get("startNewChat") or kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
+                        next_action = kwargs.get("startNewChat") or kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
                     else:
                         # Continuing existing conversation
                         payload = [

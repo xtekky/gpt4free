@@ -4,10 +4,12 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import secrets
 import time
 from typing import Dict
-
+from urllib.parse import urlparse
+from nodriver import cdp
 import requests
 
 from g4f.image import to_bytes, detect_file_type
@@ -104,7 +106,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     looked = False
     _models_loaded = False
     image_cache = True
-
+    _next_actions = {
+        "generateUploadUrl":"7020462b741e358317f3b5a1929766d8b9c241c7c6",
+        "getSignedUrl":"60ff7bb683b22dd00024c9aee7664bbd39749e25c9",
+        "updateTouConsent": "40efff1040868c07750a939a0d8120025f246dfe28",
+        "createPointwiseFeedback": "605a0e3881424854b913fe1d76d222e50731b6037b",
+        "createPairwiseFeedback":"600777eb84863d7e79d85d214130d3214fc744c80f",
+        "getProxyImage": "60049198d4936e6b7acc63719b63b89284c58683e6"
+    }
     @classmethod
     def get_models(cls, timeout: int = None) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
@@ -147,8 +156,11 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     async def get_args_from_nodriver(cls, proxy, force=True):
         cache_file = cls.get_cache_file()
         grecaptcha = []
-        from urllib.parse import urlparse
-        from nodriver import cdp
+
+
+        async def is_auth(page:nodriver.Tab):
+            cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([cls.url]))}
+            return any("arena-auth-prod" in cookie for cookie in cookies)
 
         async def clear_cookies_for_url(browser, url: str):
             debug.log(f"Clearing cookies for {url}")
@@ -184,7 +196,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if textarea:
                 await textarea.send_keys("Hello")
             # await asyncio.sleep(1)
-            # button = await page.select('[type="submit"]:has([data-sentry-element="ArrowUp"])')
+            # button = await page.select('button[type="submit"]')
             # if button:
             #     await button.click()
             # button = await page.find("Agree")
@@ -210,6 +222,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 """window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""",
                 await_promise=True)
             grecaptcha.append(captcha)
+            html = await page.get_content()
+            await cls.__load_actions(html)
 
         args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
         args["impersonate"] = "chrome136"
@@ -247,6 +261,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 grecaptcha.append(captcha)
             else:
                 raise Exception(captcha)
+            html = await page.get_content()
+            await cls.__load_actions(html)
 
         args = await get_args_from_nodriver(
             cls.url, proxy=proxy, callback=callback, cookies=args.get("cookies", {}), user_data_dir="grecaptcha",
@@ -259,14 +275,92 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return args, next(iter(grecaptcha))
 
     @classmethod
+    async def __load_actions(cls, html):
+        def pars_children(data):
+            data = data["children"]
+            if len(data) < 4:
+                return
+            if data[1] in ["div", "defs", "style", "script"]:
+                return
+            if data[0] == "$":
+                pars_data(data[3])
+            else:
+                for child in data:
+                    if isinstance(child, list) and len(data) >= 4:
+                        pars_data(child[3])
+
+
+        def pars_data(data):
+            if not isinstance(data, (list, dict)):
+                return
+            if isinstance(data, dict):
+                json_data = data
+            elif data[0] == "$":
+                if data[1] in ["div", "defs", "style", "script"]:
+                    return
+                json_data = data[3]
+            else:
+                return
+            if not json_data:
+                return
+            if 'initialModels' in json_data:
+                models = json_data["initialModels"]
+                cls.text_models = {model["publicName"]: model["id"] for model in models if
+                                   "text" in model["capabilities"]["outputCapabilities"]}
+                cls.image_models = {model["publicName"]: model["id"] for model in models if
+                                    "image" in model["capabilities"]["outputCapabilities"]}
+                cls.vision_models = [model["publicName"] for model in models if
+                                     "image" in model["capabilities"]["inputCapabilities"]]
+                cls.models = list(cls.text_models) + list(cls.image_models)
+                cls.default_model = list(cls.text_models.keys())[0]
+                cls._models_loaded = True
+            elif 'children' in json_data:
+                pars_children(json_data)
+            elif 'userState' in json_data:
+                debug.log(json_data)
+
+        line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
+        pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
+        matches = re.findall(pattern, html)
+        for match in matches:
+            # Parse the JSON array
+            data = json.loads(match)
+            for chunk in data[1].split("\n"):
+                match = line_pattern.match(chunk)
+                if not match:
+                    continue
+                chunk_id, chunk_data = match.groups()
+                if chunk_data.startswith("I["):
+                    data = json.loads(chunk_data[1:])
+                    async with StreamSession() as session:
+                        if "Evaluation" == data[2]:
+                            js_files = dict(zip(data[1][::2], data[1][1::2]))
+                            for js_id, js in list(js_files.items())[::-1]:
+                                # if js_id != 5217:
+                                #     continue
+                                js_url = f"{cls.url}/_next/{js}"
+                                async with session.get(js_url) as js_response:
+                                    js_text = await js_response.text()
+                                    if "generateUploadUrl" in js_text:
+                                        # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
+                                        start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+                                        for v, k in start_id:
+                                            cls._next_actions[k] = v
+                                        break
+
+                elif chunk_data.startswith(("[", "{")):
+                    try:
+                        data = json.loads(chunk_data)
+                        pars_data(data)
+                    except json.decoder.JSONDecodeError:
+                        ...
+
+    @classmethod
     async def prepare_images(cls, args, media: list[tuple]) -> list[dict[str, str]]:
         files = []
         if not media:
             return files
-        ACTION_ID_STEP1 = "7020462b741e358317f3b5a1929766d8b9c241c7c6"
-        ACTION_ID_STEP3 = "60ff7bb683b22dd00024c9aee7664bbd39749e25c9"
         url = "https://lmarena.ai/?chat-modality=image"
-
         async with StreamSession(**args, ) as session:
 
             for index, (_file, file_name) in enumerate(media):
@@ -284,6 +378,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
                 extension, file_type = detect_file_type(data_bytes)
                 file_name = file_name or f"file-{len(data_bytes)}{extension}"
+                # async with session.post(
+                #         url="https://lmarena.ai/?chat-modality=image",
+                #         json=[],
+                #         headers={
+                #             "accept": "text/x-component",
+                #             "content-type": "text/plain;charset=UTF-8",
+                #             "next-action": cls._next_actions["updateTouConsent"],
+                #             "Referer": url
+                #
+                #         }
+                # ) as response:
+                #     await raise_for_status(response)
 
                 async with session.post(
                         url="https://lmarena.ai/?chat-modality=image",
@@ -291,7 +397,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         headers={
                             "accept": "text/x-component",
                             "content-type": "text/plain;charset=UTF-8",
-                            "next-action": ACTION_ID_STEP1,
+                            "next-action": cls._next_actions["generateUploadUrl"],
                             "Referer": url
 
                         }
@@ -323,7 +429,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         headers={
                             "accept": "text/x-component",
                             "content-type": "text/plain;charset=UTF-8",
-                            "next-action": ACTION_ID_STEP3,
+                            "next-action": cls._next_actions["getSignedUrl"],
                             "Referer": url
 
                         }
