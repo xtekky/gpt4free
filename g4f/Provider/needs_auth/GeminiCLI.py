@@ -519,7 +519,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini CLI"
     login_url = "https://github.com/GewoonJaap/gemini-cli-openai"
 
-    default_model = "gemini-2.5-pro"
+    default_model = "gemini-3-pro-preview"
     models = [
         "gemini-2.5-pro",
         "gemini-2.5-flash",
