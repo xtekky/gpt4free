@@ -210,11 +210,11 @@ gpt_4o_mini = Model(
     best_provider = IterListProvider([Chatai, OIVSCodeSer2, Startnest, OpenaiChat])
 )
 
-gpt_4o_mini_audio = AudioModel(
-    name          = 'gpt-4o-mini-audio-preview',
-    base_provider = 'OpenAI',
-    best_provider = PollinationsAI
-)
+# gpt_4o_mini_audio = AudioModel(
+#     name          = 'gpt-4o-mini-audio-preview',
+#     base_provider = 'OpenAI',
+#     best_provider = PollinationsAI
+# )
 
 gpt_4o_mini_tts = AudioModel(
     name          = 'gpt-4o-mini-tts',

@@ -13,15 +13,14 @@ from urllib.parse import quote
 
 import aiohttp
 
-from g4f.image import to_bytes, detect_file_type
-from g4f.requests import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
+from .qwen.cookie_generator import generate_cookies
 from .. import debug
-from ..errors import RateLimitError, ResponseError
+from ..errors import RateLimitError, ResponseError, CloudflareError
+from ..image import to_bytes, detect_file_type
 from ..providers.response import JsonConversation, Reasoning, Usage, ImageResponse, FinishReason
-from ..requests import sse_stream
-from ..requests.aiohttp import StreamSession
+from ..requests import sse_stream, StreamSession, raise_for_status, get_args_from_nodriver
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, MediaListType
 
@@ -31,7 +30,12 @@ try:
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
+try:
+    import nodriver
 
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
 # Global variables to manage Qwen Image Cache
 ImagesCache: Dict[str, dict] = {}
 
@@ -154,7 +158,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    async def prepare_files(cls, media, session: aiohttp.ClientSession, headers=None) -> list:
+    async def prepare_files(cls, media, session: StreamSession, headers=None) -> list:
         if headers is None:
             headers = {}
         files = []
@@ -252,9 +256,37 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 "file_class": file_class,
                 "uploadTaskId": str(uuid.uuid4())
             }
+            debug.log(f"Uploading file: {file_url}")
             ImagesCache[image_hash] = file
             files.append(file)
         return files
+
+    @classmethod
+    async def get_args(cls, proxy, **kwargs):
+        grecaptcha = []
+        async def callback(page: nodriver.Tab):
+            while not await page.evaluate('window.__baxia__ && window.__baxia__.getFYModule'):
+                await asyncio.sleep(1)
+            captcha = await page.evaluate(
+                """window.baxiaCommon.getUA()""",
+                await_promise=True)
+            if isinstance(captcha, str):
+                grecaptcha.append(captcha)
+            else:
+                raise Exception(captcha)
+        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+
+        return args, next(iter(grecaptcha))
+
+    @classmethod
+    async def raise_for_status(cls, response, message=None):
+        await raise_for_status(response, message)
+        content_type = response.headers.get("content-type", "")
+        if content_type.startswith("text/html"):
+            html = (await response.text()).strip()
+            if html.startswith('<!doctypehtml>') and "aliyun_waf_aa" in html:
+                raise CloudflareError(message or html)
+
 
     @classmethod
     async def create_async_generator(
@@ -283,9 +315,29 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             Txt2Txt = "t2t"
             WebDev = "web_dev"
         """
+        # cache_file = cls.get_cache_file()
+        # cookie: str = kwargs.get("cookie", "")  # ssxmod_itna=1-...
+        # args = kwargs.get("qwen_args", {})
+        # args.setdefault("cookies", {})
+        token = kwargs.get("token")
 
+        # if not args and cache_file.exists():
+        #     try:
+        #         with cache_file.open("r") as f:
+        #             args = json.load(f)
+        #     except json.JSONDecodeError:
+        #         debug.log(f"Cache file {cache_file} is corrupted, removing it.")
+        #         cache_file.unlink()
+        # if not cookie:
+        #     if not args:
+        #         args = await cls.get_args(proxy, **kwargs)
+        #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
         model_name = cls.get_model(model)
-        cookie = kwargs.get("cookie", "") # ssxmod_itna=1-...
+        prompt = get_last_user_message(messages)
+        timeout = kwargs.get("timeout") or 5 * 60
+        # for _ in range(2):
+        # data = generate_cookies()
+        # args,ua  = await cls.get_args(proxy, **kwargs)
         headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             'Accept': '*/*',
@@ -297,24 +349,19 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
             'Connection': 'keep-alive',
-            'Cookie': cookie,
+            # 'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
+            'Authorization': f'Bearer {token}' if token else "Bearer",
             'Source': 'web'
         }
 
-        prompt = get_last_user_message(messages)
-        _timeout = kwargs.get("timeout")
-        if isinstance(_timeout, aiohttp.ClientTimeout):
-            timeout = _timeout
-        else:
-            total = float(_timeout) if isinstance(_timeout, (int, float)) else 5 * 60
-            timeout = aiohttp.ClientTimeout(total=total)
+        # try:
         async with StreamSession(headers=headers) as session:
             try:
                 async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
-                    user_info_res.raise_for_status()
+                    await cls.raise_for_status(user_info_res)
                     debug.log(await user_info_res.json())
-            except:
-                ...
+            except Exception as e:
+                debug.error(e)
             for attempt in range(5):
                 try:
                     if not cls._midtoken:
@@ -336,19 +383,21 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     req_headers = session.headers.copy()
                     req_headers['bx-umidtoken'] = cls._midtoken
                     req_headers['bx-v'] = '2.5.31'
+                    # req_headers['bx-ua'] = ua
                     message_id = str(uuid.uuid4())
                     if conversation is None:
                         chat_payload = {
                             "title": "New Chat",
                             "models": [model_name],
-                            "chat_mode": "normal",
+                            "chat_mode": "normal",# local
                             "chat_type": chat_type,
                             "timestamp": int(time() * 1000)
                         }
                         async with session.post(
-                                f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers, proxy=proxy
+                                f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
+                                proxy=proxy
                         ) as resp:
-                            resp.raise_for_status()
+                            await cls.raise_for_status(resp)
                             data = await resp.json()
                             if not (data.get('success') and data['data'].get('id')):
                                 raise RuntimeError(f"Failed to create chat: {data}")
@@ -367,7 +416,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         "stream": stream,
                         "incremental_output": stream,
                         "chat_id": conversation.chat_id,
-                        "chat_mode": "normal",
+                        "chat_mode": "normal",# local
                         "model": model_name,
                         "parent_id": conversation.parent_id,
                         "messages": [
@@ -400,22 +449,24 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         msg_payload["size"] = aspect_ratio
 
                     async with session.post(
-                            f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}', json=msg_payload,
+                            f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
+                            json=msg_payload,
                             headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                     ) as resp:
-                        first_line = await resp.content.readline()
-                        line_str = first_line.decode().strip()
-                        if line_str.startswith('{'):
-                            data = json.loads(line_str)
-                            if data.get("data", {}).get("code"):
-                                raise RuntimeError(f"Response: {data}")
-                            conversation.parent_id = data.get("response.created", {}).get("response_id")
-                            yield conversation
-
+                        await cls.raise_for_status(resp)
+                        if resp.headers.get("content-type", "").startswith("application/json"):
+                            resp_json = await resp.json()
+                            if resp_json.get("success") is False or resp_json.get("data", {}).get("code"):
+                                raise RuntimeError(f"Response: {resp_json}")
+                        # args["cookies"] = merge_cookies(args.get("cookies"), resp)
                         thinking_started = False
                         usage = None
                         async for chunk in sse_stream(resp):
                             try:
+                                if "response.created" in chunk:
+                                    conversation.parent_id = chunk.get("response.created", {}).get(
+                                        "response_id")
+                                    yield conversation
                                 error = chunk.get("error", {})
                                 if error:
                                     raise ResponseError(f'{error["code"]}: {error["details"]}')
@@ -457,5 +508,11 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         continue
                     else:
                         raise e
-
             raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
+
+            # except CloudflareError as e:
+            #     debug.error(f"{cls.__name__}: {e}")
+            #     args = await cls.get_args(proxy, **kwargs)
+            #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
+            #     continue
+        raise RateLimitError("The Qwen provider reached the limit Cloudflare.")

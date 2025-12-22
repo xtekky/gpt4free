@@ -17,6 +17,8 @@ def is_cloudflare(text: str) -> bool:
 
 def is_openai(text: str) -> bool:
     return "<p>Unable to load site</p>" in text or 'id="challenge-error-text"' in text
+def is_lmarena(text: str) -> bool:
+    return 'recaptcha validation failed' in text
 
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.ok:
@@ -38,7 +40,7 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
                 message = await response.text()
         else:
             message = (await response.text()).strip()
-            is_html = content_type.startswith("text/html") or message.startswith("<!DOCTYPE")
+            is_html = content_type.startswith("text/html") or message.lower().startswith("<!DOCTYPE".lower())
     if message is None or is_html:
         if response.status == 520:
             message = "Unknown error (Cloudflare)"
@@ -48,7 +50,7 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
         raise MissingAuthError(f"Response {response.status}: {message}")
     if response.status == 403 and is_cloudflare(message):
         raise CloudflareError(f"Response {response.status}: Cloudflare detected")
-    elif response.status == 403 and is_openai(message):
+    elif response.status == 403 and (is_openai(message) or is_lmarena(message)):
         raise MissingAuthError(f"Response {response.status}: OpenAI Bot detected")
     elif response.status == 502:
         raise ResponseStatusError(f"Response {response.status}: Bad Gateway")
