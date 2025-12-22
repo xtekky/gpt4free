@@ -405,6 +405,9 @@ model_map = {
     "OpenRouter": "google/gemini-2.5-pro-preview-05-06",
     "Yupp": "gemini-2.5-pro"
   },
+  "gemini-3-pro-preview": {
+    "GeminiCLI": "gemini-3-pro-preview"
+  },
   "codegemma-7b": {
     "DeepInfra": "google/codegemma-7b-it",
     "Nvidia": "google/codegemma-7b"
