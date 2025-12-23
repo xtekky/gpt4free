@@ -62,7 +62,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if cookies is None:
-            cookies = get_cookies(cls.domain, single_browser=True)
+            cookies = get_cookies(cls.domain, raise_requirements_error=False, single_browser=True)
         try:
             yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
             yield AuthResult(

@@ -181,7 +181,7 @@ class Backend_Api(Api):
                 logger.exception(e)
                 return jsonify({"error": {"message": "Invalid JSON data"}}), 400
             if app.demo and has_crypto:
-                secret = request.headers.get("x_secret")
+                secret = request.headers.get("x-secret", request.headers.get("x_secret"))
                 if not secret or not validate_secret(secret):
                     return jsonify({"error": {"message": "Invalid or missing secret"}}), 403
             tempfiles = []

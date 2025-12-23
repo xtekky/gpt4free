@@ -193,9 +193,10 @@ class AppConfig:
             if value is not None:
                 setattr(cls, key, value)
 
-def update_headers(request: Request, user: str) -> Request:
+def update_headers(request: Request, delete_authorization: bool = True, user: str = None) -> Request:
     new_headers = request.headers.mutablecopy()
-    del new_headers["Authorization"]
+    if delete_authorization and "authorization" in new_headers:
+        del new_headers["authorization"]
     if user:
         new_headers["x-user"] = user
     request.scope["headers"] = new_headers.raw
@@ -236,11 +237,12 @@ class Api:
         async def authorization(request: Request, call_next):
             user = None
             if request.method != "OPTIONS" and AppConfig.g4f_api_key is not None or AppConfig.demo:
+                delete_authorization = False
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
-                    user_g4f_api_key = await self.security(request)
-                    user_g4f_api_key = getattr(user_g4f_api_key, "credentials", user_g4f_api_key)
+                    user_g4f_api_key = getattr(await self.security(request), "credentials", None)
+                    delete_authorization = True
                 country = request.headers.get("Cf-Ipcountry", "")
                 if AppConfig.demo and user is None:
                     ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
@@ -293,7 +295,7 @@ class Api:
                             user = await self.get_username(request)
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
-                request = update_headers(request, user)
+                request = update_headers(request, delete_authorization, user)
             response = await call_next(request)
             return response
 
