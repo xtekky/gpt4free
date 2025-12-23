@@ -436,7 +436,6 @@ class Api:
             provider: str = None,
             conversation_id: str = None,
             x_user: Annotated[str | None, Header()] = None,
-            cf_ipcountry: Annotated[str | None, Header()] = None,
             x_forwarded_for: Annotated[str | None, Header()] = None
         ):
             if AppConfig.demo and x_forwarded_for is not None:
@@ -511,7 +510,7 @@ class Api:
                             **{
                                 "conversation_id": None,
                                 "conversation": conversation,
-                                "user": f"{cf_ipcountry}:{x_user}" if cf_ipcountry else x_user,
+                                "user": x_user,
                             }
                         },
                         ignored=AppConfig.ignored_providers
