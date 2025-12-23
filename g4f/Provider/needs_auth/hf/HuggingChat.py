@@ -108,14 +108,13 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.log(f"Conversation created: {json.dumps(conversationId[8:] + '...')}")
             messageId = cls.fetch_message_id(session, conversationId)
             conversation.models[model] = {"conversationId": conversationId, "messageId": messageId}
-            if return_conversation:
-                yield conversation
             inputs = format_prompt(messages)
         else:
             conversationId = conversation.models[model]["conversationId"]
             conversation.models[model]["messageId"] = cls.fetch_message_id(session, conversationId)
             inputs = get_last_user_message(messages)
-
+        if return_conversation:
+            yield conversation
         settings = {
             "inputs": inputs,
             "id": conversation.models[model]["messageId"],
