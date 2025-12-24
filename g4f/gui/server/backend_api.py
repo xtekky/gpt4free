@@ -606,13 +606,14 @@ class Backend_Api(Api):
 
     def _format_json(self, response_type: str, content = None, **kwargs) -> str:
         """
-        Formats and returns a JSON response.
+        Formats and returns a SSE (Server-Sent Events) formatted JSON response.
 
         Args:
-            response_type (str): The type of the response.
+            response_type (str): The type of the response, used as the SSE event name.
             content: The content to be included in the response.
 
         Returns:
-            str: A JSON formatted string.
+            str: A SSE formatted string with event type and JSON data.
         """
-        return json.dumps(super()._format_json(response_type, content, **kwargs)) + "\n"
+        data = json.dumps(super()._format_json(response_type, content, **kwargs))
+        return f"event: {response_type}\ndata: {data}\n\n"

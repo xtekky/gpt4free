@@ -206,6 +206,8 @@ class Api:
             result = iter_run_tools(provider_handler, **{**kwargs, "model": model, "download_media": download_media})
             for chunk in result:
                 if isinstance(chunk, ProviderInfo):
+                    model = getattr(chunk, "model", model)
+                    provider = getattr(chunk, "provider", provider)
                     yield self.handle_provider(chunk, model)
                 elif isinstance(chunk, JsonConversation):
                     if provider is not None:
@@ -262,7 +264,7 @@ class Api:
                 elif isinstance(chunk, FinishReason):
                     yield self._format_json("finish", chunk.get_dict())
                 elif isinstance(chunk, Usage):
-                    yield self._format_json("usage", chunk.get_dict())
+                    yield self._format_json("usage", chunk.get_dict(), model=model, provider=provider)
                 elif isinstance(chunk, Reasoning):
                     yield self._format_json("reasoning", **chunk.get_dict())
                 elif isinstance(chunk, YouTubeResponse):
