@@ -182,8 +182,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             for c in cookies:
                 dom = (c.domain or "").lstrip(".")
                 if dom and (host == dom or host.endswith("." + dom)):
-                    if c.name == "cf_clearance":
-                        continue
+                    # if c.name == "cf_clearance":
+                    #     continue
                     await tab.send(
                         cdp.network.delete_cookies(
                             name=c.name,
