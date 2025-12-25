@@ -420,8 +420,6 @@ class Api:
                 })
             return ErrorResponse.from_message("The model does not exist.", HTTP_404_NOT_FOUND)
 
-        most_wanted = {}
-        failure_counts = {}
         responses = {
             HTTP_200_OK: {"model": ChatCompletion},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
@@ -438,28 +436,7 @@ class Api:
             provider: str = None,
             conversation_id: str = None,
             x_user: Annotated[str | None, Header()] = None,
-            x_forwarded_for: Annotated[str | None, Header()] = None
         ):
-            if AppConfig.demo and x_forwarded_for is not None:
-                current_most_wanted = next(iter(most_wanted.values()), 0)
-                is_most_wanted = False
-                if x_forwarded_for in most_wanted:
-                    if failure_counts.get(x_forwarded_for, 0) > 1:
-                        failure_counts[x_forwarded_for] -= 1
-                        most_wanted[x_forwarded_for] += 1
-                    elif most_wanted[x_forwarded_for] >= current_most_wanted:
-                        if x_forwarded_for not in failure_counts:
-                            failure_counts[x_forwarded_for] = 0
-                        failure_counts[x_forwarded_for] += 1
-                        is_most_wanted = True
-                    else:
-                        most_wanted[x_forwarded_for] += 1
-                else:
-                    most_wanted[x_forwarded_for] = 1
-                sorted_most_wanted = dict(sorted(most_wanted.items(), key=lambda item: item[1], reverse=True))
-                print(f"Most wanted IPs: {json.dumps(sorted_most_wanted, indent=2)}")
-                if is_most_wanted:
-                    return ErrorResponse.from_message("You are most wanted! Please wait before making another request.", status_code=HTTP_429_TOO_MANY_REQUESTS)
             if provider is not None and provider not in Provider.__map__:
                 if provider in model_map:
                     config.model = provider
