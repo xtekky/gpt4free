@@ -214,7 +214,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
             if not model_returned and model:
                 yield ProviderInfo(**provider_info, model=model)
                 model_returned = True
-            choice = next(iter(data["choices"]), None)
+            choice = next(iter(data.get("choices", [])), None)
             if choice:
                 content = choice.get("delta", {}).get("content")
                 if content:

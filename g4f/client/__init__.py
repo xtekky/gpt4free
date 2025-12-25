@@ -920,7 +920,7 @@ class ClientFactory:
             )
         """
         return Client(
-            provider=cls.createProvider(None, provider, base_url, api_key, **kwargs),
+            provider=cls.create_provider(None, provider, base_url, api_key, **kwargs),
             media_provider=media_provider,
             api_key=api_key,
             base_url=base_url,
