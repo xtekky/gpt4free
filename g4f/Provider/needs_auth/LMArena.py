@@ -106,7 +106,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     vision_models = vision_models
     looked = False
     _models_loaded = False
-    image_cache = True
+    image_cache = False
     _next_actions = {
         "generateUploadUrl":"7020462b741e358317f3b5a1929766d8b9c241c7c6",
         "getSignedUrl":"60ff7bb683b22dd00024c9aee7664bbd39749e25c9",
