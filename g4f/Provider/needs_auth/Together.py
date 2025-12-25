@@ -8,7 +8,7 @@ class Together(OpenaiTemplate):
     label = "Together"
     url = "https://together.xyz"
     login_url = "https://api.together.ai/"
-    api_base = "https://api.together.xyz/v1"
+    base_url = "https://api.together.xyz/v1"
     models_endpoint = "https://api.together.xyz/v1/models"
 
     active_by_default = False

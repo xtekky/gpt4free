@@ -186,7 +186,7 @@ class AuthManager(AuthFileMixin):
 
 class GeminiCLIProvider():
     url = "https://cloud.google.com/code-assist"
-    api_base = "https://cloudcode-pa.googleapis.com/v1internal"
+    base_url = "https://cloudcode-pa.googleapis.com/v1internal"
 
     # Required for authentication and token management; Expects a compatible AuthManager instance
     auth_manager: AuthManager
@@ -414,7 +414,7 @@ class GeminiCLIProvider():
             "Authorization": f"Bearer {self.auth_manager.get_access_token()}",
         }
 
-        url = f"{self.api_base}:streamGenerateContent?alt=sse"
+        url = f"{self.base_url}:streamGenerateContent?alt=sse"
 
         # Streaming SSE parsing helper
         async def parse_sse_stream(stream: aiohttp.StreamReader) -> AsyncGenerator[Dict[str, Any], None]:

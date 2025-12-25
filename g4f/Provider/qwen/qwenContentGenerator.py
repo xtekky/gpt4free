@@ -17,7 +17,7 @@ class QwenContentGenerator:
         self.shared_manager = SharedTokenManager.getInstance()
 
         # Initialize API URL with default, may be updated later
-        self.api_base = self.base_url
+        self.base_url = self.base_url
 
     def get_current_endpoint(self, resource_url: Optional[str]) -> str:
         url = resource_url if resource_url else self.base_url

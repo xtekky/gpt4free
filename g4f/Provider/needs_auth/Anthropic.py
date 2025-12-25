@@ -18,7 +18,7 @@ class Anthropic(OpenaiAPI):
     url = "https://console.anthropic.com"
     login_url = "https://console.anthropic.com/settings/keys"
     working = True
-    api_base = "https://api.anthropic.com/v1"
+    base_url = "https://api.anthropic.com/v1"
     needs_auth = True
     supports_stream = True
     supports_system_message = True
@@ -163,7 +163,7 @@ class Anthropic(OpenaiAPI):
                 tools=tools,
                 **extra_body
             )
-            async with session.post(f"{cls.api_base}/messages", json=data) as response:
+            async with session.post(f"{cls.base_url}/messages", json=data) as response:
                 await raise_for_status(response)
                 if not stream:
                     data = await response.json()

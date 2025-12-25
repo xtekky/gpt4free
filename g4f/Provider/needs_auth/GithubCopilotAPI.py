@@ -7,6 +7,6 @@ class GithubCopilotAPI(OpenaiAPI):
     url = "https://github.com/copilot"
     login_url = "https://aider.chat/docs/llms/github.html"
     working = True
-    api_base = "https://api.githubcopilot.com"
+    base_url = "https://api.githubcopilot.com"
     needs_auth = True
     models_needs_auth = True

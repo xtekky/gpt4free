@@ -32,7 +32,7 @@ SAFE_PARAMETERS = [
     "temperature",  "top_k", "top_p",
     "frequency_penalty", "presence_penalty",
     "max_tokens", "stop",
-    "api_key", "api_base", "seed", "width", "height",
+    "api_key", "base_url", "seed", "width", "height",
     "max_retries", "web_search", "cache",
     "guidance_scale", "num_inference_steps", "randomize_seed",
     "safe", "enhance", "private", "aspect_ratio", "n", "transparent"

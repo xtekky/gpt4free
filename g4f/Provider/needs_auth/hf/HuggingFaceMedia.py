@@ -144,7 +144,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     continue
                 provider_info = ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})", "url": f"{cls.url}/{model}"})
 
-                api_base = f"https://router.huggingface.co/{provider_key}"
+                base_url = f"https://router.huggingface.co/{provider_key}"
                 task = provider["task"]
                 provider_id = provider["providerId"]
                 if task not in cls.tasks:
@@ -165,7 +165,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         "aspect_ratio": aspect_ratio,
                         **extra_body
                     }
-                url = f"{api_base}/{provider_id}"
+                url = f"{base_url}/{provider_id}"
                 data = {
                     "prompt": prompt,
                     **{"width": width, "height": height},
@@ -180,15 +180,15 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         **extra_body
                     }
                 elif provider_key == "novita":
-                    url = f"{api_base}/v3/hf/{provider_id}"
+                    url = f"{base_url}/v3/hf/{provider_id}"
                 elif provider_key == "replicate":
-                    url = f"{api_base}/v1/models/{provider_id}/predictions"
+                    url = f"{base_url}/v1/models/{provider_id}/predictions"
                     data = {
                         "input": data
                     }
                 elif provider_key in ("hf-inference", "hf-free"):
-                    api_base = "https://api-inference.huggingface.co"
-                    url = f"{api_base}/models/{provider_id}"
+                    base_url = "https://api-inference.huggingface.co"
+                    url = f"{base_url}/models/{provider_id}"
                     data = {
                         "inputs": prompt,
                         "parameters": {
@@ -197,7 +197,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         }
                     }
                 elif task == "text-to-image":
-                    url = f"{api_base}/v1/images/generations"
+                    url = f"{base_url}/v1/images/generations"
                     data = {
                         "response_format": "url",
                         "model": provider_id,

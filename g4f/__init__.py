@@ -7,7 +7,7 @@ from typing import Union, Optional, Coroutine
 from . import debug, version
 
 from .models import Model
-from .client import Client, AsyncClient
+from .client import Client, AsyncClient, ClientFactory, create_custom_provider
 from .typing import Messages, CreateResult, AsyncResult, ImageType
 from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType

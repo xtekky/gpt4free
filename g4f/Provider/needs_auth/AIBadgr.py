@@ -6,7 +6,7 @@ class AIBadgr(OpenaiTemplate):
     label = "AI Badgr"
     url = "https://aibadgr.com"
     login_url = "https://aibadgr.com/api-keys"
-    api_base = "https://aibadgr.com/api/v1"
+    base_url = "https://aibadgr.com/api/v1"
     working = True
     needs_auth = True
     supports_stream = True

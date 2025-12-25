@@ -8,7 +8,7 @@ class ApiAirforce(OpenaiTemplate):
     label = "Api.Airforce"
     url = "https://api.airforce"
     login_url = "https://panel.api.airforce/dashboard"
-    api_base = "https://api.airforce/v1"
+    base_url = "https://api.airforce/v1"
     working = True
     active_by_default = True
     use_image_size = True

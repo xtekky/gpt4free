@@ -6,7 +6,7 @@ from ...config import DEFAULT_MODEL
 class FenayAI(OpenaiTemplate):
     url = "https://fenayai.com"
     login_url = "https://fenayai.com/dashboard"
-    api_base = "https://fenayai.com/v1"
+    base_url = "https://fenayai.com/v1"
     working = True
     needs_auth = True
     models_needs_auth = True
