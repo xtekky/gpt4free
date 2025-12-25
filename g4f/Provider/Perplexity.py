@@ -272,6 +272,8 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                             if patch.get("path") == "/progress":
                                 continue
                             value = patch.get("value", "")
+                            if isinstance(value, dict) and "chunks" in value:
+                                value = "".join(value.get("chunks", []))
                             if patch.get("path").startswith("/goals"):
                                 if isinstance(value, str):
                                     if value.startswith(full_reasoning):

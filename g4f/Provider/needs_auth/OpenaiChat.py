@@ -350,23 +350,24 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def create_authed(
-            cls,
-            model: str,
-            messages: Messages,
-            auth_result: AuthResult,
-            proxy: str = None,
-            timeout: int = 360,
-            auto_continue: bool = False,
-            action: Optional[str] = None,
-            conversation: Conversation = None,
-            media: MediaListType = None,
-            return_conversation: bool = True,
-            web_search: bool = False,
-            prompt: str = None,
-            conversation_mode: Optional[dict] = None,
-            temporary: Optional[bool] = None,
-            conversation_id: Optional[str] = None,
-            **kwargs
+        cls,
+        model: str,
+        messages: Messages,
+        auth_result: AuthResult,
+        proxy: str = None,
+        timeout: int = 360,
+        auto_continue: bool = False,
+        action: Optional[str] = None,
+        conversation: Conversation = None,
+        media: MediaListType = None,
+        return_conversation: bool = True,
+        web_search: bool = False,
+        prompt: str = None,
+        conversation_mode: Optional[dict] = None,
+        temporary: Optional[bool] = None,
+        conversation_id: Optional[str] = None,
+        reasoning_effort: Optional[str] = None,
+        **kwargs
     ) -> AsyncResult:
         """
         Create an asynchronous generator for the conversation.
@@ -394,9 +395,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if action is None:
             action = "next"
         async with StreamSession(
-                proxy=proxy,
-                impersonate="chrome",
-                timeout=timeout
+            proxy=proxy,
+            impersonate="chrome",
+            timeout=timeout
         ) as session:
             image_requests = None
             media = merge_media(media, messages)
@@ -457,6 +458,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         "system_hints": [
                             "picture_v2"
                         ] if image_model else [],
+                        "thinking_effort": "extended" if reasoning_effort == "high" else "standard",
                         "supports_buffering": True,
                         "supported_encodings": ["v1"]
                     }
@@ -517,6 +519,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "conversation_mode": {"kind": "primary_assistant"},
                     "enable_message_followups": True,
                     "system_hints": ["search"] if web_search else None,
+                    "thinking_effort": "extended" if reasoning_effort == "high" else "standard",
                     "supports_buffering": True,
                     "supported_encodings": ["v1"],
                     "client_contextual_info": {"is_dark_mode": False, "time_since_loaded": random.randint(20, 500),

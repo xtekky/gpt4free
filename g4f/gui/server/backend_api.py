@@ -181,7 +181,7 @@ class Backend_Api(Api):
                 logger.exception(e)
                 return jsonify({"error": {"message": "Invalid JSON data"}}), 400
             if app.demo and has_crypto:
-                secret = request.headers.get("x_secret")
+                secret = request.headers.get("x-secret", request.headers.get("x_secret"))
                 if not secret or not validate_secret(secret):
                     return jsonify({"error": {"message": "Invalid or missing secret"}}), 403
             tempfiles = []
@@ -606,13 +606,14 @@ class Backend_Api(Api):
 
     def _format_json(self, response_type: str, content = None, **kwargs) -> str:
         """
-        Formats and returns a JSON response.
+        Formats and returns a SSE (Server-Sent Events) formatted JSON response.
 
         Args:
-            response_type (str): The type of the response.
+            response_type (str): The type of the response, used as the SSE event name.
             content: The content to be included in the response.
 
         Returns:
-            str: A JSON formatted string.
+            str: A SSE formatted string with event type and JSON data.
         """
-        return json.dumps(super()._format_json(response_type, content, **kwargs)) + "\n"
+        data = json.dumps(super()._format_json(response_type, content, **kwargs))
+        return f"event: {response_type}\ndata: {data}\n\n"

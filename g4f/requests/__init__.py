@@ -177,7 +177,10 @@ async def get_nodriver(
             # Default to Edge if Chrome is not available.
             browser_executable_path = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
             if not os.path.exists(browser_executable_path):
-                browser_executable_path = None
+                # Default to Chromium on Linux systems.
+                browser_executable_path = "/data/data/com.termux/files/usr/bin/chromium-browser"
+                if not os.path.exists(browser_executable_path):
+                    browser_executable_path = None
     debug.log(f"Browser executable path: {browser_executable_path}")
     lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
     if user_data_dir:

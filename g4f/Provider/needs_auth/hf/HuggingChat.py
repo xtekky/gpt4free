@@ -62,7 +62,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if cookies is None:
-            cookies = get_cookies(cls.domain, single_browser=True)
+            cookies = get_cookies(cls.domain, raise_requirements_error=False, single_browser=True)
         try:
             yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
             yield AuthResult(
@@ -108,14 +108,13 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.log(f"Conversation created: {json.dumps(conversationId[8:] + '...')}")
             messageId = cls.fetch_message_id(session, conversationId)
             conversation.models[model] = {"conversationId": conversationId, "messageId": messageId}
-            if return_conversation:
-                yield conversation
             inputs = format_prompt(messages)
         else:
             conversationId = conversation.models[model]["conversationId"]
             conversation.models[model]["messageId"] = cls.fetch_message_id(session, conversationId)
             inputs = get_last_user_message(messages)
-
+        if return_conversation:
+            yield conversation
         settings = {
             "inputs": inputs,
             "id": conversation.models[model]["messageId"],
