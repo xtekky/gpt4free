@@ -806,13 +806,13 @@ class ClientFactory:
     
     Example usage:
         # Create client with a named provider
-        client = ClientFactory.createClient("PollinationsAI")
+        client = ClientFactory.create_client("PollinationsAI")
         
         # Create client with multiple providers (fallback)
-        client = ClientFactory.createClient(["PollinationsAI", "DeepInfra"])
+        client = ClientFactory.create_client(["PollinationsAI", "DeepInfra"])
         
         # Create client with custom provider
-        client = ClientFactory.createClient(
+        client = ClientFactory.create_client(
             base_url="https://api.example.com/v1",
             api_key="your-api-key"
         )
@@ -908,13 +908,13 @@ class ClientFactory:
             
         Example:
             # Named provider
-            client = ClientFactory.createClient("PollinationsAI")
+            client = ClientFactory.create_client("PollinationsAI")
             
             # Multiple providers (fallback)
-            client = ClientFactory.createClient(["PollinationsAI", "DeepInfra"])
+            client = ClientFactory.create_client(["PollinationsAI", "DeepInfra"])
             
             # Custom provider
-            client = ClientFactory.createClient(
+            client = ClientFactory.create_client(
                 base_url="https://api.openai.com/v1",
                 api_key="sk-..."
             )
