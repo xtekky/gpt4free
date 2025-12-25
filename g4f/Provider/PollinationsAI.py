@@ -61,11 +61,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     fallback_model = "deepseek"
     default_image_model = "flux"
     default_vision_model = default_model
-    default_audio_model = "openai-audio"
     default_voice = "alloy"
     text_models = [default_model]
     image_models = [default_image_model, "turbo", "kontext"]
-    audio_models = {default_audio_model: []}
+    audio_models = {}
     vision_models = [default_vision_model]
     _gen_models_loaded = False
     _free_models_loaded = False
@@ -174,8 +173,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             all_models = cls.text_models.copy()
             all_models.extend(cls.image_models)
             all_models.extend(cls.audio_models.keys())
-            if cls.default_audio_model in cls.audio_models:
-                all_models.extend(cls.audio_models[cls.default_audio_model])
             cls.models = all_models
             # Cache the models to a file
             try:
@@ -202,7 +199,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             {"group": "Image Generation", "models": cls.image_models},
             {"group": "Video Generation", "models": cls.video_models},
             {"group": "Audio Generation", "models": list(cls.audio_models.keys())},
-            {"group": "Audio Voices", "models": cls.audio_models.get(cls.default_audio_model, [])},
         ]
 
     @classmethod
@@ -250,7 +246,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if is_data_an_audio(media_data, filename):
                         has_audio = True
                         break
-            model = cls.default_audio_model if has_audio else cls.default_model
+            model = "openai-audio" if has_audio else cls.default_model
         elif (cls._gen_models_loaded if api_key else cls._free_models_loaded) or cls.get_models(api_key=api_key, timeout=kwargs.get("timeout")):
             if model in cls.model_aliases:
                 model = cls.model_aliases[model]
@@ -284,11 +280,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     "role": "user",
                     "content": prompt
                 }]
-            if model and model in cls.audio_models[cls.default_audio_model]:
-                kwargs["audio"] = {
-                    "voice": model,
-                }
-                model = cls.default_audio_model
             async for result in cls._generate_text(
                     model=model,
                     messages=messages,
