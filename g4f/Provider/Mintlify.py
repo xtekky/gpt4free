@@ -17,7 +17,7 @@ class Mintlify(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = None
     api_endpoint = "https://leaves.mintlify.com/api/assistant/mintlify/message"
     
-    working = True
+    working = False
     active_by_default = True
     
     default_model = 'mintlify'

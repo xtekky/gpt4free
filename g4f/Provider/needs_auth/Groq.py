@@ -6,7 +6,7 @@ from ...config import DEFAULT_MODEL
 class Groq(OpenaiTemplate):
     url = "https://console.groq.com/playground"
     login_url = "https://console.groq.com/keys"
-    api_base = "https://api.groq.com/openai/v1"
+    base_url = "https://api.groq.com/openai/v1"
     working = True
     needs_auth = True
     models_needs_auth = True

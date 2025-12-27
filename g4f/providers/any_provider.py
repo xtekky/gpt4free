@@ -256,11 +256,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             # Check for models with prefix
             start = model.split(":")[0]
             if start in ("PollinationsAI", "openrouter"):
-                submodel = model.split(":", maxsplit=1)[1]
-                if submodel in PollinationsAI.audio_models[PollinationsAI.default_audio_model]:
-                    groups["voices"].append(submodel)
-                else:
-                    groups[start].append(model)
+                groups[start].append(model)
                 added = True
             # Check for Mistral company models specifically
             elif model.startswith("mistral") and not any(x in model for x in ["dolphin", "nous", "openhermes"]):

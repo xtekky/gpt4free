@@ -32,7 +32,7 @@ SAFE_PARAMETERS = [
     "temperature",  "top_k", "top_p",
     "frequency_penalty", "presence_penalty",
     "max_tokens", "stop",
-    "api_key", "api_base", "seed", "width", "height",
+    "api_key", "base_url", "seed", "width", "height",
     "max_retries", "web_search", "cache",
     "guidance_scale", "num_inference_steps", "randomize_seed",
     "safe", "enhance", "private", "aspect_ratio", "n", "transparent"
@@ -401,10 +401,6 @@ class ProviderModelMixin:
                 return selected_model
             debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
             return alias
-        if model not in cls.model_aliases.values():
-            if model not in cls.get_models(**kwargs) and cls.models:
-                raise ModelNotFoundError(f"Model not found: {model} in: {cls.__name__} Valid models: {cls.models}")
-        cls.last_model = model
         return model
 
 class RaiseErrorMixin():

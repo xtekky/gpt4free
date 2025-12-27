@@ -8,7 +8,7 @@ from .template import OpenaiTemplate
 class StringableInference(OpenaiTemplate):
     label = "Stringable Inference"
     url = "https://stringable-inference.onrender.com"
-    api_base = "https://stringableinf.com/api"
+    base_url = "https://stringableinf.com/api"
     api_endpoint = "https://stringableinf.com/api/v1/chat/completions"
 
     working = False

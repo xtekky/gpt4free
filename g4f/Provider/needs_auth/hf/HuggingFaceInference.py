@@ -71,7 +71,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         proxy: str = None,
         timeout: int = 600,
-        api_base: str = "https://api-inference.huggingface.co",
+        base_url: str = "https://api-inference.huggingface.co",
         api_key: str = None,
         max_tokens: int = 1024,
         temperature: float = None,
@@ -160,7 +160,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
 
-            async with session.post(f"{api_base.rstrip('/')}/models/{model}", json=payload) as response:
+            async with session.post(f"{base_url.rstrip('/')}/models/{model}", json=payload) as response:
                 if response.status == 404:
                     raise ModelNotFoundError(f"Model not found: {model}")
                 await raise_for_status(response)

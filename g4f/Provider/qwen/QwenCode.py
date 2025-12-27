@@ -33,7 +33,7 @@ class QwenCode(OpenaiTemplate):
         model: str,
         messages: Messages,
         api_key: str = None,
-        api_base: str = None,
+        base_url: str = None,
         **kwargs
     ) -> AsyncResult:
         try:
@@ -43,7 +43,7 @@ class QwenCode(OpenaiTemplate):
                 model,
                 messages,
                 api_key=creds.get("token", api_key),
-                api_base=creds.get("endpoint", api_base),
+                base_url=creds.get("endpoint", base_url),
                 **kwargs
             ):
                 if isinstance(chunk, str):
@@ -60,7 +60,7 @@ class QwenCode(OpenaiTemplate):
                 model,
                 messages,
                 api_key=creds.get("token"),
-                api_base=creds.get("endpoint"),
+                base_url=creds.get("endpoint"),
                 **kwargs
             ):
                 if isinstance(chunk, str):

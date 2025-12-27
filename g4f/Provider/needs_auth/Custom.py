@@ -7,7 +7,7 @@ class Custom(OpenaiTemplate):
     working = True
     needs_auth = False
     models_needs_auth = False
-    api_base = "http://localhost:8080/v1"
+    base_url = "http://localhost:8080/v1"
     sort_models = False
 
 class Feature(Custom):

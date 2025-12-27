@@ -48,7 +48,7 @@ class Api:
         for model, providers in models.__models__.values()]
 
     @staticmethod
-    def get_provider_models(provider: str, api_key: str = None, api_base: str = None, ignored: list = None):
+    def get_provider_models(provider: str, api_key: str = None, base_url: str = None, ignored: list = None):
         def get_model_data(provider: ProviderModelMixin, model: str, default: bool = False) -> dict:
             return {
                 "model": model,
@@ -67,7 +67,7 @@ class Api:
                 has_grouped_models = hasattr(provider, "get_grouped_models")
                 method = provider.get_grouped_models if has_grouped_models else provider.get_models
                 if "api_key" in signature(provider.get_models).parameters:
-                    models = method(api_key=api_key, api_base=api_base)
+                    models = method(api_key=api_key, base_url=base_url)
                 elif "ignored" in signature(provider.get_models).parameters:
                     models = method(ignored=ignored)
                 else:

@@ -23,7 +23,7 @@ class ThebApi(OpenaiTemplate):
     label = "TheB.AI API"
     url = "https://theb.ai"
     login_url = "https://beta.theb.ai/home"
-    api_base = "https://api.theb.ai/v1"
+    base_url = "https://api.theb.ai/v1"
     working = True
     needs_auth = True
     models_needs_auth = True

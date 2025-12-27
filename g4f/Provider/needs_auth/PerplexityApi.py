@@ -8,7 +8,7 @@ class PerplexityApi(OpenaiTemplate):
     login_url = "https://www.perplexity.ai/settings/api"
     working = True
     needs_auth = True
-    api_base = "https://api.perplexity.ai"
+    base_url = "https://api.perplexity.ai"
     default_model = "llama-3-sonar-large-32k-online"
     models = [
         "llama-3-sonar-small-32k-chat",
