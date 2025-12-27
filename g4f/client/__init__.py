@@ -861,8 +861,8 @@ class ClientFactory:
         else:
             if not cls._live_providers:
                 path = Path(get_cookies_dir()) / "models" / datetime.today().strftime('%Y-%m-%d') / f"providers.json"
+                path.parent.mkdir(parents=True, exist_ok=True)
                 if path.exists():
-                    path.parent.mkdir(parents=True, exist_ok=True)
                     with open(path, "r", encoding="utf-8") as f:
                         cls._live_providers = json.load(f)
                 cls._live_providers = requests.get(cls._live_providers_url).json()

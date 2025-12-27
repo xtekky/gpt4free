@@ -38,7 +38,7 @@ except ImportError:
 
 from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
-from ...providers.response import FinishReason, AudioResponse, MediaResponse, Reasoning, HiddenResponse
+from ...providers.response import FinishReason, AudioResponse, MediaResponse, Reasoning, HiddenResponse, JsonResponse
 from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_tempfile
 from ...tools.run_tools import iter_run_tools
@@ -312,7 +312,7 @@ class Backend_Api(Api):
                     parameters["audio"] = {}
                 def cast_str(response):
                     buffer = next(response)
-                    while isinstance(buffer, (Reasoning, HiddenResponse)):
+                    while isinstance(buffer, (Reasoning, HiddenResponse, JsonResponse)):
                         buffer = next(response)
                     if isinstance(buffer, MediaResponse):
                         if len(buffer.get_list()) == 1:

@@ -401,10 +401,6 @@ class ProviderModelMixin:
                 return selected_model
             debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
             return alias
-        if model not in cls.model_aliases.values():
-            if model not in cls.get_models(**kwargs) and cls.models:
-                raise ModelNotFoundError(f"Model not found: {model} in: {cls.__name__} Valid models: {cls.models}")
-        cls.last_model = model
         return model
 
 class RaiseErrorMixin():

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..typing import Messages, Cookies, AsyncIterator, Iterator
 from ..tools.files import get_bucket_dir, read_bucket
+from .response import JsonResponse, HiddenResponse
 from .. import debug
 
 def to_string(value) -> str:
@@ -154,7 +155,7 @@ async def async_concat_chunks(chunks: AsyncIterator) -> str:
 def concat_chunks(chunks: Iterator) -> str:
     return "".join([
         str(chunk) for chunk in chunks
-        if chunk and not isinstance(chunk, Exception)
+        if chunk and not isinstance(chunk, (JsonResponse, HiddenResponse, Exception))
     ])
 
 def format_cookies(cookies: Cookies) -> str:
