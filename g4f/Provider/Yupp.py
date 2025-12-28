@@ -552,10 +552,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         account["error_count"] += 1
                     raise ProviderException(f"Yupp request failed: {str(e)}") from e
             except Exception as e:
-                log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {str(e)}")
+                log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {type(e)} : {str(e)}")
                 async with account_rotation_lock:
                     account["error_count"] += 1
-                raise ProviderException(f"Yupp request failed: {str(e)}") from e
+                raise ProviderException(f"Yupp request failed:{type(e)}: {str(e)}") from e
 
         raise ProviderException("All Yupp accounts failed after rotation attempts")
 
