@@ -136,54 +136,54 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                         await asyncio.sleep(3)
                         await click_trunstile(page)
 
-        uploaded_attachments = []
-        if auth_result.access_token:
-            # Upload regular media (images)
-            for media, _ in merge_media(media, messages):
-                if not isinstance(media, str):
-                    data_bytes = to_bytes(media)
-                    response_json = await page.evaluate(f'''
-                    fetch('https://copilot.microsoft.com/c/api/attachments', {{
-                    method: 'POST',
-                    headers: {{
-                    'content-type': '{is_accepted_format(data_bytes)}',
-                    'content-length': '{len(data_bytes)}',
-                    "'x-useridentitytype': '{auth_result.useridentitytype}'," if getattr(auth_result, "useridentitytype", None) else ""
-                    }},
-                    body: new Uint8Array({list(data_bytes)})
-                    }}).then(r => r.json())
-                    ''')
-                    media = response_json.get("url")
-                uploaded_attachments.append({{"type":"image", "url": media}})
+        # uploaded_attachments = []
+        # if auth_result.access_token:
+        #     # Upload regular media (images)
+        #     for media, _ in merge_media(media, messages):
+        #         if not isinstance(media, str):
+        #             data_bytes = to_bytes(media)
+        #             response_json = await page.evaluate(f'''
+        #             fetch('https://copilot.microsoft.com/c/api/attachments', {{
+        #             method: 'POST',
+        #             headers: {{
+        #             'content-type': '{is_accepted_format(data_bytes)}',
+        #             'content-length': '{len(data_bytes)}',
+        #             "'x-useridentitytype': '{auth_result.useridentitytype}'," if getattr(auth_result, "useridentitytype", None) else ""
+        #             }},
+        #             body: new Uint8Array({list(data_bytes)})
+        #             }}).then(r => r.json())
+        #             ''')
+        #             media = response_json.get("url")
+        #         uploaded_attachments.append({{"type":"image", "url": media}})
 
-            # Upload bucket files
-            bucket_items = extract_bucket_items(messages)
-            for item in bucket_items:
-                try:
-                    # Handle plain text content from bucket
-                    bucket_path = Path(get_bucket_dir(item["bucket_id"]))
-                    for text_chunk in read_bucket(bucket_path):
-                        if text_chunk.strip():
-                            # Upload plain text as a text file
-                            response_json = await page.evaluate(f'''
-                            const formData = new FormData();
-                            formData.append('file', new Blob(['{text_chunk.replace(chr(39), "\\'").replace(chr(10), "\\n").replace(chr(13), "\\r")}'], {{type: 'text/plain'}}), 'bucket_{item['bucket_id']}.txt');
-                            fetch('https://copilot.microsoft.com/c/api/attachments', {{
-                            method: 'POST',
-                            headers: {{
-                            "'x-useridentitytype': '{auth_result.useridentitytype}'," if auth_result.useridentitytype else ""
-                            }},
-                            body: formData
-                            }}).then(r => r.json())
-                            ''')
-                            data = response_json
-                            uploaded_attachments.append({{"type": "document", "attachmentId": data.get("id")}})
-                            debug.log(f"Copilot: Uploaded bucket text content: {item['bucket_id']}")
-                        else:
-                            debug.log(f"Copilot: No text content found in bucket: {item['bucket_id']}")
-                except Exception as e:
-                    debug.log(f"Copilot: Failed to upload bucket item: {item}")
-                    debug.error(e)
+        #     # Upload bucket files
+        #     bucket_items = extract_bucket_items(messages)
+        #     for item in bucket_items:
+        #         try:
+        #             # Handle plain text content from bucket
+        #             bucket_path = Path(get_bucket_dir(item["bucket_id"]))
+        #             for text_chunk in read_bucket(bucket_path):
+        #                 if text_chunk.strip():
+        #                     # Upload plain text as a text file
+        #                     response_json = await page.evaluate(f'''
+        #                     const formData = new FormData();
+        #                     formData.append('file', new Blob(['{text_chunk.replace(chr(39), "\\'").replace(chr(10), "\\n").replace(chr(13), "\\r")}'], {{type: 'text/plain'}}), 'bucket_{item['bucket_id']}.txt');
+        #                     fetch('https://copilot.microsoft.com/c/api/attachments', {{
+        #                     method: 'POST',
+        #                     headers: {{
+        #                     "'x-useridentitytype': '{auth_result.useridentitytype}'," if auth_result.useridentitytype else ""
+        #                     }},
+        #                     body: formData
+        #                     }}).then(r => r.json())
+        #                     ''')
+        #                     data = response_json
+        #                     uploaded_attachments.append({{"type": "document", "attachmentId": data.get("id")}})
+        #                     debug.log(f"Copilot: Uploaded bucket text content: {item['bucket_id']}")
+        #                 else:
+        #                     debug.log(f"Copilot: No text content found in bucket: {item['bucket_id']}")
+        #         except Exception as e:
+        #             debug.log(f"Copilot: Failed to upload bucket item: {item}")
+        #             debug.error(e)
 
         done = False
         msg = None
