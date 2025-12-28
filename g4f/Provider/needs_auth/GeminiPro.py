@@ -20,7 +20,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini API"
     url = "https://ai.google.dev"
     login_url = "https://aistudio.google.com/u/0/apikey"
-    api_base = "https://generativelanguage.googleapis.com/v1beta"
+    base_url = "https://generativelanguage.googleapis.com/v1beta"
     active_by_default = True
 
     working = True
@@ -42,12 +42,12 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     ]
 
     @classmethod
-    def get_models(cls, api_key: str = None, api_base: str = api_base, **kwargs) -> list[str]:
+    def get_models(cls, api_key: str = None, base_url: str = base_url, **kwargs) -> list[str]:
         if not api_key:
             return cls.fallback_models
         if not cls.models:
             try:
-                url = f"{cls.api_base if not api_base else api_base}/models"
+                url = f"{cls.base_url if not base_url else base_url}/models"
                 response = requests.get(url, params={"key": api_key})
                 raise_for_status(response)
                 data = response.json()
@@ -73,7 +73,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = False,
         proxy: str = None,
         api_key: str = None,
-        api_base: str = api_base,
+        base_url: str = base_url,
         use_auth_header: bool = False,
         media: MediaListType = None,
         tools: Optional[list] = None,
@@ -84,7 +84,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingAuthError('Add a "api_key"')
 
         try:
-            model = cls.get_model(model, api_key=api_key, api_base=api_base)
+            model = cls.get_model(model, api_key=api_key, base_url=base_url)
         except ModelNotFoundError:
             pass
 
@@ -95,7 +95,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
             params = {"key": api_key}
 
         method = "streamGenerateContent" if stream else "generateContent"
-        url = f"{api_base.rstrip('/')}/models/{model}:{method}"
+        url = f"{base_url.rstrip('/')}/models/{model}:{method}"
         async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             contents = [
                 {

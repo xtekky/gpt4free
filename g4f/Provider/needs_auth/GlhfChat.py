@@ -5,7 +5,7 @@ from ..template import OpenaiTemplate
 class GlhfChat(OpenaiTemplate):
     url = "https://glhf.chat"
     login_url = "https://glhf.chat/user-settings/api"
-    api_base = "https://glhf.chat/api/openai/v1"
+    base_url = "https://glhf.chat/api/openai/v1"
 
     working = True
     needs_auth = True

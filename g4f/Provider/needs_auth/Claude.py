@@ -9,7 +9,7 @@ from ..template import OpenaiTemplate
 class Claude(OpenaiTemplate):
     label = "Claude 💥"
     url = "https://claude.ai"
-    api_base = "https://g4f.dev/api/claude"
+    base_url = "https://g4f.dev/api/claude"
     working = True
     active_by_default = True
     login_url = "https://discord.gg/qXA4Wf4Fsm"
@@ -21,7 +21,7 @@ class Claude(OpenaiTemplate):
         model: str,
         messages: Messages,
         api_key: str = None,
-        api_base: str = api_base,
+        base_url: str = base_url,
         **kwargs
     ) -> AsyncResult:
         api_key = os.environ.get("CLAUDE_COOKIE", api_key)
@@ -34,7 +34,7 @@ class Claude(OpenaiTemplate):
         async for chunk in super().create_async_generator(
             model=model,
             messages=messages,
-            api_base=f"{api_base}/{cls.organization_id}",
+            base_url=f"{base_url}/{cls.organization_id}",
             headers={"cookie": api_key},
             **kwargs
         ):

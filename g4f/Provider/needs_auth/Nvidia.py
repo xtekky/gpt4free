@@ -5,7 +5,7 @@ from ...config import DEFAULT_MODEL
 
 class Nvidia(OpenaiTemplate):
     label = "Nvidia"
-    api_base = "https://integrate.api.nvidia.com/v1"
+    base_url = "https://integrate.api.nvidia.com/v1"
     login_url = "https://google.com"
     url = "https://build.nvidia.com"
     working = True

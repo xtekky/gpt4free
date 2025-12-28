@@ -6,7 +6,7 @@ from ..template import OpenaiTemplate
 class CablyAI(OpenaiTemplate):
     url = "https://cablyai.com/chat"
     login_url = "https://cablyai.com"
-    api_base = "https://cablyai.com/v1"
+    base_url = "https://cablyai.com/v1"
 
     working = False
     needs_auth = True

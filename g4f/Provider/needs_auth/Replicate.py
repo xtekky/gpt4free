@@ -40,9 +40,9 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingAuthError("api_key is missing")
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
-            api_base = "https://api.replicate.com/v1/models/"
+            base_url = "https://api.replicate.com/v1/models/"
         else:
-            api_base = "https://replicate.com/api/models/"
+            base_url = "https://replicate.com/api/models/"
         async with StreamSession(
             proxy=proxy,
             headers=headers,
@@ -63,7 +63,7 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
                     **extra_body
                 },
             }
-            url = f"{api_base.rstrip('/')}/{model}/predictions"
+            url = f"{base_url.rstrip('/')}/{model}/predictions"
             async with session.post(url, json=data) as response:
                 message = "Model not found" if response.status == 404 else None
                 await raise_for_status(response, message)

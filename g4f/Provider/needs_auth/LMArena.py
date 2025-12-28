@@ -30,7 +30,7 @@ except ImportError:
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
-from ...requests.aiohttp import StreamSession
+from ...requests import StreamSession
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
     RateLimitError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
@@ -603,7 +603,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             elif line.startswith("a3:"):
                                 raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
                             else:
-                                debug.log(f"LMArena: Unknown line prefix: {line}")
+                                debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
                 break
             except (CloudflareError, MissingAuthError) as error:
                 args = None

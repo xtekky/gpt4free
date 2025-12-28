@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import time
 import random
@@ -7,18 +8,23 @@ import string
 import asyncio
 import aiohttp
 import base64
-from typing import Union, AsyncIterator, Iterator, Awaitable, Optional
+import requests
+from pathlib import Path
+from datetime import datetime
+from typing import Union, AsyncIterator, Iterator, Awaitable, Optional, List, Dict, Any, Type
 
 from ..image.copy_images import copy_media, get_media_dir
 from ..typing import Messages, ImageType
-from ..providers.types import ProviderType, BaseRetryProvider
+from ..providers.types import ProviderType, BaseRetryProvider, BaseProvider
 from ..providers.response import *
-from ..errors import NoMediaResponseError
+from ..errors import NoMediaResponseError, ProviderNotFoundError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
 from ..providers.any_provider import AnyProvider
-from ..Provider import OpenaiAccount, PollinationsImage
+from ..Provider import OpenaiAccount, PollinationsImage, ProviderUtils
+from ..Provider.template import OpenaiTemplate
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
+from ..cookies import get_cookies_dir
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel, ClientResponse
 from .models import ClientModels
 from .types import IterResponse, Client as BaseClient
@@ -337,7 +343,7 @@ class Completions:
                 max_tokens=max_tokens,
                 stop=stop,
                 api_key=self.client.api_key,
-                api_base=self.client.base_url
+                base_url=self.client.base_url
             ),
             **kwargs
         )
@@ -675,7 +681,7 @@ class AsyncCompletions:
                 max_tokens=max_tokens,
                 stop=stop,
                 api_key=self.client.api_key,
-                api_base=self.client.base_url
+                base_url=self.client.base_url
             ),
             **kwargs
         )
@@ -737,4 +743,230 @@ class AsyncImages(Images):
     ) -> ImagesResponse:
         return await self.async_create_variation(
            image=image, model=model, provider=provider, response_format=response_format, **kwargs
+        )
+
+
+def create_custom_provider(
+    base_url: str,
+    api_key: str = None,
+    name: str = None,
+    working: bool = True,
+    default_model: str = "",
+    models: List[str] = None,
+    **kwargs
+) -> Type[OpenaiTemplate]:
+    """
+    Create a custom provider class based on OpenaiTemplate.
+    
+    Args:
+        base_url: The base URL for the API (e.g., "https://api.example.com/v1")
+        api_key: Optional API key for authentication
+        name: Optional name for the provider (defaults to derived from base_url)
+        working: Whether the provider is working (default: True)
+        default_model: Default model to use
+        models: List of available models
+        **kwargs: Additional attributes to set on the provider class
+    
+    Returns:
+        A custom provider class that extends OpenaiTemplate
+    """
+    if name is None:
+        # Derive name from base_url
+        from urllib.parse import urlparse
+        parsed = urlparse(base_url)
+        name = parsed.netloc.replace(".", "_").replace("-", "_").title().replace("_", "")
+        if not name:
+            name = "CustomProvider"
+    
+    # Create a new class that extends OpenaiTemplate
+    class_attrs = {
+        "url": base_url,
+        "base_url": base_url.rstrip("/"),
+        "api_key": api_key,
+        "working": working,
+        "default_model": default_model,
+        "models": models or [],
+        **kwargs
+    }
+    
+    CustomProvider = type(name, (OpenaiTemplate,), class_attrs)
+    print(f"Created custom provider class '{name}' with base URL '{base_url}'")
+    return CustomProvider
+
+
+class ClientFactory:
+    """
+    Factory class for creating Client and AsyncClient instances with various provider configurations.
+    
+    Supports:
+    - Named providers (e.g., "PollinationsAI", "DeepInfra")
+    - Multiple providers (space-separated string or list)
+    - Custom providers with custom API base URLs
+    - Live providers (dynamically loaded providers)
+    
+    Example usage:
+        # Create client with a named provider
+        client = ClientFactory.create_client("PollinationsAI")
+        
+        # Create client with multiple providers (fallback)
+        client = ClientFactory.create_client(["PollinationsAI", "DeepInfra"])
+        
+        # Create client with custom provider
+        client = ClientFactory.create_client(
+            base_url="https://api.example.com/v1",
+            api_key="your-api-key"
+        )
+        
+        # Create async client
+        async_client = ClientFactory.createAsyncClient("PollinationsAI")
+    """
+    
+    # Registry of live/custom providers
+    _live_providers_url = "https://g4f.dev/dist/js/providers.json"
+    _live_providers: Dict[str, Dict] = {}
+    
+    @classmethod
+    def create_provider(
+        cls,
+        name: str,
+        provider: Union[Type[BaseProvider], str],
+        base_url: str = None,
+        api_key: str = None,
+        **kwargs
+    ) -> Type[BaseProvider]:
+        """
+        Register a live/custom provider that can be used by name.
+        
+        Args:
+            name: Name to register the provider under
+            provider: Either a provider class or "custom" to create a custom provider
+            base_url: Base URL for custom providers
+            api_key: API key for custom providers
+            **kwargs: Additional arguments for custom provider creation
+            
+        Returns:
+            The registered provider class
+        """
+        if not isinstance(provider, str):
+            return provider
+        elif provider.startswith("custom:"):
+            if provider.startswith("custom:"):
+                serverId = provider[7:]
+                base_url = f"https://g4f.dev/custom/{serverId}"
+            if not base_url:
+                raise ValueError("base_url is required for custom providers")
+            provider = create_custom_provider(base_url, api_key, name=name, **kwargs)
+        elif provider in ProviderUtils.convert:
+            provider = ProviderUtils.convert[provider]
+        else:
+            if not cls._live_providers:
+                path = Path(get_cookies_dir()) / "models" / datetime.today().strftime('%Y-%m-%d') / f"providers.json"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if path.exists():
+                    with open(path, "r", encoding="utf-8") as f:
+                        cls._live_providers = json.load(f)
+                cls._live_providers = requests.get(cls._live_providers_url).json()
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(cls._live_providers, f, indent=4)
+            if provider in cls._live_providers.get("providers", {}):
+                config = cls._live_providers["providers"][provider]
+                if "provider" in config and config.get("provider") in ProviderUtils.convert:
+                    return ProviderUtils.convert[config.get("provider")]
+                return create_custom_provider(
+                    base_url=config.get("baseUrl") if api_key else config.get("backupUrl", config.get("baseUrl")),
+                    api_key=api_key,
+                    name=provider,
+                    default_model=cls._live_providers["defaultModels"].get(provider, ""),
+                )
+            else:
+                raise ProviderNotFoundError(f"Provider '{name}' not found")
+        return provider
+    
+    @classmethod
+    def create_client(
+        cls,
+        provider: Union[str, Type[BaseProvider], None] = None,
+        media_provider: Union[str, Type[BaseProvider], None] = None,
+        base_url: str = None,
+        api_key: str = None,
+        proxies: Union[dict, str] = None,
+        **kwargs
+    ) -> "Client":
+        """
+        Create a synchronous Client instance.
+        
+        Args:
+            provider: Provider name(s), class(es), or None for default
+            media_provider: Provider for media/image generation
+            base_url: API base URL for custom provider
+            api_key: API key for authentication
+            proxies: Proxy configuration
+            **kwargs: Additional arguments passed to Client
+            
+        Returns:
+            Configured Client instance
+            
+        Example:
+            # Named provider
+            client = ClientFactory.create_client("PollinationsAI")
+            
+            # Multiple providers (fallback)
+            client = ClientFactory.create_client(["PollinationsAI", "DeepInfra"])
+            
+            # Custom provider
+            client = ClientFactory.create_client(
+                base_url="https://api.openai.com/v1",
+                api_key="sk-..."
+            )
+        """
+        return Client(
+            provider=cls.create_provider(None, provider, base_url, api_key, **kwargs),
+            media_provider=media_provider,
+            api_key=api_key,
+            base_url=base_url,
+            proxies=proxies,
+            **kwargs
+        )
+    
+    @classmethod
+    def create_async_client(
+        cls,
+        provider: Union[str, Type[BaseProvider], None] = None,
+        media_provider: Union[str, Type[BaseProvider], None] = None,
+        base_url: str = None,
+        api_key: str = None,
+        proxies: Union[dict, str] = None,
+        **kwargs
+    ) -> "AsyncClient":
+        """
+        Create an asynchronous AsyncClient instance.
+        
+        Args:
+            provider: Provider name(s), class(es), or None for default
+            media_provider: Provider for media/image generation
+            base_url: API base URL for custom provider
+            api_key: API key for authentication
+            proxies: Proxy configuration
+            **kwargs: Additional arguments passed to AsyncClient
+            
+        Returns:
+            Configured AsyncClient instance
+            
+        Example:
+            # Named provider
+            client = ClientFactory.createAsyncClient("PollinationsAI")
+
+            # Custom provider
+            client = ClientFactory.createAsyncClient(
+                base_url="https://api.openai.com/v1",
+                api_key="sk-..."
+            )
+        """
+        return AsyncClient(
+            provider=cls.createProvider(provider, base_url, api_key, **kwargs),
+            media_provider=media_provider,
+            api_key=api_key,
+            base_url=base_url,
+            proxies=proxies,
+            **kwargs
         )

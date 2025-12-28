@@ -25,7 +25,7 @@ class Ollama(OpenaiAPI):
     }
 
     @classmethod
-    def get_models(cls, api_key: str = None, api_base: str = None, **kwargs):
+    def get_models(cls, api_key: str = None, base_url: str = None, **kwargs):
         if not cls.models:
             cls.models = []
             if not api_key:
@@ -35,12 +35,12 @@ class Ollama(OpenaiAPI):
                 if models:
                     cls.live += 1
                 cls.models = [model["name"] for model in models]
-            if api_base is None:
+            if base_url is None:
                 host = os.getenv("OLLAMA_HOST", "127.0.0.1")
                 port = os.getenv("OLLAMA_PORT", "11434")
                 url = f"http://{host}:{port}/api/tags"
             else:
-                url = api_base.replace("/v1", "/api/tags")
+                url = base_url.replace("/v1", "/api/tags")
             try:
                 models = requests.get(url).json()["models"]
             except requests.exceptions.RequestException as e:
@@ -58,17 +58,17 @@ class Ollama(OpenaiAPI):
         model: str,
         messages: Messages,
         api_key: str = None,
-        api_base: str = None,
+        base_url: str = None,
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if api_base is None:
+        if base_url is None:
             host = os.getenv("OLLAMA_HOST", "localhost")
             port = os.getenv("OLLAMA_PORT", "11434")
-            api_base: str = f"http://{host}:{port}/v1"
+            base_url: str = f"http://{host}:{port}/v1"
         if model in cls.local_models or not api_key:
             async for chunk in super().create_async_generator(
-                model, messages, api_base=api_base, proxy=proxy, **kwargs
+                model, messages, base_url=base_url, proxy=proxy, **kwargs
             ):
                 yield chunk
         else:

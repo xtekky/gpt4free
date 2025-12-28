@@ -6,7 +6,7 @@ class OpenRouter(OpenaiTemplate):
     label = "OpenRouter"
     url = "https://openrouter.ai"
     login_url = "https://openrouter.ai/settings/keys"
-    api_base = "https://openrouter.ai/api/v1"
+    base_url = "https://openrouter.ai/api/v1"
     working = True
     needs_auth = True
     default_model = "openrouter/auto"

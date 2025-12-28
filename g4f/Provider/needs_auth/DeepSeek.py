@@ -7,7 +7,7 @@ class DeepSeek(OpenaiAPI):
     url = "https://platform.deepseek.com"
     login_url = "https://platform.deepseek.com/api_keys"
     working = True
-    api_base = "https://api.deepseek.com"
+    base_url = "https://api.deepseek.com"
     needs_auth = True
     supports_stream = True
     supports_message_history = True

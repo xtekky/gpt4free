@@ -6,7 +6,7 @@ class MiniMax(OpenaiTemplate):
     label = "MiniMax API"
     url = "https://www.hailuo.ai/chat"
     login_url = "https://intl.minimaxi.com/user-center/basic-information/interface-key"
-    api_base = "https://api.minimaxi.chat/v1"
+    base_url = "https://api.minimaxi.chat/v1"
     working = True
     needs_auth = True
 

@@ -19,8 +19,8 @@ from .. import debug
 
 class EasyChat(OpenaiTemplate, AuthFileMixin):
     url = "https://chat3.eqing.tech"
-    api_base = f"{url}/api/openai/v1"
-    api_endpoint = f"{api_base}/chat/completions"
+    base_url = f"{url}/api/openai/v1"
+    api_endpoint = f"{base_url}/chat/completions"
     working = False
     active_by_default = True
     use_model_names = True
