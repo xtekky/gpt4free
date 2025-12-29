@@ -204,7 +204,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             elif msg.get("event") == "generatingImage":
                 image_prompt = msg.get("prompt")
             elif msg.get("event") == "imageGenerated":
-                yield ImageResponse(msg.get("url"), image_prompt, {{"preview": msg.get("thumbnailUrl")}})
+                yield ImageResponse(msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")})
             elif msg.get("event") == "done":
                 yield FinishReason("stop")
                 done = True
@@ -217,7 +217,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 yield TitleGeneration(msg.get("title"))
             elif msg.get("event") == "citation":
                 sources[msg.get("url")] = msg
-                yield SourceLink(list(sources.keys()).index(msg.get("url")), msg.get("url"))
+                yield SourceLink(str(list(sources.keys()).index(msg.get("url"))), msg.get("url"))
             elif msg.get("event") == "partialImageGenerated":
                 mime_type = is_accepted_format(base64.b64decode(msg.get("content")[:12]))
                 yield ImagePreview(f"data:{mime_type};base64,{msg.get('content')}", image_prompt)
@@ -230,7 +230,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         if not done:
             raise MissingAuthError(f"Invalid response: {last_msg}")
         if sources:
-            yield Sources(sources.values())
+            yield Sources(list(sources.values()))
 
 async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: bool = False):
     browser, stop_browser = await get_nodriver(proxy=proxy)
