@@ -32,6 +32,7 @@ EXTRA_REQUIRE = {
         "fastapi",                 # api
         "uvicorn",                 # api
         "nodriver",
+        "zendriver",
         "python-multipart",
         "a2wsgi",
         "setuptools",
