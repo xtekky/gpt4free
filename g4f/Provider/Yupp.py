@@ -5,8 +5,13 @@ import os
 import re
 import time
 import uuid
+from urllib.parse import urlparse
 
 import aiohttp
+import zendriver
+from zendriver.cdp import fetch
+from zendriver.cdp.fetch import RequestPaused, HeaderEntry, RequestPattern
+from zendriver.cdp.network import ErrorReason
 
 from .helper import get_last_user_message
 from .yupp.models import YuppModelManager, ModelProcessor
@@ -17,6 +22,7 @@ from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
     ProviderInfo, FinishReason, JsonResponse
+from ..requests import get_zendriver, get_cookie_params_from_dict
 from ..requests.aiohttp import StreamSession
 from ..tools.auth import AuthManager
 from ..tools.media import merge_media
@@ -212,6 +218,78 @@ def format_messages_for_yupp(messages: Messages) -> str:
     return result
 
 
+import asyncio
+import typing
+from dataclasses import dataclass
+
+from zendriver import cdp
+from zendriver.cdp.fetch import HeaderEntry, RequestStage, RequestPattern, RequestPaused
+from zendriver.cdp.network import ResourceType
+from zendriver.core.connection import Connection
+
+
+
+class FetchRoute:
+
+
+    def __init__(
+        self,
+        tab: Connection,
+        url_pattern: str,
+        handler,
+        request_stage: RequestStage=None,
+        resource_type: ResourceType=None,
+    ):
+        self.tab = tab
+        self.url_pattern = url_pattern
+        self.request_stage = request_stage
+        self.resource_type = resource_type
+        self.handler = handler
+
+    async def _response_handler(self, event: cdp.fetch.RequestPaused) -> None:
+
+        if asyncio.iscoroutinefunction(self.handler):
+            await self.handler(event)
+        else:
+            self.handler(event)
+
+    def _remove_response_handler(self) -> None:
+        """
+        Remove the response event handler.
+        """
+        self.tab.remove_handlers(cdp.fetch.RequestPaused, self._response_handler)
+
+    async def __aenter__(self) -> "FetchRoute":
+        """
+        Enter the context manager, adding request and response handlers.
+        """
+        await self._setup()
+        return self
+
+    async def __aexit__(self, *args: typing.Any) -> None:
+        """
+        Exit the context manager, removing request and response handlers.
+        """
+        await self._un_route()
+
+    async def _setup(self) -> None:
+        await self.tab.send(cdp.fetch.enable([ RequestPattern(
+                url_pattern=self.url_pattern,
+                request_stage=self.request_stage,
+                resource_type=self.resource_type,
+            )]))
+
+        self.tab.add_handler(cdp.fetch.RequestPaused, self._response_handler)
+
+    async def _un_route(self) -> None:
+        self._remove_response_handler()
+        await self.tab.send(cdp.fetch.disable())
+
+    async def _teardown(self) -> None:
+        self._remove_response_handler()
+        await self.tab.send(cdp.fetch.disable())
+
+
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Yupp.ai Provider for g4f
@@ -224,6 +302,15 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     supports_stream = True
     image_cache = True
+    zendriver=None
+    stop_nodriver = None
+    _next_actions = {
+        "changeStyle": "60efed0bf19628cd74d5a5ccc56fbafce37522bf48",
+        "continueChat": "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf",
+        "retryResponse": "60295ea869e349230110b3265251a3d71573576412",
+        "showMoreResponses": "785086061ed9ee7b9a3e857e18411561a67cb1c0b5",
+        "startNewChat": "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd",
+    }
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
@@ -299,6 +386,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             ImagesCache[image_hash] = file
             files.append(file)
         return files
+
+
 
     @classmethod
     async def user_info(cls, account: YUPP_ACCOUNT, kwargs: dict):
@@ -390,6 +479,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                                     # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
                                                     start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
                                                     for v, k in start_id:
+                                                        cls._next_actions[k] = v
                                                         kwargs[k] = v
                                                     break
                                 elif chunk_data.startswith(("[", "{")):
@@ -407,6 +497,279 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             log_debug(
                 f"user:{user_info.get('name')} credits:{user_info.get('credits')} onboardingStatus:{user_info.get('onboardingStatus')}")
         return user_info
+
+    @classmethod
+    async def _load_info(cls, html:str, is_js=False):
+        history: dict = {}
+        user_info = {}
+
+        def pars_children(data):
+            data = data["children"]
+            if len(data) < 4:
+                return
+            if data[1] in ["div", "defs", "style", "script"]:
+                return
+            pars_data(data[3])
+
+        def pars_data(data):
+            if not isinstance(data, (list, dict)):
+                return
+            if isinstance(data, dict):
+                json_data = data.get("json") or {}
+            elif data[0] == "$":
+                if data[1] in ["div", "defs", "style", "script"]:
+                    return
+                json_data = data[3]
+            else:
+                return
+
+            if 'session' in json_data:
+                user_info.update(json_data['session']['user'])
+            elif "state" in json_data:
+                for query in json_data["state"]["queries"]:
+                    if query["state"]["dataUpdateCount"] == 0:
+                        continue
+                    if "getCredits" in query["queryHash"]:
+                        credits = query["state"]["data"]["json"]
+                        user_info["credits"] = credits
+                    elif "getSidebarChatsV2" in query["queryHash"]:
+                        for page in query["state"]["data"]["json"]["pages"]:
+                            for item in page["items"]:
+                                history[item["id"]] = item
+
+            elif 'categories' in json_data:
+                ...
+            elif 'children' in json_data:
+                pars_children(json_data)
+            elif isinstance(json_data, list):
+                if "supportedAttachmentMimeTypes" in json_data[0]:
+                    models = json_data
+                    cls.models_tags = {model.get("name"): ModelProcessor.generate_tags(model) for
+                                       model in models}
+                    cls.models = [model.get("name") for model in models]
+                    cls.image_models = [model.get("name") for model in models if
+                                        model.get("isImageGeneration")]
+                    cls.vision_models = [model.get("name") for model in models if
+                                         "image/*" in model.get("supportedAttachmentMimeTypes", [])]
+
+        if is_js:
+            if "startNewChat" in html:
+                # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
+                start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', html)
+                for v, k in start_id:
+                    cls._next_actions[k] = v
+            return
+        line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
+
+        pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
+        matches = re.findall(pattern, html)
+        for match in matches:
+            # Parse the JSON array
+            data = json.loads(match)
+            for chunk in data[1].split("\n"):
+                # print(chunk)
+                match = line_pattern.match(chunk)
+                if not match:
+                    continue
+                chunk_id, chunk_data = match.groups()
+
+                if chunk_data.startswith("I["):
+                    ...
+                    # data = json.loads(chunk_data[1:])
+                    # if data[2] == "HomePagePromptForm":
+
+                elif chunk_data.startswith(("[", "{")):
+                    try:
+                        data = json.loads(chunk_data)
+                        pars_data(data)
+                    except json.decoder.JSONDecodeError:
+                        ...
+                    except Exception as e:
+                        log_debug(f"user_info error: {str(e)}")
+        print(user_info)
+
+    @classmethod
+    async def create_async_browser(
+            cls,
+            model: str,
+            messages: Messages,
+            proxy: str = None,
+            **kwargs,) -> AsyncResult:
+        # Initialize Yupp accounts
+        api_key = kwargs.get("api_key")
+        if not api_key:
+            api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+        if api_key:
+            load_yupp_accounts(api_key)
+            log_debug(f"Yupp provider initialized with {len(YUPP_ACCOUNTS)} accounts")
+        else:
+            raise MissingAuthError("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
+        # Format messages
+        conversation = kwargs.get("conversation")
+        url_uuid = conversation.url_uuid if conversation else None
+        is_new_conversation = url_uuid is None
+
+        prompt = kwargs.get("prompt")
+        if prompt is None:
+            if is_new_conversation:
+                prompt = format_messages_for_yupp(messages)
+            else:
+                prompt = get_last_user_message(messages, bool(prompt))
+
+        log_debug(
+            f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}")
+        import base64
+        import zendriver.cdp.io as io
+        from zendriver.cdp.fetch import RequestStage
+        # Try all accounts with rotation
+        max_attempts = len(YUPP_ACCOUNTS)
+        for attempt in range(max_attempts):
+            account = await get_best_yupp_account()
+            if not account:
+                raise ProviderException("No valid Yupp accounts available")
+            try:
+                if cls.zendriver is None:
+                    cls.zendriver, cls.stop_nodriver = await get_zendriver(proxy=proxy,  user_data_dir=None)
+                # page:zendriver.Tab = await cls.zendriver.get(cls.url)
+                page:zendriver.Tab = cls.zendriver.main_tab
+                domain = urlparse(cls.url).netloc
+                await cls.zendriver.cookies.set_all( get_cookie_params_from_dict({"__Secure-yupp.session-token": account["token"]}, url=cls.url, domain=domain))
+                async def _response_handler(event: zendriver.cdp.network.ResponseReceived) -> None:
+                    """
+                    Internal handler for response events.
+                    :param event: The response event.
+                    :type event: cdp.network.ResponseReceived
+                    """
+
+                    if event.response.headers.get("content-type", "").startswith('application/javascript'):
+                        body,_ = await page.send(zendriver.cdp.network.get_response_body(request_id=event.request_id))
+                        await cls._load_info(body, is_js=True)
+
+                page.add_handler(zendriver.cdp.network.ResponseReceived, _response_handler)
+                async with page.expect_response("https://yupp.ai/", ) as response:
+                        await page.get("https://yupp.ai/")
+                        _r:zendriver.cdp.network.ResponseReceived = await response.response_future
+                        _response_body, is_base64= await response.response_body
+                        response_body = base64.b64decode(_response_body) if is_base64 else _response_body
+                        print(_r.response.status)
+                        await cls._load_info(response_body)
+                page.remove_handlers(zendriver.cdp.network.ResponseReceived, _response_handler)
+
+                # Prepare Message
+                turn_id = str(uuid.uuid4())
+
+                files = []
+                mode = "image" if model in cls.image_models else "text"
+
+                # Build payload and URL - FIXED: Use consistent url_uuid handling
+                if is_new_conversation:
+                    url_uuid = str(uuid.uuid4())
+                    payload = [
+                        url_uuid,
+                        turn_id,
+                        prompt,
+                        "$undefined",
+                        "$undefined",
+                        files,
+                        "$undefined",
+                        [{"modelName": model, "promptModifierId": "$undefined"}] if model else "none",
+                        mode,
+                        True,
+                        "$undefined",
+                    ]
+                    url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
+                    # Yield the conversation info first
+                    yield JsonConversation(url_uuid=url_uuid)
+                    next_action = cls._next_actions.get("startNewChat") or kwargs.get("next_action",
+                                                                           "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
+                else:
+                    # Continuing existing conversation
+                    payload = [
+                        url_uuid,
+                        turn_id,
+                        prompt,
+                        False,
+                        [],
+                        [{"modelName": model, "promptModifierId": "$undefined"}] if model else [],
+                        mode,
+                        files
+                    ]
+                    url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
+                    next_action = cls._next_actions.get("continueChat") or kwargs.get("next_action",
+                                                                           "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
+                headers = {
+                    "content-type": "text/plain;charset=UTF-8",
+                    "next-action": next_action,
+                }
+                script = f"""
+                (async () => {{
+                    const data = {json.dumps(payload)};
+                    const response = await fetch("{url}", {{
+                        method: "POST",
+                        headers:{json.dumps(headers)},
+                        body: JSON.stringify(data),
+             
+                    }});
+                    return response
+                }})()
+                """
+                # print(script)
+                log_debug(f"Sending request to: {url}")
+                log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
+                async with page.intercept(url, RequestStage.RESPONSE, None) as response:
+                    await page.evaluate(script)
+                    event: RequestPaused = await response.response_future
+                    print(event.response_status_code)
+                    if event.response_status_code != 200:
+                        raise Exception(event.response_error_reason)
+
+                    result = await page.send(fetch.take_response_body_as_stream(
+                        request_id=event.request_id
+                    ))
+                    stream_handle = result
+                    eof = False
+                    response_body = ""
+                    while not eof:
+                        is_base64, data, eof = await page.send(io.read(handle=stream_handle))
+                        if data:
+                            chunk_raw = base64.b64decode(data) if is_base64 else data
+                            if isinstance(chunk_raw, bytes):
+                                chunk_raw = chunk_raw.decode("utf-8")
+                            response_body += chunk_raw
+
+                    await page.send(io.close(handle=stream_handle))
+                    await page.send(fetch.fail_request(
+                        request_id=event.request_id,
+                        error_reason=ErrorReason.FAILED
+                    ))
+
+                    # async with page.intercept(url, RequestStage.REQUEST, None) as request:
+                    #     asyncio.create_task(page.get(url))
+                    #     event: RequestPaused = await request.response_future
+                    #
+                    #     post_data_base64 = base64.b64encode(json.dumps(payload).encode('utf-8')).decode('utf-8')
+                    #     await request.continue_request(
+                    #         url=url,
+                    #         method="POST",
+                    #         headers=[HeaderEntry(k, v) for k, v in headers.items()],
+                    #         post_data=post_data_base64,
+                    #     )
+                    #     _r:zendriver.cdp.network.ResponseReceived = await response.response_future
+                    #     response_body, is_base64= await response.response_body
+                    #     response_body = base64.b64decode(response_body) if is_base64 else response_body
+                    #     print(_r.response.status)
+                    #     print(_r.response.headers)
+
+                async for chunk in cls._process_stream_response_(
+                        response_body.encode("utf-8"),
+                    # account=account,
+                        model_id=model
+                ):
+                    yield chunk
+            finally:
+                if cls.stop_nodriver:
+                    await cls.stop_nodriver()
+
 
     @classmethod
     async def create_async_generator(
@@ -907,3 +1270,354 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 reward_id = reward_info["unclaimedRewardInfo"].get("rewardId")
                 if reward_id:
                     await claim_yupp_reward(session, account, reward_id)
+
+    @classmethod
+    async def _process_stream_response_(
+            cls,
+            response_content,
+            # account: YUPP_ACCOUNT,
+            # page: zendriver.Tab,
+            # prompt: str,
+            model_id: str
+    ) -> AsyncResult:
+        """Process Yupp stream response asynchronously"""
+
+        line_pattern = re.compile(b"^([0-9a-fA-F]+):(.*)")
+        target_stream_id = None
+        reward_info = None
+        # Stream segmentation buffers
+        is_thinking = False
+        thinking_content = ""  # model's "thinking" channel (if activated later)
+        normal_content = ""
+        quick_content = ""  # quick-response short message
+        variant_text = ""  # variant model output (comparison stream)
+        stream = {
+            "target": [],
+            "variant": [],
+            "quick": [],
+            "thinking": [],
+            "extra": []
+        }
+        # Holds leftStream / rightStream definitions to determine target/variant
+        select_stream = [None, None]
+        # State for capturing a multi-line <think> + <yapp> block (fa-style)
+        capturing_ref_id: Optional[str] = None
+        capturing_lines: List[bytes] = []
+
+        # Storage for special referenced blocks like $fa
+        think_blocks: Dict[str, str] = {}
+        image_blocks: Dict[str, str] = {}
+
+        def extract_ref_id(ref):
+            """Extract ID from reference string, e.g., from '$@123' extract '123'"""
+            return ref[2:] if ref and isinstance(ref, str) and ref.startswith("$@") else None
+
+        def extract_ref_name(ref: str) -> Optional[str]:
+            """Extract simple ref name from '$fa' → 'fa'"""
+            if not isinstance(ref, str):
+                return None
+            if ref.startswith("$@"):
+                return ref[2:]
+            if ref.startswith("$") and len(ref) > 1:
+                return ref[1:]
+            return None
+
+        def is_valid_content(content: str) -> bool:
+            """Check if content is valid"""
+            if not content or content in [None, "", "$undefined"]:
+                return False
+            return True
+
+        async def process_content_chunk(content: str, chunk_id: str, line_count: int, *, for_target: bool = False):
+            """
+            Process a single content chunk from a stream.
+
+            - If for_target=True → chunk belongs to the target model output.
+            """
+            nonlocal normal_content
+
+            if not is_valid_content(content):
+                return
+
+            # Handle image-gen chunks
+            if '<yapp class="image-gen">' in content:
+                img_block = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
+                url = "https://yupp.ai/api/trpc/chat.getSignedImage"
+                print(img_block)
+                # async with session.get(
+                #         url,
+                #         params={
+                #             "batch": "1",
+                #             "input": json.dumps(
+                #                 {"0": {"json": {"imageId": json.loads(img_block).get("image_id")}}}
+                #             )
+                #         }
+                # ) as resp:
+                #     resp.raise_for_status()
+                #     data = await resp.json()
+                #     img = ImageResponse(
+                #         data[0]["result"]["data"]["json"]["signed_url"],
+                #         prompt
+                #     )
+                #     yield img
+                return
+            # Optional: thinking-mode support (disabled by default)
+            if is_thinking:
+                yield Reasoning(content)
+            else:
+                if for_target:
+                    normal_content += content
+                yield content
+
+        def finalize_capture_block(ref_id: str, lines: List[bytes]):
+            """Parse captured <think> + <yapp> block for a given ref ID."""
+            text = b"".join(lines).decode("utf-8", errors="ignore")
+
+            # Extract <think>...</think>
+            think_start = text.find("<think>")
+            think_end = text.find("</think>")
+            if think_start != -1 and think_end != -1 and think_end > think_start:
+                inner = text[think_start + len("<think>"):think_end].strip()
+                if inner:
+                    think_blocks[ref_id] = inner
+
+            # Extract <yapp class="image-gen">...</yapp>
+            yapp_start = text.find('<yapp class="image-gen">')
+            if yapp_start != -1:
+                yapp_end = text.find("</yapp>", yapp_start)
+                if yapp_end != -1:
+                    yapp_block = text[yapp_start:yapp_end + len("</yapp>")]
+                    image_blocks[ref_id] = yapp_block
+
+        try:
+            line_count = 0
+            quick_response_id = None
+            variant_stream_id = None
+            is_started: bool = False
+            variant_image: Optional[ImageResponse] = None
+            # "a" use as default then extract from "1"
+            reward_id = "a"
+            routing_id = "e"
+            turn_id = None
+            persisted_turn_id = None
+            left_message_id = None
+            right_message_id = None
+            nudge_new_chat_id = None
+            nudge_new_chat = False
+            for line in response_content.split(b"\n"):
+                line_count += 1
+                # If we are currently capturing a think/image block for some ref ID
+                if capturing_ref_id is not None:
+                    capturing_lines.append(line)
+
+                    # Check if this line closes the <yapp> block; after that, block is complete
+                    if b"</yapp>" in line:  # or b':{"curr"' in line:
+                        # We may have trailing "2:{...}" after </yapp> on the same line
+                        # Get id using re
+                        idx = line.find(b"</yapp>")
+                        suffix = line[idx + len(b"</yapp>"):]
+
+                        # Finalize captured block for this ref ID
+                        finalize_capture_block(capturing_ref_id, capturing_lines)
+                        capturing_ref_id = None
+                        capturing_lines = []
+
+                        # If there is trailing content (e.g. '2:{"curr":"$fa"...}')
+                        if suffix.strip():
+                            # Process suffix as a new "line" in the same iteration
+                            line = suffix
+                        else:
+                            # Nothing more on this line
+                            continue
+                    else:
+                        # Still inside captured block; skip normal processing
+                        continue
+
+                # Detect start of a <think> block assigned to a ref like 'fa:...<think>'
+                if b"<think>" in line:
+                    m = line_pattern.match(line)
+                    if m:
+                        capturing_ref_id = m.group(1).decode()
+                        capturing_lines = [line]
+                        # Skip normal parsing; the rest of the block will be captured until </yapp>
+                        continue
+
+                match = line_pattern.match(line)
+                if not match:
+                    continue
+
+                chunk_id, chunk_data = match.groups()
+                chunk_id = chunk_id.decode()
+
+                if nudge_new_chat_id and chunk_id == nudge_new_chat_id:
+                    nudge_new_chat = chunk_data.decode()
+                    continue
+
+                try:
+                    data = json.loads(chunk_data) if chunk_data != b"{}" else {}
+                except json.JSONDecodeError:
+                    continue
+                # Process reward info
+                if chunk_id == reward_id and isinstance(data, dict) and "unclaimedRewardInfo" in data:
+                    reward_info = data
+                    log_debug(f"Found reward info")
+
+                # Process initial setup
+                elif chunk_id == "1":
+                    yield PlainTextResponse(line.decode(errors="ignore"))
+                    if isinstance(data, dict):
+                        left_stream = data.get("leftStream", {})
+                        right_stream = data.get("rightStream", {})
+                        if data.get("quickResponse", {}) != "$undefined":
+                            quick_response_id = extract_ref_id(
+                                data.get("quickResponse", {}).get("stream", {}).get("next"))
+
+                        if data.get("turnId", {}) != "$undefined":
+                            turn_id = extract_ref_id(data.get("turnId", {}).get("next"))
+                        if data.get("persistedTurn", {}) != "$undefined":
+                            persisted_turn_id = extract_ref_id(data.get("persistedTurn", {}).get("next"))
+                        if data.get("leftMessageId", {}) != "$undefined":
+                            left_message_id = extract_ref_id(data.get("leftMessageId", {}).get("next"))
+                        if data.get("rightMessageId", {}) != "$undefined":
+                            right_message_id = extract_ref_id(data.get("rightMessageId", {}).get("next"))
+
+                        reward_id = extract_ref_id(data.get("pendingRewardActionResult", "")) or reward_id
+                        routing_id = extract_ref_id(data.get("routingResultPromise", "")) or routing_id
+                        nudge_new_chat_id = extract_ref_id(data.get("nudgeNewChatPromise", "")) or nudge_new_chat_id
+                        select_stream = [left_stream, right_stream]
+                # Routing / model selection block
+                elif chunk_id == routing_id:
+                    yield PlainTextResponse(line.decode(errors="ignore"))
+                    if isinstance(data, dict):
+                        provider_info = cls.get_dict()
+                        provider_info['model'] = model_id
+                        # Determine target & variant stream IDs
+                        for i, selection in enumerate(data.get("modelSelections", [])):
+                            if selection.get("selectionSource") == "USER_SELECTED":
+                                target_stream_id = extract_ref_id(select_stream[i].get("next"))
+                                provider_info["modelLabel"] = selection.get("shortLabel")
+                                provider_info["modelUrl"] = selection.get("externalUrl")
+                                log_debug(f"Found target stream ID: {target_stream_id}")
+                            else:
+                                variant_stream_id = extract_ref_id(select_stream[i].get("next"))
+                                provider_info["variantLabel"] = selection.get("shortLabel")
+                                provider_info["variantUrl"] = selection.get("externalUrl")
+                                log_debug(f"Found variant stream ID: {variant_stream_id}")
+                        yield ProviderInfo.from_dict(provider_info)
+
+                # Process target stream content
+                elif target_stream_id and chunk_id == target_stream_id:
+                    yield PlainTextResponse(line.decode(errors="ignore"))
+                    if isinstance(data, dict):
+                        target_stream_id = extract_ref_id(data.get("next"))
+                        content = data.get("curr", "")
+                        if content:
+                            # Handle special "$fa" / "$<id>" reference
+                            ref_name = extract_ref_name(content)
+                            if ref_name and (ref_name in think_blocks or ref_name in image_blocks):
+                                # Thinking block
+                                if ref_name in think_blocks:
+                                    t_text = think_blocks[ref_name]
+                                    if t_text:
+                                        reasoning = Reasoning(t_text)
+                                        # thinking_content += t_text
+                                        stream["thinking"].append(reasoning)
+                                        # yield reasoning
+
+                                # Image-gen block
+                                if ref_name in image_blocks:
+                                    img_block_text = image_blocks[ref_name]
+                                    async for chunk in process_content_chunk(
+                                            img_block_text,
+                                            ref_name,
+                                            line_count,
+                                            for_target=True
+                                    ):
+                                        stream["target"].append(chunk)
+                                        is_started = True
+                                        yield chunk
+                            else:
+                                # Normal textual chunk
+                                async for chunk in process_content_chunk(
+                                        content,
+                                        chunk_id,
+                                        line_count,
+                                        for_target=True
+                                ):
+                                    stream["target"].append(chunk)
+                                    is_started = True
+                                    yield chunk
+                # Variant stream (comparison)
+                elif variant_stream_id and chunk_id == variant_stream_id:
+                    yield PlainTextResponse("[Variant] " + line.decode(errors="ignore"))
+                    if isinstance(data, dict):
+                        variant_stream_id = extract_ref_id(data.get("next"))
+                        content = data.get("curr", "")
+                        if content:
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=False
+                            ):
+                                stream["variant"].append(chunk)
+                                if isinstance(chunk, ImageResponse):
+                                    yield PreviewResponse(str(chunk))
+                                else:
+                                    variant_text += str(chunk)
+                                    if not is_started:
+                                        yield PreviewResponse(variant_text)
+                # Quick response (short preview)
+                elif quick_response_id and chunk_id == quick_response_id:
+                    yield PlainTextResponse("[Quick] " + line.decode(errors="ignore"))
+                    if isinstance(data, dict):
+                        content = data.get("curr", "")
+                        if content:
+                            async for chunk in process_content_chunk(
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=False
+                            ):
+                                stream["quick"].append(chunk)
+                            quick_content += content
+                            yield PreviewResponse(content)
+
+                elif chunk_id in [turn_id, persisted_turn_id]:
+                    ...
+                elif chunk_id == right_message_id:
+                    ...
+                elif chunk_id == left_message_id:
+                    ...
+                # Miscellaneous extra content
+                elif isinstance(data, dict) and "curr" in data:
+                    content = data.get("curr", "")
+                    if content:
+                        async for chunk in process_content_chunk(
+                                content,
+                                chunk_id,
+                                line_count,
+                                for_target=False
+                        ):
+                            stream["extra"].append(chunk)
+                            if isinstance(chunk, str) and "<streaming stopped unexpectedly" in chunk:
+                                yield FinishReason(chunk)
+
+                        yield PlainTextResponse("[Extra] " + line.decode(errors="ignore"))
+
+            if variant_image is not None:
+                yield variant_image
+            elif variant_text:
+                yield PreviewResponse(variant_text)
+            yield JsonResponse(**stream)
+            log_debug(f"Finished processing {line_count} lines")
+        except:
+            raise
+
+        finally:
+            # Claim reward in background
+            if reward_info and "unclaimedRewardInfo" in reward_info:
+                reward_id = reward_info["unclaimedRewardInfo"].get("rewardId")
+                if reward_id:
+                    print("claim_yupp_reward")
+                    # await claim_yupp_reward(session, account, reward_id)

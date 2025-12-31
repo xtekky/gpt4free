@@ -95,7 +95,7 @@ async def get_args_from_webview(url: str) -> dict:
 
 
 def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
-    [CookieParam.from_json({
+    return [CookieParam.from_json({
         "name": key,
         "value": value,
         "url": url,
