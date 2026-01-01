@@ -11,10 +11,11 @@ from typing import Dict
 from urllib.parse import urlparse
 
 import requests
+import zendriver
 from zendriver.cdp import fetch
 from zendriver.cdp.fetch import RequestPaused
-from zendriver.cdp.network import ResponseReceived, ErrorReason
-import zendriver
+from zendriver.cdp.network import ErrorReason
+
 from g4f.image import to_bytes, detect_file_type
 
 try:
@@ -33,8 +34,9 @@ except ImportError:
     has_nodriver = False
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies, get_zendriver
-from ...requests import StreamSession
+from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies, get_zendriver, \
+    get_cookie_params_from_dict_v2
+from ...requests.aiohttp import StreamSession
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
     RateLimitError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
@@ -781,7 +783,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if force:
                 await clear_cookies_for_url(page.browser, cls.url)
                 await page.reload()
-            button = await page.find("Accept Cookies")
+            button = await page.find_element_by_text("Accept Cookies")
             if button:
                 await button.click()
             else:
@@ -815,14 +817,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 await asyncio.sleep(1)
             html = await page.get_content()
             await cls.__load_actions(html)
+
         async with cls.lock:
             try:
                 if cls.nodriver is None:
                     cls.nodriver, cls.stop_nodriver = await get_zendriver(proxy=proxy)
-                page:zendriver.Tab = await cls.nodriver.get(cls.url)
+                domain = urlparse(cls.url).netloc
+                await cls.nodriver.cookies.set_all(
+                    get_cookie_params_from_dict_v2(kwargs.get("cookies"), url=cls.url, domain=domain))
+                page: zendriver.Tab = await cls.nodriver.get(cls.url)
                 while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
                     await asyncio.sleep(1)
-                await wait_auth(page)
+                await wait_auth(page, not bool(kwargs.get("cookies")))
                 # prepare request
                 is_image_model = model in cls.image_models
                 if not model:
@@ -843,10 +849,26 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     evaluationSessionId = str(uuid7())
                 userMessageId = str(uuid7())
                 modelAMessageId = str(uuid7())
-                print("get_grecaptcha ")
                 # Get grecaptcha
                 grecaptcha = await get_grecaptcha(page)
-                files = []
+                print(grecaptcha)
+                cookies = {}
+                for c in await page.send(nodriver.cdp.network.get_cookies([url])):
+                    cookies[c.name] = c.value
+                args = {
+                    "impersonate": "chrome136",
+                    "cookies":cookies,
+                    "headers": {
+                        "accept": "*/*", "accept-encoding": "gzip, deflate, br", "accept-language": "en-US",
+                        "referer": "https://lmarena.ai/",
+                        "sec-ch-ua": "\"Chromium\";v=\"136\", \"Google Chrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
+                        "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Windows\"", "sec-fetch-dest": "empty",
+                        "sec-fetch-mode": "cors", "sec-fetch-site": "same-origin",
+                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+                    },
+                    "proxy": None
+                }
+                files = await cls.prepare_images(args, media)
                 data = {
                     "id": evaluationSessionId,
                     "mode": "direct",
@@ -862,7 +884,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     "recaptchaV3Token": grecaptcha,
                     # "recaptchaV2Token": grecaptcha
                 }
-
 
                 script = f"""
                 (async () => {{
@@ -881,7 +902,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 # Option 1 - Stream
                 async with page.intercept(url, RequestStage.RESPONSE, None) as response:
                     await page.evaluate(script)
-                    event:RequestPaused = await response.response_future
+                    event: RequestPaused = await response.response_future
+                    # 429
                     if event.response_status_code != 200:
                         raise Exception(event.response_error_reason)
 
@@ -947,7 +969,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             finally:
                 if cls.stop_nodriver:
                     await cls.stop_nodriver()
-
 
     @classmethod
     async def create_async_generator(
