@@ -5,13 +5,8 @@ import os
 import re
 import time
 import uuid
-from urllib.parse import urlparse
 
 import aiohttp
-import zendriver
-from zendriver.cdp import fetch
-from zendriver.cdp.fetch import RequestPaused, HeaderEntry, RequestPattern
-from zendriver.cdp.network import ErrorReason
 
 from .helper import get_last_user_message
 from .yupp.models import YuppModelManager, ModelProcessor
@@ -22,11 +17,25 @@ from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
     ProviderInfo, FinishReason, JsonResponse
-from ..requests import get_zendriver, get_cookie_params_from_dict
+from ..requests import get_nodriver
 from ..requests.aiohttp import StreamSession
 from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
+
+try:
+    import nodriver
+    import nodriver.cdp.io as io
+    from nodriver.cdp.fetch import RequestStage
+    from nodriver import cdp
+    from nodriver.cdp.fetch import RequestPaused, RequestStage
+
+    from ..requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
+        RequestInterception, Request, get_cookies, remove_handlers, BaseRequestExpectation, Request
+
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
 
 # Global variables to manage Yupp accounts
 YUPP_ACCOUNT = Dict[str, Any]
@@ -220,25 +229,22 @@ def format_messages_for_yupp(messages: Messages) -> str:
 
 import asyncio
 import typing
-from dataclasses import dataclass
 
-from zendriver import cdp
-from zendriver.cdp.fetch import HeaderEntry, RequestStage, RequestPattern, RequestPaused
-from zendriver.cdp.network import ResourceType
-from zendriver.core.connection import Connection
-
+from nodriver import cdp
+from nodriver.cdp.fetch import RequestStage, RequestPattern
+from nodriver.cdp.network import ResourceType
+from nodriver.core.connection import Connection
 
 
 class FetchRoute:
 
-
     def __init__(
-        self,
-        tab: Connection,
-        url_pattern: str,
-        handler,
-        request_stage: RequestStage=None,
-        resource_type: ResourceType=None,
+            self,
+            tab: Connection,
+            url_pattern: str,
+            handler,
+            request_stage: RequestStage = None,
+            resource_type: ResourceType = None,
     ):
         self.tab = tab
         self.url_pattern = url_pattern
@@ -273,11 +279,11 @@ class FetchRoute:
         await self._un_route()
 
     async def _setup(self) -> None:
-        await self.tab.send(cdp.fetch.enable([ RequestPattern(
-                url_pattern=self.url_pattern,
-                request_stage=self.request_stage,
-                resource_type=self.resource_type,
-            )]))
+        await self.tab.send(cdp.fetch.enable([RequestPattern(
+            url_pattern=self.url_pattern,
+            request_stage=self.request_stage,
+            resource_type=self.resource_type,
+        )]))
 
         self.tab.add_handler(cdp.fetch.RequestPaused, self._response_handler)
 
@@ -302,7 +308,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     supports_stream = True
     image_cache = True
-    zendriver=None
+    nodriver = None
     stop_nodriver = None
     _next_actions = {
         "changeStyle": "60efed0bf19628cd74d5a5ccc56fbafce37522bf48",
@@ -386,8 +392,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             ImagesCache[image_hash] = file
             files.append(file)
         return files
-
-
 
     @classmethod
     async def user_info(cls, account: YUPP_ACCOUNT, kwargs: dict):
@@ -499,7 +503,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return user_info
 
     @classmethod
-    async def _load_info(cls, html:str, is_js=False):
+    async def _load_info(cls, html: str, is_js=False):
         history: dict = {}
         user_info = {}
 
@@ -594,7 +598,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             model: str,
             messages: Messages,
             proxy: str = None,
-            **kwargs,) -> AsyncResult:
+            **kwargs, ) -> AsyncResult:
         # Initialize Yupp accounts
         api_key = kwargs.get("api_key")
         if not api_key:
@@ -618,9 +622,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
         log_debug(
             f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}")
-        import base64
-        import zendriver.cdp.io as io
-        from zendriver.cdp.fetch import RequestStage
+
         # Try all accounts with rotation
         max_attempts = len(YUPP_ACCOUNTS)
         for attempt in range(max_attempts):
@@ -628,13 +630,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if not account:
                 raise ProviderException("No valid Yupp accounts available")
             try:
-                if cls.zendriver is None:
-                    cls.zendriver, cls.stop_nodriver = await get_zendriver(proxy=proxy,  user_data_dir=None)
-                # page:zendriver.Tab = await cls.zendriver.get(cls.url)
-                page:zendriver.Tab = cls.zendriver.main_tab
-                domain = urlparse(cls.url).netloc
-                await cls.zendriver.cookies.set_all( get_cookie_params_from_dict({"__Secure-yupp.session-token": account["token"]}, url=cls.url, domain=domain))
-                async def _response_handler(event: zendriver.cdp.network.ResponseReceived) -> None:
+                if cls.nodriver is None:
+                    cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
+
+                await clear_cookies_for_url(cls.nodriver, cls.url)
+                await set_cookies_for_browser(cls.nodriver, {"__Secure-yupp.session-token": account["token"]}, cls.url)
+                page: nodriver.Tab = cls.nodriver.main_tab
+
+                async def _response_handler(event: nodriver.cdp.network.ResponseReceived) -> None:
                     """
                     Internal handler for response events.
                     :param event: The response event.
@@ -642,18 +645,18 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     """
 
                     if event.response.headers.get("content-type", "").startswith('application/javascript'):
-                        body,_ = await page.send(zendriver.cdp.network.get_response_body(request_id=event.request_id))
+                        body, _ = await page.send(nodriver.cdp.network.get_response_body(request_id=event.request_id))
                         await cls._load_info(body, is_js=True)
 
-                page.add_handler(zendriver.cdp.network.ResponseReceived, _response_handler)
-                async with page.expect_response("https://yupp.ai/", ) as response:
-                        await page.get("https://yupp.ai/")
-                        _r:zendriver.cdp.network.ResponseReceived = await response.response_future
-                        _response_body, is_base64= await response.response_body
-                        response_body = base64.b64decode(_response_body) if is_base64 else _response_body
-                        print(_r.response.status)
-                        await cls._load_info(response_body)
-                page.remove_handlers(zendriver.cdp.network.ResponseReceived, _response_handler)
+                page.add_handler(nodriver.cdp.network.ResponseReceived, _response_handler)
+
+                await page.get("https://yupp.ai/")
+                await wait_for_ready_state(page, raise_error=False)
+                while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
+                    await asyncio.sleep(1)
+                response_body = await page.get_content()
+                await cls._load_info(response_body)
+                remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
 
                 # Prepare Message
                 turn_id = str(uuid.uuid4())
@@ -681,7 +684,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     # Yield the conversation info first
                     yield JsonConversation(url_uuid=url_uuid)
                     next_action = cls._next_actions.get("startNewChat") or kwargs.get("next_action",
-                                                                           "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
+                                                                                      "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
                 else:
                     # Continuing existing conversation
                     payload = [
@@ -696,7 +699,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     ]
                     url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
                     next_action = cls._next_actions.get("continueChat") or kwargs.get("next_action",
-                                                                           "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
+                                                                                      "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
                 headers = {
                     "content-type": "text/plain;charset=UTF-8",
                     "next-action": next_action,
@@ -713,35 +716,18 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     return response
                 }})()
                 """
-                # print(script)
                 log_debug(f"Sending request to: {url}")
                 log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
-                async with page.intercept(url, RequestStage.RESPONSE, None) as response:
+                async with RequestInterception(page, url, RequestStage.RESPONSE) as response:
                     await page.evaluate(script)
-                    event: RequestPaused = await response.response_future
-                    print(event.response_status_code)
-                    if event.response_status_code != 200:
-                        raise Exception(event.response_error_reason)
+                    intercepted_request: Request = await response.response_future
+                    print("status:", intercepted_request.response_status_code)
+                    if intercepted_request.response_status_code != 200:
+                        raise Exception(intercepted_request.response_error_reason)
 
-                    result = await page.send(fetch.take_response_body_as_stream(
-                        request_id=event.request_id
-                    ))
-                    stream_handle = result
-                    eof = False
                     response_body = ""
-                    while not eof:
-                        is_base64, data, eof = await page.send(io.read(handle=stream_handle))
-                        if data:
-                            chunk_raw = base64.b64decode(data) if is_base64 else data
-                            if isinstance(chunk_raw, bytes):
-                                chunk_raw = chunk_raw.decode("utf-8")
-                            response_body += chunk_raw
-
-                    await page.send(io.close(handle=stream_handle))
-                    await page.send(fetch.fail_request(
-                        request_id=event.request_id,
-                        error_reason=ErrorReason.FAILED
-                    ))
+                    async for chunk_raw in intercepted_request.response_body_as_stream:
+                        response_body += chunk_raw
 
                     # async with page.intercept(url, RequestStage.REQUEST, None) as request:
                     #     asyncio.create_task(page.get(url))
@@ -754,22 +740,21 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     #         headers=[HeaderEntry(k, v) for k, v in headers.items()],
                     #         post_data=post_data_base64,
                     #     )
-                    #     _r:zendriver.cdp.network.ResponseReceived = await response.response_future
+                    #     _r:nodriver.cdp.network.ResponseReceived = await response.response_future
                     #     response_body, is_base64= await response.response_body
                     #     response_body = base64.b64decode(response_body) if is_base64 else response_body
                     #     print(_r.response.status)
                     #     print(_r.response.headers)
 
                 async for chunk in cls._process_stream_response_(
-                        response_body.encode("utf-8"),
-                    # account=account,
+                        response_body.encode("utf-8").split(b"\n"),
+                        # account=account,
                         model_id=model
                 ):
                     yield chunk
             finally:
                 if cls.stop_nodriver:
-                    await cls.stop_nodriver()
-
+                    cls.stop_nodriver()
 
     @classmethod
     async def create_async_generator(
@@ -847,7 +832,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
                         # Yield the conversation info first
                         yield JsonConversation(url_uuid=url_uuid)
-                        next_action = kwargs.get("startNewChat") or kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
+                        next_action = kwargs.get("startNewChat") or kwargs.get("next_action",
+                                                                               "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
                     else:
                         # Continuing existing conversation
                         payload = [
@@ -861,7 +847,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             files
                         ]
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
-                        next_action = kwargs.get("continueChat") or  kwargs.get("next_action", "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
+                        next_action = kwargs.get("continueChat") or kwargs.get("next_action",
+                                                                               "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
                     headers = {
                         "accept": "text/x-component",
                         "content-type": "text/plain;charset=UTF-8",
@@ -1276,7 +1263,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             cls,
             response_content,
             # account: YUPP_ACCOUNT,
-            # page: zendriver.Tab,
+            # page: nodriver.Tab,
             # prompt: str,
             model_id: str
     ) -> AsyncResult:
@@ -1404,7 +1391,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             right_message_id = None
             nudge_new_chat_id = None
             nudge_new_chat = False
-            for line in response_content.split(b"\n"):
+            for line in response_content:
                 line_count += 1
                 # If we are currently capturing a think/image block for some ref ID
                 if capturing_ref_id is not None:

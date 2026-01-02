@@ -53,8 +53,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     text_models_endpoint = "https://text.pollinations.ai/models"
     gen_image_models_endpoint = "https://gen.pollinations.ai/image/models"
     gen_text_models_endpoint = "https://gen.pollinations.ai/text/models"
-    g4f_text_models_endpoint = "https://g4f.dev/api/pollinations/models"
-    nectar_text_models_endpoint = "https://g4f.dev/api/nectar/models"
 
     # Models configuration
     default_model = "openai"
@@ -131,7 +129,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models = image_models
                 cls.video_models = [get_alias(model) for model in new_image_models if isinstance(model, dict) and "video" in model.get("output_modalities", [])]
 
-                text_response = requests.get(cls.nectar_text_models_endpoint if api_key else cls.g4f_text_models_endpoint, timeout=timeout)
+                text_response = requests.get(cls.gen_text_models_endpoint if api_key else cls.text_models_endpoint, timeout=timeout)
                 if not text_response.ok:
                     text_response = requests.get(cls.gen_text_models_endpoint if api_key else cls.text_models_endpoint, timeout=timeout)
                 text_response.raise_for_status()

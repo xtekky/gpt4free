@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 import os
 import re
 import secrets
 import time
-from typing import Dict
-from urllib.parse import urlparse
+from typing import Dict, Optional, Union, AsyncIterable
 
-import requests
-from zendriver.cdp import fetch
-from zendriver.cdp.fetch import RequestPaused
-from zendriver.cdp.network import ResponseReceived, ErrorReason
-import zendriver
 from g4f.image import to_bytes, detect_file_type
 
 try:
@@ -27,16 +22,20 @@ except ImportError:
 try:
     import nodriver
     from nodriver import cdp
+    from nodriver.cdp.fetch import RequestPaused, RequestStage
+    from ...requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
+        RequestInterception, Request, get_cookies, get_args
+    import nodriver.cdp.io as io
 
     has_nodriver = True
 except ImportError:
     has_nodriver = False
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies, get_zendriver
-from ...requests import StreamSession
-from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
-    RateLimitError
+from ...requests import raise_for_status, merge_cookies, \
+    get_nodriver
+from ...requests.aiohttp import StreamSession
+from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, RateLimitError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
     JsonRequest
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
@@ -373,7 +372,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     stop_nodriver = None
 
     @classmethod
-    def get_models(cls, timeout: int = None) -> list[str]:
+    def get_models(cls, **kwargs) -> list[str]:
+        timeout: Optional[int] = kwargs.get("timeout", None)
         if not cls._models_loaded and has_curl_cffi:
             cache_file = cls.get_cache_file()
             args = {}
@@ -409,137 +409,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     cls.live -= 1
                     debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
         return cls.models
-
-    @classmethod
-    async def get_models_async(cls) -> list[str]:
-        if not cls._models_loaded:
-            async with StreamSession() as session:
-                async with session.get(f"{cls.url}/?mode=direct", ) as response:
-                    await cls.__load_actions(await response.text())
-        return cls.models
-
-    @classmethod
-    async def get_args_from_nodriver(cls, proxy, force=True):
-        cache_file = cls.get_cache_file()
-        grecaptcha = []
-
-        async def is_auth(page: nodriver.Tab):
-            cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([cls.url]))}
-            return any("arena-auth-prod" in cookie for cookie in cookies)
-
-        async def clear_cookies_for_url(browser: nodriver.Browser, url: str):
-            debug.log(f"Clearing cookies for {url}")
-            host = urlparse(url).hostname
-            if not host:
-                raise ValueError(f"Bad url: {url}")
-
-            tab = browser.main_tab  # any open tab is fine
-            cookies = await browser.cookies.get_all()  # returns CDP cookies :contentReference[oaicite:2]{index=2}
-            for c in cookies:
-                dom = (c.domain or "").lstrip(".")
-                if dom and (host == dom or host.endswith("." + dom)):
-                    # if c.name == "cf_clearance":
-                    #     continue
-                    await tab.send(
-                        cdp.network.delete_cookies(
-                            name=c.name,
-                            domain=dom,  # exact domain :contentReference[oaicite:3]{index=3}
-                            path=c.path,  # exact path :contentReference[oaicite:4]{index=4}
-                            # partition_key=c.partition_key,  # if you use partitioned cookies
-                        )
-                    )
-
-        async def callback(page: nodriver.Tab):
-            if force:
-                await clear_cookies_for_url(page.browser, cls.url)
-                await page.reload()
-            button = await page.find("Accept Cookies")
-            if button:
-                await button.click()
-            else:
-                debug.log("No 'Accept Cookies' button found, skipping.")
-            await asyncio.sleep(1)
-            textarea = await page.select('textarea[name="message"]')
-            if textarea:
-                await textarea.send_keys("Hello")
-            # await asyncio.sleep(1)
-            # button = await page.select('button[type="submit"]')
-            # if button:
-            #     await button.click()
-            # button = await page.find("Agree")
-            # if button:
-            #     await button.click()
-            # else:
-            #     debug.log("No 'Agree' button found, skipping.")
-            await asyncio.sleep(1)
-            element = await page.select('[style="display: grid;"]')
-            if element:
-                await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
-            if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
-                debug.log("No authentication cookie found, trying to authenticate.")
-                await page.select('#cf-turnstile', 300)
-                debug.log("Found Element: 'cf-turnstile'")
-                await asyncio.sleep(3)
-                await click_trunstile(page)
-            while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
-                await asyncio.sleep(1)
-            while not await page.evaluate('document.querySelector(\'textarea\')'):
-                await asyncio.sleep(1)
-            captcha = await page.evaluate(
-                """window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""",
-                await_promise=True)
-            grecaptcha.append(captcha)
-            html = await page.get_content()
-            await cls.__load_actions(html)
-
-        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
-        args["impersonate"] = "chrome136"
-
-        with cache_file.open("w") as f:
-            json.dump(args, f)
-
-        return args, next(iter(grecaptcha))
-
-    @classmethod
-    async def get_grecaptcha(cls, args, proxy):
-        cache_file = cls.get_cache_file()
-        grecaptcha = []
-
-        async def callback(page: nodriver.Tab):
-            while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
-                await asyncio.sleep(1)
-            captcha = await page.evaluate(
-                """new Promise((resolve) => {
-                    window.grecaptcha.enterprise.ready(async () => {
-                        try {
-                            const token = await window.grecaptcha.enterprise.execute(
-                                '6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',
-                                { action: 'chat_submit' }
-                            );
-                            resolve(token);
-                        } catch (e) {
-                            console.error("[LMArena API] reCAPTCHA execute failed:", e);
-                            resolve(null);
-                        }
-                    });
-                });""",
-                await_promise=True)
-            if isinstance(captcha, str):
-                grecaptcha.append(captcha)
-            else:
-                raise Exception(captcha)
-            html = await page.get_content()
-            await cls.__load_actions(html)
-
-        args = await get_args_from_nodriver(
-            cls.url, proxy=proxy, callback=callback, cookies=args.get("cookies", {}), user_data_dir="grecaptcha",
-            browser_args=["--guest", "--disable-gpu", "--no-sandbox"])
-
-        args["impersonate"] = "chrome136"
-        with cache_file.open("w") as f:
-            json.dump(args, f)
-
-        return args, next(iter(grecaptcha))
 
     @classmethod
     async def __load_actions(cls, html):
@@ -622,6 +491,402 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         ...
 
     @classmethod
+    async def _wait_auth(cls, page, prompt="Hello"):
+        async def is_auth(page: nodriver.Tab):
+            # cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([cls.url]))}
+            # return any("arena-auth-prod" in cookie for cookie in cookies)
+            return await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0')
+
+        if not await is_auth(page):
+            button = await page.find_element_by_text("Accept Cookies")
+            if button:
+                await button.click()
+            else:
+                debug.log("No 'Accept Cookies' button found, skipping.")
+            await asyncio.sleep(1)
+            textarea = await page.select('textarea[name="message"]')
+            if textarea:
+                await textarea.send_keys(prompt)
+            # await asyncio.sleep(1)
+            # button = await page.select('button[type="submit"]')
+            # if button:
+            #     await button.click()
+            # button = await page.find("Agree")
+            # if button:
+            #     await button.click()
+            # else:
+            #     debug.log("No 'Agree' button found, skipping.")
+            await asyncio.sleep(1)
+            element = await page.query_selector('[style="display: grid;"]')
+            if element:
+                await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
+            if not await is_auth(page):
+                debug.log("No authentication cookie found, trying to authenticate.")
+                await page.select('#cf-turnstile', 300)
+                debug.log("Found Element: 'cf-turnstile'")
+                await asyncio.sleep(3)
+                await click_trunstile(page)
+            while not await is_auth(page):
+                await asyncio.sleep(1)
+            while not await page.evaluate('!!document.querySelector(\'textarea\')'):
+                await asyncio.sleep(1)
+
+        html = await page.get_content()
+        await cls.__load_actions(html)
+
+    @classmethod
+    async def _get_captcha(cls, page):
+        while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
+            await asyncio.sleep(1)
+        captcha = await page.evaluate(
+            """new Promise((resolve) => {
+                window.grecaptcha.enterprise.ready(async () => {
+                    try {
+                        const token = await window.grecaptcha.enterprise.execute(
+                            '6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',
+                            { action: 'chat_submit' }
+                        );
+                        resolve(token);
+                    } catch (e) {
+                        console.error("[LMArena API] reCAPTCHA execute failed:", e);
+                        resolve(null);
+                    }
+                });
+            });""",
+            await_promise=True)
+        if not isinstance(captcha, str):
+            raise Exception(captcha)
+        return captcha
+
+    @classmethod
+    async def _prepare_data(cls, prompt, conversation, model, captcha, files):
+        # prepare request
+        is_image_model = model in cls.image_models
+        if not model:
+            model = cls.default_model
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
+        if model in cls.text_models:
+            model_id = cls.text_models[model]
+        elif model in cls.image_models:
+            model_id = cls.image_models[model]
+        else:
+            raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
+
+        if conversation and getattr(conversation, "evaluationSessionId", None):
+            url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
+            evaluationSessionId = conversation.evaluationSessionId
+        else:
+            url = cls.create_evaluation
+            evaluationSessionId = str(uuid7())
+
+        userMessageId = str(uuid7())
+        modelAMessageId = str(uuid7())
+
+        data = {
+            "id": evaluationSessionId,
+            "mode": "direct",
+            "modelAId": model_id,
+            "userMessageId": userMessageId,
+            "modelAMessageId": modelAMessageId,
+            "userMessage": {
+                "content": prompt,
+                "experimental_attachments": files,
+                "metadata": {}
+            },
+            "modality": "image" if is_image_model else "chat",
+            "recaptchaV3Token": captcha,
+            # "recaptchaV2Token": grecaptcha
+        }
+        return data, url, evaluationSessionId
+
+    @classmethod
+    async def _prepare_images(cls, page: nodriver.Tab, media: list[tuple]) -> list[dict[str, str]]:
+        files = []
+        if not media:
+            return files
+        url = "https://lmarena.ai/?chat-modality=image"
+
+        for index, (_file, file_name) in enumerate(media):
+
+            data_bytes: bytes = to_bytes(_file)
+            # Check Cache
+            hasher = hashlib.md5()
+            hasher.update(data_bytes)
+            image_hash = hasher.hexdigest()
+            file = ImagesCache.get(image_hash)
+            if cls.image_cache and file:
+                debug.log("Using cached image")
+                files.append(file)
+                continue
+
+            extension, file_type = detect_file_type(data_bytes)
+            file_name = file_name or f"file-{len(data_bytes)}{extension}"
+            # async with session.post(
+            #         url="https://lmarena.ai/?chat-modality=image",
+            #         json=[],
+            #         headers={
+            #             "accept": "text/x-component",
+            #             "content-type": "text/plain;charset=UTF-8",
+            #             "next-action": cls._next_actions["updateTouConsent"],
+            #             "Referer": url
+            #
+            #         }
+            # ) as response:
+            #     await raise_for_status(response)
+            data = json.dumps([file_name, file_type])
+            headers = {
+                "accept": "text/x-component",
+                "content-type": "text/plain;charset=UTF-8",
+                "next-action": cls._next_actions["generateUploadUrl"],
+                "Referer": url
+
+            }
+            # Prepare your data and headers in Python
+            headers_json = json.dumps(headers)
+            data_json = json.dumps(data)
+
+            # Use a cleaner script structure
+            script = f"""
+                (async () => {{
+                    const response = await fetch("{url}", {{
+                        method: "POST",
+                        headers: {headers_json},
+                        body: {data_json}
+                    }});
+                    return await response.text();
+                }})()
+                """
+            text = await page.evaluate(script, await_promise=True)
+            line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
+            if not line:
+                raise Exception("Failed to get upload URL")
+            chunk = json.loads(line[2:])
+            if not chunk.get("success"):
+                raise Exception(f"Failed to get upload URL: {chunk}")
+            uploadUrl = chunk.get("data", {}).get("uploadUrl")
+            key = chunk.get("data", {}).get("key")
+            if not uploadUrl:
+                raise Exception("Failed to get upload URL")
+
+            # Prepare your data and headers in Python
+            headers_json = json.dumps({
+                "content-type": file_type,
+            })
+            # data_json = json.dumps(data_bytes)
+            base64_data = base64.b64encode(data_bytes).decode('utf-8')
+            script = f"""
+                (async () => {{
+                    try {{
+                        // Convert Base64 string back to a Blob/Buffer
+                        const base64Data = "{base64_data}";
+                        const byteCharacters = atob(base64Data);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {{
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }}
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const response = await fetch("{uploadUrl}", {{
+                            method: "PUT",
+                            headers: {headers_json},
+                            body: byteArray
+                        }});
+
+                        // Extract the body as text
+                        const body = await response.text();
+
+                        // Return a custom object with the info you need
+                        return {{
+                            "status": response.status,
+                            // "statusText": response.statusText,
+                            "url": response.url,
+                            // "headers": Object.fromEntries(response.headers.entries()),
+                            "data": body
+                        }};
+                    }} catch (error) {{
+                        return {{ "error": error.message }};
+                    }}
+                }})()
+                """
+            put_response = await page.evaluate(script, await_promise=True)
+            print(put_response[0][1]["value"])
+            headers_json = json.dumps({
+                "accept": "text/x-component",
+                "content-type": "text/plain;charset=UTF-8",
+                "next-action": cls._next_actions["getSignedUrl"],
+                "Referer": url
+            })
+            data_json = json.dumps([key])
+            script = f"""
+                (async () => {{
+                    const response = await fetch("{url}", {{
+                        method: "POST",
+                        headers: {headers_json},
+                        body: {data_json}
+                    }});
+                    // Extract the body as text
+                    const body = await response.text();
+
+                    // Return a custom object with the info you need
+                    return {{
+                        "status": response.status,
+                        // "statusText": response.statusText,
+                        "url": response.url,
+                        // "headers": Object.fromEntries(response.headers.entries()),
+                        "data": body
+                    }};
+                }})()
+                """
+            print(script)
+
+            post_response = await page.evaluate(script, await_promise=True)
+            print(post_response)
+            text = post_response[2][1]["value"]
+            line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
+            if not line:
+                raise Exception("Failed to get download URL")
+
+            chunk = json.loads(line[2:])
+            if not chunk.get("success"):
+                raise Exception("Failed to get download URL")
+            image_url = chunk.get("data", {}).get("url")
+            uploaded_file = {
+                "name": key,
+                "contentType": file_type,
+                "url": image_url
+            }
+
+            # debug.log(f"Uploaded image to: {image_url}")
+            # ImagesCache[image_hash] = uploaded_file
+            # files.append(uploaded_file)
+        return files
+
+    @classmethod
+    async def create_async_browser(
+            cls,
+            model: str,
+            messages: Messages,
+            conversation: JsonConversation = None,
+            media: MediaListType = None,
+            proxy: str = None,
+            timeout: int = None,
+            **kwargs) -> AsyncResult:
+
+        prompt = get_last_user_message(messages)
+
+        async with cls.lock:
+            try:
+                if cls.nodriver is None:
+                    cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
+
+                await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance"])
+                if kwargs.get("cookies"):
+                    await set_cookies_for_browser(cls.nodriver, kwargs.get("cookies"), cls.url)
+                page: nodriver.Tab = await cls.nodriver.get(cls.url)
+                await wait_for_ready_state(page, raise_error=False)
+                while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
+                    await asyncio.sleep(1)
+
+                # Check user login and load models and actions
+                await cls._wait_auth(page, prompt=prompt)
+                # Get grecaptcha
+                grecaptcha = await cls._get_captcha(page)
+                # TODO:
+                args = await get_args(cls.nodriver, cls.url)
+                files = await cls.prepare_images(page, media)
+                data, url, evaluationSessionId = await cls._prepare_data(prompt, conversation, model, grecaptcha, files)
+                yield JsonRequest.from_dict(data)
+
+                script = f"""
+                (async () => {{
+                    const data = {data};
+                    const response = await fetch("{url}", {{
+                        method: "POST",
+                        body: JSON.stringify(data)
+                    }});
+                    return response
+                }})()
+                """
+
+                # Option 1 - Stream
+                async with RequestInterception(page, url, RequestStage.RESPONSE) as response:
+                    await page.evaluate(script)
+                    intercepted_request: Request = await response.response_future
+                    # 429
+                    if intercepted_request.response_status_code != 200:
+                        raise Exception(intercepted_request.response_error_reason)
+
+                    response_body = ""
+                    async for chunk_raw in intercepted_request.response_body_as_stream:
+                        response_body += chunk_raw
+
+                # Option 2 -
+                # async with page.expect_response(url) as response:
+                #     await page.evaluate(script)
+                #     await response.value
+                #     response_body, _ = await response.response_body
+                #     if (await response.response).status != 200:
+                #         raise Exception(response_body)
+
+                async for chunk in cls._process_stream_response_(response_body.split("\n"), prompt, conversation):
+                    yield chunk
+            finally:
+                if cls.stop_nodriver:
+                    cls.stop_nodriver()
+
+    @classmethod
+    async def _process_stream_response_(
+            cls,
+            response_content: Union[list, AsyncIterable],
+            prompt: str,
+            conversation
+    ) -> AsyncResult:
+        # 1. Normalize the input into an async iterator
+        async def get_chunks():
+            if hasattr(response_content, '__aiter__'):
+                async for chunk in response_content:
+                    yield chunk
+            else:
+                for chunk in response_content:
+                    yield chunk
+
+        async for chunk in get_chunks():
+            line = chunk
+            if isinstance(line, bytes):
+                line = line.decode()
+
+            yield PlainTextResponse(line)
+            if line.startswith("a0:"):
+                chunk = json.loads(line[3:])
+                if chunk == "hasArenaError":
+                    raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                yield chunk
+            elif line.startswith("ag:"):
+                chunk = json.loads(line[3:])
+                yield Reasoning(chunk)
+            elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
+                # 'a2:[{"type":"heartbeat"}]'
+                continue
+            elif line.startswith("a2:"):
+                chunk = json.loads(line[3:])
+                __images = [image.get("image") for image in chunk if image.get("image")]
+                if __images:
+                    yield ImageResponse(__images, prompt)
+            elif line.startswith("ad:"):
+                # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
+                finish = json.loads(line[3:])
+                if "finishReason" in finish:
+                    yield FinishReason(finish["finishReason"])
+                if "usage" in finish:
+                    yield Usage(**finish["usage"])
+            elif line.startswith("a3:"):
+                raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+            else:
+                debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
+
+    ############################## create_async_generator ####################
+
+    @classmethod
     async def prepare_images(cls, args, media: list[tuple]) -> list[dict[str, str]]:
         files = []
         if not media:
@@ -675,7 +940,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         raise Exception("Failed to get upload URL")
                     chunk = json.loads(line[2:])
                     if not chunk.get("success"):
-                        raise Exception("Failed to get upload URL")
+                        raise Exception(f"Failed to get upload URL: {chunk}")
                     uploadUrl = chunk.get("data", {}).get("uploadUrl")
                     key = chunk.get("data", {}).get("key")
                     if not uploadUrl:
@@ -720,234 +985,42 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return files
 
     @classmethod
-    async def create_async_browser(
-            cls,
-            model: str,
-            messages: Messages,
-            conversation: JsonConversation = None,
-            media: MediaListType = None,
-            proxy: str = None,
-            timeout: int = None,
-            **kwargs) -> AsyncResult:
+    async def get_models_async(cls) -> list[str]:
+        if not cls._models_loaded:
+            async with StreamSession() as session:
+                async with session.get(f"{cls.url}/?mode=direct", ) as response:
+                    await cls.__load_actions(await response.text())
+        return cls.models
 
-        prompt = get_last_user_message(messages)
-
-        async def clear_cookies_for_url(browser: zendriver.Browser, url: str):
-            debug.log(f"Clearing cookies for {url}")
-            host = urlparse(url).hostname
-            if not host:
-                raise ValueError(f"Bad url: {url}")
-
-            tab = browser.main_tab  # any open tab is fine
-            cookies = await browser.cookies.get_all()  # returns CDP cookies :contentReference[oaicite:2]{index=2}
-            for c in cookies:
-                dom = (c.domain or "").lstrip(".")
-                if dom and (host == dom or host.endswith("." + dom)):
-                    if c.name == "cf_clearance":
-                        continue
-                    await tab.send(
-                        cdp.network.delete_cookies(
-                            name=c.name,
-                            domain=dom,  # exact domain :contentReference[oaicite:3]{index=3}
-                            path=c.path,  # exact path :contentReference[oaicite:4]{index=4}
-                            # partition_key=c.partition_key,  # if you use partitioned cookies
-                        )
-                    )
-
-        async def get_grecaptcha(page: zendriver.Tab):
-            while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
+    @classmethod
+    async def get_args_from_nodriver(cls, proxy, cookies=None):
+        cache_file = cls.get_cache_file()
+        try:
+            if cls.nodriver is None:
+                cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
+            await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance"])
+            if cookies:
+                await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
+            page: nodriver.Tab = await cls.nodriver.get(cls.url)
+            await wait_for_ready_state(page, raise_error=False)
+            while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
                 await asyncio.sleep(1)
-            captcha = await page.evaluate(
-                """new Promise((resolve) => {
-                    window.grecaptcha.enterprise.ready(async () => {
-                        try {
-                            const token = await window.grecaptcha.enterprise.execute(
-                                '6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',
-                                { action: 'chat_submit' }
-                            );
-                            resolve(token);
-                        } catch (e) {
-                            console.error("[LMArena API] reCAPTCHA execute failed:", e);
-                            resolve(null);
-                        }
-                    });
-                });""",
-                await_promise=True)
-            if not isinstance(captcha, str):
-                raise Exception(captcha)
-            return captcha
 
-        async def wait_auth(page: zendriver.Tab, force=True):
-            if force:
-                await clear_cookies_for_url(page.browser, cls.url)
-                await page.reload()
-            button = await page.find("Accept Cookies")
-            if button:
-                await button.click()
-            else:
-                debug.log("No 'Accept Cookies' button found, skipping.")
-            await asyncio.sleep(1)
-            textarea = await page.select('textarea[name="message"]')
-            if textarea:
-                await textarea.send_keys(prompt)
-            # await asyncio.sleep(1)
-            # button = await page.select('button[type="submit"]')
-            # if button:
-            #     await button.click()
-            # button = await page.find("Agree")
-            # if button:
-            #     await button.click()
-            # else:
-            #     debug.log("No 'Agree' button found, skipping.")
-            await asyncio.sleep(1)
-            element = await page.query_selector('[style="display: grid;"]')
-            if element:
-                await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
-            if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
-                debug.log("No authentication cookie found, trying to authenticate.")
-                await page.select('#cf-turnstile', 300)
-                debug.log("Found Element: 'cf-turnstile'")
-                await asyncio.sleep(3)
-                await click_trunstile(page)
-            while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
-                await asyncio.sleep(1)
-            while not await page.evaluate('!!document.querySelector(\'textarea\')'):
-                await asyncio.sleep(1)
-            html = await page.get_content()
-            await cls.__load_actions(html)
-        async with cls.lock:
-            try:
-                if cls.nodriver is None:
-                    cls.nodriver, cls.stop_nodriver = await get_zendriver(proxy=proxy)
-                page:zendriver.Tab = await cls.nodriver.get(cls.url)
-                while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
-                    await asyncio.sleep(1)
-                await wait_auth(page)
-                # prepare request
-                is_image_model = model in cls.image_models
-                if not model:
-                    model = cls.default_model
-                if model in cls.model_aliases:
-                    model = cls.model_aliases[model]
-                if model in cls.text_models:
-                    model_id = cls.text_models[model]
-                elif model in cls.image_models:
-                    model_id = cls.image_models[model]
-                else:
-                    raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
-                if conversation and getattr(conversation, "evaluationSessionId", None):
-                    url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
-                    evaluationSessionId = conversation.evaluationSessionId
-                else:
-                    url = cls.create_evaluation
-                    evaluationSessionId = str(uuid7())
-                userMessageId = str(uuid7())
-                modelAMessageId = str(uuid7())
-                print("get_grecaptcha ")
-                # Get grecaptcha
-                grecaptcha = await get_grecaptcha(page)
-                files = []
-                data = {
-                    "id": evaluationSessionId,
-                    "mode": "direct",
-                    "modelAId": model_id,
-                    "userMessageId": userMessageId,
-                    "modelAMessageId": modelAMessageId,
-                    "userMessage": {
-                        "content": prompt,
-                        "experimental_attachments": files,
-                        "metadata": {}
-                    },
-                    "modality": "image" if is_image_model else "chat",
-                    "recaptchaV3Token": grecaptcha,
-                    # "recaptchaV2Token": grecaptcha
-                }
+            # Check user login and load models and actions
+            await cls._wait_auth(page)
+            captcha = await cls._get_captcha(page)
+            args = await get_args(cls.nodriver, cls.url)
 
+        finally:
+            if cls.stop_nodriver:
+                cls.stop_nodriver()
 
-                script = f"""
-                (async () => {{
-                    const data = {data};
-                    const response = await fetch("{url}", {{
-                        method: "POST",
-                        body: JSON.stringify(data)
-                    }});
-                    return response
-                }})()
-                """
-                import base64
-                import zendriver.cdp.io as io
-                from zendriver.cdp.fetch import RequestStage
+        args["impersonate"] = "chrome136"
 
-                # Option 1 - Stream
-                async with page.intercept(url, RequestStage.RESPONSE, None) as response:
-                    await page.evaluate(script)
-                    event:RequestPaused = await response.response_future
-                    if event.response_status_code != 200:
-                        raise Exception(event.response_error_reason)
+        with cache_file.open("w") as f:
+            json.dump(args, f)
 
-                    result = await page.send(fetch.take_response_body_as_stream(
-                        request_id=event.request_id
-                    ))
-                    stream_handle = result
-                    eof = False
-                    response_body = ""
-                    while not eof:
-                        is_base64, data, eof = await page.send(io.read(handle=stream_handle))
-                        if data:
-                            chunk_raw = base64.b64decode(data) if is_base64 else data
-                            if isinstance(chunk_raw, bytes):
-                                chunk_raw = chunk_raw.decode("utf-8")
-                            response_body += chunk_raw
-
-                    await page.send(io.close(handle=stream_handle))
-
-                    await page.send(fetch.fail_request(
-                        request_id=event.request_id,
-                        error_reason=ErrorReason.FAILED
-                    ))
-
-                # Option 2 -
-                # async with page.expect_response(url) as response:
-                #     await page.evaluate(script)
-                #     await response.value
-                #     response_body, _ = await response.response_body
-                #     if (await response.response).status != 200:
-                #         raise Exception(response_body)
-
-                for chunk in response_body.split("\n"):
-                    line = chunk
-                    yield PlainTextResponse(line)
-                    if line.startswith("a0:"):
-                        chunk = json.loads(line[3:])
-                        if chunk == "hasArenaError":
-                            raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
-                        yield chunk
-                    elif line.startswith("ag:"):
-                        chunk = json.loads(line[3:])
-                        yield Reasoning(chunk)
-                    elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
-                        # 'a2:[{"type":"heartbeat"}]'
-                        continue
-                    elif line.startswith("a2:"):
-                        chunk = json.loads(line[3:])
-                        __images = [image.get("image") for image in chunk if image.get("image")]
-                        if __images:
-                            yield ImageResponse(__images, prompt)
-                    elif line.startswith("ad:"):
-                        yield JsonConversation(evaluationSessionId=evaluationSessionId)
-                        finish = json.loads(line[3:])
-                        if "finishReason" in finish:
-                            yield FinishReason(finish["finishReason"])
-                        if "usage" in finish:
-                            yield Usage(**finish["usage"])
-                    elif line.startswith("a3:"):
-                        raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
-                    else:
-                        debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
-            finally:
-                if cls.stop_nodriver:
-                    await cls.stop_nodriver()
-
+        return args, captcha
 
     @classmethod
     async def create_async_generator(
@@ -973,80 +1046,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             except json.JSONDecodeError:
                 debug.log(f"Cache file {cache_file} is corrupted, removing it.")
                 cache_file.unlink()
-                args = None
-        force = False
+                args = {}
+        cookies = kwargs.get("cookies", {})
         for _ in range(2):
-            if args:
-                pass
-            elif has_nodriver or cls.share_url is None:
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy)
-
-            elif not cls.looked:
-                cls.looked = True
-                try:
-                    debug.log("No cache file found, trying to fetch from share URL.")
-                    response = requests.get(cls.share_url, params={
-                        "prompt": prompt,
-                        "model": model,
-                        "provider": cls.__name__
-                    })
-                    raise_for_status(response)
-                    if response.headers.get("Content-Type", "").startswith("image/"):
-                        yield ImageResponse(str(response.url), prompt)
-                    else:
-                        text, *args = response.text.split("\n" * 10 + "<!--", 1)
-                        if args:
-                            debug.log("Save args to cache file:", str(cache_file))
-                            with cache_file.open("w") as f:
-                                f.write(args[0].strip())
-                        yield text
-                finally:
-                    cls.looked = False
-                return
-            else:
-                raise MissingRequirementsError("No auth file found and nodriver is not available.")
+            if has_nodriver:
+                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"))
 
             if not cls._models_loaded:
                 # change to async
                 await cls.get_models_async()
-            is_image_model = model in cls.image_models
-            if not model:
-                model = cls.default_model
-            if model in cls.model_aliases:
-                model = cls.model_aliases[model]
-            if model in cls.text_models:
-                model_id = cls.text_models[model]
-            elif model in cls.image_models:
-                model_id = cls.image_models[model]
-            else:
-                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
 
-            if conversation and getattr(conversation, "evaluationSessionId", None):
-                url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
-                evaluationSessionId = conversation.evaluationSessionId
-            else:
-                url = cls.create_evaluation
-                evaluationSessionId = str(uuid7())
-            userMessageId = str(uuid7())
-            modelAMessageId = str(uuid7())
-            if not grecaptcha and has_nodriver:
-                debug.log("get grecaptcha")
-                args, grecaptcha = await cls.get_grecaptcha(args, proxy)
             files = await cls.prepare_images(args, media)
-            data = {
-                "id": evaluationSessionId,
-                "mode": "direct",
-                "modelAId": model_id,
-                "userMessageId": userMessageId,
-                "modelAMessageId": modelAMessageId,
-                "userMessage": {
-                    "content": prompt,
-                    "experimental_attachments": files,
-                    "metadata": {}
-                },
-                "modality": "image" if is_image_model else "chat",
-                "recaptchaV3Token": grecaptcha
-            }
+            data, url, evaluationSessionId = await cls._prepare_data(prompt, conversation, model, grecaptcha, files)
             yield JsonRequest.from_dict(data)
             try:
                 async with StreamSession(**args, timeout=timeout or 5 * 60) as session:
@@ -1058,44 +1069,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     ) as response:
                         await raise_for_status(response)
                         args["cookies"] = merge_cookies(args["cookies"], response)
-                        async for chunk in response.iter_lines():
-                            line = chunk.decode()
-                            yield PlainTextResponse(line)
-                            if line.startswith("a0:"):
-                                chunk = json.loads(line[3:])
-                                if chunk == "hasArenaError":
-                                    raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
-                                yield chunk
-                            elif line.startswith("ag:"):
-                                chunk = json.loads(line[3:])
-                                yield Reasoning(chunk)
-                            elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
-                                # 'a2:[{"type":"heartbeat"}]'
-                                continue
-                            elif line.startswith("a2:"):
-                                chunk = json.loads(line[3:])
-                                __images = [image.get("image") for image in chunk if image.get("image")]
-                                if __images:
-                                    yield ImageResponse(__images, prompt)
-                            elif line.startswith("ad:"):
-                                yield JsonConversation(evaluationSessionId=evaluationSessionId)
-                                finish = json.loads(line[3:])
-                                if "finishReason" in finish:
-                                    yield FinishReason(finish["finishReason"])
-                                if "usage" in finish:
-                                    yield Usage(**finish["usage"])
-                            elif line.startswith("a3:"):
-                                raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
-                            else:
-                                debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
+                        async for chunk in cls._process_stream_response_(response.iter_lines(), prompt,
+                                                                         conversation):
+                            yield chunk
+
                 break
             except (CloudflareError, MissingAuthError) as error:
                 args = None
+                cookies.clear()
                 debug.error(error)
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
             except (RateLimitError) as error:
                 args = None
+                cookies.clear()
                 force = True
                 debug.error(error)
                 continue
@@ -1109,14 +1096,3 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             debug.log("Save args to cache file:", str(cache_file))
             with cache_file.open("w") as f:
                 f.write(json.dumps(args))
-
-
-def get_content_type(url: str) -> str:
-    if url.endswith(".webp"):
-        return "image/webp"
-    elif url.endswith(".png"):
-        return "image/png"
-    elif url.endswith(".jpg") or url.endswith(".jpeg"):
-        return "image/jpeg"
-    else:
-        return "application/octet-stream"
