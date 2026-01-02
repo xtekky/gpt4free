@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from http.cookies import Morsel
 from pathlib import Path
 from typing import Iterator, AsyncIterator
-from .nodriver_ import set_cookies_for_browser
+
 
 try:
     from curl_cffi.requests import Session, Response
@@ -34,7 +34,7 @@ try:
     from nodriver.cdp.network import CookieParam
     from nodriver.core.config import find_chrome_executable
     from nodriver import Browser, Tab, util
-
+    from .nodriver_ import set_cookies_for_browser
     has_nodriver = True
 except ImportError:
     from typing import Type as Browser
