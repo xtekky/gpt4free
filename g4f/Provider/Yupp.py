@@ -26,10 +26,10 @@ from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 try:
     import nodriver
     import nodriver.cdp.io as io
-    from nodriver.cdp.fetch import RequestStage
     from nodriver import cdp
-    from nodriver.cdp.fetch import RequestPaused, RequestStage
-
+    from nodriver.cdp.fetch import RequestPaused, RequestStage, RequestPattern
+    from nodriver.cdp.network import ResourceType
+    from nodriver.core.connection import Connection
     from ..requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
         RequestInterception, Request, get_cookies, remove_handlers, BaseRequestExpectation, Request
 
@@ -227,73 +227,6 @@ def format_messages_for_yupp(messages: Messages) -> str:
     return result
 
 
-import asyncio
-import typing
-
-from nodriver import cdp
-from nodriver.cdp.fetch import RequestStage, RequestPattern
-from nodriver.cdp.network import ResourceType
-from nodriver.core.connection import Connection
-
-
-class FetchRoute:
-
-    def __init__(
-            self,
-            tab: Connection,
-            url_pattern: str,
-            handler,
-            request_stage: RequestStage = None,
-            resource_type: ResourceType = None,
-    ):
-        self.tab = tab
-        self.url_pattern = url_pattern
-        self.request_stage = request_stage
-        self.resource_type = resource_type
-        self.handler = handler
-
-    async def _response_handler(self, event: cdp.fetch.RequestPaused) -> None:
-
-        if asyncio.iscoroutinefunction(self.handler):
-            await self.handler(event)
-        else:
-            self.handler(event)
-
-    def _remove_response_handler(self) -> None:
-        """
-        Remove the response event handler.
-        """
-        self.tab.remove_handlers(cdp.fetch.RequestPaused, self._response_handler)
-
-    async def __aenter__(self) -> "FetchRoute":
-        """
-        Enter the context manager, adding request and response handlers.
-        """
-        await self._setup()
-        return self
-
-    async def __aexit__(self, *args: typing.Any) -> None:
-        """
-        Exit the context manager, removing request and response handlers.
-        """
-        await self._un_route()
-
-    async def _setup(self) -> None:
-        await self.tab.send(cdp.fetch.enable([RequestPattern(
-            url_pattern=self.url_pattern,
-            request_stage=self.request_stage,
-            resource_type=self.resource_type,
-        )]))
-
-        self.tab.add_handler(cdp.fetch.RequestPaused, self._response_handler)
-
-    async def _un_route(self) -> None:
-        self._remove_response_handler()
-        await self.tab.send(cdp.fetch.disable())
-
-    async def _teardown(self) -> None:
-        self._remove_response_handler()
-        await self.tab.send(cdp.fetch.disable())
 
 
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
