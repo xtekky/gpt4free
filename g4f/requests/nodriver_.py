@@ -13,6 +13,7 @@ from nodriver.cdp.fetch import HeaderEntry, RequestStage, RequestPattern, Reques
 from nodriver.cdp.network import CookieParam, ResponseReceived
 from nodriver.cdp.network import ResourceType
 from nodriver.cdp.runtime import ExceptionDetails
+from nodriver.core.element import Element
 
 from g4f.debug import log
 
@@ -92,7 +93,8 @@ async def get_args(browser: nodriver.Browser, url) -> dict[str, str]:
     return args
 
 
-async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=None, allow_redirects=True):
+async def nodriver_request(page: nodriver.Tab, method, url, headers=None, data=None, allow_redirects=True,
+                           await_promise=True):
     has_body = method.upper() not in ("GET", "HEAD")
     fetch_kw = [
         f'method: "{method}",',
@@ -100,18 +102,10 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
         f'headers: {json.dumps(headers)},' if headers else '',
         'redirect: "manual",' if not allow_redirects else ""
     ]
-    script = f"""
-    (async () => {{
-        const response = await fetch("{url}", {{
-            {"\n".join(fetch_kw)}
-        }});
+    wait_return = f"""
         // Extract the body as text
         const body = await response.text();
-        // Convert headers to a plain object
-        const headerMap = {{}};
-        response.headers.forEach((value, key) => {{
-            headerMap[key] = value;
-        }});
+        
         // Return a custom object with the info you need
         return {{
             "status": response.status,
@@ -120,18 +114,44 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
             "headers": headerMap,
             "statusText": response.statusText,
         }};
+    """
+    await_return = f"""
+        // Return a custom object with the info you need
+        return {{
+            "status": response.status,
+            "url": response.url,
+            "headers": headerMap,
+            "statusText": response.statusText,
+        }};
+    """
+    script = f"""
+    (async () => {{
+        const response = await fetch("{url}", {{
+            {"\n".join(fetch_kw)}
+        }});
+
+        // Convert headers to a plain object
+        const headerMap = {{}};
+        response.headers.forEach((value, key) => {{
+            headerMap[key] = value;
+        }});
+        
+        {wait_return if await_promise else await_return}
     }})()
     """
 
-    raw_response = await page.evaluate(script, await_promise=True)
+    raw_response = await page.evaluate(script, await_promise=await_promise)
     if isinstance(raw_response, ExceptionDetails):
         raise Exception(raw_response)
-    raw_response:dict = dict(raw_response)
+    if not await_promise:
+        return {}
+    raw_response: dict = dict(raw_response)
 
     def extract_val(obj):
         if isinstance(obj, dict) and "value" in obj:
             return obj["value"]
         return obj
+
     # Parse headers (handling the way nodriver returns dicts)
     headers_raw = extract_val(raw_response.get("headers", {}))
     headers_dict = {k: extract_val(v) for k, v in dict(headers_raw).items()}
@@ -319,7 +339,7 @@ class Request(RequestPaused):
     tab: nodriver.Tab
 
     @property
-    async def response_body(self) -> tuple[str, bool]:
+    async def response_body_(self) -> tuple[str, bool]:
         """
         Get the body of the matched response.
         :return: The response body.
@@ -328,6 +348,32 @@ class Request(RequestPaused):
         request_id = self.request_id
         body = await self.tab.send(nodriver.cdp.fetch.get_response_body(request_id=request_id))
         return body
+
+    @property
+    async def response_body(self) -> tuple[str, bool]:
+        """
+        Get the body of the matched response.
+        :return: The response body.
+        :rtype: str
+        """
+        request_id = self.request_id
+        body, is_base64 = await self.tab.send(nodriver.cdp.fetch.get_response_body(request_id=request_id))
+        chunk_raw = base64.b64decode(body) if is_base64 else body
+        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        return chunk_raw
+
+    @property
+    async def response_body_net(self) -> tuple[str, bool]:
+        """
+        Get the body of the matched response.
+        :return: The response body.
+        :rtype: str
+        """
+        request_id = self.request_id
+        body, is_base64 = await self.tab.send(nodriver.cdp.network.get_response_body(request_id=request_id))
+        chunk_raw = base64.b64decode(body) if is_base64 else body
+        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        return chunk_raw
 
     @property
     async def response_body_as_stream(self):
@@ -417,6 +463,7 @@ class Request(RequestPaused):
             )
         )
 
+
 @dataclass
 class Response(ResponseReceived):
     tab: nodriver.Tab
@@ -437,8 +484,6 @@ class Response(ResponseReceived):
         chunk_raw = base64.b64decode(body) if is_base64 else body
         chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
         return chunk_raw
-
-
 
 
 class BaseRequestExpectation:

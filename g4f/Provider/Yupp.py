@@ -674,8 +674,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     #         post_data=post_data_base64,
                     #     )
                     #     _r:nodriver.cdp.network.ResponseReceived = await response.response_future
-                    #     response_body, is_base64= await response.response_body
-                    #     response_body = base64.b64decode(response_body) if is_base64 else response_body
+                    #     response_body_, is_base64= await response.response_body_
+                    #     response_body_ = base64.b64decode(response_body_) if is_base64 else response_body_
                     #     print(_r.response.status)
                     #     print(_r.response.headers)
 

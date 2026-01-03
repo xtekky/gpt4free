@@ -358,7 +358,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     vision_models = vision_models
     looked = False
     _models_loaded = False
-    image_cache = False
+    image_cache = True
     _next_actions = {
         "generateUploadUrl": "7020462b741e358317f3b5a1929766d8b9c241c7c6",
         "getSignedUrl": "60ff7bb683b22dd00024c9aee7664bbd39749e25c9",
@@ -500,7 +500,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             return await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0')
 
         if not await is_auth(page):
-            button = await page.find_element_by_text("Accept Cookies")
+            button = await page.find("Accept Cookies")
             if button:
                 await button.click()
             else:
@@ -508,7 +508,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             await asyncio.sleep(1)
             textarea = await page.select('textarea[name="message"]')
             if textarea:
+                # await textarea.mouse_move()
+                # await textarea.mouse_drag((-100, 200))
+                # await textarea.flash(1)
+                # await click_trunstile(page, 'document.getElementById(\'textarea[name="message"]\')')
                 await textarea.send_keys(prompt)
+
             # await asyncio.sleep(1)
             # button = await page.select('button[type="submit"]')
             # if button:
@@ -519,7 +524,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             # else:
             #     debug.log("No 'Agree' button found, skipping.")
             await asyncio.sleep(1)
-            element = await page.query_selector('[style="display: grid;"]')
+            element = await page.select('[style="display: grid;"]')
             if element:
                 await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
             if not await is_auth(page):
@@ -561,19 +566,28 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return captcha
 
     @classmethod
-    async def _prepare_data(cls, prompt, conversation, model, captcha, files):
+    async def _prepare_data(cls, prompt, conversation, model, captcha, files, **kwargs):
         # prepare request
-        is_image_model = model in cls.image_models
-        if not model:
-            model = cls.default_model
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
-        if model in cls.text_models:
-            model_id = cls.text_models[model]
-        elif model in cls.image_models:
-            model_id = cls.image_models[model]
-        else:
-            raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
+        def get_mode_id(model):
+            model_id = None
+            # if not model:
+            #     model = cls.default_model
+            if model in cls.model_aliases:
+                model = cls.model_aliases[model]
+            if model in cls.text_models:
+                model_id = cls.text_models[model]
+            elif model in cls.image_models:
+                model_id = cls.image_models[model]
+            elif model:
+                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
+            # else:
+            #     raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
+            return model_id
+
+        modelA, modelB = model, kwargs.get("modelB")
+
+        modelAId = get_mode_id(modelA)
+        modelBId = get_mode_id(modelB) if modelB else None
 
         if conversation and getattr(conversation, "evaluationSessionId", None):
             url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
@@ -584,11 +598,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         userMessageId = str(uuid7())
         modelAMessageId = str(uuid7())
-
+        modelBMessageId = str(uuid7())
+        if modelAId and modelBId:
+            mode = "side-by-side"
+        elif modelAId:
+            mode = "direct"
+        else:
+            mode = "battle"
+        is_image_model = modelA in cls.image_models or (files and mode == "battle")
         data = {
             "id": evaluationSessionId,
-            "mode": "direct",
-            "modelAId": model_id,
+            "mode": mode,
+            # "modelAId": modelAId,
             "userMessageId": userMessageId,
             "modelAMessageId": modelAMessageId,
             "userMessage": {
@@ -600,7 +621,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "recaptchaV3Token": captcha,
             # "recaptchaV2Token": grecaptcha
         }
-        return data, url, evaluationSessionId
+        if modelAId:
+            data["modelAId"] = modelAId
+        if modelBId:
+            data["modelBId"] = modelBId
+        if mode in ["side-by-side", "battle"]:
+            data["modelBMessageId"] = modelBMessageId
+
+        return data, url, evaluationSessionId, modelA, modelB
 
     @classmethod
     async def _prepare_images(cls, page: nodriver.Tab, media: list[tuple]) -> list[dict[str, str]]:
@@ -788,12 +816,16 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         if cls.nodriver is None:
             cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
 
-        await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance", "cookie-preferences", "app_banner_state"])
-        # await set_cookies_for_browser(cls.nodriver, {
-        #     "cookie-preferences": "{\"advertising\":true,\"functionality\":true,\"analytics\":true,\"socialMedia\":true,\"lastUpdated\":\"2025-07-24T19:30:54.130Z\"}", },
-        #                               cls.url)
+        await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance", "app_banner_state"])
+        # "cookie-preferences",
+        # old_cookies = await get_cookies(cls.nodriver, cls.url)
+        # if "cookie-preferences" not in old_cookies:
+        #     await set_cookies_for_browser(cls.nodriver, {
+        #         "cookie-preferences": "{\"advertising\":true,\"functionality\":true,\"analytics\":true,\"socialMedia\":true,\"lastUpdated\":\"2025-07-24T19:30:54.130Z\"}", },
+        #                                   cls.url)
         if kwargs.get("cookies"):
             await set_cookies_for_browser(cls.nodriver, kwargs.get("cookies"), cls.url)
+
         # elif kwargs.get("email") and kwargs.get("password"):
         #     cookies = await cls._login(email=kwargs.get("email"), password=kwargs.get("password"))
         #     await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
@@ -806,10 +838,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if mod_response.response.headers and mod_response.response.headers.get("content-type",
                                                                                    "").startswith(
                 'application/javascript'):
-                js_text = await mod_response.response_body
-                start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
-                for v, k in start_id:
-                    cls._next_actions[k] = v
+                try:
+                    js_text = await mod_response.response_body
+                    start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+                    for v, k in start_id:
+                        cls._next_actions[k] = v
+                except Exception as e:
+                    ...
 
         page: nodriver.Tab = cls.nodriver.main_tab
         page.add_handler(nodriver.cdp.network.ResponseReceived, _response_handler)
@@ -848,49 +883,54 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         async with cls.lock:
             try:
+                co = 2
                 page = await cls._start_nodriver(proxy=proxy, **kwargs)
-                # Check user login and load models and actions
-                await cls._wait_auth(page, prompt=prompt)
-                # Get grecaptcha
-                grecaptcha = await cls._get_captcha(page)
-                # TODO:
-                args = await get_args(cls.nodriver, cls.url)
-                files = await cls.prepare_images(args, media)
-                data, url, evaluationSessionId = await cls._prepare_data(prompt, conversation, model, grecaptcha, files)
+                for i in range(co):
+                    # Check user login and load models and actions
+                    await cls._wait_auth(page, prompt=prompt)
+                    # Get grecaptcha
+                    grecaptcha = await cls._get_captcha(page)
+                    # TODO:
+                    args = await get_args(cls.nodriver, cls.url)
+                    files = await cls.prepare_images(args, media)
+                    data, url, evaluationSessionId, modelA, modelB = await cls._prepare_data(prompt, conversation,
+                                                                                             model, grecaptcha, files,
+                                                                                             **kwargs)
+                    yield JsonRequest.from_dict(data)
 
-                script = f"""
-                (async () => {{
-                    const data = {data};
-                    const response = await fetch("{url}", {{
-                        method: "POST",
-                        body: JSON.stringify(data)
-                    }});
-                    return response
-                }})()
-                """
+                    # Option 1 - Stream
+                    async with RequestInterception(page, url, RequestStage.RESPONSE) as response:
+                        await nodriver_request(page, method="POST", url=url, data=data, await_promise=False)
+                        intercepted_request: Request = await response.response_future
+                        print("intercepted request", intercepted_request.request.url)
+                        # 429
+                        if intercepted_request.response_status_code == 403:
+                            debug.error(intercepted_request.response_status_code,
+                                        await intercepted_request.response_body)
+                            if i + 1 < co:
+                                continue
+                            raise CloudflareError(intercepted_request.response_status_code,
+                                                  await intercepted_request.response_body)
+                        elif intercepted_request.response_status_code != 200:
+                            raise RateLimitError(intercepted_request.response_status_code,
+                                                 await intercepted_request.response_body)
 
-                # Option 1 - Stream
-                async with RequestInterception(page, url, RequestStage.RESPONSE) as response:
-                    await page.evaluate(script)
-                    intercepted_request: Request = await response.response_future
-                    # 429
-                    if intercepted_request.response_status_code != 200:
-                        raise Exception(intercepted_request.response_error_reason)
+                        response_body = ""
+                        async for chunk_raw in intercepted_request.response_body_as_stream:
+                            response_body += chunk_raw
 
-                    response_body = ""
-                    async for chunk_raw in intercepted_request.response_body_as_stream:
-                        response_body += chunk_raw
+                    # Option 2 -
+                    # async with page.expect_response(url) as response:
+                    #     await page.evaluate(script)
+                    #     await response.value
+                    #     response_body_, _ = await response.response_body_
+                    #     if (await response.response).status != 200:
+                    #         raise Exception(response_body_)
 
-                # Option 2 -
-                # async with page.expect_response(url) as response:
-                #     await page.evaluate(script)
-                #     await response.value
-                #     response_body, _ = await response.response_body
-                #     if (await response.response).status != 200:
-                #         raise Exception(response_body)
-
-                async for chunk in cls._process_stream_response_(response_body.split("\n"), prompt, conversation):
-                    yield chunk
+                    async for chunk in cls._process_stream_response_(response_body.split("\n"), prompt, conversation,
+                                                                     modelA, modelB):
+                        yield chunk
+                    break
             finally:
                 if cls.stop_nodriver:
                     cls.stop_nodriver()
@@ -900,7 +940,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cls,
             response_content: Union[list, AsyncIterable],
             prompt: str,
-            conversation
+            conversation,
+            modelA=None, modelB=None
     ) -> AsyncResult:
         # 1. Normalize the input into an async iterator
         async def get_chunks():
@@ -922,6 +963,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 if chunk == "hasArenaError":
                     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
                 yield chunk
+            elif line.startswith("b0:"):
+                ...
+                # chunk = json.loads(line[3:])
+                # if chunk == "hasArenaError":
+                #     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                # yield chunk
             elif line.startswith("ag:"):
                 chunk = json.loads(line[3:])
                 yield Reasoning(chunk)
@@ -932,7 +979,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 chunk = json.loads(line[3:])
                 __images = [image.get("image") for image in chunk if image.get("image")]
                 if __images:
-                    yield ImageResponse(__images, prompt)
+                    yield ImageResponse(__images, prompt, {"model": modelA})
+
+            elif line.startswith("b2:"):
+                chunk = json.loads(line[3:])
+                __images = [image.get("image") for image in chunk if image.get("image")]
+                if __images:
+                    yield ImageResponse(__images, prompt, {"model": modelB})
+
             elif line.startswith("ad:"):
                 # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
                 finish = json.loads(line[3:])
@@ -943,7 +997,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             elif line.startswith("a3:"):
                 raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
             else:
-                debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
+                debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
 
     ############################## create_async_generator ####################
 
@@ -1054,10 +1108,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
-    async def get_args_from_nodriver(cls, proxy, cookies=None):
+    async def get_args_from_nodriver(cls, proxy, cookies=None, **kwargs):
         cache_file = cls.get_cache_file()
         try:
-            page = await cls._start_nodriver(proxy=proxy, cookies=cookies)
+            page = await cls._start_nodriver(proxy=proxy, cookies=cookies, **kwargs)
             # Check user login and load models and actions
             await cls._wait_auth(page)
             captcha = await cls._get_captcha(page)
@@ -1102,14 +1156,19 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         cookies = kwargs.get("cookies", {})
         for _ in range(2):
             if has_nodriver:
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"))
+                # elif kwargs.get("email") and kwargs.get("password"):
+                #     cookies = await cls._login(email=kwargs.get("email"), password=kwargs.get("password"))
+                #     await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
+                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"),
+                                                                    **kwargs)
 
             if not cls._models_loaded:
                 # change to async
                 await cls.get_models_async()
 
             files = await cls.prepare_images(args, media)
-            data, url, evaluationSessionId = await cls._prepare_data(prompt, conversation, model, grecaptcha, files)
+            data, url, evaluationSessionId, modelA, modelB = await cls._prepare_data(prompt, conversation, model,
+                                                                                     grecaptcha, files)
             yield JsonRequest.from_dict(data)
             try:
                 async with StreamSession(**args, timeout=timeout or 5 * 60) as session:
@@ -1121,7 +1180,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         await raise_for_status(response)
                         args["cookies"] = merge_cookies(args["cookies"], response)
                         async for chunk in cls._process_stream_response_(response.iter_lines(), prompt,
-                                                                         conversation):
+                                                                         conversation, modelA, modelB):
                             yield chunk
 
                 break
