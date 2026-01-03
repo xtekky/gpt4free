@@ -24,7 +24,7 @@ try:
     from nodriver import cdp
     from nodriver.cdp.fetch import RequestPaused, RequestStage
     from ...requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
-    RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request
+        RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request
     import nodriver.cdp.io as io
 
     has_nodriver = True
@@ -764,9 +764,26 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return files
 
     @classmethod
+    async def _login(cls, email, password):
+        async with StreamSession() as session:
+            async with session.post(
+                    url="https://lmarena.ai/nextjs-api/sign-in/email",
+                    json={"password": password, "email": email, "shouldLinkHistory": False},
+                    headers={
+                        "Content-Type": "application/json",
+                        "accept": "application/json",
+                    },
+                    allow_redirects=False
+            ) as response:
+                if response.status == 200:
+                    if (await response.json())["success"]:
+                        return {c: v.value for c, v in response.cookies.items()}
+
+                raise Exception(response.status, await response.text())
+
+    @classmethod
     async def _start_nodriver(cls,
                               proxy: str = None,
-
                               **kwargs):
         if cls.nodriver is None:
             cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
@@ -777,8 +794,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         #                               cls.url)
         if kwargs.get("cookies"):
             await set_cookies_for_browser(cls.nodriver, kwargs.get("cookies"), cls.url)
-
-
+        # elif kwargs.get("email") and kwargs.get("password"):
+        #     cookies = await cls._login(email=kwargs.get("email"), password=kwargs.get("password"))
+        #     await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
 
         async def _response_handler(event: nodriver.cdp.network.ResponseReceived) -> None:
             fetch_data = event.__dict__.copy()
@@ -799,7 +817,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         await wait_for_ready_state(page, raise_error=False)
         while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
             await asyncio.sleep(1)
+
+        if kwargs.get("email") and kwargs.get("password"):
+            await nodriver_request(
+                page, method="POST", url="https://lmarena.ai/nextjs-api/sign-in/email",
+                data={"password": kwargs.get("password"), "email": kwargs.get("email"), "shouldLinkHistory": False},
+                headers={
+                    "Content-Type": "application/json",
+                    "accept": "application/json",
+                },
+            )
+            await page.get(cls.url)
+
         remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
+        # await asyncio.sleep(1000)
         return page
 
     @classmethod
