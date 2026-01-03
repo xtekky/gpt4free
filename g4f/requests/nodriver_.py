@@ -96,18 +96,24 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
     fetch_kw = {
         "method": method,
     }
+    has_body = method.upper() not in ("GET", "HEAD")
+    body_payload = json.dumps(data) if (data and has_body) else "null"
     if headers:
         fetch_kw["headers"] = json.dumps(headers)
     if method != "GET":
         fetch_kw["body"] = json.dumps(data)
-
+    fetch_kw = [
+        f'method: "{method},"',
+        f"body: JSON.stringify({json.dumps(data)})," if (data and has_body) else '',
+        f'headers: {json.dumps(headers)},' if headers else '',
+        'redirect: "manual",' if not allow_redirects else ""
+    ]
+    if '' in fetch_kw:
+        fetch_kw.remove('')
     script = f"""
     (async () => {{
         const response = await fetch("{url}", {{
-            method: "{method}",
-            {f"body: JSON.stringify({json.dumps(data)})," if method == "POST" else ""}
-            headers: {json.dumps(headers)},
-            {'redirect: "manual", ' if not allow_redirects else ""}
+            {"\n".join(fetch_kw)}
         }});
         // Extract the body as text
         const body = await response.text();
