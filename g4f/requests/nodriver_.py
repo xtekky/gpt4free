@@ -12,6 +12,7 @@ from nodriver import cdp
 from nodriver.cdp.fetch import HeaderEntry, RequestStage, RequestPattern, RequestPaused
 from nodriver.cdp.network import CookieParam, ResponseReceived
 from nodriver.cdp.network import ResourceType
+from nodriver.cdp.runtime import ExceptionDetails
 
 from g4f.debug import log
 
@@ -92,14 +93,20 @@ async def get_args(browser: nodriver.Browser, url) -> dict[str, str]:
 
 
 async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=None):
-    headers = json.dumps(headers)
-    data = json.dumps(data)
+    fetch_kw = {
+        "method": method,
+    }
+    if headers:
+        fetch_kw["headers"] = json.dumps(headers)
+    if method != "GET":
+        fetch_kw["body"] = json.dumps(data)
+
     script = f"""
     (async () => {{
         const response = await fetch("{url}", {{
             method: "{method}",
-            body: JSON.stringify({data}),
-            headers: {headers},
+            {f"body: JSON.stringify({json.dumps(data)})," if method == "POST" else ""}
+            headers: {json.dumps(headers)},
         }});
         // Extract the body as text
         const body = await response.text();
@@ -120,6 +127,8 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
     """
 
     raw_response = await page.evaluate(script, await_promise=True)
+    if isinstance(raw_response, ExceptionDetails):
+        raise Exception(raw_response)
     raw_response:dict = dict(raw_response)
 
     def extract_val(obj):
@@ -128,7 +137,7 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
         return obj
     # Parse headers (handling the way nodriver returns dicts)
     headers_raw = extract_val(raw_response.get("headers", {}))
-    headers_dict = {k: extract_val(v) for k, v in headers_raw.items()}
+    headers_dict = {k: extract_val(v) for k, v in dict(headers_raw).items()}
     return {
         "status": extract_val(raw_response.get("status")),
         "status_text": extract_val(raw_response.get("statusText")),

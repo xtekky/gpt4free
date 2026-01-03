@@ -771,9 +771,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         if cls.nodriver is None:
             cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
 
-        await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance"])
+        await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance", "cookie-preferences", "app_banner_state"])
+        # await set_cookies_for_browser(cls.nodriver, {
+        #     "cookie-preferences": "{\"advertising\":true,\"functionality\":true,\"analytics\":true,\"socialMedia\":true,\"lastUpdated\":\"2025-07-24T19:30:54.130Z\"}", },
+        #                               cls.url)
         if kwargs.get("cookies"):
             await set_cookies_for_browser(cls.nodriver, kwargs.get("cookies"), cls.url)
+
+
 
         async def _response_handler(event: nodriver.cdp.network.ResponseReceived) -> None:
             fetch_data = event.__dict__.copy()
