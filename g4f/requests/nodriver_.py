@@ -93,23 +93,13 @@ async def get_args(browser: nodriver.Browser, url) -> dict[str, str]:
 
 
 async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=None, allow_redirects=True):
-    fetch_kw = {
-        "method": method,
-    }
     has_body = method.upper() not in ("GET", "HEAD")
-    body_payload = json.dumps(data) if (data and has_body) else "null"
-    if headers:
-        fetch_kw["headers"] = json.dumps(headers)
-    if method != "GET":
-        fetch_kw["body"] = json.dumps(data)
     fetch_kw = [
-        f'method: "{method},"',
+        f'method: "{method}",',
         f"body: JSON.stringify({json.dumps(data)})," if (data and has_body) else '',
         f'headers: {json.dumps(headers)},' if headers else '',
         'redirect: "manual",' if not allow_redirects else ""
     ]
-    if '' in fetch_kw:
-        fetch_kw.remove('')
     script = f"""
     (async () => {{
         const response = await fetch("{url}", {{
@@ -149,6 +139,7 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
         "status": extract_val(raw_response.get("status")),
         "status_text": extract_val(raw_response.get("statusText")),
         "body": extract_val(raw_response.get("data")),
+        "url": extract_val(raw_response.get("url")),
         "headers": headers_dict,
     }
 
