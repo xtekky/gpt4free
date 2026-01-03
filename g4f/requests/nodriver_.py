@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 import re
 import typing
 from dataclasses import dataclass
@@ -9,7 +10,7 @@ from urllib.parse import urlparse
 import nodriver
 from nodriver import cdp
 from nodriver.cdp.fetch import HeaderEntry, RequestStage, RequestPattern, RequestPaused
-from nodriver.cdp.network import CookieParam
+from nodriver.cdp.network import CookieParam, ResponseReceived
 from nodriver.cdp.network import ResourceType
 
 from g4f.debug import log
@@ -88,6 +89,52 @@ async def get_args(browser: nodriver.Browser, url) -> dict[str, str]:
         "proxy": None
     }
     return args
+
+
+async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=None):
+    headers = json.dumps(headers)
+    data = json.dumps(data)
+    script = f"""
+    (async () => {{
+        const response = await fetch("{url}", {{
+            method: "{method}",
+            body: JSON.stringify({data}),
+            headers: {headers},
+        }});
+        // Extract the body as text
+        const body = await response.text();
+        // Convert headers to a plain object
+        const headerMap = {{}};
+        response.headers.forEach((value, key) => {{
+            headerMap[key] = value;
+        }});
+        // Return a custom object with the info you need
+        return {{
+            "status": response.status,
+            "url": response.url,
+            "data": body,
+            "headers": headerMap,
+            "statusText": response.statusText,
+        }};
+    }})()
+    """
+
+    raw_response = await page.evaluate(script, await_promise=True)
+    raw_response:dict = dict(raw_response)
+
+    def extract_val(obj):
+        if isinstance(obj, dict) and "value" in obj:
+            return obj["value"]
+        return obj
+    # Parse headers (handling the way nodriver returns dicts)
+    headers_raw = extract_val(raw_response.get("headers", {}))
+    headers_dict = {k: extract_val(v) for k, v in headers_raw.items()}
+    return {
+        "status": extract_val(raw_response.get("status")),
+        "status_text": extract_val(raw_response.get("statusText")),
+        "body": extract_val(raw_response.get("data")),
+        "headers": headers_dict,
+    }
 
 
 async def wait_for_ready_state(
@@ -362,6 +409,29 @@ class Request(RequestPaused):
                 binary_response_headers=binary_response_headers,
             )
         )
+
+@dataclass
+class Response(ResponseReceived):
+    tab: nodriver.Tab
+
+    @property
+    async def response_body(self) -> str:
+        """
+        Get the body of the matched response.
+        :return: The response body.
+        :rtype: str
+        """
+        if nodriver.cdp.fetch not in self.tab.enabled_domains:
+            self.tab.enabled_domains.append(
+                nodriver.cdp.fetch
+            )
+        request_id = self.request_id
+        body, is_base64 = await self.tab.send(nodriver.cdp.network.get_response_body(request_id=request_id))
+        chunk_raw = base64.b64decode(body) if is_base64 else body
+        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        return chunk_raw
+
+
 
 
 class BaseRequestExpectation:

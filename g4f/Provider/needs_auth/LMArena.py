@@ -24,7 +24,7 @@ try:
     from nodriver import cdp
     from nodriver.cdp.fetch import RequestPaused, RequestStage
     from ...requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
-        RequestInterception, Request, get_cookies, get_args
+    RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request
     import nodriver.cdp.io as io
 
     has_nodriver = True
@@ -365,7 +365,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         "updateTouConsent": "40efff1040868c07750a939a0d8120025f246dfe28",
         "createPointwiseFeedback": "605a0e3881424854b913fe1d76d222e50731b6037b",
         "createPairwiseFeedback": "600777eb84863d7e79d85d214130d3214fc744c80f",
-        "getProxyImage": "60049198d4936e6b7acc63719b63b89284c58683e6"
+        "getProxyImage": "60049198d4936e6b7acc63719b63b89284c58683e6",
+        "deleteEvaluationSession": "6009c985d7e84eae2ec94547453ba388005b22e2a5",
+        "getEmailProvider": "607c2dd3d84af5a00b322b577498d1b2a739c5dfe0",
+        "deleteAccount": "40a57e8c369eaf8a82483fae2f8106489ce041dffd",
     }
     lock = asyncio.Lock()
     nodriver = None
@@ -411,7 +414,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
-    async def __load_actions(cls, html):
+    async def __load_actions(cls, html, only=False):
         def pars_children(data):
             data = data["children"]
             if len(data) < 4:
@@ -467,21 +470,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 chunk_id, chunk_data = match.groups()
                 if chunk_data.startswith("I["):
                     data = json.loads(chunk_data[1:])
+                    if only:
+                        continue
                     async with StreamSession() as session:
                         if "Evaluation" == data[2]:
                             js_files = dict(zip(data[1][::2], data[1][1::2]))
                             for js_id, js in list(js_files.items())[::-1]:
-                                # if js_id != 5217:
-                                #     continue
                                 js_url = f"{cls.url}/_next/{js}"
                                 async with session.get(js_url) as js_response:
                                     js_text = await js_response.text()
-                                    if "generateUploadUrl" in js_text:
+                                    if "createServerReference" in js_text:
                                         # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
                                         start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
                                         for v, k in start_id:
                                             cls._next_actions[k] = v
-                                        break
 
                 elif chunk_data.startswith(("[", "{")):
                     try:
@@ -532,7 +534,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 await asyncio.sleep(1)
 
         html = await page.get_content()
-        await cls.__load_actions(html)
+        await cls.__load_actions(html, only=True)
 
     @classmethod
     async def _get_captcha(cls, page):
@@ -762,6 +764,40 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return files
 
     @classmethod
+    async def _start_nodriver(cls,
+                              proxy: str = None,
+
+                              **kwargs):
+        if cls.nodriver is None:
+            cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
+
+        await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance"])
+        if kwargs.get("cookies"):
+            await set_cookies_for_browser(cls.nodriver, kwargs.get("cookies"), cls.url)
+
+        async def _response_handler(event: nodriver.cdp.network.ResponseReceived) -> None:
+            fetch_data = event.__dict__.copy()
+            fetch_data['tab'] = page
+            mod_response = Response(**fetch_data)
+
+            if mod_response.response.headers and mod_response.response.headers.get("content-type",
+                                                                                   "").startswith(
+                'application/javascript'):
+                js_text = await mod_response.response_body
+                start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+                for v, k in start_id:
+                    cls._next_actions[k] = v
+
+        page: nodriver.Tab = cls.nodriver.main_tab
+        page.add_handler(nodriver.cdp.network.ResponseReceived, _response_handler)
+        await page.get(cls.url)
+        await wait_for_ready_state(page, raise_error=False)
+        while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
+            await asyncio.sleep(1)
+        remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
+        return page
+
+    @classmethod
     async def create_async_browser(
             cls,
             model: str,
@@ -776,26 +812,15 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         async with cls.lock:
             try:
-                if cls.nodriver is None:
-                    cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
-
-                await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance"])
-                if kwargs.get("cookies"):
-                    await set_cookies_for_browser(cls.nodriver, kwargs.get("cookies"), cls.url)
-                page: nodriver.Tab = await cls.nodriver.get(cls.url)
-                await wait_for_ready_state(page, raise_error=False)
-                while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
-                    await asyncio.sleep(1)
-
+                page = await cls._start_nodriver(proxy=proxy, **kwargs)
                 # Check user login and load models and actions
                 await cls._wait_auth(page, prompt=prompt)
                 # Get grecaptcha
                 grecaptcha = await cls._get_captcha(page)
                 # TODO:
                 args = await get_args(cls.nodriver, cls.url)
-                files = await cls.prepare_images(page, media)
+                files = await cls.prepare_images(args, media)
                 data, url, evaluationSessionId = await cls._prepare_data(prompt, conversation, model, grecaptcha, files)
-                yield JsonRequest.from_dict(data)
 
                 script = f"""
                 (async () => {{
@@ -996,16 +1021,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     async def get_args_from_nodriver(cls, proxy, cookies=None):
         cache_file = cls.get_cache_file()
         try:
-            if cls.nodriver is None:
-                cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
-            await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance"])
-            if cookies:
-                await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
-            page: nodriver.Tab = await cls.nodriver.get(cls.url)
-            await wait_for_ready_state(page, raise_error=False)
-            while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
-                await asyncio.sleep(1)
-
+            page = await cls._start_nodriver(proxy=proxy, cookies=cookies)
             # Check user login and load models and actions
             await cls._wait_auth(page)
             captcha = await cls._get_captcha(page)
@@ -1065,7 +1081,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             url,
                             json=data,
                             proxy=proxy,
-                            # impersonate="chrome136"
                     ) as response:
                         await raise_for_status(response)
                         args["cookies"] = merge_cookies(args["cookies"], response)
