@@ -92,7 +92,7 @@ async def get_args(browser: nodriver.Browser, url) -> dict[str, str]:
     return args
 
 
-async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=None):
+async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=None, allow_redirects=True):
     fetch_kw = {
         "method": method,
     }
@@ -107,6 +107,7 @@ async def nodriver_request(page:nodriver.Tab, method, url, headers=None, data=No
             method: "{method}",
             {f"body: JSON.stringify({json.dumps(data)})," if method == "POST" else ""}
             headers: {json.dumps(headers)},
+            {'redirect: "manual", ' if not allow_redirects else ""}
         }});
         // Extract the body as text
         const body = await response.text();
