@@ -13,13 +13,11 @@ from urllib.parse import quote
 try:
     from curl_cffi.requests import AsyncSession
     from curl_cffi import CurlWsFlag, CurlMime
-
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
 try:
     import nodriver
-
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -39,13 +37,11 @@ from ..cookies import get_cookies
 from pathlib import Path
 from .. import debug
 
-
 class Conversation(JsonConversation):
     conversation_id: str
 
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
-
 
 def extract_bucket_items(messages: Messages) -> list[dict]:
     """Extract bucket items from messages content."""
@@ -59,15 +55,12 @@ def extract_bucket_items(messages: Messages) -> list[dict]:
             bucket_items = []
     return bucket_items
 
-
 def random_hex(length):
     return ''.join(random.choices('0123456789ABCDEF', k=length))
-
 
 def random_base64(length):
     chars = string.ascii_letters + string.digits + '+/='
     return ''.join(random.choices(chars, k=length))
-
 
 def get_fake_cookie():
     return {
@@ -77,20 +70,19 @@ def get_fake_cookie():
         "MUIDB": random_hex(32),
         "_EDGE_S": f"F=1&SID={random_hex(32)}",
         "_EDGE_V": "1",
-        "ak_bmsc": f"{random_hex(32)}~{'0' * 48}~{urllib.parse.quote(random_base64(300))}"
+        "ak_bmsc": f"{random_hex(32)}~{'0'*48}~{urllib.parse.quote(random_base64(300))}"
     }
-
 
 class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
     url = "https://copilot.microsoft.com"
     cookie_domain = ".microsoft.com"
     anon_cookie_name = "__Host-copilot-anon"
-
+    
     working = True
     use_nodriver = has_nodriver
     active_by_default = True
-
+    
     default_model = "Copilot"
     models = [default_model, "Think Deeper", "Smart (GPT-5)", "Study"]
     model_aliases = {
@@ -117,8 +109,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 debug.log(f"Copilot: {h}")
                 if has_nodriver:
                     yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy,
-                                                                                                 cls.needs_auth)
+                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy, cls.needs_auth)
                 else:
                     raise h
         yield AuthResult(
@@ -129,17 +120,17 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def create_authed(
-            cls,
-            model: str,
-            messages: Messages,
-            auth_result: AuthResult,
-            proxy: str = None,
-            timeout: int = 30,
-            prompt: str = None,
-            media: MediaListType = None,
-            conversation: BaseConversation = None,
-            return_conversation: bool = True,
-            **kwargs
+        cls,
+        model: str,
+        messages: Messages,
+        auth_result: AuthResult,
+        proxy: str = None,
+        timeout: int = 30,
+        prompt: str = None,
+        media: MediaListType = None,
+        conversation: BaseConversation = None,
+        return_conversation: bool = True,
+        **kwargs
     ) -> AsyncResult:
         if not has_curl_cffi:
             raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
@@ -149,17 +140,15 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         headers["origin"] = cls.url
         headers["referer"] = cls.url + "/"
         if getattr(auth_result, "access_token", None):
-            websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (
-                f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype",
-                                                                                        None) else "")
+            websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype", None) else "")
             headers["authorization"] = f"Bearer {auth_result.access_token}"
 
         async with AsyncSession(
-                timeout=timeout,
-                proxy=proxy,
-                impersonate="chrome",
-                headers=headers,
-                cookies=auth_result.cookies
+            timeout=timeout,
+            proxy=proxy,
+            impersonate="chrome",
+            headers=headers,
+            cookies=auth_result.cookies
         ) as session:
             if conversation is None:
                 # har_file = os.path.join(os.path.dirname(__file__), "copilot", "copilot.microsoft.com.har")
@@ -192,9 +181,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                     "https://copilot.microsoft.com/c/api/start",
                     headers={
                         "content-type": "application/json",
-                        **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result,
-                                                                                           "useridentitytype",
-                                                                                           None) else {}),
+                        **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}),
                         **(headers or {})
                     },
                     json=data
@@ -235,15 +222,13 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                             headers={
                                 "content-type": is_accepted_format(data),
                                 "content-length": str(len(data)),
-                                **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result,
-                                                                                                   "useridentitytype",
-                                                                                                   None) else {})
+                                **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {})
                             },
                             data=data
                         )
                         response.raise_for_status()
                         media = response.json().get("url")
-                    uploaded_attachments.append({"type": "image", "url": media})
+                    uploaded_attachments.append({"type":"image", "url": media})
 
                 # Upload bucket files
                 bucket_items = extract_bucket_items(messages)
@@ -256,14 +241,11 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                                 # Upload plain text as a text file
                                 text_data = text_chunk.encode('utf-8')
                                 data = CurlMime()
-                                data.addpart("file", filename=f"bucket_{item['bucket_id']}.txt",
-                                             content_type="text/plain", data=text_data)
+                                data.addpart("file", filename=f"bucket_{item['bucket_id']}.txt", content_type="text/plain", data=text_data)
                                 response = await session.post(
                                     "https://copilot.microsoft.com/c/api/attachments",
                                     multipart=data,
-                                    headers={"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result,
-                                                                                                            "useridentitytype",
-                                                                                                            None) else {}
+                                    headers={"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}
                                 )
                                 response.raise_for_status()
                                 data = response.json()
@@ -344,7 +326,6 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             if not wss.closed:
                 await wss.close()
 
-
 async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: bool = False):
     browser, stop_browser = await get_nodriver(proxy=proxy)
     try:
@@ -406,7 +387,6 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
     finally:
         stop_browser()
 
-
 def readHAR(url: str):
     api_key = None
     useridentitytype = None
@@ -431,7 +411,6 @@ def readHAR(url: str):
         raise NoValidHarFileError("No session found in .har files")
 
     return api_key, useridentitytype, cookies
-
 
 if has_nodriver:
     async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
