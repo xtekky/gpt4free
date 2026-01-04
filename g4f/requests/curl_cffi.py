@@ -30,6 +30,7 @@ else:
 from typing import AsyncGenerator, Any
 from functools import partialmethod
 import json
+from ..cookies import BrowserConfig
 
 if has_curl_cffi:
     class StreamResponse:
@@ -100,6 +101,10 @@ if has_curl_cffi:
 
         Inherits from AsyncSession.
         """
+        def __init__(self, impersonate: str = None, **kwargs) -> None:
+            if impersonate == "chrome":
+                impersonate = BrowserConfig.impersonate
+            super().__init__(impersonate=impersonate, **kwargs)
 
         def request(
             self, method: str, url: str, ssl = None, **kwargs

@@ -36,6 +36,7 @@ from .ApiAirforce          import ApiAirforce
 from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
+from .CopilotSession       import CopilotSession
 from .DeepInfra            import DeepInfra
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
