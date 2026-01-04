@@ -125,10 +125,11 @@ async def nodriver_request(page: nodriver.Tab, method, url, headers=None, data=N
             "statusText": response.statusText,
         }};
     """
+    fetch_kw_ = "\n".join(fetch_kw)
     script = f"""
     (async () => {{
         const response = await fetch("{url}", {{
-            {"\n".join(fetch_kw)}
+            {fetch_kw_}
         }});
 
         // Convert headers to a plain object
