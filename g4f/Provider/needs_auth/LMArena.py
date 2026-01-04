@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import hashlib
 import json
 import os
 import re
 import secrets
 import time
-from typing import Dict, Optional, Union, AsyncIterable
+from typing import Dict, Optional, Union, AsyncIterable, Any
 
 from g4f.image import to_bytes, detect_file_type
 
@@ -24,7 +23,8 @@ try:
     from nodriver import cdp
     from nodriver.cdp.fetch import RequestPaused, RequestStage
     from ...requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
-        RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request
+    RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request, \
+    BaseRequestExpectation, mouse_click
     import nodriver.cdp.io as io
 
     has_nodriver = True
@@ -34,8 +34,10 @@ except ImportError:
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import raise_for_status, merge_cookies, \
     get_nodriver
-from ...requests.aiohttp import StreamSession
-from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, RateLimitError
+from ...requests import StreamSession
+from ...requests.aiohttp import StreamSession as StreamSessionAio
+
+from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, RateLimitError, ResponseStatusError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
     JsonRequest
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
@@ -506,8 +508,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             else:
                 debug.log("No 'Accept Cookies' button found, skipping.")
             await asyncio.sleep(1)
+            btn = await page.select('a[data-sidebar="menu-button"][href="/c/new"]')
+            if btn:
+                await mouse_click(page, btn)
+            await asyncio.sleep(.5)
             textarea = await page.select('textarea[name="message"]')
             if textarea:
+                await mouse_click(page, textarea)
                 # await textarea.mouse_move()
                 # await textarea.mouse_drag((-100, 200))
                 # await textarea.flash(1)
@@ -543,8 +550,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
     @classmethod
     async def _get_captcha(cls, page):
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
+        timeout = 60
         while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
             await asyncio.sleep(1)
+            if loop.time() - start_time > timeout:
+                raise RuntimeError("Captcha timed out")
+
         captcha = await page.evaluate(
             """new Promise((resolve) => {
                 window.grecaptcha.enterprise.ready(async () => {
@@ -631,167 +644,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return data, url, evaluationSessionId, modelA, modelB
 
     @classmethod
-    async def _prepare_images(cls, page: nodriver.Tab, media: list[tuple]) -> list[dict[str, str]]:
-        files = []
-        if not media:
-            return files
-        url = "https://lmarena.ai/?chat-modality=image"
-
-        for index, (_file, file_name) in enumerate(media):
-
-            data_bytes: bytes = to_bytes(_file)
-            # Check Cache
-            hasher = hashlib.md5()
-            hasher.update(data_bytes)
-            image_hash = hasher.hexdigest()
-            file = ImagesCache.get(image_hash)
-            if cls.image_cache and file:
-                debug.log("Using cached image")
-                files.append(file)
-                continue
-
-            extension, file_type = detect_file_type(data_bytes)
-            file_name = file_name or f"file-{len(data_bytes)}{extension}"
-            # async with session.post(
-            #         url="https://lmarena.ai/?chat-modality=image",
-            #         json=[],
-            #         headers={
-            #             "accept": "text/x-component",
-            #             "content-type": "text/plain;charset=UTF-8",
-            #             "next-action": cls._next_actions["updateTouConsent"],
-            #             "Referer": url
-            #
-            #         }
-            # ) as response:
-            #     await raise_for_status(response)
-            data = json.dumps([file_name, file_type])
-            headers = {
-                "accept": "text/x-component",
-                "content-type": "text/plain;charset=UTF-8",
-                "next-action": cls._next_actions["generateUploadUrl"],
-                "Referer": url
-
-            }
-            # Prepare your data and headers in Python
-            headers_json = json.dumps(headers)
-            data_json = json.dumps(data)
-
-            # Use a cleaner script structure
-            script = f"""
-                (async () => {{
-                    const response = await fetch("{url}", {{
-                        method: "POST",
-                        headers: {headers_json},
-                        body: {data_json}
-                    }});
-                    return await response.text();
-                }})()
-                """
-            text = await page.evaluate(script, await_promise=True)
-            line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
-            if not line:
-                raise Exception("Failed to get upload URL")
-            chunk = json.loads(line[2:])
-            if not chunk.get("success"):
-                raise Exception(f"Failed to get upload URL: {chunk}")
-            uploadUrl = chunk.get("data", {}).get("uploadUrl")
-            key = chunk.get("data", {}).get("key")
-            if not uploadUrl:
-                raise Exception("Failed to get upload URL")
-
-            # Prepare your data and headers in Python
-            headers_json = json.dumps({
-                "content-type": file_type,
-            })
-            # data_json = json.dumps(data_bytes)
-            base64_data = base64.b64encode(data_bytes).decode('utf-8')
-            script = f"""
-                (async () => {{
-                    try {{
-                        // Convert Base64 string back to a Blob/Buffer
-                        const base64Data = "{base64_data}";
-                        const byteCharacters = atob(base64Data);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) {{
-                            byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }}
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const response = await fetch("{uploadUrl}", {{
-                            method: "PUT",
-                            headers: {headers_json},
-                            body: byteArray
-                        }});
-
-                        // Extract the body as text
-                        const body = await response.text();
-
-                        // Return a custom object with the info you need
-                        return {{
-                            "status": response.status,
-                            // "statusText": response.statusText,
-                            "url": response.url,
-                            // "headers": Object.fromEntries(response.headers.entries()),
-                            "data": body
-                        }};
-                    }} catch (error) {{
-                        return {{ "error": error.message }};
-                    }}
-                }})()
-                """
-            put_response = await page.evaluate(script, await_promise=True)
-            print(put_response[0][1]["value"])
-            headers_json = json.dumps({
-                "accept": "text/x-component",
-                "content-type": "text/plain;charset=UTF-8",
-                "next-action": cls._next_actions["getSignedUrl"],
-                "Referer": url
-            })
-            data_json = json.dumps([key])
-            script = f"""
-                (async () => {{
-                    const response = await fetch("{url}", {{
-                        method: "POST",
-                        headers: {headers_json},
-                        body: {data_json}
-                    }});
-                    // Extract the body as text
-                    const body = await response.text();
-
-                    // Return a custom object with the info you need
-                    return {{
-                        "status": response.status,
-                        // "statusText": response.statusText,
-                        "url": response.url,
-                        // "headers": Object.fromEntries(response.headers.entries()),
-                        "data": body
-                    }};
-                }})()
-                """
-            print(script)
-
-            post_response = await page.evaluate(script, await_promise=True)
-            print(post_response)
-            text = post_response[2][1]["value"]
-            line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
-            if not line:
-                raise Exception("Failed to get download URL")
-
-            chunk = json.loads(line[2:])
-            if not chunk.get("success"):
-                raise Exception("Failed to get download URL")
-            image_url = chunk.get("data", {}).get("url")
-            uploaded_file = {
-                "name": key,
-                "contentType": file_type,
-                "url": image_url
-            }
-
-            # debug.log(f"Uploaded image to: {image_url}")
-            # ImagesCache[image_hash] = uploaded_file
-            # files.append(uploaded_file)
-        return files
-
-    @classmethod
     async def _login(cls, email, password):
         async with StreamSession() as session:
             async with session.post(
@@ -865,7 +717,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             await page.get(cls.url)
 
         remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
-        # await asyncio.sleep(1000)
         return page
 
     @classmethod
@@ -898,40 +749,29 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                                                                              **kwargs)
                     yield JsonRequest.from_dict(data)
 
-                    # Option 1 - Stream
-                    async with RequestInterception(page, url, RequestStage.RESPONSE) as response:
-                        await nodriver_request(page, method="POST", url=url, data=data, await_promise=False)
-                        intercepted_request: Request = await response.response_future
-                        print("intercepted request", intercepted_request.request.url)
-                        # 429
-                        if intercepted_request.response_status_code == 403:
-                            debug.error(intercepted_request.response_status_code,
-                                        await intercepted_request.response_body)
-                            if i + 1 < co:
-                                continue
-                            raise CloudflareError(intercepted_request.response_status_code,
-                                                  await intercepted_request.response_body)
-                        elif intercepted_request.response_status_code != 200:
-                            raise RateLimitError(intercepted_request.response_status_code,
-                                                 await intercepted_request.response_body)
-
-                        response_body = ""
-                        async for chunk_raw in intercepted_request.response_body_as_stream:
-                            response_body += chunk_raw
-
                     # Option 2 -
-                    # async with page.expect_response(url) as response:
-                    #     await page.evaluate(script)
-                    #     await response.value
-                    #     response_body_, _ = await response.response_body_
-                    #     if (await response.response).status != 200:
-                    #         raise Exception(response_body_)
+                    async with BaseRequestExpectation(page, url, stream=True) as expect_response:
+                        await nodriver_request(page, method="POST", url=url, data=data, await_promise=False)
+                        await expect_response.request_future
+                        status = (await expect_response.response).status
+                        if status != 200:
+                            body = await expect_response.response_data
+                            debug.error(status, body)
+                            if status == 403:
+                                if i + 1 < co:
+                                    continue
+                                raise CloudflareError(status, body)
+                            elif status != 429:
+                                raise RateLimitError(status, body)
+                            raise ResponseStatusError(status, body)
 
-                    async for chunk in cls._process_stream_response_(response_body.split("\n"), prompt, conversation,
-                                                                     modelA, modelB):
-                        yield chunk
+                        async for chunk in cls._process_stream_response_(expect_response.response_data_stream, prompt,
+                                                                         conversation,
+                                                                         modelA, modelB):
+                            yield chunk
                     break
             finally:
+                debug.log("stop nodriver")
                 if cls.stop_nodriver:
                     cls.stop_nodriver()
 
@@ -953,61 +793,63 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     yield chunk
 
         async for chunk in get_chunks():
-            line = chunk
-            if isinstance(line, bytes):
-                line = line.decode()
+            lines = chunk
+            if isinstance(lines, bytes):
+                lines = lines.decode()
+            for line in lines.split("\n"):
+                if not line:
+                    continue
+                yield PlainTextResponse(line)
+                if line.startswith("a0:"):
+                    chunk = json.loads(line[3:])
+                    if chunk == "hasArenaError":
+                        raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                    yield chunk
+                elif line.startswith("b0:"):
+                    ...
+                    # chunk = json.loads(line[3:])
+                    # if chunk == "hasArenaError":
+                    #     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                    # yield chunk
+                elif line.startswith("ag:"):
+                    chunk = json.loads(line[3:])
+                    yield Reasoning(chunk)
+                elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
+                    # 'a2:[{"type":"heartbeat"}]'
+                    continue
+                elif line.startswith("a2:"):
+                    chunk = json.loads(line[3:])
+                    __images = [image.get("image") for image in chunk if image.get("image")]
+                    if __images:
+                        yield ImageResponse(__images, prompt, {"model": modelA})
 
-            yield PlainTextResponse(line)
-            if line.startswith("a0:"):
-                chunk = json.loads(line[3:])
-                if chunk == "hasArenaError":
-                    raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
-                yield chunk
-            elif line.startswith("b0:"):
-                ...
-                # chunk = json.loads(line[3:])
-                # if chunk == "hasArenaError":
-                #     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
-                # yield chunk
-            elif line.startswith("ag:"):
-                chunk = json.loads(line[3:])
-                yield Reasoning(chunk)
-            elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
-                # 'a2:[{"type":"heartbeat"}]'
-                continue
-            elif line.startswith("a2:"):
-                chunk = json.loads(line[3:])
-                __images = [image.get("image") for image in chunk if image.get("image")]
-                if __images:
-                    yield ImageResponse(__images, prompt, {"model": modelA})
+                elif line.startswith("b2:"):
+                    chunk = json.loads(line[3:])
+                    __images = [image.get("image") for image in chunk if image.get("image")]
+                    if __images:
+                        yield ImageResponse(__images, prompt, {"model": modelB})
 
-            elif line.startswith("b2:"):
-                chunk = json.loads(line[3:])
-                __images = [image.get("image") for image in chunk if image.get("image")]
-                if __images:
-                    yield ImageResponse(__images, prompt, {"model": modelB})
-
-            elif line.startswith("ad:"):
-                # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
-                finish = json.loads(line[3:])
-                if "finishReason" in finish:
-                    yield FinishReason(finish["finishReason"])
-                if "usage" in finish:
-                    yield Usage(**finish["usage"])
-            elif line.startswith("a3:"):
-                raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
-            else:
-                debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
+                elif line.startswith("ad:"):
+                    # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
+                    finish = json.loads(line[3:])
+                    if "finishReason" in finish:
+                        yield FinishReason(finish["finishReason"])
+                    if "usage" in finish:
+                        yield Usage(**finish["usage"])
+                elif line.startswith("a3:"):
+                    raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+                else:
+                    debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
 
     ############################## create_async_generator ####################
 
     @classmethod
-    async def prepare_images(cls, args, media: list[tuple]) -> list[dict[str, str]]:
+    async def prepare_images(cls, args, media: list[tuple], session_type=StreamSession) -> list[dict[str, str]]:
         files = []
         if not media:
             return files
         url = "https://lmarena.ai/?chat-modality=image"
-        async with StreamSession(**args, ) as session:
+        async with session_type(**args, ) as session:
 
             for index, (_file, file_name) in enumerate(media):
 
@@ -1108,20 +950,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
-    async def get_args_from_nodriver(cls, proxy, cookies=None, **kwargs):
+    async def get_args_from_nodriver(cls, proxy, cookies=None, **kwargs)->tuple[dict, str]:
         cache_file = cls.get_cache_file()
         try:
             page = await cls._start_nodriver(proxy=proxy, cookies=cookies, **kwargs)
             # Check user login and load models and actions
             await cls._wait_auth(page)
             captcha = await cls._get_captcha(page)
-            args = await get_args(cls.nodriver, cls.url)
+            args:dict[str, Any] = await get_args(cls.nodriver, cls.url)
 
         finally:
             if cls.stop_nodriver:
                 cls.stop_nodriver()
-
-        args["impersonate"] = "chrome136"
 
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -1153,25 +993,25 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 debug.log(f"Cache file {cache_file} is corrupted, removing it.")
                 cache_file.unlink()
                 args = {}
+
         cookies = kwargs.get("cookies", {})
+
+        session_type = StreamSessionAio if kwargs.get("session_type") == "aiohttp" else StreamSession
+
         for _ in range(2):
-            if has_nodriver:
-                # elif kwargs.get("email") and kwargs.get("password"):
-                #     cookies = await cls._login(email=kwargs.get("email"), password=kwargs.get("password"))
-                #     await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"),
-                                                                    **kwargs)
+            if has_nodriver and (not args or not grecaptcha):
+                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"), **kwargs)
 
             if not cls._models_loaded:
                 # change to async
                 await cls.get_models_async()
 
-            files = await cls.prepare_images(args, media)
+            files = await cls.prepare_images(args, media, session_type)
             data, url, evaluationSessionId, modelA, modelB = await cls._prepare_data(prompt, conversation, model,
                                                                                      grecaptcha, files)
             yield JsonRequest.from_dict(data)
             try:
-                async with StreamSession(**args, timeout=timeout or 5 * 60) as session:
+                async with session_type(**args, timeout=timeout or 5 * 60) as session:
                     async with session.post(
                             url,
                             json=data,

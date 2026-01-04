@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import random
 import re
 import typing
 from dataclasses import dataclass
@@ -13,7 +14,7 @@ from nodriver.cdp.fetch import HeaderEntry, RequestStage, RequestPattern, Reques
 from nodriver.cdp.network import CookieParam, ResponseReceived
 from nodriver.cdp.network import ResourceType
 from nodriver.cdp.runtime import ExceptionDetails
-from nodriver.core.element import Element
+from nodriver.core.element import Element, Position
 
 from g4f.debug import log
 
@@ -464,28 +465,6 @@ class Request(RequestPaused):
         )
 
 
-@dataclass
-class Response(ResponseReceived):
-    tab: nodriver.Tab
-
-    @property
-    async def response_body(self) -> str:
-        """
-        Get the body of the matched response.
-        :return: The response body.
-        :rtype: str
-        """
-        if nodriver.cdp.fetch not in self.tab.enabled_domains:
-            self.tab.enabled_domains.append(
-                nodriver.cdp.fetch
-            )
-        request_id = self.request_id
-        body, is_base64 = await self.tab.send(nodriver.cdp.network.get_response_body(request_id=request_id))
-        chunk_raw = base64.b64decode(body) if is_base64 else body
-        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
-        return chunk_raw
-
-
 class BaseRequestExpectation:
     """
     Base class for handling request and response expectations.
@@ -498,7 +477,7 @@ class BaseRequestExpectation:
     :type url_pattern: Union[str, re.Pattern[str]]
     """
 
-    def __init__(self, tab: nodriver.Tab, url_pattern: typing.Union[str, re.Pattern[str]]):
+    def __init__(self, tab: nodriver.Tab, url_pattern: typing.Union[str, re.Pattern[str]], stream=True):
         self.tab = tab
         self.url_pattern = url_pattern
         self.request_future: asyncio.Future[cdp.network.RequestWillBeSent] = (
@@ -511,6 +490,8 @@ class BaseRequestExpectation:
             asyncio.Future()
         )
         self.request_id: typing.Union[cdp.network.RequestId, None] = None
+        self.queue_data_received = asyncio.Queue()
+        self.__stream = stream
 
     async def _request_handler(self, event: cdp.network.RequestWillBeSent) -> None:
         """
@@ -522,6 +503,9 @@ class BaseRequestExpectation:
             self._remove_request_handler()
             self.request_id = event.request_id
             self.request_future.set_result(event)
+            if self.__stream:
+                # Enables streaming of the response for the given requestId.
+                await self.tab.send(nodriver.cdp.network.stream_resource_content(self.request_id))
 
     async def _response_handler(self, event: cdp.network.ResponseReceived) -> None:
         """
@@ -531,7 +515,10 @@ class BaseRequestExpectation:
         """
         if event.request_id == self.request_id:
             self._remove_response_handler()
-            self.response_future.set_result(event)
+            fetch_data = event.__dict__.copy()
+            fetch_data['tab'] = self.tab
+            fetch_obj = Response(**fetch_data)
+            self.response_future.set_result(fetch_obj)
 
     async def _loading_finished_handler(
             self, event: cdp.network.LoadingFinished
@@ -544,6 +531,13 @@ class BaseRequestExpectation:
         if event.request_id == self.request_id:
             self._remove_loading_finished_handler()
             self.loading_finished_future.set_result(event)
+            await self.queue_data_received.put(None)
+
+    async def _handle_data_received(
+            self, event: cdp.network.DataReceived
+    ) -> None:
+        if event.request_id == self.request_id:
+            await self.queue_data_received.put(event)
 
     def _remove_request_handler(self) -> None:
         """
@@ -579,11 +573,11 @@ class BaseRequestExpectation:
         self._teardown()
 
     async def _setup(self) -> None:
+        await self.tab.send(cdp.network.enable())
         self.tab.add_handler(cdp.network.RequestWillBeSent, self._request_handler)
         self.tab.add_handler(cdp.network.ResponseReceived, self._response_handler)
-        self.tab.add_handler(
-            cdp.network.LoadingFinished, self._loading_finished_handler
-        )
+        self.tab.add_handler(cdp.network.LoadingFinished, self._loading_finished_handler)
+        self.tab.add_handler(nodriver.cdp.network.DataReceived, self._handle_data_received)
 
     def _teardown(self) -> None:
         self._remove_request_handler()
@@ -626,9 +620,146 @@ class BaseRequestExpectation:
         :return: The response body.
         :rtype: str
         """
-        request_id = (await self.response_future).request_id
-        await (
-            self.loading_finished_future
-        )  # Ensure the loading is finished before fetching the body
-        body = await self.tab.send(cdp.network.get_response_body(request_id=request_id))
-        return body
+        request_id = self.request_id
+        body, is_base64 = await self.tab.send(nodriver.cdp.network.get_response_body(request_id=request_id))
+        chunk_raw = base64.b64decode(body) if is_base64 else body
+        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        return chunk_raw
+
+    @property
+    async def response_data(self) -> str:
+        data = ""
+        async for chunk in self.response_data_stream:
+            data += chunk
+        return data
+
+    @property
+    async def response_data_stream(self):
+        if not self.__stream:
+            raise Exception('Not stream')
+        # Enables streaming of the response for the given requestId.
+        # body = await self.tab.send(nodriver.cdp.network.stream_resource_content(self.request_id))
+        # chunk_raw = base64.b64decode(body)
+        # chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        # yield chunk_raw
+        event = True
+        while event:
+            event: nodriver.cdp.network.DataReceived = await self.queue_data_received.get()
+            if event is None:
+                self.queue_data_received.task_done()
+                break
+            if event.data:
+                chunk_raw = base64.b64decode(event.data)
+                chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+                yield chunk_raw
+            elif event.data_length:
+                try:
+                    body = await self.tab.send(nodriver.cdp.network.stream_resource_content(event.request_id))
+                    chunk_raw = base64.b64decode(body)
+                    chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+                    yield chunk_raw[-event.data_length:]
+                except nodriver.core.connection.ProtocolException:
+                    body, is_base64 = await self.tab.send(
+                        nodriver.cdp.network.get_response_body(request_id=event.request_id))
+                    chunk_raw = base64.b64decode(body) if is_base64 else body
+                    chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+                    yield chunk_raw[-event.data_length:]
+
+
+@dataclass
+class Response(ResponseReceived):
+    tab: nodriver.Tab
+
+    @property
+    async def response_body(self) -> str:
+        """
+        Get the body of the matched response.
+        :return: The response body.
+        :rtype: str
+        """
+        request_id = self.request_id
+        body, is_base64 = await self.tab.send(nodriver.cdp.network.get_response_body(request_id=request_id))
+        chunk_raw = base64.b64decode(body) if is_base64 else body
+        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        return chunk_raw
+
+    @property
+    async def response_body_as_stream(self):
+        """
+        Get the body of the matched response.
+        :return: The response body.
+        :rtype: str
+        """
+        request_id = self.request_id
+        body = await self.tab.send(nodriver.cdp.network.stream_resource_content(request_id=request_id))
+        chunk_raw = base64.b64decode(body)
+        chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
+        yield chunk_raw
+
+
+def get_human_coords(position, padding=5):
+    # Mean (mu) is the center, Standard Deviation (sigma) spreads it out
+    mu_x, mu_y = position.center
+    sigma_x = position.width / 6
+    sigma_y = position.height / 6
+
+    x = random.gauss(mu_x, sigma_x)
+    y = random.gauss(mu_y, sigma_y)
+
+    # Constrain within bounds (with padding)
+    x = max(position.left + padding, min(x, position.right - padding))
+    y = max(position.top + padding, min(y, position.bottom - padding))
+    return x, y
+
+
+async def mouse_click(
+        tab: nodriver.Tab,
+        element: Element,
+):
+    position: Position = await element.get_position()
+    # x = random.uniform(position.left, position.right)
+    # y = random.uniform(position.top, position.bottom)
+    x, y = get_human_coords(position)
+
+    # 2. Simulate Mouse Movement (The "Glide")
+    # Real humans move the mouse to the button before clicking
+    await tab.send(
+        cdp.input_.dispatch_mouse_event(
+            type_="mouseMoved",
+            x=x,
+            y=y,
+            pointer_type="mouse"
+        )
+    )
+
+    # Small pause after moving before the click (approx 30-80ms)
+    await asyncio.sleep(random.uniform(0.03, 0.08))
+
+    await tab.send(
+        cdp.input_.dispatch_mouse_event(
+            "mousePressed",
+            x=x,
+            y=y,
+            # modifiers=modifiers,
+            button=cdp.input_.MouseButton("left"),
+            buttons=1,
+            click_count=1,
+            force=random.uniform(0.4, 0.6),  # Slight pressure
+            pointer_type="mouse"
+        )
+    )
+    # 3. CRITICAL: Human delay (50ms - 150ms)
+    # A 0ms click is a guaranteed bot flag
+    await asyncio.sleep(random.uniform(0.1, 0.5))
+    await tab.send(
+        cdp.input_.dispatch_mouse_event(
+            "mouseReleased",
+            x=x,
+            y=y,
+            # modifiers=modifiers,
+            button=cdp.input_.MouseButton("left"),
+            buttons=0,
+            click_count=1,
+            pointer_type="mouse"
+        )
+    )
