@@ -31,7 +31,7 @@ try:
     from nodriver.cdp.network import ResourceType
     from nodriver.core.connection import Connection
     from ..requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
-        RequestInterception, Request, get_cookies, remove_handlers, BaseRequestExpectation, Request
+        RequestInterception, Request, get_cookies, remove_handlers, BaseRequestExpectation, Request, nodriver_request
 
     has_nodriver = True
 except ImportError:
@@ -225,8 +225,6 @@ def format_messages_for_yupp(messages: Messages) -> str:
         result = result[2:]
 
     return result
-
-
 
 
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
@@ -459,7 +457,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 json_data = data[3]
             else:
                 return
-
+            if isinstance(json_data, int) and "credits" not in user_info:
+                user_info["credits"] = json_data
+            if not isinstance(json_data, (list, dict)):
+                return
             if 'session' in json_data:
                 user_info.update(json_data['session']['user'])
             elif "state" in json_data:
@@ -504,7 +505,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             # Parse the JSON array
             data = json.loads(match)
             for chunk in data[1].split("\n"):
-                # print(chunk)
                 match = line_pattern.match(chunk)
                 if not match:
                     continue
@@ -522,8 +522,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     except json.decoder.JSONDecodeError:
                         ...
                     except Exception as e:
-                        log_debug(f"user_info error: {str(e)}")
-        print(user_info)
+                        log_debug(f"user_info error: {str(e)} {data}")
+        log_debug(str(user_info))
 
     @classmethod
     async def create_async_browser(
@@ -582,13 +582,11 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         await cls._load_info(body, is_js=True)
 
                 page.add_handler(nodriver.cdp.network.ResponseReceived, _response_handler)
-
-                await page.get("https://yupp.ai/")
-                await wait_for_ready_state(page, raise_error=False)
-                while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
-                    await asyncio.sleep(1)
-                response_body = await page.get_content()
-                await cls._load_info(response_body)
+                async with BaseRequestExpectation(page, "https://yupp.ai/", stream=True) as expect_response:
+                    await page.get("https://yupp.ai/")
+                    await expect_response.loading_finished_future
+                    response_body = await page.get_content()
+                    await cls._load_info(response_body)
                 remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
 
                 # Prepare Message
@@ -637,54 +635,23 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     "content-type": "text/plain;charset=UTF-8",
                     "next-action": next_action,
                 }
-                script = f"""
-                (async () => {{
-                    const data = {json.dumps(payload)};
-                    const response = await fetch("{url}", {{
-                        method: "POST",
-                        headers:{json.dumps(headers)},
-                        body: JSON.stringify(data),
-             
-                    }});
-                    return response
-                }})()
-                """
+
                 log_debug(f"Sending request to: {url}")
                 log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
-                async with RequestInterception(page, url, RequestStage.RESPONSE) as response:
-                    await page.evaluate(script)
-                    intercepted_request: Request = await response.response_future
-                    print("status:", intercepted_request.response_status_code)
-                    if intercepted_request.response_status_code != 200:
-                        raise Exception(intercepted_request.response_error_reason)
+                async with BaseRequestExpectation(page, url=url, stream=True) as expect_response:
+                    await nodriver_request(page, method="POST", url=url, data=payload, headers=headers, await_promise=False)
+                    await expect_response.request_future
+                    status_code = (await expect_response.response).status
+                    log(f"Got response status code: {status_code}")
+                    if status_code != 200:
+                        raise Exception(status_code)
 
-                    response_body = ""
-                    async for chunk_raw in intercepted_request.response_body_as_stream:
-                        response_body += chunk_raw
-
-                    # async with page.intercept(url, RequestStage.REQUEST, None) as request:
-                    #     asyncio.create_task(page.get(url))
-                    #     event: RequestPaused = await request.response_future
-                    #
-                    #     post_data_base64 = base64.b64encode(json.dumps(payload).encode('utf-8')).decode('utf-8')
-                    #     await request.continue_request(
-                    #         url=url,
-                    #         method="POST",
-                    #         headers=[HeaderEntry(k, v) for k, v in headers.items()],
-                    #         post_data=post_data_base64,
-                    #     )
-                    #     _r:nodriver.cdp.network.ResponseReceived = await response.response_future
-                    #     response_body_, is_base64= await response.response_body_
-                    #     response_body_ = base64.b64decode(response_body_) if is_base64 else response_body_
-                    #     print(_r.response.status)
-                    #     print(_r.response.headers)
-
-                async for chunk in cls._process_stream_response_(
-                        response_body.encode("utf-8").split(b"\n"),
-                        # account=account,
-                        model_id=model
-                ):
-                    yield chunk
+                    async for chunk in cls._process_stream_response_(
+                            expect_response.response_data_stream_line,
+                            # account=account,
+                            model_id=model
+                    ):
+                        yield chunk
             finally:
                 if cls.stop_nodriver:
                     cls.stop_nodriver()
@@ -1324,7 +1291,16 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             right_message_id = None
             nudge_new_chat_id = None
             nudge_new_chat = False
-            for line in response_content:
+
+            async def get_chunks():
+                if hasattr(response_content, '__aiter__'):
+                    async for chunk in response_content:
+                        yield chunk.encode()
+                else:
+                    for chunk in response_content:
+                        yield chunk.encode()
+
+            async for line in get_chunks():
                 line_count += 1
                 # If we are currently capturing a think/image block for some ref ID
                 if capturing_ref_id is not None:

@@ -477,9 +477,14 @@ class BaseRequestExpectation:
     :type url_pattern: Union[str, re.Pattern[str]]
     """
 
-    def __init__(self, tab: nodriver.Tab, url_pattern: typing.Union[str, re.Pattern[str]], stream=True):
+    def __init__(self, tab: nodriver.Tab, url_pattern: typing.Union[str, re.Pattern[str]] = None, url=None,
+                 stream=True):
         self.tab = tab
+        # url_pattern = re.escape(url)
+        if url_pattern is None and url is None:
+            raise RuntimeError("url_pattern or url must be specified")
         self.url_pattern = url_pattern
+        self._url = url
         self.request_future: asyncio.Future[cdp.network.RequestWillBeSent] = (
             asyncio.Future()
         )
@@ -499,7 +504,8 @@ class BaseRequestExpectation:
         :param event: The request event.
         :type event: cdp.network.RequestWillBeSent
         """
-        if re.fullmatch(self.url_pattern, event.request.url):
+        if (self.url_pattern is not None and re.fullmatch(self.url_pattern, event.request.url)) or (
+                self._url is not None and self._url == event.request.url):
             self._remove_request_handler()
             self.request_id = event.request_id
             self.request_future.set_result(event)
@@ -573,7 +579,12 @@ class BaseRequestExpectation:
         self._teardown()
 
     async def _setup(self) -> None:
-        await self.tab.send(cdp.network.enable())
+        await self.tab.send(
+            cdp.network.enable(
+                # max_resource_buffer_size=20 * 1024 * 1024,
+                # max_total_buffer_size=20 * 1024 * 1024
+            )
+        )
         self.tab.add_handler(cdp.network.RequestWillBeSent, self._request_handler)
         self.tab.add_handler(cdp.network.ResponseReceived, self._response_handler)
         self.tab.add_handler(cdp.network.LoadingFinished, self._loading_finished_handler)
@@ -664,6 +675,19 @@ class BaseRequestExpectation:
                     chunk_raw = base64.b64decode(body) if is_base64 else body
                     chunk_raw = chunk_raw.decode("utf-8") if isinstance(chunk_raw, bytes) else chunk_raw
                     yield chunk_raw[-event.data_length:]
+
+    @property
+    async def response_data_stream_line(self):
+        last_chunk = ""
+        async for chunk in self.response_data_stream:
+            lines = (last_chunk + chunk).split("\n")
+            last_chunk = lines.pop(-1)
+            for line in lines:
+                if line:
+                    yield line
+
+        if last_chunk:
+            yield last_chunk
 
 
 @dataclass
