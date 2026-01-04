@@ -67,6 +67,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4.1-nano": "openai-fast",
         "llama-4-scout": "llamascout",
         "deepseek-r1": "deepseek-reasoning",
+        "mistral-small-3.1-24b": "mistral-small",
+        "qwen-2.5-coder-32b": "qwen-3-coder",
         "sdxl-turbo": "turbo",
         "gpt-image": "gptimage",
         "flux-dev": "flux",

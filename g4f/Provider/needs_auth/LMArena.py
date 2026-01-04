@@ -237,7 +237,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             await cls.__load_actions(html)
 
         args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
-        args["impersonate"] = "chrome136"
 
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -279,7 +278,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cls.url, proxy=proxy, callback=callback, cookies=args.get("cookies", {}), user_data_dir="grecaptcha",
             browser_args=["--guest", "--disable-gpu", "--no-sandbox"])
 
-        args["impersonate"] = "chrome136"
         with cache_file.open("w") as f:
             json.dump(args, f)
 
@@ -570,7 +568,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             url,
                             json=data,
                             proxy=proxy,
-                            # impersonate="chrome136"
                     ) as response:
                         await raise_for_status(response)
                         args["cookies"] = merge_cookies(args["cookies"], response)
