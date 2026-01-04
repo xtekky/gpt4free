@@ -4,7 +4,7 @@ import json
 from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector, FormData
 from typing import AsyncIterator, Any, Optional
 
-from .defaults import DEFAULT_HEADERS
+from .defaults import DEFAULT_HEADERS, has_brotli
 from ..errors import MissingRequirementsError
 
 class StreamResponse(ClientResponse):
@@ -51,6 +51,8 @@ class StreamSession:
                 **DEFAULT_HEADERS,
                 **headers
             }
+        if not has_brotli and "br" in headers.get("accept-encoding", ""):
+            headers["accept-encoding"] = "gzip, deflate"
         connect = None
         if isinstance(timeout, tuple):
             connect, timeout = timeout
