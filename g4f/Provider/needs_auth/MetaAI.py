@@ -72,33 +72,6 @@ class MetaAI(AsyncGeneratorProvider, ProviderModelMixin):
             auth_json = await response.json(content_type=None)
             self.access_token = auth_json["data"]["xab_abra_accept_terms_of_service"]["new_temp_user_auth"]["access_token"]
 
-    async def upload_image(self, media: list):
-        filename = f"{uuid.uuid4()}.jpg"
-        filelens = "168611"
-        url = "https://rupload.meta.ai/gen_ai_document_gen_ai_tenant/185347a2-02da-4d80-aceb-3f820b87bffd"
-        headers = {
-                    "accept": "*/*",
-                    "accept-language": "ar,en-US;q=0.9,en;q=0.8",
-                    "cache-control": "no-cache",
-                    "desired_upload_handler": "genai_document",
-                    "is_abra_user": "true",
-                    "offset": "0",
-                    "pragma": "no-cache",
-                    "priority": "u=1, i",
-                    "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
-                    "sec-ch-ua-mobile": "?0",
-                    "sec-ch-ua-platform": "\"Windows\"",
-                    "sec-fetch-dest": "empty",
-                    "sec-fetch-mode": "cors",
-                    "sec-fetch-site": "same-site",
-                    "x-entity-length": filelens,
-                    "x-entity-name": filename,
-                    "x-entity-type": "image/jpeg",
-                    "cookie": "", #
-                    "Referer": "https://www.meta.ai/"
-                }
-
-
     async def prompt(self, message: str, cookies: Cookies = None) -> AsyncResult:
         if self.cookies is None:
             await self.update_cookies(cookies)
