@@ -290,6 +290,8 @@ class Client(BaseClient):
         **kwargs
     ) -> None:
         super().__init__(**kwargs)
+        if self.base_url and provider is None:
+            provider = create_custom_provider(base_url=self.base_url, api_key=self.api_key)
         self.chat: Chat = Chat(self, provider)
         if media_provider is None:
             media_provider = kwargs.get("image_provider", provider)
@@ -954,10 +956,10 @@ class ClientFactory:
             
         Example:
             # Named provider
-            client = ClientFactory.createAsyncClient("PollinationsAI")
+            client = ClientFactory.create_async_client("PollinationsAI")
 
             # Custom provider
-            client = ClientFactory.createAsyncClient(
+            client = ClientFactory.create_async_client(
                 base_url="https://api.openai.com/v1",
                 api_key="sk-..."
             )

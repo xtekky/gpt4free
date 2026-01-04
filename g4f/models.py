@@ -660,7 +660,7 @@ qwen_2_5_72b = Model(
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, Together, HuggingChat])
+    best_provider = IterListProvider([Together, HuggingChat])
 )
 
 qwen_2_5_1m = Model(
@@ -919,13 +919,6 @@ aria = Model(
     name = "aria",
     base_provider = "Opera",
     best_provider = OperaAria
-)
-
-### Uncensored AI ### 
-evil = Model(
-    name = 'evil',
-    base_provider = 'Evil Mode - Experimental',
-    best_provider = PollinationsAI
 )
 
 ### Stability AI ### 
