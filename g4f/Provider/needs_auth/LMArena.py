@@ -416,6 +416,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
+    async def get_models_async(cls) -> list[str]:
+        if not cls._models_loaded:
+            async with StreamSession() as session:
+                async with session.get(f"{cls.url}/?mode=direct", ) as response:
+                    await cls.__load_actions(await response.text())
+        return cls.models
+
+    @classmethod
     async def __load_actions(cls, html, only=False):
         def pars_children(data):
             data = data["children"]
@@ -941,13 +949,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 files.append(uploaded_file)
         return files
 
-    @classmethod
-    async def get_models_async(cls) -> list[str]:
-        if not cls._models_loaded:
-            async with StreamSession() as session:
-                async with session.get(f"{cls.url}/?mode=direct", ) as response:
-                    await cls.__load_actions(await response.text())
-        return cls.models
 
     @classmethod
     async def get_args_from_nodriver(cls, proxy, cookies=None, **kwargs)->tuple[dict, str]:
