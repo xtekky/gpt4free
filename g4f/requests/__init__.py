@@ -95,22 +95,6 @@ def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str =
         "domain": domain
     }) for key, value in cookies.items()]
 
-def get_cookie_params_from_dict_v2(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
-    if isinstance(cookies, list):
-        return [CookieParam.from_json({
-            "name": value["name"],
-            "value": value["value"],
-            # "url": value["url"],
-            "domain": value["domain"],
-            "path": value["path"],
-        }) for value in cookies]
-    return [CookieParam.from_json({
-        "name": key,
-        "value": value,
-        "url": url,
-        "domain": domain
-    }) for key, value in cookies.items()]
-
 
 async def get_args_from_nodriver(
         url: str,
@@ -134,8 +118,6 @@ async def get_args_from_nodriver(
             cookies = {}
         else:
             await set_cookies_for_browser(browser, cookies, url)
-            # domain = urlparse(url).netloc
-            # await browser.cookies.set_all(get_cookie_params_from_dict_v2(cookies, url=url, domain=domain))
         page = await browser.get(url)
         user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
         while not await page.evaluate("document.querySelector('body:not(.no-js)')"):
