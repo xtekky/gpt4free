@@ -562,9 +562,7 @@ class BaseRequestExpectation:
         """
         Remove the loading finished event handler.
         """
-        remove_handlers(self.tab,
-                        cdp.network.LoadingFinished, self._loading_finished_handler
-                        )
+        remove_handlers(self.tab, cdp.network.LoadingFinished, self._loading_finished_handler)
 
     async def __aenter__(self):  # type: ignore
         """
@@ -580,12 +578,7 @@ class BaseRequestExpectation:
         self._teardown()
 
     async def _setup(self) -> None:
-        await self.tab.send(
-            cdp.network.enable(
-                # max_resource_buffer_size=20 * 1024 * 1024,
-                # max_total_buffer_size=20 * 1024 * 1024
-            )
-        )
+        await self.tab.send(cdp.network.enable())
         self.tab.add_handler(cdp.network.RequestWillBeSent, self._request_handler)
         self.tab.add_handler(cdp.network.ResponseReceived, self._response_handler)
         self.tab.add_handler(cdp.network.LoadingFinished, self._loading_finished_handler)
@@ -595,6 +588,7 @@ class BaseRequestExpectation:
         self._remove_request_handler()
         self._remove_response_handler()
         self._remove_loading_finished_handler()
+        remove_handlers(self.tab, cdp.network.DataReceived, self._handle_data_received)
 
     async def reset(self) -> None:
         """

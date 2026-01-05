@@ -7,7 +7,9 @@ import os
 import re
 import secrets
 import time
+from datetime import datetime, timezone
 from typing import Dict, Optional, Union, AsyncIterable, Any
+from urllib.parse import urlparse, parse_qs
 
 from g4f.image import to_bytes, detect_file_type
 
@@ -322,6 +324,25 @@ vision_models = ['gemini-3-pro', 'gemini-3-flash', 'gemini-3-flash (thinking-min
                  'wan-v2.2-a14b', 'seedance-v1-lite', 'ray2', 'pika-v2.2', 'hunyuan-video-1.5', 'hailuo-02-fast',
                  'hailuo-2.3-fast', 'kling-v2.1-standard', 'runway-gen4-turbo', 'nimble-bean', 'wan2.5-i2v-preview',
                  'gemini-3-pro-grounding']
+
+
+def check_link_expiry(url):
+    # Parse the URL and its query parameters
+    parsed_url = urlparse(url)
+    params = parse_qs(parsed_url.query)
+    amz_date_str = params.get('X-Amz-Date', [None])[0]
+    expires_delta = params.get('X-Amz-Expires', [None])[0]
+    if not amz_date_str or not expires_delta:
+        return False
+    creation_time = datetime.strptime(amz_date_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    expiry_time = creation_time.timestamp() + int(expires_delta)
+    current_time = datetime.now(timezone.utc).timestamp()
+    if current_time > expiry_time:
+        return False
+    else:
+        # remaining = int(expiry_time - current_time)
+        return True
+
 
 if has_nodriver:
     async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
@@ -677,42 +698,42 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         async with cls.lock:
             try:
-                co = 2
+                # co = 2
                 page = await cls._start_nodriver(proxy=proxy, **kwargs)
-                for i in range(co):
-                    # Check user login and load models and actions
-                    await cls._wait_auth(page, prompt=prompt)
-                    # Get grecaptcha
-                    grecaptcha = await cls._get_captcha(page)
-                    # TODO:
-                    args = await get_args(cls.nodriver, cls.url)
-                    files = await cls.prepare_images(args, media)
-                    data, url, evaluationSessionId, modelA, modelB = await cls._prepare_data(prompt, conversation,
-                                                                                             model, grecaptcha, files,
-                                                                                             **kwargs)
-                    yield JsonRequest.from_dict(data)
+                # for i in range(co):
+                # Check user login and load models and actions
+                await cls._wait_auth(page, prompt=prompt)
+                # Get grecaptcha
+                grecaptcha = await cls._get_captcha(page)
+                # TODO:
+                args = await get_args(cls.nodriver, cls.url)
+                files = await cls.prepare_images(args, media)
+                data, url, evaluationSessionId, modelA, modelB = await cls._prepare_data(prompt, conversation,
+                                                                                         model, grecaptcha, files,
+                                                                                         **kwargs)
+                yield JsonRequest.from_dict(data)
 
-                    # Option 2 -
-                    async with BaseRequestExpectation(page, url, stream=True) as expect_response:
-                        await nodriver_request(page, method="POST", url=url, data=data, await_promise=False)
-                        await expect_response.request_future
-                        status = (await expect_response.response).status
-                        if status != 200:
-                            body = await expect_response.response_data
-                            debug.error(status, body)
-                            if status == 403:
-                                if i + 1 < co:
-                                    continue
-                                raise CloudflareError(status, body)
-                            elif status != 429:
-                                raise RateLimitError(status, body)
-                            raise ResponseStatusError(status, body)
+                # Option 2 -
+                async with BaseRequestExpectation(page, url, stream=True) as expect_response:
+                    await nodriver_request(page, method="POST", url=url, data=data, await_promise=False)
+                    await expect_response.request_future
+                    status = (await expect_response.response).status
+                    if status != 200:
+                        body = await expect_response.response_data
+                        debug.error(status, body)
+                        if status == 403:
+                            # if i + 1 < co:
+                            #     continue
+                            raise CloudflareError(status, body)
+                        elif status != 429:
+                            raise RateLimitError(status, body)
+                        raise ResponseStatusError(status, body)
 
-                        async for chunk in cls._process_stream_response_(expect_response.response_data_stream, prompt,
-                                                                         conversation,
-                                                                         modelA, modelB):
-                            yield chunk
-                    break
+                    async for chunk in cls._process_stream_response_(expect_response.response_data_stream, prompt,
+                                                                     conversation,
+                                                                     modelA, modelB):
+                        yield chunk
+                # break
             finally:
                 await cls.cleanup_async_browser()
 
@@ -741,10 +762,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 hasher.update(data_bytes)
                 image_hash = hasher.hexdigest()
                 file = ImagesCache.get(image_hash)
-                if cls.image_cache and file:
-                    debug.log("Using cached image")
-                    files.append(file)
-                    continue
+                if cls.image_cache and file :
+                    if check_link_expiry(file.get("url")):
+                        debug.log("Using cached image")
+                        files.append(file)
+                        continue
+                    debug.log("Expiry cached image")
 
                 extension, file_type = detect_file_type(data_bytes)
                 file_name = file_name or f"file-{len(data_bytes)}{extension}"
@@ -1047,6 +1070,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         yield FinishReason(finish["finishReason"])
                     if "usage" in finish:
                         yield Usage(**finish["usage"])
+                elif line.startswith("bd:"):
+                    ...
                 elif line.startswith("a3:"):
                     raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
                 else:
