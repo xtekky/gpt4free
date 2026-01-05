@@ -563,7 +563,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if not account:
                 raise ProviderException("No valid Yupp accounts available")
             try:
-                if cls.nodriver is None:
+                if cls.nodriver is None or cls.nodriver.stopped:
                     cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
 
                 await clear_cookies_for_url(cls.nodriver, cls.url)
@@ -655,6 +655,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             finally:
                 if cls.stop_nodriver:
                     cls.stop_nodriver()
+                    cls.nodriver = None
 
     @classmethod
     async def create_async_generator(
