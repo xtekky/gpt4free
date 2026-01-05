@@ -582,11 +582,11 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         await cls._load_info(body, is_js=True)
 
                 page.add_handler(nodriver.cdp.network.ResponseReceived, _response_handler)
-                async with BaseRequestExpectation(page, "https://yupp.ai/", stream=True) as expect_response:
+                async with BaseRequestExpectation(page, "https://yupp.ai/") as expect_response:
                     await page.get("https://yupp.ai/")
                     await expect_response.loading_finished_future
-                    response_body = await page.get_content()
-                    await cls._load_info(response_body)
+                response_body = await page.get_content()
+                await cls._load_info(response_body)
                 remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
 
                 # Prepare Message

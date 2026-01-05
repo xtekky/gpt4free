@@ -23,8 +23,8 @@ try:
     from nodriver import cdp
     from nodriver.cdp.fetch import RequestPaused, RequestStage
     from ...requests.nodriver_ import clear_cookies_for_url, set_cookies_for_browser, wait_for_ready_state, \
-    RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request, \
-    BaseRequestExpectation, mouse_click
+        RequestInterception, Request, get_cookies, get_args, Response, remove_handlers, nodriver_request, \
+        BaseRequestExpectation, mouse_click
     import nodriver.cdp.io as io
 
     has_nodriver = True
@@ -587,71 +587,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return captcha
 
     @classmethod
-    async def _prepare_data(cls, prompt, conversation, model, captcha, files, **kwargs):
-        # prepare request
-        def get_mode_id(model):
-            model_id = None
-            # if not model:
-            #     model = cls.default_model
-            if model in cls.model_aliases:
-                model = cls.model_aliases[model]
-            if model in cls.text_models:
-                model_id = cls.text_models[model]
-            elif model in cls.image_models:
-                model_id = cls.image_models[model]
-            elif model:
-                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
-            # else:
-            #     raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
-            return model_id
-
-        modelA, modelB = model, kwargs.get("modelB")
-
-        modelAId = get_mode_id(modelA)
-        modelBId = get_mode_id(modelB) if modelB else None
-
-        if conversation and getattr(conversation, "evaluationSessionId", None):
-            url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
-            evaluationSessionId = conversation.evaluationSessionId
-        else:
-            url = cls.create_evaluation
-            evaluationSessionId = str(uuid7())
-
-        userMessageId = str(uuid7())
-        modelAMessageId = str(uuid7())
-        modelBMessageId = str(uuid7())
-        if modelAId and modelBId:
-            mode = "side-by-side"
-        elif modelAId:
-            mode = "direct"
-        else:
-            mode = "battle"
-        is_image_model = modelA in cls.image_models or (files and mode == "battle")
-        data = {
-            "id": evaluationSessionId,
-            "mode": mode,
-            # "modelAId": modelAId,
-            "userMessageId": userMessageId,
-            "modelAMessageId": modelAMessageId,
-            "userMessage": {
-                "content": prompt,
-                "experimental_attachments": files,
-                "metadata": {}
-            },
-            "modality": "image" if is_image_model else "chat",
-            "recaptchaV3Token": captcha,
-            # "recaptchaV2Token": grecaptcha
-        }
-        if modelAId:
-            data["modelAId"] = modelAId
-        if modelBId:
-            data["modelBId"] = modelBId
-        if mode in ["side-by-side", "battle"]:
-            data["modelBMessageId"] = modelBMessageId
-
-        return data, url, evaluationSessionId, modelA, modelB
-
-    @classmethod
     async def _login(cls, email, password):
         async with StreamSession() as session:
             async with session.post(
@@ -673,7 +608,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     async def _start_nodriver(cls,
                               proxy: str = None,
                               **kwargs):
-        if cls.nodriver is None:
+        if cls.nodriver is None or cls.nodriver.stopped:
             cls.nodriver, cls.stop_nodriver = await get_nodriver(proxy=proxy)
 
         await clear_cookies_for_url(cls.nodriver, cls.url, ["cf_clearance", "app_banner_state"])
@@ -779,75 +714,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             yield chunk
                     break
             finally:
-                debug.log("stop nodriver")
-                if cls.stop_nodriver:
-                    cls.stop_nodriver()
+                await cls.cleanup_async_browser()
 
     @classmethod
-    async def _process_stream_response_(
-            cls,
-            response_content: Union[list, AsyncIterable],
-            prompt: str,
-            conversation,
-            modelA=None, modelB=None
-    ) -> AsyncResult:
-        # 1. Normalize the input into an async iterator
-        async def get_chunks():
-            if hasattr(response_content, '__aiter__'):
-                async for chunk in response_content:
-                    yield chunk
-            else:
-                for chunk in response_content:
-                    yield chunk
-
-        async for chunk in get_chunks():
-            lines = chunk
-            if isinstance(lines, bytes):
-                lines = lines.decode()
-            for line in lines.split("\n"):
-                if not line:
-                    continue
-                yield PlainTextResponse(line)
-                if line.startswith("a0:"):
-                    chunk = json.loads(line[3:])
-                    if chunk == "hasArenaError":
-                        raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
-                    yield chunk
-                elif line.startswith("b0:"):
-                    ...
-                    # chunk = json.loads(line[3:])
-                    # if chunk == "hasArenaError":
-                    #     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
-                    # yield chunk
-                elif line.startswith("ag:"):
-                    chunk = json.loads(line[3:])
-                    yield Reasoning(chunk)
-                elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
-                    # 'a2:[{"type":"heartbeat"}]'
-                    continue
-                elif line.startswith("a2:"):
-                    chunk = json.loads(line[3:])
-                    __images = [image.get("image") for image in chunk if image.get("image")]
-                    if __images:
-                        yield ImageResponse(__images, prompt, {"model": modelA})
-
-                elif line.startswith("b2:"):
-                    chunk = json.loads(line[3:])
-                    __images = [image.get("image") for image in chunk if image.get("image")]
-                    if __images:
-                        yield ImageResponse(__images, prompt, {"model": modelB})
-
-                elif line.startswith("ad:"):
-                    # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
-                    finish = json.loads(line[3:])
-                    if "finishReason" in finish:
-                        yield FinishReason(finish["finishReason"])
-                    if "usage" in finish:
-                        yield Usage(**finish["usage"])
-                elif line.startswith("a3:"):
-                    raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
-                else:
-                    debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
+    async def cleanup_async_browser(cls):
+        if cls.stop_nodriver:
+            debug.log("stop nodriver")
+            cls.stop_nodriver()
+            cls.nodriver = None
 
     ############################## create_async_generator ####################
 
@@ -949,20 +823,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 files.append(uploaded_file)
         return files
 
-
     @classmethod
-    async def get_args_from_nodriver(cls, proxy, cookies=None, **kwargs)->tuple[dict, str]:
+    async def get_args_from_nodriver(cls, proxy, cookies=None, **kwargs) -> tuple[dict, str]:
         cache_file = cls.get_cache_file()
         try:
             page = await cls._start_nodriver(proxy=proxy, cookies=cookies, **kwargs)
             # Check user login and load models and actions
             await cls._wait_auth(page)
             captcha = await cls._get_captcha(page)
-            args:dict[str, Any] = await get_args(cls.nodriver, cls.url)
+            args: dict[str, Any] = await get_args(cls.nodriver, cls.url)
 
         finally:
-            if cls.stop_nodriver:
-                cls.stop_nodriver()
+            await cls.cleanup_async_browser()
 
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -1001,7 +873,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         for _ in range(2):
             if has_nodriver and (not args or not grecaptcha):
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"), **kwargs)
+                args, grecaptcha = await cls.get_args_from_nodriver(proxy, cookies=cookies or args.get("cookies"),
+                                                                    **kwargs)
 
             if not cls._models_loaded:
                 # change to async
@@ -1047,3 +920,134 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             debug.log("Save args to cache file:", str(cache_file))
             with cache_file.open("w") as f:
                 f.write(json.dumps(args))
+
+    @classmethod
+    async def _prepare_data(cls, prompt, conversation, model, captcha, files, **kwargs):
+        # prepare request
+        def get_mode_id(model):
+            model_id = None
+            # if not model:
+            #     model = cls.default_model
+            if model in cls.model_aliases:
+                model = cls.model_aliases[model]
+            if model in cls.text_models:
+                model_id = cls.text_models[model]
+            elif model in cls.image_models:
+                model_id = cls.image_models[model]
+            elif model:
+                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
+            # else:
+            #     raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
+            return model_id
+
+        modelA, modelB = model, kwargs.get("modelB")
+
+        modelAId = get_mode_id(modelA)
+        modelBId = get_mode_id(modelB) if modelB else None
+
+        if conversation and getattr(conversation, "evaluationSessionId", None):
+            url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
+            evaluationSessionId = conversation.evaluationSessionId
+        else:
+            url = cls.create_evaluation
+            evaluationSessionId = str(uuid7())
+
+        userMessageId = str(uuid7())
+        modelAMessageId = str(uuid7())
+        modelBMessageId = str(uuid7())
+        if modelAId and modelBId:
+            mode = "side-by-side"
+        elif modelAId:
+            mode = "direct"
+        else:
+            mode = "battle"
+        is_image_model = modelA in cls.image_models or (files and mode == "battle")
+        data = {
+            "id": evaluationSessionId,
+            "mode": mode,
+            # "modelAId": modelAId,
+            "userMessageId": userMessageId,
+            "modelAMessageId": modelAMessageId,
+            "userMessage": {
+                "content": prompt,
+                "experimental_attachments": files,
+                "metadata": {}
+            },
+            "modality": "image" if is_image_model else "chat",
+            "recaptchaV3Token": captcha,
+            # "recaptchaV2Token": grecaptcha
+        }
+        if modelAId:
+            data["modelAId"] = modelAId
+        if modelBId:
+            data["modelBId"] = modelBId
+        if mode in ["side-by-side", "battle"]:
+            data["modelBMessageId"] = modelBMessageId
+
+        return data, url, evaluationSessionId, modelA, modelB
+
+    @classmethod
+    async def _process_stream_response_(
+            cls,
+            response_content: Union[list, AsyncIterable],
+            prompt: str,
+            conversation,
+            modelA=None, modelB=None
+    ) -> AsyncResult:
+        # 1. Normalize the input into an async iterator
+        async def get_chunks():
+            if hasattr(response_content, '__aiter__'):
+                async for chunk in response_content:
+                    yield chunk
+            else:
+                for chunk in response_content:
+                    yield chunk
+
+        async for chunk in get_chunks():
+            lines = chunk
+            if isinstance(lines, bytes):
+                lines = lines.decode()
+            for line in lines.split("\n"):
+                if not line:
+                    continue
+                yield PlainTextResponse(line)
+                if line.startswith("a0:"):
+                    chunk = json.loads(line[3:])
+                    if chunk == "hasArenaError":
+                        raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                    yield chunk
+                elif line.startswith("b0:"):
+                    ...
+                    # chunk = json.loads(line[3:])
+                    # if chunk == "hasArenaError":
+                    #     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                    # yield chunk
+                elif line.startswith("ag:"):
+                    chunk = json.loads(line[3:])
+                    yield Reasoning(chunk)
+                elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
+                    # 'a2:[{"type":"heartbeat"}]'
+                    continue
+                elif line.startswith("a2:"):
+                    chunk = json.loads(line[3:])
+                    __images = [image.get("image") for image in chunk if image.get("image")]
+                    if __images:
+                        yield ImageResponse(__images, prompt, {"model": modelA})
+
+                elif line.startswith("b2:"):
+                    chunk = json.loads(line[3:])
+                    __images = [image.get("image") for image in chunk if image.get("image")]
+                    if __images:
+                        yield ImageResponse(__images, prompt, {"model": modelB})
+
+                elif line.startswith("ad:"):
+                    # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
+                    finish = json.loads(line[3:])
+                    if "finishReason" in finish:
+                        yield FinishReason(finish["finishReason"])
+                    if "usage" in finish:
+                        yield Usage(**finish["usage"])
+                elif line.startswith("a3:"):
+                    raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+                else:
+                    debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
