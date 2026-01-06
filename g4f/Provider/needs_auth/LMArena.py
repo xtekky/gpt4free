@@ -1037,6 +1037,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 for chunk in response_content:
                     yield chunk
 
+        def json_data(_line, st: int):
+            try:
+                return json.loads(line[st:])
+            except json.JSONDecodeError as _error:
+                debug.error(f"Failed to decode JSON line:{_error}", _line)
+                return {}
+
         async for chunk in get_chunks():
             lines = chunk
             if isinstance(lines, bytes):
@@ -1046,37 +1053,37 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     continue
                 yield PlainTextResponse(line)
                 if line.startswith("a0:"):
-                    chunk = json.loads(line[3:])
+                    chunk = json_data(line, 3)
                     if chunk == "hasArenaError":
                         raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
                     yield chunk
                 elif line.startswith("b0:"):
                     ...
-                    # chunk = json.loads(line[3:])
+                    # chunk = json_data(line, 3)
                     # if chunk == "hasArenaError":
                     #     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
                     # yield chunk
                 elif line.startswith("ag:"):
-                    chunk = json.loads(line[3:])
+                    chunk = json_data(line, 3)
                     yield Reasoning(chunk)
                 elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
                     # 'a2:[{"type":"heartbeat"}]'
                     continue
                 elif line.startswith("a2:"):
-                    chunk = json.loads(line[3:])
+                    chunk = json_data(line, 3)
                     __images = [image.get("image") for image in chunk if image.get("image")]
                     if __images:
                         yield ImageResponse(__images, prompt, {"model": modelA})
 
                 elif line.startswith("b2:"):
-                    chunk = json.loads(line[3:])
+                    chunk = json_data(line, 3)
                     __images = [image.get("image") for image in chunk if image.get("image")]
                     if __images:
                         yield ImageResponse(__images, prompt, {"model": modelB})
 
                 elif line.startswith("ad:"):
                     # yield JsonConversation(evaluationSessionId=conversation.evaluationSessionId)
-                    finish = json.loads(line[3:])
+                    finish = json_data(line, 3)
                     if "finishReason" in finish:
                         yield FinishReason(finish["finishReason"])
                     if "usage" in finish:
@@ -1084,6 +1091,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 elif line.startswith("bd:"):
                     ...
                 elif line.startswith("a3:"):
-                    raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+                    raise RuntimeError(f"LMArena: {json_data(line, 3)}")
                 else:
                     debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
