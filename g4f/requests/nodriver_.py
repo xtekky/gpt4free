@@ -233,6 +233,10 @@ def remove_handlers(
         tab.handlers.clear()
         return
 
+    if event_type not in tab.handlers:
+        log("not handling event %s" % event_type)
+        return
+
     if not handler:
         del tab.handlers[event_type]
         return

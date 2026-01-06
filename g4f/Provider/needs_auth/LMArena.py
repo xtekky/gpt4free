@@ -383,8 +383,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     _models_loaded = False
     image_cache = True
     _next_actions = {
-        "generateUploadUrl": "7020462b741e358317f3b5a1929766d8b9c241c7c6",
-        "getSignedUrl": "60ff7bb683b22dd00024c9aee7664bbd39749e25c9",
+        "generateUploadUrl": "705e74681a4c17b4b137138b1bac25ded161963356",
+        "getSignedUrl": "60a982daca8329fd75a6c1b3ecc4dddbed0718baaa",
         "updateTouConsent": "40efff1040868c07750a939a0d8120025f246dfe28",
         "createPointwiseFeedback": "605a0e3881424854b913fe1d76d222e50731b6037b",
         "createPairwiseFeedback": "600777eb84863d7e79d85d214130d3214fc744c80f",
@@ -511,10 +511,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 async with session.get(js_url) as js_response:
                                     js_text = await js_response.text()
                                     if "createServerReference" in js_text:
-                                        # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
-                                        start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
-                                        for v, k in start_id:
-                                            cls._next_actions[k] = v
+                                        cls.__extract_actions(js_text)
+
 
                 elif chunk_data.startswith(("[", "{")):
                     try:
@@ -522,6 +520,18 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         pars_data(data)
                     except json.decoder.JSONDecodeError:
                         ...
+
+    @classmethod
+    def __extract_actions(cls, js_text):
+        # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
+        start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+        for v, k in start_id:
+            print(k, v)
+            if len(v) == 42:
+                cls._next_actions[k] = v
+            else:
+                debug.error(f"wrong {k} value: {v}")
+        print(cls._next_actions)
 
     @classmethod
     async def _wait_auth(cls, page, prompt="Hello"):
@@ -576,6 +586,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         html = await page.get_content()
         await cls.__load_actions(html, only=True)
+        remove_handlers(page, nodriver.cdp.network.ResponseReceived, cls.__js_handler)
 
     @classmethod
     async def _get_captcha(cls, page):
@@ -626,6 +637,22 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 raise Exception(response.status, await response.text())
 
     @classmethod
+    async def __js_handler(cls, event, page) -> None:
+        event: nodriver.cdp.network.ResponseReceived
+        fetch_data = event.__dict__.copy()
+        fetch_data['tab'] = page
+        mod_response = Response(**fetch_data)
+        if mod_response.response.headers and mod_response.response.headers.get(
+                "content-type", "").startswith('application/javascript'):
+            try:
+
+                js_text = await mod_response.response_body
+                if "createServerReference" in js_text:
+                    cls.__extract_actions(js_text)
+            except Exception as e:
+                ...
+
+    @classmethod
     async def _start_nodriver(cls,
                               proxy: str = None,
                               **kwargs):
@@ -646,24 +673,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         #     cookies = await cls._login(email=kwargs.get("email"), password=kwargs.get("password"))
         #     await set_cookies_for_browser(cls.nodriver, cookies, cls.url)
 
-        async def _response_handler(event: nodriver.cdp.network.ResponseReceived) -> None:
-            fetch_data = event.__dict__.copy()
-            fetch_data['tab'] = page
-            mod_response = Response(**fetch_data)
-
-            if mod_response.response.headers and mod_response.response.headers.get("content-type",
-                                                                                   "").startswith(
-                'application/javascript'):
-                try:
-                    js_text = await mod_response.response_body
-                    start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
-                    for v, k in start_id:
-                        cls._next_actions[k] = v
-                except Exception as e:
-                    ...
-
         page: nodriver.Tab = cls.nodriver.main_tab
-        page.add_handler(nodriver.cdp.network.ResponseReceived, _response_handler)
+        page.add_handler(nodriver.cdp.network.ResponseReceived, cls.__js_handler)
         await page.get(cls.url)
         await wait_for_ready_state(page, raise_error=False)
         while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
@@ -680,7 +691,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             )
             await page.get(cls.url)
 
-        remove_handlers(page, nodriver.cdp.network.ResponseReceived, _response_handler)
         return page
 
     @classmethod
@@ -762,7 +772,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 hasher.update(data_bytes)
                 image_hash = hasher.hexdigest()
                 file = ImagesCache.get(image_hash)
-                if cls.image_cache and file :
+                if cls.image_cache and file:
                     if check_link_expiry(file.get("url")):
                         debug.log("Using cached image")
                         files.append(file)
@@ -934,6 +944,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 debug.error(error)
                 continue
             except:
+                debug.error("next_actions", cls._next_actions)
                 raise
         if args and os.getenv("G4F_SHARE_AUTH") and not kwargs.get("action"):
             yield "\n" * 10
