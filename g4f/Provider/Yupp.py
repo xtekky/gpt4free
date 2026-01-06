@@ -655,8 +655,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     resp.raise_for_status()
                     data = await resp.json()
                     try:
+                        json_data = data[0]["result"]["data"]["json"]
+                        url_img = json_data.get("signed_url") or json_data.get("signedURL")
                         img = ImageResponse(
-                            data[0]["result"]["data"]["json"]["signed_url"],
+                            url_img,
                             prompt
                         )
                         yield img
