@@ -802,17 +802,13 @@ class ClientFactory:
     
     Supports:
     - Named providers (e.g., "PollinationsAI", "DeepInfra")
-    - Multiple providers (space-separated string or list)
     - Custom providers with custom API base URLs
     - Live providers (dynamically loaded providers)
     
     Example usage:
         # Create client with a named provider
         client = ClientFactory.create_client("PollinationsAI")
-        
-        # Create client with multiple providers (fallback)
-        client = ClientFactory.create_client(["PollinationsAI", "DeepInfra"])
-        
+                
         # Create client with custom provider
         client = ClientFactory.create_client(
             base_url="https://api.example.com/v1",
@@ -911,10 +907,7 @@ class ClientFactory:
         Example:
             # Named provider
             client = ClientFactory.create_client("PollinationsAI")
-            
-            # Multiple providers (fallback)
-            client = ClientFactory.create_client(["PollinationsAI", "DeepInfra"])
-            
+                        
             # Custom provider
             client = ClientFactory.create_client(
                 base_url="https://api.openai.com/v1",
@@ -965,7 +958,7 @@ class ClientFactory:
             )
         """
         return AsyncClient(
-            provider=cls.createProvider(provider, base_url, api_key, **kwargs),
+            provider=cls.create_provider(provider, base_url, api_key, **kwargs),
             media_provider=media_provider,
             api_key=api_key,
             base_url=base_url,
