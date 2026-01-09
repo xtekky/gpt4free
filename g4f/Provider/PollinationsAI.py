@@ -16,23 +16,16 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
 from ..image import is_data_an_audio
 from ..errors import MissingAuthError
+from ..requests.defaults import DEFAULT_HEADERS
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image import use_aspect_ratio
-from ..providers.response import ImageResponse, Reasoning, VideoResponse, JsonRequest
+from ..providers.response import ImageResponse, Reasoning, VideoResponse, JsonRequest, PreviewResponse
 from ..tools.media import render_messages
 from ..tools.run_tools import AuthManager
 from ..cookies import get_cookies_dir
 from .template.OpenaiTemplate import read_response
 from .. import debug
-
-DEFAULT_HEADERS = {
-    "accept": "*/*",
-    'accept-language': 'en-US,en;q=0.9',
-    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
-    "referer": "https://pollinations.ai/",
-    "origin": "https://pollinations.ai",
-}
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI 🌸"
@@ -45,11 +38,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     # API endpoints
     text_api_endpoint = "https://g4f.dev/api/pollinations/chat/completions"
-    image_api_endpoint = "https://g4f.dev/prompt/{}"
+    image_api_endpoint = "https://image.pollinations.ai/prompt/{}"
     gen_image_api_endpoint = "https://gen.pollinations.ai/image/{}"
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
-    gen_image_models_endpoint = "https://gen.pollinations.ai/image/models"
-    gen_text_models_endpoint = "https://gen.pollinations.ai/text/models"
+    image_models_endpoint = "https://gen.pollinations.ai/image/models"
+    text_models_endpoint = "https://gen.pollinations.ai/text/models"
 
     # Models configuration
     default_model = "openai"
@@ -107,7 +100,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     debug.error(f"Failed to load cached models from {path}: {e}")
             try:
                 # Update of image models
-                image_response = requests.get(cls.gen_image_models_endpoint, timeout=timeout)
+                image_response = requests.get(cls.image_models_endpoint, timeout=timeout)
                 if image_response.ok:
                     new_image_models = image_response.json()
                 else:
@@ -128,9 +121,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models = image_models
                 cls.video_models = [get_alias(model) for model in new_image_models if isinstance(model, dict) and "video" in model.get("output_modalities", [])]
 
-                text_response = requests.get(cls.gen_text_models_endpoint, timeout=timeout)
+                text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
                 if not text_response.ok:
-                    text_response = requests.get(cls.gen_text_models_endpoint, timeout=timeout)
+                    text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
                 text_response.raise_for_status()
                 models = text_response.json()
 
@@ -341,7 +334,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 **params
             }, "1:1" if aspect_ratio is None else aspect_ratio)
         query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items() if v is not None)
-        encoded_prompt = prompt.strip(". \n")
+        encoded_prompt = prompt.strip(". \n?")
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
         encoded_prompt = quote_plus(encoded_prompt)[:4096 - len(cls.image_api_endpoint) - len(query) - 8].rstrip("%")
@@ -380,7 +373,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 except Exception as e:
                     responses.add(e)
                     debug.error(f"Error fetching image:", e)
-                if response.headers.get('content-type', '').startswith("image/"):
+                if response.headers.get("x-error-type"):
+                    responses.add(PreviewResponse(ImageResponse(str(response.url), prompt)))
+                elif response.headers.get('content-type', '').startswith("image/"):
                     responses.add(ImageResponse(str(response.url), prompt, {"headers": headers}))
                 elif response.headers.get('content-type', '').startswith("video/"):
                     responses.add(VideoResponse(str(response.url), prompt, {"headers": headers}))
