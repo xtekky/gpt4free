@@ -334,7 +334,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 **params
             }, "1:1" if aspect_ratio is None else aspect_ratio)
         query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items() if v is not None)
-        encoded_prompt = prompt.strip(". \n?")
+        encoded_prompt = prompt.strip()
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
         encoded_prompt = quote_plus(encoded_prompt)[:4096 - len(cls.image_api_endpoint) - len(query) - 8].rstrip("%")

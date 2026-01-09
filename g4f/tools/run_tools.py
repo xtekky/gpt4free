@@ -257,16 +257,19 @@ async def async_iter_run_tools(
             elif isinstance(chunk, Usage):
                 usage = chunk
             yield chunk
+        if usage is None:
+            usage = get_usage(messages, completion_tokens)
+            yield usage
+        usage = {"user": kwargs.get("user"), "model": usage_model, "provider": usage_provider, **usage.get_dict()}
+        usage_dir = Path(get_cookies_dir()) / ".usage"
+        usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+        usage_dir.mkdir(parents=True, exist_ok=True)
         if has_aiofile:
-            if usage is None:
-                usage = get_usage(messages, completion_tokens)
-                yield usage
-            usage = {"user": kwargs.get("user"), "model": usage_model, "provider": usage_provider, **usage.get_dict()}
-            usage_dir = Path(get_cookies_dir()) / ".usage"
-            usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
-            usage_dir.mkdir(parents=True, exist_ok=True)
             async with async_open(usage_file, "a") as f:
-                await f.write(f"{json.dumps(usage)}\n")
+                asyncio.create_task(f.write(f"{json.dumps(usage)}\n"))
+        else:
+            with usage_file.open("a") as f:
+                f.write(f"{json.dumps(usage)}\n")
         if completion_tokens > 0:
             provider.live += 1
     except:
