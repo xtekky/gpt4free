@@ -250,8 +250,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 continue
                             response_part = json.loads(line[0][2])
                             yield JsonResponse(data=response_part, model=model)
-                            if len(response_part) > 11 and response_part[10]:
-                                yield TitleGeneration(response_part[10][0].strip())
+                            if len(response_part) > 2 and isinstance(response_part[2], dict) and response_part[2].get("11"):
+                                yield TitleGeneration(response_part[2].get("11"))
                             if len(response_part) < 5:
                                 continue
                             if return_conversation:
