@@ -226,7 +226,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             **kwargs
     ) -> AsyncResult:
         if cache is None:
-            cache = kwargs.get("action") == "next"
+            cache = kwargs.get("action") != "variant"
         if extra_body is None:
             extra_body = {}
         if not model:
