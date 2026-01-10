@@ -5,16 +5,12 @@ import os
 import re
 import time
 import uuid
-from typing import Type
 from concurrent.futures import ThreadPoolExecutor
 
 try:
-    import cloudscraper
     from cloudscraper import CloudScraper
-    has_cloudscraper = True
 except ImportError:
-    cloudscraper = CloudScraper = None
-    has_cloudscraper = False
+    CloudScraper = None
 
 from .helper import get_last_user_message
 from .yupp.models import YuppModelManager
@@ -37,7 +33,7 @@ _executor = ThreadPoolExecutor(max_workers=10)
 
 
 def create_scraper():
-    scraper = cloudscraper.create_scraper(
+    scraper = create_scraper(
         browser={
             'browser': 'chrome',
             'platform': 'windows',
@@ -212,7 +208,7 @@ def format_messages_for_yupp(messages: Messages) -> str:
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://yupp.ai"
     login_url = "https://discord.gg/qXA4Wf4Fsm"
-    working = has_cloudscraper
+    working = CloudScraper is not None
     active_by_default = True
     supports_stream = True
     image_cache = True
@@ -237,7 +233,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    def sync_prepare_files(cls, media, scraper: cloudscraper.CloudScraper, account: Dict[str, Any]) -> list:
+    def sync_prepare_files(cls, media, scraper: CloudScraper, account: Dict[str, Any]) -> list:
         files = []
         if not media:
             return files
@@ -292,12 +288,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return files
 
     @classmethod
-    async def prepare_files(cls, media, scraper: cloudscraper.CloudScraper, account: Dict[str, Any]) -> list:
+    async def prepare_files(cls, media, scraper: CloudScraper, account: Dict[str, Any]) -> list:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(_executor, cls.sync_prepare_files, media, scraper, account)
 
     @classmethod
-    def sync_get_signed_image(cls, scraper: cloudscraper.CloudScraper, image_id: str) -> str:
+    def sync_get_signed_image(cls, scraper: CloudScraper, image_id: str) -> str:
         url = "https://yupp.ai/api/trpc/chat.getSignedImage"
         resp = scraper.get(
             url,
@@ -313,12 +309,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return data[0]["result"]["data"]["json"]["signed_url"]
 
     @classmethod
-    async def get_signed_image(cls, scraper: cloudscraper.CloudScraper, image_id: str) -> str:
+    async def get_signed_image(cls, scraper: CloudScraper, image_id: str) -> str:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(_executor, cls.sync_get_signed_image, scraper, image_id)
 
     @classmethod
-    def sync_stream_request(cls, scraper: cloudscraper.CloudScraper, url: str, payload: list, headers: dict,
+    def sync_stream_request(cls, scraper: CloudScraper, url: str, payload: list, headers: dict,
                             timeout: int):
         response = scraper.post(url, json=payload, headers=headers, stream=True, timeout=timeout)
         response.raise_for_status()
@@ -477,7 +473,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             cls,
             response,
             account: Dict[str, Any],
-            scraper: cloudscraper.CloudScraper,
+            scraper: CloudScraper,
             prompt: str,
             model_id: str
     ) -> AsyncResult:
