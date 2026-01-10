@@ -8,6 +8,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 try:
+    import cloudscraper
     from cloudscraper import CloudScraper
     from cloudscraper import create_scraper
 except ImportError:
@@ -17,7 +18,7 @@ from .helper import get_last_user_message
 from .yupp.models import YuppModelManager
 from ..cookies import get_cookies
 from ..debug import log
-from ..errors import RateLimitError, ProviderException, MissingAuthError
+from ..errors import RateLimitError, ProviderException, MissingAuthError, MissingRequirementsError
 from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
@@ -34,7 +35,7 @@ _executor = ThreadPoolExecutor(max_workers=10)
 
 
 def create_scraper():
-    scraper = create_scraper(
+    scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
             'platform': 'windows',
@@ -329,6 +330,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             proxy: str = None,
             **kwargs,
     ) -> AsyncResult:
+        if  CloudScraper is None:
+            raise MissingRequirementsError("cloudscraper library is required for Yupp provider | install it via 'pip install cloudscraper'")
         api_key = kwargs.get("api_key")
         if not api_key:
             api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
