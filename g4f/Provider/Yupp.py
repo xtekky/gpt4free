@@ -7,7 +7,11 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-import cloudscraper
+try:
+    import cloudscraper
+    has_cloudscraper = True
+except ImportError:
+    has_cloudscraper = False
 
 from .helper import get_last_user_message
 from .yupp.models import YuppModelManager
@@ -205,7 +209,7 @@ def format_messages_for_yupp(messages: Messages) -> str:
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://yupp.ai"
     login_url = "https://discord.gg/qXA4Wf4Fsm"
-    working = True
+    working = has_cloudscraper
     active_by_default = True
     supports_stream = True
     image_cache = True
