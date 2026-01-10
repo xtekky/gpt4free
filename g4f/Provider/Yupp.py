@@ -21,7 +21,7 @@ from ..errors import RateLimitError, ProviderException, MissingAuthError
 from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
-    ProviderInfo, FinishReason, JsonResponse
+    ProviderInfo, FinishReason, JsonResponse, VariantResponse
 from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
@@ -745,7 +745,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             ):
                                 stream["quick"].append(chunk)
                             quick_content += content
-                            yield PreviewResponse(content)
+                            yield VariantResponse(content)
 
                 elif chunk_id in [turn_id, persisted_turn_id]:
                     pass
