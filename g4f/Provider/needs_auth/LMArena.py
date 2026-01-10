@@ -1092,5 +1092,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     ...
                 elif line.startswith("a3:"):
                     raise RuntimeError(f"LMArena: {json_data(line, 3)}")
+                elif line.startswith("b3:"):
+                    ...
+                    # raise RuntimeError(f"LMArena: {json_data(line, 3)}")
+
                 else:
                     debug.log(f"LMArena: Unknown line prefix: {line[:2]}: {line}")
