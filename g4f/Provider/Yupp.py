@@ -11,7 +11,7 @@ import aiohttp
 from .helper import get_last_user_message
 from .yupp.models import YuppModelManager, ModelProcessor
 from ..cookies import get_cookies
-from ..debug import log
+from ..debug import log, error
 from ..errors import RateLimitError, ProviderException, MissingAuthError
 from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -224,6 +224,15 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     supports_stream = True
     image_cache = True
+    nodriver = None
+    stop_nodriver = None
+    _next_actions = {
+        "changeStyle": "60efed0bf19628cd74d5a5ccc56fbafce37522bf48",
+        "continueChat": "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf",
+        "retryResponse": "60295ea869e349230110b3265251a3d71573576412",
+        "showMoreResponses": "785086061ed9ee7b9a3e857e18411561a67cb1c0b5",
+        "startNewChat": "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd",
+    }
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs) -> List[str]:
@@ -390,6 +399,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                                     # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
                                                     start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
                                                     for v, k in start_id:
+                                                        cls._next_actions[k] = v
                                                         kwargs[k] = v
                                                     break
                                 elif chunk_data.startswith(("[", "{")):
@@ -484,7 +494,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
                         # Yield the conversation info first
                         yield JsonConversation(url_uuid=url_uuid)
-                        next_action = kwargs.get("startNewChat") or kwargs.get("next_action", "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
+                        next_action = kwargs.get("startNewChat") or kwargs.get("next_action",
+                                                                               "7f7de0a21bc8dc3cee8ba8b6de632ff16f769649dd")
                     else:
                         # Continuing existing conversation
                         payload = [
@@ -498,7 +509,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             files
                         ]
                         url = f"https://yupp.ai/chat/{url_uuid}?stream=true"
-                        next_action = kwargs.get("continueChat") or  kwargs.get("next_action", "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
+                        next_action = kwargs.get("continueChat") or kwargs.get("next_action",
+                                                                               "7f9ec99a63cbb61f69ef18c0927689629bda07f1bf")
                     headers = {
                         "accept": "text/x-component",
                         "content-type": "text/plain;charset=UTF-8",
@@ -552,10 +564,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         account["error_count"] += 1
                     raise ProviderException(f"Yupp request failed: {str(e)}") from e
             except Exception as e:
-                log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {str(e)}")
+                log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {type(e)} : {str(e)}")
                 async with account_rotation_lock:
                     account["error_count"] += 1
-                raise ProviderException(f"Yupp request failed: {str(e)}") from e
+                raise ProviderException(f"Yupp request failed:{type(e)}: {str(e)}") from e
 
         raise ProviderException("All Yupp accounts failed after rotation attempts")
 
@@ -642,11 +654,16 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 ) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
-                    img = ImageResponse(
-                        data[0]["result"]["data"]["json"]["signed_url"],
-                        prompt
-                    )
-                    yield img
+                    try:
+                        json_data = data[0]["result"]["data"]["json"]
+                        url_img = json_data.get("signed_url") or json_data.get("signedURL")
+                        img = ImageResponse(
+                            url_img,
+                            prompt
+                        )
+                        yield img
+                    except KeyError as e:
+                        error(f"Fail Get Image Url [json]: {data} \nerror:{e}")
                 return
             # Optional: thinking-mode support (disabled by default)
             if is_thinking:
