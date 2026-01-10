@@ -5,12 +5,15 @@ import os
 import re
 import time
 import uuid
+from typing import Type
 from concurrent.futures import ThreadPoolExecutor
 
 try:
     import cloudscraper
+    from cloudscraper import CloudScraper
     has_cloudscraper = True
 except ImportError:
+    cloudscraper = CloudScraper = None
     has_cloudscraper = False
 
 from .helper import get_last_user_message
@@ -110,7 +113,7 @@ async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
         return account
 
 
-def sync_claim_yupp_reward(scraper: cloudscraper.CloudScraper, account: Dict[str, Any], reward_id: str):
+def sync_claim_yupp_reward(scraper: CloudScraper, account: Dict[str, Any], reward_id: str):
     try:
         log_debug(f"Claiming reward {reward_id}...")
         url = "https://yupp.ai/api/trpc/reward.claim?batch=1"
@@ -127,12 +130,12 @@ def sync_claim_yupp_reward(scraper: cloudscraper.CloudScraper, account: Dict[str
         return None
 
 
-async def claim_yupp_reward(scraper: cloudscraper.CloudScraper, account: Dict[str, Any], reward_id: str):
+async def claim_yupp_reward(scraper: CloudScraper, account: Dict[str, Any], reward_id: str):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(_executor, sync_claim_yupp_reward, scraper, account, reward_id)
 
 
-def sync_make_chat_private(scraper: cloudscraper.CloudScraper, account: Dict[str, Any], chat_id: str) -> bool:
+def sync_make_chat_private(scraper: CloudScraper, account: Dict[str, Any], chat_id: str) -> bool:
     try:
         log_debug(f"Setting chat {chat_id} to PRIVATE...")
         url = "https://yupp.ai/api/trpc/chat.updateSharingSettings?batch=1"
@@ -161,7 +164,7 @@ def sync_make_chat_private(scraper: cloudscraper.CloudScraper, account: Dict[str
         return False
 
 
-async def make_chat_private(scraper: cloudscraper.CloudScraper, account: Dict[str, Any], chat_id: str) -> bool:
+async def make_chat_private(scraper: CloudScraper, account: Dict[str, Any], chat_id: str) -> bool:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(_executor, sync_make_chat_private, scraper, account, chat_id)
 
