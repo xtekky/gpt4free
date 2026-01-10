@@ -35,7 +35,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     def is_provider_api_key(cls, api_key: str) -> bool:
         if cls.backup_url is None:
             return True
-        return api_key and not api_key.startswith("g4f-") and not api_key.startswith("gfs-")
+        return api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
 
     @classmethod
     def get_models(cls, api_key: str = None, base_url: str = None, timeout: int = None) -> list[str]:
