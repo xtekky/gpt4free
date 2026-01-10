@@ -338,7 +338,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
         encoded_prompt = quote_plus(encoded_prompt)[:4096 - len(cls.image_api_endpoint) - len(query) - 8].rstrip("%")
-        if api_key and not api_key.startswith("g4f_"):
+        if api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_"):
             url = cls.gen_image_api_endpoint
         else:
             url = cls.image_api_endpoint
@@ -459,7 +459,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             if api_key:
                 headers = {"authorization": f"Bearer {api_key}"}
             yield JsonRequest.from_dict(data)
-            if api_key and not api_key.startswith("g4f_"):
+            if api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_"):
                 url = cls.gen_text_api_endpoint
             else:
                 url = cls.text_api_endpoint
