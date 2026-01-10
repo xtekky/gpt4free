@@ -16,6 +16,7 @@ from ... import debug
 
 class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
     base_url = ""
+    backup_url = None
     api_key = None
     api_endpoint = None
     supports_message_history = True
@@ -31,15 +32,21 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     max_tokens: int = None
 
     @classmethod
+    def is_provider_api_key(cls, api_key: str) -> bool:
+        if cls.backup_url is None:
+            return True
+        return api_key and not api_key.startswith("g4f-") and not api_key.startswith("gfs-")
+
+    @classmethod
     def get_models(cls, api_key: str = None, base_url: str = None, timeout: int = None) -> list[str]:
         if not cls.models:
             try:
-                if base_url is None:
-                    base_url = cls.base_url
                 if api_key is None and cls.api_key is not None:
                     api_key = cls.api_key
                 if not api_key:
                     api_key = AuthManager.load_api_key(cls)
+                if base_url is None:
+                    base_url = cls.base_url if cls.is_provider_api_key(api_key) else cls.backup_url
                 if cls.models_needs_auth and not api_key:
                     raise MissingAuthError('Add a "api_key"')
                 response = requests.get(f"{base_url}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl, timeout=timeout)
@@ -102,7 +109,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         ) as session:
             model = cls.get_model(model, api_key=api_key, base_url=base_url)
             if base_url is None:
-                base_url = cls.base_url
+                base_url = cls.base_url if cls.is_provider_api_key(api_key) else cls.backup_url
 
             # Proxy for image generation feature
             if model and model in cls.image_models:
@@ -165,6 +172,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         }
     
 async def read_response(response: StreamResponse, stream: bool, prompt: str, provider_info: dict, download_media: bool) -> AsyncResult:
+    yield HeadersResponse.from_dict({key: value for key, value in response.headers.items() if key.lower().startswith("x-")})
     content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
     if content_type.startswith("application/json"):
         data = await response.json()

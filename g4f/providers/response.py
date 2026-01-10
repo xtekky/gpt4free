@@ -178,6 +178,9 @@ class HiddenResponse(ResponseType):
     def __str__(self) -> str:
         """Hidden responses return an empty string."""
         return ""
+    
+class HeadersResponse(HiddenResponse, ObjectMixin):
+    pass
 
 class JsonRequest(HiddenResponse, ObjectMixin):
     pass
