@@ -66,6 +66,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
         "pplx_reasoning",
         "r1"
     ]
+    fallback_models = ["perplexity", "pplx_pro"]
     model_aliases = {
         "gpt-5": "gpt5",
         "gpt-5-thinking": "gpt5_thinking",
@@ -122,7 +123,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                     conversation.user_id = user.get("user", {}).get("id")
                     debug.log(f"Perplexity user id: {conversation.user_id}")
             yield conversation
-            if model == "auto":
+            if model == "auto" or model == "perplexity":
                 model = "pplx_pro" if conversation.user_id else "turbo"
             yield ProviderInfo(**cls.get_dict(), model=model)
             if model in cls.model_aliases:

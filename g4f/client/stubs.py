@@ -48,6 +48,7 @@ class UsageModel(BaseModel):
     total_tokens: int
     prompt_tokens_details: PromptTokenDetails
     completion_tokens_details: CompletionTokenDetails
+    cache: Optional[str] = None
 
     @classmethod
     def model_construct(cls, prompt_tokens=0, completion_tokens=0, total_tokens=0, prompt_tokens_details=None, completion_tokens_details=None, **kwargs):

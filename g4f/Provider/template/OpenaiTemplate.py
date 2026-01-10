@@ -178,7 +178,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
         if model:
             yield ProviderInfo(**provider_info, model=model)
         if "usage" in data:
-            yield Usage(**data["usage"])
+            yield Usage(**data["usage"], cache=response.headers.get("x-cache", "MISS"))
         if "conversation" in data:
             yield JsonConversation.from_dict(data["conversation"])
         if "choices" in data:
@@ -234,7 +234,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
                     reasoning = True
                     yield Reasoning(reasoning_content)
             if "usage" in data and data["usage"]:
-                yield Usage(**data["usage"])
+                yield Usage(**data["usage"], cache=response.headers.get("x-cache", "MISS"))
             if "conversation" in data and data["conversation"]:
                 yield JsonConversation.from_dict(data["conversation"])
             if choice and choice.get("finish_reason") is not None:
