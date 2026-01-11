@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 try:
     import cloudscraper
     from cloudscraper import CloudScraper
-    from cloudscraper import create_scraper
 except ImportError:
     CloudScraper = None
 
