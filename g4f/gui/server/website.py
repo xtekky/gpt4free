@@ -24,7 +24,8 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), filename))
         if os.path.exists(path):
             if download_url == GITHUB_URL:
-                html = open(path, 'r', encoding='utf-8').read()
+                with open(path, 'r', encoding='utf-8') as f:
+                    html = f.read()
                 is_temp = True
             else:
                 return send_from_directory(os.path.dirname(path), os.path.basename(path))
