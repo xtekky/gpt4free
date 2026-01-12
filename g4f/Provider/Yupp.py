@@ -585,7 +585,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     line = await loop.run_in_executor(_executor, lambda: next(lines_iterator, None))
                     if line is None:
                         break
-                    print(line[:20])
                 except StopIteration:
                     break
 
@@ -633,8 +632,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 except json.JSONDecodeError:
                     continue
 
-                print(chunk_id)
-
                 if chunk_id == reward_id and isinstance(data, dict) and "unclaimedRewardInfo" in data:
                     reward_info = data
                     log_debug(f"Found reward info")
@@ -642,7 +639,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 elif chunk_id == "1":
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
-                        print(data)
                         left_stream = data.get("leftStream", {})
                         right_stream = data.get("rightStream", {})
                         if data.get("quickResponse", {}) != "$undefined":
