@@ -223,7 +223,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
             if not api_key:
                 raise MissingAuthError("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
-            manager = YuppModelManager(api_key=api_key)
+            manager = YuppModelManager(api_key=api_key, session=create_scraper())
             models = manager.client.fetch_models()
             if models:
                 cls.models_tags = {model.get("name"): manager.processor.generate_tags(model) for model in models}
@@ -585,6 +585,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     line = await loop.run_in_executor(_executor, lambda: next(lines_iterator, None))
                     if line is None:
                         break
+                    print(line[:20])
                 except StopIteration:
                     break
 
@@ -610,15 +611,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         continue
 
-                if b"<think>" in line:
-                    m = line_pattern.match(line)
-                    if m:
-                        capturing_ref_id = m.group(1).decode()
-                        capturing_lines = [line]
-                        continue
-
                 match = line_pattern.match(line)
                 if not match:
+                    if b"<think>" in line:
+                        m = line_pattern.match(line)
+                        if m:
+                            capturing_ref_id = m.group(1).decode()
+                            capturing_lines = [line]
+                            continue
                     continue
 
                 chunk_id, chunk_data = match.groups()
@@ -633,6 +633,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 except json.JSONDecodeError:
                     continue
 
+                print(chunk_id)
+
                 if chunk_id == reward_id and isinstance(data, dict) and "unclaimedRewardInfo" in data:
                     reward_info = data
                     log_debug(f"Found reward info")
@@ -640,6 +642,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 elif chunk_id == "1":
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
+                        print(data)
                         left_stream = data.get("leftStream", {})
                         right_stream = data.get("rightStream", {})
                         if data.get("quickResponse", {}) != "$undefined":
@@ -747,7 +750,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             ):
                                 stream["quick"].append(chunk)
                             quick_content += content
-                            yield VariantResponse(content)
+                            yield PreviewResponse(content)
 
                 elif chunk_id in [turn_id, persisted_turn_id]:
                     pass
@@ -776,7 +779,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if variant_image is not None:
                 yield variant_image
             elif variant_text:
-                yield PreviewResponse(variant_text)
+                yield VariantResponse(variant_text)
             yield JsonResponse(**stream)
             log_debug(f"Finished processing {line_count} lines")
 
