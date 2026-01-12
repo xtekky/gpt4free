@@ -17,7 +17,6 @@ from ...errors import VersionNotFoundError, MissingAuthError
 from ...image.copy_images import copy_media, ensure_media_dir, get_media_dir
 from ...image import get_width_height
 from ...tools.run_tools import iter_run_tools
-from ... import Provider
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import BaseRetryProvider
 from ...providers.helper import format_media_prompt
@@ -25,6 +24,7 @@ from ...providers.response import *
 from ...providers.any_model_map import model_map
 from ...providers.any_provider import AnyProvider
 from ...client.service import get_model_and_provider
+from ... import Provider
 from ... import version, models
 from ... import debug
 
@@ -98,7 +98,7 @@ class Api:
                 return True
         return [{
             "name": provider.__name__,
-            "label": provider.label if hasattr(provider, "label") else provider.__name__,
+            "label": getattr(provider, "label", provider.__name__),
             "parent": getattr(provider, "parent", None),
             "image": len(getattr(provider, "image_models", [])),
             "audio": len(getattr(provider, "audio_models", [])),
@@ -276,7 +276,9 @@ class Api:
                 elif isinstance(chunk, DebugResponse):
                     yield self._format_json("log", chunk.log)
                 elif isinstance(chunk, ContinueResponse):
-                    yield self._format_json("continue", chunk.log)
+                    yield self._format_json("continue", chunk.text)
+                elif isinstance(chunk, VariantResponse):
+                    yield self._format_json("variant", chunk.text)
                 elif isinstance(chunk, ToolCalls):
                     yield self._format_json("tool_calls", chunk.list)
                 elif isinstance(chunk, RawResponse):
@@ -287,6 +289,8 @@ class Api:
                     yield self._format_json("response", chunk.get_dict())
                 elif isinstance(chunk, PlainTextResponse):
                     yield self._format_json("response", chunk.text)
+                elif isinstance(chunk, HeadersResponse):
+                    yield self._format_json("headers", chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
         except MissingAuthError as e:

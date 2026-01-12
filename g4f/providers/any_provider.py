@@ -11,7 +11,7 @@ from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Custom, PollinationsImage, OpenaiAccount, Copilot, Cloudflare, Gemini, Grok, Perplexity, LambdaChat, PollinationsAI, PuterJS
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfra, LMArena, EdgeTTS, gTTS, MarkItDown, OpenAIFM
-from ..Provider import HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM, OpenRouterFree, GeminiPro
+from ..Provider import HuggingFace, HuggingFaceMedia, Azure, Qwen, EasyChat, GLM, OpenRouterFree, GeminiPro, Perplexity
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
@@ -125,20 +125,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if not provider.working:
                 continue
             try:
-                if provider in [Copilot, CopilotAccount]:
-                    for model in provider.model_aliases.keys():
-                        if model not in cls.model_map:
-                            cls.model_map[model] = {}
-                        cls.model_map[model].update({provider.__name__: model})
-                elif provider == PollinationsAI:
-                    for model in provider.get_models():
-                        pmodel = f"{provider.__name__}:{model}"
-                        if pmodel not in cls.model_map:
-                            cls.model_map[pmodel] = {}
-                        cls.model_map[pmodel].update({provider.__name__: model})
-                    cls.audio_models.extend({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
-                    cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
-                    cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
+                if provider in [Copilot, CopilotAccount, Perplexity]:
                     for model in provider.model_aliases.keys():
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
@@ -173,7 +160,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 new_models = provider.video_models
             model_map = {}
             for model in new_models:
-                clean_value = model if model.startswith("openrouter:") else clean_name(model)
+                clean_value = clean_name(model)
                 if clean_value not in model_map:
                     model_map[clean_value] = model
             if provider.model_aliases:
@@ -196,18 +183,23 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         for provider in Provider.__providers__:
             try:
-                    if provider.working and hasattr(provider, "get_models") and provider not in [AnyProvider, Custom, PollinationsImage, OpenaiAccount]:
-                        for model in provider.get_models():
-                            clean = clean_name(model)
-                            if clean in cls.model_map:
-                                cls.model_map[clean].update({provider.__name__: model})
-                        for alias, model in provider.model_aliases.items():
-                            if alias in cls.model_map:
+                if provider == Perplexity:
+                    for model in provider.fallback_models:
+                        if model not in cls.model_map:
+                            cls.model_map[model] = {}
+                        cls.model_map[model].update({provider.__name__: model})
+                elif provider.working and hasattr(provider, "get_models") and provider not in [AnyProvider, Custom, PollinationsImage, OpenaiAccount]:
+                    for model in provider.get_models():
+                        clean = clean_name(model)
+                        if clean in cls.model_map:
+                            cls.model_map[clean].update({provider.__name__: model})
+                    for alias, model in provider.model_aliases.items():
+                        if alias in cls.model_map:
+                            cls.model_map[alias].update({provider.__name__: model})
+                    if provider == GeminiPro:
+                        for model in cls.model_map.keys():
+                            if "gemini" in model or "gemma" in model:
                                 cls.model_map[alias].update({provider.__name__: model})
-                        if provider == GeminiPro:
-                            for model in cls.model_map.keys():
-                                if "gemini" in model or "gemma" in model:
-                                    cls.model_map[alias].update({provider.__name__: model})
             except Exception as e:
                 debug.error(f"Error getting models for provider {provider.__name__}:", e)
                 continue
@@ -256,13 +248,12 @@ class AnyModelProviderMixin(ProviderModelMixin):
             # Check for models with prefix
             start = model.split(":")[0]
             if start in ("PollinationsAI", "openrouter"):
-                groups[start].append(model)
                 added = True
             # Check for Mistral company models specifically
             elif model.startswith("mistral") and not any(x in model for x in ["dolphin", "nous", "openhermes"]):
                 groups["mistral"].append(model)
                 added = True
-            elif model.startswith(("pixtral-", "ministral-", "codestral")) or "mistral" in model or "mixtral" in model:
+            elif model.startswith(("pixtral-", "ministral-", "codestral", "devstral", "magistral")) or "mistral" in model or "mixtral" in model:
                 groups["mistral"].append(model)
                 added = True
             # Check for Qwen models
@@ -433,6 +424,10 @@ def clean_name(name: str) -> str:
     name = name.replace("-002", "")
     name = name.replace("-instruct", "")
     name = name.replace("-latest", "")
+    name = name.replace("gpt-5-1", "gpt-5.1")
+    name = name.replace("gpt-5-2", "gpt-5.2")
+    name = name.replace("claude-haiku-4.5", "claude-haiku-4-5")
+    name = name.replace("claude-sonnet-4.5", "claude-sonnet-4-5")
     return name
 
 setattr(Provider, "AnyProvider", AnyProvider)

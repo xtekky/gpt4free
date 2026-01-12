@@ -14,10 +14,9 @@ from ..helper import format_media_prompt
 class Azure(OpenaiTemplate):
     label = "Azure ☁️"
     url = "https://ai.azure.com"
-    base_url = "https://host.g4f.dev/api/Azure"
+    base_url = "https://g4f.dev/api/azure"
+    backup_url = "https://g4f.dev/api/azure"
     working = True
-    needs_auth = True
-    models_needs_auth = True
     active_by_default = False
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     routes: dict[str, str] = {}

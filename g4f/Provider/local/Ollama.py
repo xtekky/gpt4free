@@ -4,17 +4,17 @@ import json
 import requests
 import os
 
-from ..needs_auth.OpenaiAPI import OpenaiAPI
+from ..template import OpenaiTemplate
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import Usage, Reasoning
 from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 
-class Ollama(OpenaiAPI):
+class Ollama(OpenaiTemplate):
     label = "Ollama 🦙"
     url = "https://ollama.com"
     login_url = "https://ollama.com/settings/keys"
-    api_endpoint = "https://ollama.com/api/chat"
+    backup_url = "https://g4f.dev/api/ollama"
     needs_auth = False
     working = True
     active_by_default = True
@@ -30,11 +30,10 @@ class Ollama(OpenaiAPI):
             cls.models = []
             if not api_key:
                 api_key = AuthManager.load_api_key(cls)
-            if api_key:
-                models = requests.get("https://ollama.com/api/tags", {"headers": {"Authorization": f"Bearer {api_key}"}}).json()["models"]
-                if models:
-                    cls.live += 1
-                cls.models = [model["name"] for model in models]
+            models = requests.get("https://ollama.com/api/tags").json()["models"]
+            if models:
+                cls.live += 1
+            cls.models = [model["name"] for model in models]
             if base_url is None:
                 host = os.getenv("OLLAMA_HOST", "127.0.0.1")
                 port = os.getenv("OLLAMA_PORT", "11434")
@@ -48,7 +47,7 @@ class Ollama(OpenaiAPI):
             if cls.live == 0 and models:
                 cls.live += 1
             cls.local_models = [model["name"] for model in models]
-            cls.models = cls.models + cls.local_models
+            cls.models = cls.models.copy() + cls.local_models
             cls.default_model = next(iter(cls.models), None)
         return cls.models
 
@@ -66,14 +65,9 @@ class Ollama(OpenaiAPI):
             host = os.getenv("OLLAMA_HOST", "localhost")
             port = os.getenv("OLLAMA_PORT", "11434")
             base_url: str = f"http://{host}:{port}/v1"
-        if model in cls.local_models or not api_key:
-            async for chunk in super().create_async_generator(
-                model, messages, base_url=base_url, proxy=proxy, **kwargs
-            ):
-                yield chunk
-        else:
+        if model in cls.local_models:
             async with StreamSession(headers={"Authorization": f"Bearer {api_key}"}, proxy=proxy) as session:
-                async with session.post(cls.api_endpoint, json={
+                async with session.post(f"{base_url}/api/chat", json={
                     "model": model,
                     "messages": messages,
                 }) as response:
@@ -93,3 +87,13 @@ class Ollama(OpenaiAPI):
                         completion_tokens=last_data.get("eval_count", 0),
                         total_tokens=last_data.get("prompt_eval_count", 0) + last_data.get("eval_count", 0),
                     )
+        else:
+            async for chunk in super().create_async_generator(
+                model,
+                messages,
+                api_key=api_key,
+                base_url=cls.backup_url,
+                proxy=proxy,
+                **kwargs
+            ):
+                yield chunk
