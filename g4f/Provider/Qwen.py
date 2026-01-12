@@ -339,11 +339,11 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         data = generate_cookies()
         # args,ua  = await cls.get_args(proxy, **kwargs)
         headers = {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Origin': 'https://chat.qwen.ai',
-            'Referer': 'https://chat.qwen.ai/',
+            'Origin': cls.url,
+            'Referer': f'{cls.url}/',
             'Content-Type': 'application/json',
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
@@ -415,16 +415,16 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                                         headers=req_headers)
 
                     msg_payload = {
-                        "stream": True,
-                        "incremental_output": True,
+                        "stream": stream,
+                        "incremental_output": stream,
                         "chat_id": conversation.chat_id,
                         "chat_mode": "normal",# local
                         "model": model_name,
-                        "parent_id": None,
+                        "parent_id": conversation.parent_id,
                         "messages": [
                             {
                                 "fid": message_id,
-                                "parentId": None,
+                                "parentId": conversation.parent_id,
                                 "childrenIds": [],
                                 "role": "user",
                                 "content": prompt,
