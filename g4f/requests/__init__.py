@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from http.cookies import Morsel
 from pathlib import Path
 from typing import Iterator, AsyncIterator
-from urllib.parse import urlparse
+
 
 try:
     from curl_cffi.requests import Session, Response
@@ -28,17 +28,21 @@ try:
 except ImportError:
     has_webview = False
 try:
+
+
     import nodriver
     from nodriver.cdp.network import CookieParam
     from nodriver.core.config import find_chrome_executable
     from nodriver import Browser, Tab, util
-
+    from .nodriver_ import set_cookies_for_browser
     has_nodriver = True
 except ImportError:
     from typing import Type as Browser
     from typing import Type as Tab
 
     has_nodriver = False
+
+
 try:
     from platformdirs import user_config_dir
 
@@ -113,8 +117,7 @@ async def get_args_from_nodriver(
         if cookies is None:
             cookies = {}
         else:
-            domain = urlparse(url).netloc
-            await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
+            await set_cookies_for_browser(browser, cookies, url)
         page = await browser.get(url)
         user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
         while not await page.evaluate("document.querySelector('body:not(.no-js)')"):
