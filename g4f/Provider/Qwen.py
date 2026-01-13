@@ -358,12 +358,13 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
         # try:
         async with StreamSession(headers=headers) as session:
-            try:
-                async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
-                    await cls.raise_for_status(user_info_res)
-                    debug.log(await user_info_res.json())
-            except Exception as e:
-                debug.error(e)
+            if token:
+                try:
+                    async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
+                        await cls.raise_for_status(user_info_res)
+                        debug.log(await user_info_res.json())
+                except Exception as e:
+                    debug.error(e)
             for attempt in range(5):
                 try:
                     if not cls._midtoken:
