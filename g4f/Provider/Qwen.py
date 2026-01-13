@@ -336,7 +336,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = get_last_user_message(messages)
         timeout = kwargs.get("timeout") or 5 * 60
         # for _ in range(2):
-        # data = generate_cookies()
+        data = generate_cookies()
         # args,ua  = await cls.get_args(proxy, **kwargs)
         headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
@@ -349,10 +349,12 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
             'Connection': 'keep-alive',
-            # 'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
-            'Authorization': f'Bearer {token}' if token else "Bearer",
-            'Source': 'web'
+            'X-Requested-With': 'XMLHttpRequest',
+            'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
+            'X-Source': 'web'
         }
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
 
         # try:
         async with StreamSession(headers=headers) as session:
@@ -435,16 +437,16 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                     "output_schema": "phase",
                                     "thinking_budget": 81920
                                 },
-                                "extra": {
-                                    "meta": {
-                                        "subChatType": chat_type
-                                    }
-                                },
-                                "sub_chat_type": chat_type,
-                                "parent_id": None
+                                "sub_chat_type": chat_type
                             }
                         ]
                     }
+                    if enable_thinking:
+                        msg_payload["messages"][0]["feature_config"] = {
+                            "thinking_enabled": True,
+                            "output_schema": "phase",
+                            "thinking_budget": 81920
+                        }
                     if aspect_ratio:
                         msg_payload["size"] = aspect_ratio
 

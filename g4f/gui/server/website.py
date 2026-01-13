@@ -24,7 +24,8 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), filename))
         if os.path.exists(path):
             if download_url == GITHUB_URL:
-                html = open(path, 'r', encoding='utf-8').read()
+                with open(path, 'r', encoding='utf-8') as f:
+                    html = f.read()
                 is_temp = True
             else:
                 return send_from_directory(os.path.dirname(path), os.path.basename(path))
@@ -34,7 +35,8 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         latest_version = version.utils.current_version
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
-    latest_version = str(latest_version) +quote(unquote(request.query_string.decode())) or str(latest_version)
+    if not request.args.get("session_token"):
+        latest_version = str(latest_version) + quote(unquote(request.query_string.decode()))
     cache_file = os.path.join(cache_dir, f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}")
     if os.path.isfile(cache_file + ".js"):
         cache_file += ".js"
@@ -66,7 +68,9 @@ def render(filename = "home", download_url: str = GITHUB_URL):
                 cache_file += ".js"
             html = response.text
             html = html.replace("../dist/", f"dist/")
-            html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
+            html = html.replace("/dist/", f"dist/")
+            html = html.replace(f"{STATIC_URL}dist/", "dist/")
+            html = html.replace("dist/", f"{STATIC_URL}dist/")
         # html = html.replace(JSDELIVR_URL, "/")
         html = html.replace("{{ v }}", latest_version)
         if is_temp:

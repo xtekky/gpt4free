@@ -193,10 +193,10 @@ class AppConfig:
             if value is not None:
                 setattr(cls, key, value)
 
-def update_headers(request: Request, delete_authorization: bool = True, user: str = None) -> Request:
+def update_headers(request: Request, new_api_key: str = None, user: str = None) -> Request:
     new_headers = request.headers.mutablecopy()
-    if delete_authorization and "authorization" in new_headers:
-        del new_headers["authorization"]
+    if new_api_key:
+        new_headers["authorization"] = f"Bearer {new_api_key}"
     if user:
         new_headers["x-user"] = user
     request.scope["headers"] = new_headers.raw
@@ -237,24 +237,26 @@ class Api:
         async def authorization(request: Request, call_next):
             user = None
             if request.method != "OPTIONS" and AppConfig.g4f_api_key is not None or AppConfig.demo:
-                delete_authorization = False
+                update_authorization = False
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
                     user_g4f_api_key = getattr(await self.security(request), "credentials", None)
-                    delete_authorization = True
+                    update_authorization = True
+                if user_g4f_api_key:
+                    user_g4f_api_key = user_g4f_api_key.split()
                 country = request.headers.get("Cf-Ipcountry", "")
                 if AppConfig.demo and user is None:
                     ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
                     user = request.headers.get("x-user", ip)
                     user = f"{country}:{user}" if country else user
-                if AppConfig.g4f_api_key is None or not user_g4f_api_key or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                if AppConfig.g4f_api_key is None or not user_g4f_api_key or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key[0]):
                     if has_crypto and user_g4f_api_key:
                         try:
-                            expires, user = decrypt_data(private_key, user_g4f_api_key).split(":", 1)
+                            expires, user = decrypt_data(private_key, user_g4f_api_key[0]).split(":", 1)
                         except:
                             try:
-                                data = json.loads(decrypt_data(session_key, user_g4f_api_key))
+                                data = json.loads(decrypt_data(session_key, user_g4f_api_key[0]))
                                 debug.log(f"Decrypted G4F API key data: {data}")
                                 expires = int(decrypt_data(private_key, data.pop("data"))) + 86400
                                 user = data.get("user", user)
@@ -282,12 +284,12 @@ class Api:
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if request.method != "OPTIONS" and not path.endswith("/models"):
-                        if user_g4f_api_key is None:
+                        if not user_g4f_api_key:
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                         if AppConfig.g4f_api_key is None and user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                 elif not AppConfig.demo and not path.startswith("/images/") and not path.startswith("/media/"):
-                    if user_g4f_api_key is not None:
+                    if user_g4f_api_key:
                         if user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                     elif path.startswith("/backend-api/") or path.startswith("/chat/"):
@@ -295,7 +297,11 @@ class Api:
                             user = await self.get_username(request)
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
-                request = update_headers(request, delete_authorization, user)
+                if user_g4f_api_key and update_authorization:
+                    new_api_key = user_g4f_api_key.pop()
+                else:
+                    new_api_key = None
+                request = update_headers(request, new_api_key, user)
             response = await call_next(request)
             return response
 

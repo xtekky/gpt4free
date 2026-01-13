@@ -5,18 +5,23 @@ import os
 import re
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
-import aiohttp
+try:
+    import cloudscraper
+    from cloudscraper import CloudScraper
+except ImportError:
+    CloudScraper = None
 
 from .helper import get_last_user_message
-from .yupp.models import YuppModelManager, ModelProcessor
+from .yupp.models import YuppModelManager
 from ..cookies import get_cookies
-from ..debug import log, error
-from ..errors import RateLimitError, ProviderException, MissingAuthError
+from ..debug import log
+from ..errors import RateLimitError, ProviderException, MissingAuthError, MissingRequirementsError
 from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
-    ProviderInfo, FinishReason, JsonResponse
+    ProviderInfo, FinishReason, JsonResponse, VariantResponse
 from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
@@ -30,24 +35,41 @@ except ImportError:
 YUPP_ACCOUNT = Dict[str, Any]
 YUPP_ACCOUNTS: List[YUPP_ACCOUNT] = []
 account_rotation_lock = asyncio.Lock()
-
-# Global variables to manage Yupp Image Cache
 ImagesCache: Dict[str, dict] = {}
+_accounts_loaded = False
+_executor = ThreadPoolExecutor(max_workers=10)
 
 
-class YuppAccount:
-    """Yupp account representation"""
-
-    def __init__(self, token: str, is_valid: bool = True, error_count: int = 0, last_used: float = 0):
-        self.token = token
-        self.is_valid = is_valid
-        self.error_count = error_count
-        self.last_used = last_used
+def create_scraper():
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True,
+            'mobile': False
+        },
+        delay=10,
+        interpreter='nodejs'
+    )
+    scraper.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+        "Accept": "text/x-component, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Ch-Ua": '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"'
+    })
+    return scraper
 
 
 def load_yupp_accounts(tokens_str: str):
-    """Load Yupp accounts from token string"""
-    global YUPP_ACCOUNTS
+    global YUPP_ACCOUNTS, _accounts_loaded
+    if _accounts_loaded:
+        return
     if not tokens_str:
         return
     tokens = [token.strip() for token in tokens_str.split(',') if token.strip()]
@@ -60,6 +82,7 @@ def load_yupp_accounts(tokens_str: str):
         }
         for token in tokens
     ]
+    _accounts_loaded = True
 
 
 def create_scraper():
@@ -133,7 +156,6 @@ async def get_best_yupp_account() -> Optional[YUPP_ACCOUNT]:
         if not valid_accounts:
             return None
 
-        # Reset error count for accounts in cooldown
         for acc in valid_accounts:
             if (
                     acc["error_count"] >= max_error_count
@@ -141,7 +163,6 @@ async def get_best_yupp_account() -> Optional[YUPP_ACCOUNT]:
             ):
                 acc["error_count"] = 0
 
-        # Sort by last used and error count
         valid_accounts.sort(key=lambda x: (x["last_used"], x["error_count"]))
         account = valid_accounts[0]
         account["last_used"] = now
@@ -209,8 +230,12 @@ async def make_chat_private(session: AsyncCloudScraper, account: YUPP_ACCOUNT, c
         return False
 
 
+async def make_chat_private(scraper: CloudScraper, account: Dict[str, Any], chat_id: str) -> bool:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(_executor, sync_make_chat_private, scraper, account, chat_id)
+
+
 def log_debug(message: str):
-    """Debug logging"""
     if os.getenv("DEBUG_MODE", "false").lower() == "true":
         print(f"[DEBUG] {message}")
     else:
@@ -218,7 +243,6 @@ def log_debug(message: str):
 
 
 def format_messages_for_yupp(messages: Messages) -> str:
-    """Format multi-turn conversation for Yupp single-turn format"""
     if not messages:
         return ""
 
@@ -227,14 +251,12 @@ def format_messages_for_yupp(messages: Messages) -> str:
 
     formatted = []
 
-    # Handle system messages
     system_messages = [msg for msg in messages if msg.get("role") in ["developer", "system"]]
     if system_messages:
         for sys_msg in system_messages:
             content = sys_msg.get("content", "")
             formatted.append(content)
 
-    # Handle user and assistant messages
     user_assistant_msgs = [msg for msg in messages if msg.get("role") in ["user", "assistant"]]
     for msg in user_assistant_msgs:
         role = "Human" if msg.get("role") == "user" else "Assistant"
@@ -243,7 +265,6 @@ def format_messages_for_yupp(messages: Messages) -> str:
             if part.get("text", "").strip():
                 formatted.append(f"\n\n{role}: {part.get('text', '')}")
 
-    # Ensure it ends with Assistant: for the model to continue
     if not formatted or not formatted[-1].strip().startswith("Assistant:"):
         formatted.append("\n\nAssistant:")
 
@@ -255,11 +276,6 @@ def format_messages_for_yupp(messages: Messages) -> str:
 
 
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
-    """
-    Yupp.ai Provider for g4f
-    Uses multiple account rotation and smart error handling
-    """
-
     url = "https://yupp.ai"
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     working = AsyncCloudScraper is not None
@@ -305,26 +321,25 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             hasher = hashlib.md5()
             hasher.update(data)
             image_hash = hasher.hexdigest()
-            file = ImagesCache.get(image_hash)
-            if cls.image_cache and file:
+            cached_file = ImagesCache.get(image_hash)
+            if cls.image_cache and cached_file:
                 log_debug("Using cached image")
-                files.append(file)
+                files.append(cached_file)
                 continue
-            presigned_resp = await session.post(
+
+            scraper.cookies.set("__Secure-yupp.session-token", account['token'])
+            presigned_resp = scraper.post(
                 "https://yupp.ai/api/trpc/chat.createPresignedURLForUpload?batch=1",
                 json={
-                    "0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}},
-                headers={"Content-Type": "application/json",
-                         "Cookie": f"__Secure-yupp.session-token={account['token']}",
-                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
-
-                         }
+                    "0": {"json": {"fileName": name, "fileSize": len(data), "contentType": is_accepted_format(data)}}
+                },
+                headers={"Content-Type": "application/json"}
             )
             presigned_resp.raise_for_status()
-            upload_info = (await presigned_resp.json())[0]["result"]["data"]["json"]
+            upload_info = presigned_resp.json()[0]["result"]["data"]["json"]
             upload_url = upload_info["signedUrl"]
 
-            await session.put(
+            scraper.put(
                 upload_url,
                 data=data,
                 headers={
@@ -333,22 +348,22 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 }
             )
 
-            attachment_resp = await session.post(
+            attachment_resp = scraper.post(
                 "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
                 json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data),
                                      "fileId": upload_info["fileId"]}}},
                 cookies={"__Secure-yupp.session-token": account["token"]}
             )
             attachment_resp.raise_for_status()
-            attachment = (await attachment_resp.json())[0]["result"]["data"]["json"]
-            file = {
+            attachment = attachment_resp.json()[0]["result"]["data"]["json"]
+            file_info = {
                 "fileName": attachment["file_name"],
                 "contentType": attachment["content_type"],
                 "attachmentId": attachment["attachment_id"],
                 "chatMessageId": ""
             }
-            ImagesCache[image_hash] = file
-            files.append(file)
+            ImagesCache[image_hash] = file_info
+            files.append(file_info)
         return files
 
     @classmethod
@@ -356,54 +371,26 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         history: dict = {}
         user_info = {}
 
-        def pars_children(data):
-            data = data["children"]
-            if len(data) < 4:
-                return
-            if data[1] in ["div", "defs", "style", "script"]:
-                return
-            pars_data(data[3])
+    @classmethod
+    def sync_get_signed_image(cls, scraper: CloudScraper, image_id: str) -> str:
+        url = "https://yupp.ai/api/trpc/chat.getSignedImage"
+        resp = scraper.get(
+            url,
+            params={
+                "batch": "1",
+                "input": json.dumps(
+                    {"0": {"json": {"imageId": image_id}}}
+                )
+            }
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data[0]["result"]["data"]["json"]["signed_url"]
 
-        def pars_data(data):
-            if not isinstance(data, (list, dict)):
-                return
-            if isinstance(data, dict):
-                json_data = data.get("json") or {}
-            elif data[0] == "$":
-                if data[1] in ["div", "defs", "style", "script"]:
-                    return
-                json_data = data[3]
-            else:
-                return
-
-            if 'session' in json_data:
-                user_info.update(json_data['session']['user'])
-            elif "state" in json_data:
-                for query in json_data["state"]["queries"]:
-                    if query["state"]["dataUpdateCount"] == 0:
-                        continue
-                    if "getCredits" in query["queryHash"]:
-                        credits = query["state"]["data"]["json"]
-                        user_info["credits"] = credits
-                    elif "getSidebarChatsV2" in query["queryHash"]:
-                        for page in query["state"]["data"]["json"]["pages"]:
-                            for item in page["items"]:
-                                history[item["id"]] = item
-
-            elif 'categories' in json_data:
-                ...
-            elif 'children' in json_data:
-                pars_children(json_data)
-            elif isinstance(json_data, list):
-                if "supportedAttachmentMimeTypes" in json_data[0]:
-                    models = json_data
-                    cls.models_tags = {model.get("name"): ModelProcessor.generate_tags(model) for
-                                       model in models}
-                    cls.models = [model.get("name") for model in models]
-                    cls.image_models = [model.get("name") for model in models if
-                                        model.get("isImageGeneration")]
-                    cls.vision_models = [model.get("name") for model in models if
-                                         "image/*" in model.get("supportedAttachmentMimeTypes", [])]
+    @classmethod
+    async def get_signed_image(cls, scraper: CloudScraper, image_id: str) -> str:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_executor, cls.sync_get_signed_image, scraper, image_id)
 
         try:
 
@@ -468,10 +455,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             proxy: str = None,
             **kwargs,
     ) -> AsyncResult:
-        """
-        Create async completion using Yupp.ai API with account rotation
-        """
-        # Initialize Yupp accounts
+        if  CloudScraper is None:
+            raise MissingRequirementsError("cloudscraper library is required for Yupp provider | install it via 'pip install cloudscraper'")
         api_key = kwargs.get("api_key")
         if not api_key:
             api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
@@ -481,7 +466,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             raise MissingAuthError("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
 
-        # Format messages
         conversation = kwargs.get("conversation")
         url_uuid = conversation.url_uuid if conversation else None
         is_new_conversation = url_uuid is None
@@ -491,12 +475,11 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if is_new_conversation:
                 prompt = format_messages_for_yupp(messages)
             else:
-                prompt = get_last_user_message(messages, bool(prompt))
+                prompt = get_last_user_message(messages, prompt)
 
         log_debug(
             f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}")
 
-        # Try all accounts with rotation
         max_attempts = len(YUPP_ACCOUNTS)
         for attempt in range(max_attempts):
             account = await get_best_yupp_account()
@@ -586,6 +569,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 async with account_rotation_lock:
                     account["error_count"] += 1
                 continue
+
             except ProviderException as e:
                 log_debug(f"Account ...{account['token'][-4:]} failed: {str(e)}")
                 async with account_rotation_lock:
@@ -594,18 +578,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         account["error_count"] += 1
                 continue
-            except aiohttp.ClientResponseError as e:
-                log_debug(f"Account ...{account['token'][-4:]} failed: {str(e)}")
-                # No Available Yupp credits
-                if e.status == 500 and 'Internal Server Error' in e.message:
-                    account["is_valid"] = False
-                # Need User-Agent
-                # elif e.status == 429 and 'Too Many Requests' in e.message:
-                #     account["is_valid"] = False
-                else:
-                    async with account_rotation_lock:
-                        account["error_count"] += 1
-                    raise ProviderException(f"Yupp request failed: {str(e)}") from e
+
             except Exception as e:
                 log_debug(f"Unexpected error with account ...{account['token'][-4:]}: {type(e)} : {str(e)}")
                 async with account_rotation_lock:
@@ -623,17 +596,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             prompt: str,
             model_id: str
     ) -> AsyncResult:
-        """Process Yupp stream response asynchronously"""
-
         line_pattern = re.compile(b"^([0-9a-fA-F]+):(.*)")
         target_stream_id = None
         reward_info = None
-        # Stream segmentation buffers
         is_thinking = False
-        thinking_content = ""  # model's "thinking" channel (if activated later)
+        thinking_content = ""
         normal_content = ""
-        quick_content = ""  # quick-response short message
-        variant_text = ""  # variant model output (comparison stream)
+        quick_content = ""
+        variant_text = ""
         stream = {
             "target": [],
             "variant": [],
@@ -641,22 +611,16 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             "thinking": [],
             "extra": []
         }
-        # Holds leftStream / rightStream definitions to determine target/variant
         select_stream = [None, None]
-        # State for capturing a multi-line <think> + <yapp> block (fa-style)
         capturing_ref_id: Optional[str] = None
         capturing_lines: List[bytes] = []
-
-        # Storage for special referenced blocks like $fa
         think_blocks: Dict[str, str] = {}
         image_blocks: Dict[str, str] = {}
 
         def extract_ref_id(ref):
-            """Extract ID from reference string, e.g., from '$@123' extract '123'"""
             return ref[2:] if ref and isinstance(ref, str) and ref.startswith("$@") else None
 
         def extract_ref_name(ref: str) -> Optional[str]:
-            """Extract simple ref name from '$fa' → 'fa'"""
             if not isinstance(ref, str):
                 return None
             if ref.startswith("$@"):
@@ -666,23 +630,16 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             return None
 
         def is_valid_content(content: str) -> bool:
-            """Check if content is valid"""
             if not content or content in [None, "", "$undefined"]:
                 return False
             return True
 
         async def process_content_chunk(content: str, chunk_id: str, line_count: int, *, for_target: bool = False):
-            """
-            Process a single content chunk from a stream.
-
-            - If for_target=True → chunk belongs to the target model output.
-            """
             nonlocal normal_content
 
             if not is_valid_content(content):
                 return
 
-            # Handle image-gen chunks
             if '<yapp class="image-gen">' in content:
                 img_block = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
                 url = "https://yupp.ai/api/trpc/chat.getSignedImage"
@@ -708,7 +665,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 except KeyError as e:
                     error(f"Fail Get Image Url [json]: {data} \nerror:{e}")
                 return
-            # Optional: thinking-mode support (disabled by default)
+
             if is_thinking:
                 yield Reasoning(content)
             else:
@@ -717,10 +674,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 yield content
 
         def finalize_capture_block(ref_id: str, lines: List[bytes]):
-            """Parse captured <think> + <yapp> block for a given ref ID."""
             text = b"".join(lines).decode("utf-8", errors="ignore")
 
-            # Extract <think>...</think>
             think_start = text.find("<think>")
             think_end = text.find("</think>")
             if think_start != -1 and think_end != -1 and think_end > think_start:
@@ -728,7 +683,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 if inner:
                     think_blocks[ref_id] = inner
 
-            # Extract <yapp class="image-gen">...</yapp>
             yapp_start = text.find('<yapp class="image-gen">')
             if yapp_start != -1:
                 yapp_end = text.find("</yapp>", yapp_start)
@@ -742,7 +696,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             variant_stream_id = None
             is_started: bool = False
             variant_image: Optional[ImageResponse] = None
-            # "a" use as default then extract from "1"
             reward_id = "a"
             routing_id = "e"
             turn_id = None
@@ -751,46 +704,54 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             right_message_id = None
             nudge_new_chat_id = None
             nudge_new_chat = False
-            async for line in response_content:
+
+            loop = asyncio.get_event_loop()
+
+            def iter_lines():
+                for line in response.iter_lines():
+                    if line:
+                        yield line
+
+            lines_iterator = iter_lines()
+
+            while True:
+                try:
+                    line = await loop.run_in_executor(_executor, lambda: next(lines_iterator, None))
+                    if line is None:
+                        break
+                except StopIteration:
+                    break
+
                 line_count += 1
-                # If we are currently capturing a think/image block for some ref ID
+
+                if isinstance(line, str):
+                    line = line.encode()
+
                 if capturing_ref_id is not None:
                     capturing_lines.append(line)
 
-                    # Check if this line closes the <yapp> block; after that, block is complete
-                    if b"</yapp>" in line:  # or b':{"curr"' in line:
-                        # We may have trailing "2:{...}" after </yapp> on the same line
-                        # Get id using re
+                    if b"</yapp>" in line:
                         idx = line.find(b"</yapp>")
                         suffix = line[idx + len(b"</yapp>"):]
-
-                        # Finalize captured block for this ref ID
                         finalize_capture_block(capturing_ref_id, capturing_lines)
                         capturing_ref_id = None
                         capturing_lines = []
 
-                        # If there is trailing content (e.g. '2:{"curr":"$fa"...}')
                         if suffix.strip():
-                            # Process suffix as a new "line" in the same iteration
                             line = suffix
                         else:
-                            # Nothing more on this line
                             continue
                     else:
-                        # Still inside captured block; skip normal processing
-                        continue
-
-                # Detect start of a <think> block assigned to a ref like 'fa:...<think>'
-                if b"<think>" in line:
-                    m = line_pattern.match(line)
-                    if m:
-                        capturing_ref_id = m.group(1).decode()
-                        capturing_lines = [line]
-                        # Skip normal parsing; the rest of the block will be captured until </yapp>
                         continue
 
                 match = line_pattern.match(line)
                 if not match:
+                    if b"<think>" in line:
+                        m = line_pattern.match(line)
+                        if m:
+                            capturing_ref_id = m.group(1).decode()
+                            capturing_lines = [line]
+                            continue
                     continue
 
                 chunk_id, chunk_data = match.groups()
@@ -804,12 +765,11 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     data = json.loads(chunk_data) if chunk_data != b"{}" else {}
                 except json.JSONDecodeError:
                     continue
-                # Process reward info
+
                 if chunk_id == reward_id and isinstance(data, dict) and "unclaimedRewardInfo" in data:
                     reward_info = data
                     log_debug(f"Found reward info")
 
-                # Process initial setup
                 elif chunk_id == "1":
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
@@ -832,13 +792,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         routing_id = extract_ref_id(data.get("routingResultPromise", "")) or routing_id
                         nudge_new_chat_id = extract_ref_id(data.get("nudgeNewChatPromise", "")) or nudge_new_chat_id
                         select_stream = [left_stream, right_stream]
-                # Routing / model selection block
+
                 elif chunk_id == routing_id:
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         provider_info = cls.get_dict()
                         provider_info['model'] = model_id
-                        # Determine target & variant stream IDs
                         for i, selection in enumerate(data.get("modelSelections", [])):
                             if selection.get("selectionSource") == "USER_SELECTED":
                                 target_stream_id = extract_ref_id(select_stream[i].get("next"))
@@ -852,26 +811,20 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                 log_debug(f"Found variant stream ID: {variant_stream_id}")
                         yield ProviderInfo.from_dict(provider_info)
 
-                # Process target stream content
                 elif target_stream_id and chunk_id == target_stream_id:
                     yield PlainTextResponse(line.decode(errors="ignore"))
                     if isinstance(data, dict):
                         target_stream_id = extract_ref_id(data.get("next"))
                         content = data.get("curr", "")
                         if content:
-                            # Handle special "$fa" / "$<id>" reference
                             ref_name = extract_ref_name(content)
                             if ref_name and (ref_name in think_blocks or ref_name in image_blocks):
-                                # Thinking block
                                 if ref_name in think_blocks:
                                     t_text = think_blocks[ref_name]
                                     if t_text:
                                         reasoning = Reasoning(t_text)
-                                        # thinking_content += t_text
                                         stream["thinking"].append(reasoning)
-                                        # yield reasoning
 
-                                # Image-gen block
                                 if ref_name in image_blocks:
                                     img_block_text = image_blocks[ref_name]
                                     async for chunk in process_content_chunk(
@@ -884,7 +837,6 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                         is_started = True
                                         yield chunk
                             else:
-                                # Normal textual chunk
                                 async for chunk in process_content_chunk(
                                         content,
                                         chunk_id,
@@ -894,7 +846,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                     stream["target"].append(chunk)
                                     is_started = True
                                     yield chunk
-                # Variant stream (comparison)
+
                 elif variant_stream_id and chunk_id == variant_stream_id:
                     yield PlainTextResponse("[Variant] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
@@ -914,7 +866,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                     variant_text += str(chunk)
                                     if not is_started:
                                         yield PreviewResponse(variant_text)
-                # Quick response (short preview)
+
                 elif quick_response_id and chunk_id == quick_response_id:
                     yield PlainTextResponse("[Quick] " + line.decode(errors="ignore"))
                     if isinstance(data, dict):
@@ -931,12 +883,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             yield PreviewResponse(content)
 
                 elif chunk_id in [turn_id, persisted_turn_id]:
-                    ...
+                    pass
+
                 elif chunk_id == right_message_id:
-                    ...
+                    pass
+
                 elif chunk_id == left_message_id:
-                    ...
-                # Miscellaneous extra content
+                    pass
+
                 elif isinstance(data, dict) and "curr" in data:
                     content = data.get("curr", "")
                     if content:
@@ -955,15 +909,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if variant_image is not None:
                 yield variant_image
             elif variant_text:
-                yield PreviewResponse(variant_text)
+                yield VariantResponse(variant_text)
             yield JsonResponse(**stream)
             log_debug(f"Finished processing {line_count} lines")
-        except:
-            raise
 
         finally:
-            # Claim reward in background
             if reward_info and "unclaimedRewardInfo" in reward_info:
-                reward_id = reward_info["unclaimedRewardInfo"].get("rewardId")
-                if reward_id:
-                    await claim_yupp_reward(session, account, reward_id)
+                rid = reward_info["unclaimedRewardInfo"].get("rewardId")
+                if rid:
+                    await claim_yupp_reward(scraper, account, rid)
