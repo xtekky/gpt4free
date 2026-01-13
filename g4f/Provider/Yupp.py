@@ -17,11 +17,15 @@ from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
     ProviderInfo, FinishReason, JsonResponse
-from ..requests.aiohttp import StreamSession
 from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages, Optional, Dict, Any, List
 
+try:
+    import cloudscraper
+    from cloudscraper.async_cloudscraper import AsyncCloudScraper
+except ImportError:
+    AsyncCloudScraper = None
 # Global variables to manage Yupp accounts
 YUPP_ACCOUNT = Dict[str, Any]
 YUPP_ACCOUNTS: List[YUPP_ACCOUNT] = []
@@ -58,9 +62,18 @@ def load_yupp_accounts(tokens_str: str):
     ]
 
 
-def create_headers() -> Dict[str, str]:
-    """Create headers for requests"""
-    return {
+def create_scraper():
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True,
+            'mobile': False
+        },
+        delay=10,
+        interpreter='nodejs'
+    )
+    scraper.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
         "Accept": "text/x-component, */*",
         "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -68,7 +81,36 @@ def create_headers() -> Dict[str, str]:
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
-    }
+        "Sec-Ch-Ua": '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"'
+    })
+    return scraper
+
+def create_scraper_async():
+    scraper = cloudscraper.create_async_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True,
+            'mobile': False
+        },
+        delay=10,
+        interpreter='nodejs'
+    )
+    scraper.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+        "Accept": "text/x-component, */*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Ch-Ua": '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"'
+    })
+    return scraper
 
 
 async def get_best_yupp_account() -> Optional[YUPP_ACCOUNT]:
@@ -106,7 +148,7 @@ async def get_best_yupp_account() -> Optional[YUPP_ACCOUNT]:
         return account
 
 
-async def claim_yupp_reward(session: aiohttp.ClientSession, account: YUPP_ACCOUNT, reward_id: str):
+async def claim_yupp_reward(session: AsyncCloudScraper, account: YUPP_ACCOUNT, reward_id: str):
     """Claim Yupp reward asynchronously"""
     try:
         log_debug(f"Claiming reward {reward_id}...")
@@ -118,18 +160,18 @@ async def claim_yupp_reward(session: aiohttp.ClientSession, account: YUPP_ACCOUN
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
 
         }
-        async with session.post(url, json=payload, headers=headers) as response:
-            response.raise_for_status()
-            data = await response.json()
-            balance = data[0]["result"]["data"]["json"]["currentCreditBalance"]
-            log_debug(f"Reward claimed successfully. New balance: {balance}")
-            return balance
+        response = await session.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = await response.json()
+        balance = data[0]["result"]["data"]["json"]["currentCreditBalance"]
+        log_debug(f"Reward claimed successfully. New balance: {balance}")
+        return balance
     except Exception as e:
         log_debug(f"Failed to claim reward {reward_id}. Error: {e}")
         return None
 
 
-async def make_chat_private(session: aiohttp.ClientSession, account: YUPP_ACCOUNT, chat_id: str) -> bool:
+async def make_chat_private(session: AsyncCloudScraper, account: YUPP_ACCOUNT, chat_id: str) -> bool:
     """Set a Yupp chat's sharing status to PRIVATE"""
     try:
         log_debug(f"Setting chat {chat_id} to PRIVATE...")
@@ -149,18 +191,18 @@ async def make_chat_private(session: aiohttp.ClientSession, account: YUPP_ACCOUN
 
         }
 
-        async with session.post(url, json=payload, headers=headers) as response:
-            response.raise_for_status()
-            data = await response.json()
-            if (
-                    isinstance(data, list) and len(data) > 0
-                    and "json" in data[0].get("result", {}).get("data", {})
-            ):
-                log_debug(f"Chat {chat_id} is now PRIVATE ✅")
-                return True
+        response = await session.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = await response.json()
+        if (
+                isinstance(data, list) and len(data) > 0
+                and "json" in data[0].get("result", {}).get("data", {})
+        ):
+            log_debug(f"Chat {chat_id} is now PRIVATE ✅")
+            return True
 
-            log_debug(f"Unexpected response while setting chat private: {data}")
-            return False
+        log_debug(f"Unexpected response while setting chat private: {data}")
+        return False
 
     except Exception as e:
         log_debug(f"Failed to make chat {chat_id} private: {e}")
@@ -220,7 +262,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
     url = "https://yupp.ai"
     login_url = "https://discord.gg/qXA4Wf4Fsm"
-    working = True
+    working = AsyncCloudScraper is not None
     active_by_default = True
     supports_stream = True
     image_cache = True
@@ -243,7 +285,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
             if not api_key:
                 raise MissingAuthError("No Yupp accounts configured. Set YUPP_API_KEY environment variable.")
-            manager = YuppModelManager(api_key=api_key)
+            manager = YuppModelManager(api_key=api_key, session=create_scraper())
             models = manager.client.fetch_models()
             if models:
                 cls.models_tags = {model.get("name"): manager.processor.generate_tags(model) for model in models}
@@ -254,7 +296,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    async def prepare_files(cls, media, session: aiohttp.ClientSession, account: YUPP_ACCOUNT) -> list:
+    async def prepare_files(cls, media, session: AsyncCloudScraper, account: YUPP_ACCOUNT) -> list:
         files = []
         if not media:
             return files
@@ -310,7 +352,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         return files
 
     @classmethod
-    async def user_info(cls, account: YUPP_ACCOUNT, kwargs: dict):
+    async def user_info(cls, account: YUPP_ACCOUNT, session: AsyncCloudScraper, kwargs: dict):
         history: dict = {}
         user_info = {}
 
@@ -364,52 +406,52 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                          "image/*" in model.get("supportedAttachmentMimeTypes", [])]
 
         try:
-            async with StreamSession() as session:
-                headers = {
-                    "content-type": "text/plain;charset=UTF-8",
-                    "cookie": f"__Secure-yupp.session-token={account['token']}",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
-                }
-                async with session.get("https://yupp.ai", headers=headers, ) as response:
-                    response.raise_for_status()
-                    response.content._high_water = 10 * 1024 * 1024  # 10MB per line
-                    line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
-                    async for line in response.content:
-                        line = line.decode()
-                        # Pattern to match self.__next_f.push([...])
-                        pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
-                        matches = re.findall(pattern, line)
-                        for match in matches:
-                            # Parse the JSON array
-                            data = json.loads(match)
-                            for chunk in data[1].split("\n"):
-                                match = line_pattern.match(chunk)
-                                if not match:
-                                    continue
-                                chunk_id, chunk_data = match.groups()
 
-                                if chunk_data.startswith("I["):
-                                    data = json.loads(chunk_data[1:])
-                                    if data[2] == "HomePagePromptForm":
-                                        for js in data[1][::-1]:
-                                            js_url = f"{cls.url}{js}"
-                                            async with session.get(js_url, headers=headers, ) as js_response:
-                                                js_text = await js_response.text()
-                                                if "startNewChat" in js_text:
-                                                    # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
-                                                    start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
-                                                    for v, k in start_id:
-                                                        cls._next_actions[k] = v
-                                                        kwargs[k] = v
-                                                    break
-                                elif chunk_data.startswith(("[", "{")):
-                                    try:
-                                        data = json.loads(chunk_data)
-                                        pars_data(data)
-                                    except json.decoder.JSONDecodeError:
-                                        ...
-                                    except Exception as e:
-                                        log_debug(f"user_info error: {str(e)}")
+            headers = {
+                "content-type": "text/plain;charset=UTF-8",
+                "cookie": f"__Secure-yupp.session-token={account['token']}",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+            }
+            response = await session.get("https://yupp.ai", headers=headers, )
+            response.raise_for_status()
+            response.content._high_water = 10 * 1024 * 1024  # 10MB per line
+            line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
+            async for line in response.content:
+                line = line.decode()
+                # Pattern to match self.__next_f.push([...])
+                pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
+                matches = re.findall(pattern, line)
+                for match in matches:
+                    # Parse the JSON array
+                    data = json.loads(match)
+                    for chunk in data[1].split("\n"):
+                        match = line_pattern.match(chunk)
+                        if not match:
+                            continue
+                        chunk_id, chunk_data = match.groups()
+
+                        if chunk_data.startswith("I["):
+                            data = json.loads(chunk_data[1:])
+                            if data[2] == "HomePagePromptForm":
+                                for js in data[1][::-1]:
+                                    js_url = f"{cls.url}{js}"
+                                    js_response = await session.get(js_url, headers=headers, )
+                                    js_text = await js_response.text()
+                                    if "startNewChat" in js_text:
+                                        # changeStyle, continueChat, retryResponse, showMoreResponses, startNewChat
+                                        start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+                                        for v, k in start_id:
+                                            cls._next_actions[k] = v
+                                            kwargs[k] = v
+                                        break
+                        elif chunk_data.startswith(("[", "{")):
+                            try:
+                                data = json.loads(chunk_data)
+                                pars_data(data)
+                            except json.decoder.JSONDecodeError:
+                                ...
+                            except Exception as e:
+                                log_debug(f"user_info error: {str(e)}")
 
         except Exception as e:
             log_debug(f"user_info error: {str(e)}")
@@ -460,11 +502,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             account = await get_best_yupp_account()
             if not account:
                 raise ProviderException("No valid Yupp accounts available")
-            # user_info, models. prev conversation, credits
-            user_info: dict = await cls.user_info(account, kwargs)
-            yield PlainTextResponse(str(user_info))
+
             try:
-                async with StreamSession() as session:
+                async with create_scraper_async() as session:
+                    # user_info, models. prev conversation, credits
+                    user_info: dict = await cls.user_info(account, session, kwargs)
+                    yield PlainTextResponse(str(user_info))
                     turn_id = str(uuid.uuid4())
                     # Handle media attachments
                     media = kwargs.get("media")
@@ -523,19 +566,19 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     log_debug(f"Payload structure: {type(payload)}, length: {len(str(payload))}")
                     timeout = kwargs.get("timeout") or 5 * 60
                     # Send request
-                    async with session.post(url, json=payload, headers=headers, proxy=proxy,
-                                            timeout=timeout) as response:
-                        response.raise_for_status()
-                        if response.status == 303:
-                            ...
-                        # Make chat private in background
-                        asyncio.create_task(make_chat_private(session, account, url_uuid))
-                        # ٍSolve ValueError: Chunk too big
-                        response.content._high_water = 10 * 1024 * 1024  # 10MB per line
-                        # Process stream
-                        async for chunk in cls._process_stream_response(response.content, account, session, prompt,
-                                                                        model):
-                            yield chunk
+                    response = await session.post(url, json=payload, headers=headers, proxy=proxy,
+                                            timeout=timeout)
+                    response.raise_for_status()
+                    if response.status == 303:
+                        ...
+                    # Make chat private in background
+                    asyncio.create_task(make_chat_private(session, account, url_uuid))
+                    # ٍSolve ValueError: Chunk too big
+                    response.content._high_water = 10 * 1024 * 1024  # 10MB per line
+                    # Process stream
+                    async for chunk in cls._process_stream_response(response.content, account, session, prompt,
+                                                                    model):
+                        yield chunk
                     return
 
             except RateLimitError:
@@ -576,7 +619,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             cls,
             response_content,
             account: YUPP_ACCOUNT,
-            session: aiohttp.ClientSession,
+            session: AsyncCloudScraper,
             prompt: str,
             model_id: str
     ) -> AsyncResult:
@@ -643,27 +686,27 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if '<yapp class="image-gen">' in content:
                 img_block = content.split('<yapp class="image-gen">').pop().split('</yapp>')[0]
                 url = "https://yupp.ai/api/trpc/chat.getSignedImage"
-                async with session.get(
-                        url,
-                        params={
-                            "batch": "1",
-                            "input": json.dumps(
-                                {"0": {"json": {"imageId": json.loads(img_block).get("image_id")}}}
-                            )
-                        }
-                ) as resp:
-                    resp.raise_for_status()
-                    data = await resp.json()
-                    try:
-                        json_data = data[0]["result"]["data"]["json"]
-                        url_img = json_data.get("signed_url") or json_data.get("signedURL")
-                        img = ImageResponse(
-                            url_img,
-                            prompt
+                resp = await session.get(
+                    url,
+                    params={
+                        "batch": "1",
+                        "input": json.dumps(
+                            {"0": {"json": {"imageId": json.loads(img_block).get("image_id")}}}
                         )
-                        yield img
-                    except KeyError as e:
-                        error(f"Fail Get Image Url [json]: {data} \nerror:{e}")
+                    }
+                )
+                resp.raise_for_status()
+                data = await resp.json()
+                try:
+                    json_data = data[0]["result"]["data"]["json"]
+                    url_img = json_data.get("signed_url") or json_data.get("signedURL")
+                    img = ImageResponse(
+                        url_img,
+                        prompt
+                    )
+                    yield img
+                except KeyError as e:
+                    error(f"Fail Get Image Url [json]: {data} \nerror:{e}")
                 return
             # Optional: thinking-mode support (disabled by default)
             if is_thinking:
