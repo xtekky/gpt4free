@@ -526,12 +526,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
         start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
         for v, k in start_id:
-            print(k, v)
             if len(v) == 42:
                 cls._next_actions[k] = v
             else:
                 debug.error(f"wrong {k} value: {v}")
-        print(cls._next_actions)
 
     @classmethod
     async def _wait_auth(cls, page, prompt="Hello"):
