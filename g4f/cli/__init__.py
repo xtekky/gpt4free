@@ -158,6 +158,8 @@ def get_api_parser() -> ArgumentParser:
     api_parser.add_argument("--ssl-keyfile", type=str, default=None, help="SSL key file.")
     api_parser.add_argument("--ssl-certfile", type=str, default=None, help="SSL cert file.")
     api_parser.add_argument("--log-config", type=str, default=None, help="Path to log config.")
+    api_parser.add_argument("--access-log", action="store_true", default=True, help="Enable access logging.")
+    api_parser.add_argument("--no-access-log", dest="access_log", action="store_false", help="Disable access logging.")
 
     api_parser.add_argument(
         "--browser-port",
@@ -219,6 +221,7 @@ def run_api_args(args):
         ssl_keyfile=args.ssl_keyfile,
         ssl_certfile=args.ssl_certfile,
         log_config=args.log_config,
+        access_log=args.access_log,
     )
 
 
