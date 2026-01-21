@@ -14,7 +14,6 @@ class Ollama(OpenaiTemplate):
     label = "Ollama 🦙"
     url = "https://ollama.com"
     login_url = "https://ollama.com/settings/keys"
-    backup_url = "https://g4f.dev/api/ollama"
     needs_auth = False
     working = True
     active_by_default = True
