@@ -14,9 +14,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: 'Download artifact'
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           script: |
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
@@ -42,7 +42,7 @@ jobs:
         if: ${{ hashFiles('pr_number.zip') != '' }}
         run: unzip pr_number.zip
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
             python-version: "3.x"
             cache: 'pip'

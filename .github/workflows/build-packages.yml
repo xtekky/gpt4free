@@ -18,7 +18,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is_release: ${{ steps.version.outputs.is_release }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Determine version
         id: version
         run: |
@@ -41,9 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: prepare
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
       - name: Install build tools
@@ -59,7 +59,7 @@ jobs:
           python -m twine check dist/*
           ls -la dist/
       - name: Upload PyPI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pypi-package
           path: dist/
@@ -76,9 +76,9 @@ jobs:
           # Note: ARM64 cross-compilation on Windows requires additional setup
           # Keeping architecture in matrix for future expansion
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -123,7 +123,7 @@ jobs:
             Compress-Archive "dist\${exeName}" "dist\g4f-windows-${version}-${architecture}.zip"
           }
       - name: Upload Windows zip archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-exe-${{ matrix.architecture }}
           path: dist/g4f-windows-*.zip
@@ -142,9 +142,9 @@ jobs:
             runner: ubuntu-24.04-arm
             runner-arch: aarch64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -178,7 +178,7 @@ jobs:
           chmod +x scripts/build-nuitka.sh
           ./scripts/build-nuitka.sh
       - name: Upload Linux executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-exe-${{ matrix.architecture }}
           path: dist/g4f-linux-*
@@ -195,9 +195,9 @@ jobs:
           - architecture: arm64
             runner-arch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -231,7 +231,7 @@ jobs:
           chmod +x scripts/build-nuitka.sh
           ./scripts/build-nuitka.sh
       - name: Upload macOS executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-exe-${{ matrix.architecture }}
           path: dist/g4f-macos-*
@@ -243,7 +243,7 @@ jobs:
     if: needs.prepare.outputs.is_release == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -260,7 +260,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push armv7 image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
             context: .
             file: docker/Dockerfile-armv7
@@ -273,7 +273,7 @@ jobs:
             build-args: |
               G4F_VERSION=${{ needs.prepare.outputs.version }}
       - name: Build and push slim images
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile-slim
@@ -286,7 +286,7 @@ jobs:
           build-args: |
             G4F_VERSION=${{ needs.prepare.outputs.version }}
       - name: Build and push image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
@@ -305,9 +305,9 @@ jobs:
   #     matrix:
   #       architecture: [amd64, arm64, armhf]
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v6
   #     - name: Set up Python
-  #       uses: actions/setup-python@v5
+  #       uses: actions/setup-python@v6
   #       with:
   #         python-version: "3.x"
   #     - name: Install build dependencies
@@ -325,7 +325,7 @@ jobs:
   #         chmod +x scripts/build-deb.sh
   #         ./scripts/build-deb.sh
   #     - name: Upload Debian package
-  #       uses: actions/upload-artifact@v4
+  #       uses: actions/upload-artifact@v6
   #       with:
   #         name: debian-${{ matrix.architecture }}
   #         path: g4f-*-${{ matrix.architecture }}.deb
@@ -336,9 +336,9 @@ jobs:
     needs: [prepare, build-windows-exe]
     if: needs.prepare.outputs.is_release == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download Windows executable zip (x64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows-exe-x64
           path: ./artifacts/x64
@@ -403,7 +403,7 @@ jobs:
           ManifestVersion: 1.4.0
           EOF
       - name: Upload WinGet manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: winget-manifest
           path: winget/
@@ -416,9 +416,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: ./artifacts
       - name: Display artifact structure
@@ -482,7 +482,7 @@ jobs:
   #     id-token: write
   #   steps:
   #     - name: Download PyPI artifacts
-  #       uses: actions/download-artifact@v4
+  #       uses: actions/download-artifact@v7
   #       with:
   #         name: pypi-package
   #         path: dist/
