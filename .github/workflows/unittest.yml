@@ -14,9 +14,9 @@ jobs:
     name: Build unittest
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: "3.8"
         cache: 'pip'
@@ -25,7 +25,7 @@ jobs:
     - name: Run tests
       run: python -m etc.unittest
     - name: Set up Python 3.12
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: "3.12"
         cache: 'pip'
@@ -41,7 +41,7 @@ jobs:
       run: |
         mkdir -p ./pr
         echo $PR_NUMBER > ./pr/pr_number
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: pr_number
         path: pr/
