@@ -116,7 +116,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         "getProxyImage": "60049198d4936e6b7acc63719b63b89284c58683e6"
     }
     @classmethod
-    def get_models(cls, timeout: int = None) -> list[str]:
+    def get_models(cls, timeout: int = None, **kwargs) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
             cache_file = cls.get_cache_file()
             args = {}
