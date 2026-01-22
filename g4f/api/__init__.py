@@ -229,7 +229,7 @@ class Api:
 
     def register_authorization(self):
         if AppConfig.g4f_api_key:
-            print(f"Register authentication key: {''.join(['*' for _ in range(len(AppConfig.g4f_api_key))])}")
+            print("Register authentication key:", ''.join(['*' for _ in range(len(AppConfig.g4f_api_key))]))
         if has_crypto:
             private_key, _ = create_or_read_keys()
             session_key = get_session_key()

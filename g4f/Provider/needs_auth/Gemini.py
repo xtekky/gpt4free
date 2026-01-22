@@ -101,7 +101,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     _sid: str = None
 
     auto_refresh = True
-    refresh_interval = 540
+    refresh_interval = 60 * 15  # 15 minutes
     rotate_tasks = {}
 
     @classmethod
