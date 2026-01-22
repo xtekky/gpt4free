@@ -251,7 +251,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         if cache is None:
-            cache = kwargs.get("action") != "variant"
+            cache = kwargs.get("action") is None or kwargs.get("action") != "variant"
         if extra_body is None:
             extra_body = {}
         if not model:
@@ -483,7 +483,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             headers = None
             if api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_"):
                 headers = {"authorization": f"Bearer {api_key}"}
-            elif cls.balance > 0:
+            elif cls.balance and cls.balance > 0:
                 headers = {"authorization": f"Bearer {''.join(cls.api_key)}"}
             yield JsonRequest.from_dict(data)
             if headers:
