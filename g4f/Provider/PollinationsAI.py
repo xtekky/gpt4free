@@ -24,6 +24,7 @@ from ..providers.response import ImageResponse, Reasoning, VideoResponse, JsonRe
 from ..tools.media import render_messages
 from ..tools.run_tools import AuthManager
 from ..cookies import get_cookies_dir
+from ..tools.files import secure_filename
 from .template.OpenaiTemplate import read_response
 from .. import debug
 
@@ -31,7 +32,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI 🌸"
     url = "https://pollinations.ai"
     login_url = "https://enter.pollinations.ai"
-    api_key = "pk", "_B9YJX5SBohhm2ePq"
     active_by_default = True
     working = True
     supports_system_message = True
@@ -44,7 +44,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
     image_models_endpoint = "https://gen.pollinations.ai/image/models"
     text_models_endpoint = "https://gen.pollinations.ai/text/models"
-    BALANCE_ENDPOINT = "https://gen.pollinations.ai/account/balance"
+    balance_endpoint = "https://api.gpt4free.workers.dev/api/pollinations/account/balance"
+    worker_api_endpoint = "https://api.gpt4free.workers.dev/api/pollinations/chat/completions"
+    worker_models_endpoint = "https://api.gpt4free.workers.dev/api/pollinations/text/models"
 
     # Models configuration
     default_model = "openai"
@@ -56,8 +58,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model, "turbo", "kontext"]
     audio_models = {}
     vision_models = [default_vision_model]
-    _gen_models_loaded = False
-    _free_models_loaded = False
     model_aliases = {
         "gpt-4.1-nano": "openai-fast",
         "llama-4-scout": "llamascout",
@@ -74,12 +74,15 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     }
     swap_model_aliases = {v: k for k, v in model_aliases.items()}
     balance: Optional[float] = None
+    current_models_endpoint: Optional[str] = None
 
     @classmethod
     def get_balance(cls, api_key: str, timeout: Optional[float] = None) -> Optional[float]:
         try:
-            headers = {"authorization": f"Bearer {api_key}"}
-            response = requests.get(cls.BALANCE_ENDPOINT, headers=headers, timeout=timeout)
+            headers = None
+            if api_key:
+                headers = {"authorization": f"Bearer {api_key}"}
+            response = requests.get(cls.balance_endpoint, headers=headers, timeout=timeout)
             response.raise_for_status()
             data = response.json()
             cls.balance = float(data.get("balance", 0.0))
@@ -103,17 +106,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         
         if not api_key:
             api_key = AuthManager.load_api_key(cls)
-        if not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_"):
-            api_key = "".join(cls.api_key)
-        
-        if cls.balance or cls.balance is None and cls.get_balance(api_key, timeout) and cls.balance > 0:
-            debug.log(f"Authenticated with Pollinations AI using API key.")
+        if (not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_")) and cls.balance or cls.balance is None and cls.get_balance(api_key, timeout) and cls.balance > 0:
+            debug.log(f"Authenticated with Pollinations AI using G4F API.")
+            models_url = cls.worker_models_endpoint
+        elif api_key:
+            debug.log(f"Using Pollinations AI with provided API key.")
+            models_url = cls.gen_text_api_endpoint
         else:
             debug.log(f"Using Pollinations AI without authentication.")
-            api_key = None
+            models_url = cls.text_models_endpoint
 
-        if not cls._free_models_loaded or api_key and not cls._gen_models_loaded:
-            path = Path(get_cookies_dir()) / "models" / datetime.today().strftime('%Y-%m-%d') / f"{cls.__name__}{'-auth' if api_key else ''}.json"
+        if cls.current_models_endpoint != models_url:
+            path = Path(get_cookies_dir()) / "models" / datetime.today().strftime('%Y-%m-%d') / f"{secure_filename(models_url)}.json"
             if path.exists():
                 try:
                     data = path.read_text()
@@ -180,10 +184,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.swap_model_aliases = {v: k for k, v in cls.model_aliases.items()}
 
             finally:
-                if api_key:
-                    cls._gen_models_loaded = True
-                else:
-                    cls._free_models_loaded = True
+                cls.current_models_endpoint = models_url
             # Return unique models across all categories
             all_models = cls.text_models.copy()
             all_models.extend(cls.image_models)
@@ -262,7 +263,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         has_audio = True
                         break
             model = "openai-audio" if has_audio else cls.default_model
-        if cls.get_models(api_key=api_key, timeout=kwargs.get("timeout")):
+        if cls.get_models(api_key=api_key, timeout=kwargs.get("timeout", 15)):
             if model in cls.model_aliases:
                 model = cls.model_aliases[model]
         debug.log(f"Using model: {model}")
@@ -480,17 +481,17 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 seed=None if "tools" in extra_body else seed,
                 **extra_body
             )
-            headers = None
-            if api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_"):
-                headers = {"authorization": f"Bearer {api_key}"}
-            elif cls.balance and cls.balance > 0:
-                headers = {"authorization": f"Bearer {''.join(cls.api_key)}"}
-            yield JsonRequest.from_dict(data)
-            if headers:
-                url = cls.gen_text_api_endpoint
+            if (not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_")) and cls.balance and cls.balance > 0:
+                endpoint = cls.worker_api_endpoint
+            elif api_key:
+                endpoint = cls.gen_text_api_endpoint
             else:
-                url = cls.text_api_endpoint
-            async with session.post(url, json=data, headers=headers) as response:
+                endpoint = cls.text_api_endpoint
+            headers = None
+            if api_key:
+                headers = {"authorization": f"Bearer {api_key}"}
+            yield JsonRequest.from_dict(data)
+            async with session.post(endpoint, json=data, headers=headers) as response:
                 if response.status in (400, 500):
                     debug.error(f"Error: {response.status} - Bad Request: {data}")
                 async for chunk in read_response(response, stream, format_media_prompt(messages), cls.get_dict(),
