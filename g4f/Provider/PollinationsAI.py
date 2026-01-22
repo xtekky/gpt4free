@@ -484,7 +484,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             if api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_"):
                 headers = {"authorization": f"Bearer {api_key}"}
             elif cls.balance > 0:
-                headers = {"authorization": f"Bearer {"".join(cls.api_key)}"}
+                headers = {"authorization": f"Bearer {''.join(cls.api_key)}"}
             yield JsonRequest.from_dict(data)
             if headers:
                 url = cls.gen_text_api_endpoint
