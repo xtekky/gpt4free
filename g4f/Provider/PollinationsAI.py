@@ -378,7 +378,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             return f"{url}&seed={seed}" if seed else url
 
         headers = None
-        if api_key and api_key.startswith("g4f_") or api_key.startswith("gfs_"):
+        if api_key and (api_key.startswith("g4f_") or api_key.startswith("gfs_")):
             headers = {"authorization": f"Bearer {api_key}"}
         async with ClientSession(
             headers=DEFAULT_HEADERS,
