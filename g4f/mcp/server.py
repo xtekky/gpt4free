@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
 
 from ..debug import enable_logging
+from ..cookies import read_cookie_files
 
 from .tools import MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool
 from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
@@ -214,6 +215,7 @@ class MCPServer:
             sys.exit(1)
 
         enable_logging()
+        read_cookie_files()
         
         async def handle_mcp_request(request: web.Request) -> web.Response:
             nonlocal origin
