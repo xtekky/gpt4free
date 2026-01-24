@@ -13,6 +13,7 @@ from ...typing import AsyncResult, Messages
 class Ollama(OpenaiTemplate):
     label = "Ollama 🦙"
     url = "https://ollama.com"
+    base_url = "https://g4f.space/api/ollama"
     login_url = "https://ollama.com/settings/keys"
     needs_auth = False
     working = True
@@ -34,7 +35,7 @@ class Ollama(OpenaiTemplate):
                 cls.live += 1
             cls.models = [model["name"] for model in models]
             if base_url is None:
-                host = os.getenv("OLLAMA_HOST", "127.0.0.1")
+                host = os.getenv("OLLAMA_HOST", "localhost")
                 port = os.getenv("OLLAMA_PORT", "11434")
                 url = f"http://{host}:{port}/api/tags"
             else:
@@ -66,7 +67,7 @@ class Ollama(OpenaiTemplate):
             base_url: str = f"http://{host}:{port}/v1"
         if model in cls.local_models:
             async with StreamSession(headers={"Authorization": f"Bearer {api_key}"}, proxy=proxy) as session:
-                async with session.post(f"{base_url}/api/chat", json={
+                async with session.post(f"{base_url.replace('/v1', '')}/api/chat", json={
                     "model": model,
                     "messages": messages,
                 }) as response:

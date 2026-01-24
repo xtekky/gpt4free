@@ -9,7 +9,7 @@ from ..template import OpenaiTemplate
 class Claude(OpenaiTemplate):
     label = "Claude 💥"
     url = "https://claude.ai"
-    base_url = "https://g4f.dev/api/claude"
+    base_url = "https://g4f.space/api/claude"
     working = True
     active_by_default = True
     login_url = "https://discord.gg/qXA4Wf4Fsm"

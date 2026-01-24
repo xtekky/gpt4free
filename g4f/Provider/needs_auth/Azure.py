@@ -14,7 +14,7 @@ from ..helper import format_media_prompt
 class Azure(OpenaiTemplate):
     label = "Azure ☁️"
     url = "https://ai.azure.com"
-    base_url = "https://g4f.dev/api/azure"
+    base_url = "https://g4f.space/api/azure"
     working = True
     active_by_default = False
     login_url = "https://discord.gg/qXA4Wf4Fsm"

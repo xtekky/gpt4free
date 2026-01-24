@@ -305,8 +305,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             }
         )
         resp.raise_for_status()
-        data = resp.json()
-        return data[0]["result"]["data"]["json"]["signed_url"]
+        data = resp.json()[0]["result"]["data"]["json"]
+        return data.get("signed_url", data.get("signedURL"))
 
     @classmethod
     async def get_signed_image(cls, scraper: CloudScraper, image_id: str) -> str:

@@ -7,6 +7,7 @@ class Groq(OpenaiTemplate):
     url = "https://console.groq.com/playground"
     login_url = "https://console.groq.com/keys"
     base_url = "https://api.groq.com/openai/v1"
+    backup_url = "https://g4f.space/api/groq"
     working = True
     active_by_default = True
     default_model = DEFAULT_MODEL

@@ -821,7 +821,7 @@ class ClientFactory:
         elif provider.startswith("custom:"):
             if provider.startswith("custom:"):
                 serverId = provider[7:]
-                base_url = f"https://api.gpt4free.workers.dev/custom/{serverId}"
+                base_url = f"https://g4f.space/custom/{serverId}"
             if not base_url:
                 raise ValueError("base_url is required for custom providers")
             provider = create_custom_provider(base_url, api_key, name=name, **kwargs)

@@ -13,6 +13,7 @@ class OpenRouter(OpenaiTemplate):
 
 class OpenRouterFree(OpenRouter):
     label = "OpenRouter (free)"
+    base_url = "https://g4f.space/api/openrouter"
     max_tokens = 4096
     active_by_default = True
 

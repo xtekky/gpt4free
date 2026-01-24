@@ -44,9 +44,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
     image_models_endpoint = "https://gen.pollinations.ai/image/models"
     text_models_endpoint = "https://gen.pollinations.ai/text/models"
-    balance_endpoint = "https://api.gpt4free.workers.dev/api/pollinations/account/balance"
-    worker_api_endpoint = "https://api.gpt4free.workers.dev/api/pollinations/chat/completions"
-    worker_models_endpoint = "https://api.gpt4free.workers.dev/api/pollinations/text/models"
+    balance_endpoint = "https://g4f.space/api/pollinations/account/balance"
+    worker_api_endpoint = "https://g4f.space/api/pollinations/chat/completions"
+    worker_models_endpoint = "https://g4f.space/api/pollinations/models"
 
     # Models configuration
     default_model = "openai"
