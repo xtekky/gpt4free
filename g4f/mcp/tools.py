@@ -241,8 +241,7 @@ class ImageGenerationTool(MCPTool):
                 model=model,
                 prompt=prompt,
                 width=width,
-                height=height,
-                response_format="url"
+                height=height
             )
             
             # Get the image data with proper validation
