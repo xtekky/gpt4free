@@ -18,3 +18,4 @@ markitdown[all]
 a2wsgi
 python-dotenv
 ddgs
+cloudscraper

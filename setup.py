@@ -37,7 +37,8 @@ EXTRA_REQUIRE = {
         "setuptools",
         "markitdown[all]",
         "python-dotenv",
-        "aiofile"
+        "aiofile",
+        "cloudscraper"
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -56,7 +57,8 @@ EXTRA_REQUIRE = {
         "pypdf2",
         "python-docx",
         "python-dotenv",
-        "aiofile"
+        "aiofile",
+        "cloudscraper"
     ],
     "image": [
         "pillow",
