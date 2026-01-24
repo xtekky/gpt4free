@@ -10,8 +10,10 @@ from concurrent.futures import ThreadPoolExecutor
 try:
     import cloudscraper
     from cloudscraper import CloudScraper
+    has_cloudscraper = True
 except ImportError:
     from typing import Type as CloudScraper
+    has_cloudscraper = False
 
 from .helper import get_last_user_message
 from .yupp.models import YuppModelManager
@@ -322,15 +324,17 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-            cls,
-            model: str,
-            messages: Messages,
-            proxy: str = None,
-            **kwargs,
+        cls,
+        model: str,
+        messages: Messages,
+        proxy: str = None,
+        api_key: str = None,
+        **kwargs,
     ) -> AsyncResult:
-        if  CloudScraper is None:
+        if not has_cloudscraper:
             raise MissingRequirementsError("cloudscraper library is required for Yupp provider | install it via 'pip install cloudscraper'")
-        api_key = kwargs.get("api_key")
+        if not api_key:
+            api_key = AuthManager.load_api_key(cls)
         if not api_key:
             api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
         if api_key:

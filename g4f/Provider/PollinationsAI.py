@@ -263,6 +263,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         has_audio = True
                         break
             model = "openai-audio" if has_audio else cls.default_model
+        if not api_key:
+            api_key = AuthManager.load_api_key(cls)
         if cls.get_models(api_key=api_key, timeout=kwargs.get("timeout", 15)):
             if model in cls.model_aliases:
                 model = cls.model_aliases[model]
