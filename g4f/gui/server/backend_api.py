@@ -331,7 +331,7 @@ class Backend_Api(Api):
                         for chunk in response:
                             if isinstance(chunk, FinishReason):
                                 yield f"[{chunk.reason}]" if chunk.reason != "stop" else ""
-                            elif not isinstance(chunk, Exception):
+                            elif not isinstance(chunk, (Exception, JsonResponse)):
                                 chunk = str(chunk)
                                 if chunk:
                                     yield chunk
