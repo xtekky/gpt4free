@@ -340,12 +340,55 @@ class MCPServer:
             # Serve the file
             return web.FileResponse(target, headers=headers)
         
+        async def handle_synthesize(request: web.Request) -> web.Response:
+            """Handle synthesize requests for text-to-speech"""
+            provider_name = request.match_info.get('provider', '')
+            if not provider_name:
+                return web.Response(status=400, text="Provider not specified")
+            
+            try:
+                from ..Provider import ProviderUtils
+                provider_handler = ProviderUtils.convert.get(provider_name)
+                if provider_handler is None:
+                    return web.Response(status=404, text=f"Provider not found: {provider_name}")
+            except Exception as e:
+                return web.Response(status=404, text=f"Provider not found: {provider_name}")
+            
+            if not hasattr(provider_handler, "synthesize"):
+                return web.Response(status=500, text=f"Provider doesn't support synthesize: {provider_name}")
+            
+            # Get query parameters
+            params = dict(request.query)
+            
+            try:
+                # Call the synthesize method
+                response_data = provider_handler.synthesize(params)
+                
+                # Handle async generator
+                async def generate():
+                    async for chunk in response_data:
+                        yield chunk
+                
+                content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
+                return web.Response(
+                    body=b"".join([chunk async for chunk in generate()]),
+                    content_type=content_type,
+                    headers={
+                        "cache-control": "max-age=604800",
+                        "access-control-allow-origin": "*",
+                    }
+                )
+            except Exception as e:
+                sys.stderr.write(f"Synthesize error: {e}\n")
+                return web.Response(status=500, text=f"Synthesize error: {str(e)}")
+        
         # Create aiohttp application
         app = web.Application()
         app.router.add_options('/mcp', lambda request: web.Response(headers={"access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "Content-Type"}))
         app.router.add_post('/mcp', handle_mcp_request)
         app.router.add_get('/health', handle_health)
         app.router.add_get('/media/{filename:.*}', handle_media)
+        app.router.add_get('/backend-api/v2/synthesize/{provider}', handle_synthesize)
         
         # Start server
         sys.stderr.write(f"Starting {self.server_info['name']} v{self.server_info['version']} (HTTP mode)\n")
