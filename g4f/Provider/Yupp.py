@@ -86,6 +86,7 @@ def create_scraper():
     })
     return scraper
 
+
 def create_scraper_async():
     scraper = cloudscraper.create_async_scraper(
         browser={
@@ -151,7 +152,7 @@ async def claim_yupp_reward(session: AsyncCloudScraper, account: YUPP_ACCOUNT, r
     try:
         log_debug(f"Claiming reward {reward_id}...")
         url = "https://yupp.ai/api/trpc/reward.claim?batch=1"
-        payload = {"0": {"json": {"rewardId": reward_id}}}
+        payload = {"0": {"json": {"evalId": reward_id}}}
         headers = {
             "Content-Type": "application/json",
             "Cookie": f"__Secure-yupp.session-token={account['token']}",
@@ -565,7 +566,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     timeout = kwargs.get("timeout") or 5 * 60
                     # Send request
                     response = await session.post(url, json=payload, headers=headers, proxy=proxy,
-                                            timeout=timeout)
+                                                  timeout=timeout)
                     response.raise_for_status()
                     if response.status == 303:
                         ...
@@ -734,21 +735,22 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     yapp_block = text[yapp_start:yapp_end + len("</yapp>")]
                     image_blocks[ref_id] = yapp_block
 
+        line_count = 0
+        quick_response_id = None
+        variant_stream_id = None
+        is_started: bool = False
+        variant_image: Optional[ImageResponse] = None
+        # "a" use as default then extract from "1"
+        reward_id = "a"
+        reward_kw = {}
+        routing_id = "e"
+        turn_id = None
+        persisted_turn_id = None
+        left_message_id = None
+        right_message_id = None
+        nudge_new_chat_id = None
+        nudge_new_chat = False
         try:
-            line_count = 0
-            quick_response_id = None
-            variant_stream_id = None
-            is_started: bool = False
-            variant_image: Optional[ImageResponse] = None
-            # "a" use as default then extract from "1"
-            reward_id = "a"
-            routing_id = "e"
-            turn_id = None
-            persisted_turn_id = None
-            left_message_id = None
-            right_message_id = None
-            nudge_new_chat_id = None
-            nudge_new_chat = False
             async for line in response_content:
                 line_count += 1
                 # If we are currently capturing a think/image block for some ref ID
@@ -928,12 +930,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                             quick_content += content
                             yield PreviewResponse(content)
 
-                elif chunk_id in [turn_id, persisted_turn_id]:
+                elif chunk_id == turn_id:
+                    reward_kw["turn_id"] = data.get("curr", "")
+                elif chunk_id == persisted_turn_id:
                     ...
                 elif chunk_id == right_message_id:
-                    ...
+                    reward_kw["right_message_id"] = data.get("curr", "")
                 elif chunk_id == left_message_id:
-                    ...
+                    reward_kw["left_message_id"] = data.get("curr", "")
                 # Miscellaneous extra content
                 elif isinstance(data, dict) and "curr" in data:
                     content = data.get("curr", "")
@@ -961,7 +965,55 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
         finally:
             # Claim reward in background
-            if reward_info and "unclaimedRewardInfo" in reward_info:
-                reward_id = reward_info["unclaimedRewardInfo"].get("rewardId")
+            # if reward_info and "unclaimedRewardInfo" in reward_info:
+            #     reward_id = reward_info["unclaimedRewardInfo"].get("rewardId")
+            #     if reward_id:
+            #         await claim_yupp_reward(session, account, reward_id)
+            # else:
+            log(f"Get Reward: {reward_kw}")
+            async for reward_id in cls.get_reward(session, account, **reward_kw):
                 if reward_id:
                     await claim_yupp_reward(session, account, reward_id)
+
+    @classmethod
+    async def get_reward(cls, session: AsyncCloudScraper, account, **kwargs):
+        url = "https://yupp.ai/api/trpc/evals.recordModelFeedback?batch=1"
+        payload = {
+            0: {
+                "json": {
+                    "turnId": kwargs.get("turn_id"),
+                    "evalType": "SELECTION",  # "TIE", "SELECTION"
+                    "messageEvals": [
+                        {
+                            "messageId": kwargs.get("right_message_id"),
+                            "rating": "GOOD",
+                            "reasons": [
+                                "Fast"
+                            ]
+                        },
+                        {
+                            "messageId": kwargs.get("left_message_id"),
+                            "rating": "BAD",
+                            "reasons": []
+                        }
+                    ],
+                    "comment": "",
+                    "requireReveal": False
+                }
+            },
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "cookie": f"__Secure-yupp.session-token={account['token']}",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+
+        }
+        response = await session.post(url, headers=headers, json=payload)
+
+        data = await response.json()
+        for result in data:
+            log(result.get("result", {}).get("data", {}).get("json", {}).get("evalId"),
+                result.get("result", {}).get("data", {}).get("json", {}).get("finalRewardAmount"))
+
+            if result.get("result", {}).get("data", {}).get("json", {}).get("finalRewardAmount"):
+                yield result.get("result", {}).get("data", {}).get("json", {}).get("evalId")
