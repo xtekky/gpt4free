@@ -23,8 +23,17 @@ from ..debug import log
 from ..errors import RateLimitError, ProviderException, MissingAuthError, MissingRequirementsError
 from ..image import is_accepted_format, to_bytes
 from ..providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import Reasoning, PlainTextResponse, PreviewResponse, JsonConversation, ImageResponse, \
-    ProviderInfo, FinishReason, JsonResponse, VariantResponse
+from ..providers.response import (
+    Reasoning,
+    PlainTextResponse,
+    PreviewResponse,
+    JsonConversation,
+    ImageResponse,
+    ProviderInfo,
+    FinishReason,
+    JsonResponse,
+    VariantResponse,
+)
 from ..tools.auth import AuthManager
 from ..tools.media import merge_media
 from ..typing import AsyncResult, Messages
@@ -91,10 +100,10 @@ async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
             acc
             for acc in YUPP_ACCOUNTS
             if acc["is_valid"]
-               and (
-                       acc["error_count"] < max_error_count
-                       or now - acc["last_used"] > error_cooldown
-               )
+            and (
+                acc["error_count"] < max_error_count
+                or now - acc["last_used"] > error_cooldown
+            )
         ]
 
         if not valid_accounts:
@@ -102,8 +111,8 @@ async def get_best_yupp_account() -> Optional[Dict[str, Any]]:
 
         for acc in valid_accounts:
             if (
-                    acc["error_count"] >= max_error_count
-                    and now - acc["last_used"] > error_cooldown
+                acc["error_count"] >= max_error_count
+                and now - acc["last_used"] > error_cooldown
             ):
                 acc["error_count"] = 0
 
@@ -135,7 +144,13 @@ async def claim_yupp_reward(scraper: CloudScraper, account: Dict[str, Any], eval
     return await loop.run_in_executor(_executor, sync_claim_yupp_reward, scraper, account, eval_id)
 
 
-def sync_record_model_feedback(scraper: CloudScraper, account: Dict[str, Any], turn_id: str, left_message_id: str, right_message_id: str) -> Optional[str]:
+def sync_record_model_feedback(
+    scraper: CloudScraper,
+    account: Dict[str, Any],
+    turn_id: str,
+    left_message_id: str,
+    right_message_id: str
+) -> Optional[str]:
     try:
         log_debug(f"Recording model feedback for turn {turn_id}...")
         url = "https://yupp.ai/api/trpc/evals.recordModelFeedback?batch=1"
@@ -165,13 +180,13 @@ def sync_record_model_feedback(scraper: CloudScraper, account: Dict[str, Any], t
         response = scraper.post(url, json=payload)
         response.raise_for_status()
         data = response.json()
-        
+
         for result in data:
             json_data = result.get("result", {}).get("data", {}).get("json", {})
             eval_id = json_data.get("evalId")
             final_reward = json_data.get("finalRewardAmount")
             log_debug(f"Feedback recorded - evalId: {eval_id}, reward: {final_reward}")
-            
+
             if final_reward:
                 return eval_id
         return None
@@ -180,9 +195,17 @@ def sync_record_model_feedback(scraper: CloudScraper, account: Dict[str, Any], t
         return None
 
 
-async def record_model_feedback(scraper: CloudScraper, account: Dict[str, Any], turn_id: str, left_message_id: str, right_message_id: str) -> Optional[str]:
+async def record_model_feedback(
+    scraper: CloudScraper,
+    account: Dict[str, Any],
+    turn_id: str,
+    left_message_id: str,
+    right_message_id: str
+) -> Optional[str]:
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(_executor, sync_record_model_feedback, scraper, account, turn_id, left_message_id, right_message_id)
+    return await loop.run_in_executor(
+        _executor, sync_record_model_feedback, scraper, account, turn_id, left_message_id, right_message_id
+    )
 
 
 def sync_delete_chat(scraper: CloudScraper, account: Dict[str, Any], chat_id: str) -> bool:
@@ -195,8 +218,8 @@ def sync_delete_chat(scraper: CloudScraper, account: Dict[str, Any], chat_id: st
         response.raise_for_status()
         data = response.json()
         if (
-                isinstance(data, list) and len(data) > 0
-                and data[0].get("result", {}).get("data", {}).get("json") is None
+            isinstance(data, list) and len(data) > 0
+            and data[0].get("result", {}).get("data", {}).get("json") is None
         ):
             log_debug(f"Chat {chat_id} deleted successfully")
             return True
@@ -229,8 +252,8 @@ def sync_make_chat_private(scraper: CloudScraper, account: Dict[str, Any], chat_
         response.raise_for_status()
         data = response.json()
         if (
-                isinstance(data, list) and len(data) > 0
-                and "json" in data[0].get("result", {}).get("data", {})
+            isinstance(data, list) and len(data) > 0
+            and "json" in data[0].get("result", {}).get("data", {})
         ):
             log_debug(f"Chat {chat_id} is now PRIVATE")
             return True
@@ -317,8 +340,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.models_tags = {model.get("name"): manager.processor.generate_tags(model) for model in models}
                 cls.models = [model.get("name") for model in models]
                 cls.image_models = [model.get("name") for model in models if model.get("isImageGeneration")]
-                cls.vision_models = [model.get("name") for model in models if
-                                     "image/*" in model.get("supportedAttachmentMimeTypes", [])]
+                cls.vision_models = [
+                    model.get("name") for model in models
+                    if "image/*" in model.get("supportedAttachmentMimeTypes", [])
+                ]
         return cls.models
 
     @classmethod
@@ -360,8 +385,15 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
             attachment_resp = scraper.post(
                 "https://yupp.ai/api/trpc/chat.createAttachmentForUploadedFile?batch=1",
-                json={"0": {"json": {"fileName": name, "contentType": is_accepted_format(data),
-                                     "fileId": upload_info["fileId"]}}},
+                json={
+                    "0": {
+                        "json": {
+                            "fileName": name,
+                            "contentType": is_accepted_format(data),
+                            "fileId": upload_info["fileId"]
+                        }
+                    }
+                },
                 cookies={"__Secure-yupp.session-token": account["token"]}
             )
             attachment_resp.raise_for_status()
@@ -419,7 +451,9 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs,
     ) -> AsyncResult:
         if not has_cloudscraper:
-            raise MissingRequirementsError("cloudscraper library is required for Yupp provider | install it via 'pip install cloudscraper'")
+            raise MissingRequirementsError(
+                "cloudscraper library is required for Yupp provider | install it via 'pip install cloudscraper'"
+            )
         if not api_key:
             api_key = AuthManager.load_api_key(cls)
         if not api_key:
@@ -442,7 +476,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 prompt = get_last_user_message(messages, prompt)
 
         log_debug(
-            f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}")
+            f"Use url_uuid: {url_uuid}, Formatted prompt length: {len(prompt)}, Is new conversation: {is_new_conversation}"
+        )
 
         max_attempts = len(YUPP_ACCOUNTS)
         for attempt in range(max_attempts):
@@ -533,8 +568,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         yield chunk
                 finally:
                     response.close()
-                    asyncio.create_task(delete_chat(scraper, account, url_uuid))
-
+                    if not kwargs.get("conversation"):
+                        asyncio.create_task(delete_chat(scraper, account, url_uuid))
                 return
 
             except RateLimitError:
@@ -567,12 +602,12 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def _process_stream_response(
-            cls,
-            response,
-            account: Dict[str, Any],
-            scraper: CloudScraper,
-            prompt: str,
-            model_id: str
+        cls,
+        response,
+        account: Dict[str, Any],
+        scraper: CloudScraper,
+        prompt: str,
+        model_id: str
     ) -> AsyncResult:
         line_pattern = re.compile(b"^([0-9a-fA-F]+):(.*)")
         target_stream_id = None
@@ -738,7 +773,8 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         right_stream = data.get("rightStream", {})
                         if data.get("quickResponse", {}) != "$undefined":
                             quick_response_id = extract_ref_id(
-                                data.get("quickResponse", {}).get("stream", {}).get("next"))
+                                data.get("quickResponse", {}).get("stream", {}).get("next")
+                            )
 
                         if data.get("turnId", {}) != "$undefined":
                             turn_id = extract_ref_id(data.get("turnId", {}).get("next"))
@@ -789,20 +825,20 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                 if ref_name in image_blocks:
                                     img_block_text = image_blocks[ref_name]
                                     async for chunk in process_content_chunk(
-                                            img_block_text,
-                                            ref_name,
-                                            line_count,
-                                            for_target=True
+                                        img_block_text,
+                                        ref_name,
+                                        line_count,
+                                        for_target=True
                                     ):
                                         stream["target"].append(chunk)
                                         is_started = True
                                         yield chunk
                             else:
                                 async for chunk in process_content_chunk(
-                                        content,
-                                        chunk_id,
-                                        line_count,
-                                        for_target=True
+                                    content,
+                                    chunk_id,
+                                    line_count,
+                                    for_target=True
                                 ):
                                     stream["target"].append(chunk)
                                     is_started = True
@@ -815,10 +851,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         content = data.get("curr", "")
                         if content:
                             async for chunk in process_content_chunk(
-                                    content,
-                                    chunk_id,
-                                    line_count,
-                                    for_target=False
+                                content,
+                                chunk_id,
+                                line_count,
+                                for_target=False
                             ):
                                 stream["variant"].append(chunk)
                                 if isinstance(chunk, ImageResponse):
@@ -834,10 +870,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         content = data.get("curr", "")
                         if content:
                             async for chunk in process_content_chunk(
-                                    content,
-                                    chunk_id,
-                                    line_count,
-                                    for_target=False
+                                content,
+                                chunk_id,
+                                line_count,
+                                for_target=False
                             ):
                                 stream["quick"].append(chunk)
                             quick_content += content
@@ -859,10 +895,10 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     content = data.get("curr", "")
                     if content:
                         async for chunk in process_content_chunk(
-                                content,
-                                chunk_id,
-                                line_count,
-                                for_target=False
+                            content,
+                            chunk_id,
+                            line_count,
+                            for_target=False
                         ):
                             stream["extra"].append(chunk)
                             if isinstance(chunk, str) and "<streaming stopped unexpectedly" in chunk:
