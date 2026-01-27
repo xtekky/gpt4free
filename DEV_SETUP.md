@@ -174,6 +174,77 @@ class YourProvider(AsyncGeneratorProvider):
         yield "response"
 ```
 
+## OpenAI-Compatible API
+
+The g4f API is fully compatible with OpenAI's API format, allowing you to use it with any app or library that supports OpenAI.
+
+### Base Configuration
+| Setting | Value |
+|---------|-------|
+| Base URL | `http://localhost:8080/v1` |
+| API Key | Any string (g4f ignores this) |
+| Model | Any model name from g4f's model list |
+
+### cURL
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "provider": "Yupp"
+  }'
+```
+
+### Python (OpenAI SDK)
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="anything",  # g4f ignores this
+    base_url="http://localhost:8080/v1"
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Hello!"}],
+    extra_body={"provider": "Yupp"}
+)
+```
+
+### LangChain
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
+
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    openai_api_base="http://localhost:8080/v1",
+    api_key="anything",
+)
+
+response = llm.invoke([HumanMessage(content="Hello!")])
+```
+
+### Environment Variables
+```bash
+export OPENAI_API_BASE="http://localhost:8080/v1"
+export OPENAI_API_KEY="anything"
+```
+
+### Selecting a Provider
+By default, g4f selects the best provider automatically. To explicitly select a provider:
+
+**In request body:**
+```json
+{
+  "model": "gpt-4o-mini",
+  "provider": "Yupp"
+}
+```
+
+**Common providers:** `Yupp`, `PollinationsAI`, `OpenaiChat`, `DeepInfra`, `Groq`, `HuggingChat`
+
 ## Resources
 - Full Docs: https://g4f.dev/docs
 - API Reference: http://localhost:8080/docs (when running)
