@@ -44,12 +44,20 @@ python -m g4f.cli gui --port 8080 --debug
 ### Provider Authentication
 | Variable | Provider | How to Get |
 |----------|----------|------------|
-| `YUPP_API_KEY` | Yupp.ai | Browser cookie `__Secure-yupp.session-token` |
 | `OPENAI_API_KEY` | OpenAI | platform.openai.com |
-| `ANTHROPIC_API_KEY` | Anthropic | console.anthropic.com |
-| `GEMINI_API_KEY` | Google Gemini | aistudio.google.com |
-| `HF_TOKEN` | HuggingFace | huggingface.co/settings/tokens |
+| `GROQ_API_KEY` | Groq | console.groq.com |
+| `TOGETHER_API_KEY` | Together AI | together.ai |
+| `DEEPSEEK_API_KEY` | DeepSeek | platform.deepseek.com |
+| `ANTHROPIC_API_KEY` | Anthropic Claude | console.anthropic.com |
 | `AZURE_API_KEY` | Azure OpenAI | Azure Portal |
+| `OPENROUTER_API_KEY` | OpenRouter | openrouter.ai |
+| `PERPLEXITY_API_KEY` | Perplexity | perplexity.ai |
+| `XAI_API_KEY` | xAI | x.ai |
+| `GEMINI_API_KEY` | Google Gemini | aistudio.google.com |
+| `YUPP_API_KEY` | Yupp.ai | Browser cookie `__Secure-yupp.session-token` |
+| `HF_TOKEN` | HuggingFace | huggingface.co/settings/tokens |
+| `REPLICATE_API_KEY` | Replicate | replicate.com |
+| `CEREBRAS_API_KEY` | Cerebras | cloud.cerebras.ai |
 
 ### Server Settings
 | Variable | Description | Default |
