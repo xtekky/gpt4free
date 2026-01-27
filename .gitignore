@@ -10,3 +10,6 @@ models/models.json
 pyvenv.cfg
 lib64
 /.idea
+.env
+har_and_cookies
+models/

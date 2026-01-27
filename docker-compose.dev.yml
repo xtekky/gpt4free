@@ -1,0 +1,23 @@
+services:
+  g4f-dev:
+    container_name: g4f-dev
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-slim
+    volumes:
+      - .:/app
+      - ./generated_media:/app/generated_media
+      - ./har_and_cookies:/app/har_and_cookies
+      - ./models:/app/models
+    ports:
+      - '1337:8080'
+      - '8080:8080'
+    environment:
+      - YUPP_TOKENS=${YUPP_TOKENS:-}
+      - MAX_ERROR_COUNT=${MAX_ERROR_COUNT:-3}
+      - ERROR_COOLDOWN=${ERROR_COOLDOWN:-300}
+      - G4F_DEBUG=true
+      - G4F_RELOAD=true
+    env_file:
+      - .env
+    command: ["python", "-m", "g4f", "--port", "8080", "--debug", "--reload"]
