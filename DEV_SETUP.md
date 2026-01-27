@@ -44,7 +44,7 @@ python -m g4f.cli gui --port 8080 --debug
 ### Provider Authentication
 | Variable | Provider | How to Get |
 |----------|----------|------------|
-| `YUPP_TOKENS` | Yupp.ai | Browser cookie `__Secure-yupp.session-token` |
+| `YUPP_API_KEY` | Yupp.ai | Browser cookie `__Secure-yupp.session-token` |
 | `OPENAI_API_KEY` | OpenAI | platform.openai.com |
 | `ANTHROPIC_API_KEY` | Anthropic | console.anthropic.com |
 | `GEMINI_API_KEY` | Google Gemini | aistudio.google.com |

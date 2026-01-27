@@ -13,7 +13,7 @@ services:
       - '1337:8080'
       - '8080:8080'
     environment:
-      - YUPP_TOKENS=${YUPP_TOKENS:-}
+      - YUPP_API_KEY=${YUPP_API_KEY:-}
       - MAX_ERROR_COUNT=${MAX_ERROR_COUNT:-3}
       - ERROR_COOLDOWN=${ERROR_COOLDOWN:-300}
       - G4F_DEBUG=true
