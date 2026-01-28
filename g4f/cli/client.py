@@ -152,14 +152,15 @@ async def stream_response(
             print(f"\n→ Response saved to '{output_file}'")
 
     if text_response:
-        conversation.add_message("assistant", text_response)
+        if not media_chunk:
+            conversation.add_message("assistant", text_response)
     else:
         raise RuntimeError("No response received")
 
 
 def save_content(content, media: Optional[MediaResponse], filepath: str, allowed_types=None) -> bool:
     if media:
-        for url in media.urls:
+        for url in media.get_list():
             if url.startswith(("http://", "https://")):
                 try:
                     resp = requests.get(url, cookies=media.get("cookies"), headers=media.get("headers"))
