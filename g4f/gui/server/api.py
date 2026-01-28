@@ -217,8 +217,6 @@ class Api:
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
-                elif isinstance(chunk, RequestLogin):
-                    yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, PreviewResponse):
                     yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, ImagePreview):
@@ -258,7 +256,7 @@ class Api:
                 elif isinstance(chunk, TitleGeneration):
                     yield self._format_json("title", chunk.title)
                 elif isinstance(chunk, RequestLogin):
-                    yield self._format_json("login", str(chunk))
+                    yield self._format_json("login", chunk.to_string())
                 elif isinstance(chunk, Parameters):
                     yield self._format_json("parameters", chunk.get_dict())
                 elif isinstance(chunk, FinishReason):
