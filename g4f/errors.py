@@ -49,7 +49,7 @@ class MissingRequirementsError(G4FError):
 
 
 class NestAsyncioError(MissingRequirementsError):
-    """Raised when 'nest_asyncio' is missing."""
+    """Raised when 'nest_asyncio2' is missing."""
     pass
 
 

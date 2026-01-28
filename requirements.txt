@@ -4,7 +4,7 @@ curl_cffi>=0.6.2
 aiohttp
 certifi
 browser_cookie3
-nest_asyncio
+nest-asyncio2
 werkzeug
 pillow
 platformdirs

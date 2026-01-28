@@ -7,7 +7,7 @@ from typing import Optional, Callable, AsyncIterator, Iterator
 from ..errors import NestAsyncioError
 
 try:
-    import nest_asyncio
+    import nest_asyncio2 as nest_asyncio
     has_nest_asyncio = True
 except ImportError:
     has_nest_asyncio = False
@@ -28,7 +28,7 @@ def get_running_loop(check_nested: bool) -> Optional[AbstractEventLoop]:
             if has_nest_asyncio:
                 nest_asyncio.apply(loop)
             elif check_nested:
-                raise NestAsyncioError('Install "nest_asyncio" package | pip install -U nest_asyncio')
+                raise NestAsyncioError('Install "nest-asyncio2" package | pip install -U nest-asyncio2')
         return loop
     except RuntimeError:
         pass

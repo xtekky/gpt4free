@@ -2,4 +2,4 @@ requests
 aiohttp
 brotli
 pycryptodome
-nest_asyncio
+nest-asyncio2
