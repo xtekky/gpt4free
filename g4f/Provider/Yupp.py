@@ -665,6 +665,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                         "auth",
                         "401",
                         "403",
+                        "404",
                         "invalid action",
                         "action",
                         "next-action",
@@ -693,6 +694,19 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                     f"Unexpected error with account ...{account['token'][-4:]}: {str(e)}"
                 )
                 error_str = str(e).lower()
+
+                # Check for token-related errors in generic exceptions too
+                if any(x in error_str for x in ["404", "401", "403", "invalid action"]):
+                    token_type = (
+                        "new_conversation"
+                        if is_new_conversation
+                        else "existing_conversation"
+                    )
+                    await token_extractor.mark_token_failed(token_type, next_action)
+                    log_debug(
+                        f"Token failure detected in exception handler: {token_type}"
+                    )
+
                 if "500" in error_str or "internal server error" in error_str:
                     async with account_rotation_lock:
                         account["error_count"] += 1
