@@ -4,17 +4,10 @@ Smart extraction with multiple fallback strategies
 Only attempts extraction on token failure
 """
 
-"""
-Yupp AI NextAction Token Extractor
-Smart extraction with multiple fallback strategies
-Only attempts extraction on token failure
-"""
-
 import asyncio
 import json
 import os
 import re
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
