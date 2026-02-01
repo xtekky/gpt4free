@@ -4,23 +4,29 @@ Smart extraction with multiple fallback strategies
 Only attempts extraction on token failure
 """
 
+"""
+Yupp AI NextAction Token Extractor
+Smart extraction with multiple fallback strategies
+Only attempts extraction on token failure
+"""
+
 import asyncio
-import hashlib
 import json
 import os
 import re
 import time
-from typing import Dict, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
 from .constants import (
+    MAX_EXTRACTION_RETRIES,
+    MIN_REQUIRED_TOKENS,
     NEXT_ACTION_TOKENS,
     TOKEN_CACHE_TTL,
-    MAX_EXTRACTION_RETRIES,
+    TOKEN_PATTERNS,
     YUPP_BASE_URL,
     YUPP_CHAT_URL,
-    TOKEN_PATTERNS,
 )
 
 
@@ -42,7 +48,7 @@ class TokenCache:
         """Check if cache has valid tokens"""
         return (
             not self.is_expired()
-            and len(self.tokens) >= 2
+            and len(self.tokens) >= MIN_REQUIRED_TOKENS
             and all(
                 k in self.tokens for k in ["new_conversation", "existing_conversation"]
             )
@@ -55,7 +61,11 @@ class TokenExtractor:
     Uses multiple strategies and only attempts extraction on failure
     """
 
-    def __init__(self, jwt_token: Optional[str] = None, scraper=None):
+    def __init__(
+        self,
+        jwt_token: Optional[str] = None,
+        scraper: Optional["cloudscraper.CloudScraper"] = None,
+    ):
         self.jwt_token = jwt_token or os.getenv("YUPP_JWT") or os.getenv("YUPP_API_KEY")
         self.scraper = scraper
         self._cache = TokenCache()
@@ -64,8 +74,17 @@ class TokenExtractor:
 
     async def get_token(self, token_type: str) -> str:
         """
-        Get a NextAction token
-        Returns cached token if valid, otherwise returns fallback
+        Get a NextAction token from cache or fallback.
+
+        This method does NOT trigger extraction - it only returns cached
+        tokens or fallbacks. Extraction is only triggered by mark_token_failed().
+
+        Args:
+            token_type: Type of token to retrieve ("new_conversation" or
+                "existing_conversation")
+
+        Returns:
+            The token string from cache if valid, otherwise the fallback token
         """
         # Return cached token if valid
         if self._cache.is_valid() and token_type in self._cache.tokens:
@@ -95,6 +114,8 @@ class TokenExtractor:
             # Only attempt extraction if we haven't failed too many times
             if self._cache.failed_attempts < MAX_EXTRACTION_RETRIES:
                 if not self._extraction_in_progress:
+                    # Set flag immediately to prevent race conditions
+                    self._extraction_in_progress = True
                     # Start extraction in background
                     asyncio.create_task(self._attempt_extraction())
 
@@ -118,7 +139,7 @@ class TokenExtractor:
             if not extracted_tokens:
                 extracted_tokens = await self._extract_from_js_bundles()
 
-            if extracted_tokens and len(extracted_tokens) >= 2:
+            if extracted_tokens and len(extracted_tokens) >= MIN_REQUIRED_TOKENS:
                 # Update cache with extracted tokens
                 async with self._lock:
                     self._cache.tokens = {
@@ -135,6 +156,10 @@ class TokenExtractor:
 
         except Exception as e:
             print(f"[Yupp TokenExtractor] Extraction failed: {e}")
+            if os.getenv("DEBUG_MODE", "").lower() == "true":
+                import traceback
+
+                traceback.print_exc()
             return False
         finally:
             async with self._lock:
@@ -183,12 +208,17 @@ class TokenExtractor:
             tokens = self._extract_tokens_from_html(text)
             if tokens:
                 print(
-                    f"[Yupp TokenExtractor] Extracted {len(tokens)} tokens from chat page"
+                    f"[Yupp TokenExtractor] Extracted {len(tokens)} tokens "
+                    f"from chat page"
                 )
                 return tokens
 
         except Exception as e:
             print(f"[Yupp TokenExtractor] Chat page extraction failed: {e}")
+            if os.getenv("DEBUG_MODE", "").lower() == "true":
+                import traceback
+
+                traceback.print_exc()
 
         return []
 
@@ -235,12 +265,17 @@ class TokenExtractor:
             tokens = self._extract_tokens_from_html(text)
             if tokens:
                 print(
-                    f"[Yupp TokenExtractor] Extracted {len(tokens)} tokens from main page"
+                    f"[Yupp TokenExtractor] Extracted {len(tokens)} tokens "
+                    f"from main page"
                 )
                 return tokens
 
         except Exception as e:
             print(f"[Yupp TokenExtractor] Main page extraction failed: {e}")
+            if os.getenv("DEBUG_MODE", "").lower() == "true":
+                import traceback
+
+                traceback.print_exc()
 
         return []
 
@@ -285,9 +320,10 @@ class TokenExtractor:
                                 js_text = await js_response.text()
 
                             tokens = self._extract_tokens_from_html(js_text)
-                            if tokens and len(tokens) >= 2:
+                            if tokens and len(tokens) >= MIN_REQUIRED_TOKENS:
                                 print(
-                                    f"[Yupp TokenExtractor] Extracted tokens from JS bundle: {script_url}"
+                                    f"[Yupp TokenExtractor] Extracted tokens "
+                                    f"from JS bundle: {script_url}"
                                 )
                                 return tokens
                         except Exception:
@@ -295,6 +331,10 @@ class TokenExtractor:
 
         except Exception as e:
             print(f"[Yupp TokenExtractor] JS bundle extraction failed: {e}")
+            if os.getenv("DEBUG_MODE", "").lower() == "true":
+                import traceback
+
+                traceback.print_exc()
 
         return []
 
@@ -318,8 +358,15 @@ class TokenExtractor:
     def _get_headers(self) -> Dict[str, str]:
         """Get request headers"""
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/webp,*/*;q=0.8"
+            ),
             "Accept-Language": "en-US,en;q=0.9",
         }
 
@@ -334,7 +381,8 @@ _token_extractor: Optional[TokenExtractor] = None
 
 
 def get_token_extractor(
-    jwt_token: Optional[str] = None, scraper=None
+    jwt_token: Optional[str] = None,
+    scraper: Optional["cloudscraper.CloudScraper"] = None,
 ) -> TokenExtractor:
     """Get or create the global token extractor instance"""
     global _token_extractor

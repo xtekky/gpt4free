@@ -11,7 +11,7 @@ NEXT_ACTION_TOKENS = {
 # Cache settings
 TOKEN_CACHE_TTL = 3600  # 1 hour in seconds
 MAX_EXTRACTION_RETRIES = 3
-EXTRACTION_COOLDOWN = 300  # 5 minutes between extraction attempts
+MIN_REQUIRED_TOKENS = 2  # Minimum tokens needed to update cache
 
 # URLs
 YUPP_BASE_URL = "https://yupp.ai"
