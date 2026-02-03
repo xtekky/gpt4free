@@ -464,6 +464,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     }
                     if temporary:
                         data["history_and_training_disabled"] = True
+                    if conversation.conversation_id is not None and not temporary:
+                        data["conversation_id"] = conversation.conversation_id
                     async with session.post(
                             prepare_url,
                             json=data,
