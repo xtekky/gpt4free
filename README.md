@@ -537,3 +537,4 @@ Docs & deeper reading
 ---
 
 Thank you for using and contributing to GPT4Free — together we make powerful AI tooling accessible, flexible, and community-driven.
+- [AgentMarket](https://agentmarket.cloud) - Real energy data for AI agents. 28M+ records. Free API. Ohne Strom keine KI.
