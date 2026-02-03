@@ -287,7 +287,7 @@ gpt_oss_120b = Model(
     name          = 'gpt-oss-120b',
     long_name     = 'openai/gpt-oss-120b',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Together, DeepInfra, HuggingFace, OpenRouter, Groq])
+    best_provider = IterListProvider([Together, HuggingFace, OpenRouter, Groq])
 )
 
 # dall-e

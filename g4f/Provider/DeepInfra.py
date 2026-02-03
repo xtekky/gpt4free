@@ -17,8 +17,6 @@ class DeepInfra(OpenaiTemplate):
     vision_models = [
         default_vision_model,
         'meta-llama/Llama-3.2-90B-Vision-Instruct',
-        'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
     ]
 
     model_aliases = {
