@@ -52,17 +52,31 @@ def add_chunk(content, chunk):
     return content
 
 def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
+    import g4f.debug
+    g4f.debug.log(f"resolve_media called with kwargs: {list(kwargs.keys())}, image: {image is not None}")
     if image is not None:
         kwargs["media"] = [(image, getattr(image, "name", image_name))]
+        g4f.debug.log(f"Set media from image: {len(kwargs['media'])} items")
     elif "images" in kwargs:
         kwargs["media"] = kwargs.pop("images")
+        g4f.debug.log(f"Set media from images: {len(kwargs['media'])} items")
+    elif "files" in kwargs:
+        kwargs["media"] = kwargs.pop("files")
+        g4f.debug.log(f"Set media from files: {len(kwargs['media'])} items")
     if kwargs.get("media") is None:
         kwargs.pop("media", None)
+        g4f.debug.log("Media is None, removed from kwargs")
     elif not isinstance(kwargs["media"], list):
         kwargs["media"] = [kwargs["media"]]
+        g4f.debug.log(f"Media converted to list: {len(kwargs['media'])} items")
     for idx, media in enumerate(kwargs.get("media", [])):
         if not isinstance(media, (list, tuple)):
             kwargs["media"][idx] = (media, getattr(media, "name", None))
+            g4f.debug.log(f"Media item {idx} converted to (bytes, filename) tuple")
+    if kwargs.get('media') is not None:
+        for item in kwargs.get('media'):
+            text = str(item)
+            g4f.debug.log(f"Final media (truncated): {text[0:100]}")
 
 # Synchronous iter_response function
 def iter_response(

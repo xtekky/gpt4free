@@ -13,6 +13,7 @@ from .Custom            import Custom
 from .Custom            import Feature
 from .DeepSeek          import DeepSeek
 from .DeepSeekAPI       import DeepSeekAPI
+from .DeepSeekAuth      import DeepSeekAuth
 from .FenayAI           import FenayAI
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro

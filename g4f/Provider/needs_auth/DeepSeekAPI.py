@@ -14,6 +14,7 @@ from ...typing import AsyncResult, Messages
 try:
     from dsk.api import DeepSeekAPI as DskAPI
     has_dsk = True
+    print("Imported dsk.api")
 except ImportError:
     has_dsk = False
 
@@ -59,7 +60,7 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
     ) -> AsyncResult:
         # Initialize with your auth token
         api = DskAPI(auth_result.get_dict())
-
+        print("Created internal api:", api)
         # Create a new chat session
         if conversation is None:
             chat_id = api.create_chat_session()
