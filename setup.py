@@ -120,6 +120,8 @@ setup(
             'g4f=g4f.cli:main',
             'g4f-mcp=g4f.mcp.server:main',
             'g4f-antigravity=g4f.Provider.needs_auth.Antigravity:cli_main',
+            'g4f-geminicli=g4f.Provider.needs_auth.GeminiCLI:cli_main',
+            'g4f-qwencode=g4f.Provider.qwen.QwenCode:cli_main',
         ],
     },
     url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
