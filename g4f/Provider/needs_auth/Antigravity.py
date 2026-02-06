@@ -1236,10 +1236,8 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 
     # Model aliases for compatibility
     model_aliases = {
-        "gemini-2.5-computer-use-preview-10-2025": "rev19-uic3-1p",
-        "gemini-3-pro-image-preview": "gemini-3-pro-image",
-        "claude-sonnet-4-5": "claude-sonnet-4.5",
-        "claude-opus-4-5": "claude-opus-4.5",
+        "claude-sonnet-4.5": "claude-sonnet-4-5",
+        "claude-opus-4.5": "claude-opus-4-5",
     }
 
     working = True
