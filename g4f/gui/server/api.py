@@ -257,8 +257,6 @@ class Api:
                     yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):
                     yield self._format_json("title", chunk.title)
-                elif isinstance(chunk, RequestLogin):
-                    yield self._format_json("login", str(chunk))
                 elif isinstance(chunk, Parameters):
                     yield self._format_json("parameters", chunk.get_dict())
                 elif isinstance(chunk, FinishReason):
