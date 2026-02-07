@@ -509,6 +509,12 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             {provider.__name__: provider for provider in providers}.values()
         )
 
+        # Free-first routing: if no api_key is provided, prioritize providers that
+        # don't require auth before trying auth-gated providers.
+        has_api_key = bool(api_key) or bool(kwargs.get("api_key"))
+        if not has_api_key:
+            providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
+
         if len(providers) == 0:
             raise ModelNotFoundError(
                 f"AnyProvider: Model {model} not found in any provider."
