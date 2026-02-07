@@ -19,18 +19,8 @@ except ImportError:
 
 from ..typing import Messages
 from ..providers.helper import filter_none
-from ..providers.asyncio import to_async_iterator
-from ..providers.response import (
-    Reasoning,
-    FinishReason,
-    Sources,
-    Usage,
-    ProviderInfo,
-    ToolCalls,
-    HiddenResponse,
-    JsonRequest,
-    JsonResponse,
-)
+from ..providers.asyncio import to_async_iterator, to_sync_generator
+from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
 from .web_search import do_search, get_search_message
@@ -260,164 +250,29 @@ async def async_iter_run_tools(
             "yes",
         )
 
+    stream = bool(kwargs.get("stream"))
     tools = kwargs.get("tools")
-    tool_choice = kwargs.get("tool_choice")
     if tool_emulation and tools and not tool_calls:
-        tool_defs = tools if isinstance(tools, list) else []
+        from ..providers.tool_support import ToolSupportProvider
 
-        names = []
-        schemas = {}
-        for t in tool_defs:
-            if not isinstance(t, dict) or t.get("type") != "function":
-                continue
-            fn = t.get("function")
-            if not isinstance(fn, dict):
-                continue
-            name = fn.get("name")
-            if not isinstance(name, str) or not name:
-                continue
-            names.append(name)
-            params = fn.get("parameters")
-            if isinstance(params, dict):
-                schemas[name] = params
-
-        if names:
-            instruction = {
-                "role": "system",
-                "content": "\n".join(
-                    [
-                        "You can call tools. If you need to use tools, respond with ONLY valid JSON (no markdown).",
-                        "Format:",
-                        '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
-                        "You may include multiple tool calls in the array.",
-                        "If no tool is needed, respond normally with plain text.",
-                        f"Available tools: {', '.join(names)}",
-                        ("Tool choice: " + str(tool_choice)) if tool_choice else "",
-                        ("Tool schemas: " + json.dumps(schemas, ensure_ascii=True))
-                        if schemas
-                        else "",
-                    ]
-                ).strip(),
-            }
-
-            emu_messages = [instruction]
-            try:
-                emu_messages.extend(messages)
-            except Exception:
-                emu_messages = [instruction]
-
-            # Non-stream upstream call, streamed to client by our wrapper.
-            text_parts = []
-            finish = None
-            emu_kwargs = dict(kwargs)
-            emu_kwargs.pop("tools", None)
-            emu_kwargs.pop("tool_choice", None)
-            emu_kwargs.pop("parallel_tool_calls", None)
-            # iter_run_tools passes `stream` via kwargs; avoid duplicate keyword.
-            emu_kwargs.pop("stream", None)
-            emu_kwargs.pop("stream_timeout", None)
-            # iter_run_tools passes `stream` via kwargs; avoid duplicate keyword.
-            emu_kwargs.pop("stream", None)
-            emu_kwargs.pop("stream_timeout", None)
-
-            response = to_async_iterator(
-                provider.async_create_function(
-                    model=model, messages=emu_messages, stream=False, **emu_kwargs
-                )
-            )
-            async for chunk in response:
-                if isinstance(chunk, FinishReason):
-                    finish = chunk
-                    continue
-                if isinstance(
-                    chunk,
-                    (
-                        HiddenResponse,
-                        Exception,
-                        JsonRequest,
-                        JsonResponse,
-                        Usage,
-                        ProviderInfo,
-                        Sources,
-                    ),
-                ):
-                    continue
-                if isinstance(chunk, str):
-                    text_parts.append(chunk)
-                else:
-                    text_parts.append(str(chunk))
-
-            raw_text = "".join(text_parts).strip()
-
-            def parse_json_maybe(s: str):
-                if not s:
-                    return None
-                try:
-                    return json.loads(s)
-                except Exception:
-                    pass
-                m = None
-                if "{" in s and "}" in s:
-                    m = re.search(r"\{[\s\S]*\}", s)
-                if m is None and "[" in s and "]" in s:
-                    m = re.search(r"\[[\s\S]*\]", s)
-                if not m:
-                    return None
-                try:
-                    return json.loads(m.group(0))
-                except Exception:
-                    return None
-
-            obj = parse_json_maybe(raw_text)
-            calls = None
-            if isinstance(obj, dict) and isinstance(obj.get("tool_calls"), list):
-                calls = obj.get("tool_calls")
-            elif isinstance(obj, dict) and ("name" in obj or "tool" in obj):
-                calls = [obj]
-            elif isinstance(obj, list):
-                calls = obj
-
-            openai_calls = []
-            if isinstance(calls, list):
-                idx = 0
-                for c in calls:
-                    if not isinstance(c, dict):
-                        continue
-                    name = c.get("name") or c.get("tool")
-                    if not isinstance(name, str) or not name:
-                        continue
-                    if name not in names:
-                        continue
-                    args = c.get("arguments")
-                    if isinstance(args, str):
-                        arguments_str = args
-                    else:
-                        try:
-                            arguments_str = json.dumps(
-                                args if isinstance(args, dict) else {},
-                                ensure_ascii=True,
-                            )
-                        except Exception:
-                            arguments_str = "{}"
-                    idx += 1
-                    openai_calls.append(
-                        {
-                            "id": f"call_{idx}",
-                            "type": "function",
-                            "function": {"name": name, "arguments": arguments_str},
-                        }
-                    )
-
-            if openai_calls:
-                yield ToolCalls(openai_calls)
-                yield FinishReason("tool_calls")
-                return
-
-            if raw_text:
-                yield raw_text
-            if finish is not None:
-                yield finish
-            return
+        emu_kwargs = dict(kwargs)
+        emu_kwargs.pop("tools", None)
+        tool_choice = emu_kwargs.pop("tool_choice", None)
+        emu_kwargs.pop("parallel_tool_calls", None)
+        emu_kwargs.pop("stream", None)
+        emu_kwargs.pop("stream_timeout", None)
+        async for chunk in ToolSupportProvider.create_async_generator(
+            model=model,
+            messages=messages,
+            stream=stream,
+            media=kwargs.get("media"),
+            tools=tools,
+            tool_choice=tool_choice,
+            provider=provider,
+            **emu_kwargs,
+        ):
+            yield chunk
+        return
 
     # Process web search
     sources = None
@@ -504,10 +359,6 @@ def iter_run_tools(
 ) -> Iterator:
     """Run tools synchronously and yield results"""
 
-    # Tool-call emulation (OpenAI tool_calls)
-    # Some upstream providers ignore the `tools` parameter. When enabled, we
-    # ask the model to emit a strict JSON tool call plan and convert it into
-    # OpenAI-compatible tool_calls.
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
         tool_emulation = os.environ.get("G4F_TOOL_EMULATION", "").strip().lower() in (
@@ -516,166 +367,31 @@ def iter_run_tools(
             "yes",
         )
 
+    stream = bool(kwargs.get("stream"))
     tools = kwargs.get("tools")
-    tool_choice = kwargs.get("tool_choice")
     if tool_emulation and tools and not tool_calls:
-        # Build tool index
-        tool_defs = []
-        try:
-            tool_defs = tools if isinstance(tools, list) else []
-        except Exception:
-            tool_defs = []
+        from ..providers.tool_support import ToolSupportProvider
 
-        names = []
-        schemas = {}
-        for t in tool_defs:
-            if not isinstance(t, dict):
-                continue
-            if t.get("type") != "function":
-                continue
-            fn = t.get("function")
-            if not isinstance(fn, dict):
-                continue
-            name = fn.get("name")
-            if not isinstance(name, str) or not name:
-                continue
-            names.append(name)
-            params = fn.get("parameters")
-            if isinstance(params, dict):
-                schemas[name] = params
-
-        if names:
-            instruction = {
-                "role": "system",
-                "content": "\n".join(
-                    [
-                        "You can call tools. If you need to use tools, respond with ONLY valid JSON (no markdown).",
-                        "Format:",
-                        '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
-                        "You may include multiple tool calls in the array.",
-                        "If no tool is needed, respond normally with plain text.",
-                        f"Available tools: {', '.join(names)}",
-                        ("Tool choice: " + str(tool_choice)) if tool_choice else "",
-                        ("Tool schemas: " + json.dumps(schemas, ensure_ascii=True))
-                        if schemas
-                        else "",
-                    ]
-                ).strip(),
-            }
-
-            emu_messages = [instruction]
-            try:
-                emu_messages.extend(messages)
-            except Exception:
-                emu_messages = [instruction]
-
-            # Call upstream provider once (non-stream) and decide.
-            text_parts = []
-            finish = None
-            emu_kwargs = dict(kwargs)
-            emu_kwargs.pop("tools", None)
-            emu_kwargs.pop("tool_choice", None)
-            emu_kwargs.pop("parallel_tool_calls", None)
-
-            for chunk in provider.create_function(
-                model=model, messages=emu_messages, stream=False, **emu_kwargs
-            ):
-                if isinstance(chunk, FinishReason):
-                    finish = chunk
-                    continue
-                if isinstance(
-                    chunk,
-                    (
-                        HiddenResponse,
-                        Exception,
-                        JsonRequest,
-                        JsonResponse,
-                        Usage,
-                        ProviderInfo,
-                    ),
-                ):
-                    continue
-                if isinstance(chunk, str):
-                    text_parts.append(chunk)
-                else:
-                    # pass-through non-string chunks
-                    text_parts.append(str(chunk))
-
-            raw_text = "".join(text_parts).strip()
-
-            def parse_json_maybe(s: str):
-                if not s:
-                    return None
-                try:
-                    return json.loads(s)
-                except Exception:
-                    pass
-                # try to extract the first JSON object/array
-                m = None
-                if "{" in s and "}" in s:
-                    m = re.search(r"\{[\s\S]*\}", s)
-                if m is None and "[" in s and "]" in s:
-                    m = re.search(r"\[[\s\S]*\]", s)
-                if not m:
-                    return None
-                try:
-                    return json.loads(m.group(0))
-                except Exception:
-                    return None
-
-            obj = parse_json_maybe(raw_text)
-            calls = None
-            if isinstance(obj, dict) and isinstance(obj.get("tool_calls"), list):
-                calls = obj.get("tool_calls")
-            elif isinstance(obj, dict) and ("name" in obj or "tool" in obj):
-                calls = [obj]
-            elif isinstance(obj, list):
-                calls = obj
-
-            openai_calls = []
-            if isinstance(calls, list):
-                idx = 0
-                for c in calls:
-                    if not isinstance(c, dict):
-                        continue
-                    name = c.get("name") or c.get("tool")
-                    if not isinstance(name, str) or not name:
-                        continue
-                    if name not in names:
-                        continue
-                    args = c.get("arguments")
-                    if isinstance(args, str):
-                        # If it's already a JSON string, keep it.
-                        arguments_str = args
-                    else:
-                        try:
-                            arguments_str = json.dumps(
-                                args if isinstance(args, dict) else {},
-                                ensure_ascii=True,
-                            )
-                        except Exception:
-                            arguments_str = "{}"
-                    idx += 1
-                    openai_calls.append(
-                        {
-                            "id": f"call_{idx}",
-                            "type": "function",
-                            "function": {"name": name, "arguments": arguments_str},
-                        }
-                    )
-
-            if openai_calls:
-                yield ToolCalls(openai_calls)
-                yield FinishReason("tool_calls")
-                return
-
-            # No tool calls detected: yield normal content
-            if raw_text:
-                yield raw_text
-            if finish is not None:
-                yield finish
-            return
-
+        emu_kwargs = dict(kwargs)
+        emu_kwargs.pop("tools", None)
+        tool_choice = emu_kwargs.pop("tool_choice", None)
+        emu_kwargs.pop("parallel_tool_calls", None)
+        emu_kwargs.pop("stream", None)
+        emu_kwargs.pop("stream_timeout", None)
+        yield from to_sync_generator(
+            ToolSupportProvider.create_async_generator(
+                model=model,
+                messages=messages,
+                stream=stream,
+                media=kwargs.get("media"),
+                tools=tools,
+                tool_choice=tool_choice,
+                provider=provider,
+                **emu_kwargs,
+            ),
+            stream=stream,
+        )
+        return
     # Process web search
     web_search = kwargs.get("web_search")
     sources = None
