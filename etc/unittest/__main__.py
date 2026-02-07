@@ -16,5 +16,6 @@ from .thinking import *
 from .web_search import *
 from .models import *
 from .mcp import *
+from .tool_support_provider import *
 
 unittest.main()

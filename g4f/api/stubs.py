@@ -5,6 +5,7 @@ from typing import Union, Optional
 
 from ..typing import Messages
 
+
 class RequestConfig(BaseModel):
     model: str = Field(default="")
     provider: Optional[str] = None
@@ -17,21 +18,33 @@ class RequestConfig(BaseModel):
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
     api_key: Optional[Union[str, dict[str, str]]] = None
-    base_url: str = None
+    base_url: Optional[str] = None
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
     conversation: Optional[dict] = None
     timeout: Optional[int] = None
     stream_timeout: Optional[int] = None
-    tool_calls: list = Field(default=[], examples=[[
-		{
-			"function": {
-				"arguments": {"query":"search query", "max_results":5, "max_words": 2500, "backend": "auto", "add_text": True, "timeout": 5},
-				"name": "search_tool"
-			},
-			"type": "function"
-		}
-	]])
+    tool_calls: list = Field(
+        default=[],
+        examples=[
+            [
+                {
+                    "function": {
+                        "arguments": {
+                            "query": "search query",
+                            "max_results": 5,
+                            "max_words": 2500,
+                            "backend": "auto",
+                            "add_text": True,
+                            "timeout": 5,
+                        },
+                        "name": "search_tool",
+                    },
+                    "type": "function",
+                }
+            ]
+        ],
+    )
     reasoning_effort: Optional[str] = None
     logit_bias: Optional[dict] = None
     modalities: Optional[list[str]] = None
@@ -40,20 +53,28 @@ class RequestConfig(BaseModel):
     download_media: bool = False
     raw: bool = False
     extra_body: Optional[dict] = None
+    # When set (or when env G4F_TOOL_EMULATION=1), the server will attempt to
+    # emulate OpenAI tool_calls for providers that don't support tools natively.
+    tool_emulation: Optional[bool] = None
+
 
 class ChatCompletionsConfig(RequestConfig):
-    messages: Messages = Field(examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]])
+    messages: Messages = Field(
+        examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]]
+    )
     stream: bool = False
     image: Optional[str] = None
     image_name: Optional[str] = None
     images: Optional[list[tuple[str, str]]] = None
-    tools: list = None
-    parallel_tool_calls: bool = None
+    tools: Optional[list] = None
+    parallel_tool_calls: Optional[bool] = None
     tool_choice: Optional[str] = None
     conversation_id: Optional[str] = None
 
+
 class ResponsesConfig(RequestConfig):
     input: Union[Messages, str]
+
 
 class ImageGenerationConfig(BaseModel):
     prompt: str
@@ -74,20 +95,21 @@ class ImageGenerationConfig(BaseModel):
     audio: Optional[dict] = None
     download_media: bool = True
 
-
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def parse_size(cls, values):
-        if values.get('width') is not None and values.get('height') is not None:
+        if values.get("width") is not None and values.get("height") is not None:
             return values
 
-        size = values.get('size')
+        size = values.get("size")
         if size:
             try:
-                width, height = map(int, size.split('x'))
-                values['width'] = width
-                values['height'] = height
-            except (ValueError, AttributeError): pass  # If the format is incorrect, we simply ignore it.
+                width, height = map(int, size.split("x"))
+                values["width"] = width
+                values["height"] = height
+            except (ValueError, AttributeError):
+                pass  # If the format is incorrect, we simply ignore it.
         return values
+
 
 class ProviderResponseModel(BaseModel):
     id: str
@@ -96,11 +118,13 @@ class ProviderResponseModel(BaseModel):
     url: Optional[str]
     label: Optional[str]
 
+
 class ProviderResponseDetailModel(ProviderResponseModel):
     models: list[str]
     image_models: list[str]
     vision_models: list[str]
     params: list[str]
+
 
 class ModelResponseModel(BaseModel):
     id: str
@@ -108,25 +132,31 @@ class ModelResponseModel(BaseModel):
     created: int
     owned_by: Optional[str]
 
+
 class UploadResponseModel(BaseModel):
     bucket_id: str
     url: str
+
 
 class ErrorResponseModel(BaseModel):
     error: ErrorResponseMessageModel
     model: Optional[str] = None
     provider: Optional[str] = None
 
+
 class ErrorResponseMessageModel(BaseModel):
     message: str
 
+
 class FileResponseModel(BaseModel):
     filename: str
+
 
 class TranscriptionResponseModel(BaseModel):
     text: str
     model: str
     provider: str
+
 
 class AudioSpeechConfig(BaseModel):
     input: str
