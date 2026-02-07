@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import json
+import os
 import math
 import asyncio
 import time
@@ -11,6 +12,7 @@ from typing import Optional, AsyncIterator, Iterator, Dict, Any, Tuple, List, Un
 
 try:
     from aiofile import async_open
+
     has_aiofile = True
 except ImportError:
     has_aiofile = False
@@ -18,7 +20,17 @@ except ImportError:
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_async_iterator
-from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
+from ..providers.response import (
+    Reasoning,
+    FinishReason,
+    Sources,
+    Usage,
+    ProviderInfo,
+    ToolCalls,
+    HiddenResponse,
+    JsonRequest,
+    JsonResponse,
+)
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
 from .web_search import do_search, get_search_message
@@ -34,12 +46,13 @@ Instruction: Make sure to add the sources of cites using [[domain]](Url) notatio
 TOOL_NAMES = {
     "SEARCH": "search_tool",
     "CONTINUE": "continue_tool",
-    "BUCKET": "bucket_tool"
+    "BUCKET": "bucket_tool",
 }
+
 
 class ToolHandler:
     """Handles processing of different tool types"""
-    
+
     @staticmethod
     def validate_arguments(data: dict) -> dict:
         """Validate and parse tool arguments"""
@@ -47,25 +60,28 @@ class ToolHandler:
             if isinstance(data["arguments"], str):
                 data["arguments"] = json.loads(data["arguments"])
             if not isinstance(data["arguments"], dict):
-                raise ValueError("Tool function arguments must be a dictionary or a json string")
+                raise ValueError(
+                    "Tool function arguments must be a dictionary or a json string"
+                )
             else:
                 return filter_none(**data["arguments"])
         else:
             return {}
-            
+
     @staticmethod
     async def process_search_tool(messages: Messages, tool: dict) -> Messages:
         """Process search tool requests"""
         messages = messages.copy()
         args = ToolHandler.validate_arguments(tool["function"])
         messages[-1]["content"], sources = await do_search(
-            messages[-1]["content"],
-            **args
+            messages[-1]["content"], **args
         )
         return messages, sources
-    
+
     @staticmethod
-    def process_continue_tool(messages: Messages, tool: dict, provider: Any) -> Tuple[Messages, Dict[str, Any]]:
+    def process_continue_tool(
+        messages: Messages, tool: dict, provider: Any
+    ) -> Tuple[Messages, Dict[str, Any]]:
         """Process continue tool requests"""
         kwargs = {}
         if provider not in ("OpenaiAccount", "HuggingFaceAPI"):
@@ -77,32 +93,36 @@ class ToolHandler:
             # Enable provider native continue
             kwargs["action"] = "continue"
         return messages, kwargs
-    
+
     @staticmethod
     def process_bucket_tool(messages: Messages, tool: dict) -> Messages:
         """Process bucket tool requests"""
         messages = messages.copy()
-        
+
         def on_bucket(match):
             return "".join(read_bucket(get_bucket_dir(match.group(1))))
-            
+
         has_bucket = False
         for message in messages:
             if "content" in message and isinstance(message["content"], str):
-                new_message_content = re.sub(r'{"bucket_id":\s*"([^"]*)"}', on_bucket, message["content"])
+                new_message_content = re.sub(
+                    r'{"bucket_id":\s*"([^"]*)"}', on_bucket, message["content"]
+                )
                 if new_message_content != message["content"]:
                     has_bucket = True
                     message["content"] = new_message_content
 
-        last_message_content = messages[-1]["content"]      
+        last_message_content = messages[-1]["content"]
         if has_bucket and isinstance(last_message_content, str):
             if "\nSource: " in last_message_content:
                 messages[-1]["content"] = last_message_content + BUCKET_INSTRUCTIONS
-                    
+
         return messages
 
     @staticmethod
-    async def process_tools(messages: Messages, tool_calls: List[dict], provider: Any) -> Tuple[Messages, Dict[str, Any]]:
+    async def process_tools(
+        messages: Messages, tool_calls: List[dict], provider: Any
+    ) -> Tuple[Messages, Dict[str, Any]]:
         """Process all tool calls and return updated messages and kwargs"""
         if not tool_calls:
             return messages, {}
@@ -119,10 +139,14 @@ class ToolHandler:
 
             debug.log(f"Processing tool call: {function_name}")
             if function_name == TOOL_NAMES["SEARCH"]:
-                messages, sources = await ToolHandler.process_search_tool(messages, tool)
+                messages, sources = await ToolHandler.process_search_tool(
+                    messages, tool
+                )
 
             elif function_name == TOOL_NAMES["CONTINUE"]:
-                messages, kwargs = ToolHandler.process_continue_tool(messages, tool, provider)
+                messages, kwargs = ToolHandler.process_continue_tool(
+                    messages, tool, provider
+                )
                 extra_kwargs.update(kwargs)
 
             elif function_name == TOOL_NAMES["BUCKET"]:
@@ -130,27 +154,30 @@ class ToolHandler:
 
         return messages, sources, extra_kwargs
 
+
 class ThinkingProcessor:
     """Processes thinking chunks"""
-    
+
     @staticmethod
-    def process_thinking_chunk(chunk: str, start_time: float = 0) -> Tuple[float, List[Union[str, Reasoning]]]:
+    def process_thinking_chunk(
+        chunk: str, start_time: float = 0
+    ) -> Tuple[float, List[Union[str, Reasoning]]]:
         """Process a thinking chunk and return timing and results."""
         results = []
-        
+
         # Handle non-thinking chunk
         if not start_time and "<think>" not in chunk and "</think>" not in chunk:
             return 0, [chunk]
-            
+
         # Handle thinking start
         if "<think>" in chunk and "`<think>`" not in chunk:
             before_think, *after = chunk.split("<think>", 1)
-            
+
             if before_think:
                 results.append(before_think)
-                
+
             results.append(Reasoning(status="🤔 Is thinking...", is_thinking="<think>"))
-            
+
             if after:
                 if "</think>" in after[0]:
                     after, *after_end = after[0].split("</think>", 1)
@@ -161,45 +188,55 @@ class ThinkingProcessor:
                     return 0, results
                 else:
                     results.append(Reasoning(after[0]))
-                
+
             return time.time(), results
-            
+
         # Handle thinking end
         if "</think>" in chunk:
             before_end, *after = chunk.split("</think>", 1)
-            
+
             if before_end:
                 results.append(Reasoning(before_end))
-                
+
             thinking_duration = time.time() - start_time if start_time > 0 else 0
 
-            status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else ""
+            status = (
+                f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else ""
+            )
             results.append(Reasoning(status=status, is_thinking="</think>"))
 
             # Make sure to handle text after the closing tag
             if after and after[0].strip():
                 results.append(after[0])
-                
+
             return 0, results
-            
+
         # Handle ongoing thinking
         if start_time:
             return start_time, [Reasoning(chunk)]
-            
+
         return start_time, [chunk]
 
 
-async def perform_web_search(messages: Messages, web_search_param: Any) -> Tuple[Messages, Optional[Sources]]:
+async def perform_web_search(
+    messages: Messages, web_search_param: Any
+) -> Tuple[Messages, Optional[Sources]]:
     """Perform web search and return updated messages and sources"""
     messages = messages.copy()
     sources = None
-    
+
     if not web_search_param:
         return messages, sources
-        
+
     try:
-        search_query = web_search_param if isinstance(web_search_param, str) and web_search_param != "true" else None
-        messages[-1]["content"], sources = await do_search(messages[-1]["content"], search_query)
+        search_query = (
+            web_search_param
+            if isinstance(web_search_param, str) and web_search_param != "true"
+            else None
+        )
+        messages[-1]["content"], sources = await do_search(
+            messages[-1]["content"], search_query
+        )
     except Exception as e:
         debug.error(f"Couldn't do web search:", e)
 
@@ -207,16 +244,178 @@ async def perform_web_search(messages: Messages, web_search_param: Any) -> Tuple
 
 
 async def async_iter_run_tools(
-    provider: ProviderType, 
-    model: str, 
-    messages: Messages, 
-    tool_calls: Optional[List[dict]] = None, 
-    **kwargs
+    provider: ProviderType,
+    model: str,
+    messages: Messages,
+    tool_calls: Optional[List[dict]] = None,
+    **kwargs,
 ) -> AsyncIterator:
     """Asynchronously run tools and yield results"""
+
+    tool_emulation = kwargs.pop("tool_emulation", None)
+    if tool_emulation is None:
+        tool_emulation = os.environ.get("G4F_TOOL_EMULATION", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+
+    tools = kwargs.get("tools")
+    tool_choice = kwargs.get("tool_choice")
+    if tool_emulation and tools and not tool_calls:
+        tool_defs = tools if isinstance(tools, list) else []
+
+        names = []
+        schemas = {}
+        for t in tool_defs:
+            if not isinstance(t, dict) or t.get("type") != "function":
+                continue
+            fn = t.get("function")
+            if not isinstance(fn, dict):
+                continue
+            name = fn.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            names.append(name)
+            params = fn.get("parameters")
+            if isinstance(params, dict):
+                schemas[name] = params
+
+        if names:
+            instruction = {
+                "role": "system",
+                "content": "\n".join(
+                    [
+                        "You can call tools. If you need to use tools, respond with ONLY valid JSON (no markdown).",
+                        "Format:",
+                        '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
+                        "You may include multiple tool calls in the array.",
+                        "If no tool is needed, respond normally with plain text.",
+                        f"Available tools: {', '.join(names)}",
+                        ("Tool choice: " + str(tool_choice)) if tool_choice else "",
+                        ("Tool schemas: " + json.dumps(schemas, ensure_ascii=True))
+                        if schemas
+                        else "",
+                    ]
+                ).strip(),
+            }
+
+            emu_messages = [instruction]
+            try:
+                emu_messages.extend(messages)
+            except Exception:
+                emu_messages = [instruction]
+
+            # Non-stream upstream call, streamed to client by our wrapper.
+            text_parts = []
+            finish = None
+            emu_kwargs = dict(kwargs)
+            emu_kwargs.pop("tools", None)
+            emu_kwargs.pop("tool_choice", None)
+            emu_kwargs.pop("parallel_tool_calls", None)
+
+            response = to_async_iterator(
+                provider.async_create_function(
+                    model=model, messages=emu_messages, stream=False, **emu_kwargs
+                )
+            )
+            async for chunk in response:
+                if isinstance(chunk, FinishReason):
+                    finish = chunk
+                    continue
+                if isinstance(
+                    chunk,
+                    (
+                        HiddenResponse,
+                        Exception,
+                        JsonRequest,
+                        JsonResponse,
+                        Usage,
+                        ProviderInfo,
+                        Sources,
+                    ),
+                ):
+                    continue
+                if isinstance(chunk, str):
+                    text_parts.append(chunk)
+                else:
+                    text_parts.append(str(chunk))
+
+            raw_text = "".join(text_parts).strip()
+
+            def parse_json_maybe(s: str):
+                if not s:
+                    return None
+                try:
+                    return json.loads(s)
+                except Exception:
+                    pass
+                m = None
+                if "{" in s and "}" in s:
+                    m = re.search(r"\{[\s\S]*\}", s)
+                if m is None and "[" in s and "]" in s:
+                    m = re.search(r"\[[\s\S]*\]", s)
+                if not m:
+                    return None
+                try:
+                    return json.loads(m.group(0))
+                except Exception:
+                    return None
+
+            obj = parse_json_maybe(raw_text)
+            calls = None
+            if isinstance(obj, dict) and isinstance(obj.get("tool_calls"), list):
+                calls = obj.get("tool_calls")
+            elif isinstance(obj, dict) and ("name" in obj or "tool" in obj):
+                calls = [obj]
+            elif isinstance(obj, list):
+                calls = obj
+
+            openai_calls = []
+            if isinstance(calls, list):
+                idx = 0
+                for c in calls:
+                    if not isinstance(c, dict):
+                        continue
+                    name = c.get("name") or c.get("tool")
+                    if not isinstance(name, str) or not name:
+                        continue
+                    if name not in names:
+                        continue
+                    args = c.get("arguments")
+                    if isinstance(args, str):
+                        arguments_str = args
+                    else:
+                        try:
+                            arguments_str = json.dumps(
+                                args if isinstance(args, dict) else {},
+                                ensure_ascii=True,
+                            )
+                        except Exception:
+                            arguments_str = "{}"
+                    idx += 1
+                    openai_calls.append(
+                        {
+                            "id": f"call_{idx}",
+                            "type": "function",
+                            "function": {"name": name, "arguments": arguments_str},
+                        }
+                    )
+
+            if openai_calls:
+                yield ToolCalls(openai_calls)
+                yield FinishReason("tool_calls")
+                return
+
+            if raw_text:
+                yield raw_text
+            if finish is not None:
+                yield finish
+            return
+
     # Process web search
     sources = None
-    web_search = kwargs.get('web_search')
+    web_search = kwargs.get("web_search")
     if web_search:
         debug.log(f"Performing web search with value: {web_search}")
         messages, sources = await perform_web_search(messages, web_search)
@@ -226,15 +425,19 @@ async def async_iter_run_tools(
         api_key = AuthManager.load_api_key(provider)
         if api_key:
             kwargs["api_key"] = api_key
-    
+
     # Process tool calls
     if tool_calls:
-        messages, sources, extra_kwargs = await ToolHandler.process_tools(messages, tool_calls, provider)
+        messages, sources, extra_kwargs = await ToolHandler.process_tools(
+            messages, tool_calls, provider
+        )
         kwargs.update(extra_kwargs)
-    
+
     # Generate response
-    response = to_async_iterator(provider.async_create_function(model=model, messages=messages, **kwargs))
-    
+    response = to_async_iterator(
+        provider.async_create_function(model=model, messages=messages, **kwargs)
+    )
+
     try:
         usage_model = model
         usage_provider = provider.__name__
@@ -250,7 +453,7 @@ async def async_iter_run_tools(
             elif isinstance(chunk, Sources):
                 sources = None
             elif isinstance(chunk, str):
-                completion_tokens += round(len(chunk.encode("utf-8"))/4)
+                completion_tokens += round(len(chunk.encode("utf-8")) / 4)
             elif isinstance(chunk, ProviderInfo):
                 usage_model = getattr(chunk, "model", usage_model)
                 usage_provider = getattr(chunk, "name", usage_provider)
@@ -260,7 +463,12 @@ async def async_iter_run_tools(
         if usage is None:
             usage = get_usage(messages, completion_tokens)
             yield usage
-        usage = {"user": kwargs.get("user"), "model": usage_model, "provider": usage_provider, **usage.get_dict()}
+        usage = {
+            "user": kwargs.get("user"),
+            "model": usage_model,
+            "provider": usage_provider,
+            **usage.get_dict(),
+        }
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)
@@ -280,28 +488,208 @@ async def async_iter_run_tools(
     if sources is not None:
         yield sources
 
+
 def iter_run_tools(
     provider: ProviderType,
     model: str,
     messages: Messages,
     tool_calls: Optional[List[dict]] = None,
-    **kwargs
+    **kwargs,
 ) -> Iterator:
     """Run tools synchronously and yield results"""
+
+    # Tool-call emulation (OpenAI tool_calls)
+    # Some upstream providers ignore the `tools` parameter. When enabled, we
+    # ask the model to emit a strict JSON tool call plan and convert it into
+    # OpenAI-compatible tool_calls.
+    tool_emulation = kwargs.pop("tool_emulation", None)
+    if tool_emulation is None:
+        tool_emulation = os.environ.get("G4F_TOOL_EMULATION", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+
+    tools = kwargs.get("tools")
+    tool_choice = kwargs.get("tool_choice")
+    if tool_emulation and tools and not tool_calls:
+        # Build tool index
+        tool_defs = []
+        try:
+            tool_defs = tools if isinstance(tools, list) else []
+        except Exception:
+            tool_defs = []
+
+        names = []
+        schemas = {}
+        for t in tool_defs:
+            if not isinstance(t, dict):
+                continue
+            if t.get("type") != "function":
+                continue
+            fn = t.get("function")
+            if not isinstance(fn, dict):
+                continue
+            name = fn.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            names.append(name)
+            params = fn.get("parameters")
+            if isinstance(params, dict):
+                schemas[name] = params
+
+        if names:
+            instruction = {
+                "role": "system",
+                "content": "\n".join(
+                    [
+                        "You can call tools. If you need to use tools, respond with ONLY valid JSON (no markdown).",
+                        "Format:",
+                        '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
+                        "You may include multiple tool calls in the array.",
+                        "If no tool is needed, respond normally with plain text.",
+                        f"Available tools: {', '.join(names)}",
+                        ("Tool choice: " + str(tool_choice)) if tool_choice else "",
+                        ("Tool schemas: " + json.dumps(schemas, ensure_ascii=True))
+                        if schemas
+                        else "",
+                    ]
+                ).strip(),
+            }
+
+            emu_messages = [instruction]
+            try:
+                emu_messages.extend(messages)
+            except Exception:
+                emu_messages = [instruction]
+
+            # Call upstream provider once (non-stream) and decide.
+            text_parts = []
+            finish = None
+            emu_kwargs = dict(kwargs)
+            emu_kwargs.pop("tools", None)
+            emu_kwargs.pop("tool_choice", None)
+            emu_kwargs.pop("parallel_tool_calls", None)
+
+            for chunk in provider.create_function(
+                model=model, messages=emu_messages, stream=False, **emu_kwargs
+            ):
+                if isinstance(chunk, FinishReason):
+                    finish = chunk
+                    continue
+                if isinstance(
+                    chunk,
+                    (
+                        HiddenResponse,
+                        Exception,
+                        JsonRequest,
+                        JsonResponse,
+                        Usage,
+                        ProviderInfo,
+                    ),
+                ):
+                    continue
+                if isinstance(chunk, str):
+                    text_parts.append(chunk)
+                else:
+                    # pass-through non-string chunks
+                    text_parts.append(str(chunk))
+
+            raw_text = "".join(text_parts).strip()
+
+            def parse_json_maybe(s: str):
+                if not s:
+                    return None
+                try:
+                    return json.loads(s)
+                except Exception:
+                    pass
+                # try to extract the first JSON object/array
+                m = None
+                if "{" in s and "}" in s:
+                    m = re.search(r"\{[\s\S]*\}", s)
+                if m is None and "[" in s and "]" in s:
+                    m = re.search(r"\[[\s\S]*\]", s)
+                if not m:
+                    return None
+                try:
+                    return json.loads(m.group(0))
+                except Exception:
+                    return None
+
+            obj = parse_json_maybe(raw_text)
+            calls = None
+            if isinstance(obj, dict) and isinstance(obj.get("tool_calls"), list):
+                calls = obj.get("tool_calls")
+            elif isinstance(obj, dict) and ("name" in obj or "tool" in obj):
+                calls = [obj]
+            elif isinstance(obj, list):
+                calls = obj
+
+            openai_calls = []
+            if isinstance(calls, list):
+                idx = 0
+                for c in calls:
+                    if not isinstance(c, dict):
+                        continue
+                    name = c.get("name") or c.get("tool")
+                    if not isinstance(name, str) or not name:
+                        continue
+                    if name not in names:
+                        continue
+                    args = c.get("arguments")
+                    if isinstance(args, str):
+                        # If it's already a JSON string, keep it.
+                        arguments_str = args
+                    else:
+                        try:
+                            arguments_str = json.dumps(
+                                args if isinstance(args, dict) else {},
+                                ensure_ascii=True,
+                            )
+                        except Exception:
+                            arguments_str = "{}"
+                    idx += 1
+                    openai_calls.append(
+                        {
+                            "id": f"call_{idx}",
+                            "type": "function",
+                            "function": {"name": name, "arguments": arguments_str},
+                        }
+                    )
+
+            if openai_calls:
+                yield ToolCalls(openai_calls)
+                yield FinishReason("tool_calls")
+                return
+
+            # No tool calls detected: yield normal content
+            if raw_text:
+                yield raw_text
+            if finish is not None:
+                yield finish
+            return
+
     # Process web search
-    web_search = kwargs.get('web_search')
+    web_search = kwargs.get("web_search")
     sources = None
-    
+
     if web_search:
         debug.log(f"Performing web search with value: {web_search}")
         try:
             messages = messages.copy()
-            search_query = web_search if isinstance(web_search, str) and web_search != "true" else None
+            search_query = (
+                web_search
+                if isinstance(web_search, str) and web_search != "true"
+                else None
+            )
             # Note: Using asyncio.run inside sync function is not ideal, but maintaining original pattern
-            messages[-1]["content"], sources = asyncio.run(do_search(messages[-1]["content"], search_query))
+            messages[-1]["content"], sources = asyncio.run(
+                do_search(messages[-1]["content"], search_query)
+            )
         except Exception as e:
             debug.error(f"Couldn't do web search:", e)
-    
+
     # Get API key if needed
     if not kwargs.get("api_key"):
         api_key = AuthManager.load_api_key(provider)
@@ -315,11 +703,13 @@ def iter_run_tools(
                 function_name = tool.get("function", {}).get("name")
                 debug.log(f"Processing tool call: {function_name}")
                 if function_name == TOOL_NAMES["SEARCH"]:
-                    tool["function"]["arguments"] = ToolHandler.validate_arguments(tool["function"])
+                    tool["function"]["arguments"] = ToolHandler.validate_arguments(
+                        tool["function"]
+                    )
                     messages[-1]["content"] = get_search_message(
                         messages[-1]["content"],
                         raise_search_exceptions=True,
-                        **tool["function"]["arguments"]
+                        **tool["function"]["arguments"],
                     )
                 elif function_name == TOOL_NAMES["CONTINUE"]:
                     if provider.__name__ not in ("OpenaiAccount", "HuggingFace"):
@@ -330,12 +720,18 @@ def iter_run_tools(
                         # Enable provider native continue
                         kwargs["action"] = "continue"
                 elif function_name == TOOL_NAMES["BUCKET"]:
+
                     def on_bucket(match):
                         return "".join(read_bucket(get_bucket_dir(match.group(1))))
+
                     has_bucket = False
                     for message in messages:
                         if "content" in message and isinstance(message["content"], str):
-                            new_message_content = re.sub(r'{"bucket_id":"([^"]*)"}', on_bucket, message["content"])
+                            new_message_content = re.sub(
+                                r'{"bucket_id":"([^"]*)"}',
+                                on_bucket,
+                                message["content"],
+                            )
                             if new_message_content != message["content"]:
                                 has_bucket = True
                                 message["content"] = new_message_content
@@ -343,7 +739,7 @@ def iter_run_tools(
                     if has_bucket and isinstance(last_message, str):
                         if "\nSource: " in last_message:
                             messages[-1]["content"] = last_message + BUCKET_INSTRUCTIONS
-    
+
     # Process response chunks
     try:
         thinking_start_time = 0
@@ -352,7 +748,9 @@ def iter_run_tools(
         usage_provider = provider.__name__
         completion_tokens = 0
         usage = None
-        for chunk in provider.create_function(model=model, messages=messages, provider=provider, **kwargs):
+        for chunk in provider.create_function(
+            model=model, messages=messages, provider=provider, **kwargs
+        ):
             if isinstance(chunk, FinishReason):
                 if sources is not None:
                     yield sources
@@ -362,7 +760,7 @@ def iter_run_tools(
             elif isinstance(chunk, Sources):
                 sources = None
             elif isinstance(chunk, str):
-                completion_tokens += round(len(chunk.encode("utf-8"))/4)
+                completion_tokens += round(len(chunk.encode("utf-8")) / 4)
             elif isinstance(chunk, ProviderInfo):
                 usage_model = getattr(chunk, "model", usage_model)
                 usage_provider = getattr(chunk, "name", usage_provider)
@@ -371,14 +769,21 @@ def iter_run_tools(
             if not isinstance(chunk, str):
                 yield chunk
                 continue
-                
-            thinking_start_time, results = processor.process_thinking_chunk(chunk, thinking_start_time)
+
+            thinking_start_time, results = processor.process_thinking_chunk(
+                chunk, thinking_start_time
+            )
             for result in results:
                 yield result
         if usage is None:
             usage = get_usage(messages, completion_tokens)
             yield usage
-        usage = {"user": kwargs.get("user"), "model": usage_model, "provider": usage_provider, **usage.get_dict()}
+        usage = {
+            "user": kwargs.get("user"),
+            "model": usage_model,
+            "provider": usage_provider,
+            **usage.get_dict(),
+        }
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)
@@ -393,26 +798,32 @@ def iter_run_tools(
     if sources is not None:
         yield sources
 
+
 def caculate_prompt_tokens(messages: Messages) -> int:
     """Calculate the total number of tokens in messages"""
-    token_count = 1 # Bos Token
+    token_count = 1  # Bos Token
     for message in messages:
         if isinstance(message.get("content"), str):
             token_count += math.floor(len(message["content"].encode("utf-8")) / 4)
-            token_count += 4 # Role and start/end message token
+            token_count += 4  # Role and start/end message token
         elif isinstance(message.get("content"), list):
             for item in message["content"]:
                 if isinstance(item, str):
                     token_count += math.floor(len(item.encode("utf-8")) / 4)
-                elif isinstance(item, dict) and "text" in item and isinstance(item["text"], str):
+                elif (
+                    isinstance(item, dict)
+                    and "text" in item
+                    and isinstance(item["text"], str)
+                ):
                     token_count += math.floor(len(item["text"].encode("utf-8")) / 4)
-                token_count += 4 # Role and start/end message token
+                token_count += 4  # Role and start/end message token
     return token_count
+
 
 def get_usage(messages: Messages, completion_tokens: int) -> Usage:
     prompt_tokens = caculate_prompt_tokens(messages)
     return Usage(
         completion_tokens=completion_tokens,
         prompt_tokens=prompt_tokens,
-        total_tokens=prompt_tokens + completion_tokens
+        total_tokens=prompt_tokens + completion_tokens,
     )
