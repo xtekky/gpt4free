@@ -313,6 +313,12 @@ async def async_iter_run_tools(
             emu_kwargs.pop("tools", None)
             emu_kwargs.pop("tool_choice", None)
             emu_kwargs.pop("parallel_tool_calls", None)
+            # iter_run_tools passes `stream` via kwargs; avoid duplicate keyword.
+            emu_kwargs.pop("stream", None)
+            emu_kwargs.pop("stream_timeout", None)
+            # iter_run_tools passes `stream` via kwargs; avoid duplicate keyword.
+            emu_kwargs.pop("stream", None)
+            emu_kwargs.pop("stream_timeout", None)
 
             response = to_async_iterator(
                 provider.async_create_function(
