@@ -88,10 +88,10 @@ if has_nodriver:
 
 class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena"
-    url = "https://lmarena.ai"
+    url = "https://arena.ai"
     share_url = None
-    create_evaluation = "https://lmarena.ai/nextjs-api/stream/create-evaluation"
-    post_to_evaluation = "https://lmarena.ai/nextjs-api/stream/post-to-evaluation/{id}"
+    create_evaluation = "https://arena.ai/nextjs-api/stream/create-evaluation"
+    post_to_evaluation = "https://arena.ai/nextjs-api/stream/post-to-evaluation/{id}"
     working = True
     active_by_default = True
     use_stream_timeout = False
@@ -370,7 +370,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         files = []
         if not media:
             return files
-        url = "https://lmarena.ai/?chat-modality=image"
+        url = "https://arena.ai/?chat-modality=image"
         async with StreamSession(**args, ) as session:
 
             for index, (_file, file_name) in enumerate(media):
@@ -389,7 +389,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 extension, file_type = detect_file_type(data_bytes)
                 file_name = file_name or f"file-{len(data_bytes)}{extension}"
                 # async with session.post(
-                #         url="https://lmarena.ai/?chat-modality=image",
+                #         url="https://arena.ai/?chat-modality=image",
                 #         json=[],
                 #         headers={
                 #             "accept": "text/x-component",
@@ -402,7 +402,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 #     await raise_for_status(response)
 
                 async with session.post(
-                        url="https://lmarena.ai/?chat-modality=image",
+                        url="https://arena.ai/?chat-modality=image",
                         json=[file_name, file_type],
                         headers={
                             "accept": "text/x-component",
