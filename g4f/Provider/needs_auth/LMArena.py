@@ -16,7 +16,6 @@ from g4f.image import to_bytes, detect_file_type
 
 try:
     import curl_cffi
-
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -230,7 +229,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 await click_trunstile(page)
             while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                 await asyncio.sleep(1)
-            while not await page.evaluate('document.querySelector(\'textarea\')'):
+            while not await page.evaluate('!!document.querySelector(\'textarea\')'):
                 await asyncio.sleep(1)
             captcha = await page.evaluate(
                 """window.grecaptcha.enterprise.execute('6Led_uYrAAAAAKjxDIF58fgFtX3t8loNAK85bW9I',  { action: 'chat_submit' }  );""",
