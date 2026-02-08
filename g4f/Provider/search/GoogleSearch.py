@@ -50,4 +50,4 @@ class GoogleSearch(AsyncGeneratorProvider, AuthFileMixin):
             await asyncio.sleep(1000)
         finally:
             if stop_browser is not None:
-                stop_browser()
+                await stop_browser()
