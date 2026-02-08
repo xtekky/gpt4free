@@ -53,7 +53,7 @@ class BrowserConfig:
     impersonate: str = "chrome"
     
     @staticmethod
-    def stop_browser():
+    async def stop_browser():
         return None
     
     browser_executable_path: str = None

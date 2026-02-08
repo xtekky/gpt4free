@@ -118,7 +118,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                 auth_result.cookies[c.name] = c.value
             await page.close()
         finally:
-            stop_browser()
+            await stop_browser()
         yield auth_result
 
     @classmethod

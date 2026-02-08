@@ -94,7 +94,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                         cookies[c.name] = c.value
                     await page.close()
                 finally:
-                    stop_browser()
+                    await stop_browser()
         async with StreamSession(
             proxy=proxy,
             impersonate="chrome",

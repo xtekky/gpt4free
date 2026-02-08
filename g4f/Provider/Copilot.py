@@ -385,10 +385,10 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
                 break
             elif needs_auth and next(filter(lambda x: "auth0" in x, cookies), None):
                 break
-        stop_browser()
+        await stop_browser()
         return access_token, useridentitytype, cookies
     finally:
-        stop_browser()
+        await stop_browser()
 
 def readHAR(url: str):
     api_key = None

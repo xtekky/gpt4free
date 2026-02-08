@@ -120,7 +120,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             await page.close()
             cls._cookies = cookies
         finally:
-            stop_browser()
+            await stop_browser()
 
     @classmethod
     async def start_auto_refresh(cls, proxy: str = None) -> None:

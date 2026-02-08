@@ -168,4 +168,4 @@ async def get_access_token_and_user_agent(url: str, proxy: str = None):
         await page.close()
         return access_token, user_agent
     finally:
-        stop_browser()
+        await stop_browser()

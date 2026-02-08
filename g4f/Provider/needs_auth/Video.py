@@ -120,7 +120,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             yield ContinueResponse("Timeout waiting for Video URL")
             page = await browser.get(cls.urls[model].format(quote(prompt)))
         except Exception as e:
-            stop_browser()
+            await stop_browser()
             debug.error(f"Error opening page:", e)
         if prompt not in RequestConfig.urls:
             RequestConfig.urls[prompt] = []
@@ -141,7 +141,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             if button:
                 break
             if idx == 299:
-                stop_browser()
+                await stop_browser()
                 raise RuntimeError("Failed to wait for user menu.")
         if model == "search" and page is not None:
             await page.send(nodriver.cdp.network.enable())
@@ -151,7 +151,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                 await asyncio.sleep(1)
         response = await RequestConfig.get_response(prompt, True)
         if response:
-            stop_browser()
+            await stop_browser()
             yield Reasoning(label="Found", status="")
             yield response
             return
@@ -229,7 +229,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     if idx == 59:
                         debug.error(e)
                 if idx == 59:
-                    stop_browser()
+                    await stop_browser()
                     raise RuntimeError("Failed to click 'New Video' button")
             await asyncio.sleep(3)
             if model != "search" and page is not None:
@@ -242,12 +242,12 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     await asyncio.sleep(2)
                     response = await RequestConfig.get_response(prompt, model=="search")
                     if response:
-                        stop_browser()
+                        await stop_browser()
                         yield Reasoning(label="Finished", status="")
                         yield response
                         return
                 if idx == 299:
-                    stop_browser()
+                    await stop_browser()
                     raise RuntimeError("Failed to get Video URL")
         finally:
-            stop_browser()
+            await stop_browser()
