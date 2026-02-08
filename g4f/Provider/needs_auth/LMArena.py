@@ -216,7 +216,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             # else:
             #     debug.log("No 'Agree' button found, skipping.")
             await asyncio.sleep(1)
-            element = await page.select('[style="display: grid;"]')
+            try:
+                element = await page.select('[style="display: grid;"]')
+            except TimeoutError:
+                element = None
             if element:
                 await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
             if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
