@@ -5,7 +5,7 @@ import asyncio
 import requests
 import json
 try:
-    import nodriver
+    import zendriver as nodriver
 except ImportError:
     pass
 

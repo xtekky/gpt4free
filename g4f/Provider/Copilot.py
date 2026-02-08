@@ -17,7 +17,7 @@ try:
 except ImportError:
     has_curl_cffi = False
 try:
-    import nodriver
+    import zendriver as nodriver
     has_nodriver = True
 except ImportError:
     has_nodriver = False

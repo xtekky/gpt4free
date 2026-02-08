@@ -28,10 +28,10 @@ try:
 except ImportError:
     has_webview = False
 try:
-    import nodriver
-    from nodriver.cdp.network import CookieParam
-    from nodriver.core.config import find_chrome_executable
-    from nodriver import Browser, Tab, util
+    import zendriver as nodriver
+    from zendriver.cdp.network import CookieParam
+    from zendriver.core.config import find_chrome_executable
+    from zendriver import Browser, Tab, util
 
     has_nodriver = True
 except ImportError:
@@ -166,7 +166,7 @@ async def get_nodriver(
 ) -> tuple[Browser, callable]:
     if not has_nodriver:
         raise MissingRequirementsError(
-            'Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
+            'Install "nodriver" and "platformdirs" package | pip install -U zendriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if user_data_dir and has_platformdirs else None
     if browser_executable_path is None:
         browser_executable_path = BrowserConfig.browser_executable_path

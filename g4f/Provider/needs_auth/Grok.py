@@ -8,7 +8,7 @@ import uuid
 from typing import Dict, Any, AsyncIterator
 
 try:
-    import nodriver
+    import zendriver as nodriver
 except ImportError:
     pass
 

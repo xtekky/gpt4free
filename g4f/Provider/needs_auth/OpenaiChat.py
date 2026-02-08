@@ -15,7 +15,7 @@ from typing import AsyncIterator, Iterator, Optional, Generator, Dict, Union, Li
 from ...requests.curl_cffi import AsyncSession
 
 try:
-    import nodriver
+    import zendriver as nodriver
 
     has_nodriver = True
 except ImportError:

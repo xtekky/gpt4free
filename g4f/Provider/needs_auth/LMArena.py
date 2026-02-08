@@ -22,8 +22,8 @@ except ImportError:
     has_curl_cffi = False
 
 try:
-    import nodriver
-    from nodriver import cdp
+    import zendriver as nodriver
+    from zendriver import cdp
     has_nodriver = True
 except ImportError:
     has_nodriver = False

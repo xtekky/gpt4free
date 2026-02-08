@@ -53,7 +53,7 @@ except ImportError:
     class Annotated:
         pass
 try:
-    from nodriver import util
+    from zendriver import util
     has_nodriver = True
 except ImportError:
     has_nodriver = False

@@ -9,8 +9,8 @@ from urllib.parse import quote, quote_plus
 from aiohttp import ClientSession
 
 try:
-    import nodriver
-    from nodriver.core.connection import ProtocolException
+    import zendriver as nodriver
+    from zendriver.core.connection import ProtocolException
     has_nodriver = True
 except:
     has_nodriver = False
