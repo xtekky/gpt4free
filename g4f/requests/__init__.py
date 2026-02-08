@@ -30,14 +30,12 @@ except ImportError:
 try:
     import zendriver as nodriver
     from zendriver.cdp.network import CookieParam
-    from zendriver.core.config import find_chrome_executable
+    from zendriver.core.config import find_executable
     from zendriver import Browser, Tab, util
-
     has_nodriver = True
 except ImportError:
     from typing import Type as Browser
     from typing import Type as Tab
-
     has_nodriver = False
 try:
     from platformdirs import user_config_dir
@@ -166,13 +164,13 @@ async def get_nodriver(
 ) -> tuple[Browser, callable]:
     if not has_nodriver:
         raise MissingRequirementsError(
-            'Install "nodriver" and "platformdirs" package | pip install -U zendriver platformdirs')
+            'Install "zendriver" and "platformdirs" package | pip install -U zendriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if user_data_dir and has_platformdirs else None
     if browser_executable_path is None:
         browser_executable_path = BrowserConfig.browser_executable_path
     if browser_executable_path is None:
         try:
-            browser_executable_path = find_chrome_executable()
+            browser_executable_path = find_executable()
         except FileNotFoundError:
             # Default to Edge if Chrome is not available.
             browser_executable_path = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
