@@ -99,6 +99,15 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     ) -> AsyncResult:
         if api_key is None and cls.api_key is not None:
             api_key = cls.api_key
+        
+        # FIX: Try loading server-side key via AuthManager (e.g. from environment)
+        # and prefer it over client-provided key if available.
+        # This handles the case where G4F requires *some* auth key (so api_key is not empty),
+        # but we want to use the Docker environment variable for the actual provider.
+        env_api_key = AuthManager.load_api_key(cls)
+        if env_api_key:
+            api_key = env_api_key
+
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
         async with StreamSession(
