@@ -18,6 +18,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     base_url = ""
     backup_url = None
     api_key = None
+    default_api_key = "secret"
     api_endpoint = None
     supports_message_history = True
     supports_system_message = True
@@ -104,9 +105,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         # and prefer it over client-provided key if available.
         # This handles the case where G4F requires *some* auth key (so api_key is not empty),
         # but we want to use the Docker environment variable for the actual provider.
-        env_api_key = AuthManager.load_api_key(cls)
-        if env_api_key:
-            api_key = env_api_key
+        if api_key is None or api_key == cls.default_api_key:
+            env_api_key = AuthManager.load_api_key(cls)
+            if env_api_key:
+                api_key = env_api_key
 
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
