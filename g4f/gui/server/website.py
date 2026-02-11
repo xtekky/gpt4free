@@ -67,9 +67,9 @@ def render(filename = "home", download_url: str = GITHUB_URL):
             if not cache_file.endswith(".js") and response.headers.get("Content-Type", "").startswith("application/javascript"):
                 cache_file += ".js"
             html = response.text
-            html = html.replace('"dist/', f"{STATIC_URL}/dist/")
-            html = html.replace('"/dist/', f"{STATIC_URL}/dist/")
-            html = html.replace('"../dist/', f"{STATIC_URL}/dist/")
+            html = html.replace('"../dist/', f"{STATIC_URL}dist/")
+            html = html.replace('"/dist/', f"{STATIC_URL}dist/")
+            html = html.replace('"dist/', f"{STATIC_URL}dist/")
         # html = html.replace(JSDELIVR_URL, "/")
         html = html.replace("{{ v }}", latest_version)
         if is_temp:
