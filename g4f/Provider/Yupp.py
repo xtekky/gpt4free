@@ -70,6 +70,7 @@ def create_scraper():
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
             "Accept": "text/x-component, */*",
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
@@ -364,7 +365,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 raise MissingAuthError(
                     "No Yupp accounts configured. Set YUPP_API_KEY environment variable."
                 )
-            manager = YuppModelManager(api_key=api_key, session=create_scraper())
+            manager = YuppModelManager(session=create_scraper(), api_key=api_key)
             models = manager.client.fetch_models()
             if models:
                 cls.models_tags = {
