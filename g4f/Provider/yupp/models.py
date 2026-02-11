@@ -17,14 +17,10 @@ class ModelConfig:
 class YuppAPIClient:
     """Yupp API client for fetching model data"""
     
-    def __init__(self, config: ModelConfig = None, api_key: str = None, session=None):
+    def __init__(self, session, config: ModelConfig = None, api_key: str = None):
         self.config = config or ModelConfig()
         self.api_key = api_key
-        if session is None:
-            self.session = requests.Session()
-            self._setup_session()
-        else:
-            self.session = session
+        self.session = session
         self._set_cookies()
 
     def _setup_session(self) -> None:
@@ -229,7 +225,7 @@ class YuppModelManager:
     
     def __init__(self, session, config: ModelConfig = None, api_key: str = None):
         self.config = config or ModelConfig()
-        self.client = YuppAPIClient(config, api_key, session)
+        self.client = YuppAPIClient(session, self.config, api_key)
         self.processor = ModelProcessor()
         self.data_manager = DataManager()
     
