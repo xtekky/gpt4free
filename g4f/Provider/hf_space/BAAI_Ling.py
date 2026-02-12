@@ -13,10 +13,10 @@ from ... import debug
 
 class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Ling & Ring Playground"
-    url = "https://cafe3310-ling-playground.hf.space"
+    url = "https://cafe3310-ling-series-spaces.hf.space"
     api_endpoint = f"{url}/gradio_api/queue/join"
 
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = False
@@ -67,9 +67,33 @@ class BAAI_Ling(AsyncGeneratorProvider, ProviderModelMixin):
             ],
             "event_data": None,
             "fn_index": 11,
-            "trigger_id": 14,
+            "trigger_id": 33,
             "session_hash": conversation.session_hash
         }
+        payload = {
+    "data": [
+        "4aa9d0c6-81c2-4274-91c5-a0d96d827916",
+        [
+            {
+                "id": "4aa9d0c6-81c2-4274-91c5-a0d96d827917",
+                "title": "(New Conversation)",
+                "messages": [],
+                "timestamp": "2026-02-11T23:28:14.398499",
+                "system_prompt": "",
+                "model": "🦉 Ling-1T",
+                "temperature": 0.7
+            }
+        ],
+        "🦉 Ling-1T",
+        "hi",
+        [],
+        "",
+        0.7
+    ],
+    "fn_index": 11,
+    "trigger_id": 33,
+    "session_hash": "bis3t7jioto"
+}
 
         async with aiohttp.ClientSession() as session:
             async with session.post(cls.api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
