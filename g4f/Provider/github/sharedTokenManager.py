@@ -32,7 +32,7 @@ class TokenManagerError(Exception):
 
 
 class SharedTokenManager(AuthFileMixin):
-    parent = "GithubCopilotOAuth"
+    parent = "GithubCopilot"
     _instance: Optional["SharedTokenManager"] = None
     _lock = threading.Lock()
 
