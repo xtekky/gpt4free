@@ -25,6 +25,7 @@ from ..tools.media import render_messages
 from ..tools.run_tools import AuthManager
 from ..cookies import get_cookies_dir
 from ..tools.files import secure_filename
+from ..config import AppConfig
 from .template.OpenaiTemplate import read_response
 from .. import debug
 
@@ -104,7 +105,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 return model.get("name")
             return str(alias).replace("-instruct", "").replace("qwen-", "qwen").replace("qwen", "qwen-")
         
-        if not api_key:
+        if not api_key or AppConfig.disable_custom_api_key:
             api_key = AuthManager.load_api_key(cls)
         if (not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_")) and cls.balance or cls.balance is None and cls.get_balance(api_key, timeout) and cls.balance > 0:
             debug.log(f"Authenticated with Pollinations AI using G4F API.")

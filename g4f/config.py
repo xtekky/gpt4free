@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 from functools import lru_cache
+from typing import Optional
 
 @lru_cache(maxsize=1)
 def get_config_dir() -> Path:
@@ -32,3 +33,35 @@ DEFAULT_MODEL = "openai/gpt-oss-120b"
 JSDELIVR_URL = "https://cdn.jsdelivr.net/"
 DOWNLOAD_URL = f"{JSDELIVR_URL}gh/{ORGANIZATION}/{STATIC_DOMAIN}/"
 GITHUB_URL = f"https://raw.githubusercontent.com/{ORGANIZATION}/{STATIC_DOMAIN}/refs/heads/main/"
+
+class AppConfig:
+    ignored_providers: Optional[list[str]] = None
+    g4f_api_key: Optional[str] = None
+    ignore_cookie_files: bool = False
+    model: str = None
+    provider: str = None
+    media_provider: str = None
+    proxy: str = None
+    gui: bool = False
+    demo: bool = False
+    timeout: int = DEFAULT_TIMEOUT
+    stream_timeout: int = DEFAULT_STREAM_TIMEOUT
+    disable_custom_api_key: bool = False
+    disable_custom_base_url: bool = False
+
+    @classmethod
+    def set_config(cls, **data):
+        for key, value in data.items():
+            if value is not None:
+                setattr(cls, key, value)
+
+    @classmethod
+    def load_from_env(cls):
+        cls.g4f_api_key = os.environ.get("G4F_API_KEY", cls.g4f_api_key)
+        cls.timeout = int(os.environ.get("G4F_TIMEOUT", cls.timeout))
+        cls.stream_timeout = int(os.environ.get("G4F_STREAM_TIMEOUT", cls.stream_timeout))
+        cls.proxy = os.environ.get("G4F_PROXY", cls.proxy)
+        cls.model = os.environ.get("G4F_MODEL", cls.model)
+        cls.provider = os.environ.get("G4F_PROVIDER", cls.provider)
+        cls.disable_custom_base_url = os.environ.get("G4F_DISABLE_CUSTOM_BASE_URL", str(cls.disable_custom_base_url)).lower() in ("true", "1", "yes")
+        cls.disable_custom_api_key = os.environ.get("G4F_DISABLE_CUSTOM_API_KEY", str(cls.disable_custom_api_key)).lower() in ("true", "1", "yes")

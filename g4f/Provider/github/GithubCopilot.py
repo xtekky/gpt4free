@@ -9,7 +9,7 @@ from typing import Optional
 
 from ...typing import Messages, AsyncResult
 from ..template import OpenaiTemplate
-from .githubOAuth2 import GithubOAuth2Client
+from ...providers.asyncio import get_running_loop
 from .copilotTokenProvider import CopilotTokenProvider, EDITOR_VERSION, EDITOR_PLUGIN_VERSION
 from .sharedTokenManager import TokenManagerError, SharedTokenManager
 from .oauthFlow import launch_browser_for_oauth
@@ -46,7 +46,7 @@ class GithubCopilot(OpenaiTemplate):
     default_model = "gpt-4.1"
     base_url = "https://api.githubcopilot.com"
     
-    models = [
+    fallback_models = [
         # GPT-5 Series
         "gpt-5",
         "gpt-5-mini",
@@ -115,7 +115,6 @@ class GithubCopilot(OpenaiTemplate):
         messages: Messages,
         api_key: str = None,
         base_url: str = None,
-        headers: dict = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -140,6 +139,39 @@ class GithubCopilot(OpenaiTemplate):
                     ) from e
                 raise
         
+        # Use parent class for actual API calls
+        async for chunk in super().create_async_generator(
+            model,
+            messages,
+            api_key=api_key,
+            base_url=base_url or cls.base_url,
+            **kwargs
+        ):
+            yield chunk
+
+    @classmethod
+    def get_models(cls, api_key = None, base_url = None, timeout = None):
+        # If no API key provided, use OAuth token
+        if api_key is None:
+            try:
+                token_provider = cls._get_token_provider()
+                get_running_loop(check_nested=True)
+                creds = asyncio.run(token_provider.get_valid_token())
+                api_key = creds.get("token")
+                if not base_url:
+                    base_url = creds.get("endpoint", cls.base_url)
+            except TokenManagerError as e:
+                if "login" in str(e).lower() or "credentials" in str(e).lower():
+                    raise RuntimeError(
+                        "GitHub Copilot OAuth not configured. "
+                        "Please run 'g4f-github-copilot login' to authenticate."
+                    ) from e
+                raise
+        return super().get_models(api_key, base_url, timeout)
+
+    @classmethod
+    def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
+        headers = super().get_headers(stream, api_key, headers)
         # Add required Copilot headers
         copilot_headers = {
             "Editor-Version": EDITOR_VERSION,
@@ -150,17 +182,7 @@ class GithubCopilot(OpenaiTemplate):
         }
         if headers:
             copilot_headers.update(headers)
-        
-        # Use parent class for actual API calls
-        async for chunk in super().create_async_generator(
-            model,
-            messages,
-            api_key=api_key,
-            base_url=base_url or cls.base_url,
-            headers=copilot_headers,
-            **kwargs
-        ):
-            yield chunk
+        return copilot_headers
 
     @classmethod
     async def login(cls, credentials_path: Optional[Path] = None) -> SharedTokenManager:

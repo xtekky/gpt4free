@@ -9,6 +9,7 @@ from ...requests import StreamSession, raise_for_status
 from ...providers.response import Usage, Reasoning
 from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
+from ...config import AppConfig
 
 class Ollama(OpenaiTemplate):
     label = "Ollama 🦙"
@@ -28,7 +29,7 @@ class Ollama(OpenaiTemplate):
     def get_models(cls, api_key: str = None, base_url: str = None, **kwargs):
         if not cls.models:
             cls.models = []
-            if not api_key:
+            if not api_key or AppConfig.disable_custom_api_key:
                 api_key = AuthManager.load_api_key(cls)
             models = requests.get("https://ollama.com/api/tags").json()["models"]
             if models:

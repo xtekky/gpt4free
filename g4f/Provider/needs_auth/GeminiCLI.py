@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 import json
 import base64
@@ -429,15 +430,77 @@ class GeminiCLIProvider():
             if project:
                 self._project_id = project
                 return project
-            raise RuntimeError(
-                "Project ID discovery failed - set GEMINI_PROJECT_ID in environment."
+            project = await self.onboard_managed_project(
+                access_token=self.auth_manager.get_access_token(),
+                tier_id="free-tier"
             )
+            if project:
+                self._project_id = project
+                return project
+            raise RuntimeError("No project information found in API response.")
         except Exception as e:
             debug.error(f"Failed to discover project ID: {e}")
             raise RuntimeError(
                 "Could not discover project ID. Ensure authentication or set GEMINI_PROJECT_ID."
             )
 
+    async def onboard_managed_project(self, access_token: str, tier_id: str, project_id: Optional[str] = "default-project", attempts: int = 10, delay_ms: int = 5000) -> Optional[str]:
+        """
+        Onboard a managed project for the user, optionally retrying until completion.
+
+        Args:
+            access_token (str): Bearer token for authorization.
+            tier_id (str): Tier ID to use for onboarding.
+            project_id (Optional[str]): Optional project ID to onboard.
+            attempts (int): Number of retry attempts.
+            delay_ms (int): Delay between retries in milliseconds.
+
+        Returns:
+            Optional[str]: Managed project ID if successful, None otherwise.
+        """
+        metadata = {
+            "ideType": "ANTIGRAVITY",
+            "pluginType": "GEMINI",
+        }
+        if project_id:
+            metadata["duetProject"] = project_id
+
+        request_body = {
+            "tierId": tier_id,
+            "metadata": metadata,
+        }
+
+        for attempt in range(attempts):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        f"{self.base_url}:onboardUser",
+                        headers={
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {access_token}",
+                            "User-Agent": "GeminiCLI/1.0.0",
+                        },
+                        json=request_body,
+                    ) as response:
+                        if response.ok:
+                            payload = await response.json()
+                            debug.log(f"Onboarding attempt {attempt + 1}: {payload}")
+                            managed_project_id = payload.get("response", {}).get("cloudaicompanionProject", {}).get("id")
+                            if payload.get("done") and managed_project_id:
+                                return managed_project_id
+                            if payload.get("done") and project_id:
+                                return project_id
+                        else:
+                            text = await response.text()
+                            debug.error(f"Onboarding attempt {attempt + 1} failed with status {response.status}: {text}")
+                        response.raise_for_status()
+            except Exception as e:
+                debug.error(f"Failed to onboard managed project: {e}")
+
+            await asyncio.sleep(delay_ms / 1000)
+
+        return None
+    
     @staticmethod
     def _messages_to_gemini_format(messages: list, media: MediaListType) -> Dict[str, Any]:
         format_messages = []
@@ -727,12 +790,45 @@ class GeminiCLIProvider():
                 if usage_metadata:
                     yield Usage(**usage_metadata)
 
+    async def retrieve_user_quota(self) -> Dict[str, Any]:
+        """
+        Retrieve user quota from the Gemini API.
+
+        Args:
+            access_token (str): Bearer token for authorization.
+            body (Dict[str, Any]): Request payload.
+
+        Returns:
+            Dict[str, Any]: Parsed JSON response containing user quota.
+        """
+        if not self.auth_manager.get_access_token():
+            await self.auth_manager.initialize_auth()
+
+        url = f"{self.base_url}:retrieveUserQuota"
+        headers = {
+            "Authorization": f"Bearer {self.auth_manager.get_access_token()}",
+            "Content-Type": "application/json",
+            "User-Agent": f"GeminiCLI/1.0.0/gemini-2.5-pro ({platform.system()}; {platform.machine()})",
+        }
+
+        project_id = await self.discover_project_id()
+        debug.log(f"Retrieving user quota for project: {project_id}")
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json={"project": project_id}) as response:
+                if response.ok:
+                    return await response.json()
+                else:
+                    error_body = await response.text()
+                    raise RuntimeError(f"Failed to retrieve user quota: {response.status} {error_body}")
+
+
 class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini CLI"
     login_url = "https://github.com/GewoonJaap/gemini-cli-openai"
 
     default_model = "gemini-3-pro-preview"
-    models = [
+    fallback_models = [
         "gemini-2.5-pro",
         "gemini-2.5-flash",
         "gemini-3-pro-preview"
@@ -748,12 +844,15 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_models(cls, **kwargs):
-        if cls.live == 0:
+        if not cls.models:
             if cls.auth_manager is None:
                 cls.auth_manager = AuthManager(env=os.environ)
             if cls.auth_manager.get_access_token() is not None:
                 cls.live += 1
-        return cls.models
+            provider = GeminiCLIProvider(env=os.environ, auth_manager=cls.auth_manager)
+            buckets = asyncio.run(provider.retrieve_user_quota())
+            cls.models = [bucket["modelId"] for bucket in buckets.get("buckets", [])]
+        return cls.models if cls.models else cls.fallback_models
 
     @classmethod
     async def create_async_generator(

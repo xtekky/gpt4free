@@ -11,6 +11,7 @@ from ...image.copy_images import save_response_media
 from ...providers.response import *
 from ...tools.media import render_messages
 from ...tools.run_tools import AuthManager
+from ...config import AppConfig
 from ...errors import MissingAuthError
 from ... import debug
 
@@ -43,7 +44,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             try:
                 if api_key is None and cls.api_key is not None:
                     api_key = cls.api_key
-                if not api_key:
+                if not api_key or AppConfig.disable_custom_api_key:
                     api_key = AuthManager.load_api_key(cls)
                 if base_url is None:
                     base_url = cls.base_url if cls.is_provider_api_key(api_key) else cls.backup_url

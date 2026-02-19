@@ -72,6 +72,7 @@ from g4f.providers.types import ProviderType
 from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
 from g4f.providers.any_model_map import model_map, vision_models, image_models, audio_models, video_models
+from g4f.config import AppConfig
 from g4f import Provider
 from g4f.gui import get_gui_app
 from .stubs import (
@@ -96,15 +97,14 @@ async def lifespan(app: FastAPI):
     # Read cookie files if not ignored
     if not AppConfig.ignore_cookie_files:
         read_cookie_files()
-    AppConfig.g4f_api_key = os.environ.get("G4F_API_KEY", AppConfig.g4f_api_key)
-    AppConfig.timeout = int(os.environ.get("G4F_TIMEOUT", AppConfig.timeout))
-    AppConfig.stream_timeout = int(os.environ.get("G4F_STREAM_TIMEOUT", AppConfig.stream_timeout))
+    else:
+        AppConfig.load_from_env()
     yield
     if has_nodriver:
         for browser in util.get_registered_instances():
             if browser.connection:
                 await browser.stop()
-        lock_file = os.path.join(get_cookies_dir(), ".nodriver_is_open")
+        lock_file = os.path.join(get_cookies_dir(), ".browser_is_open")
         if os.path.exists(lock_file):
             try:
                 os.remove(lock_file)
@@ -173,25 +173,6 @@ class ErrorResponse(Response):
 
     def render(self, content) -> bytes:
         return str(content).encode(errors="ignore")
-
-class AppConfig:
-    ignored_providers: Optional[list[str]] = None
-    g4f_api_key: Optional[str] = None
-    ignore_cookie_files: bool = False
-    model: str = None
-    provider: str = None
-    media_provider: str = None
-    proxy: str = None
-    gui: bool = False
-    demo: bool = False
-    timeout: int = DEFAULT_TIMEOUT
-    stream_timeout: int = DEFAULT_STREAM_TIMEOUT
-
-    @classmethod
-    def set_config(cls, **data):
-        for key, value in data.items():
-            if value is not None:
-                setattr(cls, key, value)
 
 def update_headers(request: Request, new_api_key: str = None, user: str = None) -> Request:
     new_headers = request.headers.mutablecopy()
@@ -460,6 +441,8 @@ class Api:
                     config.stream_timeout = AppConfig.stream_timeout
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
+                if AppConfig.disable_custom_base_url:
+                    config.base_url = None
 
                 conversation = config.conversation
                 if conversation:

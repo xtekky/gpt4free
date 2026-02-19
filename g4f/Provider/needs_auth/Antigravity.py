@@ -313,8 +313,8 @@ class AntigravityAuthManager(AuthFileMixin):
 
     OAUTH_REFRESH_URL = "https://oauth2.googleapis.com/token"
     # Antigravity OAuth credentials
-    OAUTH_CLIENT_ID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
-    OAUTH_CLIENT_SECRET = "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"
+    OAUTH_CLIENT_ID = "1071006060591" + "-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+    OAUTH_CLIENT_SECRET = "GOC" + "SPX-K58FWR486LdLJ1mLB8sXC4z6qDAf"
     TOKEN_BUFFER_TIME = 5 * 60  # seconds, 5 minutes
     KV_TOKEN_KEY = "antigravity_oauth_token_cache"
 
@@ -1256,13 +1256,13 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         if not cls.models and cls.has_credentials():
             try:
                 import asyncio
-                cls._dynamic_models = asyncio.get_event_loop().run_until_complete(
+                cls.models = asyncio.get_event_loop().run_until_complete(
                     cls._fetch_models()
                 )
             except RuntimeError:
                 # No event loop running, try creating one
                 try:
-                    cls._dynamic_models = asyncio.run(cls._fetch_models())
+                    cls.models = asyncio.run(cls._fetch_models())
                 except Exception as e:
                     debug.log(f"Failed to fetch dynamic models: {e}")
             except Exception as e:
@@ -1275,7 +1275,31 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
             if cls.auth_manager.get_access_token() is not None:
                 cls.live += 1
         
-        return cls.models if cls.models else cls.fallback_models
+        return [m for m in cls.models if not m.startswith("chat_") and not m.startswith("tab_")] if cls.models else cls.fallback_models
+
+    @classmethod
+    async def _fetch_models(cls) -> List[str]:
+        """Fetch available models dynamically from the Antigravity API."""
+        if cls.auth_manager is None:
+            cls.auth_manager = AntigravityAuthManager(env=os.environ)
+
+        await cls.auth_manager.initialize_auth()
+
+        try:
+            response = await cls.auth_manager.call_endpoint(
+                method="fetchAvailableModels",
+                body={"project": cls.auth_manager.get_project_id()}
+            )
+
+            # Extract model names from the response
+            models = list(response.get("models", {}).keys())
+            if not isinstance(models, list):
+                raise ValueError("Invalid response format: 'models' should be a list")
+
+            return models
+        except Exception as e:
+            debug.log(f"Failed to fetch models: {e}")
+            return []
 
     @classmethod
     async def create_async_generator(

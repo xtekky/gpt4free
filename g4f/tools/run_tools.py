@@ -23,6 +23,7 @@ from ..providers.asyncio import to_async_iterator, to_sync_generator
 from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
+from ..config import AppConfig
 from .web_search import do_search, get_search_message
 from .auth import AuthManager
 from .files import read_bucket, get_bucket_dir
@@ -282,7 +283,7 @@ async def async_iter_run_tools(
         messages, sources = await perform_web_search(messages, web_search)
 
     # Get API key
-    if not kwargs.get("api_key"):
+    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key:
         api_key = AuthManager.load_api_key(provider)
         if api_key:
             kwargs["api_key"] = api_key
@@ -413,7 +414,7 @@ def iter_run_tools(
             debug.error(f"Couldn't do web search:", e)
 
     # Get API key if needed
-    if not kwargs.get("api_key"):
+    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key:
         api_key = AuthManager.load_api_key(provider)
         if api_key:
             kwargs["api_key"] = api_key

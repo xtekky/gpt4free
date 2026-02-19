@@ -180,7 +180,7 @@ async def get_nodriver(
                 if not os.path.exists(browser_executable_path):
                     browser_executable_path = None
     debug.log(f"Browser executable path: {browser_executable_path}")
-    lock_file = Path(get_cookies_dir()) / ".nodriver_is_open"
+    lock_file = Path(get_cookies_dir()) / ".browser_is_open"
     if user_data_dir:
         lock_file.parent.mkdir(exist_ok=True)
         # Implement a short delay (milliseconds) to prevent race conditions.

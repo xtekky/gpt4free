@@ -7,6 +7,7 @@ from .types import BaseProvider, BaseRetryProvider, ProviderType
 from .response import ProviderInfo, JsonConversation, is_content
 from .. import debug
 from ..tools.run_tools import AuthManager
+from ..config import AppConfig
 from ..errors import RetryProviderError, RetryNoProviderError, MissingAuthError, NoValidHarFileError
 
 class RotatedProvider(BaseRetryProvider):
@@ -84,7 +85,7 @@ class RotatedProvider(BaseRetryProvider):
             
             extra_body = kwargs.copy()
             current_api_key = api_key.get(provider.get_parent()) if isinstance(api_key, dict) else api_key
-            if not current_api_key:
+            if not current_api_key or AppConfig.disable_custom_api_key:
                 current_api_key = AuthManager.load_api_key(provider)
             if current_api_key:
                 extra_body["api_key"] = current_api_key
@@ -143,7 +144,7 @@ class RotatedProvider(BaseRetryProvider):
             
             extra_body = kwargs.copy()
             current_api_key = api_key.get(provider.get_parent()) if isinstance(api_key, dict) else api_key
-            if not current_api_key:
+            if not current_api_key or AppConfig.disable_custom_api_key:
                 current_api_key = AuthManager.load_api_key(provider)
             if current_api_key:
                 extra_body["api_key"] = current_api_key
@@ -227,12 +228,11 @@ class IterListProvider(BaseRetryProvider):
             debug.log(f"Using provider: {provider.__name__} with model: {alias}")
             yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
-            if isinstance(api_key, dict):
-                api_key = api_key.get(provider.get_parent())
-            if not api_key:
-                api_key = AuthManager.load_api_key(provider)
-            if api_key:
-                extra_body["api_key"] = api_key
+            current_api_key = api_key.get(provider.get_parent()) if isinstance(api_key, dict) else api_key
+            if not current_api_key or AppConfig.disable_custom_api_key:
+                current_api_key = AuthManager.load_api_key(provider)
+            if current_api_key:
+                extra_body["api_key"] = current_api_key
             try:
                 response = provider.create_function(alias, messages, **extra_body)
                 for chunk in response:
@@ -275,13 +275,11 @@ class IterListProvider(BaseRetryProvider):
             debug.log(f"Using {provider.__name__} provider with model {alias}")
             yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
-            current_provider_api_key = None
-            if isinstance(api_key, dict):
-                current_provider_api_key = api_key.get(provider.get_parent())
-            if not api_key:
-                current_provider_api_key = AuthManager.load_api_key(provider)
-            if current_provider_api_key:
-                extra_body["api_key"] = current_provider_api_key
+            current_api_key = api_key.get(provider.get_parent()) if isinstance(api_key, dict) else api_key
+            if not current_api_key or AppConfig.disable_custom_api_key:
+                current_api_key = AuthManager.load_api_key(provider)
+            if current_api_key:
+                extra_body["api_key"] = current_api_key
             if conversation is not None and hasattr(conversation, provider.__name__):
                 extra_body["conversation"] = JsonConversation(**getattr(conversation, provider.__name__))
             try:
