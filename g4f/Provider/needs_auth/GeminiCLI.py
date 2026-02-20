@@ -855,7 +855,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models if cls.models else cls.fallback_models
 
     @classmethod
-    async def get_usage(cls) -> dict:
+    async def get_quota(cls) -> dict:
         if cls.auth_manager is None:
             cls.auth_manager = AuthManager(env=os.environ)
         provider = GeminiCLIProvider(env=os.environ, auth_manager=cls.auth_manager)

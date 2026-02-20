@@ -237,7 +237,7 @@ class GithubCopilot(OpenaiTemplate):
         return None
 
     @classmethod
-    async def get_usage(cls) -> dict:
+    async def get_quota(cls) -> dict:
         """
         Fetch and summarize current GitHub Copilot usage/quota information.
         Returns a dictionary with usage details or raises an exception on failure.

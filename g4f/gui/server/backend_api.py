@@ -259,10 +259,10 @@ class Backend_Api(Api):
                 provider_handler = convert_to_provider(provider)
             except ProviderNotFoundError:
                 return "Provider not found", 404
-            if not hasattr(provider_handler, "get_usage"):
-                return "Provider doesn't support get_usage", 500
+            if not hasattr(provider_handler, "get_quota"):
+                return "Provider doesn't support get_quota", 500
             try:
-                response_data = await provider_handler.get_usage()
+                response_data = await provider_handler.get_quota()
                 return jsonify(response_data)
             except MissingAuthError as e:
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
