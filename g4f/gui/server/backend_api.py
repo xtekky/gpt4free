@@ -262,7 +262,7 @@ class Backend_Api(Api):
             if not hasattr(provider_handler, "get_usage"):
                 return "Provider doesn't support get_usage", 500
             try:
-                response_data = await provider_handler.getUsage()
+                response_data = await provider_handler.get_usage()
                 return jsonify(response_data)
             except MissingAuthError as e:
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
