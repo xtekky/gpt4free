@@ -14,7 +14,6 @@ from .copilotTokenProvider import CopilotTokenProvider, EDITOR_VERSION, EDITOR_P
 from .sharedTokenManager import TokenManagerError, SharedTokenManager
 from .oauthFlow import launch_browser_for_oauth
 
-
 class GithubCopilot(OpenaiTemplate):
     """
     GitHub Copilot provider with OAuth authentication.
@@ -113,8 +112,8 @@ class GithubCopilot(OpenaiTemplate):
         cls,
         model: str,
         messages: Messages,
-        api_key: str = None,
-        base_url: str = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -129,13 +128,18 @@ class GithubCopilot(OpenaiTemplate):
                 token_provider = cls._get_token_provider()
                 creds = await token_provider.get_valid_token()
                 api_key = creds.get("token")
+                if not api_key:
+                    raise RuntimeError(
+                        "GitHub Copilot OAuth not configured. "
+                        "Please run 'g4f auth github-copilot' to authenticate."
+                    )
                 if not base_url:
                     base_url = creds.get("endpoint", cls.base_url)
             except TokenManagerError as e:
                 if "login" in str(e).lower() or "credentials" in str(e).lower():
                     raise RuntimeError(
                         "GitHub Copilot OAuth not configured. "
-                        "Please run 'g4f-github-copilot login' to authenticate."
+                        "Please run 'g4f auth github-copilot' to authenticate."
                     ) from e
                 raise
         
@@ -150,7 +154,7 @@ class GithubCopilot(OpenaiTemplate):
             yield chunk
 
     @classmethod
-    def get_models(cls, api_key = None, base_url = None, timeout = None):
+    def get_models(cls, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: Optional[int] = None):
         # If no API key provided, use OAuth token
         if api_key is None:
             try:
@@ -164,24 +168,24 @@ class GithubCopilot(OpenaiTemplate):
                 if "login" in str(e).lower() or "credentials" in str(e).lower():
                     raise RuntimeError(
                         "GitHub Copilot OAuth not configured. "
-                        "Please run 'g4f-github-copilot login' to authenticate."
+                        "Please run 'g4f auth github-copilot' to authenticate."
                     ) from e
                 raise
         return super().get_models(api_key, base_url, timeout)
 
     @classmethod
-    def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
-        headers = super().get_headers(stream, api_key, headers)
+    def get_headers(cls, stream: bool, api_key: str | None = None, headers: dict[str, str] | None = None) -> dict[str, str]:
+        headers_result = super().get_headers(stream, api_key or "", headers or {})
         # Add required Copilot headers
-        copilot_headers = {
+        copilot_headers: dict[str, str] = {
             "Editor-Version": EDITOR_VERSION,
             "Editor-Plugin-Version": EDITOR_PLUGIN_VERSION,
             "Openai-Organization": "github-copilot",
             "Copilot-Integration-Id": "vscode-chat",
             "X-GitHub-Api-Version": "2024-12-15",
         }
-        if headers:
-            copilot_headers.update(headers)
+        if headers_result:
+            copilot_headers.update(headers_result)
         return copilot_headers
 
     @classmethod

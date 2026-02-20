@@ -34,6 +34,7 @@ from ...errors import MissingAuthError
 from ...image.copy_images import save_response_media
 from ...image import to_bytes, is_data_an_media
 from ...providers.response import Usage, ImageResponse, ToolCalls, Reasoning
+from ...providers.asyncio import get_running_loop
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_connector, get_system_prompt, format_media_prompt
 from ... import debug
@@ -650,7 +651,57 @@ class AntigravityAuthManager(AuthFileMixin):
             except Exception as e:
                 debug.log(f"Project discovery failed at {base_url}: {e}")
                 continue
-        
+        # If discovery failed, attempt to onboard a managed project for the user.
+        # Read optional configuration from environment
+        attempts = int(os.environ.get("ANTIGRAVITY_ONBOARD_ATTEMPTS", "10"))
+        delay_seconds = float(os.environ.get("ANTIGRAVITY_ONBOARD_DELAY_S", "5"))
+        tier_id = os.environ.get("ANTIGRAVITY_TIER_ID", "free-tier")
+        # Use any preconfigured project id as metadata if available
+        configured_project = os.environ.get("ANTIGRAVITY_PROJECT_ID", "")
+
+        if tier_id:
+            onboard_request_body = {"tierId": tier_id, "metadata": {}}
+            if configured_project:
+                # include requested project id in metadata
+                onboard_request_body["metadata"]["cloudaicompanionProject"] = configured_project
+
+            # Try onboarding across endpoints with retries
+            for base_url in BASE_URLS:
+                for attempt in range(attempts):
+                    try:
+                        url = f"{base_url}:onboardUser"
+                        onboard_headers = {
+                            "Authorization": f"Bearer {access_token}",
+                            "Content-Type": "application/json",
+                            **ANTIGRAVITY_HEADERS,
+                        }
+                        async with session.post(url, headers=onboard_headers, json=onboard_request_body, timeout=timeout) as resp:
+                            if not resp.ok:
+                                print(f"Onboarding attempt {attempt+1} at {base_url} failed with status {resp.status}")
+                                print(await resp.text())
+                                # Stop attempts on this endpoint and try next base_url
+                                break
+
+                            payload = await resp.json()
+                            # payload.response?.cloudaicompanionProject?.id
+                            response_obj = payload.get("response") or {}
+                            managed = response_obj.get("cloudaicompanionProject")
+                            if isinstance(managed, dict):
+                                managed_id = managed.get("id")
+                            else:
+                                managed_id = None
+
+                            done = bool(payload.get("done", False))
+                            if done and managed_id:
+                                return managed_id
+                            if done and configured_project:
+                                return configured_project
+                    except Exception as e:
+                        debug.log(f"Failed to onboard managed project at {base_url}: {e}")
+                        break
+
+                    await asyncio.sleep(delay_seconds)
+
         return ""
 
     @classmethod
@@ -857,24 +908,18 @@ class AntigravityProvider:
 
         # Fall back to API discovery
         try:
-            load_response = await self.auth_manager.call_endpoint(
-                "loadCodeAssist",
-                {
-                    "cloudaicompanionProject": "default-project",
-                    "metadata": {"duetProject": "default-project"},
-                },
-                use_auth_headers=True,
-            )
+            access_token = self.auth_manager.get_access_token()
+            if not access_token:
+                raise RuntimeError("No valid access token available for project discovery")
             
-            # Handle both string and object formats for cloudaicompanionProject
-            project = load_response.get("cloudaicompanionProject")
-            if isinstance(project, dict):
-                project = project.get("id")
-            
+            async with aiohttp.ClientSession() as session:
+                project = await self.auth_manager._fetch_project_id(
+                    session=session,
+                    access_token=access_token
+                )
             if project:
                 self._project_id = project
                 return project
-            
             raise RuntimeError(
                 "Project ID discovery failed - set ANTIGRAVITY_PROJECT_ID in environment."
             )
@@ -1143,6 +1188,17 @@ class AntigravityProvider:
         async with ClientSession(headers=headers, timeout=timeout, connector=connector) as session:
             async with session.post(url, json=req_body) as resp:
                 if not resp.ok:
+                    if resp.status == 503:
+                        try:
+                            max_retry_delay = int(max([d.get("retryDelay", 0) for d in (await resp.json(content_type=None)).get("error", {}).get("details", [])]))
+                        except ValueError:
+                            max_retry_delay = 30  # Default retry delay if not specified
+                        debug.log(f"Received 503 error, retrying after {max_retry_delay}")
+                        await asyncio.sleep(max_retry_delay)
+                        resp = await session.post(url, json=req_body)
+                        if not resp.ok:
+                            debug.error(f"Retry after 503 failed with status {resp.status}")
+                if not resp.ok:
                     if resp.status == 401:
                         raise MissingAuthError("Unauthorized (401) from Antigravity API")
                     error_body = await resp.text()
@@ -1220,14 +1276,13 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://cloud.google.com/code-assist"
     url = "https://antigravity.google"
 
-    default_model = "gemini-3-pro-preview"
+    default_model = "gemini-3-flash"
     fallback_models = [
         # Gemini 2.5 models
         "gemini-2.5-pro",
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
         # Gemini 3 models
-        "gemini-3-pro-preview",
         "gemini-3-flash",
         # Claude models (via Antigravity proxy)
         "claude-sonnet-4.5",
@@ -1247,7 +1302,6 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
 
     auth_manager: AntigravityAuthManager = None
-    _dynamic_models: List[str] = None
 
     @classmethod
     def get_models(cls, **kwargs) -> List[str]:
@@ -1255,16 +1309,9 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         # Try to fetch models dynamically if we have credentials
         if not cls.models and cls.has_credentials():
             try:
-                import asyncio
-                cls.models = asyncio.get_event_loop().run_until_complete(
-                    cls._fetch_models()
-                )
-            except RuntimeError:
-                # No event loop running, try creating one
-                try:
-                    cls.models = asyncio.run(cls._fetch_models())
-                except Exception as e:
-                    debug.log(f"Failed to fetch dynamic models: {e}")
+                # Try to reuse current loop, fallback to asyncio.run when required
+                get_running_loop(check_nested=True)
+                cls.models = asyncio.run(cls._fetch_models())
             except Exception as e:
                 debug.log(f"Failed to fetch dynamic models: {e}")
         
