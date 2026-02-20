@@ -98,6 +98,10 @@ class Website:
                 'function': self._background,
                 'methods': ['GET', 'POST']
             },
+            '/home.html': {
+                'function': self._home,
+                'methods': ['GET', 'POST']
+            },
             '/chat/<filename>': {
                 'function': self._chat,
                 'methods': ['GET', 'POST']
@@ -135,6 +139,9 @@ class Website:
         return render(filename)
 
     def _background(self, filename = "background"):
+        return render(filename)
+
+    def _home(self, filename = "home"):
         return render(filename)
 
     def _chat(self, filename = ""):

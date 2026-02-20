@@ -4,14 +4,17 @@ import sys
 import json
 import time
 import asyncio
+import aiohttp
 from pathlib import Path
 from typing import Optional
 
 from ...typing import Messages, AsyncResult
+from ...errors import MissingAuthError
 from ..template import OpenaiTemplate
 from ...providers.asyncio import get_running_loop
-from .copilotTokenProvider import CopilotTokenProvider, EDITOR_VERSION, EDITOR_PLUGIN_VERSION
+from .copilotTokenProvider import CopilotTokenProvider, EDITOR_VERSION, EDITOR_PLUGIN_VERSION, USER_AGENT, API_VERSION
 from .sharedTokenManager import TokenManagerError, SharedTokenManager
+from .githubOAuth2 import GithubOAuth2Client
 from .oauthFlow import launch_browser_for_oauth
 
 
@@ -233,6 +236,35 @@ class GithubCopilot(OpenaiTemplate):
             pass
         return None
 
+    @classmethod
+    async def get_usage(cls) -> dict:
+        """
+        Fetch and summarize current GitHub Copilot usage/quota information.
+        Returns a dictionary with usage details or raises an exception on failure.
+        """
+        client = GithubOAuth2Client()
+        github_creds = await client.sharedManager.getValidCredentials(client)
+        if not github_creds or not github_creds.get("access_token"):
+            raise MissingAuthError("No GitHub OAuth token available. Please login first.")
+        
+        github_token = github_creds["access_token"]
+        url = f"https://api.github.com/copilot_internal/user"
+        headers = {
+            "Accept": "application/json",
+            "authorization": f"token {github_token}",
+            "editor-version": EDITOR_VERSION,
+            "editor-plugin-version": EDITOR_PLUGIN_VERSION,
+            "user-agent": USER_AGENT,
+            "x-github-api-version": API_VERSION,
+            "x-vscode-user-agent-library-version": "electron-fetch",
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"Failed to fetch Copilot usage: {resp.status} {text}")
+                usage = await resp.json()
+        return usage
 
 async def main():
     """CLI entry point for GitHub Copilot OAuth authentication."""
