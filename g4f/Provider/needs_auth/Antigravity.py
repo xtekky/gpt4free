@@ -1295,7 +1295,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
             return []
 
     @classmethod
-    async def get_quota(cls) -> dict:
+    async def get_quota(cls, api_key: Optional[str] = None) -> dict:
         """
         Fetch and summarize quota usage for Antigravity account.
         Returns a dict with OpenAI Usage keys if possible, or quota info.
