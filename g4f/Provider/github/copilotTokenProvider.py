@@ -14,7 +14,8 @@ from .sharedTokenManager import SharedTokenManager, TokenManagerError
 # Editor/Plugin version headers required by Copilot API
 EDITOR_VERSION = "vscode/1.95.0"
 EDITOR_PLUGIN_VERSION = "copilot/1.250.0"
-
+USER_AGENT = "GithubCopilot/1.250.0"
+API_VERSION = "2024-12-15"
 
 class CopilotTokenProvider:
     """Provides Copilot API tokens from GitHub OAuth credentials."""
@@ -55,11 +56,11 @@ class CopilotTokenProvider:
                 headers={
                     "Authorization": f"token {github_token}",
                     "Accept": "application/json",
-                    "User-Agent": "GithubCopilot/1.250.0",
+                    "User-Agent": USER_AGENT,
                     "Editor-Version": EDITOR_VERSION,
                     "Editor-Plugin-Version": EDITOR_PLUGIN_VERSION,
                     "Openai-Organization": "github-copilot",
-                    "X-GitHub-Api-Version": "2024-12-15",
+                    "X-GitHub-Api-Version": API_VERSION,
                 }
             ) as resp:
                 if resp.status == 401:

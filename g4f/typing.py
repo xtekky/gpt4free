@@ -17,8 +17,10 @@ from typing import (
     Optional,
     TYPE_CHECKING,
 )
-from typing_extensions import TypedDict
-
+try:
+    from typing_extensions import TypedDict
+except ImportError:
+    from typing import TypedDict
 # Only import PIL for type-checkers; no runtime dependency required.
 if TYPE_CHECKING:
     from PIL.Image import Image as PILImage

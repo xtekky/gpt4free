@@ -10,7 +10,7 @@ pillow
 platformdirs
 fastapi
 uvicorn
-flask
+flask[async]
 brotli
 beautifulsoup4
 setuptools

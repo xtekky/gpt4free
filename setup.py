@@ -28,7 +28,8 @@ EXTRA_REQUIRE = {
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
-        "werkzeug", "flask",       # gui
+        "werkzeug",
+        "flask[async]",            # gui
         "fastapi",                 # api
         "uvicorn",                 # api
         "nodriver",
@@ -48,7 +49,8 @@ EXTRA_REQUIRE = {
         "beautifulsoup4", # web_search and bing.create_images
         "aiohttp_socks",           # proxy
         "pillow",                  # image
-        "werkzeug", "flask",       # gui
+        "werkzeug",
+        "flask[async]",            # gui
         "fastapi",                 # api
         "uvicorn",                 # api
         "nodriver",
@@ -78,7 +80,7 @@ EXTRA_REQUIRE = {
         "a2wsgi",
     ],
     "gui": [
-        "werkzeug", "flask",
+        "werkzeug", "flask[async]",
         "beautifulsoup4", "pillow",
     ],
     "search": [

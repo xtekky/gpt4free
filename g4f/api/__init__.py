@@ -376,17 +376,38 @@ class Api:
             return {
                 "object": "list",
                 "data": [{
-                    "id": model,
+                    "id": model.get("id") if isinstance(model, dict) else model,
                     "object": "model",
                     "created": 0,
                     "owned_by": getattr(provider, "label", provider.__name__),
-                    "image": model in getattr(provider, "image_models", []),
-                    "vision": model in getattr(provider, "vision_models", []),
-                    "audio": model in getattr(provider, "audio_models", []),
-                    "video": model in getattr(provider, "video_models", []),
-                    "type": "image" if model in getattr(provider, "image_models", []) else "chat",
-                } for model in models]
+                    "image": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "image_models", []),
+                    "vision": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "vision_models", []),
+                    "audio": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "audio_models", []),
+                    "video": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "video_models", []),
+                    "type": "image" if (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "image_models", []) else "chat",
+                    **(model if isinstance(model, dict) else {})
+                } for model in (models.values() if isinstance(models, dict) else models)]
             }
+
+        # quota endpoint mimics backend-api/v2/quota but exposed on public API
+        @self.app.get("/api/{provider}/quota")
+        async def provider_quota(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
+            # provider must exist
+            if provider not in Provider.__map__:
+                return ErrorResponse.from_message("The provider does not exist.", 404)
+            provider_obj: ProviderType = Provider.__map__[provider]
+            if not hasattr(provider_obj, "get_quota"):
+                return ErrorResponse.from_message("Provider doesn't support get_quota", HTTP_500_INTERNAL_SERVER_ERROR)
+            try:
+                if credentials is not None and credentials.credentials != "secret":
+                    usage = await provider_obj.get_quota(api_key=credentials.credentials)
+                else:
+                    usage = await provider_obj.get_quota()
+                return usage
+            except MissingAuthError as e:
+                return ErrorResponse.from_message(f"{type(e).__name__}: {e}", HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                return ErrorResponse.from_message(f"{type(e).__name__}: {e}", HTTP_500_INTERNAL_SERVER_ERROR)
 
         @self.app.get("/v1/models/{model_name}", responses={
             HTTP_200_OK: {"model": ModelResponseModel},

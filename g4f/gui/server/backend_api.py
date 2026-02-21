@@ -253,6 +253,22 @@ class Backend_Api(Api):
             else:
                 return (jsonify({"error": {"message": "No usage data found for this date"}}), 404)
 
+        @app.route('/backend-api/v2/quota/<provider>', methods=['GET'])
+        async def get_quota(provider: str):
+            try:
+                provider_handler = convert_to_provider(provider)
+            except ProviderNotFoundError:
+                return "Provider not found", 404
+            if not hasattr(provider_handler, "get_quota"):
+                return "Provider doesn't support get_quota", 500
+            try:
+                response_data = await provider_handler.get_quota()
+                return jsonify(response_data)
+            except MissingAuthError as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+            except Exception as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+
         @app.route('/backend-api/v2/log', methods=['POST'])
         def add_log():
             cache_dir = Path(get_cookies_dir()) / ".logging"
