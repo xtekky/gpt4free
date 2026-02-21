@@ -9,6 +9,7 @@ import hashlib
 import asyncio
 import webbrowser
 import threading
+import platform
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union, Tuple
 from urllib.parse import urlencode, parse_qs, urlparse
@@ -22,6 +23,7 @@ from ...errors import MissingAuthError
 from ...image.copy_images import save_response_media
 from ...image import to_bytes, is_data_an_media
 from ...providers.response import Usage, ImageResponse, ToolCalls, Reasoning
+from ...providers.asyncio import get_running_loop
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_connector, get_system_prompt, format_media_prompt
 from ... import debug
@@ -54,6 +56,24 @@ def encode_oauth_state(verifier: str) -> str:
     """Encode OAuth state parameter with PKCE verifier."""
     payload = {"verifier": verifier}
     return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip('=')
+
+
+def get_gemini_cli_user_agent(model: str = "gemini-2.5-pro") -> str:
+    """Generate Gemini CLI user-agent string with platform and architecture.
+    
+    This user-agent is required to access CLI quota buckets instead of Antigravity buckets.
+    """
+    system_platform = platform.system().lower()
+    if system_platform == "darwin":
+        system_platform = "macos"
+    
+    arch = platform.machine().lower()
+    if arch == "x86_64":
+        arch = "x64"
+    elif arch == "arm64" or arch == "aarch64":
+        arch = "arm64"
+    
+    return f"GeminiCLI/1.0.0/{model} ({system_platform}; {arch})"
 
 
 def decode_oauth_state(state: str) -> Dict[str, str]:
@@ -369,11 +389,23 @@ class AuthManager(AuthFileMixin):
             return self._access_token
         return None
 
-    async def call_endpoint(self, method: str, body: Dict[str, Any], is_retry=False) -> Any:
+    async def call_endpoint(
+        self,
+        method: str,
+        body: Dict[str, Any],
+        is_retry=False,
+        user_agent: Optional[str] = None,
+    ) -> Any:
         """
         Call Google Code Assist API endpoint with JSON body.
 
         Automatically retries once on 401 Unauthorized by refreshing auth.
+        
+        Args:
+            method: API method name
+            body: Request body
+            is_retry: Whether this is a retry attempt
+            user_agent: Custom user-agent string (defaults to standard one)
         """
         if not self.get_access_token():
             await self.initialize_auth()
@@ -383,6 +415,8 @@ class AuthManager(AuthFileMixin):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.get_access_token()}",
         }
+        if user_agent:
+            headers["User-Agent"] = user_agent
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=headers, json=body) as resp:
@@ -390,7 +424,9 @@ class AuthManager(AuthFileMixin):
                     # Token likely expired, clear and retry once
                     await self.clear_token_cache()
                     await self.initialize_auth()
-                    return await self.call_endpoint(method, body, is_retry=True)
+                    return await self.call_endpoint(
+                        method, body, is_retry=True, user_agent=user_agent
+                    )
                 elif not resp.ok:
                     text = await resp.text()
                     raise RuntimeError(f"API call failed with status {resp.status}: {text}")
@@ -840,7 +876,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     needs_auth = True
     active_by_default = True
 
-    auth_manager: AuthManager = None
+    auth_manager: Optional[AuthManager] = None
 
     @classmethod
     def get_models(cls, **kwargs):

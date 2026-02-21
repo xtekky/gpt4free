@@ -10,7 +10,7 @@ import requests
 
 from pathlib import Path
 from typing import Optional, List, Dict
-from g4f.client import AsyncClient
+from g4f.client import AsyncClient, ClientFactory
 from g4f.providers.response import JsonConversation, MediaResponse, is_content
 from g4f.cookies import set_cookies_dir, read_cookie_files
 from g4f.Provider import ProviderUtils
@@ -253,7 +253,14 @@ async def run_args(input_val, args):
         set_cookies_dir(str(args.cookies_dir))
         read_cookie_files()
 
-        client = AsyncClient(provider=conv.provider)
+        client = ClientFactory.create_async_client(provider=conv.provider)
+
+        if input_val == "models":
+            models = client.models.get_all()
+            print("\nAvailable models:")
+            for m in models:
+                print(f"- {m}")
+            return
 
         if isinstance(args.edit, Path):
             file_to_edit = args.edit
