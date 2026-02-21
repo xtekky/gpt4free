@@ -252,6 +252,10 @@ class PerplexityEmulated(AsyncGeneratorProvider, ProviderModelMixin):
             # Check if this is a followup request (has session tokens)
             is_followup = hasattr(conversation, 'last_backend_uuid') and conversation.last_backend_uuid
             
+            debug.log(f"PerplexityEmulated: is_followup={is_followup}")
+            if is_followup:
+                debug.log(f"PerplexityEmulated: followup with last_backend_uuid={conversation.last_backend_uuid}, read_write_token={getattr(conversation, 'read_write_token', None)}")
+            
             # Generate new frontend_uuid for followup requests (browser does this)
             if is_followup:
                 conversation.frontend_uid = str(uuid.uuid4())
@@ -266,7 +270,7 @@ class PerplexityEmulated(AsyncGeneratorProvider, ProviderModelMixin):
                         "sources": ["web"],
                         "search_recency_filter": None,
                         "frontend_uuid": conversation.frontend_uid,
-                        "mode": "concise",
+                        "mode": "copilot",  # Match HAR - use copilot mode
                         "model_preference": model,
                         "is_related_query": False,
                         "is_sponsored": False,
@@ -274,7 +278,7 @@ class PerplexityEmulated(AsyncGeneratorProvider, ProviderModelMixin):
                         "prompt_source": "user",
                         "query_source": "home",
                         "is_incognito": False,
-                        "time_from_first_type": 15872,
+                        "time_from_first_type": 18361,  # Match HAR value
                         "local_search_enabled": False,
                         "use_schematized_api": True,
                         "send_back_text_in_streaming_api": False,
@@ -339,7 +343,7 @@ class PerplexityEmulated(AsyncGeneratorProvider, ProviderModelMixin):
                         "sources": ["web"],
                         "search_recency_filter": None,
                         "frontend_uuid": conversation.frontend_uid,  # New UUID for followup
-                        "mode": "concise",
+                        "mode": "copilot",  # Match HAR - use copilot mode
                         "model_preference": model,
                         "is_related_query": False,
                         "is_sponsored": False,
@@ -347,7 +351,7 @@ class PerplexityEmulated(AsyncGeneratorProvider, ProviderModelMixin):
                         "query_source": "followup",
                         "followup_source": "link",  # Critical for conversation continuity
                         "is_incognito": False,
-                        "time_from_first_type": 5106,  # Use HAR value for consistency
+                        "time_from_first_type": 8758,  # Match HAR value
                         "local_search_enabled": False,
                         "use_schematized_api": True,
                         "send_back_text_in_streaming_api": False,
@@ -492,6 +496,10 @@ class PerplexityEmulated(AsyncGeneratorProvider, ProviderModelMixin):
                         for item in json_data["related_query_items"]:
                             followups.append(item.get("text", ""))
                         yield SuggestedFollowups(followups)
+                
+                # Yield the updated conversation object at the end (critical for conversation continuity!)
+                # MetaClient only captures conversation when it's explicitly yielded
+                yield conversation
                 
                 debug.log("PerplexityEmulated: Request completed successfully")
                 debug.log(f"PerplexityEmulated: last_backend_uuid={getattr(conversation, 'last_backend_uuid', None)}, read_write_token={getattr(conversation, 'read_write_token', None)}")
