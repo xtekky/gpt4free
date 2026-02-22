@@ -119,11 +119,11 @@ class AbstractProvider(BaseProvider):
 
         def create_func() -> str:
             return concat_chunks(cls.create_completion(model, messages, **kwargs))
-
-        return await await_callback(
-            loop.run_in_executor(executor, create_func),
-            timeout=timeout
-        )
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(executor, create_func), timeout=timeout)
+        except TimeoutError:
+            raise
 
     @classmethod
     def create_function(cls, *args, **kwargs) -> CreateResult:
