@@ -124,7 +124,7 @@ class QwenCode(OpenaiTemplate):
         return None
 
 
-async def main():
+async def main(args: Optional[list[str]] = None):
     """CLI entry point for QwenCode authentication."""
     import argparse
     
@@ -150,7 +150,7 @@ Examples:
     # Logout command
     subparsers.add_parser("logout", help="Remove saved credentials")
     
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     
     if args.command == "login":
         try:
@@ -188,7 +188,7 @@ Examples:
                 print(f"  (Could not read credential details: {e})")
         else:
             print("✗ No credentials found")
-            print(f"\nRun 'g4f-qwencode login' to authenticate.")
+            print(f"\nRun 'g4f auth qwencode' to authenticate.")
         
         print()
     
@@ -224,9 +224,9 @@ Examples:
         parser.print_help()
 
 
-def cli_main():
+def cli_main(args: Optional[list[str]] = None):
     """Synchronous CLI entry point for setup.py console_scripts."""
-    asyncio.run(main())
+    asyncio.run(main(args))
 
 
 if __name__ == "__main__":

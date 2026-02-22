@@ -3,8 +3,8 @@ from argparse import ArgumentParser
 from ..cookies import BROWSERS
 from .. import Provider
 
-def gui_parser():
-    parser = ArgumentParser(description="Run the GUI")
+def gui_parser(exit_on_error: bool = True):
+    parser = ArgumentParser(description="Run the GUI", exit_on_error=exit_on_error)
     parser.add_argument("--host", type=str, default="0.0.0.0", help="hostname")
     parser.add_argument("--port", "-p", type=int, default=8080, help="port")
     parser.add_argument("--debug", "-d", "-debug", action="store_true", help="debug mode")

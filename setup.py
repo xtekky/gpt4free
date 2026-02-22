@@ -121,10 +121,6 @@ setup(
         'console_scripts': [
             'g4f=g4f.cli:main',
             'g4f-mcp=g4f.mcp.server:main',
-            'g4f-antigravity=g4f.Provider.needs_auth.Antigravity:cli_main',
-            'g4f-geminicli=g4f.Provider.needs_auth.GeminiCLI:cli_main',
-            'g4f-qwencode=g4f.Provider.qwen.QwenCode:cli_main',
-            'g4f-github-copilot=g4f.Provider.github.GithubCopilot:cli_main',
         ],
     },
     url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
