@@ -35,7 +35,10 @@ def get_running_loop(check_nested: bool) -> Optional[AbstractEventLoop]:
 
 # Fix for RuntimeError: async generator ignored GeneratorExit
 async def await_callback(callback: Callable, timeout: Optional[int] = None) -> any:
-    return await asyncio.wait_for(callback(), timeout) if timeout is not None else await callback()
+    try:
+        return await asyncio.wait_for(callback(), timeout) if timeout is not None else await callback()
+    except TimeoutError as e:
+        raise TimeoutError("The operation timed out after {} seconds".format(timeout)) from e
 
 async def async_generator_to_list(generator: AsyncIterator) -> list:
     return [item async for item in generator]

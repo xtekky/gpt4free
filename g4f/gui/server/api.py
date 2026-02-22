@@ -76,8 +76,8 @@ class Api:
                     models = method()
                 if has_grouped_models:
                     return [{
-                        "group": model["group"],
-                        "models": [get_model_data(provider, name) for name in model["models"]]
+                        "group": model.get("group"),
+                        "models": [get_model_data(provider, name) for name in (model.get("models", {}).values() if isinstance(model.get("models"), dict) else model.get("models", []))]
                     } for model in models]
                 return [
                     get_model_data(provider, model)

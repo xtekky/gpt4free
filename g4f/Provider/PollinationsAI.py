@@ -55,7 +55,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = "flux"
     default_vision_model = default_model
     default_voice = "alloy"
-    text_models = [default_model]
+    text_models = {default_model: {"id": default_model}}
     image_models = [default_image_model, "turbo", "kontext"]
     audio_models = {}
     vision_models = [default_vision_model]
@@ -78,7 +78,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     current_models_endpoint: Optional[str] = None
 
     @classmethod
-    def get_balance(cls, api_key: str, timeout: Optional[float] = None) -> Optional[float]:
+    async def get_quota(cls, api_key: Optional[str] = None, timeout: Optional[float] = None) -> dict:
+        balance = cls.get_balance(api_key, timeout)
+        if balance is not None:
+            return {"balance": balance}
+        return None
+
+    @classmethod
+    def get_balance(cls, api_key: Optional[str] = None, timeout: Optional[float] = None) -> Optional[float]:
         try:
             headers = None
             if api_key:
@@ -96,6 +103,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_models(cls, api_key: Optional[str] = None, timeout: Optional[float] = None, **kwargs):
         def get_alias(model: dict) -> str:
+            if isinstance(model, str):
+                return model
             alias = model.get("name")
             if (model.get("aliases")):
                 alias = model.get("aliases")[0]
@@ -141,16 +150,20 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
                 # Add extra image models if not already in the list
                 for model in new_image_models:
-                    alias = get_alias(model) if isinstance(model, dict) else model
+                    alias = get_alias(model)
+                    model["label"] = alias
                     if model not in image_models:
-                        if isinstance(model, str) or "image" in model.get("output_modalities", []):
-                            image_models.append(alias)
-                    if isinstance(model, dict) and alias != model.get("name"):
+                        if "image" in model.get("output_modalities", []):
+                            if model.get("name") not in image_models:
+                                image_models.append(model.get("name"))
+                            if alias not in image_models:
+                                image_models.append(alias)
+                    for alias in model.get("aliases", []):
                         cls.model_aliases[alias] = model.get("name")
 
                 cls.image_models = image_models
-                cls.video_models = [get_alias(model) for model in new_image_models if isinstance(model, dict) and "video" in model.get("output_modalities", [])]
-
+                cls.video_models = [model.get("name") if isinstance(model, dict) else model for model in new_image_models if isinstance(model, dict) and "video" in model.get("output_modalities", [])]
+                cls.video_models = [get_alias(model) for model in cls.video_models if get_alias(model) != model]
                 text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
                 if not text_response.ok:
                     text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
@@ -167,30 +180,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if model in cls.audio_models and alias not in cls.audio_models:
                         cls.audio_models.update({alias: {}})
 
-                cls.vision_models.extend([
-                    get_alias(model)
-                    for model in models
-                    if model.get("vision") and get_alias(model) not in cls.vision_models
-                ])
-
+                cls.vision_models = [model.get("name") for model in models if "image" in model.get("input_modalities", [])]
+                cls.vision_models.extend([get_alias(model) for model in cls.vision_models if get_alias(model) != model])
                 for model in models:
-                    alias = get_alias(model)
-                    if alias != model.get("name"):
+                    for alias in model.get("aliases", []):
                         cls.model_aliases[alias] = model.get("name")
-                    if alias not in cls.text_models:
-                        cls.text_models.append(alias)
-                    elif model.get("name") not in cls.text_models:
-                        cls.text_models.append(model.get("name"))
                 cls.live += 1
                 cls.swap_model_aliases = {v: k for k, v in cls.model_aliases.items()}
-
+                cls.text_models = {model.get("name"): {"id": model.get("name"), "label": get_alias(model), **model} for model in models}
+                cls.models = cls.text_models.copy()
+                cls.models.update({model.get("name"): {"id": model.get("name"), "label": get_alias(model), **model} for model in new_image_models})
             finally:
                 cls.current_models_endpoint = models_url
-            # Return unique models across all categories
-            all_models = cls.text_models.copy()
-            all_models.extend(cls.image_models)
-            all_models.extend(cls.audio_models.keys())
-            cls.models = all_models
             # Cache the models to a file
             try:
                 path.parent.mkdir(parents=True, exist_ok=True)

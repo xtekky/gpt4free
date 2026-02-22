@@ -16,7 +16,7 @@ except ImportError:
 
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
-from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
+from .asyncio import get_running_loop, to_sync_generator, to_async_iterator, await_callback
 from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
@@ -120,7 +120,7 @@ class AbstractProvider(BaseProvider):
         def create_func() -> str:
             return concat_chunks(cls.create_completion(model, messages, **kwargs))
 
-        return await asyncio.wait_for(
+        return await await_callback(
             loop.run_in_executor(executor, create_func),
             timeout=timeout
         )
@@ -352,7 +352,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         if "stream_timeout" in kwargs or "timeout" in kwargs:
             while True:
                 try:
-                    yield await asyncio.wait_for(
+                    yield await await_callback(
                         response.__anext__(),
                         timeout=kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
                     )
@@ -524,7 +524,7 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
             if "stream_timeout" in kwargs or "timeout" in kwargs:
                 while True:
                     try:
-                        yield await asyncio.wait_for(
+                        yield await await_callback(
                             response.__anext__(),
                             timeout=kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
                         )
