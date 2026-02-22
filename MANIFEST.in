@@ -1,1 +1,1 @@
-recursive-include g4f/Provider/har *
+recursive-include g4f/Provider/needs_auth/deepseek *
