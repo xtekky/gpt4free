@@ -43,6 +43,9 @@ from .errors import MissingRequirementsError
 from .config import AppConfig, COOKIES_DIR, CUSTOM_COOKIES_DIR
 from . import debug
 
+class HeadersConfig:
+    headers: Dict[str, Dict[str, str]] = {}
+
 class CookiesConfig:
     cookies: Dict[str, Cookies] = {}
     cookies_dir: str = CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else str(COOKIES_DIR)
@@ -58,7 +61,7 @@ class BrowserConfig:
     
     browser_executable_path: str = None
 
-DOMAINS = (
+COOKIE_DOMAINS = (
     ".bing.com",
     ".meta.ai",
     ".google.com",
@@ -70,11 +73,16 @@ DOMAINS = (
     ".cerebras.ai",
     "github.com",
     "yupp.ai",
-    "deepseek.com",
+    "chat.deepseek.com",
 )
 
 if has_browser_cookie3 and os.environ.get("DBUS_SESSION_BUS_ADDRESS", "/dev/null") == "/dev/null":
     _LinuxPasswordManager.get_password = lambda a, b: b"secret"
+
+
+def get_headers(domain_name: str) -> Dict[str, str]:
+    """Get cached headers for a domain."""
+    return HeadersConfig.headers.get(domain_name, {})
 
 
 def get_cookies(domain_name: str, raise_requirements_error: bool = True,
@@ -135,6 +143,19 @@ def get_cookies_dir() -> str:
     return CookiesConfig.cookies_dir
 
 
+def _get_domain(entry: dict) -> Optional[str]:
+    headers = entry["request"].get("headers", [])
+    host_values = [h["value"] for h in headers if h["name"].lower() in ("host", ":authority")]
+    if not host_values:
+        return None
+    host = host_values.pop()
+    return next((d for d in COOKIE_DOMAINS if d in host), None)
+
+
+def _get_headers(entry) -> dict:
+    return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
+
+
 def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
     """Parse a HAR file and return cookies by domain."""
     cookies_by_domain = {}
@@ -143,17 +164,10 @@ def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
             har_file = json.load(file)
         debug.log(f"Read .har file: {path}")
 
-        def get_domain(entry: dict) -> Optional[str]:
-            headers = entry["request"].get("headers", [])
-            host_values = [h["value"] for h in headers if h["name"].lower() in ("host", ":authority")]
-            if not host_values:
-                return None
-            host = host_values.pop()
-            return next((d for d in DOMAINS if d in host), None)
-
         for entry in har_file.get("log", {}).get("entries", []):
-            domain = get_domain(entry)
+            domain = _get_domain(entry)
             if domain:
+                HeadersConfig.headers[domain] = {**HeadersConfig.headers.get(domain, {}), **_get_headers(entry)}
                 v_cookies = {c["name"]: c["value"] for c in entry["request"].get("cookies", [])}
                 if v_cookies:
                     cookies_by_domain[domain] = v_cookies
@@ -191,8 +205,9 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
     # Optionally load environment variables
     try:
         from dotenv import load_dotenv
-        load_dotenv(os.path.join(dir_path, ".env"), override=True)
-        debug.log(f"Read cookies: Loaded env vars from {dir_path}/.env")
+        env_path = os.path.join(dir_path, ".env")
+        load_dotenv(env_path, override=True)
+        debug.log(f"Read cookies: Loaded env vars from {env_path}")
     except ImportError:
         debug.error("Warning: 'python-dotenv' is not installed. Env vars not loaded.")
 

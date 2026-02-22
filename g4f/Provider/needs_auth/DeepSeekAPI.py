@@ -11,7 +11,7 @@ from pathlib import Path
 
 from g4f.typing import AsyncResult, Messages, Cookies
 from g4f.requests import StreamSession, raise_for_status, sse_stream, FormData
-from g4f.cookies import get_cookies, get_cookies_dir
+from g4f.cookies import get_cookies, get_headers, get_cookies_dir
 from g4f.providers.response import (
     JsonConversation, JsonRequest, JsonResponse, 
     Reasoning, FinishReason
@@ -163,76 +163,6 @@ def generate_client_stream_id() -> str:
     hex_part = uuid.uuid4().hex[:16]
     return f"{date_str}-{hex_part}"
 
-
-def get_har_files():
-    """Get list of DeepSeek HAR files from har_and_cookies directory."""
-    if not os.access(get_cookies_dir(), os.R_OK):
-        return []
-    
-    har_files = []
-    for root, _, files in os.walk(get_cookies_dir()):
-        for file in files:
-            # Look for DeepSeek HAR files
-            if file.endswith(".har") and "deepseek" in file.lower():
-                har_files.append(os.path.join(root, file))
-    
-    # Sort by modification time, newest first
-    har_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-    return har_files
-
-def read_deepseek_har():
-    """
-    Read DeepSeek HAR file to extract cookies and auth token.
-    
-    Returns:
-        dict with 'cookies' and 'authorization' keys or None if not found
-    """
-    import g4f.cookies
-    
-    har_files = get_har_files()
-    
-    if not har_files:
-        debug.log("DeepSeekAuth: No DeepSeek HAR files found in har_and_cookies/")
-        return None
-    
-    # Read HAR files to get cookies and authorization header
-    for har_path in har_files:
-        debug.log(f"DeepSeekAuth: Reading HAR file: {har_path}")
-        
-        # Get cookies using g4f's HAR parser
-        cookies_by_domain = g4f.cookies._parse_har_file(har_path)
-        
-        # Look for DeepSeek cookies
-        deepseek_cookies = None
-        for domain, cookies in cookies_by_domain.items():
-            if 'deepseek.com' in domain:
-                deepseek_cookies = cookies
-                debug.log(f"DeepSeekAuth: Found {len(cookies)} cookies for {domain}")
-                break
-        
-        if not deepseek_cookies:
-            continue
-        
-        # Now look for authorization header in HAR
-        with open(har_path, 'r', encoding='utf-8') as f:
-            har_data = json.load(f)
-        
-        for entry in har_data.get('log', {}).get('entries', []):
-            url = entry.get('request', {}).get('url', '')
-            if 'deepseek.com' in url.lower():
-                for header in entry.get('request', {}).get('headers', []):
-                    if header.get('name', '').lower() == 'authorization':
-                        auth_header = header.get('value')
-                        debug.log(f"DeepSeekAuth: Found authorization token in HAR")
-                        return {
-                            "cookies": deepseek_cookies,
-                            "authorization": auth_header
-                        }
-    
-    debug.log("DeepSeekAuth: No valid DeepSeek auth found in any HAR file")
-    return None
-
-
 class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
     """
     DeepSeek provider using browser emulation with HAR file support.
@@ -245,7 +175,7 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DeepSeek (HAR Auth)"
     url = DEEPSEEK_URL
     cookie_domain = DEEPSEEK_DOMAIN
-    working = True
+    working = has_wasmtime_and_numpy
     active_by_default = True
     needs_auth = True
     supports_file_upload = True
@@ -392,6 +322,7 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         cookies: Cookies = None,
+        headers: dict = None,
         proxy: str = None,
         conversation: JsonConversation = None,
         web_search: bool = False,
@@ -422,23 +353,17 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
             model = cls.default_model
         
         # Try to get auth from HAR file first
-        auth_data = None
         if cookies is None:
-            auth_data = read_deepseek_har()
-            if auth_data:
-                cookies = auth_data.get("cookies")
-                debug.log(f"DeepSeekAuth: Using {len(cookies)} cookies from HAR file")
+            cookies = get_cookies(cls.cookie_domain, False)
+            headers = get_headers(cls.cookie_domain)
+            if cookies:
+                debug.log(f"DeepSeekAuth: Using {len(cookies)} cookies and {len(headers)} headers from cookie jar")
             else:
-                # Fall back to cookie jar
-                cookies = get_cookies(cls.cookie_domain, False)
-                if cookies:
-                    debug.log(f"DeepSeekAuth: Using {len(cookies)} cookies from cookie jar")
-                else:
-                    raise MissingAuthError(
-                        "DeepSeekAuth: No authentication found. "
-                        "Please add a DeepSeek HAR file to har_and_cookies/ directory "
-                        "with an authorization token."
-                    )
+                raise MissingAuthError(
+                    "DeepSeekAuth: No authentication found. "
+                    "Please add a DeepSeek HAR file to har_and_cookies/ directory "
+                    "with an authorization token."
+                )
         
         # Initialize conversation if needed
         if conversation is None:
@@ -448,8 +373,8 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
         
         # Get auth token from HAR data or conversation
         authorization = None
-        if auth_data:
-            authorization = auth_data.get("authorization")
+        if headers:
+            authorization = headers.get("authorization")
         elif hasattr(conversation, 'authorization'):
             authorization = conversation.authorization
         
@@ -587,22 +512,7 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
                 # Check if response is actually SSE or regular JSON
                 content_type = response.headers.get('content-type', '')
                 if 'text/event-stream' not in content_type.lower():
-                    # Not a streaming response - try regular JSON
-                    # debug.log(f"DeepSeekAuth: Response is NOT SSE (content-type: {content_type})")
-                    data = await response.json()
-                    # debug.log(f"DeepSeekAuth: Full response: {data}")
-                    
-                    # Check for content in response
-                    if 'content' in data:
-                        content = data.get('content', '')
-                        yield content
-                    if 'choices' in data and len(data['choices']) > 0:
-                        choice = data['choices'][0]
-                        if 'message' in choice and 'content' in choice['message']:
-                            yield choice['message']['content']
-                    if 'finish_reason' in data:
-                        yield FinishReason(data['finish_reason'])
-                    return
+                    raise RuntimeError(f"Expected SSE response but got content-type: {content_type}")
                 
                 is_thinking = False
                 async for stream_data in sse_stream(response):
@@ -666,14 +576,7 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
                         elif 'v' in stream_data and isinstance(stream_data['v'], str):
                             yield Reasoning(stream_data['v']) if is_thinking else stream_data['v']
                             # debug.log(f"DeepSeekAuth: Shorthand content: '{stream_data['v']}'")
-                    
-                    # Handle finish reason
-                    elif isinstance(stream_data, FinishReason):
-                        if hasattr(stream_data, 'response_message_id'):
-                            conversation.parent_message_id = stream_data.response_message_id
-                        yield conversation
-                        yield stream_data
-                        break
+
                 
                 # Ensure we yield the conversation object at the end
                 yield conversation

@@ -39,7 +39,9 @@ EXTRA_REQUIRE = {
         "markitdown[all]",
         "python-dotenv",
         "aiofile",
-        "cloudscraper"
+        "cloudscraper",
+        "wasmtime",
+        "numpy"
     ],
     'slim': [
         "curl_cffi>=0.6.2",
