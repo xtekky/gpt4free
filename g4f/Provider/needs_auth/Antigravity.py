@@ -1350,8 +1350,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None) -> dict:
         """
-        Fetch and summarize quota usage for Antigravity account.
-        Returns a dict with OpenAI Usage keys if possible, or quota info.
+        Fetch usage/quota information from the Antigravity API.
         """
         if cls.auth_manager is None:
             cls.auth_manager = AntigravityAuthManager(env=os.environ)
@@ -1362,42 +1361,10 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         if not access_token or not project_id:
             raise MissingAuthError("Cannot fetch usage without valid authentication")
 
-        data = await cls.auth_manager.call_endpoint(
+        return await cls.auth_manager.call_endpoint(
             method="fetchAvailableModels",
             body={"project": cls.auth_manager.get_project_id()}
         )
-
-        def classify_group(model_name, display_name=None):
-            combined = f"{model_name} {display_name or ''}".lower()
-            if "claude" in combined:
-                return "claude"
-            if "gemini-3" in combined or "gemini 3" in combined:
-                if "flash" in combined:
-                    return "gemini-flash"
-                return "gemini-pro"
-            if "gemini-2.5" in combined or "gemini 2.5" in combined:
-                if "flash" in combined:
-                    return "gemini-flash"
-                return "gemini-pro"
-            return None
-
-        groups = {}
-        models = data.get("models", {})
-        for model_name, entry in models.items():
-            group = classify_group(model_name, entry.get("displayName") or entry.get("modelName"))
-            if not group:
-                continue
-            quota_info = entry.get("quotaInfo", {})
-            remaining = quota_info.get("remainingFraction")
-            reset_time = quota_info.get("resetTime")
-            if group not in groups:
-                groups[group] = {"remainingFraction": remaining, "resetTime": reset_time, "modelCount": 1}
-            else:
-                g = groups[group]
-                g["remainingFraction"] = min(g["remainingFraction"], remaining) if g["remainingFraction"] is not None and remaining is not None else g["remainingFraction"] or remaining
-                g["resetTime"] = reset_time if not g["resetTime"] or (reset_time and reset_time < g["resetTime"]) else g["resetTime"]
-                g["modelCount"] += 1
-        return {**data, "groups": groups}
 
     @classmethod
     async def create_async_generator(
