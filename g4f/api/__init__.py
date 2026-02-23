@@ -181,7 +181,7 @@ def update_headers(request: Request, new_api_key: str = None, user: str = None) 
     if new_api_key:
         new_headers["authorization"] = f"Bearer {new_api_key}"
     else:
-        new_headers.pop("authorization", None)
+        del new_headers["authorization"]
     if user:
         new_headers["x-user"] = user
     request.scope["headers"] = new_headers.raw
@@ -284,6 +284,8 @@ class Api:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
                 if user_g4f_api_key and update_authorization:
                     new_api_key = user_g4f_api_key.pop()
+                    if secrets.compare_digest(AppConfig.g4f_api_key, new_api_key):
+                        new_api_key = None
                 else:
                     new_api_key = None
                 request = update_headers(request, new_api_key, user)
@@ -455,7 +457,7 @@ class Api:
             if provider is None:
                 provider = AppConfig.provider
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = ProviderUtils.get_by_label(provider).__name__
             except ValueError as e:
                 if provider in model_map:
                     config.model = provider
