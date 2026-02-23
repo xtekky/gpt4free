@@ -50,13 +50,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     worker_models_endpoint = "https://g4f.space/api/pollinations/models"
 
     # Models configuration
-    default_model = "openai"
+    default_model = "openai-fast"
     fallback_model = "deepseek"
     default_image_model = "flux"
     default_vision_model = default_model
     default_voice = "alloy"
     text_models = {default_model: {"id": default_model}}
-    image_models = [default_image_model, "turbo", "kontext"]
+    image_models = {default_image_model: {"id": default_image_model}, "turbo": {"id": "turbo"}, "kontext": {"id": "kontext"}}
     audio_models = {}
     vision_models = [default_vision_model]
     model_aliases = {
@@ -145,25 +145,17 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     new_image_models = []
 
-                # Combine image models without duplicates
-                image_models = cls.image_models.copy()  # Start with default model
-
-                # Add extra image models if not already in the list
+                # Add image and video models
+                cls.vision_models = []
+                cls.video_models = [model.get("name") for model in new_image_models if "video" in model.get("output_modalities", [])]
                 for model in new_image_models:
-                    alias = get_alias(model)
-                    model["label"] = alias
-                    if model not in image_models:
-                        if "image" in model.get("output_modalities", []):
-                            if model.get("name") not in image_models:
-                                image_models.append(model.get("name"))
-                            if alias not in image_models:
-                                image_models.append(alias)
+                    if model.get("name") not in cls.video_models:
+                        cls.image_models[model.get("name")] = {"id": model.get("name"), "label": get_alias(model), **model}
+                    if "image" in model.get("input_modalities", []):
+                        cls.vision_models.append(model.get("name"))
                     for alias in model.get("aliases", []):
                         cls.model_aliases[alias] = model.get("name")
 
-                cls.image_models = image_models
-                cls.video_models = [model.get("name") if isinstance(model, dict) else model for model in new_image_models if isinstance(model, dict) and "video" in model.get("output_modalities", [])]
-                cls.video_models = [get_alias(model) for model in cls.video_models if get_alias(model) != model]
                 text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
                 if not text_response.ok:
                     text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
@@ -180,8 +172,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if model in cls.audio_models and alias not in cls.audio_models:
                         cls.audio_models.update({alias: {}})
 
-                cls.vision_models = [model.get("name") for model in models if "image" in model.get("input_modalities", [])]
-                cls.vision_models.extend([get_alias(model) for model in cls.vision_models if get_alias(model) != model])
+                cls.vision_models.extend([model.get("name") for model in models if "image" in model.get("input_modalities", [])])
                 for model in models:
                     for alias in model.get("aliases", []):
                         cls.model_aliases[alias] = model.get("name")

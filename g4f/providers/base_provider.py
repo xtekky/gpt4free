@@ -122,8 +122,8 @@ class AbstractProvider(BaseProvider):
         try:
             return await asyncio.wait_for(
                 loop.run_in_executor(executor, create_func), timeout=timeout)
-        except TimeoutError:
-            raise
+        except TimeoutError as e:
+            raise TimeoutError("The operation timed out after {} seconds".format(timeout)) from e
 
     @classmethod
     def create_function(cls, *args, **kwargs) -> CreateResult:
@@ -350,12 +350,15 @@ class AsyncGeneratorProvider(AbstractProvider):
         """
         response = cls.create_async_generator(*args, **kwargs)
         if "stream_timeout" in kwargs or "timeout" in kwargs:
+            timeout = kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
             while True:
                 try:
-                    yield await await_callback(
+                    yield await asyncio.wait_for(
                         response.__anext__(),
-                        timeout=kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
+                        timeout=timeout
                     )
+                except TimeoutError as e:
+                    raise TimeoutError("The operation timed out after {} seconds".format(timeout)) from e
                 except StopAsyncIteration:
                     break
         else:

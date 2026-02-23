@@ -226,6 +226,19 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                         cls.vision_models.append(model)
         return cls.models
 
+    @classmethod
+    async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
+        """Get the quota information for the API key."""
+        if not api_key:
+            raise MissingAuthError("API key is required for Puter.js API")
+        url = "https://api.puter.com/metering/usage"
+        headers = {
+            "authorization": f"Bearer {api_key}"
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+
     @staticmethod
     def get_driver_for_model(model: str) -> str:
         """Determine the appropriate driver based on the model name."""
