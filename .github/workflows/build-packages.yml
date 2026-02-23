@@ -432,8 +432,6 @@ jobs:
           name: Release ${{ needs.prepare.outputs.version }}
           append_body: true
           body: |
-            ## g4f ${{ needs.prepare.outputs.version }}
-
             ### Download Options
 
             **Python Package:**
