@@ -886,6 +886,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
             if cls.auth_manager.get_access_token() is not None:
                 cls.live += 1
             provider = GeminiCLIProvider(env=os.environ, auth_manager=cls.auth_manager)
+            get_running_loop(check_nested=True)
             buckets = asyncio.run(provider.retrieve_user_quota())
             cls.models = [bucket["modelId"] for bucket in buckets.get("buckets", [])]
         return cls.models if cls.models else cls.fallback_models
