@@ -76,12 +76,13 @@ __map__: dict[str, ProviderType] = {
 class ProviderUtils:
     convert: dict[str, ProviderType] = __map__
 
-    def get_by_label(self, label: str) -> ProviderType:
+    @classmethod
+    def get_by_label(cls, label: str) -> ProviderType:
         if not label:
             raise ValueError("Label must be provided")
-        provider = self.convert.get(label)
+        provider = cls.convert.get(label)
         if provider is None:
-            for provider_cls in self.__providers__:
+            for provider_cls in cls.convert.values():
                 if provider_cls.working and provider_cls.__name__.lower().startswith(label.lower()):
                     provider = provider_cls
                     break
