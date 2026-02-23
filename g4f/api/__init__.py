@@ -640,14 +640,17 @@ class Api:
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
         @self.app.post("/v1/audio/transcriptions", responses=responses)
-        @self.app.post("/api/{provider}/audio/transcriptions", responses=responses)
+        @self.app.post("/api/{path_provider}/audio/transcriptions", responses=responses)
         @self.app.post("/api/markitdown", responses=responses)
         async def convert(
             file: UploadFile,
+            path_provider: Optional[str] = None,
             model: Annotated[Optional[str], Form()] = None,
-            provider: Annotated[Optional[str], Form()] = "MarkItDown",
+            provider: Annotated[Optional[str], Form()] = None,
             prompt: Annotated[Optional[str], Form()] = "Transcribe this audio"
         ):
+            if path_provider is not None:
+                provider = path_provider
             if provider is None:
                 provider = "MarkItDown"
             try:
