@@ -47,7 +47,6 @@ class AppConfig:
     timeout: int = DEFAULT_TIMEOUT
     stream_timeout: int = DEFAULT_STREAM_TIMEOUT
     disable_custom_api_key: bool = False
-    disable_custom_base_url: bool = False
 
     @classmethod
     def set_config(cls, **data):
@@ -63,5 +62,4 @@ class AppConfig:
         cls.proxy = os.environ.get("G4F_PROXY", cls.proxy)
         cls.model = os.environ.get("G4F_MODEL", cls.model)
         cls.provider = os.environ.get("G4F_PROVIDER", cls.provider)
-        cls.disable_custom_base_url = os.environ.get("G4F_DISABLE_CUSTOM_BASE_URL", str(cls.disable_custom_base_url)).lower() in ("true", "1", "yes")
         cls.disable_custom_api_key = os.environ.get("G4F_DISABLE_CUSTOM_API_KEY", str(cls.disable_custom_api_key)).lower() in ("true", "1", "yes")

@@ -4,6 +4,7 @@ import os
 
 from .stubs import ChatCompletion, ChatCompletionChunk
 from ..providers.types import BaseProvider
+from ..config import AppConfig
 from typing import Union, Iterator, AsyncIterator
 
 Proxies = Union[dict, str]
@@ -27,7 +28,7 @@ class Client():
         if isinstance(self.proxies, str):
             return self.proxies
         elif self.proxies is None:
-            return os.environ.get("G4F_PROXY")
+            return AppConfig.proxy
         elif "all" in self.proxies:
             return self.proxies["all"]
         elif "https" in self.proxies:

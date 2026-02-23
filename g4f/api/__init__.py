@@ -474,8 +474,6 @@ class Api:
                     config.stream_timeout = AppConfig.stream_timeout
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
-                if AppConfig.disable_custom_base_url:
-                    config.base_url = None
 
                 conversation = config.conversation
                 if conversation:

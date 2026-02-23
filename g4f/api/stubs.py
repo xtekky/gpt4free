@@ -18,9 +18,7 @@ class RequestConfig(BaseModel):
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
     api_key: Optional[Union[str, dict[str, str]]] = None
-    base_url: Optional[str] = None
     web_search: Optional[bool] = None
-    proxy: Optional[str] = None
     conversation: Optional[dict] = None
     timeout: Optional[int] = None
     stream_timeout: Optional[int] = None
@@ -82,7 +80,6 @@ class ImageGenerationConfig(BaseModel):
     provider: Optional[str] = None
     response_format: Optional[str] = None
     api_key: Optional[str] = None
-    proxy: Optional[str] = None
     width: Optional[int] = None
     height: Optional[int] = None
     num_inference_steps: Optional[int] = None
