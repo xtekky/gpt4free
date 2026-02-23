@@ -16,7 +16,7 @@ except ImportError:
 
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
-from .asyncio import get_running_loop, to_sync_generator, to_async_iterator, await_callback
+from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
@@ -121,9 +121,10 @@ class AbstractProvider(BaseProvider):
             return concat_chunks(cls.create_completion(model, messages, **kwargs))
         try:
             return await asyncio.wait_for(
-                loop.run_in_executor(executor, create_func), timeout=timeout)
+                loop.run_in_executor(executor, create_func), timeout=timeout
+            )
         except TimeoutError as e:
-            raise TimeoutError("The operation timed out after {} seconds".format(timeout)) from e
+            raise TimeoutError("The operation timed out after {} seconds in {}".format(timeout, cls.__name__)) from e
 
     @classmethod
     def create_function(cls, *args, **kwargs) -> CreateResult:
@@ -358,7 +359,7 @@ class AsyncGeneratorProvider(AbstractProvider):
                         timeout=timeout
                     )
                 except TimeoutError as e:
-                    raise TimeoutError("The operation timed out after {} seconds".format(timeout)) from e
+                    raise TimeoutError("The operation timed out after {} seconds in {}".format(timeout, cls.__name__)) from e
                 except StopAsyncIteration:
                     break
         else:
@@ -525,12 +526,15 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
             auth_result = cls.get_auth_result()
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
             if "stream_timeout" in kwargs or "timeout" in kwargs:
+                timeout = kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
                 while True:
                     try:
-                        yield await await_callback(
+                        yield await asyncio.wait_for(
                             response.__anext__(),
-                            timeout=kwargs.get("stream_timeout") if cls.use_stream_timeout else kwargs.get("timeout")
+                            timeout=timeout
                         )
+                    except TimeoutError as e:
+                        raise TimeoutError("The operation timed out after {} seconds in {}".format(timeout, cls.__name__)) from e
                     except StopAsyncIteration:
                         break
             else:
