@@ -872,7 +872,6 @@ class Api:
             return await get_media(filename, request, True)
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
-    last_provider = {}
     provider = (AppConfig.media_provider if image else AppConfig.provider)
     model = AppConfig.model
     if config is not None:
@@ -887,8 +886,8 @@ def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConf
     return json.dumps({
         "error": {"message": message},
         **filter_none(
-            model=last_provider.get("model") if model is None else model,
-            provider=last_provider.get("name") if provider is None else provider
+            model=model,
+            provider=getattr(provider, "__name__", provider)
         )
     })
 
