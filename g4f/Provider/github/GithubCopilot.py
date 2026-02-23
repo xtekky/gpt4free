@@ -126,13 +126,13 @@ class GithubCopilot(OpenaiTemplate):
         Otherwise, OAuth credentials will be used.
         """
         # If no API key provided, use OAuth token
-        if api_key is None:
+        if not api_key:
             try:
                 token_provider = cls._get_token_provider()
                 creds = await token_provider.get_valid_token()
                 api_key = creds.get("token")
                 if not api_key:
-                    raise RuntimeError(
+                    raise MissingAuthError(
                         "GitHub Copilot OAuth not configured. "
                         "Please run 'g4f auth github-copilot' to authenticate."
                     )
@@ -140,7 +140,7 @@ class GithubCopilot(OpenaiTemplate):
                     base_url = creds.get("endpoint", cls.base_url)
             except TokenManagerError as e:
                 if "login" in str(e).lower() or "credentials" in str(e).lower():
-                    raise RuntimeError(
+                    raise MissingAuthError(
                         "GitHub Copilot OAuth not configured. "
                         "Please run 'g4f auth github-copilot' to authenticate."
                     ) from e
@@ -159,7 +159,7 @@ class GithubCopilot(OpenaiTemplate):
     @classmethod
     def get_models(cls, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: Optional[int] = None):
         # If no API key provided, use OAuth token
-        if api_key is None:
+        if not api_key:
             try:
                 token_provider = cls._get_token_provider()
                 get_running_loop(check_nested=True)
@@ -169,7 +169,7 @@ class GithubCopilot(OpenaiTemplate):
                     base_url = creds.get("endpoint", cls.base_url)
             except TokenManagerError as e:
                 if "login" in str(e).lower() or "credentials" in str(e).lower():
-                    raise RuntimeError(
+                    raise MissingAuthError(
                         "GitHub Copilot OAuth not configured. "
                         "Please run 'g4f auth github-copilot' to authenticate."
                     ) from e
@@ -249,12 +249,15 @@ class GithubCopilot(OpenaiTemplate):
         client = GithubOAuth2Client()
         github_creds = await client.sharedManager.getValidCredentials(client)
         if not github_creds or not github_creds.get("access_token"):
-            raise MissingAuthError("No GitHub OAuth token available. Please login first.")
+            raise MissingAuthError(
+                "GitHub Copilot OAuth not configured. "
+                "Please run 'g4f auth github-copilot' to authenticate."
+            )
         
         github_token = github_creds["access_token"]
         url = f"https://api.github.com/copilot_internal/user"
         headers = {
-            "Accept": "application/json",
+            "accept": "application/json",
             "authorization": f"token {github_token}",
             "editor-version": EDITOR_VERSION,
             "editor-plugin-version": EDITOR_PLUGIN_VERSION,

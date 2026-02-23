@@ -180,6 +180,8 @@ def update_headers(request: Request, new_api_key: str = None, user: str = None) 
     new_headers = request.headers.mutablecopy()
     if new_api_key:
         new_headers["authorization"] = f"Bearer {new_api_key}"
+    else:
+        new_headers.pop("authorization", None)
     if user:
         new_headers["x-user"] = user
     request.scope["headers"] = new_headers.raw
