@@ -74,6 +74,8 @@ from g4f.providers.any_provider import AnyProvider
 from g4f.providers.any_model_map import model_map, vision_models, image_models, audio_models, video_models
 from g4f.config import AppConfig
 from g4f import Provider
+from g4f.Provider import ProviderUtils
+
 from g4f.gui import get_gui_app
 from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
@@ -138,8 +140,8 @@ def create_app():
 
     if AppConfig.ignored_providers:
         for provider in AppConfig.ignored_providers:
-            if provider in Provider.__map__:
-                Provider.__map__[provider].working = False
+            if provider in ProviderUtils.convert:
+                ProviderUtils.convert[provider].working = False
 
     return app
 
@@ -340,7 +342,7 @@ class Api:
                     "image": bool(getattr(provider, "image_models", False)),
                     "vision": bool(getattr(provider, "vision_models", False)),
                     "provider": True,
-                } for provider_name, provider in Provider.ProviderUtils.convert.items()
+                } for provider_name, provider in ProviderUtils.convert.items()
                     if provider.working and provider_name not in ("Custom")
                 ]
             }
@@ -349,7 +351,9 @@ class Api:
             HTTP_200_OK: {"model": List[ModelResponseModel]},
         })
         async def models(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
-            if provider not in Provider.__map__:
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
                 if provider in model_map:
                     return {
                         "object": "list",
@@ -365,8 +369,7 @@ class Api:
                             "type": "image" if provider in image_models else "chat",
                         }]
                     }
-                return ErrorResponse.from_message("The provider does not exist.", 404)
-            provider: ProviderType = Provider.__map__[provider]
+                return ErrorResponse.from_message(str(e), 404)
             if not hasattr(provider, "get_models"):
                 models = []
             elif credentials is not None and credentials.credentials != "secret":
@@ -392,17 +395,17 @@ class Api:
         # quota endpoint mimics backend-api/v2/quota but exposed on public API
         @self.app.get("/api/{provider}/quota")
         async def provider_quota(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
-            # provider must exist
-            if provider not in Provider.__map__:
-                return ErrorResponse.from_message("The provider does not exist.", 404)
-            provider_obj: ProviderType = Provider.__map__[provider]
-            if not hasattr(provider_obj, "get_quota"):
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
+                return ErrorResponse.from_message(str(e), 404)
+            if not hasattr(provider, "get_quota"):
                 return ErrorResponse.from_message("Provider doesn't support get_quota", HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 if credentials is not None and credentials.credentials != "secret":
-                    usage = await provider_obj.get_quota(api_key=credentials.credentials)
+                    usage = await provider.get_quota(api_key=credentials.credentials)
                 else:
-                    usage = await provider_obj.get_quota()
+                    usage = await provider.get_quota()
                 return usage
             except MissingAuthError as e:
                 return ErrorResponse.from_message(f"{type(e).__name__}: {e}", HTTP_401_UNAUTHORIZED)
@@ -445,15 +448,20 @@ class Api:
             conversation_id: str = None,
             x_user: Annotated[str | None, Header()] = None,
         ):
-            if provider is not None and provider not in Provider.__map__:
+            if provider is None:
+                provider = config.provider
+            if provider is None:
+                provider = AppConfig.provider
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
                 if provider in model_map:
                     config.model = provider
                     provider = None
-                else:
-                    return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+                elif provider is not None:
+                    return ErrorResponse.from_message(str(e), 404)
             try:
-                if config.provider is None:
-                    config.provider = AppConfig.provider if provider is None else provider
+                config.provider = provider
                 if config.conversation_id is None:
                     config.conversation_id = conversation_id
                 if config.timeout is None:
@@ -554,15 +562,19 @@ class Api:
             provider: str = None,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
-            if provider is not None and provider not in Provider.__map__:
+            if provider is None:
+                provider = config.provider
+            if provider is None:
+                provider = AppConfig.provider
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
                 if provider in model_map:
                     config.model = provider
                     provider = None
-                return ErrorResponse.from_message("", HTTP_404_NOT_FOUND)
-            if config.provider is None:
-                config.provider = provider
-            if config.provider is None:
-                config.provider = AppConfig.media_provider
+                elif provider is not None:
+                    return ErrorResponse.from_message(str(e), 404)
+            config.provider = provider
             if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
@@ -600,9 +612,10 @@ class Api:
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
         })
         async def providers_info(provider: str):
-            if provider not in Provider.ProviderUtils.convert:
-                return ErrorResponse.from_message("The provider does not exist.", 404)
-            provider: ProviderType = Provider.ProviderUtils.convert[provider]
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
+                return ErrorResponse.from_message(str(e), 404)
             def safe_get_models(provider: ProviderType) -> list[str]:
                 try:
                     return provider.get_models() if hasattr(provider, "get_models") else []
@@ -627,22 +640,24 @@ class Api:
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
         @self.app.post("/v1/audio/transcriptions", responses=responses)
-        @self.app.post("/api/{path_provider}/audio/transcriptions", responses=responses)
+        @self.app.post("/api/{provider}/audio/transcriptions", responses=responses)
         @self.app.post("/api/markitdown", responses=responses)
         async def convert(
             file: UploadFile,
-            path_provider: str = None,
             model: Annotated[Optional[str], Form()] = None,
             provider: Annotated[Optional[str], Form()] = "MarkItDown",
             prompt: Annotated[Optional[str], Form()] = "Transcribe this audio"
         ):
-            provider = provider if path_provider is None else path_provider
-            if provider is not None and provider not in Provider.__map__:
+            if provider is None:
+                provider = "MarkItDown"
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
                 if provider in model_map:
                     model = provider
-                    provider = None
+                    provider = None 
                 else:
-                    return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+                    return ErrorResponse.from_message(str(e), 404)
             kwargs = {"modalities": ["text"]}
             if provider == "MarkItDown":
                 kwargs = {
@@ -677,18 +692,20 @@ class Api:
         @self.app.post("/api/{provider}/audio/speech", responses=responses)
         async def generate_speech(
             config: AudioSpeechConfig,
-            provider: str = AppConfig.media_provider,
+            provider: Optional[str] = None,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
             api_key = None
             if credentials is not None and credentials.credentials != "secret":
                 api_key = credentials.credentials
-            if provider is not None and provider not in Provider.__map__:
-                if provider in model_map:
-                    config.model = provider
-                    provider = None
-                else:
-                    return ErrorResponse.from_message("Invalid provider.", HTTP_404_NOT_FOUND)
+            if provider is None:
+                provider = config.provider
+            if provider is None:
+                provider = AppConfig.media_provider
+            try:
+                provider = ProviderUtils.get_by_label(provider)
+            except ValueError as e:
+                return ErrorResponse.from_message(str(e), 404)
             try:
                 audio = filter_none(voice=config.voice, format=config.response_format, language=config.language)
                 response = await self.client.chat.completions.create(
@@ -696,7 +713,7 @@ class Api:
                         {"role": "user", "content": f"{config.instrcutions} Text: {config.input}"}
                     ],
                     model=config.model,
-                    provider=config.provider if provider is None else provider,
+                    provider=provider,
                     prompt=config.input,
                     api_key=api_key,
                     download_media=config.download_media,
