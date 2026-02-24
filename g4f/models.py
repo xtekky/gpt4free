@@ -391,7 +391,7 @@ llama_3_3_70b = Model(
 llama_4_scout = Model(
     name          = "llama-4-scout",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfra, PollinationsAI, Together, Cloudflare])
+    best_provider = IterListProvider([PollinationsAI, Together, Cloudflare])
 )
 
 llama_4_maverick = Model(
