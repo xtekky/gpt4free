@@ -19,7 +19,6 @@ from ..providers.response import *
 from ..requests import get_nodriver_session
 from ..image import is_accepted_format
 from .helper import get_last_user_message
-from .Copilot import click_trunstile
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -206,3 +205,19 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
             raise MissingAuthError(f"Invalid response: {last_msg}")
         if sources:
             yield Sources(sources.values())
+
+if has_nodriver:
+    async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
+        for _ in range(3):
+            size = None
+            for idx in range(15):
+                size = await page.js_dumps(f'{element}?.getBoundingClientRect()||{{}}')
+                debug.log(f"Found size: {size.get('x'), size.get('y')}")
+                if "x" not in size:
+                    break
+                await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
+                await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
+                await asyncio.sleep(2)
+            if "x" not in size:
+                break
+        debug.log("Finished clicking trunstile.")
