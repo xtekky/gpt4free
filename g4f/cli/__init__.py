@@ -122,6 +122,13 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     )
 
     api_parser.add_argument(
+        "--cookies-dir",
+        type=str,
+        default=None,
+        help="Custom directory for cookies/HAR files (overrides default)."
+    )
+
+    api_parser.add_argument(
         "--g4f-api-key",
         type=str,
         default=None,
@@ -215,6 +222,15 @@ def run_api_args(args):
     # Custom cookie browsers
     if args.cookie_browsers:
         cookies.BROWSERS = [cookies[b] for b in args.cookie_browsers]
+
+    # Allow overriding the cookies directory from CLI
+    if getattr(args, "cookies_dir", None):
+        # create dir if it doesn't exist and update config
+        try:
+            os.makedirs(args.cookies_dir, exist_ok=True)
+        except Exception:
+            pass
+        cookies.set_cookies_dir(args.cookies_dir)
 
     # Launch server
     run_api(
@@ -334,7 +350,7 @@ def generate_autocomplete():
     auth_providers = ["gemini-cli", "antigravity", "qwencode", "github-copilot"]
     auth_subcommands = ["status", "login"]
     # Options for each command
-    api_args = ["--bind", "--port", "--debug", "--gui", "--no-gui", "--model", "--provider", "--media-provider", "--proxy", "--workers", "--disable-colors", "--ignore-cookie-files", "--g4f-api-key", "--ignored-providers", "--cookie-browsers", "--reload", "--demo", "--timeout", "--stream-timeout", "--ssl-keyfile", "--ssl-certfile", "--log-config", "--access-log", "--no-access-log", "--browser-port", "--browser-host"]
+    api_args = ["--bind", "--port", "--debug", "--gui", "--no-gui", "--model", "--provider", "--media-provider", "--proxy", "--workers", "--disable-colors", "--ignore-cookie-files", "--cookies-dir", "--g4f-api-key", "--ignored-providers", "--cookie-browsers", "--reload", "--demo", "--timeout", "--stream-timeout", "--ssl-keyfile", "--ssl-certfile", "--log-config", "--access-log", "--no-access-log", "--browser-port", "--browser-host"]
     gui_args = ["--debug"]
     client_args = ["--debug"]
     mcp_args = ["--debug", "--http", "--host", "--port", "--origin"]
