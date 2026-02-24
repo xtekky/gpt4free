@@ -132,7 +132,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     if model:
                         yield ProviderInfo(**cls.get_dict(), model=model)
                     await raise_for_status(response)
-                    yield ImageResponse([image["url"] for image in data["data"]], prompt)
+                    yield ImageResponse([f"data:image/png;base64,{image['b64_json']}" if image.get("url") is None else image["url"] for image in data["data"]], prompt)
                 return
 
             if stream or stream is None:

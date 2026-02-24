@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import requests
-from ..config import DEFAULT_MODEL
+
+from ..typing import Messages, AsyncResult
 from .template import OpenaiTemplate
 
 class DeepInfra(OpenaiTemplate):
@@ -12,72 +13,7 @@ class DeepInfra(OpenaiTemplate):
     working = True
     active_by_default = True
     
-    default_model = DEFAULT_MODEL
-    default_vision_model = DEFAULT_MODEL
-    vision_models = [
-        default_vision_model,
-        'meta-llama/Llama-3.2-90B-Vision-Instruct',
-    ]
-
-    model_aliases = {
-        # cognitivecomputations
-        "dolphin-2.6": "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
-        "dolphin-2.9": "cognitivecomputations/dolphin-2.9.1-llama-3-70b",
-
-        # deepinfra
-        "airoboros-70b": "deepinfra/airoboros-70b",
-
-        # deepseek-ai
-        "deepseek-prover-v2": "deepseek-ai/DeepSeek-Prover-V2-671B",
-        "deepseek-prover-v2-671b": "deepseek-ai/DeepSeek-Prover-V2-671B",
-        "deepseek-r1": ["deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-R1-0528"],
-        "deepseek-r1-0528": "deepseek-ai/DeepSeek-R1-0528",
-        "deepseek-r1-0528-turbo": "deepseek-ai/DeepSeek-R1-0528-Turbo",
-        "deepseek-r1-distill-llama-70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-        "deepseek-r1-distill-qwen-32b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        "deepseek-r1-turbo": "deepseek-ai/DeepSeek-R1-Turbo",
-        "deepseek-v3": ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-V3-0324"],
-        "deepseek-v3-0324": "deepseek-ai/DeepSeek-V3-0324",
-        "deepseek-v3-0324-turbo": "deepseek-ai/DeepSeek-V3-0324-Turbo",
-
-        # google
-        "codegemma-7b": "google/codegemma-7b-it",
-        "gemma-1.1-7b": "google/gemma-1.1-7b-it",
-        "gemma-2-27b": "google/gemma-2-27b-it",
-        "gemma-2-9b": "google/gemma-2-9b-it",
-        "gemma-3-4b": "google/gemma-3-4b-it",
-        "gemma-3-12b": "google/gemma-3-12b-it",
-        "gemma-3-27b": "google/gemma-3-27b-it",
-
-        # lizpreciatior
-        "lzlv-70b": "lizpreciatior/lzlv_70b_fp16_hf",
-
-        # meta-llama
-        "llama-3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct",
-        "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
-        "llama-4-maverick": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-        "llama-4-scout": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-
-        # microsoft
-        "phi-4": "microsoft/phi-4",
-        "phi-4-multimodal": "microsoft/Phi-4-multimodal-instruct",
-        "phi-4-reasoning-plus": "microsoft/phi-4-reasoning-plus",
-        "wizardlm-2-7b": "microsoft/WizardLM-2-7B",
-        "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
-
-        # mistralai
-        "mistral-small-3.1-24b": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
-
-        # Qwen
-        "qwen-3-14b": "Qwen/Qwen3-14B",
-        "qwen-3-30b": "Qwen/Qwen3-30B-A3B",
-        "qwen-3-32b": "Qwen/Qwen3-32B",
-        "qwen-3-235b": "Qwen/Qwen3-235B-A22B",
-        "qwq-32b": "Qwen/QwQ-32B",
-
-        "moonshotai/Kimi-K2-Instruct": "moonshotai/Kimi-K2-Instruct-0905",
-    }
+    default_model = "MiniMaxAI/MiniMax-M2.5"
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -86,17 +22,9 @@ class DeepInfra(OpenaiTemplate):
             response = requests.get(url)
             models = response.json()
             
-            cls.models = []
-            cls.image_models = []
-            
-            for model in models:
-                if model["type"] == "text-generation":
-                    cls.models.append(model['model_name'])
-                elif model["reported_type"] == "text-to-image":
-                    cls.image_models.append(model['model_name'])
-            
-            cls.models.extend(cls.image_models)
-            if models:
+            cls.models = {model["model_name"]: {"id": model["model_name"], **model} for model in models if model.get("type") == "text-generation" or model.get("reported_type") == "text-to-image"}
+            cls.image_models = [model["model_name"] for model in models if model.get("reported_type") == "text-to-image"]
+            if cls.live == 0 and cls.models:
                 cls.live += 1
 
         return cls.models

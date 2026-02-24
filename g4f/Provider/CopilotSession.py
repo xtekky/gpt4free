@@ -13,13 +13,13 @@ except ImportError:
     has_nodriver = False
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
-from .openai.har_file import get_headers, get_har_files
 from ..typing import AsyncResult, Messages, MediaListType
-from ..errors import NoValidHarFileError, MissingAuthError
+from ..errors import MissingAuthError
 from ..providers.response import *
 from ..requests import get_nodriver_session
-from ..image import to_bytes, is_accepted_format
+from ..image import is_accepted_format
 from .helper import get_last_user_message
+from .Copilot import click_trunstile
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -70,7 +70,6 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        auth_result: AuthResult,
         proxy: str = None,
         timeout: int = 30,
         prompt: str = None,
@@ -97,10 +96,16 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
             if textarea is not None:
                 await textarea.send_keys(prompt)
                 await asyncio.sleep(1)
-                button = await page.select("[data-testid=\"submit-button\"]")
+                try:
+                    button = await page.select("[data-testid=\"submit-button\"]")
+                except TimeoutError:
+                    button = None
                 if button:
                     await button.click()
-                    turnstile = await page.select('#cf-turnstile')
+                    try:
+                        turnstile = await page.select('#cf-turnstile')
+                    except TimeoutError:
+                        turnstile = None
                     if turnstile:
                         debug.log("Found Element: 'cf-turnstile'")
                         await asyncio.sleep(3)

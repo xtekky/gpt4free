@@ -91,15 +91,15 @@ def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str =
 
 
 async def get_args_from_nodriver(
-        url: str,
-        proxy: str = None,
-        timeout: int = 120,
-        wait_for: str = None,
-        callback: callable = None,
-        cookies: Cookies = None,
-        browser: Browser = None,
-        user_data_dir: str = "nodriver",
-        browser_args: list = None
+    url: str,
+    proxy: str = None,
+    timeout: int = 120,
+    wait_for: str = None,
+    callback: callable = None,
+    cookies: Cookies = None,
+    browser: Browser = None,
+    user_data_dir: str = "nodriver",
+    browser_args: list = None
 ) -> dict:
     if browser is None:
         browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout, user_data_dir=user_data_dir, browser_args=browser_args)
@@ -156,11 +156,11 @@ def set_browser_executable_path(browser_executable_path: str):
 
 
 async def get_nodriver(
-        proxy: str = None,
-        user_data_dir="nodriver",
-        timeout: int = 300,
-        browser_executable_path: str = None,
-        **kwargs
+    proxy: str = None,
+    user_data_dir="nodriver",
+    timeout: int = 300,
+    browser_executable_path: str = None,
+    **kwargs
 ) -> tuple[Browser, callable]:
     if not has_nodriver:
         raise MissingRequirementsError(
@@ -216,6 +216,7 @@ async def get_nodriver(
             browser_executable_path=browser_executable_path,
             port=BrowserConfig.port,
             host=BrowserConfig.host,
+            browser_connection_timeout=1,
             **kwargs
         )
     except FileNotFoundError as e:

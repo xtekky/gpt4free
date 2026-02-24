@@ -151,7 +151,7 @@ async def copy_media(
         async def copy_image(image: str, target: str = None) -> str:
             """Process individual image and return its local URL"""
             # Skip if image is already local
-            if image.startswith("/"):
+            if image is None or image.startswith("/"):
                 return image
             target_path = target
             media_extension = ""
