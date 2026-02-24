@@ -562,13 +562,13 @@ gemma_2_27b = Model(
 gemma_3_4b = Model(
     name          = 'gemma-3-4b',
     base_provider = 'Google',
-    best_provider = DeepInfra
+    best_provider = None
 )
 
 gemma_3_12b = Model(
     name          = 'gemma-3-12b',
     base_provider = 'Google',
-    best_provider = DeepInfra
+    best_provider = None
 )
 
 gemma_3_27b = Model(
