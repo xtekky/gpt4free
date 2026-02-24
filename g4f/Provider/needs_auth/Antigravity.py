@@ -1121,14 +1121,13 @@ class AntigravityProvider:
             },
         }
 
-        # Add tool config if specified
+        # Add tool config if specified, only include allowedFunctionNames if mode is ANY
         if tool_choice and gemini_tools:
-            req_body["request"]["toolConfig"] = {
-                "functionCallingConfig": {
-                    "mode": tool_choice.upper(),
-                    "allowedFunctionNames": [fd["name"] for fd in function_declarations]
-                }
-            }
+            mode = tool_choice.upper()
+            function_calling_config = {"mode": mode}
+            if mode == "ANY":
+                function_calling_config["allowedFunctionNames"] = [fd["name"] for fd in function_declarations]
+            req_body["request"]["toolConfig"] = {"functionCallingConfig": function_calling_config}
 
         # Remove None values recursively
         def clean_none(d):

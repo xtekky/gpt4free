@@ -680,6 +680,15 @@ class GeminiCLIProvider():
                 gemini_tools = [{"functionDeclarations": function_declarations}]
 
         # Compose request body
+        # Build toolConfig with allowedFunctionNames only if mode is ANY
+        tool_config = None
+        if tool_choice and gemini_tools:
+            mode = tool_choice.upper()
+            function_calling_config = {"mode": mode}
+            if mode == "ANY":
+                function_calling_config["allowedFunctionNames"] = [fd["name"] for fd in function_declarations]
+            tool_config = {"functionCallingConfig": function_calling_config}
+
         req_body = {
             "model": model,
             "project": project_id,
@@ -700,12 +709,7 @@ class GeminiCLIProvider():
                     } if thinking_budget else None,
                 },
                 "tools": gemini_tools,
-                "toolConfig": {
-                    "functionCallingConfig": {
-                        "mode": tool_choice.upper(),
-                        "allowedFunctionNames": [fd["name"] for fd in function_declarations]
-                    }
-                } if tool_choice and gemini_tools else None,
+                "toolConfig": tool_config,
                 **requestData
             },
         }

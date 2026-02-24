@@ -62,7 +62,7 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
     lock = asyncio.Lock()
 
     @classmethod
-    async def on_auth_async(cls, cookies: dict = None, proxy: str = None, **kwargs) -> AsyncIterator:
+    async def on_auth_async(cls, *args, **kwargs) -> AsyncIterator:
         yield AuthResult()
 
     @classmethod
