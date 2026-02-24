@@ -428,7 +428,7 @@ mistral_small_24b = Model(
 mistral_small_3_1_24b = Model(
     name          = "mistral-small-3.1-24b",
     base_provider = "Mistral AI",
-    best_provider = IterListProvider([DeepInfra, PollinationsAI])
+    best_provider = IterListProvider([PollinationsAI])
 )
 
 ### NousResearch ###
