@@ -1190,14 +1190,15 @@ class AntigravityProvider:
                 if not resp.ok:
                     if resp.status == 503:
                         try:
-                            max_retry_delay = int(max([d.get("retryDelay", 0) for d in (await resp.json(content_type=None)).get("error", {}).get("details", [])]))
+                            retry_delay = int(max([float(d.get("retryDelay", 0)) for d in (await resp.json(content_type=None)).get("error", {}).get("details", [])]))
                         except ValueError:
-                            max_retry_delay = 30  # Default retry delay if not specified
-                        debug.log(f"Received 503 error, retrying after {max_retry_delay}")
-                        await asyncio.sleep(max_retry_delay)
-                        resp = await session.post(url, json=req_body)
-                        if not resp.ok:
-                            debug.error(f"Retry after 503 failed with status {resp.status}")
+                            retry_delay = 30  # Default retry delay if not specified
+                        debug.log(f"Received 503 error, retrying after {retry_delay}")
+                        if retry_delay <= 120:
+                            await asyncio.sleep(retry_delay)
+                            resp = await session.post(url, json=req_body)
+                            if not resp.ok:
+                                debug.error(f"Retry after 503 failed with status {resp.status}")
                 if not resp.ok:
                     if resp.status == 401:
                         raise MissingAuthError("Unauthorized (401) from Antigravity API")

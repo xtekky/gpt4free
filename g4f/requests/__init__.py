@@ -167,7 +167,7 @@ async def get_nodriver(
             'Install "zendriver" and "platformdirs" package | pip install -U zendriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if user_data_dir and has_platformdirs else None
     if browser_executable_path is None:
-        browser_executable_path = BrowserConfig.browser_executable_path
+        browser_executable_path = BrowserConfig.executable_path
     if browser_executable_path is None:
         try:
             browser_executable_path = find_executable()
@@ -216,7 +216,7 @@ async def get_nodriver(
             browser_executable_path=browser_executable_path,
             port=BrowserConfig.port,
             host=BrowserConfig.host,
-            browser_connection_timeout=1,
+            connection_timeout=BrowserConfig.connection_timeout,
             **kwargs
         )
     except FileNotFoundError as e:

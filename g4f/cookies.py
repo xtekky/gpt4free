@@ -54,12 +54,19 @@ class BrowserConfig:
     port: int = None
     host: str = "127.0.0.1"
     impersonate: str = "chrome"
+    executable_path: str = None
+    connection_timeout: float = 0.25
     
     @staticmethod
     async def stop_browser():
         return None
     
-    browser_executable_path: str = None
+    @classmethod
+    def load_from_env(cls):
+        cls.port = os.environ.get("G4F_BROWSER_PORT", cls.port)
+        cls.host = os.environ.get("G4F_BROWSER_HOST", cls.host)
+        cls.executable_path = os.environ.get("G4F_BROWSER_EXECUTABLE_PATH", cls.executable_path)
+        cls.connection_timeout = float(os.environ.get("G4F_BROWSER_CONNECTION_TIMEOUT", cls.connection_timeout))
 
 COOKIE_DOMAINS = (
     ".bing.com",
@@ -214,8 +221,7 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
 
     AppConfig.load_from_env()
 
-    BrowserConfig.port = os.environ.get("G4F_BROWSER_PORT", BrowserConfig.port)
-    BrowserConfig.host = os.environ.get("G4F_BROWSER_HOST", BrowserConfig.host)
+    BrowserConfig.load_from_env()
     if BrowserConfig.port:
         BrowserConfig.port = int(BrowserConfig.port)
         debug.log(f"Using browser: {BrowserConfig.host}:{BrowserConfig.port}")
