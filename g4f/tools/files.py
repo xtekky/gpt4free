@@ -60,7 +60,7 @@ except ImportError:
 try:
     import spacy
     has_spacy = True
-except:
+except Exception:
     has_spacy = False
 try:
     from bs4 import BeautifulSoup

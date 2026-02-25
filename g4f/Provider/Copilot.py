@@ -286,7 +286,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 try:
                     msg_txt, _ = await asyncio.wait_for(wss.recv(), 1 if done else timeout)
                     msg = json.loads(msg_txt)
-                except:
+                except Exception:
                     break
                 last_msg = msg
                 if msg.get("event") == "appendText":

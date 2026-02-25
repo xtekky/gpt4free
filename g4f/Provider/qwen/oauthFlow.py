@@ -40,7 +40,7 @@ async def launch_browser_for_oauth():
     url_to_open = device_auth.get("verification_uri_complete") or device_auth["verification_uri"]
     try:
         webbrowser.open(url_to_open)
-    except:
+    except Exception:
         print(f"Open the URL manually in your browser: {url_to_open}")
 
     # Start polling for token

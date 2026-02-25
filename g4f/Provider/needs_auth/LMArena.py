@@ -614,7 +614,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 force = True
                 debug.error(error)
                 continue
-            except:
+            except Exception:
                 raise
         if args and os.getenv("G4F_SHARE_AUTH") and not kwargs.get("action"):
             yield "\n" * 10

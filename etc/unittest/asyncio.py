@@ -2,7 +2,7 @@ import asyncio
 try:
     import nest_asyncio2 as nest_asyncio
     has_nest_asyncio = True
-except:
+except Exception:
     has_nest_asyncio = False 
 import unittest
 

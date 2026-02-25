@@ -118,7 +118,7 @@ async def create_images(session: ClientSession, prompt: str, timeout: int = TIME
     error = None
     try:
         error = json.loads(text).get("errorMessage")
-    except:
+    except Exception:
         pass
     if error == "Pending":
         raise RuntimeError("Prompt is been blocked")

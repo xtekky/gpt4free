@@ -99,7 +99,7 @@ def print_providers():
                         lines.append(f"| **Image Models (Image Generation)** | {', '.join(image_models)} |")
                     if hasattr(_provider, "vision_models"):
                         lines.append(f"| **Vision (Image Upload)** | ✔️ |")
-                except:
+                except Exception:
                     pass
 
             lines.append(f"| **Authentication** | {auth} | \n| **Streaming** | {stream} |")

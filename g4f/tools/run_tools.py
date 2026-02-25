@@ -342,7 +342,7 @@ async def async_iter_run_tools(
                 f.write(f"{json.dumps(usage)}\n")
         if completion_tokens > 0:
             provider.live += 1
-    except:
+    except Exception:
         provider.live -= 1
         raise
 
@@ -514,7 +514,7 @@ def iter_run_tools(
             f.write(f"{json.dumps(usage)}\n")
         if completion_tokens > 0:
             provider.live += 1
-    except:
+    except Exception:
         provider.live -= 1
         raise
 
