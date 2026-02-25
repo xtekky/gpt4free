@@ -7,12 +7,12 @@ from g4f.errors import MissingRequirementsError
 try:
     from g4f.gui.server.backend_api import Backend_Api
     has_requirements = True
-except:
+except Exception:
     has_requirements = False
 try:
     from g4f.tools.web_search import search
     has_search = True
-except:
+except Exception:
     has_search = False
 try:
     from ddgs.exceptions import DDGSException

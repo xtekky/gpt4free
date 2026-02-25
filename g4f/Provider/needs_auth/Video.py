@@ -12,7 +12,7 @@ try:
     import zendriver as nodriver
     from zendriver.core.connection import ProtocolException
     has_nodriver = True
-except:
+except Exception:
     has_nodriver = False
 
 from ...typing import Messages, AsyncResult

@@ -77,7 +77,7 @@ class QwenCode(OpenaiTemplate):
                     last_chunk = chunk
                 else:
                     yield chunk
-        except:
+        except Exception:
             raise
 
     @classmethod

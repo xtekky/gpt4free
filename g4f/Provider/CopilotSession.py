@@ -168,7 +168,7 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
             try:
                 request_id, msg_txt = await asyncio.wait_for(queue.get(), 1 if done else timeout)
                 msg = json.loads(msg_txt)
-            except:
+            except Exception:
                 break
             last_msg = msg
             if msg.get("event") == "startMessage":

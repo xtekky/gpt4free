@@ -80,7 +80,7 @@ class SharedTokenManager(AuthFileMixin):
             try:
                 lock_path = self.getLockFilePath()
                 lock_path.unlink()
-            except:
+            except Exception:
                 pass
 
         atexit.register(cleanup)
@@ -214,16 +214,16 @@ class SharedTokenManager(AuthFileMixin):
                 with open(lock_path, "w") as f:
                     f.write(lock_id)
                 return
-            except:
+            except Exception:
                 try:
                     stat = os.stat(str(lock_path))
                     lock_age = int(time.time() * 1000) - int(stat.st_mtime * 1000)
                     if lock_age > LOCK_TIMEOUT_MS:
                         try:
                             await os.unlink(str(lock_path))
-                        except:
+                        except Exception:
                             pass
-                except:
+                except Exception:
                     pass
                 await asyncio.sleep(attempt_interval / 1000)
         raise TokenManagerError(TokenError.LOCK_TIMEOUT, "Failed to acquire lock")
@@ -231,7 +231,7 @@ class SharedTokenManager(AuthFileMixin):
     async def releaseLock(self, lock_path: Path):
         try:
             await os.unlink(str(lock_path))
-        except:
+        except Exception:
             pass
 
     async def saveCredentialsToFile(self, credentials: dict):
