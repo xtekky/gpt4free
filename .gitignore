@@ -12,3 +12,4 @@ lib64
 /.idea
 container/
 g4f.dev
+.env

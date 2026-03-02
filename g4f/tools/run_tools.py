@@ -29,15 +29,57 @@ from .auth import AuthManager
 from .files import read_bucket, get_bucket_dir
 from .. import debug
 
-# Constants
-BUCKET_INSTRUCTIONS = """
-Instruction: Make sure to add the sources of cites using [[domain]](Url) notation after the reference. Example: [[a-z0-9.]](http://example.com)
-"""
+# Provider tool_choice capabilities
+# Some providers don't support all tool_choice options
+PROVIDER_TOOL_CHOICE_SUPPORT = {
+    "Antigravity": ["auto"],  # Only supports "auto", fails on "required"
+    "default": ["auto", "none", "required"]
+}
+
+
+def get_provider_tool_choice(provider_name: str, requested_tool_choice) -> str:
+    """
+    Get provider-compatible tool_choice value.
+    
+    Args:
+        provider_name: Name of the provider
+        requested_tool_choice: Tool choice requested by user
+    
+    Returns:
+        Provider-compatible tool_choice value
+    """
+    supported = PROVIDER_TOOL_CHOICE_SUPPORT.get(provider_name, PROVIDER_TOOL_CHOICE_SUPPORT["default"])
+    
+    # If tool_choice is a dict, extract function name
+    if isinstance(requested_tool_choice, dict):
+        # Dict format is generally supported
+        return requested_tool_choice
+    
+    # Check if requested choice is supported
+    if requested_tool_choice in supported:
+        return requested_tool_choice
+    
+    # Fall back to "auto" for unsupported choices
+    debug.log(f"Provider {provider_name} doesn't support tool_choice='{requested_tool_choice}', using 'auto'")
+    return "auto"
 
 TOOL_NAMES = {
     "SEARCH": "search_tool",
     "CONTINUE": "continue_tool",
     "BUCKET": "bucket_tool",
+    # Filesystem tools
+    "READ_FILE": "read_file",
+    "WRITE_FILE": "write_file",
+    "LIST_DIRECTORY": "list_directory",
+    "CREATE_DIRECTORY": "create_directory",
+    "DELETE_FILE": "delete_file",
+    "DELETE_DIRECTORY": "delete_directory",
+    "MOVE_FILE": "move_file",
+    "COPY_FILE": "copy_file",
+    "SEARCH_FILES": "search_files",
+    "GET_FILE_INFO": "get_file_info",
+    "FILE_EXISTS": "file_exists",
+    "SEARCH_IN_FILES": "search_in_files",
 }
 
 
@@ -111,6 +153,51 @@ class ToolHandler:
         return messages
 
     @staticmethod
+    async def process_filesystem_tool(
+        messages: Messages,
+        tool: dict,
+        provider: Any
+    ) -> Tuple[Messages, Dict[str, Any]]:
+        """
+        Process filesystem tool requests.
+
+        Executes filesystem operations and adds results to messages.
+        """
+        from .filesystem import execute_filesystem_tool
+
+        messages = messages.copy()
+        function_name = tool.get("function", {}).get("name")
+        arguments = ToolHandler.validate_arguments(tool["function"])
+
+        debug.log(f"Executing filesystem tool: {function_name}")
+        debug.log(f"Arguments: {arguments}")
+
+        # Execute the filesystem tool
+        result = execute_filesystem_tool(function_name, arguments)
+
+        # Add tool response to messages
+        if result.get("success"):
+            # Format result as tool response
+            response_content = json.dumps(result, indent=2, default=str)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool.get("id", f"fs_{function_name}"),
+                "content": response_content
+            })
+            debug.log(f"Filesystem tool result: {result}")
+        else:
+            # Add error response
+            error_content = f"Error executing {function_name}: {result.get('error', 'Unknown error')}"
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool.get("id", f"fs_{function_name}"),
+                "content": error_content
+            })
+            debug.log(f"Filesystem tool error: {result}")
+
+        return messages, {}
+
+    @staticmethod
     async def process_tools(
         messages: Messages, tool_calls: List[dict], provider: Any
     ) -> Tuple[Messages, Dict[str, Any]]:
@@ -122,6 +209,13 @@ class ToolHandler:
         messages = messages.copy()
         sources = None
 
+        # Filesystem tool names
+        fs_tools = {
+            "read_file", "write_file", "list_directory", "create_directory",
+            "delete_file", "delete_directory", "move_file", "copy_file",
+            "search_files", "get_file_info", "file_exists", "search_in_files"
+        }
+
         for tool in tool_calls:
             if tool.get("type") != "function":
                 continue
@@ -129,7 +223,15 @@ class ToolHandler:
             function_name = tool.get("function", {}).get("name")
 
             debug.log(f"Processing tool call: {function_name}")
-            if function_name == TOOL_NAMES["SEARCH"]:
+
+            # Check if it's a filesystem tool
+            if function_name in fs_tools:
+                messages, kwargs = await ToolHandler.process_filesystem_tool(
+                    messages, tool, provider
+                )
+                extra_kwargs.update(kwargs)
+
+            elif function_name == TOOL_NAMES["SEARCH"]:
                 messages, sources = await ToolHandler.process_search_tool(
                     messages, tool
                 )
@@ -262,6 +364,11 @@ async def async_iter_run_tools(
         emu_kwargs.pop("parallel_tool_calls", None)
         emu_kwargs.pop("stream", None)
         emu_kwargs.pop("stream_timeout", None)
+        
+        # Get provider-compatible tool_choice
+        provider_name = getattr(provider, '__name__', type(provider).__name__)
+        tool_choice = get_provider_tool_choice(provider_name, tool_choice)
+        
         async for chunk in ToolSupportProvider.create_async_generator(
             model=model,
             messages=messages,
@@ -379,6 +486,11 @@ def iter_run_tools(
         emu_kwargs.pop("parallel_tool_calls", None)
         emu_kwargs.pop("stream", None)
         emu_kwargs.pop("stream_timeout", None)
+        
+        # Get provider-compatible tool_choice
+        provider_name = getattr(provider, '__name__', type(provider).__name__)
+        tool_choice = get_provider_tool_choice(provider_name, tool_choice)
+        
         yield from to_sync_generator(
             ToolSupportProvider.create_async_generator(
                 model=model,
