@@ -66,6 +66,7 @@ class ToolFunctionModel(BaseModel):
     arguments: str
 
 class ToolCallModel(BaseModel):
+    index: int
     id: str
     type: str
     function: ToolFunctionModel
