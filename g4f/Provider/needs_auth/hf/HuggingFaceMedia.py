@@ -227,7 +227,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                                         item["url"] if isinstance(item, dict) else item
                                         for item in result.get("images", result.get("data", result.get("output")))
                                     ], prompt)
-                                except:
+                                except Exception:
                                     raise ValueError(f"Unexpected response: {result}")
                             elif task == "text-to-video" and result.get("output") is not None:
                                 return provider_info, VideoResponse(result["output"], prompt)

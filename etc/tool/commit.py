@@ -201,7 +201,7 @@ def get_repository_info(repo_path: Path) -> dict:
         )
         if branch_process.returncode == 0:
             info["branch"] = branch_process.stdout.strip()
-    except:
+    except Exception:
         pass
     
     try:
@@ -214,7 +214,7 @@ def get_repository_info(repo_path: Path) -> dict:
         )
         if remote_process.returncode == 0:
             info["remote"] = remote_process.stdout.strip()
-    except:
+    except Exception:
         pass
     
     return info
@@ -287,7 +287,7 @@ def show_spinner(duration: int = None):
             time.sleep(duration)
             stop_spinner.set()
         return stop_spinner
-    except:
+    except Exception:
         stop_spinner.set()
         raise
 
@@ -383,7 +383,7 @@ def edit_commit_message(message: str) -> str:
             ["git", "config", "--get", "core.editor"],
             capture_output=True, text=True
         ).stdout.strip()
-    except:
+    except Exception:
         editor = os.environ.get('EDITOR', 'vim')
     
     if not editor:

@@ -67,7 +67,7 @@ async def get_args_from_webview(url: str) -> dict:
         try:
             await asyncio.sleep(1)
             body = window.dom.get_element("body:not(.no-js)")
-        except:
+        except Exception:
             ...
     headers = {
         **WEBVIEW_HAEDERS,
@@ -134,7 +134,7 @@ async def get_args_from_nodriver(
             },
             "proxy": proxy,
         }
-    except:
+    except Exception:
         await stop_browser()
         raise
 
@@ -232,7 +232,7 @@ async def get_nodriver(
         try:
             if BrowserConfig.port is None and browser.connection:
                 await browser.stop()
-        except:
+        except Exception:
             pass
         finally:
             if user_data_dir:

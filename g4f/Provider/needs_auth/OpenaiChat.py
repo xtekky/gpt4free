@@ -648,7 +648,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                         products_str += f"{name} - {tags}\n\n"
 
                                                     return products_str
-                                                except:
+                                                except Exception:
                                                     return ""
 
                                             sequence_content = match.group(1)
@@ -747,7 +747,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             while not wss.closed:
                 try:
                     last_msg = await wss.recv_json(timeout=60 if not started else timeout)
-                except:
+                except Exception:
                     break
                 conversation_id = conversation.task.get("conversation_id")
                 message_id = conversation.task.get("message", {}).get("id")
@@ -871,7 +871,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             return
         try:
             line = json.loads(line[6:])
-        except:
+        except Exception:
             return
         if not isinstance(line, dict):
             return

@@ -239,7 +239,7 @@ class Api:
                     if has_crypto and user_g4f_api_key:
                         try:
                             expires, user = decrypt_data(private_key, user_g4f_api_key[0]).split(":", 1)
-                        except:
+                        except Exception:
                             try:
                                 data = json.loads(decrypt_data(session_key, user_g4f_api_key[0]))
                                 debug.log(f"Decrypted G4F API key data: {data}")
@@ -247,7 +247,7 @@ class Api:
                                 user = data.get("user", user)
                                 if not user or "referrer" not in data:
                                     raise ValueError("User not found")
-                            except:
+                            except Exception:
                                 return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
                         user = f"{country}:{user}" if country else user
                         expires = int(expires) - int(time.time())
@@ -621,7 +621,7 @@ class Api:
             def safe_get_models(provider: ProviderType) -> list[str]:
                 try:
                     return provider.get_models() if hasattr(provider, "get_models") else []
-                except:
+                except Exception:
                     return []
             return {
                 'id': provider.__name__,

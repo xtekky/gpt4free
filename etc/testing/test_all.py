@@ -18,7 +18,7 @@ async def test(model: g4f.Model):
                 print(response, end="")
 
             print()
-        except:
+        except Exception:
             for response in await g4f.ChatCompletion.create_async(
                     model=model,
                     messages=[{"role": "user", "content": "write a poem about a tree"}],
