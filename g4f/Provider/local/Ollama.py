@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import requests
 import os
+from typing import Optional
 
 from ..template import OpenaiTemplate
 from ...requests import StreamSession, raise_for_status
@@ -59,42 +60,22 @@ class Ollama(OpenaiTemplate):
         messages: Messages,
         api_key: str = None,
         base_url: str = None,
-        proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if base_url is None:
-            host = os.getenv("OLLAMA_HOST", "localhost")
-            port = os.getenv("OLLAMA_PORT", "11434")
-            base_url: str = f"http://{host}:{port}/v1"
+        if not cls.models:
+            cls.get_models(api_key=api_key, base_url=base_url)
         if model in cls.local_models:
-            async with StreamSession(headers={"Authorization": f"Bearer {api_key}"}, proxy=proxy) as session:
-                async with session.post(f"{base_url.replace('/v1', '')}/api/chat", json={
-                    "model": model,
-                    "messages": messages,
-                }) as response:
-                    await raise_for_status(response)
-                    last_data = {}
-                    async for chunk in response.iter_lines():
-                        data = json.loads(chunk)
-                        last_data = data
-                        thinking = data.get("message", {}).get("thinking", "")
-                        if thinking:
-                            yield Reasoning(thinking)
-                        content = data.get("message", {}).get("content", "")
-                        if content:
-                            yield content
-                    yield Usage(
-                        prompt_tokens=last_data.get("prompt_eval_count", 0),
-                        completion_tokens=last_data.get("eval_count", 0),
-                        total_tokens=last_data.get("prompt_eval_count", 0) + last_data.get("eval_count", 0),
-                    )
+            if base_url is None:
+                host = os.getenv("OLLAMA_HOST", "localhost")
+                port = os.getenv("OLLAMA_PORT", "11434")
+                base_url: str = f"http://{host}:{port}/v1"
         else:
-            async for chunk in super().create_async_generator(
-                model,
-                messages,
-                api_key=api_key,
-                base_url=cls.backup_url,
-                proxy=proxy,
-                **kwargs
-            ):
-                yield chunk
+            base_url = cls.backup_url
+        async for chunk in super().create_async_generator(
+            model,
+            messages,
+            api_key=api_key,
+            base_url=cls.backup_url,
+            **kwargs
+        ):
+            yield chunk

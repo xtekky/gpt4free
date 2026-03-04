@@ -66,14 +66,18 @@ class ToolFunctionModel(BaseModel):
     arguments: str
 
 class ToolCallModel(BaseModel):
-    index: int
+    index: int = 0
     id: str
     type: str
     function: ToolFunctionModel
 
     @classmethod
-    def model_construct(cls, function=None, **kwargs):
+    def model_construct(cls, function=None, index=0, **kwargs):
+        # Ensure arguments is always a string
+        if function and "arguments" in function and not isinstance(function["arguments"], str):
+            function["arguments"] = str(function["arguments"])
         return super().model_construct(
+            index=index,
             **kwargs,
             function=ToolFunctionModel.model_construct(**function),
         )
