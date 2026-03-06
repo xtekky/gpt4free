@@ -39,7 +39,7 @@ def create_or_read_keys() -> tuple[RSAPrivateKey, RSAPublicKey]:
         return private_key, public_key
 
     # Generate keys
-    private_key_obj = rsa.generate_private_key(public_exponent=65537, key_size=1024)
+    private_key_obj = rsa.generate_private_key(public_exponent=65537, key_size=4096)
     public_key_obj = private_key_obj.public_key()
 
     # Serialize private key

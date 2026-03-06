@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import flask
 import os
+import re
 import time
 import base64
 import logging
@@ -10,8 +11,10 @@ import asyncio
 import shutil
 import random
 import datetime
+import ipaddress
+import socket
 from hashlib import sha256
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 from functools import lru_cache
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
@@ -53,6 +56,32 @@ from ... import models
 from .api import Api
 
 logger = logging.getLogger(__name__)
+
+_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+
+def _is_safe_url(url: str) -> bool:
+    """Return True only for http/https URLs that do not point to private/loopback/reserved addresses."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if hostname is None:
+            return False
+        # Resolve all IP addresses for the hostname and reject if any is non-public.
+        # Validating all addresses reduces the window for DNS rebinding attacks.
+        addr_infos = socket.getaddrinfo(hostname, None)
+        if not addr_infos:
+            return False
+        for addr_info in addr_infos:
+            addr = ipaddress.ip_address(addr_info[4][0])
+            if (addr.is_private or addr.is_loopback or addr.is_link_local
+                    or addr.is_reserved or addr.is_multicast or addr.is_unspecified):
+                return False
+    except Exception as e:
+        logger.debug("URL safety check failed for %r: %s", url, e)
+        return False
+    return True
 
 def safe_iter_generator(generator: Generator) -> Generator:
     start = next(generator)
@@ -194,6 +223,8 @@ class Backend_Api(Api):
                         media.append((Path(newfile), file.filename))
             if "media_url" in request.form:
                 for url in request.form.getlist("media_url"):
+                    if not _is_safe_url(url):
+                        return jsonify({"error": {"message": f"Invalid or disallowed media_url: {url}"}}), 400
                     media.append((url, None))
             if media:
                 json_data['media'] = media
@@ -246,6 +277,12 @@ class Backend_Api(Api):
     
         @app.route('/backend-api/v2/usage/<date>', methods=['GET'])
         def get_usage(date: str):
+            if not _DATE_RE.match(date):
+                return (jsonify({"error": {"message": "Invalid date format"}}), 400)
+            try:
+                datetime.date.fromisoformat(date)
+            except ValueError:
+                return (jsonify({"error": {"message": "Invalid date"}}), 400)
             cache_dir = Path(get_cookies_dir()) / ".usage"
             cache_file = cache_dir / f"{date}.jsonl"
             if cache_file.exists():
@@ -584,10 +621,10 @@ class Backend_Api(Api):
         def upload_chat(share_id: str) -> dict:
             chat_data = {**request.json}
             updated = chat_data.get("updated", 0)
+            share_id = secure_filename(share_id)
             cache_value = self.chat_cache.get(share_id, 0)
             if updated == cache_value:
                 return {"share_id": share_id}
-            share_id = secure_filename(share_id)
             bucket_dir = get_bucket_dir(share_id)
             os.makedirs(bucket_dir, exist_ok=True)
             with open(os.path.join(bucket_dir, "chat.json"), 'w', encoding="utf-8") as f:
