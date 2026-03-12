@@ -178,21 +178,6 @@ class Backend_Api(Api):
             response = self.get_providers(**kwargs)
             return jsonify(response)
 
-        def get_demo_models():
-            return [{
-                "name": model.name,
-                "image": isinstance(model, models.ImageModel),
-                "vision": isinstance(model, models.VisionModel),
-                "audio": isinstance(model, models.AudioModel),
-                "video": isinstance(model, models.VideoModel),
-                "providers": [
-                    provider.get_parent()
-                    for provider in providers
-                ],
-                "demo": True
-            }
-            for model, providers in models.demo_models.values()]
-
         def handle_conversation():
             """
             Handles conversation requests and streams responses back.
@@ -209,6 +194,9 @@ class Backend_Api(Api):
             except json.JSONDecodeError as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": "Invalid JSON data"}}), 400
+            for key in ["base_url", "proxy", "media"]:
+                if key in json_data:
+                    del json_data[key]  # Remove unsupported fields for security
             if app.demo and has_crypto:
                 secret = request.headers.get("x-secret", request.headers.get("x_secret"))
                 if not secret or not validate_secret(secret):
@@ -653,9 +641,8 @@ class Backend_Api(Api):
 
     def get_provider_models(self, provider: str):
         api_key = request.headers.get("x-api-key")
-        base_url = request.headers.get("x-api-base")
         ignored = request.headers.get("x-ignored", "").split()
-        return super().get_provider_models(provider, api_key, base_url, ignored)
+        return super().get_provider_models(provider, api_key, ignored)
 
     def _format_json(self, response_type: str, content = None, **kwargs) -> str:
         """

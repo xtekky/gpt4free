@@ -273,7 +273,7 @@ class GithubCopilot(OpenaiTemplate):
                 usage = await resp.json()
         return usage
 
-async def main(args: Optional[List[str]] = None):
+async def main(args: Optional[list[str]] = None):
     """CLI entry point for GitHub Copilot OAuth authentication."""
     import argparse
     
@@ -373,7 +373,7 @@ Examples:
         parser.print_help()
 
 
-def cli_main(args: Optional[List[str]] = None):
+def cli_main(args: Optional[list[str]] = None):
     """Synchronous CLI entry point for setup.py console_scripts."""
     asyncio.run(main(args))
 
