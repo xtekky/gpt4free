@@ -69,6 +69,7 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        auth_result: AuthResult,
         proxy: str = None,
         timeout: int = 30,
         prompt: str = None,
@@ -87,9 +88,12 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
             page = await session.get(url)
             await page.send(cdp.network.enable())
             queue = asyncio.Queue()
+            def handle_ws_message(event):
+                if hasattr(event, "response") and event.response.payload_data:
+                    queue.put_nowait((event.request_id, event.response.payload_data))
             page.add_handler(
                 cdp.network.WebSocketFrameReceived,
-                lambda event: queue.put_nowait((event.request_id, event.response.payload_data)),
+                handle_ws_message
             )
             textarea = await page.select("textarea")
             if textarea is not None:

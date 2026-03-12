@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import uuid
 import asyncio
 import base64
 import random
@@ -135,7 +136,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         if not has_curl_cffi:
             raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
         model = cls.get_model(model)
-        websocket_url = cls.websocket_url
+        websocket_url = cls.websocket_url + f"&clientSessionId={uuid.uuid4()}"
         headers = DEFAULT_HEADERS.copy()
         headers["origin"] = cls.url
         headers["referer"] = cls.url + "/"

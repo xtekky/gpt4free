@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import os
+import random
 import re
 import time
 import uuid
@@ -159,32 +160,28 @@ async def claim_yupp_reward(
 def sync_record_model_feedback(
     scraper: CloudScraper,
     account: Dict[str, Any],
-    turn_id: str,
-    left_message_id: str,
-    right_message_id: str,
+    reward_kw: Dict[str, str]
 ) -> Optional[str]:
     try:
-        log_debug(f"Recording model feedback for turn {turn_id}...")
-        url = "https://yupp.ai/api/trpc/evals.recordModelFeedback?batch=1"
-        payload = {
-            "0": {
-                "json": {
-                    "turnId": turn_id,
-                    "evalType": "SELECTION",
-                    "messageEvals": [
-                        {
-                            "messageId": right_message_id,
-                            "rating": "GOOD",
-                            "reasons": ["Fast"],
-                        },
-                        {"messageId": left_message_id, "rating": "BAD", "reasons": []},
-                    ],
-                    "comment": "",
-                    "requireReveal": False,
-                }
-            }
-        }
+        url = "https://yupp.ai/api/trpc/evals.getTurnAnnotations"
+        payload = {"0": {"json": {"turnId": reward_kw["turn_id"]}}}
         scraper.cookies.set("__Secure-yupp.session-token", account["token"])
+        response = scraper.get(url, params={"batch": "1", "input": json.dumps(payload)})
+        data = response.json()
+        positive_notes = []
+        for result in data:
+            json_data = result.get("result", {}).get("data", {}).get("json", {})
+            positive_notes = [row[0] for row in json_data.get("positive_notes", [])]
+        positive_notes = [random.choice(positive_notes)] if positive_notes else []
+        log_debug(f"Recording feedback for turn {reward_kw['turn_id']}: {positive_notes}")
+        url = "https://yupp.ai/api/trpc/evals.recordModelFeedback?batch=1"
+        selected_message_id = reward_kw.get("left_message_id") if reward_kw.get("selection") == "left" else reward_kw.get("right_message_id")
+        variant_message_id = reward_kw.get("right_message_id") if reward_kw.get("selection") == "left" else reward_kw.get("left_message_id")
+        payload = {"0":{"json":{"turnId":reward_kw["turn_id"],"isOnboarding":False,"evalType":"SELECTION","messageEvals":[
+            {"messageId":selected_message_id,"rating":"GOOD","reasons":positive_notes},
+            {"messageId":variant_message_id,"rating":"BAD","reasons":[]}
+        ],"comment":"","requireReveal":False}}}
+
         response = scraper.post(url, json=payload)
         response.raise_for_status()
         data = response.json()
@@ -206,9 +203,7 @@ def sync_record_model_feedback(
 async def record_model_feedback(
     scraper: CloudScraper,
     account: Dict[str, Any],
-    turn_id: str,
-    left_message_id: str,
-    right_message_id: str,
+    reward_kw: Dict[str, str]
 ) -> Optional[str]:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
@@ -216,9 +211,7 @@ async def record_model_feedback(
         sync_record_model_feedback,
         scraper,
         account,
-        turn_id,
-        left_message_id,
-        right_message_id,
+        reward_kw
     )
 
 
@@ -289,6 +282,22 @@ async def make_chat_private(
         _executor, sync_make_chat_private, scraper, account, chat_id
     )
 
+async def get_credits(scraper: CloudScraper, account: Dict[str, Any]) -> Optional[float]:
+    try:
+        log_debug("Fetching credit balance...")
+        url = "https://yupp.ai/api/trpc/credits.getCredits?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%7D"
+        scraper.cookies.set("__Secure-yupp.session-token", account["token"])
+        def sync_fetch_credits():
+            response = scraper.get(url)
+            response.raise_for_status()
+            data = response.json()
+            balance = data[0]["result"]["data"]["json"]
+            return balance
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_executor, sync_fetch_credits)
+    except Exception as e:
+        log_debug(f"Failed to fetch credit balance: {e}")
+        return None
 
 def log_debug(message: str):
     if os.getenv("DEBUG_MODE", "false").lower() == "true":
@@ -495,6 +504,26 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         )
         response.raise_for_status()
         return response
+    
+    @classmethod
+    async def get_quota(cls, api_key: str = None) -> Optional[float]:
+        if not api_key:
+            api_key = AuthManager.load_api_key(cls)
+        if not api_key:
+            api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+        if api_key:
+            load_yupp_accounts(api_key)
+        else:
+            raise MissingAuthError(
+                "No Yupp accounts configured. Set YUPP_API_KEY environment variable."
+            )
+        credits = await get_credits(create_scraper(), await get_best_yupp_account())
+        return {
+            "credits": {
+                "remaining": credits,
+                "total": 5000
+            }
+        }
 
     @classmethod
     async def create_async_generator(
@@ -546,6 +575,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 scraper = create_scraper()
                 if proxy:
                     scraper.proxies = {"http": proxy, "https": proxy}
+                
+                credits = await get_credits(scraper, account)
+                log_debug(f"Account ...{account['token'][-4:]} has {credits} credits")
+                if credits is not None and credits <= 100:
+                    log_debug(f"Account ...{account['token'][-4:]} has low credits, rotating")
+                    async with account_rotation_lock:
+                        account["error_count"] += 1
+                    continue
 
                 # Initialize token extractor for automatic token swapping
                 token_extractor = get_token_extractor(
@@ -943,6 +980,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                                 target_stream_id = extract_ref_id(
                                     select_stream[i].get("next")
                                 )
+                                reward_kw["selection"] = "left" if i == 0 else "right"
                                 provider_info["modelLabel"] = selection.get(
                                     "shortLabel"
                                 )
@@ -1073,9 +1111,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
                 eval_id = await record_model_feedback(
                     scraper,
                     account,
-                    reward_kw["turn_id"],
-                    reward_kw["left_message_id"],
-                    reward_kw["right_message_id"],
+                    reward_kw
                 )
                 if eval_id:
                     await claim_yupp_reward(scraper, account, eval_id)
