@@ -127,7 +127,8 @@ def load_cookies_from_browsers(domain_name: str,
     cookies = {}
     all_cookies = {}
     for cookie_fn in BROWSERS:
-        all_cookies[cookie_fn.__name__] = {}
+        if domain_name in CookiesConfig.cookies:
+            all_cookies[cookie_fn.__name__] = {"config": CookiesConfig.cookies.get(domain_name, {})}
         try:
             cookie_jar = cookie_fn(domain_name=domain_name)
             for cookie in cookie_jar:

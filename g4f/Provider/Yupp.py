@@ -299,6 +299,9 @@ async def get_credits(scraper: CloudScraper, account: Dict[str, Any]) -> Optiona
         log_debug(f"Failed to fetch credit balance: {e}")
         return None
 
+def get_cookie_tokens():
+    return [cookies.get("__Secure-yupp.session-token") for cookies in get_cookies("yupp.ai", False, "all").values() if cookies.get("__Secure-yupp.session-token")]
+
 def log_debug(message: str):
     if os.getenv("DEBUG_MODE", "false").lower() == "true":
         print(f"[DEBUG] {message}")
@@ -510,7 +513,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         if not api_key:
             api_key = AuthManager.load_api_key(cls)
         if not api_key:
-            api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+            api_key = get_cookie_tokens()
         if api_key:
             load_yupp_accounts(api_key)
         else:
@@ -541,7 +544,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         if not api_key:
             api_key = AuthManager.load_api_key(cls)
         if not api_key:
-            api_key = [cookies.get("__Secure-yupp.session-token") for cookies in get_cookies("yupp.ai", False, "all").values() if cookies.get("__Secure-yupp.session-token")]
+            api_key = get_cookie_tokens()
         if api_key:
             load_yupp_accounts(api_key)
             log_debug(f"Yupp provider initialized with {len(YUPP_ACCOUNTS)} accounts")
