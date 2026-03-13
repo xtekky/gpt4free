@@ -83,13 +83,13 @@ def create_scraper():
     return scraper
 
 
-def load_yupp_accounts(tokens_str: str):
+def load_yupp_accounts(tokens: str):
     global YUPP_ACCOUNTS, _accounts_loaded
     if _accounts_loaded:
         return
-    if not tokens_str:
+    if not tokens:
         return
-    tokens = [token.strip() for token in tokens_str.split(",") if token.strip()]
+    tokens = [token.strip() for token in (tokens.split(",") if isinstance(tokens, str) else tokens) if token.strip()]
     YUPP_ACCOUNTS = [
         {"token": token, "is_valid": True, "error_count": 0, "last_used": 0.0}
         for token in tokens
@@ -541,7 +541,7 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
         if not api_key:
             api_key = AuthManager.load_api_key(cls)
         if not api_key:
-            api_key = get_cookies("yupp.ai", False).get("__Secure-yupp.session-token")
+            api_key = [cookies.get("__Secure-yupp.session-token") for cookies in get_cookies("yupp.ai", False, "all").values() if cookies.get("__Secure-yupp.session-token")]
         if api_key:
             load_yupp_accounts(api_key)
             log_debug(f"Yupp provider initialized with {len(YUPP_ACCOUNTS)} accounts")
