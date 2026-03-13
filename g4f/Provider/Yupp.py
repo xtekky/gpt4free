@@ -370,13 +370,14 @@ class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
             if not api_key:
                 api_key = AuthManager.load_api_key(cls)
             if not api_key:
-                api_key = get_cookies("yupp.ai", False).get(
-                    "__Secure-yupp.session-token"
-                )
-            if not api_key:
+                api_key = get_cookie_tokens()
+            if api_key:
+                load_yupp_accounts(api_key)
+            else:
                 raise MissingAuthError(
                     "No Yupp accounts configured. Set YUPP_API_KEY environment variable."
                 )
+            api_key = YUPP_ACCOUNTS[0]["token"] if YUPP_ACCOUNTS else None
             manager = YuppModelManager(session=create_scraper(), api_key=api_key)
             models = manager.client.fetch_models()
             if models:

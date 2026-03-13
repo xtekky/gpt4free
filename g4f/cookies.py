@@ -129,6 +129,8 @@ def load_cookies_from_browsers(domain_name: str,
     for cookie_fn in BROWSERS:
         if domain_name in CookiesConfig.cookies:
             all_cookies[cookie_fn.__name__] = {"config": CookiesConfig.cookies.get(domain_name, {})}
+        else:
+            all_cookies[cookie_fn.__name__] = {}
         try:
             cookie_jar = cookie_fn(domain_name=domain_name)
             for cookie in cookie_jar:
@@ -145,7 +147,7 @@ def load_cookies_from_browsers(domain_name: str,
             debug.error("Cookie loading interrupted by user.")
             break
         except Exception as e:
-            debug.error(f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {e}")
+            debug.error(f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {type(e).__name__}: {e}")
     if single_browser == "all":
         return all_cookies
     return cookies
