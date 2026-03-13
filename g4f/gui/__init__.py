@@ -37,7 +37,8 @@ def run_gui(host: str = '0.0.0.0', port: int = 8080, debug: bool = False) -> Non
     config = {
         'host' : host,
         'port' : port,
-        'debug': debug
+        'debug': debug,
+        'use_reloader': False
     }
 
     app = get_gui_app()
