@@ -221,7 +221,7 @@ def run_api_args(args):
 
     # Custom cookie browsers
     if args.cookie_browsers:
-        cookies.BROWSERS = [cookies[b] for b in args.cookie_browsers]
+        cookies.BROWSERS = [b for b in cookies.BROWSERS if b.__name__ in args.cookie_browsers]
 
     # Allow overriding the cookies directory from CLI
     if getattr(args, "cookies_dir", None):
