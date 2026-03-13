@@ -43,6 +43,7 @@ from .Provider import (
     Groq,
     MetaAI,
     MicrosoftDesigner,
+    MiniMax,
     OpenaiAccount,
     OpenaiChat,
     OpenRouter,
@@ -836,6 +837,19 @@ grok_3_r1 = Model(
     name = 'grok-3-r1',
     base_provider = 'x.ai',
     best_provider = Grok
+)
+
+### MiniMax ###
+minimax_m2_5 = Model(
+    name = 'MiniMax-M2.5',
+    base_provider = 'MiniMax',
+    best_provider = IterListProvider([MiniMax, DeepInfra]),
+)
+
+minimax_m2_5_highspeed = Model(
+    name = 'MiniMax-M2.5-highspeed',
+    base_provider = 'MiniMax',
+    best_provider = MiniMax,
 )
 
 kimi = Model(
