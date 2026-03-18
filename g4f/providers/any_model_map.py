@@ -1093,6 +1093,12 @@ model_map = {
     "HuggingChat": "zai-org/GLM-4.7-FP8",
     "OpenRouter": "z-ai/glm-4.7"
   },
+  "minimax-m2.7": {
+    "MiniMax": "MiniMax-M2.7"
+  },
+  "minimax-m2.7-highspeed": {
+    "MiniMax": "MiniMax-M2.7-highspeed"
+  },
   "minimax-m2.1": {
     "PollinationsAI": "minimax",
     "HuggingFace": "MiniMaxAI/MiniMax-M2.1",
@@ -4153,6 +4159,8 @@ models_count = {
   "claude-opus-4.5": 3,
   "gemini-3-pro": 8,
   "glm-4.7": 9,
+  "minimax-m2.7": 9,
+  "minimax-m2.7-highspeed": 9,
   "minimax-m2.1": 9,
   "turbo": 2,
   "gpt-image-1.5": 3,
@@ -5399,6 +5407,10 @@ model_aliases = {
   "openrouter:z-ai/glm-4.7": "glm-4.7",
   "zai-org/GLM-4.7-FP8": "glm-4.7",
   "z-ai/glm-4.7": "glm-4.7",
+  "MiniMax-M2.7": "minimax-m2.7",
+  "minimax/minimax-m2.7": "minimax-m2.7",
+  "MiniMax-M2.7-highspeed": "minimax-m2.7-highspeed",
+  "minimax/minimax-m2.7-highspeed": "minimax-m2.7-highspeed",
   "MiniMaxAI/MiniMax-M2.1": "minimax-m2.1",
   "minimax-m2.1-preview": "minimax-m2.1",
   "openrouter:minimax/minimax-m2.1": "minimax-m2.1",
