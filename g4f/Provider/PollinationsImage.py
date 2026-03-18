@@ -10,7 +10,7 @@ class PollinationsImage(PollinationsAI):
     label = "PollinationsImage"
     parent = PollinationsAI.__name__
     active_by_default = False
-    default_model = "flux"
+    default_model = "auto"
     default_vision_model = None
     default_image_model = default_model
     audio_models = {}
@@ -18,15 +18,15 @@ class PollinationsImage(PollinationsAI):
     @classmethod
     def get_models(cls, **kwargs):
         PollinationsAI.get_models()
-        cls.image_models = PollinationsAI.image_models
+        cls.image_models = {"Auto-Select": "auto", **PollinationsAI.image_models}
         cls.models = cls.image_models
         return cls.models
 
     @classmethod
     def get_grouped_models(cls) -> dict[str, list[str]]:
-        PollinationsAI.get_models()
+        cls.get_models()
         return [
-            {"group": "Image Generation", "models": PollinationsAI.image_models},
+            {"group": "Image Generation", "models": cls.image_models},
         ]
 
     @classmethod
