@@ -47,11 +47,23 @@ class Ollama(OpenaiTemplate):
                 async with session.get(
                     "https://ollama.com/settings",
                     cookies=cookies,
-                    headers={"User-Agent": "Mozilla/5.0"},
+                    headers={
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept-Language": "en-US,en;q=0.9",
+                    },
                 ) as response:
                     await raise_for_status(response)
                     html = await response.text()
-                    if "sign in" in html.lower() or "/signin" in html.lower():
+                    lower = html.lower()
+                    has_sign_in = "sign in to ollama" in lower or "log in to ollama" in lower
+                    has_auth_endpoint = "/api/auth/signin" in lower or "/auth/signin" in lower or 'href="/signin"' in lower or 'href="/login"' in lower
+                    has_form = "<form" in lower
+                    has_password = 'type="password"' in lower or 'name="password"' in lower
+                    has_email = 'type="email"' in lower or 'name="email"' in lower
+                    if (has_sign_in and has_form and (has_email or has_password or has_auth_endpoint)) \
+                            or (has_form and has_auth_endpoint) \
+                            or (has_form and has_password and has_email):
                         debug.error("Ollama session cookie is invalid or expired")
                         return None
                     quota = {}
@@ -59,7 +71,7 @@ class Ollama(OpenaiTemplate):
                         idx = html.find(label)
                         if idx == -1:
                             continue
-                        section = html[idx:idx + 500]
+                        section = html[idx + len(label):idx + len(label) + 800]
                         pct_match = re.search(r'(\d+(?:\.\d+)?)%\s*used', section)
                         if not pct_match:
                             width_match = re.search(r'width:\s*(\d+(?:\.\d+)?)%', section)
