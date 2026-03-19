@@ -110,100 +110,158 @@ class TestErrorCounter(unittest.TestCase):
 
 class TestEvaluateCondition(unittest.TestCase):
 
-    # --- simple comparisons ---
+    # --- simple comparisons (PollinationsAI-style quota) ---
 
     def test_balance_gt_true(self):
-        self.assertTrue(evaluate_condition("balance > 0", balance=5.0, error_count=0))
+        self.assertTrue(evaluate_condition("balance > 0", {"balance": 5.0}, 0))
 
     def test_balance_gt_false(self):
-        self.assertFalse(evaluate_condition("balance > 0", balance=0.0, error_count=0))
+        self.assertFalse(evaluate_condition("balance > 0", {"balance": 0.0}, 0))
 
     def test_balance_lt(self):
-        self.assertTrue(evaluate_condition("balance < 10", balance=3.0, error_count=0))
+        self.assertTrue(evaluate_condition("balance < 10", {"balance": 3.0}, 0))
 
     def test_error_count_lt_true(self):
-        self.assertTrue(evaluate_condition("error_count < 3", balance=0.0, error_count=2))
+        self.assertTrue(evaluate_condition("error_count < 3", {}, 2))
 
     def test_error_count_lt_false(self):
-        self.assertFalse(evaluate_condition("error_count < 3", balance=0.0, error_count=5))
+        self.assertFalse(evaluate_condition("error_count < 3", {}, 5))
 
     def test_eq_operator(self):
-        self.assertTrue(evaluate_condition("error_count == 0", balance=1.0, error_count=0))
+        self.assertTrue(evaluate_condition("error_count == 0", {"balance": 1.0}, 0))
 
     def test_neq_operator(self):
-        self.assertTrue(evaluate_condition("error_count != 3", balance=1.0, error_count=2))
+        self.assertTrue(evaluate_condition("error_count != 3", {"balance": 1.0}, 2))
 
     def test_ge_operator(self):
-        self.assertTrue(evaluate_condition("balance >= 5", balance=5.0, error_count=0))
+        self.assertTrue(evaluate_condition("balance >= 5", {"balance": 5.0}, 0))
 
     def test_le_operator(self):
-        self.assertTrue(evaluate_condition("balance <= 5", balance=5.0, error_count=0))
+        self.assertTrue(evaluate_condition("balance <= 5", {"balance": 5.0}, 0))
 
     # --- logical connectives ---
 
     def test_or_both_false(self):
         self.assertFalse(
-            evaluate_condition("balance > 0 or error_count < 3", balance=0.0, error_count=5)
+            evaluate_condition("balance > 0 or error_count < 3", {"balance": 0.0}, 5)
         )
 
     def test_or_first_true(self):
         self.assertTrue(
-            evaluate_condition("balance > 0 or error_count < 3", balance=1.0, error_count=5)
+            evaluate_condition("balance > 0 or error_count < 3", {"balance": 1.0}, 5)
         )
 
     def test_or_second_true(self):
         self.assertTrue(
-            evaluate_condition("balance > 0 or error_count < 3", balance=0.0, error_count=2)
+            evaluate_condition("balance > 0 or error_count < 3", {"balance": 0.0}, 2)
         )
 
     def test_or_both_true(self):
         self.assertTrue(
-            evaluate_condition("balance > 0 or error_count < 3", balance=1.0, error_count=1)
+            evaluate_condition("balance > 0 or error_count < 3", {"balance": 1.0}, 1)
         )
 
     def test_and_both_true(self):
         self.assertTrue(
-            evaluate_condition("balance > 0 and error_count < 3", balance=1.0, error_count=2)
+            evaluate_condition("balance > 0 and error_count < 3", {"balance": 1.0}, 2)
         )
 
     def test_and_first_false(self):
         self.assertFalse(
-            evaluate_condition("balance > 0 and error_count < 3", balance=0.0, error_count=2)
+            evaluate_condition("balance > 0 and error_count < 3", {"balance": 0.0}, 2)
         )
 
     def test_not_operator(self):
-        self.assertTrue(evaluate_condition("not error_count > 5", balance=0.0, error_count=2))
+        self.assertTrue(evaluate_condition("not error_count > 5", {}, 2))
 
-    # --- alias ---
+    # --- provider-specific quota dot-notation ---
+
+    def test_quota_balance_pollinations(self):
+        """PollinationsAI: quota.balance shorthand."""
+        self.assertTrue(
+            evaluate_condition("quota.balance > 0", {"balance": 10.0}, 0)
+        )
+
+    def test_quota_balance_pollinations_false(self):
+        self.assertFalse(
+            evaluate_condition("quota.balance > 0", {"balance": 0.0}, 0)
+        )
+
+    def test_quota_nested_yupp(self):
+        """Yupp: quota.credits.remaining > 0."""
+        quota = {"credits": {"remaining": 500, "total": 5000}}
+        self.assertTrue(
+            evaluate_condition("quota.credits.remaining > 0", quota, 0)
+        )
+
+    def test_quota_nested_yupp_false(self):
+        quota = {"credits": {"remaining": 0, "total": 5000}}
+        self.assertFalse(
+            evaluate_condition("quota.credits.remaining > 0", quota, 0)
+        )
+
+    def test_quota_missing_key_resolves_zero(self):
+        """Missing quota key should resolve to 0.0 (not raise)."""
+        self.assertFalse(
+            evaluate_condition("quota.nonexistent > 0", {}, 0)
+        )
+
+    def test_quota_missing_nested_key_resolves_zero(self):
+        self.assertFalse(
+            evaluate_condition("quota.credits.remaining > 0", {}, 0)
+        )
+
+    def test_quota_combined_condition(self):
+        """quota.credits.remaining > 0 or error_count < 3."""
+        quota = {"credits": {"remaining": 0, "total": 5000}}
+        self.assertTrue(
+            evaluate_condition("quota.credits.remaining > 0 or error_count < 3", quota, 2)
+        )
+
+    # --- legacy aliases ---
 
     def test_get_quota_balance_alias(self):
+        """get_quota.balance → quota.balance backward-compat alias."""
         self.assertTrue(
-            evaluate_condition("get_quota.balance > 0", balance=10.0, error_count=0)
+            evaluate_condition("get_quota.balance > 0", {"balance": 10.0}, 0)
+        )
+
+    def test_get_quota_balance_alias_false(self):
+        self.assertFalse(
+            evaluate_condition("get_quota.balance > 0", {"balance": 0.0}, 0)
         )
 
     # --- edge cases ---
 
     def test_empty_condition_returns_true(self):
-        self.assertTrue(evaluate_condition("", balance=0.0, error_count=0))
+        self.assertTrue(evaluate_condition("", {}, 0))
 
-    def test_none_balance_treated_as_zero(self):
-        self.assertFalse(evaluate_condition("balance > 0", balance=None, error_count=0))
+    def test_none_quota_treated_as_empty_dict(self):
+        """None quota should behave as empty dict: balance → 0.0."""
+        self.assertFalse(evaluate_condition("balance > 0", None, 0))
 
     def test_float_literal(self):
-        self.assertTrue(evaluate_condition("balance > 1.5", balance=2.0, error_count=0))
+        self.assertTrue(evaluate_condition("balance > 1.5", {"balance": 2.0}, 0))
 
     def test_parentheses(self):
         self.assertTrue(
             evaluate_condition(
                 "(balance > 0 or error_count < 3) and error_count < 10",
-                balance=0.0,
-                error_count=2,
+                {"balance": 0.0},
+                2,
             )
         )
 
     def test_unknown_variable_raises(self):
         with self.assertRaises(ValueError):
-            evaluate_condition("unknown_var > 0", balance=1.0, error_count=0)
+            evaluate_condition("unknown_var > 0", {}, 0)
+
+    def test_quota_unknown_sub_key_resolves_zero(self):
+        """Accessing a missing sub-key of quota returns 0.0, not an error."""
+        quota = {"balance": 5.0}
+        self.assertFalse(
+            evaluate_condition("quota.missing_field > 100", quota, 0)
+        )
 
 
 # ---------------------------------------------------------------------------

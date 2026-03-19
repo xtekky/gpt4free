@@ -63,13 +63,35 @@ models:
 ## Condition expressions
 
 The `condition` field is a boolean expression evaluated before each request.
-It can reference two variables:
+It can reference the following variables:
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `balance` | `float` | Provider quota balance, fetched via `get_quota()` and **cached** for 5 minutes. Returns `0.0` if the provider has no `get_quota` method or the call fails. |
-| `error_count` | `int` | Number of errors recorded for this provider in the last **1 hour**. |
-| `get_quota.balance` | `float` | Alias for `balance`. |
+### `quota` – full provider quota dict
+
+Each provider that implements `get_quota()` returns a **provider-specific** dict.
+The result is cached in memory (5 min TTL) and invalidated on 429 responses.
+
+Access any field with **dot-notation**:
+
+| Provider | `get_quota()` format | Example condition |
+|----------|---------------------|-------------------|
+| `PollinationsAI` | `{"balance": float}` | `quota.balance > 0` |
+| `Yupp` | `{"credits": {"remaining": int, "total": int}}` | `quota.credits.remaining > 100` |
+| `PuterJS` | raw metering JSON from the API | `quota.total_requests < 1000` |
+| `GeminiCLI` | `{"buckets": [...]}` | `error_count < 3` |
+| `GithubCopilot` | usage details dict | `error_count < 5` |
+
+Missing keys resolve to `0.0` (no error raised).
+
+### `balance` – shorthand alias
+
+`balance` is a convenience shorthand for `quota.balance`.  It is preserved for
+backward compatibility and is most useful with **PollinationsAI** which returns
+`{"balance": float}`.  For other providers, prefer the explicit `quota.*` form.
+
+### `error_count`
+
+Number of errors recorded for this provider in the last **1 hour**.  Errors
+older than 1 hour are automatically pruned.
 
 ### Operators
 
@@ -83,11 +105,17 @@ It can reference two variables:
 ### Examples
 
 ```yaml
+# PollinationsAI – uses quota.balance shorthand
 condition: "balance > 0"
-condition: "error_count < 3"
 condition: "balance > 0 or error_count < 3"
-condition: "balance >= 10 and error_count == 0"
-condition: "(balance > 0 or error_count < 5) and error_count < 10"
+
+# Yupp – provider-specific nested field
+condition: "quota.credits.remaining > 0"
+condition: "quota.credits.remaining > 0 or error_count < 3"
+
+# Any provider – error-count-only conditions work universally
+condition: "error_count < 3"
+condition: "error_count == 0"
 ```
 
 When the condition is **absent** or evaluates to `True`, the provider is
@@ -98,13 +126,12 @@ tries the next one in the list.
 
 ## Quota caching
 
-Quota values (`balance`) are fetched via the provider's `get_quota()` method
-and cached in memory for **5 minutes** (configurable via
-`QuotaCache.ttl`).
+Quota values are fetched via the provider's `get_quota()` method and cached in
+memory for **5 minutes** (configurable via `QuotaCache.ttl`).
 
 When a provider returns an HTTP **429 (Too Many Requests)** error the cache
 entry for that provider is **immediately invalidated**, so the next routing
-decision fetches a fresh balance before deciding.
+decision fetches a fresh quota value before deciding.
 
 ---
 
@@ -113,8 +140,8 @@ decision fetches a fresh balance before deciding.
 Every time a provider raises an exception the error counter for that provider
 is incremented.  Errors older than **1 hour** are automatically pruned.
 
-You can reference `error_count` in a condition to avoid retrying providers
-that have been failing repeatedly.
+Reference `error_count` in a condition to avoid retrying providers that have
+been failing repeatedly.
 
 ---
 
@@ -124,7 +151,7 @@ that have been failing repeatedly.
 # ~/.config/g4f/cookies/config.yaml
 
 models:
-  # Prefer OpenaiAccount when it has quota; fall back to PollinationsAI.
+  # PollinationsAI: use quota.balance shorthand
   - name: "my-gpt4"
     providers:
       - provider: "OpenaiAccount"
@@ -133,15 +160,16 @@ models:
       - provider: "PollinationsAI"
         model: "openai-large"
 
-  # Simple two-provider fallback, no conditions.
-  - name: "fast-chat"
+  # Yupp: provider-specific nested quota field
+  - name: "yupp-chat"
     providers:
+      - provider: "Yupp"
+        model: "gpt-4o"
+        condition: "quota.credits.remaining > 0 or error_count < 3"
       - provider: "PollinationsAI"
-        model: "openai"
-      - provider: "Gemini"
-        model: "gemini-2.0-flash"
+        model: "openai-large"
 
-  # Only use Groq when it has not exceeded 3 recent errors.
+  # Universal: error-count-only condition works for any provider
   - name: "llama-fast"
     providers:
       - provider: "Groq"
@@ -159,9 +187,9 @@ The routing machinery is exposed in `g4f.providers.config_provider`:
 
 ```python
 from g4f.providers.config_provider import (
-    RouterConfig,   # load / query routes
-    QuotaCache,     # inspect / invalidate quota cache
-    ErrorCounter,   # inspect / reset error counters
+    RouterConfig,        # load / query routes
+    QuotaCache,          # inspect / invalidate quota cache
+    ErrorCounter,        # inspect / reset error counters
     evaluate_condition,  # evaluate a condition string directly
 )
 
@@ -177,8 +205,17 @@ QuotaCache.invalidate("OpenaiAccount")
 # Check error count
 count = ErrorCounter.get_count("OpenaiAccount")
 
-# Evaluate a condition string
-ok = evaluate_condition("balance > 0 or error_count < 3", balance=0.0, error_count=2)
+# Evaluate a condition string with a full provider-specific quota dict
+# (PollinationsAI)
+ok = evaluate_condition("balance > 0 or error_count < 3", {"balance": 0.0}, 2)
+# True
+
+# Yupp-style nested quota
+ok = evaluate_condition(
+    "quota.credits.remaining > 0",
+    {"credits": {"remaining": 500, "total": 5000}},
+    0,
+)
 # True
 ```
 

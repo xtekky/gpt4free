@@ -15,21 +15,39 @@ Example ``config.yaml``::
             condition: "balance > 0 or error_count < 3"
           - provider: "PollinationsAI"
             model: "openai-large"
+      - name: "yupp-route"
+        providers:
+          - provider: "Yupp"
+            model: "gpt-4o"
+            condition: "quota.credits.remaining > 0"
       - name: "fast-model"
         providers:
           - provider: "Gemini"
             model: "gemini-pro"
 
 The ``condition`` field is optional.  When present it is a boolean expression
-that can reference two variables:
+that can reference the following variables:
 
-* ``balance``     – the provider's quota balance (float), fetched via
-  ``get_quota()`` and cached.
-* ``error_count`` – the number of recent errors recorded for the provider
+* ``quota``        – the full quota dict returned by the provider's
+  ``get_quota()`` call.  Each provider returns its own schema, e.g.:
+
+  * ``PollinationsAI``: ``{"balance": float}``
+  * ``Yupp``:            ``{"credits": {"remaining": int, "total": int}}``
+  * ``PuterJS``:         raw JSON from the provider's metering API.
+  * ``GeminiCLI``:       ``{"buckets": [...]}``
+
+  Access nested fields with dot-notation: ``quota.balance``,
+  ``quota.credits.remaining``, etc.  Missing keys resolve to ``0.0``.
+
+* ``balance``      – convenience shorthand for ``quota.balance``.
+  Kept for backward compatibility with PollinationsAI.
+  Equivalent to ``quota.balance`` when the provider is PollinationsAI.
+
+* ``error_count``  – the number of recent errors recorded for the provider
   within a rolling one-hour window.
 
 Supported operators in conditions: ``>``, ``<``, ``>=``, ``<=``, ``==``,
-``!=``, as well as ``and`` / ``or`` / ``not``.  Only the two variables above
+``!=``, as well as ``and`` / ``or`` / ``not``.  Only the variables above
 are available; arbitrary Python is **not** evaluated.
 """
 
@@ -245,38 +263,64 @@ def _parse_atom(tokens, pos, variables):
     elif kind == "int":
         return int(value), pos
     elif kind == "id":
-        # Resolve dotted names: "balance", "error_count", "get_quota.balance"
-        name = value
-        # Support "get_quota.balance" as an alias for "balance"
-        if name == "get_quota.balance":
-            name = "balance"
-        if name not in variables:
-            raise ValueError(f"Unknown variable in condition: {name!r}")
-        return variables[name], pos
+        # Legacy alias: "get_quota.balance" → "quota.balance"
+        if value == "get_quota.balance":
+            value = "quota.balance"
+
+        # Resolve dotted paths: "quota.credits.remaining", "balance", etc.
+        parts = value.split(".")
+        root = parts[0]
+        if root not in variables:
+            raise ValueError(f"Unknown variable in condition: {root!r}")
+
+        result = variables[root]
+        for part in parts[1:]:
+            if isinstance(result, dict):
+                result = result.get(part)
+                if result is None:
+                    result = 0.0
+                    break
+            else:
+                raise ValueError(
+                    f"Cannot access field {part!r} on non-dict value "
+                    f"while resolving {value!r}"
+                )
+
+        return float(result) if result is not None else 0.0, pos
     else:
         raise ValueError(f"Unexpected token {kind!r}={value!r} in condition expression")
 
 
 def evaluate_condition(
     condition: str,
-    balance: Optional[float],
+    quota: Optional[Dict],
     error_count: int,
 ) -> bool:
     """Evaluate a provider condition string.
 
     The condition may reference:
 
-    * ``balance``              – provider quota balance (float).
-    * ``get_quota.balance``    – alias for ``balance``.
-    * ``error_count``          – recent error count (int).
+    * ``quota``              – the full quota dict returned by ``get_quota()``.
+      Each provider returns its own schema.  Access nested fields with
+      dot-notation, e.g. ``quota.balance``, ``quota.credits.remaining``.
+      Missing keys resolve to ``0.0``.
+    * ``balance``            – shorthand alias for ``quota.balance``.
+      Kept for backward compatibility; equivalent to ``quota.balance``
+      for providers that return ``{"balance": float}`` (e.g. PollinationsAI).
+    * ``error_count``        – recent error count (int).
 
-    If *balance* is ``None`` the variable resolves to ``0.0``.
+    If *quota* is ``None`` the ``quota`` variable resolves to ``{}`` and
+    ``balance`` resolves to ``0.0``.
 
     Returns ``True`` if the provider should be used, ``False`` otherwise.
     Raises :class:`ValueError` on parse errors.
     """
-    variables = {
-        "balance": float(balance) if balance is not None else 0.0,
+    quota_dict = quota if isinstance(quota, dict) else {}
+    variables: Dict[str, object] = {
+        # Full quota dict – supports quota.balance, quota.credits.remaining, etc.
+        "quota": quota_dict,
+        # Convenience shorthand: "balance" → quota["balance"] (PollinationsAI compat)
+        "balance": float(quota_dict.get("balance", 0.0)),
         "error_count": float(error_count),
     }
     tokens = _tokenize(condition)
@@ -430,13 +474,10 @@ def _check_condition(
     """Return ``True`` if the provider satisfies the route condition."""
     if not route_cfg.condition:
         return True
-    balance: Optional[float] = None
-    if quota is not None:
-        balance = quota.get("balance")
     provider_name = getattr(provider, "__name__", str(provider))
     error_count = ErrorCounter.get_count(provider_name)
     try:
-        return evaluate_condition(route_cfg.condition, balance, error_count)
+        return evaluate_condition(route_cfg.condition, quota, error_count)
     except ValueError as e:
         debug.error(f"config.yaml: Invalid condition {route_cfg.condition!r}:", e)
         return False  # Default to skip on parse error
