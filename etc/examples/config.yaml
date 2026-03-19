@@ -1,0 +1,52 @@
+# g4f config.yaml – Custom model routing configuration
+#
+# Place this file in the same directory as your .har and .json cookie files
+# (the "cookies dir", typically ~/.config/g4f/cookies/ or ./har_and_cookies/).
+#
+# Each entry under `models` defines a named route.  When a client requests the
+# model by name g4f will try the listed providers in order, honouring any
+# `condition` expression, until one succeeds.
+#
+# Condition syntax
+# ----------------
+# The optional `condition` field is a boolean expression that can reference:
+#
+#   balance       – provider quota balance (float, 0.0 if unknown)
+#   error_count   – recent errors for this provider in the last hour (int)
+#
+# Supported operators: >  <  >=  <=  ==  !=
+# Logical connectives: and  or  not
+#
+# Examples:
+#   condition: "balance > 0"
+#   condition: "error_count < 3"
+#   condition: "balance > 0 or error_count < 3"
+#   condition: "balance >= 10 and error_count == 0"
+
+models:
+  # Route "my-gpt4" through two providers; prefer OpenaiAccount when it has
+  # quota, fall back to PollinationsAI unconditionally.
+  - name: "my-gpt4"
+    providers:
+      - provider: "OpenaiAccount"
+        model: "gpt-4o"
+        condition: "balance > 0 or error_count < 3"
+      - provider: "PollinationsAI"
+        model: "openai-large"
+
+  # Simple round-robin between two providers, no conditions.
+  - name: "fast-chat"
+    providers:
+      - provider: "PollinationsAI"
+        model: "openai"
+      - provider: "Gemini"
+        model: "gemini-2.0-flash"
+
+  # Only use Groq when it has not exceeded 3 recent errors.
+  - name: "llama-fast"
+    providers:
+      - provider: "Groq"
+        model: "llama-3.3-70b"
+        condition: "error_count < 3"
+      - provider: "DeepInfra"
+        model: "meta-llama/Llama-3.3-70B-Instruct"
