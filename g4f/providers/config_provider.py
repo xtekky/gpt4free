@@ -70,6 +70,8 @@ from ..typing import Messages, AsyncResult
 from .base_provider import AsyncGeneratorProvider
 from .response import ProviderInfo
 from .. import debug
+from ..config import AppConfig
+from ..tools.auth import AuthManager
 
 # ---------------------------------------------------------------------------
 # Quota cache
@@ -505,6 +507,7 @@ class ConfigModelProvider(AsyncGeneratorProvider):
         self,
         model: str,
         messages: Messages,
+        api_key: Optional[Dict[str, str]] = None,
         **kwargs,
     ) -> AsyncResult:
         """Yield response chunks, routing through configured providers."""
@@ -541,15 +544,22 @@ class ConfigModelProvider(AsyncGeneratorProvider):
                 model=target_model,
             )
 
+            extra_body = kwargs.copy()
+            current_api_key = api_key.get(provider.get_parent()) if isinstance(api_key, dict) else api_key
+            if not current_api_key or AppConfig.disable_custom_api_key:
+                current_api_key = AuthManager.load_api_key(provider)
+            if current_api_key:
+                extra_body["api_key"] = current_api_key
+
             try:
                 if hasattr(provider, "create_async_generator"):
                     async for chunk in provider.create_async_generator(
-                        target_model, messages, **kwargs
+                        target_model, messages, **extra_body
                     ):
                         yield chunk
                 elif hasattr(provider, "create_completion"):
                     for chunk in provider.create_completion(
-                        target_model, messages, stream=True, **kwargs
+                        target_model, messages, **extra_body
                     ):
                         yield chunk
                 else:

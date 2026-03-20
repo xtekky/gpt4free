@@ -14,7 +14,7 @@ from ..template import OpenaiTemplate
 from ...providers.asyncio import get_running_loop
 from .copilotTokenProvider import CopilotTokenProvider, EDITOR_VERSION, EDITOR_PLUGIN_VERSION, USER_AGENT, API_VERSION
 from .sharedTokenManager import TokenManagerError, SharedTokenManager
-from .githubOAuth2 import GithubOAuth2Client
+from .githubOAuth2 import GithubOAuth2Client, GITHUB_COPILOT_SCOPE
 from .oauthFlow import launch_browser_for_oauth
 
 class GithubCopilot(OpenaiTemplate):
@@ -217,6 +217,49 @@ class GithubCopilot(OpenaiTemplate):
         print("=" * 60 + "\n")
         
         return shared_manager
+
+    @classmethod
+    async def oauth_start(cls):
+        """Initiate Copilot device code flow and return code/url to client."""
+        client = GithubOAuth2Client()
+        device_auth = await client.requestDeviceAuthorization({"scope": GITHUB_COPILOT_SCOPE})
+
+        verification_uri = device_auth.get("verification_uri", "https://github.com/login/device")
+        user_code = device_auth.get("user_code")
+        device_code = device_auth.get("device_code")
+
+        return {
+            "status": "pending",
+            "verification_uri": verification_uri,
+            "user_code": user_code,
+            "device_code": device_code,
+            "expires_in": device_auth.get("expires_in"),
+            "interval": device_auth.get("interval", 5),
+        }
+
+    @classmethod
+    async def oauth_poll(cls, device_code: str):
+        """Poll GitHub token endpoint; save credentials once access_token is available."""
+        if not device_code:
+            raise ValueError("device_code is required for polling")
+
+        client = GithubOAuth2Client()
+        token_response = await client.pollDeviceToken({"device_code": device_code})
+
+        if token_response.get("status") == "pending":
+            return {"status": "pending", "message": "Authorization pending"}
+
+        if token_response.get("access_token"):
+            credentials = {
+                "access_token": token_response["access_token"],
+                "token_type": token_response.get("token_type", "bearer"),
+                "scope": token_response.get("scope", ""),
+                "expiry_date": int(time.time() * 1000) + (365 * 24 * 60 * 60 * 1000),
+            }
+            await client.sharedManager.saveCredentialsToFile(credentials)
+            return {"status": "success", "message": "GitHub Copilot OAuth successful"}
+
+        return {"status": "error", "message": "Unexpected token response", "detail": token_response}
 
     @classmethod
     def has_credentials(cls) -> bool:

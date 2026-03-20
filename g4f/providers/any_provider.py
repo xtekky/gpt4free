@@ -7,6 +7,7 @@ from ..typing import AsyncResult, Messages, MediaListType, Union
 from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
+from ..providers.config_provider import RouterConfig, ConfigModelProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import (
@@ -87,6 +88,7 @@ PROVIDERS_LIST_3 = [
 
 LABELS = {
     "default": "Default",
+    "custom": "Custom Routes",
     "openai": "OpenAI: ChatGPT",
     "llama": "Meta: LLaMA",
     "deepseek": "DeepSeek",
@@ -342,6 +344,8 @@ class AnyModelProviderMixin(ProviderModelMixin):
         # Always add default first
         groups["default"].append("default")
 
+        groups["custom"] = list(RouterConfig.routes.keys())
+
         for model in unsorted_models:
             if model == "default":
                 continue  # Already added
@@ -466,6 +470,12 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 providers = models.default_vision.best_provider.providers
             else:
                 providers = models.default.best_provider.providers
+        elif model in RouterConfig.routes:
+            async for chunk in ConfigModelProvider(RouterConfig.routes.get(model)).create_async_generator(
+                model, messages, stream=stream, media=media, api_key=api_key, **kwargs
+            ):
+                yield chunk
+            return
         elif model in Provider.__map__:
             provider = Provider.__map__[model]
             if provider.working and provider.get_parent() not in ignored:

@@ -35,11 +35,7 @@ class Ollama(OpenaiTemplate):
         if api_key:
             cookies = {"__Secure-session": api_key}
         else:
-            api_key = AuthManager.load_api_key(cls)
-            if api_key:
-                cookies = {"__Secure-session": api_key}
-            else:
-                cookies = get_cookies("ollama.com", raise_requirements_error=False)
+            cookies = get_cookies("ollama.com", cache_result=False)
         if not cookies:
             return None
         try:

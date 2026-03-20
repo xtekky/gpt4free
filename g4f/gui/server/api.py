@@ -111,7 +111,8 @@ class Api:
             "active_by_default": False if provider.active_by_default is None else provider.active_by_default,
             "auth": provider.needs_auth,
             "login_url": getattr(provider, "login_url", None),
-            "live": provider.live
+            "live": provider.live,
+            "login": hasattr(provider, "login")
         } for provider in Provider.__providers__ if provider.working and safe_get_models(provider)]
 
     def get_all_models(self) -> dict[str, list]:
