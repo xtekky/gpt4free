@@ -166,13 +166,19 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         grecaptcha = []
 
         async def callback(page: nodriver.Tab):
-            button = await page.find("Accept Cookies")
+            try:
+                button = await page.find("Accept Cookies")
+            except TimeoutError:
+                button = None
             if button:
                 await button.click()
             else:
                 debug.log("No 'Accept Cookies' button found, skipping.")
             await asyncio.sleep(1)
-            textarea = await page.select('textarea[name="message"]')
+            try:
+                textarea = await page.select('textarea[name="message"]')
+            except TimeoutError:
+                textarea = None
             if textarea:
                 await textarea.send_keys("Hello")
             # await asyncio.sleep(1)
@@ -191,12 +197,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 element = None
             if element:
                 await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
-            if not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
-                debug.log("No authentication cookie found, trying to authenticate.")
-                await page.select('#cf-turnstile', 300)
-                debug.log("Found Element: 'cf-turnstile'")
+            while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
+                debug.log("No authentication cookie found, waiting for authenticate.")
+                #await page.select('#cf-turnstile', 300)
+                #debug.log("Found Element: 'cf-turnstile'")
                 await asyncio.sleep(3)
-                await click_trunstile(page)
+                #await click_trunstile(page)
             while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                 await asyncio.sleep(1)
             while not await page.evaluate('!!document.querySelector(\'textarea\')'):
