@@ -56,6 +56,21 @@ def get_model_and_provider(model    : Union[Model, str],
         provider = convert_to_provider(provider)
 
     if not provider:
+        # Check config.yaml custom model routes first
+        if isinstance(model, str):
+            try:
+                from ..providers.config_provider import RouterConfig, ConfigModelProvider
+                route_config = RouterConfig.get(model)
+                if route_config is not None:
+                    config_provider = ConfigModelProvider(route_config)
+                    debug.last_provider = config_provider
+                    debug.last_model = model
+                    if logging:
+                        debug.log(f"Using config.yaml route for model {model!r}")
+                    return model, config_provider
+            except Exception as e:
+                debug.error("config.yaml: Error resolving config route:", e)
+
         if isinstance(model, str):
             if model in ModelUtils.convert:
                 model = ModelUtils.convert[model]
