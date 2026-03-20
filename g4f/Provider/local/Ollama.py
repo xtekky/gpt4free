@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import json
 import requests
 import os
@@ -8,9 +9,11 @@ from typing import Optional
 from ..template import OpenaiTemplate
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import Usage, Reasoning
+from ...cookies import get_cookies
 from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 from ...config import AppConfig
+from ... import debug
 
 class Ollama(OpenaiTemplate):
     label = "Ollama 🦙"
@@ -25,6 +28,68 @@ class Ollama(OpenaiTemplate):
         "gpt-oss-120b": "gpt-oss:120b",
         "gpt-oss-20b": "gpt-oss:20b"
     }
+
+    @classmethod
+    async def get_quota(cls, api_key: Optional[str] = None) -> Optional[dict]:
+        cookies = {}
+        if api_key:
+            cookies = {"__Secure-session": api_key}
+        else:
+            api_key = AuthManager.load_api_key(cls)
+            if api_key:
+                cookies = {"__Secure-session": api_key}
+            else:
+                cookies = get_cookies("ollama.com", raise_requirements_error=False)
+        if not cookies:
+            return None
+        try:
+            async with StreamSession() as session:
+                async with session.get(
+                    "https://ollama.com/settings",
+                    cookies=cookies,
+                    headers={
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept-Language": "en-US,en;q=0.9",
+                    },
+                ) as response:
+                    await raise_for_status(response)
+                    html = await response.text()
+                    lower = html.lower()
+                    has_sign_in = "sign in to ollama" in lower or "log in to ollama" in lower
+                    has_auth_endpoint = "/api/auth/signin" in lower or "/auth/signin" in lower or 'href="/signin"' in lower or 'href="/login"' in lower
+                    has_form = "<form" in lower
+                    has_password = 'type="password"' in lower or 'name="password"' in lower
+                    has_email = 'type="email"' in lower or 'name="email"' in lower
+                    if (has_sign_in and has_form and (has_email or has_password or has_auth_endpoint)) \
+                            or (has_form and has_auth_endpoint) \
+                            or (has_form and has_password and has_email):
+                        debug.error("Ollama session cookie is invalid or expired")
+                        return None
+                    quota = {}
+                    for label in ("Session usage", "Hourly usage", "Weekly usage"):
+                        idx = html.find(label)
+                        if idx == -1:
+                            continue
+                        section = html[idx + len(label):idx + len(label) + 800]
+                        pct_match = re.search(r'(\d+(?:\.\d+)?)%\s*used', section)
+                        if not pct_match:
+                            width_match = re.search(r'width:\s*(\d+(?:\.\d+)?)%', section)
+                            if width_match:
+                                pct_match = width_match
+                        pct = float(pct_match.group(1)) if pct_match else None
+                        reset_match = re.search(r'data-time=["\']([^"\']+)["\']', section)
+                        reset_time = reset_match.group(1) if reset_match else None
+                        key = label.lower().replace(" ", "_")
+                        quota[key] = {
+                            "used_percent": pct,
+                            "reset_time": reset_time,
+                        }
+                    if quota:
+                        return quota
+        except Exception as e:
+            debug.error(f"Failed to get Ollama quota:", e)
+        return None
 
     @classmethod
     def get_models(cls, api_key: str = None, base_url: str = None, **kwargs):
