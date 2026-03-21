@@ -22,6 +22,7 @@ from g4f.providers.config_provider import (
     RouterConfig,
     ConfigModelProvider,
     evaluate_condition,
+    has_yaml
 )
 
 
@@ -271,6 +272,8 @@ class TestEvaluateCondition(unittest.TestCase):
 class TestRouterConfig(unittest.TestCase):
 
     def setUp(self):
+        if not has_yaml:
+            self.skipTest('"yaml" not installed')
         RouterConfig.clear()
 
     def test_load_valid_yaml(self):

@@ -11,10 +11,8 @@ import asyncio
 import shutil
 import random
 import datetime
-import ipaddress
-import socket
 from hashlib import sha256
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 from functools import lru_cache
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
@@ -46,7 +44,7 @@ from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_tempfile
 from ...tools.run_tools import iter_run_tools
 from ...errors import ModelNotFoundError, ProviderNotFoundError, MissingAuthError, RateLimitError
-from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
+from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP, is_safe_url as _is_safe_url
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ...client.service import get_model_and_provider
@@ -59,30 +57,6 @@ from .api import Api
 logger = logging.getLogger(__name__)
 
 _DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-
-def _is_safe_url(url: str) -> bool:
-    """Return True only for http/https URLs that do not point to private/loopback/reserved addresses."""
-    try:
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https"):
-            return False
-        hostname = parsed.hostname
-        if hostname is None:
-            return False
-        # Resolve all IP addresses for the hostname and reject if any is non-public.
-        # Validating all addresses reduces the window for DNS rebinding attacks.
-        addr_infos = socket.getaddrinfo(hostname, None)
-        if not addr_infos:
-            return False
-        for addr_info in addr_infos:
-            addr = ipaddress.ip_address(addr_info[4][0])
-            if (addr.is_private or addr.is_loopback or addr.is_link_local
-                    or addr.is_reserved or addr.is_multicast or addr.is_unspecified):
-                return False
-    except Exception as e:
-        logger.debug("URL safety check failed for %r: %s", url, e)
-        return False
-    return True
 
 def safe_iter_generator(generator: Generator) -> Generator:
     start = next(generator)
