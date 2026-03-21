@@ -44,19 +44,19 @@ class TestBackendApi(unittest.TestCase):
         self.assertIsInstance(response, list)
         self.assertTrue(len(response) > 0)
 
-    @patch('g4f.gui.server.backend_api.socket.getaddrinfo')
+    @patch('g4f.image.socket.getaddrinfo')
     def test_is_safe_url_with_backslash_confusion(self, mock_getaddrinfo):
         mock_getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', 0))]
         from g4f.gui.server.backend_api import _is_safe_url
         self.assertFalse(_is_safe_url('http://127.0.0.1:6666\\@www.baidu.com'))
 
-    @patch('g4f.gui.server.backend_api.socket.getaddrinfo')
+    @patch('g4f.image.socket.getaddrinfo')
     def test_is_safe_url_blocks_private(self, mock_getaddrinfo):
         mock_getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', 0))]
         from g4f.gui.server.backend_api import _is_safe_url
         self.assertFalse(_is_safe_url('http://127.0.0.1'))
 
-    @patch('g4f.gui.server.backend_api.socket.getaddrinfo')
+    @patch('g4f.image.socket.getaddrinfo')
     def test_is_safe_url_allows_public(self, mock_getaddrinfo):
         mock_getaddrinfo.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('8.8.8.8', 0))]
         from g4f.gui.server.backend_api import _is_safe_url
