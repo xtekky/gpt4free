@@ -93,19 +93,19 @@ text_models = [
     'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
 
 image_models = [
-    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3.5-plus','qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
     'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwen-turbo-2025-02-11',
     'qwen2.5-omni-7b', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m', 'qwen2.5-coder-32b-instruct',
     'qwen2.5-72b-instruct']
 
 vision_models = [
-    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3.5-plus', 'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
     'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwen-turbo-2025-02-11',
     'qwen2.5-omni-7b', 'qvq-72b-preview-0310', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m',
     'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
 
 models = [
-    'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
+    'qwen3.5-plus', 'qwen3-max-preview', 'qwen-plus-2025-09-11', 'qwen3-235b-a22b', 'qwen3-coder-plus', 'qwen3-30b-a3b',
     'qwen3-coder-30b-a3b-instruct', 'qwen-max-latest', 'qwen-plus-2025-01-25', 'qwq-32b', 'qwen-turbo-2025-02-11',
     'qwen2.5-omni-7b', 'qvq-72b-preview-0310', 'qwen2.5-vl-32b-instruct', 'qwen2.5-14b-instruct-1m',
     'qwen2.5-coder-32b-instruct', 'qwen2.5-72b-instruct']
@@ -484,10 +484,12 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                     thinking_started = True
                                 elif phase == "answer" and thinking_started:
                                     thinking_started = False
-                                elif phase == "image_gen" and status == "typing":
-                                    yield ImageResponse(content, prompt, extra)
-                                    continue
-                                elif phase == "image_gen" and status == "finished":
+                                # elif "image" in phase and status == "typing":
+                                #     yield ImageResponse(content, prompt, extra)
+                                #     continue
+                                elif "image" in phase and status == "finished":
+                                    url = extra['image_list'][0]['image']
+                                    yield ImageResponse(url, prompt)
                                     yield FinishReason("stop")
                                 if content:
                                     yield Reasoning(content) if thinking_started else content
