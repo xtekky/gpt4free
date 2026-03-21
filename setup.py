@@ -42,7 +42,7 @@ EXTRA_REQUIRE = {
         "cloudscraper",
         "wasmtime",
         "numpy",
-        "yaml",
+        "PyYAML",
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -64,7 +64,7 @@ EXTRA_REQUIRE = {
         "python-dotenv",
         "aiofile",
         "cloudscraper",
-        "yaml",
+        "PyYAML",
     ],
     "image": [
         "pillow",
@@ -82,7 +82,7 @@ EXTRA_REQUIRE = {
         "uvicorn",
         "python-multipart",
         "a2wsgi",
-        "yaml"
+        "PyYAML"
     ],
     "gui": [
         "werkzeug", "flask[async]",

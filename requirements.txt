@@ -21,4 +21,4 @@ ddgs
 cloudscraper
 wasmtime
 numpy
-yaml
+PyYAML

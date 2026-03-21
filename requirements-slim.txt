@@ -19,4 +19,4 @@ a2wsgi
 python-dotenv
 ddgs
 cloudscraper
-yaml
+PyYAML
