@@ -41,7 +41,8 @@ EXTRA_REQUIRE = {
         "aiofile",
         "cloudscraper",
         "wasmtime",
-        "numpy"
+        "numpy",
+        "yaml",
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -62,12 +63,13 @@ EXTRA_REQUIRE = {
         "python-docx",
         "python-dotenv",
         "aiofile",
-        "cloudscraper"
+        "cloudscraper",
+        "yaml",
     ],
     "image": [
         "pillow",
         "cairosvg",
-        "beautifulsoup4"
+        "beautifulsoup4",
     ],
     "webview": [
         "pywebview",
@@ -80,6 +82,7 @@ EXTRA_REQUIRE = {
         "uvicorn",
         "python-multipart",
         "a2wsgi",
+        "yaml"
     ],
     "gui": [
         "werkzeug", "flask[async]",
@@ -95,7 +98,7 @@ EXTRA_REQUIRE = {
     ],
     "files": [
         "beautifulsoup4",
-        "markitdown[all]"
+        "markitdown[all]",
     ]
 }
 
