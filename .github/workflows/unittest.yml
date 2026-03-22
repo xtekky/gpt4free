@@ -31,8 +31,6 @@ jobs:
     - name: Install requirements
       run: |
         pip install --upgrade pip
-        # Checking if min requirements exist before installing
-        if [ -f requirements-min.txt ]; then pip install -r requirements-min.txt; fi
         pip install -r requirements.txt
 
     - name: Run tests
