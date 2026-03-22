@@ -11,36 +11,44 @@ on:
 
 jobs:
   build:
-    name: Build unittest
+    name: Build unittest (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      # 'fail-fast: false' ensures one version failing doesn't stop the others
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
     steps:
     - uses: actions/checkout@v6
-    - name: Set up Python 3.8
+
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
-        python-version: "3.8"
+        python-version: ${{ matrix.python-version }}
         cache: 'pip'
-    - name: Install min requirements
-      run: pip install -r requirements-min.txt
-    - name: Run tests
-      run: python -m etc.unittest
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.14"
-        cache: 'pip'
+
     - name: Install requirements
       run: |
+        pip install --upgrade pip
+        # Checking if min requirements exist before installing
+        if [ -f requirements-min.txt ]; then pip install -r requirements-min.txt; fi
         pip install -r requirements.txt
+
     - name: Run tests
       run: python -m etc.unittest
+
     - name: Save PR number
+      if: github.event_name == 'pull_request'
       env:
         PR_NUMBER: ${{ github.event.number }}
       run: |
         mkdir -p ./pr
         echo $PR_NUMBER > ./pr/pr_number
-    - uses: actions/upload-artifact@v6
+
+    - name: Upload PR number artifact
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v7
       with:
-        name: pr_number
+        name: pr_number-${{ matrix.python-version }}
         path: pr/
