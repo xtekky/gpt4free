@@ -22,8 +22,8 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            G4F_VERSION="${{ github.ref_name }}"
+          if [[ "${GIT_REF}" =~ ^refs/tags/ ]]; then
+            G4F_VERSION="${REF_NAME}"
             IS_RELEASE="true"
           elif [[ -n "${{ inputs.version }}" ]]; then
             G4F_VERSION="${{ inputs.version }}"
@@ -36,6 +36,9 @@ jobs:
           echo "is_release=${IS_RELEASE}" >> $GITHUB_OUTPUT
           echo "Building version: ${G4F_VERSION}"
 
+        env:
+          GIT_REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
   # PyPI Package
   build-pypi:
     runs-on: ubuntu-latest
@@ -245,12 +248,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Get metadata for Docker
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: |
             hlohaus789/g4f
@@ -260,7 +263,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push armv7 image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
             context: .
             file: docker/Dockerfile-armv7
@@ -273,7 +276,7 @@ jobs:
             build-args: |
               G4F_VERSION=${{ needs.prepare.outputs.version }}
       - name: Build and push slim images
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/Dockerfile-slim
@@ -286,7 +289,7 @@ jobs:
           build-args: |
             G4F_VERSION=${{ needs.prepare.outputs.version }}
       - name: Build and push image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/Dockerfile
@@ -426,7 +429,7 @@ jobs:
           echo "Downloaded artifacts:"
           find ./artifacts -type f -name "*" | sort
       - name: Create Release with Assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           name: Release ${{ needs.prepare.outputs.version }}
