@@ -5,7 +5,6 @@ try:
     has_curl_cffi = True
 except ImportError:
     # Fallback for systems where curl_cffi is not available or causes illegal instruction errors
-    from typing import Any
     class AsyncSession:
         def __init__(self, *args, **kwargs):
             raise ImportError("curl_cffi is not available on this platform")

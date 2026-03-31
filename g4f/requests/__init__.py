@@ -221,12 +221,6 @@ async def get_nodriver(
         )
     except FileNotFoundError as e:
         raise MissingRequirementsError(e)
-    except Exception as e:
-        if util.get_registered_instances():
-            debug.error(e)
-            browser = util.get_registered_instances().pop()
-        else:
-            raise
 
     async def on_stop():
         try:
