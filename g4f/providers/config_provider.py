@@ -188,7 +188,7 @@ _TOKEN_RE = re.compile(
     r"|(?P<int>-?\d+)"              # integer literal
     r"|(?P<op>>=|<=|==|!=|>|<)"    # comparison operator
     r"|(?P<kw>and|or|not)"         # logical keywords
-    r"|(?P<id>[a-zA-Z_][a-zA-Z0-9_.]*)"  # identifier
+    r"|(?P<id>[a-zA-Z_][a-zA-Z0-9_.-]*)"  # identifier (supports dashed keys)
     r"|(?P<lp>\()"                  # left paren
     r"|(?P<rp>\))"                  # right paren
 )

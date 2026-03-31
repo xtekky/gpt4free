@@ -219,6 +219,23 @@ class TestEvaluateCondition(unittest.TestCase):
             evaluate_condition("quota.credits.remaining > 0 or error_count < 3", quota, 2)
         )
 
+    def test_quota_dashed_key(self):
+        """Dot notation must handle hyphenated keys like gemini-3-flash-preview."""
+        quota = {
+            "models": {
+                "gemini-3-flash-preview": {
+                    "remaining": 1
+                }
+            }
+        }
+        self.assertTrue(
+            evaluate_condition(
+                "quota.models.gemini-3-flash-preview.remaining > 0 or error_count < 3",
+                quota,
+                0,
+            )
+        )
+
     # --- legacy aliases ---
 
     def test_get_quota_balance_alias(self):

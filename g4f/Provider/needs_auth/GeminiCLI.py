@@ -900,7 +900,9 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
         if cls.auth_manager is None:
             cls.auth_manager = AuthManager(env=os.environ)
         provider = GeminiCLIProvider(env=os.environ, auth_manager=cls.auth_manager)
-        return await provider.retrieve_user_quota()
+        quota = await provider.retrieve_user_quota()
+        quota["models"] = {bucket.get("modelId"): bucket for bucket in quota.get("buckets", [])}
+        return quota
 
     @classmethod
     async def create_async_generator(
