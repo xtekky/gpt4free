@@ -46,6 +46,11 @@ EXTENSIONS_MAP: dict[str, str] = {
     "mkv": "video/x-matroska",
     "webm": "video/webm",
     "mp4": "video/mp4",
+    "mov": "video/quicktime",
+    "avi": "video/x-msvideo",
+    "ogv": "video/ogg",
+    "mpg": "video/mpeg",
+    "mpeg": "video/mpeg",
 }
 
 MEDIA_TYPE_MAP: dict[str, str] = {value: key for key, value in EXTENSIONS_MAP.items()}
@@ -284,6 +289,8 @@ def detect_file_type(binary_data: bytes) -> tuple[str, str] | None:
             return ".heic", "image/heif"
         elif brand in [b"avif"]:
             return ".avif", "image/avif"
+        else:
+            return ".mp4", "video/mp4"
     elif binary_data.lstrip().startswith((b"<?xml", b"<svg")):
         return ".svg", "image/svg+xml"
 
