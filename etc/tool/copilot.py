@@ -86,7 +86,7 @@ def read_text(text: str) -> str:
     Returns:
         str: The extracted text.
     """
-    match = re.search(r"```(markdown|)\n(?P<text>[\S\s]+?)\n```", text)
+    match = re.search(r"```(markdown|)\n(?P<text>[\S\s]+?)\n(```|---|$)", text)
     if match:
         return match.group("text")
     else:
