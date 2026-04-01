@@ -298,6 +298,7 @@ class Api:
             details = exc.errors()
             modified_details = []
             for error in details:
+                debug.log(f"Validation error: {error['loc']} - {error['msg']} ({error['type']})")
                 modified_details.append({
                     "loc": error["loc"],
                     "message": error["msg"],

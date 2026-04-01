@@ -7,7 +7,7 @@
 set -e
 
 if [ -z "$1" ]; then
-  echo "No API key provided. Proceeding without a Pollinations API key."
+  echo "No API key provided. Proceeding without an API key."
   API_KEY=""
 else
   API_KEY="$1"
@@ -46,7 +46,7 @@ EOF
 
 cat > "${ENV_FILE}" <<EOF
 POLLINATIONS_API_KEY=${API_KEY}
-OPENAI_API_KEY=${API_KEY}
+OPENAI_API_KEY=
 GEMINI_API_KEY=
 EOF
 
@@ -86,11 +86,9 @@ if command -v openclaw >/dev/null 2>&1; then
 import json, sys, os
 
 config_file = os.path.expanduser("~/.openclaw/openclaw.json")
-api_key = "${API_KEY}"
 
 provider = {
-    "baseUrl": "https://localhost:8080/v1",
-    "apiKey": api_key,
+    "baseUrl": "http://localhost:8080/v1",
     "api": "openai-completions",
     "models": [
         {
@@ -115,13 +113,15 @@ except (FileNotFoundError, json.JSONDecodeError):
 
 cfg.setdefault("models", {})["providers"] = cfg.get("models", {}).get("providers", {})
 cfg["models"]["providers"]["gpt4free"] = provider
-cfg.setdefault("tools", {}).setdefault("web", {})["search"] = {
-    "provider": "perplexity",
-    "perplexity": {
-        "baseUrl": "https://g4f.dev/api/perplexity",
-        "apiKey": "",
-        "model": "turbo",
-    },
+cfg["models"]["providers"]["g4f-perplexity"] = {
+    "baseUrl": "https://perplexity.g4f-dev.workers.dev",
+    "apiKey": "",
+    "model": "turbo",
+};
+cfg["tools"] = cfg.get("tools", {})
+cfg["tools"]["web"] = cfg["tools"].get("web", {})
+cfg["tools"]["web"]["search"] = {
+    "provider": "g4f-perplexity",
 }
 
 with open(config_file, "w") as f:

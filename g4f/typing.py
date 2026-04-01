@@ -54,9 +54,20 @@ class ContentPart(TypedDict, total=False):
     bucket_id: str
     name: str
 
-class Message(TypedDict):
+class ToolCallFunction(TypedDict, total=False):
+    name: str
+    arguments: str      # JSON-encoded arguments string
+
+class ToolCall(TypedDict, total=False):
+    id: str
+    type: str           # e.g., "function"
+    function: ToolCallFunction
+
+class Message(TypedDict, total=False):
     role: str
-    content: Union[str, List[ContentPart]]
+    content: Optional[Union[str, List[ContentPart]]]
+    tool_calls: Optional[List[ToolCall]]
+    tool_call_id: str   # present on "tool" role messages
 
 Messages = List[Message]
 
@@ -86,6 +97,8 @@ __all__ = [
     "Messages",
     "Message",
     "ContentPart",
+    "ToolCall",
+    "ToolCallFunction",
     "Cookies",
     "PILImage",  # Changed from "Image" to "PILImage" to match the actual class name
     "ImageType",

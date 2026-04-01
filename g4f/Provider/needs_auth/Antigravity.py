@@ -40,6 +40,32 @@ from ..helper import get_connector, get_system_prompt, format_media_prompt
 from ... import debug
 
 
+# JSON Schema keywords not supported by the Gemini API
+_UNSUPPORTED_SCHEMA_KEYS = {
+    "patternProperties", "$schema", "$id", "$defs", "definitions",
+    "if", "then", "else", "not", "allOf", "anyOf", "oneOf",
+    "default", "examples", "readOnly", "writeOnly",
+    "contentEncoding", "contentMediaType", "additionalProperties",
+}
+
+
+def _sanitize_schema(schema: dict) -> dict:
+    """Recursively remove JSON Schema keywords unsupported by the Gemini API."""
+    if not isinstance(schema, dict):
+        return schema
+    result = {}
+    for k, v in schema.items():
+        if k in _UNSUPPORTED_SCHEMA_KEYS:
+            continue
+        if isinstance(v, dict):
+            result[k] = _sanitize_schema(v)
+        elif isinstance(v, list):
+            result[k] = [_sanitize_schema(i) if isinstance(i, dict) else i for i in v]
+        else:
+            result[k] = v
+    return result
+
+
 def get_antigravity_oauth_creds_path():
     """Get the default path for Antigravity OAuth credentials."""
     return Path.home() / ".antigravity" / "oauth_creds.json"
@@ -1079,7 +1105,7 @@ class AntigravityProvider:
                     function_declarations.append({
                         "name": func.get("name"),
                         "description": func.get("description", ""),
-                        "parameters": func.get("parameters", {})
+                        "parameters": _sanitize_schema(func.get("parameters", {}))
                     })
             if function_declarations:
                 gemini_tools = [{"functionDeclarations": function_declarations}]
