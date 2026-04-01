@@ -9,6 +9,7 @@ import base64
 import asyncio
 from aiohttp import ClientSession, FormData
 
+from .. import debug
 from ..typing import AsyncResult, Messages, MediaListType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
@@ -245,7 +246,8 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
                         
                         image_id = await cls.upload_media(session, access_token, media_bytes, media_name)
                         media_attachments.append(image_id)
-                    except Exception:
+                    except Exception as e:
+                        debug.log(f"OperaAria: failed to upload media '{media_name}': {e}")
                         continue
             
             headers = {
@@ -271,16 +273,16 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
                 response.raise_for_status()
                 
                 if stream:
-                    text_buffer, image_urls, finish_reason = [], [], None
-                    
+                    image_urls, finish_reason = [], None
+
                     async for line in response.content:
                         if not line: continue
                         decoded = line.decode('utf-8').strip()
                         if not decoded.startswith('data: '): continue
-                        
+
                         content = decoded[6:]
                         if content == '[DONE]': break
-                        
+
                         try:
                             json_data = json.loads(content)
                             if 'message' in json_data:
@@ -289,22 +291,20 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
                                 if found_urls:
                                     image_urls.extend(found_urls)
                                 else:
-                                    text_buffer.append(message_chunk)
-                            
+                                    yield message_chunk
+
                             if 'conversation_id' in json_data and json_data['conversation_id']:
                                 conversation.conversation_id = json_data['conversation_id']
-                            
+
                             if 'finish_reason' in json_data and json_data.get('finish_reason'):
                                 finish_reason = json_data['finish_reason']
 
                         except json.JSONDecodeError:
                             continue
-                    
+
                     if image_urls:
                         yield ImageResponse(image_urls, format_prompt(messages))
-                    elif text_buffer:
-                        yield "".join(text_buffer)
-                    
+
                     if finish_reason:
                         yield FinishReason(finish_reason)
 
