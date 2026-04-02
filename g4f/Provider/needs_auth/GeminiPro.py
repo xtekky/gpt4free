@@ -18,3 +18,4 @@ class GeminiPro(OpenaiTemplate):
         "gemini-2.0-flash": "models/gemini-2.0-flash",
         "gemini-2.0-flash-thinking": "models/gemini-2.0-flash-thinking",
     }
+    models_needs_auth = True

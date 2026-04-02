@@ -92,6 +92,17 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-5-thinking": "gpt5_thinking",
         "r1-1776": "r1",
     }
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        chunks = []
+        async for chunk in cls.create_async_generator(
+            cls.default_model,
+            [{"role": "user", "content": "say only okay"}]
+        ):
+            if isinstance(chunk, str):
+                return {"content": chunk}
+        raise RuntimeError("No response")
     
     @classmethod
     async def create_async_generator(
@@ -101,6 +112,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
         cookies: Cookies = None,
         proxy: str = None,
         conversation: JsonConversation = None,
+        prompt: str = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -150,10 +162,11 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         # Extract query from messages
-        query = ""
         for message in reversed(messages):
             if message["role"] == "user":
-                query = message["content"]
+                prompt = message["content"]
+                if isinstance(prompt, list):
+                    prompt = "\n".join([item.get("text", "") for item in prompt]) if prompt else ""
                 break
         
         # Use StreamSession with Chrome impersonation
@@ -246,7 +259,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                         ],
                         "client_coordinates": None,
                         "mentions": [],
-                        "dsl_query": query,
+                        "dsl_query": prompt,
                         "skip_search_enabled": True,
                         "is_nav_suggestions_disabled": False,
                         "source": "default",
@@ -260,7 +273,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                         ],
                         "version": "2.18"
                     },
-                    "query_str": query
+                    "query_str": prompt
                 }
             else:
                 data = {
@@ -318,7 +331,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                         ],
                         "client_coordinates": None,
                         "mentions": [],
-                        "dsl_query": query,
+                        "dsl_query": prompt,
                         "skip_search_enabled": True,
                         "is_nav_suggestions_disabled": False,
                         "source": "default",
@@ -331,7 +344,7 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
                         ],
                         "version": "2.18"
                     },
-                    "query_str": query
+                    "query_str": prompt
                 }
             
             yield JsonRequest.from_dict(data)

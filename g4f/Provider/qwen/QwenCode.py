@@ -26,14 +26,10 @@ class QwenCode(OpenaiTemplate):
     client = QwenContentGenerator(QwenOAuth2Client())
 
     @classmethod
-    def get_models(cls, **kwargs):
-        if cls.live == 0:
-            cls.client.shared_manager.checkAndReloadIfNeeded()
-            creds = cls.client.shared_manager.getCurrentCredentials()
-            if creds:
-                cls.client.shared_manager.isTokenValid(creds)
-            cls.live += 1
-        return cls.models
+    async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
+        creads = await cls.client.get_valid_token()
+        del creads["token"]  # Remove token from quota response
+        return creads
 
     @classmethod
     async def create_async_generator(

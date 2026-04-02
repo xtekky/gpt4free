@@ -315,7 +315,15 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
         # All methods failed
         debug.error(f"DeepSeekAuth: All deletion methods failed for session {chat_session_id}")
         # Don't raise - deletion is not critical
-    
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        cookies = get_cookies(cls.cookie_domain, False)
+        headers = get_headers(cls.cookie_domain)
+        if cookies and headers.get("authorization"):
+            return {"success": True}
+        raise MissingAuthError("DeepSeekAuth: No authentication found.")
+
     @classmethod
     async def create_async_generator(
         cls,
@@ -356,7 +364,7 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
         if cookies is None:
             cookies = get_cookies(cls.cookie_domain, False)
             headers = get_headers(cls.cookie_domain)
-            if cookies:
+            if cookies and headers.get("authorization"):
                 debug.log(f"DeepSeekAuth: Using {len(cookies)} cookies and {len(headers)} headers from cookie jar")
             else:
                 raise MissingAuthError(

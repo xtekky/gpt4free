@@ -29,6 +29,8 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
         if content_type.startswith("application/json"):
             try:
                 message = await response.json()
+                if isinstance(message, list):
+                    message = message[0] if message else {}
                 error = message.get("error")
                 if isinstance(error, dict):
                     message = error.get("message")

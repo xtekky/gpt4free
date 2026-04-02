@@ -317,12 +317,13 @@ class Backend_Api(Api):
                 return "Provider not found", 404
             if not hasattr(provider_handler, "get_quota"):
                 return "Provider doesn't support get_quota", 500
+            request_api_key = request.headers.get("Authorization", "").replace("Bearer ", "")
             try:
-                response_data = await provider_handler.get_quota()
-                return jsonify(response_data)
+                return jsonify(await provider_handler.get_quota(api_key=request_api_key))
             except MissingAuthError as e:
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
             except Exception as e:
+                logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
 
         @app.route('/backend-api/v2/log', methods=['POST'])

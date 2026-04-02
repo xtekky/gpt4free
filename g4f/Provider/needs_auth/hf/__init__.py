@@ -18,6 +18,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://huggingface.co/settings/tokens"
     working = True
     active_by_default = True
+    quota_url = "https://huggingface.co/api/whoami-v2"
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:

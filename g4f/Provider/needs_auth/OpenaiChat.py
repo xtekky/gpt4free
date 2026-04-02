@@ -115,11 +115,20 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     model_aliases = model_aliases
     synthesize_content_type = "audio/aac"
     request_config = RequestConfig()
+    quota_url = "https://chatgpt.com/backend-api/me"
 
     _api_key: str = None
     _headers: dict = None
     _cookies: Cookies = None
     _expires: int = None
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        auth = cls.get_auth_result()
+        async with StreamSession(cookies=auth.cookies, headers=auth.headers, impersonate="chrome") as session:
+            async with session.get(cls.quota_url) as response:
+                user = await response.json()
+                return {"id": user.get("id"), "name": user.get("name")}
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
@@ -136,10 +145,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def upload_files(
-            cls,
-            session: StreamSession,
-            auth_result: AuthResult,
-            media: MediaListType,
+        cls,
+        session: StreamSession,
+        auth_result: AuthResult,
+        media: MediaListType,
     ) -> List[ImageRequest]:
         """
         Upload an image to the service and get the download URL

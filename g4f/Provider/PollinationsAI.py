@@ -46,7 +46,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
     gen_image_models_endpoint = "https://gen.pollinations.ai/image/models"
     text_models_endpoint = "https://gen.pollinations.ai/text/models"
-    balance_endpoint = "https://g4f.space/api/pollinations/account/balance"
+    quota_url = "https://g4f.space/api/pollinations/account/balance"
     worker_api_endpoint = "https://g4f.space/api/pollinations/chat/completions"
     worker_models_endpoint = "https://g4f.space/api/pollinations/models"
 
@@ -78,19 +78,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     current_models_endpoint: Optional[str] = None
 
     @classmethod
-    async def get_quota(cls, api_key: Optional[str] = None, timeout: Optional[float] = None) -> dict:
-        balance = cls.get_balance(api_key, timeout)
-        if balance is not None:
-            return {"balance": balance}
-        return None
-
-    @classmethod
     def get_balance(cls, api_key: Optional[str] = None, timeout: Optional[float] = None) -> Optional[float]:
         try:
-            headers = None
-            if api_key:
-                headers = {"authorization": f"Bearer {api_key}"}
-            response = requests.get(cls.balance_endpoint, headers=headers, timeout=timeout)
+            headers = {"authorization": f"Bearer {api_key}"} if api_key else None
+            response = requests.get(cls.quota_url, headers=headers, timeout=timeout)
             response.raise_for_status()
             data = response.json()
             cls.balance = float(data.get("balance", 0.0))

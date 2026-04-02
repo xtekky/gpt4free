@@ -359,7 +359,7 @@ def evict_cache_if_needed():
 class Yupp(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://yupp.ai"
     login_url = "https://discord.gg/qXA4Wf4Fsm"
-    working = has_cloudscraper
+    working = False and has_cloudscraper
     active_by_default = True
     supports_stream = True
     image_cache = True

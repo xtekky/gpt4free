@@ -12,6 +12,7 @@ class ApiAirforce(OpenaiTemplate):
     working = True
     active_by_default = True
     use_image_size = True
+    default_model = "roleplay:free"
 
     @classmethod
     async def create_async_generator(

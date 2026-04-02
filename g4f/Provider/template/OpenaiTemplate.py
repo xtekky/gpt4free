@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import requests
+from functools import lru_cache
 
 from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
@@ -33,6 +34,38 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     max_tokens: int = None
 
     @classmethod
+    async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
+        """Get the quota information for the API key."""
+        if not api_key:
+            api_key = AuthManager.load_api_key(cls)
+        if cls.models_needs_auth and cls.quota_url is None:
+            cls.quota_url = f"{cls.base_url}/models"
+        if cls.quota_url is not None:
+            return await super().get_quota(api_key=api_key, **kwargs)
+        if not api_key and cls.needs_auth:
+            raise MissingAuthError("API key is required.")
+        if not cls.default_model:
+            raise NotImplementedError("No default model specified.")
+        return await cls.test_api_key(api_key)
+    
+    @classmethod
+    @lru_cache(maxsize=24)
+    async def test_api_key(cls, api_key: str):
+        url = f"{cls.base_url}/chat/completions"
+        headers = {
+            "authorization": f"Bearer {api_key}"
+        } if api_key else {}
+        json_data = {
+            "model": cls.default_model,
+            "messages": [{"role": "user", "content": "say only okay"}],
+            "max_tokens": 1
+        }
+        async with StreamSession() as session:
+            async with session.post(url, headers=headers, json=json_data) as response:
+                await raise_for_status(response)
+                return await response.json()
+
+    @classmethod
     def is_provider_api_key(cls, api_key: str) -> bool:
         if cls.backup_url is None:
             return True
@@ -47,9 +80,11 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if not api_key or AppConfig.disable_custom_api_key:
                     api_key = AuthManager.load_api_key(cls)
                 if base_url is None:
-                    base_url = cls.base_url if cls.is_provider_api_key(api_key) else cls.backup_url
-                if cls.models_needs_auth and not api_key:
-                    raise MissingAuthError('Add a "api_key"')
+                    base_url = cls.base_url
+                    if not cls.is_provider_api_key(api_key):
+                        base_url = cls.backup_url
+                    elif cls.models_needs_auth and not api_key:
+                        raise MissingAuthError("API key is required.")
                 response = requests.get(f"{base_url}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl, timeout=timeout)
                 response.raise_for_status()
                 data = response.json()

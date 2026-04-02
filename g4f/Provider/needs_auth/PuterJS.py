@@ -22,6 +22,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     active_by_default = True
     needs_auth = True
+    quota_url = "https://api.puter.com/metering/usage"
 
     default_model = 'gpt-4o'
     default_vision_model = default_model
@@ -225,19 +226,6 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     if tag in model:
                         cls.vision_models.append(model)
         return cls.models
-
-    @classmethod
-    async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
-        """Get the quota information for the API key."""
-        if not api_key:
-            raise MissingAuthError("API key is required for Puter.js API")
-        url = "https://api.puter.com/metering/usage"
-        headers = {
-            "authorization": f"Bearer {api_key}"
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
 
     @staticmethod
     def get_driver_for_model(model: str) -> str:

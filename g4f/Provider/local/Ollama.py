@@ -13,6 +13,7 @@ from ...cookies import get_cookies
 from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 from ...config import AppConfig
+from ...errors import MissingAuthError
 from ... import debug
 
 class Ollama(OpenaiTemplate):
@@ -28,21 +29,19 @@ class Ollama(OpenaiTemplate):
         "gpt-oss-120b": "gpt-oss:120b",
         "gpt-oss-20b": "gpt-oss:20b"
     }
+    default_model = "gemini-3-flash-preview"
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None) -> Optional[dict]:
-        cookies = {}
-        if api_key:
-            cookies = {"__Secure-session": api_key}
-        else:
-            cookies = get_cookies("ollama.com", cache_result=False)
-        if not cookies:
-            return None
+        session_cookie = get_cookies("ollama.com", cache_result=False).get("__Secure-session")
+        if not session_cookie:
+            return await super().get_quota(api_key=api_key)
+        quota = {}
         try:
             async with StreamSession() as session:
                 async with session.get(
                     "https://ollama.com/settings",
-                    cookies=cookies,
+                    cookies={"__Secure-session": session_cookie},
                     headers={
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -60,9 +59,7 @@ class Ollama(OpenaiTemplate):
                     if (has_sign_in and has_form and (has_email or has_password or has_auth_endpoint)) \
                             or (has_form and has_auth_endpoint) \
                             or (has_form and has_password and has_email):
-                        debug.error("Ollama session cookie is invalid or expired")
-                        return None
-                    quota = {}
+                        raise MissingAuthError("Ollama session cookie is invalid or expired.")
                     for label in ("Session usage", "Hourly usage", "Weekly usage"):
                         idx = html.find(label)
                         if idx == -1:
@@ -81,11 +78,11 @@ class Ollama(OpenaiTemplate):
                             "used_percent": pct,
                             "reset_time": reset_time,
                         }
-                    if quota:
-                        return quota
         except Exception as e:
-            debug.error(f"Failed to get Ollama quota:", e)
-        return None
+            raise RuntimeError(f"Failed to get quota information from Ollama: {e}")
+        if not quota:
+            raise RuntimeError("Failed to find quota information in Ollama settings page.")
+        return quota
 
     @classmethod
     def get_models(cls, api_key: str = None, base_url: str = None, **kwargs):

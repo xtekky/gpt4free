@@ -287,55 +287,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             if html.startswith('<!doctypehtml>') and "aliyun_waf_aa" in html:
                 raise CloudflareError(message or html)
 
-
     @classmethod
-    async def create_async_generator(
-            cls,
-            model: str,
-            messages: Messages,
-            media: MediaListType = None,
-            conversation: JsonConversation = None,
-            proxy: str = None,
-            stream: bool = True,
-            enable_thinking: bool = True,
-            chat_type: Literal[
-                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
-            ] = "t2t",
-            aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
-            **kwargs
-    ) -> AsyncResult:
-        """
-        chat_type:
-            DeepResearch = "deep_research"
-            Artifacts = "artifacts"
-            WebSearch = "search"
-            ImageGeneration = "t2i"
-            ImageEdit = "image_edit"
-            VideoGeneration = "t2v"
-            Txt2Txt = "t2t"
-            WebDev = "web_dev"
-        """
-        # cache_file = cls.get_cache_file()
-        # cookie: str = kwargs.get("cookie", "")  # ssxmod_itna=1-...
-        # args = kwargs.get("qwen_args", {})
-        # args.setdefault("cookies", {})
-        token = kwargs.get("token")
-
-        # if not args and cache_file.exists():
-        #     try:
-        #         with cache_file.open("r") as f:
-        #             args = json.load(f)
-        #     except json.JSONDecodeError:
-        #         debug.log(f"Cache file {cache_file} is corrupted, removing it.")
-        #         cache_file.unlink()
-        # if not cookie:
-        #     if not args:
-        #         args = await cls.get_args(proxy, **kwargs)
-        #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
-        model_name = cls.get_model(model)
-        prompt = get_last_user_message(messages)
-        timeout = kwargs.get("timeout") or 5 * 60
-        # for _ in range(2):
+    def _get_headers(cls, token = None):
         data = generate_cookies()
         # args,ua  = await cls.get_args(proxy, **kwargs)
         headers = {
@@ -355,9 +308,96 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if token:
             headers['Authorization'] = f'Bearer {token}'
+        return headers
+    
+    @classmethod
+    async def _get_req_headers(cls, session, proxy=None):
+        if not cls._midtoken:
+            debug.log("[Qwen] INFO: No active midtoken. Fetching a new one...")
+            async with session.get('https://sg-wum.alibaba.com/w/wu.json', proxy=proxy) as r:
+                r.raise_for_status()
+                text = await r.text()
+                match = re.search(r"(?:umx\.wu|__fycb)\('([^']+)'\)", text)
+                if not match:
+                    raise RuntimeError("Failed to extract bx-umidtoken.")
+                cls._midtoken = match.group(1)
+                cls._midtoken_uses = 1
+                debug.log(
+                    f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
+        else:
+            cls._midtoken_uses += 1
+            debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
 
-        # try:
-        async with StreamSession(headers=headers) as session:
+        req_headers = session.headers.copy()
+        req_headers['bx-umidtoken'] = cls._midtoken
+        req_headers['bx-v'] = '2.5.31'
+        return req_headers
+
+    @classmethod
+    async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
+        async with StreamSession(headers=cls._get_headers(kwargs.get("token"))) as session:
+            chat_payload = {
+                "title": "New Chat",
+                "models": [cls.default_model],
+                "chat_mode": "normal",
+                "chat_type": "t2t",
+                "timestamp": int(time() * 1000)
+            }
+            async with session.post(
+                f'{cls.url}/api/v2/chats/new', json=chat_payload,
+                headers=await cls._get_req_headers(session, proxy=kwargs.get("proxy")),
+                proxy=kwargs.get("proxy")
+            ) as resp:
+                await cls.raise_for_status(resp)
+                return await resp.json()
+
+    @classmethod
+    async def create_async_generator(
+        cls,
+        model: str,
+        messages: Messages,
+        media: MediaListType = None,
+        conversation: JsonConversation = None,
+        proxy: str = None,
+        stream: bool = True,
+        enable_thinking: bool = True,
+        chat_type: Literal[
+            "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+        ] = "t2t",
+        aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+        **kwargs
+    ) -> AsyncResult:
+        """
+        chat_type:
+            DeepResearch = "deep_research"
+            Artifacts = "artifacts"
+            WebSearch = "search"
+            ImageGeneration = "t2i"
+            ImageEdit = "image_edit"
+            VideoGeneration = "t2v"
+            Txt2Txt = "t2t"
+            WebDev = "web_dev"
+        """
+        # cache_file = cls.get_cache_file()
+        # cookie: str = kwargs.get("cookie", "")  # ssxmod_itna=1-...
+        # args = kwargs.get("qwen_args", {})
+        # args.setdefault("cookies", {})
+
+        # if not args and cache_file.exists():
+        #     try:
+        #         with cache_file.open("r") as f:
+        #             args = json.load(f)
+        #     except json.JSONDecodeError:
+        #         debug.log(f"Cache file {cache_file} is corrupted, removing it.")
+        #         cache_file.unlink()
+        # if not cookie:
+        #     if not args:
+        #         args = await cls.get_args(proxy, **kwargs)
+        #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
+        model_name = cls.get_model(model)
+        prompt = get_last_user_message(messages)
+        timeout = kwargs.get("timeout") or 5 * 60
+        async with StreamSession(headers=cls._get_headers(kwargs.get("token"))) as session:
             try:
                 async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
                     await cls.raise_for_status(user_info_res)
@@ -366,25 +406,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.error(e)
             for attempt in range(5):
                 try:
-                    if not cls._midtoken:
-                        debug.log("[Qwen] INFO: No active midtoken. Fetching a new one...")
-                        async with session.get('https://sg-wum.alibaba.com/w/wu.json', proxy=proxy) as r:
-                            r.raise_for_status()
-                            text = await r.text()
-                            match = re.search(r"(?:umx\.wu|__fycb)\('([^']+)'\)", text)
-                            if not match:
-                                raise RuntimeError("Failed to extract bx-umidtoken.")
-                            cls._midtoken = match.group(1)
-                            cls._midtoken_uses = 1
-                            debug.log(
-                                f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}")
-                    else:
-                        cls._midtoken_uses += 1
-                        debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
-
-                    req_headers = session.headers.copy()
-                    req_headers['bx-umidtoken'] = cls._midtoken
-                    req_headers['bx-v'] = '2.5.31'
+                    req_headers = await cls._get_req_headers(session.headers)
                     # req_headers['bx-ua'] = ua
                     message_id = str(uuid.uuid4())
                     if conversation is None:
@@ -396,8 +418,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             "timestamp": int(time() * 1000)
                         }
                         async with session.post(
-                                f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
-                                proxy=proxy
+                            f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
+                            proxy=proxy
                         ) as resp:
                             await cls.raise_for_status(resp)
                             data = await resp.json()
@@ -451,9 +473,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         msg_payload["size"] = aspect_ratio
 
                     async with session.post(
-                            f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
-                            json=msg_payload,
-                            headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
+                        f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
+                        json=msg_payload,
+                        headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                     ) as resp:
                         await cls.raise_for_status(resp)
                         if resp.headers.get("content-type", "").startswith("application/json"):
