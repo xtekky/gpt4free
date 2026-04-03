@@ -358,7 +358,8 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/version', methods=['GET'])
         def version():
             resp = jsonify(self.get_version())
-            resp.set_cookie('fingerprint', base64.b64encode(str(int(time.time())).encode()).decode(), max_age=60 * 60 *2, httponly=True, secure=True)
+            if not if request.args.get("cache"):
+                resp.set_cookie('fingerprint', base64.b64encode(str(int(time.time())).encode()).decode(), max_age=60 * 60 *2, httponly=True, secure=True)
             return resp
 
         @app.route('/backend-api/v2/create', methods=['GET'])

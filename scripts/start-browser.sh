@@ -120,12 +120,12 @@ echo "Starting browser: $BROWSER_BIN"
 
 if [[ "$BROWSER_BIN" == *.exe ]]; then
     # Windows: launch once and exit — the browser manages its own lifecycle
-    rm -f ~/g4f/cookies/.browser_is_open
+    rm -f ~/.g4f/cookies/.browser_is_open
     "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
 else
     # Linux: loop and relaunch if the browser exits
     while true; do
-        rm -f ~/g4f/cookies/.browser_is_open
+        rm -f ~/.g4f/cookies/.browser_is_open
         "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
         sleep 5
     done

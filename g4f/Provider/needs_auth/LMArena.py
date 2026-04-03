@@ -244,7 +244,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         }
                     });
                 });""",
-                await_promise=True)
+                await_promise=True
+            )
             if isinstance(captcha, str):
                 grecaptcha.append(captcha)
             else:
@@ -276,7 +277,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     if isinstance(child, list) and len(data) >= 4:
                         pars_data(child[3])
 
-
         def pars_data(data):
             if not isinstance(data, (list, dict)):
                 return
@@ -306,7 +306,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             elif 'children' in json_data:
                 pars_children(json_data)
 
-
         line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
         pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
         matches = re.findall(pattern, html)
@@ -324,8 +323,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         if "Evaluation" == data[2]:
                             js_files = dict(zip(data[1][::2], data[1][1::2]))
                             for js_id, js in list(js_files.items())[::-1]:
-                                # if js_id != 5217:
-                                #     continue
                                 js_url = f"{cls.url}/_next/{js}"
                                 async with session.get(js_url) as js_response:
                                     js_text = await js_response.text()
@@ -335,7 +332,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                         for v, k in start_id:
                                             cls._next_actions[k] = v
                                         break
-
                 elif chunk_data.startswith(("[", "{")):
                     try:
                         data = json.loads(chunk_data)
@@ -350,9 +346,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             return files
         url = "https://arena.ai/?chat-modality=image"
         async with StreamSession(**args, ) as session:
-
             for index, (_file, file_name) in enumerate(media):
-
                 data_bytes = to_bytes(_file)
                 # Check Cache
                 hasher = hashlib.md5()
@@ -366,19 +360,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
                 extension, file_type = detect_file_type(data_bytes)
                 file_name = file_name or f"file-{len(data_bytes)}{extension}"
-                # async with session.post(
-                #         url="https://arena.ai/?chat-modality=image",
-                #         json=[],
-                #         headers={
-                #             "accept": "text/x-component",
-                #             "content-type": "text/plain;charset=UTF-8",
-                #             "next-action": cls._next_actions["updateTouConsent"],
-                #             "Referer": url
-                #
-                #         }
-                # ) as response:
-                #     await raise_for_status(response)
-
                 async with session.post(
                         url="https://arena.ai/?chat-modality=image",
                         json=[file_name, file_type],
@@ -386,8 +367,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             "accept": "text/x-component",
                             "content-type": "text/plain;charset=UTF-8",
                             "next-action": cls._next_actions["generateUploadUrl"],
-                            "Referer": url
-
+                            "referer": url
                         }
                 ) as response:
                     await raise_for_status(response)
@@ -404,11 +384,11 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         raise Exception("Failed to get upload URL")
 
                 async with session.put(
-                        url=uploadUrl,
-                        headers={
-                            "content-type": file_type,
-                        },
-                        data=data_bytes,
+                    url=uploadUrl,
+                    headers={
+                        "content-type": file_type,
+                    },
+                    data=data_bytes,
                 ) as response:
                     await raise_for_status(response)
                 async with session.post(
@@ -418,7 +398,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             "accept": "text/x-component",
                             "content-type": "text/plain;charset=UTF-8",
                             "next-action": cls._next_actions["getSignedUrl"],
-                            "Referer": url
+                            "referer": url
                         }
                 ) as response:
                     await raise_for_status(response)
