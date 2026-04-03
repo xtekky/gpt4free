@@ -32,6 +32,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     add_user = True
     use_image_size = False
     max_tokens: int = None
+    _checked_api_keys: dict = {}
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
@@ -49,8 +50,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         return await cls.test_api_key(api_key)
     
     @classmethod
-    @lru_cache(maxsize=24)
     async def test_api_key(cls, api_key: str):
+        if api_key in cls._checked_api_keys:
+            return cls._checked_api_keys[api_key]
         url = f"{cls.base_url}/chat/completions"
         headers = {
             "authorization": f"Bearer {api_key}"
@@ -63,7 +65,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         async with StreamSession() as session:
             async with session.post(url, headers=headers, json=json_data) as response:
                 await raise_for_status(response)
-                return await response.json()
+                result = await response.json()
+                cls._checked_api_keys[api_key] = result
+                return result
 
     @classmethod
     def is_provider_api_key(cls, api_key: str) -> bool:

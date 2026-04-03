@@ -131,8 +131,16 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 return {"id": user.get("id"), "name": user.get("name")}
 
     @classmethod
+    async def login(cls, **kwargs):
+        cache_file = cls.get_cache_file()
+        async for chunk in cls.on_auth_async(**kwargs):
+            if isinstance(chunk, AuthResult):
+                cls.write_cache_file(cache_file, chunk)
+                return
+
+    @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
-        async for chunk in cls.login(proxy=proxy):
+        async for chunk in cls.login_generator(proxy=proxy):
             yield chunk
         yield AuthResult(
             api_key=cls._api_key,
@@ -1037,14 +1045,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     yield chunk
 
     @classmethod
-    async def login(
-            cls,
-            proxy: str = None,
-            api_key: str = None,
-            proof_token: str = None,
-            cookies: Cookies = None,
-            headers: dict = None,
-            **kwargs
+    async def login_generator(
+        cls,
+        proxy: str = None,
+        api_key: str = None,
+        proof_token: str = None,
+        cookies: Cookies = None,
+        headers: dict = None,
+        **kwargs
     ) -> AsyncIterator:
         if cls._expires is not None and (cls._expires - 60 * 10) < time.time():
             cls._headers = cls._api_key = None

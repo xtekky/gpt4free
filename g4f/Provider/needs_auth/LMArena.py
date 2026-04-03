@@ -442,22 +442,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return files
 
     @classmethod
-    async def create_async_generator(
-            cls,
-            model: str,
-            messages: Messages,
-            conversation: JsonConversation = None,
-            media: MediaListType = None,
-            proxy: str = None,
-            timeout: int = None,
-            **kwargs
-    ) -> AsyncResult:
-        if cls.share_url is None:
-            cls.share_url = os.getenv("G4F_SHARE_URL")
-        prompt = get_last_user_message(messages)
+    def read_args(cls, args: dict = {}):
         cache_file = cls.get_cache_file()
-        args = kwargs.get("lmarena_args", {})
-        grecaptcha = kwargs.pop("grecaptcha", "")
         if not args and cache_file.exists():
             try:
                 with cache_file.open("r") as f:
@@ -466,35 +452,35 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 debug.log(f"Cache file {cache_file} is corrupted, removing it.")
                 cache_file.unlink()
                 args = None
-        force = False
+        return args
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        args = cls.read_args()
+        if not args:
+            raise MissingAuthError("No authentication arguments found.")
+        return {key: len(value) if value else 0 for key, value in args.items()}
+
+    @classmethod
+    async def create_async_generator(
+        cls,
+        model: str,
+        messages: Messages,
+        conversation: JsonConversation = None,
+        media: MediaListType = None,
+        proxy: str = None,
+        timeout: int = None,
+        **kwargs
+    ) -> AsyncResult:
+        prompt = get_last_user_message(messages)
+        cache_file = cls.get_cache_file()
+        args = cls.read_args(kwargs.get("lmarena_args", {}))
+        grecaptcha = kwargs.pop("grecaptcha", "")
         for _ in range(2):
             if args:
                 pass
-            elif has_nodriver or cls.share_url is None:
+            elif has_nodriver:
                 args, grecaptcha = await cls.get_args_from_nodriver(proxy)
-
-            elif not cls.looked:
-                cls.looked = True
-                try:
-                    debug.log("No cache file found, trying to fetch from share URL.")
-                    response = requests.get(cls.share_url, params={
-                        "prompt": prompt,
-                        "model": model,
-                        "provider": cls.__name__
-                    })
-                    raise_for_status(response)
-                    if response.headers.get("Content-Type", "").startswith("image/"):
-                        yield ImageResponse(str(response.url), prompt)
-                    else:
-                        text, *args = response.text.split("\n" * 10 + "<!--", 1)
-                        if args:
-                            debug.log("Save args to cache file:", str(cache_file))
-                            with cache_file.open("w") as f:
-                                f.write(args[0].strip())
-                        yield text
-                finally:
-                    cls.looked = False
-                return
             else:
                 raise MissingRequirementsError("No auth file found and nodriver is not available.")
 
@@ -587,20 +573,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 continue
             except (RateLimitError) as error:
                 args = None
-                force = True
                 debug.error(error)
                 continue
             except:
                 raise
-        if args and os.getenv("G4F_SHARE_AUTH") and not kwargs.get("action"):
-            yield "\n" * 10
-            yield "<!--"
-            yield json.dumps(args)
         if args:
             debug.log("Save args to cache file:", str(cache_file))
             with cache_file.open("w") as f:
                 f.write(json.dumps(args))
-
 
 def get_content_type(url: str) -> str:
     if url.endswith(".webp"):

@@ -105,7 +105,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     rotate_tasks = {}
 
     @classmethod
-    async def nodriver_login(cls, proxy: str = None) -> AsyncIterator[str]:
+    async def login(cls, proxy: str = None) -> AsyncIterator[str]:
         if not has_nodriver:
             debug.log("Skip nodriver login in Gemini provider")
             return
@@ -145,6 +145,18 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             if new_1psidts:
                 cls._cookies["__Secure-1PSIDTS"] = new_1psidts
             await asyncio.sleep(cls.refresh_interval)
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        if not cls._cookies:
+            cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+        if not cls._cookies:
+            raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie')
+        async with ClientSession(
+            headers=REQUEST_HEADERS
+        ) as session:
+            await cls.fetch_snlm0e(session, cls._cookies)
+        return cls._snlm0e
 
     @classmethod
     async def create_async_generator(
@@ -188,7 +200,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
             if not cls._snlm0e:
                 try:
-                    async for chunk in cls.nodriver_login(proxy):
+                    async for chunk in cls.login(proxy):
                         yield chunk
                 except Exception as e:
                     raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie', e)
