@@ -546,6 +546,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     model_id = cls.text_models[_model]
                 elif _model in cls.image_models:
                     model_id = cls.image_models[_model]
+                elif _model in cls.video_models:
+                    model_id = cls.video_models[_model]
                 elif _model:
                     raise ModelNotFoundError(f"Model '{_model}' is not supported by LMArena provider.")
                 return model_id
