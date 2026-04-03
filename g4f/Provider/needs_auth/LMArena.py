@@ -7,12 +7,12 @@ import os
 import re
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
-import requests
+
 
 from g4f.image import to_bytes, detect_file_type
 
@@ -74,6 +74,20 @@ video_models = {model["publicName"]: model["id"] for model in models if
                 "video" in model["capabilities"]["outputCapabilities"]}
 vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
 
+def check_link_expiry(url):
+    # Parse the URL and its query parameters
+    parsed_url = urlparse(url)
+    params = parse_qs(parsed_url.query)
+    amz_date_str = params.get("X-Amz-Date", [None])[0]
+    expires_delta = params.get("X-Amz-Expires", [None])[0]
+    if not amz_date_str or not expires_delta:
+        return False
+    creation_time = datetime.strptime(amz_date_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+    expiry_time = creation_time.timestamp() + int(expires_delta)
+    current_time = datetime.now(UTC).timestamp()
+    return current_time <= expiry_time
+
+
 if has_nodriver:
     async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
         for _ in range(3):
@@ -115,12 +129,15 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     _models_loaded = False
     image_cache = True
     _next_actions = {
-        "generateUploadUrl":"7020462b741e358317f3b5a1929766d8b9c241c7c6",
-        "getSignedUrl":"60ff7bb683b22dd00024c9aee7664bbd39749e25c9",
+        "generateUploadUrl": "7012303914af71fce235a732cde90253f7e2986f2b",
+        "getSignedUrl": "605373b76a30947cc26be49fc7b00c885910e21559",
         "updateTouConsent": "40efff1040868c07750a939a0d8120025f246dfe28",
         "createPointwiseFeedback": "605a0e3881424854b913fe1d76d222e50731b6037b",
-        "createPairwiseFeedback":"600777eb84863d7e79d85d214130d3214fc744c80f",
-        "getProxyImage": "60049198d4936e6b7acc63719b63b89284c58683e6"
+        "createPairwiseFeedback": "600777eb84863d7e79d85d214130d3214fc744c80f",
+        "getProxyImage": "60049198d4936e6b7acc63719b63b89284c58683e6",
+        "deleteEvaluationSession": "6009c985d7e84eae2ec94547453ba388005b22e2a5",
+        "getEmailProvider": "607c2dd3d84af5a00b322b577498d1b2a739c5dfe0",
+        "deleteAccount": "40a57e8c369eaf8a82483fae2f8106489ce041dffd",
     }
     @classmethod
     def get_models(cls, timeout: int = None, **kwargs) -> list[str]:
@@ -199,7 +216,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         return cls.models
 
     @classmethod
-    async def get_args_from_nodriver(cls, proxy):
+    async def get_args_from_nodriver(cls, proxy, clear_cookies=False):
         cache_file = cls.get_cache_file()
         grecaptcha = []
 
@@ -252,7 +269,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             html = await page.get_content()
             await cls.__load_actions(html)
 
-        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
+        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback,
+                                            clear_cookies_except=["cf_clearance", "app_banner_state"] if clear_cookies else None)
 
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -366,12 +384,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 js_url = f"{cls.url}/_next/{js}"
                                 async with session.get(js_url) as js_response:
                                     js_text = await js_response.text()
-                                    if "generateUploadUrl" in js_text:
-                                        # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
-                                        start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
-                                        for v, k in start_id:
-                                            cls._next_actions[k] = v
-                                        break
+                                    if "createServerReference" in js_text:
+                                        cls.__extract_actions(js_text)
+
                 elif chunk_data.startswith(("[", "{")):
                     try:
                         data = json.loads(chunk_data)
@@ -380,11 +395,21 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         ...
 
     @classmethod
+    def __extract_actions(cls, js_text):
+        # updateTouConsent, createPointwiseFeedback, createPairwiseFeedback, generateUploadUrl, getSignedUrl, getProxyImage
+        start_id = re.findall(r'\("([a-f0-9]{40,})".*?"(\w+)"\)', js_text)
+        for v, k in start_id:
+            if len(v) == 42:
+                cls._next_actions[k] = v
+                debug.log(f"{k}: {v}")
+            else:
+                debug.error(f"wrong {k} value: {v}")
+
+    @classmethod
     async def prepare_images(cls, args, media: list[tuple]) -> list[dict[str, str]]:
         files = []
         if not media:
             return files
-        url = "https://arena.ai/?chat-modality=image"
         async with StreamSession(**args, ) as session:
             for index, (_file, file_name) in enumerate(media):
                 data_bytes = to_bytes(_file)
@@ -394,20 +419,22 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 image_hash = hasher.hexdigest()
                 file = ImagesCache.get(image_hash)
                 if cls.image_cache and file:
-                    debug.log("Using cached image")
-                    files.append(file)
-                    continue
+                    if check_link_expiry(file.get("url")):
+                        debug.log("Using cached image")
+                        files.append(file)
+                        continue
+                    debug.log("Expiry cached image")
 
                 extension, file_type = detect_file_type(data_bytes)
                 file_name = file_name or f"file-{len(data_bytes)}{extension}"
                 async with session.post(
-                        url="https://arena.ai/?chat-modality=image",
+                        url=cls.url,
                         json=[file_name, file_type],
                         headers={
                             "accept": "text/x-component",
                             "content-type": "text/plain;charset=UTF-8",
                             "next-action": cls._next_actions["generateUploadUrl"],
-                            "referer": url
+                            "referer": cls.url
                         }
                 ) as response:
                     await raise_for_status(response)
@@ -432,13 +459,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 ) as response:
                     await raise_for_status(response)
                 async with session.post(
-                        url=url,
+                        url=cls.url,
                         json=[key],
                         headers={
                             "accept": "text/x-component",
                             "content-type": "text/plain;charset=UTF-8",
                             "next-action": cls._next_actions["getSignedUrl"],
-                            "referer": url
+                            "referer": cls.url
                         }
                 ) as response:
                     await raise_for_status(response)
@@ -496,45 +523,60 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         cache_file = cls.get_cache_file()
         args = cls.read_args(kwargs.get("lmarena_args", {}))
         grecaptcha = kwargs.pop("grecaptcha", "")
+        _need_clear_cookies = False
         for _ in range(2):
             if args:
                 pass
             elif has_nodriver:
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy)
+                args, grecaptcha = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
             else:
                 raise MissingRequirementsError("No auth file found and nodriver is not available.")
 
             if not cls._models_loaded:
                 # change to async
                 await cls.get_models_async()
-            is_image_model = model in cls.image_models
-            if not model:
-                model = cls.default_model
-            if model in cls.model_aliases:
-                model = cls.model_aliases[model]
-            if model in cls.text_models:
-                model_id = cls.text_models[model]
-            elif model in cls.image_models:
-                model_id = cls.image_models[model]
-            else:
-                raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
 
+            def get_mode_id(_model):
+                model_id = None
+                # if not model:
+                #     model = cls.default_model
+                if _model in cls.model_aliases:
+                    _model = cls.model_aliases[_model]
+                if _model in cls.text_models:
+                    model_id = cls.text_models[_model]
+                elif _model in cls.image_models:
+                    model_id = cls.image_models[_model]
+                elif _model:
+                    raise ModelNotFoundError(f"Model '{_model}' is not supported by LMArena provider.")
+                return model_id
+
+            modelA:str = model
+            modelB:str = kwargs.get("modelB", "")
+            modelAId = get_mode_id(modelA)
+            modelBId = get_mode_id(modelB) if modelB else None
+            if modelAId and modelBId:
+                mode = "side-by-side"
+            elif modelAId:
+                mode = "direct"
+            else:
+                mode = "battle"
             if conversation and getattr(conversation, "evaluationSessionId", None):
                 url = cls.post_to_evaluation.format(id=conversation.evaluationSessionId)
                 evaluationSessionId = conversation.evaluationSessionId
             else:
                 url = cls.create_evaluation
                 evaluationSessionId = str(uuid7())
+            is_image_model = modelA in cls.image_models
             userMessageId = str(uuid7())
             modelAMessageId = str(uuid7())
+            modelBMessageId = str(uuid7())
             if not grecaptcha and has_nodriver:
                 debug.log("get grecaptcha")
                 args, grecaptcha = await cls.get_grecaptcha(args, proxy)
             files = await cls.prepare_images(args, media)
             data = {
                 "id": evaluationSessionId,
-                "mode": "direct",
-                "modelAId": model_id,
+                "mode": mode,
                 "userMessageId": userMessageId,
                 "modelAMessageId": modelAMessageId,
                 "userMessage": {
@@ -545,6 +587,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 "modality": "image" if is_image_model else "chat",
                 "recaptchaV3Token": grecaptcha
             }
+            if modelAId:
+                data["modelAId"] = modelAId
+            if modelBId:
+                data["modelBId"] = modelBId
+            if mode in ["side-by-side", "battle"]:
+                data["modelBMessageId"] = modelBMessageId
+
             yield JsonRequest.from_dict(data)
             try:
                 async with StreamSession(**args, timeout=timeout or 5 * 60) as session:
@@ -563,17 +612,26 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 if chunk == "hasArenaError":
                                     raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
                                 yield chunk
+                            elif line.startswith("b0:"):
+                                ...
                             elif line.startswith("ag:"):
                                 chunk = json.loads(line[3:])
                                 yield Reasoning(chunk)
-                            elif line.startswith("a2:") and line == 'a2:[{"type":"heartbeat"}]':
+                            elif (line.startswith("a2:") or line.startswith("b2:")) and line == 'a2:[{"type":"heartbeat"}]':
                                 # 'a2:[{"type":"heartbeat"}]'
                                 continue
                             elif line.startswith("a2:"):
                                 chunk = json.loads(line[3:])
                                 __images = [image.get("image") for image in chunk if image.get("image")]
                                 if __images:
-                                    yield ImageResponse(__images, prompt)
+                                    yield ImageResponse(__images, prompt, {"model": modelA})
+
+                            elif line.startswith("b2:"):
+                                chunk = json.loads(line[3:])
+                                __images = [image.get("image") for image in chunk if image.get("image")]
+                                if __images:
+                                    yield ImageResponse(__images, prompt, {"model": modelB})
+
                             elif line.startswith("ad:"):
                                 yield JsonConversation(evaluationSessionId=evaluationSessionId)
                                 finish = json.loads(line[3:])
@@ -581,8 +639,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                     yield FinishReason(finish["finishReason"])
                                 if "usage" in finish:
                                     yield Usage(**finish["usage"])
+                            elif line.startswith("bd:"):
+                                ...
                             elif line.startswith("a3:"):
                                 raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+                            elif line.startswith("b3:"):
+                                ...
                             else:
                                 debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
                 break
@@ -591,8 +653,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 debug.error(error)
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
-            except (RateLimitError) as error:
+            except RateLimitError as error:
                 args = None
+                _need_clear_cookies = True
                 debug.error(error)
                 continue
             except:
