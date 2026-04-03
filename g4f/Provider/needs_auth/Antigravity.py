@@ -992,11 +992,12 @@ class AntigravityProvider:
                             "name": tool_call["function"]["name"],
                             "args": json.loads(tool_call["function"]["arguments"]),
                         }
-                        # Restore thoughtSignature for Gemini thinking models when available
-                        thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature")
-                        if thought_sig:
-                            func_call["thoughtSignature"] = thought_sig
-                        parts.append({"functionCall": func_call})
+                        # Restore thought_signature for Gemini thinking models when available
+                        thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature", "skip_thought_signature_validator")
+                        if idx == 0:  # Only add skip_thought_signature_validator for the first tool call if no signature is present
+                            parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
+                        else:
+                            parts.append({"functionCall": func_call})
 
             # Handle string content
             elif isinstance(content, str):
