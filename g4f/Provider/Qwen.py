@@ -197,7 +197,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 file_id = data.get("file_id")
 
             # Put File into Url
-            str_date = datetime.datetime.now(datetime.UTC).strftime('%Y%m%dT%H%M%SZ')
+            str_date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
             headers = get_oss_headers('PUT', str_date, data, file_type)
             async with session.put(
                     file_url.split("?")[0],

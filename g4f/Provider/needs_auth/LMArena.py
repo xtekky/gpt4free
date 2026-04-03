@@ -7,7 +7,7 @@ import os
 import re
 import secrets
 import time
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict
 from urllib.parse import urlparse, parse_qs
@@ -72,9 +72,9 @@ def check_link_expiry(url):
     expires_delta = params.get("X-Amz-Expires", [None])[0]
     if not amz_date_str or not expires_delta:
         return False
-    creation_time = datetime.strptime(amz_date_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+    creation_time = datetime.strptime(amz_date_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
     expiry_time = creation_time.timestamp() + int(expires_delta)
-    current_time = datetime.now(UTC).timestamp()
+    current_time = datetime.now(timezone.utc).timestamp()
     return current_time <= expiry_time
 
 
