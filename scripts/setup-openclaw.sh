@@ -103,8 +103,6 @@ provider = {
     ],
 }
 
-os.makedirs(os.path.dirname(config_file), exist_ok=True)
-
 try:
     with open(config_file) as f:
         cfg = json.load(f)
@@ -117,7 +115,7 @@ cfg["models"]["providers"]["g4f-perplexity"] = {
     "baseUrl": "https://perplexity.g4f-dev.workers.dev",
     "apiKey": "",
     "model": "turbo",
-};
+}
 cfg["tools"] = cfg.get("tools", {})
 cfg["tools"]["web"] = cfg["tools"].get("web", {})
 cfg["tools"]["web"]["search"] = {
@@ -130,7 +128,7 @@ with open(config_file, "w") as f:
 print("OpenClaw config patched via Python.")
 PYEOF
 
-  # apply fallback models with openclaw commands if available
+  # apply models with openclaw commands if available
   openclaw models set gpt4free/openclaw >/dev/null 2>&1 || true
   openclaw gateway restart >/dev/null 2>&1 || true
 else
