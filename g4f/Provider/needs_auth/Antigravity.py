@@ -955,35 +955,42 @@ class AntigravityProvider:
                 "Could not discover project ID. Ensure authentication or set ANTIGRAVITY_PROJECT_ID."
             )
 
+
     @staticmethod
     def _messages_to_gemini_format(messages: list, media: MediaListType) -> List[Dict[str, Any]]:
-        """Convert OpenAI-style messages to Gemini format."""
         format_messages = []
         for msg in messages:
+            # Convert a ChatMessage dict to GeminiFormattedMessage dict
             role = "model" if msg["role"] == "assistant" else "user"
 
-            content = msg.get("content")
-
             # Handle tool role (OpenAI style)
+            # Group consecutive tool responses into a single user turn so that
+            # the number of functionResponse parts equals the number of functionCall parts.
             if msg["role"] == "tool":
-                parts = [
-                    {
-                        "functionResponse": {
-                            "name": msg.get("tool_call_id", "unknown_function"),
-                            "response": {
-                                "result": (
-                                    content
-                                    if isinstance(content, str)
-                                    else json.dumps(content)
-                                )
-                            },
-                        }
+                tool_result = msg.get("content", "")
+                func_response_part = {
+                    "functionResponse": {
+                        "name": msg.get("tool_call_id", "unknown_function"),
+                        "response": {
+                            "result": (
+                                tool_result
+                                if isinstance(tool_result, str)
+                                else json.dumps(tool_result)
+                            )
+                        },
                     }
-                ]
+                }
+                if (format_messages and format_messages[-1]["role"] == "user"
+                        and any("functionResponse" in p for p in format_messages[-1]["parts"])):
+                    format_messages[-1]["parts"].append(func_response_part)
+                else:
+                    format_messages.append({"role": "user", "parts": [func_response_part]})
+                continue
 
             # Handle assistant messages with tool calls
             elif msg["role"] == "assistant" and msg.get("tool_calls"):
                 parts = []
+                content = msg.get("content")
                 if isinstance(content, str) and content.strip():
                     parts.append({"text": content})
                 for tool_call in msg["tool_calls"]:
@@ -994,24 +1001,21 @@ class AntigravityProvider:
                         }
                         # Restore thought_signature for Gemini thinking models when available
                         thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature", "skip_thought_signature_validator")
-                        if idx == 0:  # Only add skip_thought_signature_validator for the first tool call if no signature is present
-                            parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
-                        else:
-                            parts.append({"functionCall": func_call})
+                        parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
 
             # Handle string content
-            elif isinstance(content, str):
-                parts = [{"text": content}]
+            elif isinstance(msg["content"], str):
+                parts = [{"text": msg["content"]}]
 
             # Handle array content (possibly multimodal)
-            elif isinstance(content, list):
+            elif isinstance(msg["content"], list):
                 parts = []
-                for item in content:
-                    ctype = item.get("type")
+                for content in msg["content"]:
+                    ctype = content.get("type")
                     if ctype == "text":
-                        parts.append({"text": item["text"]})
+                        parts.append({"text": content["text"]})
                     elif ctype == "image_url":
-                        image_url = item.get("image_url", {}).get("url")
+                        image_url = content.get("image_url", {}).get("url")
                         if not image_url:
                             continue
                         if image_url.startswith("data:"):
@@ -1023,7 +1027,7 @@ class AntigravityProvider:
                             parts.append(
                                 {
                                     "fileData": {
-                                        "mimeType": "image/jpeg",
+                                        "mimeType": "image/jpeg",  # Could improve by validation
                                         "fileUri": image_url,
                                     }
                                 }
@@ -1034,8 +1038,6 @@ class AntigravityProvider:
                 parts = []
 
             format_messages.append({"role": role, "parts": parts})
-
-        # Handle media attachments
         if media:
             if not format_messages:
                 format_messages.append({"role": "user", "parts": []})
@@ -1048,7 +1050,7 @@ class AntigravityProvider:
                         {
                             "fileData": {
                                 "mimeType": f"image/{extension}",
-                                "fileUri": media_data,
+                                "fileUri": image_url,
                             }
                         }
                     )
@@ -1060,7 +1062,6 @@ class AntigravityProvider:
                             "data": base64.b64encode(media_data).decode()
                         }
                     })
-
         return format_messages
 
     async def stream_content(
@@ -1291,7 +1292,7 @@ class AntigravityProvider:
                             if "thoughtSignature" in part:
                                 tool_call_obj["extra_content"] = {
                                     "google": {
-                                        "thought_signature": tc["thought_signature"]
+                                        "thought_signature": part["thoughtSignature"]
                                     }
                                 }
                             openai_tool_calls.append(tool_call_obj)

@@ -571,22 +571,28 @@ class GeminiCLIProvider():
             role = "model" if msg["role"] == "assistant" else "user"
 
             # Handle tool role (OpenAI style)
+            # Group consecutive tool responses into a single user turn so that
+            # the number of functionResponse parts equals the number of functionCall parts.
             if msg["role"] == "tool":
                 tool_result = msg.get("content", "")
-                parts = [
-                    {
-                        "functionResponse": {
-                            "name": msg.get("tool_call_id", "unknown_function"),
-                            "response": {
-                                "result": (
-                                    tool_result
-                                    if isinstance(tool_result, str)
-                                    else json.dumps(tool_result)
-                                )
-                            },
-                        }
+                func_response_part = {
+                    "functionResponse": {
+                        "name": msg.get("tool_call_id", "unknown_function"),
+                        "response": {
+                            "result": (
+                                tool_result
+                                if isinstance(tool_result, str)
+                                else json.dumps(tool_result)
+                            )
+                        },
                     }
-                ]
+                }
+                if (format_messages and format_messages[-1]["role"] == "user"
+                        and any("functionResponse" in p for p in format_messages[-1]["parts"])):
+                    format_messages[-1]["parts"].append(func_response_part)
+                else:
+                    format_messages.append({"role": "user", "parts": [func_response_part]})
+                continue
 
             # Handle assistant messages with tool calls
             elif msg["role"] == "assistant" and msg.get("tool_calls"):
@@ -594,18 +600,15 @@ class GeminiCLIProvider():
                 content = msg.get("content")
                 if isinstance(content, str) and content.strip():
                     parts.append({"text": content})
-                for idx, tool_call in enumerate(msg["tool_calls"]):
+                for tool_call in msg["tool_calls"]:
                     if tool_call.get("type") == "function":
                         func_call = {
                             "name": tool_call["function"]["name"],
                             "args": json.loads(tool_call["function"]["arguments"]),
                         }
-                        # Restore thought_signature required by Gemini thinking models
+                        # Restore thought_signature for Gemini thinking models when available
                         thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature", "skip_thought_signature_validator")
-                        if idx == 0:  # Only add skip_thought_signature_validator for the first tool call if no signature is present
-                            parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
-                        else:
-                            parts.append({"functionCall": func_call})
+                        parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
 
             # Handle string content
             elif isinstance(msg["content"], str):
