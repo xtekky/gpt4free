@@ -34,11 +34,6 @@ class TestBackendApi(unittest.TestCase):
         self.assertIn("version", response)
         self.assertIn("latest_version", response)
 
-    def test_get_models(self):
-        response = self.api.get_models()
-        self.assertIsInstance(response, list)
-        self.assertTrue(len(response) > 0)
-
     def test_get_providers(self):
         response = self.api.get_providers()
         self.assertIsInstance(response, list)

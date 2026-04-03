@@ -977,7 +977,7 @@ flux_canny = ImageModel(
 flux_kontext_max = ImageModel(
     name = 'flux-kontext',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsAI, Azure, LMArena, Together])
+    best_provider = IterListProvider([PollinationsAI, Azure, Together])
 )
 
 flux_dev_lora = ImageModel(
