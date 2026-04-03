@@ -15,12 +15,12 @@ def get_config_dir() -> Path:
         elif sys.platform == "darwin":
             return Path.home() / "Library" / "Application Support"
         return Path.home() / ".config"
-    config_dir = Path.home() / ".config"
+    config_dir = Path.home() / ".g4f"
     if not config_dir.exists():
         config_dir = get_fallback_config_dir()
         if not config_dir.exists():
             config_dir = Path.home() / ".g4f"
-            config_dir.mkdir(parents=True, exist_ok=True)
+        config_dir = config_dir / "g4f"
     return config_dir
 
 DEFAULT_PORT = 1337
@@ -28,7 +28,7 @@ DEFAULT_TIMEOUT = 600
 DEFAULT_STREAM_TIMEOUT = 30
 
 PACKAGE_NAME = "g4f"
-CONFIG_DIR = get_config_dir() / PACKAGE_NAME
+CONFIG_DIR = get_config_dir()
 COOKIES_DIR = CONFIG_DIR / "cookies"
 CUSTOM_COOKIES_DIR = "./har_and_cookies"
 ORGANIZATION = "gpt4free"

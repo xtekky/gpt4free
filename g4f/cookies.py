@@ -226,7 +226,7 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
         from dotenv import load_dotenv
         env_path = os.path.join(dir_path, ".env")
         load_dotenv(env_path, override=True)
-        debug.log(f"Read cookies: Loaded env vars from {env_path}")
+        debug.log(f"Loaded env vars from {env_path}: {os.path.exists(env_path)}")
     except ImportError:
         debug.error("Warning: 'python-dotenv' is not installed. Env vars not loaded.")
 

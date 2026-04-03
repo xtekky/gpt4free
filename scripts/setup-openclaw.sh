@@ -35,7 +35,7 @@ models:
     providers:
       - provider: "GeminiCLI"
         model: "gemini-3-flash-preview"
-        condition: "quota.models.gemini-3-flash-preview.remaining > 0 and error_count < 3"
+        condition: "quota.models.gemini-3-flash-preview.remainingFraction > 0 and error_count < 3"
       - provider: "Antigravity"
         model: "gemini-3-flash"
         condition: "quota.models.gemini-3-flash.quotaInfo.remainingFraction > 0 and error_count < 3"

@@ -296,11 +296,11 @@ class AsyncGeneratorProvider(AbstractProvider):
         """Get the quota information for the API key."""
         if cls.quota_url is None:
             raise NotImplementedError(f"{cls.__name__} does not implement get_quota method")
-        if not api_key:
+        if not api_key and cls.needs_auth:
             raise MissingAuthError("API key is required.")
         headers = {
             "authorization": f"Bearer {api_key}"
-        }
+        } if api_key else {}
         async with ClientSession() as session:
             async with session.get(cls.quota_url, headers=headers) as response:
                 await raise_for_status(response)

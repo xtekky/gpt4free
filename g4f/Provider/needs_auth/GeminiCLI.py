@@ -572,36 +572,40 @@ class GeminiCLIProvider():
 
             # Handle tool role (OpenAI style)
             if msg["role"] == "tool":
+                tool_result = msg.get("content", "")
                 parts = [
                     {
                         "functionResponse": {
                             "name": msg.get("tool_call_id", "unknown_function"),
                             "response": {
                                 "result": (
-                                    msg["content"]
-                                    if isinstance(msg["content"], str)
-                                    else json.dumps(msg["content"])
+                                    tool_result
+                                    if isinstance(tool_result, str)
+                                    else json.dumps(tool_result)
                                 )
                             },
                         }
                     }
-                ],
+                ]
 
             # Handle assistant messages with tool calls
             elif msg["role"] == "assistant" and msg.get("tool_calls"):
                 parts = []
-                if isinstance(msg["content"], str) and msg["content"].strip():
-                    parts.append({"text": msg["content"]})
-                for tool_call in msg["tool_calls"]:
+                content = msg.get("content")
+                if isinstance(content, str) and content.strip():
+                    parts.append({"text": content})
+                for idx, tool_call in enumerate(msg["tool_calls"]):
                     if tool_call.get("type") == "function":
                         func_call = {
                             "name": tool_call["function"]["name"],
                             "args": json.loads(tool_call["function"]["arguments"]),
                         }
                         # Restore thought_signature required by Gemini thinking models
-                        if "thought_signature" in tool_call:
-                            func_call["thoughtSignature"] = tool_call["thought_signature"]
-                        parts.append({"functionCall": func_call})
+                        thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature", "skip_thought_signature_validator")
+                        if idx == 0:  # Only add skip_thought_signature_validator for the first tool call if no signature is present
+                            parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
+                        else:
+                            parts.append({"functionCall": func_call})
 
             # Handle string content
             elif isinstance(msg["content"], str):
@@ -609,6 +613,7 @@ class GeminiCLIProvider():
 
             # Handle array content (possibly multimodal)
             elif isinstance(msg["content"], list):
+                parts = []
                 for content in msg["content"]:
                     ctype = content.get("type")
                     if ctype == "text":
@@ -822,7 +827,7 @@ class GeminiCLIProvider():
 
                         # Function calls from Gemini
                         elif "functionCall" in part:
-                            tool_calls.append(part["functionCall"])
+                            tool_calls.append(part)
 
                         # Text content
                         elif "text" in part:
@@ -843,7 +848,8 @@ class GeminiCLIProvider():
                     if tool_calls:
                         # Convert Gemini tool calls to OpenAI format
                         openai_tool_calls = []
-                        for i, tc in enumerate(tool_calls):
+                        for i, part in enumerate(tool_calls):
+                            tc = part["functionCall"]
                             tool_call_obj = {
                                 "id": f"call_{i}_{tc.get('name', 'unknown')}",
                                 "type": "function",
@@ -853,8 +859,12 @@ class GeminiCLIProvider():
                                 }
                             }
                             # Preserve thought_signature for thinking models (Gemini 2.5+)
-                            if "thoughtSignature" in tc:
-                                tool_call_obj["thought_signature"] = tc["thoughtSignature"]
+                            if "thoughtSignature" in part:
+                                tool_call_obj["extra_content"] = {
+                                    "google": {
+                                        "thought_signature": part["thoughtSignature"]
+                                    }
+                                }
                             openai_tool_calls.append(tool_call_obj)
                         yield ToolCalls(openai_tool_calls)
                 if usage_metadata:

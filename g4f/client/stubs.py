@@ -70,6 +70,7 @@ class ToolCallModel(BaseModel):
     id: str
     type: str
     function: ToolFunctionModel
+    extra_content: Optional[dict] = None
 
     @classmethod
     def model_construct(cls, function=None, index=0, **kwargs):

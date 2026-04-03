@@ -992,9 +992,10 @@ class AntigravityProvider:
                             "name": tool_call["function"]["name"],
                             "args": json.loads(tool_call["function"]["arguments"]),
                         }
-                        # Restore thought_signature required by Gemini thinking models
-                        if "thought_signature" in tool_call:
-                            func_call["thoughtSignature"] = tool_call["thought_signature"]
+                        # Restore thoughtSignature for Gemini thinking models when available
+                        thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature")
+                        if thought_sig:
+                            func_call["thoughtSignature"] = thought_sig
                         parts.append({"functionCall": func_call})
 
             # Handle string content
@@ -1256,7 +1257,7 @@ class AntigravityProvider:
 
                         # Function calls from Gemini
                         elif "functionCall" in part:
-                            tool_calls.append(part["functionCall"])
+                            tool_calls.append(part)
 
                         # Text content
                         elif "text" in part:
@@ -1275,7 +1276,8 @@ class AntigravityProvider:
                     if tool_calls:
                         # Convert Gemini tool calls to OpenAI format
                         openai_tool_calls = []
-                        for i, tc in enumerate(tool_calls):
+                        for i, part in enumerate(tool_calls):
+                            tc = part["functionCall"]
                             tool_call_obj = {
                                 "id": f"call_{i}_{tc.get('name', 'unknown')}",
                                 "type": "function",
@@ -1285,8 +1287,12 @@ class AntigravityProvider:
                                 }
                             }
                             # Preserve thought_signature for thinking models (Gemini 2.5+)
-                            if "thoughtSignature" in tc:
-                                tool_call_obj["thought_signature"] = tc["thoughtSignature"]
+                            if "thoughtSignature" in part:
+                                tool_call_obj["extra_content"] = {
+                                    "google": {
+                                        "thought_signature": tc["thought_signature"]
+                                    }
+                                }
                             openai_tool_calls.append(tool_call_obj)
                         yield ToolCalls(openai_tool_calls)
 
