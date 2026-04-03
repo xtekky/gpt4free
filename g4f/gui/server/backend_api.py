@@ -225,7 +225,7 @@ class Backend_Api(Api):
             except json.JSONDecodeError as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": "Invalid JSON data"}}), 400
-            for key in ["base_url", "proxy", "media"]:
+            for key in ["base_url", "proxy"]:
                 if key in json_data:
                     del json_data[key]  # Remove unsupported fields for security
             if app.demo and has_crypto:
