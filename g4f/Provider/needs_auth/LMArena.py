@@ -111,7 +111,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 "video" in model["capabilities"]["outputCapabilities"]}
         cls.vision_models = [model["publicName"] for model in models_data if
                                 "image" in model["capabilities"]["inputCapabilities"]]
-        cls.models = list(cls.text_models) + list(cls.image_models) + list(cls.video_models)
+        cls.models = list(cls.text_models) + list(cls.image_models)
         cls.default_model = list(cls.text_models.keys())[0]
         cls._models_loaded = True
 
@@ -488,6 +488,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 model_id = cls.text_models[model]
             elif model in cls.image_models:
                 model_id = cls.image_models[model]
+            elif model in cls.video_models:
+                model_id = cls.video_models[model]
             else:
                 raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena provider.")
 
