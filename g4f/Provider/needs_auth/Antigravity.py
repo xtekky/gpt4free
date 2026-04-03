@@ -962,6 +962,8 @@ class AntigravityProvider:
         for msg in messages:
             role = "model" if msg["role"] == "assistant" else "user"
 
+            content = msg.get("content")
+
             # Handle tool role (OpenAI style)
             if msg["role"] == "tool":
                 parts = [
@@ -970,9 +972,9 @@ class AntigravityProvider:
                             "name": msg.get("tool_call_id", "unknown_function"),
                             "response": {
                                 "result": (
-                                    msg["content"]
-                                    if isinstance(msg["content"], str)
-                                    else json.dumps(msg["content"])
+                                    content
+                                    if isinstance(content, str)
+                                    else json.dumps(content)
                                 )
                             },
                         }
@@ -982,8 +984,8 @@ class AntigravityProvider:
             # Handle assistant messages with tool calls
             elif msg["role"] == "assistant" and msg.get("tool_calls"):
                 parts = []
-                if isinstance(msg["content"], str) and msg["content"].strip():
-                    parts.append({"text": msg["content"]})
+                if isinstance(content, str) and content.strip():
+                    parts.append({"text": content})
                 for tool_call in msg["tool_calls"]:
                     if tool_call.get("type") == "function":
                         parts.append(
@@ -996,18 +998,18 @@ class AntigravityProvider:
                         )
 
             # Handle string content
-            elif isinstance(msg["content"], str):
-                parts = [{"text": msg["content"]}]
+            elif isinstance(content, str):
+                parts = [{"text": content}]
 
             # Handle array content (possibly multimodal)
-            elif isinstance(msg["content"], list):
+            elif isinstance(content, list):
                 parts = []
-                for content in msg["content"]:
-                    ctype = content.get("type")
+                for item in content:
+                    ctype = item.get("type")
                     if ctype == "text":
-                        parts.append({"text": content["text"]})
+                        parts.append({"text": item["text"]})
                     elif ctype == "image_url":
-                        image_url = content.get("image_url", {}).get("url")
+                        image_url = item.get("image_url", {}).get("url")
                         if not image_url:
                             continue
                         if image_url.startswith("data:"):
@@ -1024,8 +1026,10 @@ class AntigravityProvider:
                                     }
                                 }
                             )
+            elif content is not None:
+                parts = [{"text": str(content)}]
             else:
-                parts = [{"text": str(msg["content"])}]
+                parts = []
 
             format_messages.append({"role": role, "parts": parts})
 

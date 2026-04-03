@@ -317,11 +317,13 @@ class Backend_Api(Api):
                 return "Provider not found", 404
             if not hasattr(provider_handler, "get_quota"):
                 return "Provider doesn't support get_quota", 500
-            request_api_key = request.headers.get("Authorization", "").replace("Bearer ", "")
+            request_api_key = request.headers.get("x-api-key")
             try:
                 return jsonify(await provider_handler.get_quota(api_key=request_api_key))
             except MissingAuthError as e:
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+            except NotImplementedError as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 501
             except Exception as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
@@ -358,7 +360,7 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/version', methods=['GET'])
         def version():
             resp = jsonify(self.get_version())
-            if not if request.args.get("cache"):
+            if not request.args.get("cache"):
                 resp.set_cookie('fingerprint', base64.b64encode(str(int(time.time())).encode()).decode(), max_age=60 * 60 *2, httponly=True, secure=True)
             return resp
 
