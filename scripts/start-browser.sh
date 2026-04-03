@@ -70,6 +70,8 @@ case "$BROWSER" in
         done
         if [ -z "$BROWSER_BIN" ]; then
             BROWSER_BIN="$(find_win_bin \
+                "/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe" \
+                "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser
                 "/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "$LOCALAPPDATA/BraveSoftware/Brave-Browser/Application/brave.exe")"
@@ -103,6 +105,8 @@ case "$BROWSER" in
         done
         if [ -z "$BROWSER_BIN" ]; then
             BROWSER_BIN="$(find_win_bin \
+                "/c/Program Files (x86)/Google/Chrome/Application/chrome.exe" \
+                "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe" \
                 "/c/Program Files/Google/Chrome/Application/chrome.exe" \
                 "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" \
                 "$LOCALAPPDATA/Google/Chrome/Application/chrome.exe")"
