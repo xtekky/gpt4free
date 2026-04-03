@@ -121,7 +121,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             image_url = cls.image_models_endpoint
 
         if cls.current_models_endpoint != models_url:
-            path = Path(get_cookies_dir()) / "models" / datetime.today().strftime('%Y-%m-%d') / f"{secure_filename(models_url)}.json"
+            path = Path(get_cookies_dir()) / ".models" / datetime.today().strftime('%Y-%m-%d') / f"{secure_filename(models_url)}.json"
             if path.exists():
                 try:
                     data = path.read_text()

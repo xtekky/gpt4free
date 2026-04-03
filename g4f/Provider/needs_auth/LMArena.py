@@ -7,6 +7,8 @@ import os
 import re
 import secrets
 import time
+from datetime import datetime
+from pathlib import Path
 from typing import Dict
 from urllib.parse import urlparse
 
@@ -30,6 +32,8 @@ except ImportError:
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
 from ...requests import StreamSession
+from ...cookies import get_cookies_dir
+from ...tools.files import secure_filename
 from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
     RateLimitError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
@@ -66,6 +70,8 @@ text_models = {model["publicName"]: model["id"] for model in models if
                "text" in model["capabilities"]["outputCapabilities"]}
 image_models = {model["publicName"]: model["id"] for model in models if
                 "image" in model["capabilities"]["outputCapabilities"]}
+video_models = {model["publicName"]: model["id"] for model in models if
+                "video" in model["capabilities"]["outputCapabilities"]}
 vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
 
 if has_nodriver:
@@ -91,18 +97,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     share_url = None
     create_evaluation = "https://arena.ai/nextjs-api/stream/create-evaluation"
     post_to_evaluation = "https://arena.ai/nextjs-api/stream/post-to-evaluation/{id}"
+    models_url = "https://arena.ai/?mode=direct"
     working = True
     active_by_default = True
     use_stream_timeout = False
 
     default_model = list(text_models.keys())[0]
-    models = list(text_models) + list(image_models)
+    models = list(text_models) + list(image_models) + list(video_models)
     model_aliases = {
         "flux-kontext": "flux-1-kontext-pro",
     }
     image_models = image_models
     text_models = text_models
     vision_models = vision_models
+    video_models = video_models
     looked = False
     _models_loaded = False
     image_cache = True
@@ -117,6 +125,19 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     @classmethod
     def get_models(cls, timeout: int = None, **kwargs) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
+            # Try to load models from cache
+            path = Path(get_cookies_dir()) / ".models" / datetime.today().strftime('%Y-%m-%d') / f"{secure_filename(cls.models_url)}.json"
+            if path.exists():
+                try:
+                    data = path.read_text()
+                    models_data = json.loads(data)
+                    for key, value in models_data.items():
+                        setattr(cls, key, value)
+                    cls._models_loaded = True
+                    return cls.models
+                except Exception as e:
+                    debug.error(f"Failed to load cached models from {path}: {e}")
+            # Open auth file
             cache_file = cls.get_cache_file()
             args = {}
             if cache_file.exists():
@@ -129,24 +150,41 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     args = {}
                 if not args:
                     return cls.models
-                response = curl_cffi.get(f"{cls.url}/?mode=direct", **args, timeout=timeout)
+                response = curl_cffi.get(cls.models_url, **args, timeout=timeout)
                 if response.ok:
                     for line in response.text.splitlines():
-                        if "initialModels" in line:
-                            line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3]
-                            line = line.encode("utf-8").decode("unicode_escape")
-                            models = json.loads(line)
-                            cls.text_models = {model["publicName"]: model["id"] for model in models if
-                                               "text" in model["capabilities"]["outputCapabilities"]}
-                            cls.image_models = {model["publicName"]: model["id"] for model in models if
-                                                "image" in model["capabilities"]["outputCapabilities"]}
-                            cls.vision_models = [model["publicName"] for model in models if
-                                                 "image" in model["capabilities"]["inputCapabilities"]]
-                            cls.models = list(cls.text_models) + list(cls.image_models)
-                            cls.default_model = list(cls.text_models.keys())[0]
-                            cls._models_loaded = True
-                            cls.live += 1
-                            break
+                        if "initialModels" not in line:
+                            continue
+                        line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3]
+                        line = line.encode("utf-8").decode("unicode_escape")
+                        models = json.loads(line)
+                        cls.text_models = {model["publicName"]: model["id"] for model in models if
+                                            "text" in model["capabilities"]["outputCapabilities"]}
+                        cls.image_models = {model["publicName"]: model["id"] for model in models if
+                                            "image" in model["capabilities"]["outputCapabilities"]}
+                        cls.video_models = {model["publicName"]: model["id"] for model in models if
+                                            "video" in model["capabilities"]["outputCapabilities"]}
+                        cls.vision_models = [model["publicName"] for model in models if
+                                                "image" in model["capabilities"]["inputCapabilities"]]
+                        cls.models = list(cls.text_models) + list(cls.image_models) + list(cls.video_models)
+                        cls.default_model = list(cls.text_models.keys())[0]
+                        cls._models_loaded = True
+                        cls.live += 1
+                        break
+                    # Cache the models to a file
+                    try:
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(path, "w") as f:
+                            json.dump({
+                                "text_models": cls.text_models,
+                                "image_models": cls.image_models,
+                                "video_models": cls.video_models,
+                                "vision_models": cls.vision_models,
+                                "models": cls.models,
+                                "default_model": cls.default_model
+                            }, f, indent=4)
+                    except Exception as e:
+                        debug.error(f"Failed to cache models to {path}: {e}")
                 else:
                     cls.live -= 1
                     debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
@@ -156,7 +194,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     async def get_models_async(cls) -> list[str]:
         if not cls._models_loaded:
             async with StreamSession() as session:
-                async with session.get(f"{cls.url}/?mode=direct",) as response:
+                async with session.get(cls.models_url) as response:
                     await cls.__load_actions(await response.text())
         return cls.models
 
@@ -298,9 +336,11 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                    "text" in model["capabilities"]["outputCapabilities"]}
                 cls.image_models = {model["publicName"]: model["id"] for model in models if
                                     "image" in model["capabilities"]["outputCapabilities"]}
+                cls.video_models = {model["publicName"]: model["id"] for model in models if
+                                    "video" in model["capabilities"]["outputCapabilities"]}
                 cls.vision_models = [model["publicName"] for model in models if
                                      "image" in model["capabilities"]["inputCapabilities"]]
-                cls.models = list(cls.text_models) + list(cls.image_models)
+                cls.models = list(cls.text_models) + list(cls.image_models) + list(cls.video_models)
                 cls.default_model = list(cls.text_models.keys())[0]
                 cls._models_loaded = True
             elif 'children' in json_data:

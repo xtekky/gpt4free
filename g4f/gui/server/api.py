@@ -32,28 +32,12 @@ logger = logging.getLogger(__name__)
 
 class Api:
     @staticmethod
-    def get_models():
-        return [{
-            "name": model.name,
-            "image": isinstance(model, models.ImageModel),
-            "vision": isinstance(model, models.VisionModel),
-            "audio": isinstance(model, models.AudioModel),
-            "video": isinstance(model, models.VideoModel),
-            "providers": [
-                getattr(provider, "parent", provider.__name__)
-                for provider in providers
-                if provider.working
-            ]
-        }
-        for model, providers in models.__models__.values()]
-
-    @staticmethod
     def get_provider_models(provider: str, api_key: str = None, ignored: list = None):
         def get_model_data(provider: ProviderModelMixin, model: str, default: bool = False) -> dict:
             model_id = model.get("id") if isinstance(model, dict) else model
             return {
-                "model": model_id,
-                "label": model_id.split(":")[-1] if provider.__name__ == "AnyProvider" and not model_id.startswith("openrouter:") else model_id,
+                "id": model_id,
+                "label": model_id,
                 "default": default or model_id == provider.default_model,
                 "vision": model_id in provider.vision_models,
                 "audio": False if provider.audio_models is None else model_id in provider.audio_models,
@@ -183,8 +167,7 @@ class Api:
             debug.logs.append(" ".join([str(value) for value in values]))
             if debug.logging:
                 debug.log_handler(*values, file=file)
-        if "user" not in kwargs:
-            debug.log = decorated_log
+        debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         try:
             model, provider_handler = get_model_and_provider(
