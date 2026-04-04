@@ -17,7 +17,7 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://dashboard.cohere.com/api-keys"
     api_endpoint = "https://api.cohere.ai/v2/chat"
     working = True
-    active_by_default = True
+    active_by_default = False
     needs_auth = True
     models_needs_auth = True
     supports_stream = True

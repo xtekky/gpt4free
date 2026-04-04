@@ -11,10 +11,14 @@ class OpenRouter(OpenaiTemplate):
     needs_auth = True
     default_model = "openrouter/auto"
 
-class OpenRouterFree(OpenRouter):
+class OpenRouterFree(OpenaiTemplate):
     label = "OpenRouter (free)"
-    base_url = "https://g4f.space/api/openrouter"
-    max_tokens = 4096
+    url = "https://openrouter.ai"
+    login_url = "https://openrouter.ai/settings/keys"
+    base_url = "https://openrouter.ai/api/v1"
+    backup_url = "https://g4f.space/api/openrouter"
+    max_tokens = 8192
+    working = True
     active_by_default = True
     default_model = "openrouter/free"
 

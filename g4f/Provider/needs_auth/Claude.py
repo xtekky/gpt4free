@@ -11,7 +11,7 @@ class Claude(OpenaiTemplate):
     url = "https://claude.ai"
     base_url = "https://g4f.space/api/claude"
     working = True
-    active_by_default = True
+    active_by_default = False
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     organization_id = None
 
