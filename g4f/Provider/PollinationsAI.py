@@ -46,7 +46,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
     gen_image_models_endpoint = "https://gen.pollinations.ai/image/models"
     text_models_endpoint = "https://gen.pollinations.ai/text/models"
-    quota_url = "https://g4f.space/api/pollinations/account/balance"
+    quota_url = "https://g4f.space/api/pollinations/quota"
     worker_api_endpoint = "https://g4f.space/api/pollinations/chat/completions"
     worker_models_endpoint = "https://g4f.space/api/pollinations/models"
 
