@@ -937,12 +937,12 @@ class Api:
                     HTTP_403_FORBIDDEN,
                 )
 
-            # Derive the actual request origin (scheme + host) so that CSP
-            # source directives reference the real server address rather than
-            # the generic 'self' keyword.  This is important because HTML
-            # files are sandboxed into a null origin (see below), at which
-            # point 'self' would resolve to null and block all sub-resources.
-            request_origin = f"{request.url.scheme}://{request.headers.get('host', 'localhost')}"
+            # Derive the actual request origin (scheme + authority) from the
+            # ASGI scope via request.url — this is set by the server
+            # infrastructure and is not controllable by the client (unlike the
+            # Host header, which can be spoofed to inject arbitrary values into
+            # the CSP).  request.url.netloc includes the port when non-default.
+            request_origin = f"{request.url.scheme}://{request.url.netloc}"
 
             is_html = ext in ("html", "htm")
             if is_html:

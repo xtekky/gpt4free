@@ -777,9 +777,12 @@ class TestWorkspaceFileServing(unittest.TestCase):
         import g4f.api as api_mod
         import inspect
         src = inspect.getsource(api_mod.Api.register_routes)
-        # The route must derive the origin from the incoming Request object.
+        # The route must derive the origin from the ASGI scope, not the
+        # client-controlled Host header.
         self.assertIn("request_origin", src,
                       "CSP must use the actual request origin, not static 'self'")
         self.assertIn("request.url.scheme", src,
-                      "Route must extract scheme from the Request for the origin")
+                      "Route must extract scheme from request.url (ASGI scope)")
+        self.assertIn("request.url.netloc", src,
+                      "Route must extract netloc from request.url (ASGI scope), not Host header")
 
