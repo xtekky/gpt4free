@@ -26,11 +26,13 @@ The sandbox mitigates the following vectors:
 * **Code injection** — ``exec``, ``eval``, ``compile``, and ``input`` are removed
   from the sandbox built-ins so code in the sandbox cannot spawn secondary
   execution contexts.
-
-Known limitations: the sandbox does not enforce CPU/memory limits or wall-clock
-timeouts.  Callers that need to bound execution time should wrap
-:func:`execute_safe_code` with a ``asyncio.wait_for`` or ``concurrent.futures``
-timeout.
+* **Execution timeout** — code runs in a dedicated thread; if it does not
+  complete within :data:`MAX_EXEC_TIMEOUT` seconds the result is returned with
+  an error and the thread is abandoned.
+* **Runaway recursion** — ``sys.setrecursionlimit`` is reduced to
+  :data:`MAX_RECURSION_DEPTH` for the duration of the sandboxed call.
+* **Output flooding** — stdout and stderr are each capped at
+  :data:`MAX_OUTPUT_BYTES`; excess output is silently truncated.
 
 Typical layout of a ``.pa.py`` file::
 
@@ -56,8 +58,9 @@ from __future__ import annotations
 
 import io
 import ast
+import sys
 import json
-import contextlib
+import threading
 import traceback
 import builtins as _builtins
 from pathlib import Path
@@ -112,8 +115,83 @@ SAFE_MODULES: FrozenSet[str] = frozenset({
 
 
 # ---------------------------------------------------------------------------
+# Security limits
+# ---------------------------------------------------------------------------
+
+#: Wall-clock seconds allowed for a single :func:`execute_safe_code` call.
+MAX_EXEC_TIMEOUT: float = 30.0
+
+#: Maximum Python call-stack depth inside the sandbox (passed to
+#: ``sys.setrecursionlimit``).  The default CPython limit is 1 000; using a
+#: lower value catches infinite-recursion attacks early.
+MAX_RECURSION_DEPTH: int = 500
+
+#: Maximum number of UTF-8 bytes captured from *each* of stdout and stderr.
+#: Writes beyond this limit are silently dropped and a truncation notice is
+#: appended to stderr.
+MAX_OUTPUT_BYTES: int = 65_536  # 64 KiB
+
+
+# ---------------------------------------------------------------------------
 # Sandbox helpers
 # ---------------------------------------------------------------------------
+
+class _LimitedStringIO(io.StringIO):
+    """StringIO that stops accepting writes once *max_bytes* of UTF-8 content
+    have been accumulated.  Additional writes are silently discarded and
+    ``truncated`` is set to ``True``."""
+
+    def __init__(self, max_bytes: int = MAX_OUTPUT_BYTES) -> None:
+        super().__init__()
+        self._max_bytes = max_bytes
+        self._bytes_written = 0
+        self.truncated = False
+
+    def write(self, s: str) -> int:
+        if self._bytes_written >= self._max_bytes:
+            self.truncated = True
+            return 0
+        encoded = s.encode("utf-8", errors="replace")
+        remaining = self._max_bytes - self._bytes_written
+        if len(encoded) > remaining:
+            s = encoded[:remaining].decode("utf-8", errors="replace")
+            self.truncated = True
+        n = super().write(s)
+        self._bytes_written += len(s.encode("utf-8", errors="replace"))
+        return n
+
+
+def _exec_in_thread(
+    compiled: Any,
+    safe_globals: Dict[str, Any],
+    local_vars: Dict[str, Any],
+    max_depth: int,
+    exc_box: List,
+) -> None:
+    """Run *compiled* code with a bounded recursion depth.
+
+    ``sys.setrecursionlimit`` is set to *max_depth* for the lifetime of this
+    call and restored afterwards.  stdout / stderr capture is handled by
+    the custom ``print`` injected into the sandbox builtins — no global
+    ``sys.stdout`` redirection is performed so an abandoned timeout thread
+    cannot corrupt the caller's output streams.
+
+    Any exception is stored in *exc_box* (a one-element list) so the caller
+    can inspect it without needing to join the thread.
+
+    This function is designed to run in a *daemon* thread so that it is
+    automatically discarded when the process exits, even if the sandboxed
+    code is stuck in an infinite loop.
+    """
+    prev = sys.getrecursionlimit()
+    sys.setrecursionlimit(max_depth)
+    try:
+        exec(compiled, safe_globals, local_vars)  # noqa: S102
+    except Exception:  # noqa: BLE001
+        exc_box.append(traceback.format_exc())
+    finally:
+        sys.setrecursionlimit(prev)
+
 
 def _make_restricted_import(allowed: FrozenSet[str]):
     """Return a ``__import__`` replacement that only allows *allowed* modules."""
@@ -135,7 +213,11 @@ def _make_restricted_import(allowed: FrozenSet[str]):
     return _restricted_import
 
 
-def _make_safe_globals(allowed: FrozenSet[str] = SAFE_MODULES) -> Dict[str, Any]:
+def _make_safe_globals(
+    allowed: FrozenSet[str] = SAFE_MODULES,
+    stdout_buf: Optional[io.StringIO] = None,
+    stderr_buf: Optional[io.StringIO] = None,
+) -> Dict[str, Any]:
     """Return a ``globals`` dict suitable for sandboxed ``exec``."""
     workspace = get_workspace_dir()
 
@@ -167,6 +249,19 @@ def _make_safe_globals(allowed: FrozenSet[str] = SAFE_MODULES) -> Dict[str, Any]
 
     safe_builtins["open"] = _safe_open
     safe_builtins["__import__"] = _make_restricted_import(allowed)
+
+    # Override print / input so stdout/stderr stay local to this sandbox
+    # execution and are never written to the real sys.stdout/stderr.  This
+    # avoids the global-state side-effect that contextlib.redirect_stdout
+    # would cause when the thread is abandoned after a timeout.
+    if stdout_buf is not None:
+        _real_print = _builtins.print
+
+        def _safe_print(*args, **kwargs):
+            kwargs.setdefault("file", stdout_buf)
+            _real_print(*args, **kwargs)
+
+        safe_builtins["print"] = _safe_print
 
     return {
         "__builtins__": safe_builtins,
@@ -222,50 +317,100 @@ def execute_safe_code(
     code: str,
     extra_globals: Optional[Dict[str, Any]] = None,
     allowed_modules: FrozenSet[str] = SAFE_MODULES,
+    timeout: Optional[float] = MAX_EXEC_TIMEOUT,
+    max_depth: int = MAX_RECURSION_DEPTH,
 ) -> SafeExecutionResult:
     """Execute *code* inside a safe sandbox with whitelisted module imports.
+
+    The execution runs in a dedicated thread so that a wall-clock *timeout*
+    can be enforced without blocking the caller's event loop.  A custom
+    ``sys.setrecursionlimit`` guards against stack-overflow attacks.  Both
+    stdout and stderr are capped at :data:`MAX_OUTPUT_BYTES`.
 
     Args:
         code: Python source code to execute.
         extra_globals: Additional names injected into the execution globals.
         allowed_modules: Frozenset of top-level module names that may be imported.
+        timeout: Wall-clock seconds before the execution is abandoned.  Pass
+            ``None`` to disable.  Defaults to :data:`MAX_EXEC_TIMEOUT`.
+        max_depth: Maximum recursion depth inside the sandbox.  Defaults to
+            :data:`MAX_RECURSION_DEPTH`.
 
     Returns:
         :class:`SafeExecutionResult` containing captured stdout/stderr, any
         ``result`` variable assigned in the code, or error information.
     """
-    stdout_buf = io.StringIO()
-    stderr_buf = io.StringIO()
+    stdout_buf = _LimitedStringIO(MAX_OUTPUT_BYTES)
+    stderr_buf = _LimitedStringIO(MAX_OUTPUT_BYTES)
 
-    safe_globals = _make_safe_globals(allowed_modules)
+    safe_globals = _make_safe_globals(allowed_modules, stdout_buf=stdout_buf, stderr_buf=stderr_buf)
     if extra_globals:
         safe_globals.update(extra_globals)
 
     local_vars: Dict[str, Any] = {}
 
+    # Compile outside the thread so SyntaxErrors surface immediately.
     try:
         compiled = compile(code, "<pa_provider>", "exec")
-        with (
-            contextlib.redirect_stdout(stdout_buf),
-            contextlib.redirect_stderr(stderr_buf),
-        ):
-            exec(compiled, safe_globals, local_vars)  # noqa: S102
-
+    except SyntaxError:
         return SafeExecutionResult(
-            success=True,
-            stdout=stdout_buf.getvalue(),
-            stderr=stderr_buf.getvalue(),
-            result=local_vars.get("result"),
-            locals=local_vars,
+            success=False,
+            stdout="",
+            stderr="",
+            error=traceback.format_exc(),
         )
 
-    except Exception:
+    # Run in a daemon thread with timeout and recursion-depth enforcement.
+    # We use a raw daemon Thread (not ThreadPoolExecutor) so that if the
+    # sandboxed code runs forever the thread is discarded when the process
+    # exits rather than blocking interpreter shutdown.
+    exc_box: List = []
+    thread = threading.Thread(
+        target=_exec_in_thread,
+        args=(compiled, safe_globals, local_vars, max_depth, exc_box),
+        daemon=True,
+        name="g4f-sandbox",
+    )
+    thread.start()
+    thread.join(timeout=timeout)
+
+    if thread.is_alive():
+        # The thread is still running — timeout was hit.  We cannot kill it
+        # but as a daemon thread it will be reaped when the process exits.
+        stdout = stdout_buf.getvalue()
+        stderr = stderr_buf.getvalue()
+        if stdout_buf.truncated or stderr_buf.truncated:
+            stderr += "\n[Output truncated: size limit reached]"
+        return SafeExecutionResult(
+            success=False,
+            stdout=stdout,
+            stderr=stderr,
+            error=(
+                f"Execution timed out after {timeout:.1f} s. "
+                "The thread has been abandoned."
+            ),
+        )
+
+    if exc_box:
         return SafeExecutionResult(
             success=False,
             stdout=stdout_buf.getvalue(),
             stderr=stderr_buf.getvalue(),
-            error=traceback.format_exc(),
+            error=exc_box[0],
         )
+
+    stdout = stdout_buf.getvalue()
+    stderr = stderr_buf.getvalue()
+    if stdout_buf.truncated or stderr_buf.truncated:
+        stderr += "\n[Output truncated: size limit reached]"
+
+    return SafeExecutionResult(
+        success=True,
+        stdout=stdout,
+        stderr=stderr,
+        result=local_vars.get("result"),
+        locals=local_vars,
+    )
 
 
 # ---------------------------------------------------------------------------

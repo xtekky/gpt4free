@@ -477,3 +477,83 @@ class TestSafeMode(unittest.IsolatedAsyncioTestCase):
         result = await tool.execute({"code": "import math\nresult = math.factorial(5)"})
         self.assertTrue(result.get("success"))
         self.assertEqual(result.get("result"), 120)
+
+class TestSecurityHardening(unittest.IsolatedAsyncioTestCase):
+    """Tests for execution timeout, recursion depth, and output size limits."""
+
+    def test_execution_timeout(self):
+        """Infinite loop is interrupted by the timeout."""
+        import time
+        start = time.time()
+        r = execute_safe_code("while True: pass", timeout=0.5)
+        elapsed = time.time() - start
+        self.assertFalse(r.success)
+        self.assertIn("timed out", r.error.lower())
+        self.assertLess(elapsed, 3.0, "Should have returned within 3 s")
+
+    def test_execution_continues_after_timeout(self):
+        """The sandbox is usable again after a previous execution timed out."""
+        execute_safe_code("while True: pass", timeout=0.3)
+        r = execute_safe_code("result = 'ok'", timeout=5.0)
+        self.assertTrue(r.success)
+        self.assertEqual(r.result, "ok")
+
+    def test_recursion_depth_limit(self):
+        """Deep recursion is blocked by the max_depth parameter."""
+        r = execute_safe_code(
+            "def f(n): return f(n + 1)\nf(0)",
+            max_depth=50,
+            timeout=5.0,
+        )
+        self.assertFalse(r.success)
+
+    def test_output_truncation(self):
+        """stdout is capped at MAX_OUTPUT_BYTES; truncation notice appears."""
+        from g4f.mcp.pa_provider import MAX_OUTPUT_BYTES
+        # Produce more bytes than the limit
+        r = execute_safe_code(
+            f"print('A' * {MAX_OUTPUT_BYTES + 1000})",
+            timeout=5.0,
+        )
+        self.assertTrue(r.success)
+        self.assertLessEqual(len(r.stdout), MAX_OUTPUT_BYTES + 50)
+        self.assertIn("truncated", r.stderr.lower())
+
+    def test_timeout_none_disables_limit(self):
+        """Passing timeout=None does not impose a time limit."""
+        r = execute_safe_code("result = sum(range(100))", timeout=None)
+        self.assertTrue(r.success)
+        self.assertEqual(r.result, 4950)
+
+    async def test_tool_respects_timeout_param(self):
+        """PythonExecuteTool forwards timeout to execute_safe_code."""
+        tool = PythonExecuteTool(safe_mode=False)
+        import time
+        start = time.time()
+        result = await tool.execute({"code": "while True: pass", "timeout": 0.5})
+        elapsed = time.time() - start
+        self.assertFalse(result.get("success"))
+        self.assertLess(elapsed, 3.0)
+
+    async def test_tool_safe_mode_ignores_timeout_param(self):
+        """In safe mode, timeout parameter is ignored and default is used."""
+        from g4f.mcp.pa_provider import MAX_EXEC_TIMEOUT
+        tool = PythonExecuteTool(safe_mode=True)
+        # Passing a very large timeout in safe mode should be ignored;
+        # the default MAX_EXEC_TIMEOUT is used instead.
+        result = await tool.execute({
+            "code": "result = 1",
+            "timeout": MAX_EXEC_TIMEOUT * 100,
+        })
+        self.assertTrue(result.get("success"))
+
+    async def test_tool_safe_mode_ignores_max_depth_param(self):
+        """In safe mode, max_depth parameter is ignored."""
+        from g4f.mcp.pa_provider import MAX_RECURSION_DEPTH
+        tool = PythonExecuteTool(safe_mode=True)
+        # Even passing a huge depth, safe-mode always uses MAX_RECURSION_DEPTH
+        result = await tool.execute({
+            "code": "result = 1",
+            "max_depth": MAX_RECURSION_DEPTH * 100,
+        })
+        self.assertTrue(result.get("success"))

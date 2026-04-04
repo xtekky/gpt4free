@@ -511,7 +511,21 @@ class PythonExecuteTool(MCPTool):
                     "items": {"type": "string"},
                     "description": (
                         "Optional list of additional module names to allow "
-                        "beyond the default whitelist"
+                        "beyond the default whitelist (ignored in safe mode)"
+                    ),
+                },
+                "timeout": {
+                    "type": "number",
+                    "description": (
+                        "Wall-clock seconds to allow before aborting execution "
+                        f"(max {30.0}s; ignored in safe mode)"
+                    ),
+                },
+                "max_depth": {
+                    "type": "integer",
+                    "description": (
+                        "Maximum Python call-stack depth inside the sandbox "
+                        f"(max {500}; ignored in safe mode)"
                     ),
                 },
             },
@@ -519,21 +533,41 @@ class PythonExecuteTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import execute_safe_code, SAFE_MODULES
+        from .pa_provider import execute_safe_code, SAFE_MODULES, MAX_EXEC_TIMEOUT, MAX_RECURSION_DEPTH
 
         code = arguments.get("code", "")
         if not code:
             return {"error": "code parameter is required"}
 
         if self.safe_mode:
-            # In safe mode the caller cannot expand the module allowlist
+            # In safe mode the caller cannot override any security parameters
             allowed = SAFE_MODULES
+            timeout = MAX_EXEC_TIMEOUT
+            max_depth = MAX_RECURSION_DEPTH
         else:
             extra_names = arguments.get("allowed_extra_modules") or []
             allowed = SAFE_MODULES | frozenset(extra_names)
+            # Allow callers to reduce (but not exceed) the defaults
+            requested_timeout = arguments.get("timeout")
+            timeout = (
+                min(float(requested_timeout), MAX_EXEC_TIMEOUT)
+                if requested_timeout is not None
+                else MAX_EXEC_TIMEOUT
+            )
+            requested_depth = arguments.get("max_depth")
+            max_depth = (
+                min(int(requested_depth), MAX_RECURSION_DEPTH)
+                if requested_depth is not None
+                else MAX_RECURSION_DEPTH
+            )
 
         try:
-            exec_result = execute_safe_code(code, allowed_modules=allowed)
+            exec_result = execute_safe_code(
+                code,
+                allowed_modules=allowed,
+                timeout=timeout,
+                max_depth=max_depth,
+            )
             return exec_result.to_dict()
         except Exception as exc:
             return {"error": f"Execution error: {exc}"}
