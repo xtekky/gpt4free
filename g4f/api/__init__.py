@@ -900,6 +900,20 @@ class Api:
             HTML files may freely reference co-located CSS and JS files; the
             browser will fetch those via additional ``GET /pa/files/…`` calls
             which are also subject to the same security checks.
+
+            .. note:: **localStorage / sessionStorage / cookies**
+
+                Files served here share the browser origin with the g4f server
+                (e.g. ``http://localhost:8080``), so JavaScript inside them
+                **can** read ``localStorage`` and ``sessionStorage`` stored by
+                the main g4f web UI (e.g. saved API keys).  The HTTP
+                ``Permissions-Policy`` header cannot restrict storage access.
+                The protection boundary is therefore at the *workspace* level:
+                only files that the operator or sandboxed PA code has
+                explicitly placed in ``~/.g4f/workspace`` are ever served.
+                Operators who expose this server to untrusted users should
+                keep their API key out of ``localStorage`` or serve the g4f
+                API on a separate origin/port.
             """
             from g4f.mcp.pa_provider import get_workspace_dir
             workspace = get_workspace_dir()
@@ -933,13 +947,23 @@ class Api:
                 "X-Frame-Options": "SAMEORIGIN",
                 # Basic XSS filter (belt-and-suspenders; CSP is more important)
                 "X-XSS-Protection": "1; mode=block",
-                # Restrict what the page itself can load/execute
+                # Restrict what the page itself can load/execute.
+                # Note: localStorage / sessionStorage are NOT controllable via
+                # CSP or Permissions-Policy; isolation requires a distinct origin.
                 "Content-Security-Policy": (
                     "default-src 'self'; "
                     "script-src 'self' 'unsafe-inline'; "
                     "style-src 'self' 'unsafe-inline'; "
                     "img-src 'self' data:; "
-                    "font-src 'self' data:;"
+                    "font-src 'self' data:; "
+                    "connect-src 'none'; "
+                    "object-src 'none'; "
+                    "base-uri 'none';"
+                ),
+                # Restrict powerful browser APIs that workspace pages don't need
+                "Permissions-Policy": (
+                    "geolocation=(), camera=(), microphone=(), "
+                    "payment=(), usb=(), fullscreen=self"
                 ),
                 "Cache-Control": "no-store",
             }

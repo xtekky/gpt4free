@@ -758,3 +758,6 @@ class TestWorkspaceFileServing(unittest.TestCase):
         self.assertIn("X-Content-Type-Options", src)
         self.assertIn("X-Frame-Options", src)
         self.assertIn("Content-Security-Policy", src)
+        self.assertIn("Permissions-Policy", src)
+        self.assertIn("connect-src 'none'", src, "CSP should block outbound connections")
+        self.assertIn("object-src 'none'", src, "CSP should block object/embed elements")
