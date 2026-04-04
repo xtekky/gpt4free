@@ -399,11 +399,10 @@ def process_image(image: Image.Image, new_width: int = 400, new_height: int = 40
     image = ImageOps.exif_transpose(image)
     # Remove transparency
     if image.mode == "RGBA":
-        # image.load()
-        # white = Image.new('RGB', image.size, (255, 255, 255))
-        # white.paste(image, mask=image.split()[-1])
-        # image = white
-        pass
+        image.load()
+        white = Image.new('RGB', image.size, (255, 255, 255))
+        white.paste(image, mask=image.split()[-1])
+        image = white
     # Convert to RGB for jpg format
     elif image.mode != "RGB":
         image = image.convert("RGB")
