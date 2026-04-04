@@ -69,6 +69,7 @@ PARAMETER_EXAMPLES = {
     "width": 1024,
     "height": 1024,
     "reasoning_effort": "medium",
+    "aspect_ratio": "1:1",
 }
 
 class AbstractProvider(BaseProvider):
