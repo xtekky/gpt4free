@@ -11,6 +11,27 @@ A ``.pa.py`` file is a plain Python file that is executed inside a sandbox.
 Inside that sandbox the code may only import from the *whitelisted* module set
 and may only access the file-system through a workspace-scoped ``open()``.
 
+Security model
+--------------
+The sandbox mitigates the following vectors:
+
+* **Arbitrary module imports** — only modules in :data:`SAFE_MODULES` may be
+  imported.  The built-in ``__import__`` is replaced with a wrapper that raises
+  ``ImportError`` for any top-level name not in the allowlist.  Relative imports
+  are unconditionally blocked.
+* **Filesystem escape** — ``open()`` is replaced with a workspace-scoped version
+  that resolves symlinks and checks that the canonical path starts with the
+  workspace root.  Direct ``os``/``pathlib`` access is blocked because those
+  modules are not in the allowlist.
+* **Code injection** — ``exec``, ``eval``, ``compile``, and ``input`` are removed
+  from the sandbox built-ins so code in the sandbox cannot spawn secondary
+  execution contexts.
+
+Known limitations: the sandbox does not enforce CPU/memory limits or wall-clock
+timeouts.  Callers that need to bound execution time should wrap
+:func:`execute_safe_code` with a ``asyncio.wait_for`` or ``concurrent.futures``
+timeout.
+
 Typical layout of a ``.pa.py`` file::
 
     from aiohttp import ClientSession
@@ -40,7 +61,7 @@ import contextlib
 import traceback
 import builtins as _builtins
 from pathlib import Path
-from typing import Any, Dict, FrozenSet, List, Optional
+from typing import Any, Dict, FrozenSet, List, Optional, Type
 
 # ---------------------------------------------------------------------------
 # Workspace directory
@@ -251,7 +272,7 @@ def execute_safe_code(
 # .pa.py provider loader
 # ---------------------------------------------------------------------------
 
-def load_pa_provider(file_path: "str | Path") -> Optional[Any]:
+def load_pa_provider(file_path: "str | Path") -> Optional[Type]:
     """Load a ``.pa.py`` file and return the provider class it defines.
 
     The file is executed inside the safe sandbox.  The module is expected to

@@ -689,6 +689,7 @@ class FileListTool(MCPTool):
                 return {"error": f"Path is not a directory: {rel_path}"}
 
             entries = []
+            skipped = 0
             iterator = target.rglob("*") if recursive else target.iterdir()
             for entry in sorted(iterator):
                 try:
@@ -701,14 +702,18 @@ class FileListTool(MCPTool):
                         info["size"] = entry.stat().st_size
                     entries.append(info)
                 except Exception:
+                    skipped += 1
                     continue
 
-            return {
+            result: Dict[str, Any] = {
                 "workspace": str(workspace),
                 "path": rel_path or "/",
                 "entries": entries,
                 "count": len(entries),
             }
+            if skipped:
+                result["skipped"] = skipped
+            return result
         except Exception as exc:
             return {"error": f"List failed: {exc}"}
 

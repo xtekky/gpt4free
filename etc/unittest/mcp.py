@@ -19,8 +19,8 @@ try:
 except ImportError:
     has_requirements = False
 
-# Total number of tools registered in MCPServer
-_TOOL_COUNT = 10
+# Total number of tools registered in MCPServer (derived at import time)
+_TOOL_COUNT = len(MCPServer().tools)
 
 
 class TestMCPServer(unittest.IsolatedAsyncioTestCase):
