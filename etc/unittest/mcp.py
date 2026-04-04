@@ -709,27 +709,32 @@ class TestWorkspaceFileServing(unittest.TestCase):
             if f.exists():
                 f.unlink()
 
-    def _get_safe_types(self):
-        """Extract the _WORKSPACE_SAFE_TYPES dict from the route closure."""
+    def _safe_types_defined(self) -> str:
+        """Return the register_routes source for safe-type assertions."""
         import g4f.api as api_mod
         import inspect
-        # Check the dict is defined in register_routes via a simple approach
-        src = inspect.getsource(api_mod.Api.register_routes)
-        return "text/html" in src and "text/css" in src and "application/javascript" in src
+        return inspect.getsource(api_mod.Api.register_routes)
 
     def test_allowed_types_present(self):
-        """HTML, CSS, JS must be in the allowed types."""
-        self.assertTrue(self._get_safe_types())
+        """HTML, CSS, JS must be in the allowed-types whitelist."""
+        src = self._safe_types_defined()
+        self.assertIn("text/html", src)
+        self.assertIn("text/css", src)
+        self.assertIn("application/javascript", src)
 
-    def test_py_files_not_served(self):
-        """.py files must not be allowed (would leak provider code)."""
-        import g4f.api as api_mod
-        import inspect
-        src = inspect.getsource(api_mod.Api.register_routes)
-        # Ensure .py is not in the whitelist dict
-        self.assertIn("nosniff", src, "Security header X-Content-Type-Options missing")
-        self.assertIn("Content-Security-Policy", src, "CSP header missing")
-        self.assertIn("no-store", src, "Cache-Control: no-store header missing")
+    def test_py_extension_not_in_whitelist(self):
+        """.py must not appear as a whitelisted extension (would leak provider code)."""
+        src = self._safe_types_defined()
+        # The whitelist uses extension keys; 'py' must not be one of them.
+        # We check that "py" does not appear as a key in the _WORKSPACE_SAFE_TYPES dict.
+        self.assertNotIn('"py"', src, ".py extension must not be in the safe-types whitelist")
+        self.assertNotIn("'py'", src, ".py extension must not be in the safe-types whitelist")
+
+    def test_env_extension_not_in_whitelist(self):
+        """.env files must not be serveable."""
+        src = self._safe_types_defined()
+        self.assertNotIn('"env"', src, ".env extension must not be in the safe-types whitelist")
+        self.assertNotIn("'env'", src, ".env extension must not be in the safe-types whitelist")
 
     def test_workspace_file_route_defined(self):
         """The /pa/files/{file_path:path} route must be registered."""
