@@ -22,7 +22,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_media_prompt
 from ... import debug
 
-PUBLIC_URL = "https://home.g4f.dev"
+PUBLIC_URL = "https://g4f.space"
 SEARCH_URL = f"{PUBLIC_URL}/search/video+"
 
 class RequestConfig:
@@ -40,11 +40,15 @@ class RequestConfig:
             async with ClientSession() as session:
                 found_urls = []
                 for skip in range(0, 9):
-                    async with session.get(SEARCH_URL + quote_plus(prompt) + f"?skip={skip}", timeout=ClientTimeout(total=10)) as response:
-                        if response.ok:
-                            found_urls.append(str(response.url))
-                        else:
-                            break
+                    try:
+                        async with session.get(SEARCH_URL + quote_plus(prompt) + f"?skip={skip}", timeout=ClientTimeout(total=10)) as response:
+                            if response.ok:
+                                found_urls.append(str(response.url))
+                            else:
+                                break
+                    except Exception as e:
+                        debug.error(f"Error fetching video URLs:", e)
+                        break
                 if found_urls:
                     return VideoResponse(found_urls, prompt)
 

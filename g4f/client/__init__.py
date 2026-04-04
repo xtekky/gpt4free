@@ -416,7 +416,7 @@ class Images:
                         break
                 except Exception as e:
                     error = e
-                    debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
+                    debug.error(f"{provider.__name__}:", e)
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
         if response is None:
@@ -531,7 +531,7 @@ class Images:
                         break
                 except Exception as e:
                     error = e
-                    debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
+                    debug.error(f"{provider.__name__}:", e)
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
         if response is None:
