@@ -516,6 +516,9 @@ class TestSecurityHardening(unittest.IsolatedAsyncioTestCase):
             timeout=5.0,
         )
         self.assertTrue(r.success)
+        # The buffer may contain up to MAX_OUTPUT_BYTES of user output plus a
+        # small number of bytes from multi-byte UTF-8 boundary rounding; 50
+        # bytes is generous slack for that edge case.
         self.assertLessEqual(len(r.stdout), MAX_OUTPUT_BYTES + 50)
         self.assertIn("truncated", r.stderr.lower())
 
