@@ -501,6 +501,10 @@ class PaProviderRegistry:
     """
 
     #: How long (in seconds) the cached entries remain valid.
+    #: A short TTL (5 s) is intentional: PA provider files are typically edited
+    #: interactively during development, so near-instant pick-up of changes is
+    #: more important than avoiding the cheap filesystem scan.  Production
+    #: deployments that want to reduce I/O can increase this value.
     TTL: float = 5.0
 
     def __init__(self) -> None:

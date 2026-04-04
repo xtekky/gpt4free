@@ -218,6 +218,16 @@ class Api:
         if has_crypto:
             private_key, _ = create_or_read_keys()
             session_key = get_session_key()
+
+        def _requires_api_key(path: str, demo: bool) -> bool:
+            """Return ``True`` when *path* must present a G4F API key."""
+            return (
+                path.startswith("/v1")
+                or path.startswith("/api/")
+                or path.startswith("/pa/")
+                or (demo and path == "/backend-api/v2/upload_cookies")
+            )
+
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
             user = None
@@ -267,7 +277,7 @@ class Api:
                 else:
                     user = "admin"
                 path = request.url.path
-                if path.startswith("/v1") or path.startswith("/api/") or path.startswith("/pa/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
+                if _requires_api_key(path, AppConfig.demo):
                     if request.method != "OPTIONS" and not path.endswith("/models"):
                         if not user_g4f_api_key:
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
