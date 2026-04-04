@@ -26,8 +26,10 @@ from ..cookies import read_cookie_files
 from ..image import EXTENSIONS_MAP
 from ..image.copy_images import get_media_dir, copy_media, get_source_url
 
-from .tools import MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool
-from .tools import WebSearchTool, WebScrapeTool, ImageGenerationTool
+from .tools import (
+    MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool,
+    PythonExecuteTool, FileReadTool, FileWriteTool, FileListTool, FileDeleteTool,
+)
 
 
 @dataclass
@@ -63,12 +65,20 @@ class MCPServer:
             'web_scrape': WebScrapeTool(),
             'image_generation': ImageGenerationTool(),
             'text_to_audio': TextToAudioTool(),
-            'mark_it_down': MarkItDownTool()
+            'mark_it_down': MarkItDownTool(),
+            'python_execute': PythonExecuteTool(),
+            'file_read': FileReadTool(),
+            'file_write': FileWriteTool(),
+            'file_list': FileListTool(),
+            'file_delete': FileDeleteTool(),
         }
         self.server_info = {
             "name": "gpt4free-mcp-server",
             "version": "1.0.0",
-            "description": "MCP server providing web search, scraping, and image generation capabilities"
+            "description": (
+                "MCP server providing web search, scraping, image generation, "
+                "safe Python execution, and workspace file management capabilities"
+            ),
         }
         
     def get_tool_list(self) -> List[Dict[str, Any]]:

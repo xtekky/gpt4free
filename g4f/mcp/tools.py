@@ -4,11 +4,18 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 - WebSearchTool: Web search using ddg search
 - WebScrapeTool: Web page scraping and content extraction
 - ImageGenerationTool: Image generation using various AI providers
+- PythonExecuteTool: Safe Python code execution with whitelisted modules
+- FileReadTool: Read files from the ~/.g4f/workspace directory
+- FileWriteTool: Write files to the ~/.g4f/workspace directory
+- FileListTool: List files in the ~/.g4f/workspace directory
+- FileDeleteTool: Delete files from the ~/.g4f/workspace directory
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import os
+from pathlib import Path
+from typing import Any, Dict, List
 from abc import ABC, abstractmethod
 import urllib.parse
 
@@ -459,3 +466,294 @@ class TextToAudioTool(MCPTool):
             return {
                 "error": f"Text-to-speech URL generation failed: {str(e)}"
             }
+
+
+class PythonExecuteTool(MCPTool):
+    """Safe Python code execution tool with whitelisted module imports.
+
+    Executes the supplied code snippet inside a restricted sandbox where only
+    a curated list of modules may be imported and file-system access is limited
+    to the ``~/.g4f/workspace`` directory.  The value assigned to the ``result``
+    variable (if any) is returned along with captured stdout/stderr.
+    """
+
+    @property
+    def description(self) -> str:
+        return (
+            "Execute a Python code snippet safely. Only whitelisted modules may "
+            "be imported (math, json, re, datetime, asyncio, aiohttp, g4f, …). "
+            "File access is restricted to the ~/.g4f/workspace directory. "
+            "Assign the value you want back to a variable named 'result'. "
+            "Returns stdout, stderr, and the value of 'result'."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "Python code to execute in the safe sandbox",
+                },
+                "allowed_extra_modules": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "Optional list of additional module names to allow "
+                        "beyond the default whitelist"
+                    ),
+                },
+            },
+            "required": ["code"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import execute_safe_code, SAFE_MODULES
+
+        code = arguments.get("code", "")
+        if not code:
+            return {"error": "code parameter is required"}
+
+        extra_names = arguments.get("allowed_extra_modules") or []
+        allowed = SAFE_MODULES | frozenset(extra_names)
+
+        try:
+            exec_result = execute_safe_code(code, allowed_modules=allowed)
+            return exec_result.to_dict()
+        except Exception as exc:
+            return {"error": f"Execution error: {exc}"}
+
+
+class FileReadTool(MCPTool):
+    """Read a file from the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Read the text content of a file inside the ~/.g4f/workspace directory. "
+            "Provide a relative path from the workspace root."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Relative path to the file inside the workspace",
+                }
+            },
+            "required": ["path"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("path", "")
+        if not rel_path:
+            return {"error": "path parameter is required"}
+
+        workspace = get_workspace_dir()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace.resolve())):
+                return {"error": "Access outside the workspace is not allowed"}
+            if not target.exists():
+                return {"error": f"File not found: {rel_path}"}
+            if not target.is_file():
+                return {"error": f"Path is not a file: {rel_path}"}
+            content = target.read_text(encoding="utf-8")
+            return {
+                "path": rel_path,
+                "content": content,
+                "size": len(content),
+            }
+        except Exception as exc:
+            return {"error": f"Read failed: {exc}"}
+
+
+class FileWriteTool(MCPTool):
+    """Write (or create) a file inside the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Write text content to a file inside the ~/.g4f/workspace directory. "
+            "Creates parent directories as needed. "
+            "Provide a relative path from the workspace root and the content to write."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Relative path to the file inside the workspace",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Text content to write to the file",
+                },
+                "append": {
+                    "type": "boolean",
+                    "description": "If true, append to existing file instead of overwriting (default: false)",
+                    "default": False,
+                },
+            },
+            "required": ["path", "content"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("path", "")
+        content = arguments.get("content")
+        append = bool(arguments.get("append", False))
+
+        if not rel_path:
+            return {"error": "path parameter is required"}
+        if content is None:
+            return {"error": "content parameter is required"}
+
+        workspace = get_workspace_dir()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace.resolve())):
+                return {"error": "Access outside the workspace is not allowed"}
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if append:
+                with open(target, "a", encoding="utf-8") as f:
+                    f.write(content)
+            else:
+                target.write_text(content, encoding="utf-8")
+            return {
+                "path": rel_path,
+                "size": len(content),
+                "appended": append,
+            }
+        except Exception as exc:
+            return {"error": f"Write failed: {exc}"}
+
+
+class FileListTool(MCPTool):
+    """List files and directories inside the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "List files and directories inside the ~/.g4f/workspace directory. "
+            "Optionally provide a subdirectory path relative to the workspace root. "
+            "Returns names, types, and sizes."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": (
+                        "Relative path to a subdirectory inside the workspace "
+                        "(default: workspace root)"
+                    ),
+                    "default": "",
+                },
+                "recursive": {
+                    "type": "boolean",
+                    "description": "If true, list files recursively (default: false)",
+                    "default": False,
+                },
+            },
+            "required": [],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("path", "") or ""
+        recursive = bool(arguments.get("recursive", False))
+
+        workspace = get_workspace_dir()
+        try:
+            target = (workspace / rel_path).resolve() if rel_path else workspace.resolve()
+            if not str(target).startswith(str(workspace.resolve())):
+                return {"error": "Access outside the workspace is not allowed"}
+            if not target.exists():
+                return {"error": f"Directory not found: {rel_path or '/'}"}
+            if not target.is_dir():
+                return {"error": f"Path is not a directory: {rel_path}"}
+
+            entries = []
+            iterator = target.rglob("*") if recursive else target.iterdir()
+            for entry in sorted(iterator):
+                try:
+                    rel = str(entry.relative_to(workspace))
+                    info: Dict[str, Any] = {
+                        "path": rel,
+                        "type": "file" if entry.is_file() else "directory",
+                    }
+                    if entry.is_file():
+                        info["size"] = entry.stat().st_size
+                    entries.append(info)
+                except Exception:
+                    continue
+
+            return {
+                "workspace": str(workspace),
+                "path": rel_path or "/",
+                "entries": entries,
+                "count": len(entries),
+            }
+        except Exception as exc:
+            return {"error": f"List failed: {exc}"}
+
+
+class FileDeleteTool(MCPTool):
+    """Delete a file from the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Delete a file from the ~/.g4f/workspace directory. "
+            "Provide a relative path from the workspace root. "
+            "Only files can be deleted; directories are not removed."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Relative path to the file inside the workspace",
+                }
+            },
+            "required": ["path"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("path", "")
+        if not rel_path:
+            return {"error": "path parameter is required"}
+
+        workspace = get_workspace_dir()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace.resolve())):
+                return {"error": "Access outside the workspace is not allowed"}
+            if not target.exists():
+                return {"error": f"File not found: {rel_path}"}
+            if not target.is_file():
+                return {"error": f"Path is not a file (directories cannot be deleted): {rel_path}"}
+            target.unlink()
+            return {"path": rel_path, "deleted": True}
+        except Exception as exc:
+            return {"error": f"Delete failed: {exc}"}
