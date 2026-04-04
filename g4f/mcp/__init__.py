@@ -28,8 +28,10 @@ from .pa_provider import (
     load_pa_provider,
     list_pa_providers,
     get_workspace_dir,
+    get_pa_registry,
     SAFE_MODULES,
     SafeExecutionResult,
+    PaProviderRegistry,
 )
 
 __all__ = [
@@ -51,6 +53,8 @@ __all__ = [
     'load_pa_provider',
     'list_pa_providers',
     'get_workspace_dir',
+    'get_pa_registry',
     'SAFE_MODULES',
     'SafeExecutionResult',
+    'PaProviderRegistry',
 ]

@@ -60,7 +60,9 @@ import io
 import ast
 import sys
 import json
+import hashlib
 import threading
+import time as _time_module
 import traceback
 import builtins as _builtins
 from pathlib import Path
@@ -480,3 +482,127 @@ def list_pa_providers(directory: "Optional[str | Path]" = None) -> List[Path]:
     if not directory.exists():
         return []
     return sorted(directory.rglob("*.pa.py"))
+
+
+# ---------------------------------------------------------------------------
+# PA Provider Registry
+# ---------------------------------------------------------------------------
+
+class PaProviderRegistry:
+    """Singleton registry for PA providers loaded from the workspace.
+
+    Each provider is assigned a **stable opaque ID** derived from the SHA-256
+    hash of its canonical file path (truncated to 8 hex chars).  The filename
+    is never exposed in any public-facing method.
+
+    The registry is automatically refreshed when the cache is older than
+    :attr:`TTL` seconds so hot-reloaded PA files are picked up without a
+    restart.
+    """
+
+    #: How long (in seconds) the cached entries remain valid.
+    TTL: float = 5.0
+
+    def __init__(self) -> None:
+        # Each entry: (id, label, models, working, url, cls)
+        self._entries: List[tuple] = []
+        # Force a refresh on the first access.
+        self._loaded_at: float = -self.TTL
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _make_id(path: Path) -> str:
+        """Return a stable 8-char hex ID for *path* (no path info exposed)."""
+        return hashlib.sha256(str(path.resolve()).encode("utf-8")).hexdigest()[:8]
+
+    def _ensure_fresh(self) -> None:
+        if _time_module.monotonic() - self._loaded_at >= self.TTL:
+            self.refresh()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def refresh(self) -> None:
+        """Re-scan the workspace and reload all ``.pa.py`` providers."""
+        entries: List[tuple] = []
+        for pa_path in list_pa_providers():
+            try:
+                cls = load_pa_provider(pa_path)
+                if cls is None:
+                    continue
+                provider_id = self._make_id(pa_path)
+                models_list: List[str] = []
+                try:
+                    if hasattr(cls, "get_models"):
+                        raw = cls.get_models()
+                        models_list = list(raw) if raw else []
+                    elif hasattr(cls, "models"):
+                        models_list = list(getattr(cls, "models") or [])
+                except Exception:
+                    pass
+                entries.append((
+                    provider_id,
+                    getattr(cls, "label", cls.__name__),
+                    models_list,
+                    bool(getattr(cls, "working", True)),
+                    getattr(cls, "url", None),
+                    cls,
+                ))
+            except Exception:
+                pass
+        self._entries = entries
+        self._loaded_at = _time_module.monotonic()
+
+    def list_providers(self) -> List[Dict[str, Any]]:
+        """Return a list of provider info dicts (no filesystem paths)."""
+        self._ensure_fresh()
+        return [
+            {
+                "id": e[0],
+                "object": "pa_provider",
+                "label": e[1],
+                "models": e[2],
+                "working": e[3],
+                "url": e[4],
+            }
+            for e in self._entries
+        ]
+
+    def get_provider_class(self, provider_id: str) -> Optional[Type]:
+        """Return the provider class for *provider_id*, or ``None``."""
+        self._ensure_fresh()
+        for e in self._entries:
+            if e[0] == provider_id:
+                return e[5]
+        return None
+
+    def get_provider_info(self, provider_id: str) -> Optional[Dict[str, Any]]:
+        """Return the info dict for *provider_id*, or ``None``."""
+        self._ensure_fresh()
+        for e in self._entries:
+            if e[0] == provider_id:
+                return {
+                    "id": e[0],
+                    "object": "pa_provider",
+                    "label": e[1],
+                    "models": e[2],
+                    "working": e[3],
+                    "url": e[4],
+                }
+        return None
+
+
+#: Module-level singleton.
+_pa_registry: Optional[PaProviderRegistry] = None
+
+
+def get_pa_registry() -> PaProviderRegistry:
+    """Return the singleton :class:`PaProviderRegistry`, creating it if needed."""
+    global _pa_registry
+    if _pa_registry is None:
+        _pa_registry = PaProviderRegistry()
+    return _pa_registry

@@ -560,3 +560,123 @@ class TestSecurityHardening(unittest.IsolatedAsyncioTestCase):
             "max_depth": MAX_RECURSION_DEPTH * 100,
         })
         self.assertTrue(result.get("success"))
+
+class TestPaProviderRegistry(unittest.TestCase):
+    """Tests for PaProviderRegistry — stable IDs without exposing filenames."""
+
+    def setUp(self):
+        """Create a temporary .pa.py file in the workspace for testing."""
+        from g4f.mcp.pa_provider import get_workspace_dir, get_pa_registry, _pa_registry
+        self.workspace = get_workspace_dir()
+        # Force a fresh registry for each test
+        import g4f.mcp.pa_provider as _mod
+        _mod._pa_registry = None
+
+        self.pa_file = self.workspace / "registry_test.pa.py"
+        self.pa_file.write_text("""
+class Provider:
+    label = "RegistryTestProvider"
+    working = True
+    models = ["rt-model-1", "rt-model-2"]
+    url = "https://test.example.com"
+
+    @classmethod
+    async def create_async_generator(cls, model, messages, **kwargs):
+        yield "hello from registry test"
+""")
+
+    def tearDown(self):
+        if self.pa_file.exists():
+            self.pa_file.unlink()
+        import g4f.mcp.pa_provider as _mod
+        _mod._pa_registry = None
+
+    def test_list_providers_returns_list(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        reg.refresh()
+        result = reg.list_providers()
+        self.assertIsInstance(result, list)
+        self.assertGreaterEqual(len(result), 1)
+
+    def test_provider_has_required_fields(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        reg.refresh()
+        providers = reg.list_providers()
+        p = next((x for x in providers if x.get("label") == "RegistryTestProvider"), None)
+        self.assertIsNotNone(p, "Test provider not found in registry")
+        self.assertIn("id", p)
+        self.assertIn("label", p)
+        self.assertIn("models", p)
+        self.assertIn("working", p)
+        self.assertIn("url", p)
+        self.assertEqual(p["label"], "RegistryTestProvider")
+        self.assertIn("rt-model-1", p["models"])
+        self.assertTrue(p["working"])
+
+    def test_filename_not_exposed(self):
+        """Provider IDs and info must NOT contain the filename or path."""
+        from g4f.mcp.pa_provider import get_pa_registry
+        import json
+        reg = get_pa_registry()
+        reg.refresh()
+        providers = reg.list_providers()
+        for p in providers:
+            serialized = json.dumps(p)
+            self.assertNotIn("registry_test", serialized, "Filename leaked in provider info")
+            self.assertNotIn(".pa.py", serialized, "Extension leaked in provider info")
+            self.assertNotIn(str(self.workspace), serialized, "Workspace path leaked")
+
+    def test_stable_id(self):
+        """The same file gets the same ID across refreshes."""
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        reg.refresh()
+        p1 = next(x for x in reg.list_providers() if x["label"] == "RegistryTestProvider")
+        reg.refresh()
+        p2 = next(x for x in reg.list_providers() if x["label"] == "RegistryTestProvider")
+        self.assertEqual(p1["id"], p2["id"])
+
+    def test_get_provider_class_returns_class(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        reg.refresh()
+        p = next(x for x in reg.list_providers() if x["label"] == "RegistryTestProvider")
+        cls = reg.get_provider_class(p["id"])
+        self.assertIsNotNone(cls)
+        self.assertTrue(hasattr(cls, "create_async_generator"))
+
+    def test_get_provider_class_missing_returns_none(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        self.assertIsNone(reg.get_provider_class("nonexistent00"))
+
+    def test_get_provider_info_returns_dict(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        reg.refresh()
+        p = next(x for x in reg.list_providers() if x["label"] == "RegistryTestProvider")
+        info = reg.get_provider_info(p["id"])
+        self.assertIsNotNone(info)
+        self.assertEqual(info["id"], p["id"])
+        self.assertEqual(info["label"], "RegistryTestProvider")
+
+    def test_get_provider_info_missing_returns_none(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        self.assertIsNone(reg.get_provider_info("nonexistent00"))
+
+    def test_id_length(self):
+        """IDs should be 8 hex characters."""
+        from g4f.mcp.pa_provider import get_pa_registry
+        reg = get_pa_registry()
+        reg.refresh()
+        for p in reg.list_providers():
+            self.assertRegex(p["id"], r'^[0-9a-f]{8}$')
+
+    def test_registry_singleton(self):
+        from g4f.mcp.pa_provider import get_pa_registry
+        r1 = get_pa_registry()
+        r2 = get_pa_registry()
+        self.assertIs(r1, r2)

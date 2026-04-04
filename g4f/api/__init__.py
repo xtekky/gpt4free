@@ -267,7 +267,7 @@ class Api:
                 else:
                     user = "admin"
                 path = request.url.path
-                if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
+                if path.startswith("/v1") or path.startswith("/api/") or path.startswith("/pa/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if request.method != "OPTIONS" and not path.endswith("/models"):
                         if not user_g4f_api_key:
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
@@ -636,7 +636,214 @@ class Api:
                 'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
             }
 
-        responses = {
+        # ------------------------------------------------------------------ #
+        # PA Provider routes                                                   #
+        # ------------------------------------------------------------------ #
+
+        @self.app.get("/pa/providers", responses={
+            HTTP_200_OK: {},
+        })
+        async def pa_providers_list():
+            """List all PA providers loaded from the workspace.
+
+            Filenames are never exposed; each provider is identified by a
+            stable opaque ID (SHA-256 of the path, first 8 hex chars).
+            """
+            from g4f.mcp.pa_provider import get_pa_registry
+            return get_pa_registry().list_providers()
+
+        @self.app.get("/pa/providers/{provider_id}", responses={
+            HTTP_200_OK: {},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        async def pa_providers_detail(provider_id: str):
+            """Get details for a single PA provider by its opaque ID."""
+            from g4f.mcp.pa_provider import get_pa_registry
+            info = get_pa_registry().get_provider_info(provider_id)
+            if info is None:
+                return ErrorResponse.from_message(
+                    f"PA provider '{provider_id}' not found", HTTP_404_NOT_FOUND
+                )
+            return info
+
+        responses_pa = {
+            HTTP_200_OK: {"model": ChatCompletion},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        }
+
+        @self.app.post("/pa/chat/completions", responses=responses_pa)
+        @self.app.post("/pa/{provider_id}/chat/completions", responses=responses_pa)
+        async def pa_chat_completions(
+            config: ChatCompletionsConfig,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+            provider_id: str = None,
+        ):
+            """OpenAI-compatible chat completions endpoint backed by PA providers.
+
+            The PA provider is identified by its opaque ID either from the URL
+            path (``/pa/{provider_id}/chat/completions``) or from the ``provider``
+            field in the JSON body.  When both are absent the first available PA
+            provider is used.
+            """
+            from g4f.mcp.pa_provider import get_pa_registry
+
+            registry = get_pa_registry()
+            pid = provider_id or config.provider
+            if pid is None:
+                listing = registry.list_providers()
+                if not listing:
+                    return ErrorResponse.from_message(
+                        "No PA providers found in workspace", HTTP_404_NOT_FOUND
+                    )
+                pid = listing[0]["id"]
+
+            provider_cls = registry.get_provider_class(pid)
+            if provider_cls is None:
+                return ErrorResponse.from_message(
+                    f"PA provider '{pid}' not found", HTTP_404_NOT_FOUND
+                )
+
+            try:
+                config.provider = None  # pass the class directly below
+                if credentials is not None and credentials.credentials != "secret":
+                    config.api_key = credentials.credentials
+
+                response = self.client.chat.completions.create(
+                    **filter_none(
+                        **(
+                            config.model_dump(exclude_none=True)
+                            if hasattr(config, "model_dump")
+                            else config.dict(exclude_none=True)
+                        ),
+                        **{
+                            "conversation_id": None,
+                            "provider": provider_cls,
+                        },
+                    ),
+                )
+
+                if not config.stream:
+                    return await response
+
+                async def streaming():
+                    try:
+                        async for chunk in response:
+                            if not isinstance(chunk, BaseConversation):
+                                yield (
+                                    f"data: "
+                                    f"{chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}"
+                                    f"\n\n"
+                                )
+                    except GeneratorExit:
+                        pass
+                    except Exception as e:
+                        logger.exception(e)
+                        yield f"data: {format_exception(e, config)}\n\n"
+                    yield "data: [DONE]\n\n"
+
+                return StreamingResponse(streaming(), media_type="text/event-stream")
+
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
+            except (MissingAuthError, NoValidHarFileError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        @self.app.post("/pa/backend-api/v2/conversation", responses={
+            HTTP_200_OK: {},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        })
+        async def pa_backend_conversation(request: Request):
+            """GUI-compatible streaming conversation endpoint for PA providers.
+
+            Accepts the same JSON body as ``/backend-api/v2/conversation`` and
+            streams Server-Sent Events in the same format used by the gpt4free
+            web interface (``{"type": "content", "content": "..."}`` etc.).
+
+            The ``provider`` field should contain the opaque PA provider ID
+            returned by ``GET /pa/providers``.  When omitted the first available
+            PA provider is used.
+            """
+            from g4f.mcp.pa_provider import get_pa_registry
+
+            try:
+                body = await request.json()
+            except Exception:
+                return ErrorResponse.from_message(
+                    "Invalid JSON body", HTTP_422_UNPROCESSABLE_ENTITY
+                )
+
+            registry = get_pa_registry()
+            pid = body.get("provider")
+            if pid:
+                provider_cls = registry.get_provider_class(pid)
+                if provider_cls is None:
+                    return ErrorResponse.from_message(
+                        f"PA provider '{pid}' not found", HTTP_404_NOT_FOUND
+                    )
+            else:
+                listing = registry.list_providers()
+                if not listing:
+                    return ErrorResponse.from_message(
+                        "No PA providers found in workspace", HTTP_404_NOT_FOUND
+                    )
+                provider_cls = registry.get_provider_class(listing[0]["id"])
+
+            provider_label = getattr(provider_cls, "label", provider_cls.__name__)
+            messages = body.get("messages") or []
+            model = body.get("model") or getattr(provider_cls, "default_model", "") or ""
+
+            async def gen_backend_stream():
+                yield (
+                    "data: "
+                    + json.dumps({"type": "provider", "provider": provider_label, "model": model})
+                    + "\n\n"
+                )
+                try:
+                    response = self.client.chat.completions.create(
+                        messages=messages,
+                        model=model,
+                        provider=provider_cls,
+                        stream=True,
+                    )
+                    async for chunk in response:
+                        if isinstance(chunk, BaseConversation):
+                            continue
+                        text = ""
+                        if hasattr(chunk, "choices") and chunk.choices:
+                            delta = chunk.choices[0].delta
+                            text = getattr(delta, "content", "") or ""
+                        if text:
+                            yield (
+                                "data: "
+                                + json.dumps({"type": "content", "content": text})
+                                + "\n\n"
+                            )
+                except GeneratorExit:
+                    pass
+                except Exception as e:
+                    logger.exception(e)
+                    yield (
+                        "data: "
+                        + json.dumps({"type": "error", "error": f"{type(e).__name__}: {e}"})
+                        + "\n\n"
+                    )
+                yield (
+                    "data: "
+                    + json.dumps({"type": "finish", "finish": "stop"})
+                    + "\n\n"
+                )
+
+            return StreamingResponse(gen_backend_stream(), media_type="text/event-stream")
             HTTP_200_OK: {"model": TranscriptionResponseModel},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
