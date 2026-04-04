@@ -405,3 +405,75 @@ class TestSafeCodeExecution(unittest.TestCase):
         self.assertIn("asyncio", SAFE_MODULES)
         self.assertNotIn("os", SAFE_MODULES)
         self.assertNotIn("subprocess", SAFE_MODULES)
+
+class TestSafeMode(unittest.IsolatedAsyncioTestCase):
+    """Tests for --safe mode behaviour on MCPServer and individual tools."""
+
+    def test_server_safe_mode_flag(self):
+        """MCPServer stores the safe_mode flag."""
+        server = MCPServer(safe_mode=True)
+        self.assertTrue(server.safe_mode)
+        self.assertTrue(server.tools['python_execute'].safe_mode)
+        self.assertTrue(server.tools['file_list'].safe_mode)
+        # Tools that don't use safe_mode should not be affected
+        self.assertFalse(server.tools['file_read'].safe_mode)
+
+    def test_server_default_not_safe(self):
+        """MCPServer defaults to safe_mode=False."""
+        server = MCPServer()
+        self.assertFalse(server.safe_mode)
+        self.assertFalse(server.tools['python_execute'].safe_mode)
+        self.assertFalse(server.tools['file_list'].safe_mode)
+
+    async def test_python_execute_safe_mode_blocks_extra_modules(self):
+        """In safe mode, allowed_extra_modules is ignored."""
+        tool = PythonExecuteTool(safe_mode=True)
+        # Attempt to whitelist 'os' via allowed_extra_modules — must be blocked
+        result = await tool.execute({
+            "code": "import os\nresult = os.getcwd()",
+            "allowed_extra_modules": ["os"],
+        })
+        self.assertFalse(result.get("success"))
+        self.assertIn("error", result)
+
+    async def test_python_execute_normal_mode_allows_extra_modules(self):
+        """Outside safe mode, allowed_extra_modules expands the allowlist."""
+        tool = PythonExecuteTool(safe_mode=False)
+        result = await tool.execute({
+            "code": "import os\nresult = isinstance(os.getcwd(), str)",
+            "allowed_extra_modules": ["os"],
+        })
+        self.assertTrue(result.get("success"))
+        self.assertTrue(result.get("result"))
+
+    async def test_file_list_safe_mode_blocks_root(self):
+        """In safe mode, listing the workspace root is blocked."""
+        tool = FileListTool(safe_mode=True)
+        result = await tool.execute({})
+        self.assertIn("error", result)
+        self.assertIn("safe mode", result["error"])
+
+    async def test_file_list_safe_mode_allows_subdir(self):
+        """In safe mode, listing a subdirectory is still allowed."""
+        workspace = get_workspace_dir()
+        subdir = workspace / "unittest_safe_subdir"
+        subdir.mkdir(exist_ok=True)
+        try:
+            tool = FileListTool(safe_mode=True)
+            result = await tool.execute({"path": "unittest_safe_subdir"})
+            self.assertNotIn("error", result)
+        finally:
+            subdir.rmdir()
+
+    async def test_file_list_normal_mode_allows_root(self):
+        """Outside safe mode, listing the workspace root is permitted."""
+        tool = FileListTool(safe_mode=False)
+        result = await tool.execute({})
+        self.assertNotIn("error", result)
+
+    async def test_python_execute_safe_mode_default_whitelist_still_works(self):
+        """Safe mode still allows all default SAFE_MODULES."""
+        tool = PythonExecuteTool(safe_mode=True)
+        result = await tool.execute({"code": "import math\nresult = math.factorial(5)"})
+        self.assertTrue(result.get("success"))
+        self.assertEqual(result.get("result"), 120)

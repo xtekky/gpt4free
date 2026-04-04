@@ -58,18 +58,25 @@ class MCPServer:
     allowing AI assistants to utilize web search, scraping, and image generation.
     """
     
-    def __init__(self):
-        """Initialize MCP server with available tools"""
+    def __init__(self, safe_mode: bool = False):
+        """Initialize MCP server with available tools
+
+        Args:
+            safe_mode: When ``True`` the server starts in safe mode, where
+                callers cannot expand the Python sandbox module allowlist and
+                listing the workspace root directory is blocked.
+        """
+        self.safe_mode = safe_mode
         self.tools = {
             'web_search': WebSearchTool(),
             'web_scrape': WebScrapeTool(),
             'image_generation': ImageGenerationTool(),
             'text_to_audio': TextToAudioTool(),
             'mark_it_down': MarkItDownTool(),
-            'python_execute': PythonExecuteTool(),
+            'python_execute': PythonExecuteTool(safe_mode=safe_mode),
             'file_read': FileReadTool(),
             'file_write': FileWriteTool(),
-            'file_list': FileListTool(),
+            'file_list': FileListTool(safe_mode=safe_mode),
             'file_delete': FileDeleteTool(),
         }
         self.server_info = {
@@ -423,15 +430,17 @@ class MCPServer:
             await runner.cleanup()
 
 
-def main(http: bool = False, host: str = "0.0.0.0", port: int = 8765, origin: Optional[str] = None):
+def main(http: bool = False, host: str = "0.0.0.0", port: int = 8765, origin: Optional[str] = None, safe: bool = False):
     """Main entry point for MCP server
     
     Args:
         http: If True, use HTTP transport instead of stdio
         host: Host to bind HTTP server to (only used when http=True)
         port: Port to bind HTTP server to (only used when http=True)
+        safe: If True, start in safe mode — callers cannot override the module
+            allowlist for Python execution and workspace root listing is blocked.
     """
-    server = MCPServer()
+    server = MCPServer(safe_mode=safe)
     if http:
         asyncio.run(server.run_http(host, port, origin))
     else:

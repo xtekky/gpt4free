@@ -24,7 +24,17 @@ from aiohttp import ClientSession
 
 class MCPTool(ABC):
     """Base class for MCP tools"""
-    
+
+    def __init__(self, safe_mode: bool = False) -> None:
+        """Initialize tool with optional safe mode.
+
+        Args:
+            safe_mode: When ``True`` the tool operates in a restricted mode
+                where callers cannot expand the module allowlist and certain
+                sensitive listing operations are blocked.
+        """
+        self.safe_mode = safe_mode
+
     @property
     @abstractmethod
     def description(self) -> str:
@@ -515,8 +525,12 @@ class PythonExecuteTool(MCPTool):
         if not code:
             return {"error": "code parameter is required"}
 
-        extra_names = arguments.get("allowed_extra_modules") or []
-        allowed = SAFE_MODULES | frozenset(extra_names)
+        if self.safe_mode:
+            # In safe mode the caller cannot expand the module allowlist
+            allowed = SAFE_MODULES
+        else:
+            extra_names = arguments.get("allowed_extra_modules") or []
+            allowed = SAFE_MODULES | frozenset(extra_names)
 
         try:
             exec_result = execute_safe_code(code, allowed_modules=allowed)
@@ -683,6 +697,8 @@ class FileListTool(MCPTool):
             target = (workspace / rel_path).resolve() if rel_path else workspace.resolve()
             if not str(target).startswith(str(workspace.resolve())):
                 return {"error": "Access outside the workspace is not allowed"}
+            if self.safe_mode and target == workspace.resolve():
+                return {"error": "Listing the workspace root directory is not allowed in safe mode"}
             if not target.exists():
                 return {"error": f"Directory not found: {rel_path or '/'}"}
             if not target.is_dir():
