@@ -71,7 +71,7 @@ case "$BROWSER" in
         if [ -z "$BROWSER_BIN" ]; then
             BROWSER_BIN="$(find_win_bin \
                 "/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe" \
-                "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser
+                "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "$LOCALAPPDATA/BraveSoftware/Brave-Browser/Application/brave.exe")"
