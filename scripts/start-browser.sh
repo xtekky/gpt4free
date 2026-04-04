@@ -59,7 +59,8 @@ case "$BROWSER" in
         if [ -z "$BROWSER_BIN" ]; then
             BROWSER_BIN="$(find_win_bin \
                 "/c/Program Files/Chromium/Application/chrome.exe" \
-                "/mnt/c/Program Files/Chromium/Application/chrome.exe")"
+                "/mnt/c/Program Files/Chromium/Application/chrome.exe" \
+                "$LOCALAPPDATA/Microsoft/WindowsApps/chromium.exe")"
         fi
         ;;
     brave)
@@ -74,7 +75,8 @@ case "$BROWSER" in
                 "/mnt/c/Program Files (x86)/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe" \
                 "/mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe" \
-                "$LOCALAPPDATA/BraveSoftware/Brave-Browser/Application/brave.exe")"
+                "$LOCALAPPDATA/BraveSoftware/Brave-Browser/Application/brave.exe" \
+                "$LOCALAPPDATA/Microsoft/WindowsApps/brave.exe")"
         fi
         ;;
     msedge)
@@ -89,7 +91,8 @@ case "$BROWSER" in
                 "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
                 "/c/Program Files/Microsoft/Edge/Application/msedge.exe" \
                 "/mnt/c/Program Files/Microsoft/Edge/Application/msedge.exe" \
-                "$LOCALAPPDATA/Microsoft/Edge/Application/msedge.exe")"
+                "$LOCALAPPDATA/Microsoft/Edge/Application/msedge.exe" \
+                "$LOCALAPPDATA/Microsoft/WindowsApps/msedge.exe")"
         fi
         # Last resort: ask Windows itself
         if [ -z "$BROWSER_BIN" ] && command -v powershell.exe &>/dev/null; then
@@ -109,7 +112,8 @@ case "$BROWSER" in
                 "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe" \
                 "/c/Program Files/Google/Chrome/Application/chrome.exe" \
                 "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" \
-                "$LOCALAPPDATA/Google/Chrome/Application/chrome.exe")"
+                "$LOCALAPPDATA/Google/Chrome/Application/chrome.exe" \
+                "$LOCALAPPDATA/Microsoft/WindowsApps/chrome.exe")"
         fi
         ;;
 esac
