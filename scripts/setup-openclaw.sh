@@ -23,7 +23,7 @@ if ! python -m g4f --help >/dev/null 2>&1; then
   python -m pip install -U g4f[all]
 fi
 
-CONFIG_DIR="${HOME}/.config/g4f/cookies"
+CONFIG_DIR="${HOME}/.g4f/cookies"
 CONFIG_FILE="${CONFIG_DIR}/config.yaml"
 ENV_FILE="${CONFIG_DIR}/.env"
 
