@@ -197,7 +197,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 file_id = data.get("file_id")
 
             # Put File into Url
-            str_date = datetime.datetime.now(datetime.UTC).strftime('%Y%m%dT%H%M%SZ')
+            str_date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
             headers = get_oss_headers('PUT', str_date, data, file_type)
             async with session.put(
                     file_url.split("?")[0],
@@ -397,11 +397,13 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
         timeout = kwargs.get("timeout") or 5 * 60
-        async with StreamSession(headers=cls._get_headers(kwargs.get("token"))) as session:
+        token = kwargs.get("token")
+        async with StreamSession(headers=cls._get_headers(token)) as session:
             try:
-                async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
-                    await cls.raise_for_status(user_info_res)
-                    debug.log(await user_info_res.json())
+                if token:
+                    async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
+                        await cls.raise_for_status(user_info_res)
+                        debug.log(await user_info_res.json())
             except Exception as e:
                 debug.error(e)
             for attempt in range(5):
