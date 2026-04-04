@@ -32,7 +32,7 @@ EXTRA_REQUIRE = {
         "flask[async]",            # gui
         "fastapi",                 # api
         "uvicorn",                 # api
-        "nodriver",
+        "zendriver",
         "python-multipart",
         "a2wsgi",
         "setuptools",
@@ -56,7 +56,7 @@ EXTRA_REQUIRE = {
         "flask[async]",            # gui
         "fastapi",                 # api
         "uvicorn",                 # api
-        "nodriver",
+        "zendriver",
         "python-multipart",
         "a2wsgi",
         "pypdf2",
