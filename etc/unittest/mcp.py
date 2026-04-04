@@ -761,3 +761,25 @@ class TestWorkspaceFileServing(unittest.TestCase):
         self.assertIn("Permissions-Policy", src)
         self.assertIn("connect-src 'none'", src, "CSP should block outbound connections")
         self.assertIn("object-src 'none'", src, "CSP should block object/embed elements")
+
+    def test_html_served_with_csp_sandbox(self):
+        """HTML files must be served with CSP sandbox to isolate their origin."""
+        import g4f.api as api_mod
+        import inspect
+        src = inspect.getsource(api_mod.Api.register_routes)
+        # sandbox without allow-same-origin forces a null origin on the page,
+        # which prevents localStorage / sessionStorage / cookie access.
+        self.assertIn("sandbox allow-scripts", src,
+                      "HTML files must be served with CSP sandbox directive")
+
+    def test_request_origin_used_in_csp(self):
+        """CSP source directives must use the request origin, not 'self'."""
+        import g4f.api as api_mod
+        import inspect
+        src = inspect.getsource(api_mod.Api.register_routes)
+        # The route must derive the origin from the incoming Request object.
+        self.assertIn("request_origin", src,
+                      "CSP must use the actual request origin, not static 'self'")
+        self.assertIn("request.url.scheme", src,
+                      "Route must extract scheme from the Request for the origin")
+

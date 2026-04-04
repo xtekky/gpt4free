@@ -888,7 +888,7 @@ class Api:
             HTTP_403_FORBIDDEN: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
         })
-        async def pa_serve_workspace_file(file_path: str):
+        async def pa_serve_workspace_file(file_path: str, request: Request):
             """Securely serve a workspace file for browser rendering.
 
             Only files within ``~/.g4f/workspace`` can be served.  Path
@@ -897,23 +897,20 @@ class Api:
             refused with **403 Forbidden** so that sensitive file types (e.g.
             ``.env``, ``.pa.py``, ``.py``) can never be read via this route.
 
-            HTML files may freely reference co-located CSS and JS files; the
-            browser will fetch those via additional ``GET /pa/files/…`` calls
-            which are also subject to the same security checks.
+            HTML files are served with a ``Content-Security-Policy: sandbox``
+            directive (without ``allow-same-origin``), which forces the page
+            into a unique *null* browser origin.  As a result the page cannot
+            access ``localStorage``, ``sessionStorage``, ``IndexedDB``, or
+            cookies belonging to the g4f server origin — the browser rejects
+            all such calls with a ``SecurityError``.  The actual request
+            origin (``scheme://host``) is used in every source directive (e.g.
+            ``default-src``) instead of ``'self'``, so that co-located CSS,
+            JS, images, and fonts still load correctly despite the document
+            having a null origin.
 
-            .. note:: **localStorage / sessionStorage / cookies**
-
-                Files served here share the browser origin with the g4f server
-                (e.g. ``http://localhost:8080``), so JavaScript inside them
-                **can** read ``localStorage`` and ``sessionStorage`` stored by
-                the main g4f web UI (e.g. saved API keys).  The HTTP
-                ``Permissions-Policy`` header cannot restrict storage access.
-                The protection boundary is therefore at the *workspace* level:
-                only files that the operator or sandboxed PA code has
-                explicitly placed in ``~/.g4f/workspace`` are ever served.
-                Operators who expose this server to untrusted users should
-                keep their API key out of ``localStorage`` or serve the g4f
-                API on a separate origin/port.
+            Non-HTML sub-resources (CSS, JS, images, fonts) are served without
+            the ``sandbox`` directive; they are leaf resources and do not run
+            in their own browsing context.
             """
             from g4f.mcp.pa_provider import get_workspace_dir
             workspace = get_workspace_dir()
@@ -940,6 +937,48 @@ class Api:
                     HTTP_403_FORBIDDEN,
                 )
 
+            # Derive the actual request origin (scheme + host) so that CSP
+            # source directives reference the real server address rather than
+            # the generic 'self' keyword.  This is important because HTML
+            # files are sandboxed into a null origin (see below), at which
+            # point 'self' would resolve to null and block all sub-resources.
+            request_origin = f"{request.url.scheme}://{request.headers.get('host', 'localhost')}"
+
+            is_html = ext in ("html", "htm")
+            if is_html:
+                # HTML documents are served with the CSP sandbox directive
+                # (without allow-same-origin).  This forces the page into a
+                # unique null browsing-context origin so that it cannot access
+                # the g4f server's localStorage, sessionStorage, IndexedDB, or
+                # cookies.  The page can still load sub-resources (CSS, JS,
+                # images) because they are referenced by the explicit
+                # request_origin in the source directives.
+                csp = (
+                    "sandbox allow-scripts allow-forms allow-downloads allow-popups; "
+                    f"default-src {request_origin}; "
+                    f"script-src {request_origin} 'unsafe-inline'; "
+                    f"style-src {request_origin} 'unsafe-inline'; "
+                    f"img-src {request_origin} data:; "
+                    f"font-src {request_origin} data:; "
+                    "connect-src 'none'; "
+                    "object-src 'none'; "
+                    "base-uri 'none';"
+                )
+            else:
+                # Non-HTML sub-resources (CSS, JS, images, fonts) don't need
+                # sandboxing — they are leaf assets without their own browsing
+                # context.  Use the request origin for source directives.
+                csp = (
+                    f"default-src {request_origin}; "
+                    f"script-src {request_origin} 'unsafe-inline'; "
+                    f"style-src {request_origin} 'unsafe-inline'; "
+                    f"img-src {request_origin} data:; "
+                    f"font-src {request_origin} data:; "
+                    "connect-src 'none'; "
+                    "object-src 'none'; "
+                    "base-uri 'none';"
+                )
+
             headers = {
                 # Prevent the browser from sniffing a different content-type
                 "X-Content-Type-Options": "nosniff",
@@ -947,19 +986,7 @@ class Api:
                 "X-Frame-Options": "SAMEORIGIN",
                 # Basic XSS filter (belt-and-suspenders; CSP is more important)
                 "X-XSS-Protection": "1; mode=block",
-                # Restrict what the page itself can load/execute.
-                # Note: localStorage / sessionStorage are NOT controllable via
-                # CSP or Permissions-Policy; isolation requires a distinct origin.
-                "Content-Security-Policy": (
-                    "default-src 'self'; "
-                    "script-src 'self' 'unsafe-inline'; "
-                    "style-src 'self' 'unsafe-inline'; "
-                    "img-src 'self' data:; "
-                    "font-src 'self' data:; "
-                    "connect-src 'none'; "
-                    "object-src 'none'; "
-                    "base-uri 'none';"
-                ),
+                "Content-Security-Policy": csp,
                 # Restrict powerful browser APIs that workspace pages don't need
                 "Permissions-Policy": (
                     "geolocation=(), camera=(), microphone=(), "
