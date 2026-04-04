@@ -37,7 +37,9 @@ SAFE_PARAMETERS = [
     "api_key", "seed", "width", "height",
     "max_retries", "web_search", "cache",
     "guidance_scale", "num_inference_steps", "randomize_seed",
-    "safe", "enhance", "private", "aspect_ratio", "n", "transparent"
+    "safe", "enhance", "private",
+    "aspect_ratio", "n", "transparent",
+    "reasoning_effort"
 ]
 
 BASIC_PARAMETERS = {
@@ -66,6 +68,7 @@ PARAMETER_EXAMPLES = {
     "tools": [],
     "width": 1024,
     "height": 1024,
+    "reasoning_effort": "medium",
 }
 
 class AbstractProvider(BaseProvider):

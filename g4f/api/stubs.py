@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field, model_validator
-from typing import Union, Optional
+from typing import Literal, Union, Optional
 
 from ..typing import Messages
 
@@ -10,7 +10,7 @@ class RequestConfig(BaseModel):
     model: str = Field(default="")
     provider: Optional[str] = None
     media: Optional[list[tuple[str, str]]] = None
-    modalities: Optional[list[str]] = None
+    modalities: Optional[list[Literal["text", "audio"]]] = None
     temperature: Optional[float] = None
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
@@ -18,7 +18,7 @@ class RequestConfig(BaseModel):
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
     api_key: Optional[Union[str, dict[str, str]]] = None
-    web_search: Optional[bool] = None
+    web_search: Optional[Union[str, bool]] = None
     conversation: Optional[dict] = None
     timeout: Optional[int] = None
     stream_timeout: Optional[int] = None
@@ -43,9 +43,8 @@ class RequestConfig(BaseModel):
             ]
         ],
     )
-    reasoning_effort: Optional[str] = None
+    reasoning_effort: Optional[Literal["low", "medium", "high"]] = None
     logit_bias: Optional[dict] = None
-    modalities: Optional[list[str]] = None
     audio: Optional[dict] = None
     response_format: Optional[dict] = None
     download_media: bool = False

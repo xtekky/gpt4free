@@ -360,7 +360,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         conversation: JsonConversation = None,
         proxy: str = None,
         stream: bool = True,
-        enable_thinking: bool = True,
+        reasoning_effort: Optional[Literal["low", "medium", "high"]] = "medium",
         chat_type: Literal[
             "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
         ] = "t2t",
@@ -378,44 +378,28 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             Txt2Txt = "t2t"
             WebDev = "web_dev"
         """
-        # cache_file = cls.get_cache_file()
-        # cookie: str = kwargs.get("cookie", "")  # ssxmod_itna=1-...
-        # args = kwargs.get("qwen_args", {})
-        # args.setdefault("cookies", {})
-
-        # if not args and cache_file.exists():
-        #     try:
-        #         with cache_file.open("r") as f:
-        #             args = json.load(f)
-        #     except json.JSONDecodeError:
-        #         debug.log(f"Cache file {cache_file} is corrupted, removing it.")
-        #         cache_file.unlink()
-        # if not cookie:
-        #     if not args:
-        #         args = await cls.get_args(proxy, **kwargs)
-        #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
+        enable_thinking = reasoning_effort in ("medium", "high")
         timeout = kwargs.get("timeout") or 5 * 60
         token = kwargs.get("token")
         async with StreamSession(headers=cls._get_headers(token)) as session:
-            try:
-                if token:
+            if token:
+                try:
                     async with session.get('https://chat.qwen.ai/api/v1/auths/', proxy=proxy) as user_info_res:
                         await cls.raise_for_status(user_info_res)
                         debug.log(await user_info_res.json())
-            except Exception as e:
-                debug.error(e)
+                except Exception as e:
+                    debug.error(e)
             for attempt in range(5):
                 try:
-                    req_headers = await cls._get_req_headers(session.headers)
-                    # req_headers['bx-ua'] = ua
+                    req_headers = await cls._get_req_headers(session, proxy=proxy)
                     message_id = str(uuid.uuid4())
                     if conversation is None:
                         chat_payload = {
                             "title": "New Chat",
                             "models": [model_name],
-                            "chat_mode": "normal",# local
+                            "chat_mode": "normal",
                             "chat_type": chat_type,
                             "timestamp": int(time() * 1000)
                         }
@@ -442,7 +426,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         "stream": stream,
                         "incremental_output": stream,
                         "chat_id": conversation.chat_id,
-                        "chat_mode": "normal",# local
+                        "chat_mode": "normal",
                         "model": model_name,
                         "parent_id": conversation.parent_id,
                         "messages": [
