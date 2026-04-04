@@ -854,6 +854,103 @@ class Api:
                 )
 
             return StreamingResponse(gen_backend_stream(), media_type="text/event-stream")
+
+        # ------------------------------------------------------------------ #
+        # PA workspace static file serving (HTML/CSS/JS/images for browser)   #
+        # ------------------------------------------------------------------ #
+
+        #: MIME types that are safe to serve for browser rendering.
+        #: Only these extensions are allowed; all others are refused with 403.
+        _WORKSPACE_SAFE_TYPES: dict[str, str] = {
+            "html": "text/html; charset=utf-8",
+            "htm":  "text/html; charset=utf-8",
+            "css":  "text/css; charset=utf-8",
+            "js":   "application/javascript; charset=utf-8",
+            "mjs":  "application/javascript; charset=utf-8",
+            "json": "application/json; charset=utf-8",
+            "txt":  "text/plain; charset=utf-8",
+            "md":   "text/markdown; charset=utf-8",
+            "svg":  "image/svg+xml",
+            "png":  "image/png",
+            "jpg":  "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif":  "image/gif",
+            "webp": "image/webp",
+            "ico":  "image/x-icon",
+            "woff":  "font/woff",
+            "woff2": "font/woff2",
+            "ttf":   "font/ttf",
+            "otf":   "font/otf",
+        }
+
+        @self.app.get("/pa/files/{file_path:path}", responses={
+            HTTP_200_OK: {},
+            HTTP_403_FORBIDDEN: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        async def pa_serve_workspace_file(file_path: str):
+            """Securely serve a workspace file for browser rendering.
+
+            Only files within ``~/.g4f/workspace`` can be served.  Path
+            traversal (``..``) is blocked.  Only the MIME types listed in
+            ``_WORKSPACE_SAFE_TYPES`` are served; all other extensions are
+            refused with **403 Forbidden** so that sensitive file types (e.g.
+            ``.env``, ``.pa.py``, ``.py``) can never be read via this route.
+
+            HTML files may freely reference co-located CSS and JS files; the
+            browser will fetch those via additional ``GET /pa/files/…`` calls
+            which are also subject to the same security checks.
+            """
+            from g4f.mcp.pa_provider import get_workspace_dir
+            workspace = get_workspace_dir()
+
+            # Normalise and check for traversal
+            try:
+                resolved = (workspace / file_path).resolve()
+                resolved.relative_to(workspace.resolve())
+            except (ValueError, Exception):
+                return ErrorResponse.from_message(
+                    "Path traversal is not allowed", HTTP_403_FORBIDDEN
+                )
+
+            if not resolved.exists() or not resolved.is_file():
+                return ErrorResponse.from_message(
+                    f"File not found: {file_path}", HTTP_404_NOT_FOUND
+                )
+
+            ext = resolved.suffix.lstrip(".").lower()
+            mime_type = _WORKSPACE_SAFE_TYPES.get(ext)
+            if mime_type is None:
+                return ErrorResponse.from_message(
+                    f"File type '.{ext}' is not allowed for browser rendering",
+                    HTTP_403_FORBIDDEN,
+                )
+
+            headers = {
+                # Prevent the browser from sniffing a different content-type
+                "X-Content-Type-Options": "nosniff",
+                # Prevent this page from being framed by untrusted origins
+                "X-Frame-Options": "SAMEORIGIN",
+                # Basic XSS filter (belt-and-suspenders; CSP is more important)
+                "X-XSS-Protection": "1; mode=block",
+                # Restrict what the page itself can load/execute
+                "Content-Security-Policy": (
+                    "default-src 'self'; "
+                    "script-src 'self' 'unsafe-inline'; "
+                    "style-src 'self' 'unsafe-inline'; "
+                    "img-src 'self' data:; "
+                    "font-src 'self' data:;"
+                ),
+                "Cache-Control": "no-store",
+            }
+
+            return FileResponse(
+                str(resolved),
+                media_type=mime_type,
+                headers=headers,
+            )
+
+        responses = {
             HTTP_200_OK: {"model": TranscriptionResponseModel},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},

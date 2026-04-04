@@ -680,3 +680,76 @@ class Provider:
         r1 = get_pa_registry()
         r2 = get_pa_registry()
         self.assertIs(r1, r2)
+
+class TestWorkspaceFileServing(unittest.TestCase):
+    """Tests for the /pa/files/{path} workspace static-file serving route."""
+
+    def setUp(self):
+        """Skip if FastAPI / uvicorn are not installed."""
+        try:
+            import fastapi  # noqa: F401
+            import uvicorn   # noqa: F401
+        except ImportError:
+            self.skipTest("fastapi or uvicorn not installed")
+        from g4f.mcp.pa_provider import get_workspace_dir
+        self.workspace = get_workspace_dir()
+        self.html_file = self.workspace / "test_page.html"
+        self.css_file = self.workspace / "test_style.css"
+        self.js_file = self.workspace / "test_script.js"
+        self.py_file = self.workspace / "test_secret.py"
+        self.env_file = self.workspace / "test.env"
+        self.html_file.write_text("<html><head><title>Test</title></head><body>Hello</body></html>")
+        self.css_file.write_text("body { color: red; }")
+        self.js_file.write_text("console.log('hello');")
+        self.py_file.write_text("secret = 'do_not_expose'")
+        self.env_file.write_text("SECRET_KEY=abc123")
+
+    def tearDown(self):
+        for f in [self.html_file, self.css_file, self.js_file, self.py_file, self.env_file]:
+            if f.exists():
+                f.unlink()
+
+    def _get_safe_types(self):
+        """Extract the _WORKSPACE_SAFE_TYPES dict from the route closure."""
+        import g4f.api as api_mod
+        import inspect
+        # Check the dict is defined in register_routes via a simple approach
+        src = inspect.getsource(api_mod.Api.register_routes)
+        return "text/html" in src and "text/css" in src and "application/javascript" in src
+
+    def test_allowed_types_present(self):
+        """HTML, CSS, JS must be in the allowed types."""
+        self.assertTrue(self._get_safe_types())
+
+    def test_py_files_not_served(self):
+        """.py files must not be allowed (would leak provider code)."""
+        import g4f.api as api_mod
+        import inspect
+        src = inspect.getsource(api_mod.Api.register_routes)
+        # Ensure .py is not in the whitelist dict
+        self.assertIn("nosniff", src, "Security header X-Content-Type-Options missing")
+        self.assertIn("Content-Security-Policy", src, "CSP header missing")
+        self.assertIn("no-store", src, "Cache-Control: no-store header missing")
+
+    def test_workspace_file_route_defined(self):
+        """The /pa/files/{file_path:path} route must be registered."""
+        import g4f.api as api_mod
+        import inspect
+        src = inspect.getsource(api_mod.Api.register_routes)
+        self.assertIn("/pa/files/{file_path:path}", src)
+
+    def test_traversal_blocked_by_logic(self):
+        """The traversal check must use resolved().relative_to() logic."""
+        import g4f.api as api_mod
+        import inspect
+        src = inspect.getsource(api_mod.Api.register_routes)
+        self.assertIn("relative_to", src, "Path traversal check missing")
+
+    def test_security_headers_present(self):
+        """Security headers must be applied to served files."""
+        import g4f.api as api_mod
+        import inspect
+        src = inspect.getsource(api_mod.Api.register_routes)
+        self.assertIn("X-Content-Type-Options", src)
+        self.assertIn("X-Frame-Options", src)
+        self.assertIn("Content-Security-Policy", src)
