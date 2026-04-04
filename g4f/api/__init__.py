@@ -963,7 +963,7 @@ class Api:
                 # Restrict powerful browser APIs that workspace pages don't need
                 "Permissions-Policy": (
                     "geolocation=(), camera=(), microphone=(), "
-                    "payment=(), usb=(), fullscreen=self"
+                    "payment=(), usb=(), fullscreen=()"
                 ),
                 "Cache-Control": "no-store",
             }
