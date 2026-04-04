@@ -3,10 +3,8 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from functools import lru_cache
 from typing import Optional
 
-@lru_cache(maxsize=1)
 def get_config_dir() -> Path:
     """Get platform-appropriate config directory."""
     def get_fallback_config_dir() -> Path:
