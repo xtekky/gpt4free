@@ -261,6 +261,7 @@ def get_mcp_parser(exit_on_error: bool = True) -> ArgumentParser:
     mcp_parser.add_argument("--host", default="0.0.0.0", help="HTTP server host.")
     mcp_parser.add_argument("--port", type=int, default=8765, help="HTTP server port.")
     mcp_parser.add_argument("--origin", type=str, default=None, help="CORS origin.")
+    mcp_parser.add_argument("--safe", action="store_true", help="Enable safe mode: module allowlist cannot be overridden and workspace root cannot be listed.")
     return mcp_parser
 
 
@@ -273,7 +274,8 @@ def run_mcp_args(args):
         http=args.http,
         host=args.host,
         port=args.port,
-        origin=args.origin
+        origin=args.origin,
+        safe=args.safe,
     )
 
 def get_auth_parser(exit_on_error: bool = True) -> ArgumentParser:
@@ -363,7 +365,7 @@ def generate_autocomplete():
     api_args = ["--bind", "--port", "--debug", "--gui", "--no-gui", "--model", "--provider", "--media-provider", "--proxy", "--workers", "--disable-colors", "--ignore-cookie-files", "--cookies-dir", "--g4f-api-key", "--ignored-providers", "--cookie-browsers", "--reload", "--demo", "--timeout", "--stream-timeout", "--ssl-keyfile", "--ssl-certfile", "--log-config", "--access-log", "--no-access-log", "--browser-port", "--browser-host"]
     gui_args = ["--debug"]
     client_args = ["--debug"]
-    mcp_args = ["--debug", "--http", "--host", "--port", "--origin"]
+    mcp_args = ["--debug", "--http", "--host", "--port", "--origin", "--safe"]
     global_args = ["--install-autocomplete"]
     bash_completion_script = f"""
 _g4f_completions() {{

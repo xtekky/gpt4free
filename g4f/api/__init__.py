@@ -218,6 +218,16 @@ class Api:
         if has_crypto:
             private_key, _ = create_or_read_keys()
             session_key = get_session_key()
+
+        def _requires_api_key(path: str, demo: bool) -> bool:
+            """Return ``True`` when *path* must present a G4F API key."""
+            return (
+                path.startswith("/v1")
+                or path.startswith("/api/")
+                or path.startswith("/pa/")
+                or (demo and path == "/backend-api/v2/upload_cookies")
+            )
+
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
             user = None
@@ -267,7 +277,7 @@ class Api:
                 else:
                     user = "admin"
                 path = request.url.path
-                if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
+                if _requires_api_key(path, AppConfig.demo):
                     if request.method != "OPTIONS" and not path.endswith("/models"):
                         if not user_g4f_api_key:
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
@@ -635,6 +645,361 @@ class Api:
                 'vision_models': [model for model in [getattr(provider, "default_vision_model", None)] if model],
                 'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
             }
+
+        # ------------------------------------------------------------------ #
+        # PA Provider routes                                                   #
+        # ------------------------------------------------------------------ #
+
+        @self.app.get("/pa/providers", responses={
+            HTTP_200_OK: {},
+        })
+        async def pa_providers_list():
+            """List all PA providers loaded from the workspace.
+
+            Filenames are never exposed; each provider is identified by a
+            stable opaque ID (SHA-256 of the path, first 8 hex chars).
+            """
+            from g4f.mcp.pa_provider import get_pa_registry
+            return get_pa_registry().list_providers()
+
+        @self.app.get("/pa/providers/{provider_id}", responses={
+            HTTP_200_OK: {},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        async def pa_providers_detail(provider_id: str):
+            """Get details for a single PA provider by its opaque ID."""
+            from g4f.mcp.pa_provider import get_pa_registry
+            info = get_pa_registry().get_provider_info(provider_id)
+            if info is None:
+                return ErrorResponse.from_message(
+                    f"PA provider '{provider_id}' not found", HTTP_404_NOT_FOUND
+                )
+            return info
+
+        responses_pa = {
+            HTTP_200_OK: {"model": ChatCompletion},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        }
+
+        @self.app.post("/pa/chat/completions", responses=responses_pa)
+        @self.app.post("/pa/{provider_id}/chat/completions", responses=responses_pa)
+        async def pa_chat_completions(
+            config: ChatCompletionsConfig,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+            provider_id: str = None,
+        ):
+            """OpenAI-compatible chat completions endpoint backed by PA providers.
+
+            The PA provider is identified by its opaque ID either from the URL
+            path (``/pa/{provider_id}/chat/completions``) or from the ``provider``
+            field in the JSON body.  When both are absent the first available PA
+            provider is used.
+            """
+            from g4f.mcp.pa_provider import get_pa_registry
+
+            registry = get_pa_registry()
+            pid = provider_id or config.provider
+            if pid is None:
+                listing = registry.list_providers()
+                if not listing:
+                    return ErrorResponse.from_message(
+                        "No PA providers found in workspace", HTTP_404_NOT_FOUND
+                    )
+                pid = listing[0]["id"]
+
+            provider_cls = registry.get_provider_class(pid)
+            if provider_cls is None:
+                return ErrorResponse.from_message(
+                    f"PA provider '{pid}' not found", HTTP_404_NOT_FOUND
+                )
+
+            try:
+                config.provider = None  # pass the class directly below
+                if credentials is not None and credentials.credentials != "secret":
+                    config.api_key = credentials.credentials
+
+                response = self.client.chat.completions.create(
+                    **filter_none(
+                        **(
+                            config.model_dump(exclude_none=True)
+                            if hasattr(config, "model_dump")
+                            else config.dict(exclude_none=True)
+                        ),
+                        **{
+                            "conversation_id": None,
+                            "provider": provider_cls,
+                        },
+                    ),
+                )
+
+                if not config.stream:
+                    return await response
+
+                async def streaming():
+                    try:
+                        async for chunk in response:
+                            if not isinstance(chunk, BaseConversation):
+                                yield (
+                                    f"data: "
+                                    f"{chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}"
+                                    f"\n\n"
+                                )
+                    except GeneratorExit:
+                        pass
+                    except Exception as e:
+                        logger.exception(e)
+                        yield f"data: {format_exception(e, config)}\n\n"
+                    yield "data: [DONE]\n\n"
+
+                return StreamingResponse(streaming(), media_type="text/event-stream")
+
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
+            except (MissingAuthError, NoValidHarFileError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        @self.app.post("/pa/backend-api/v2/conversation", responses={
+            HTTP_200_OK: {},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        })
+        async def pa_backend_conversation(request: Request):
+            """GUI-compatible streaming conversation endpoint for PA providers.
+
+            Accepts the same JSON body as ``/backend-api/v2/conversation`` and
+            streams Server-Sent Events in the same format used by the gpt4free
+            web interface (``{"type": "content", "content": "..."}`` etc.).
+
+            The ``provider`` field should contain the opaque PA provider ID
+            returned by ``GET /pa/providers``.  When omitted the first available
+            PA provider is used.
+            """
+            from g4f.mcp.pa_provider import get_pa_registry
+
+            try:
+                body = await request.json()
+            except Exception:
+                return ErrorResponse.from_message(
+                    "Invalid JSON body", HTTP_422_UNPROCESSABLE_ENTITY
+                )
+
+            registry = get_pa_registry()
+            pid = body.get("provider")
+            if pid:
+                provider_cls = registry.get_provider_class(pid)
+                if provider_cls is None:
+                    return ErrorResponse.from_message(
+                        f"PA provider '{pid}' not found", HTTP_404_NOT_FOUND
+                    )
+            else:
+                listing = registry.list_providers()
+                if not listing:
+                    return ErrorResponse.from_message(
+                        "No PA providers found in workspace", HTTP_404_NOT_FOUND
+                    )
+                provider_cls = registry.get_provider_class(listing[0]["id"])
+
+            provider_label = getattr(provider_cls, "label", provider_cls.__name__)
+            messages = body.get("messages") or []
+            model = body.get("model") or getattr(provider_cls, "default_model", "") or ""
+
+            async def gen_backend_stream():
+                yield (
+                    "data: "
+                    + json.dumps({"type": "provider", "provider": provider_label, "model": model})
+                    + "\n\n"
+                )
+                try:
+                    response = self.client.chat.completions.create(
+                        messages=messages,
+                        model=model,
+                        provider=provider_cls,
+                        stream=True,
+                    )
+                    async for chunk in response:
+                        if isinstance(chunk, BaseConversation):
+                            continue
+                        text = ""
+                        if hasattr(chunk, "choices") and chunk.choices:
+                            delta = chunk.choices[0].delta
+                            text = getattr(delta, "content", "") or ""
+                        if text:
+                            yield (
+                                "data: "
+                                + json.dumps({"type": "content", "content": text})
+                                + "\n\n"
+                            )
+                except GeneratorExit:
+                    pass
+                except Exception as e:
+                    logger.exception(e)
+                    yield (
+                        "data: "
+                        + json.dumps({"type": "error", "error": f"{type(e).__name__}: {e}"})
+                        + "\n\n"
+                    )
+                yield (
+                    "data: "
+                    + json.dumps({"type": "finish", "finish": "stop"})
+                    + "\n\n"
+                )
+
+            return StreamingResponse(gen_backend_stream(), media_type="text/event-stream")
+
+        # ------------------------------------------------------------------ #
+        # PA workspace static file serving (HTML/CSS/JS/images for browser)   #
+        # ------------------------------------------------------------------ #
+
+        #: MIME types that are safe to serve for browser rendering.
+        #: Only these extensions are allowed; all others are refused with 403.
+        _WORKSPACE_SAFE_TYPES: dict[str, str] = {
+            "html": "text/html; charset=utf-8",
+            "htm":  "text/html; charset=utf-8",
+            "css":  "text/css; charset=utf-8",
+            "js":   "application/javascript; charset=utf-8",
+            "mjs":  "application/javascript; charset=utf-8",
+            "json": "application/json; charset=utf-8",
+            "txt":  "text/plain; charset=utf-8",
+            "md":   "text/markdown; charset=utf-8",
+            "svg":  "image/svg+xml",
+            "png":  "image/png",
+            "jpg":  "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif":  "image/gif",
+            "webp": "image/webp",
+            "ico":  "image/x-icon",
+            "woff":  "font/woff",
+            "woff2": "font/woff2",
+            "ttf":   "font/ttf",
+            "otf":   "font/otf",
+        }
+
+        @self.app.get("/pa/files/{file_path:path}", responses={
+            HTTP_200_OK: {},
+            HTTP_403_FORBIDDEN: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        async def pa_serve_workspace_file(file_path: str, request: Request):
+            """Securely serve a workspace file for browser rendering.
+
+            Only files within ``~/.g4f/workspace`` can be served.  Path
+            traversal (``..``) is blocked.  Only the MIME types listed in
+            ``_WORKSPACE_SAFE_TYPES`` are served; all other extensions are
+            refused with **403 Forbidden** so that sensitive file types (e.g.
+            ``.env``, ``.pa.py``, ``.py``) can never be read via this route.
+
+            HTML files are served with a ``Content-Security-Policy: sandbox``
+            directive (without ``allow-same-origin``), which forces the page
+            into a unique *null* browser origin.  As a result the page cannot
+            access ``localStorage``, ``sessionStorage``, ``IndexedDB``, or
+            cookies belonging to the g4f server origin — the browser rejects
+            all such calls with a ``SecurityError``.  The actual request
+            origin (``scheme://host``) is used in every source directive (e.g.
+            ``default-src``) instead of ``'self'``, so that co-located CSS,
+            JS, images, and fonts still load correctly despite the document
+            having a null origin.
+
+            Non-HTML sub-resources (CSS, JS, images, fonts) are served without
+            the ``sandbox`` directive; they are leaf resources and do not run
+            in their own browsing context.
+            """
+            from g4f.mcp.pa_provider import get_workspace_dir
+            workspace = get_workspace_dir()
+
+            # Normalise and check for traversal
+            try:
+                resolved = (workspace / file_path).resolve()
+                resolved.relative_to(workspace.resolve())
+            except (ValueError, Exception):
+                return ErrorResponse.from_message(
+                    "Path traversal is not allowed", HTTP_403_FORBIDDEN
+                )
+
+            if not resolved.exists() or not resolved.is_file():
+                return ErrorResponse.from_message(
+                    f"File not found: {file_path}", HTTP_404_NOT_FOUND
+                )
+
+            ext = resolved.suffix.lstrip(".").lower()
+            mime_type = _WORKSPACE_SAFE_TYPES.get(ext)
+            if mime_type is None:
+                return ErrorResponse.from_message(
+                    f"File type '.{ext}' is not allowed for browser rendering",
+                    HTTP_403_FORBIDDEN,
+                )
+
+            # Derive the actual request origin (scheme + authority) from the
+            # ASGI scope via request.url — this is set by the server
+            # infrastructure and is not controllable by the client (unlike the
+            # Host header, which can be spoofed to inject arbitrary values into
+            # the CSP).  request.url.netloc includes the port when non-default.
+            request_origin = f"{request.url.scheme}://{request.url.netloc}"
+
+            is_html = ext in ("html", "htm")
+            if is_html:
+                # HTML documents are served with the CSP sandbox directive
+                # (without allow-same-origin).  This forces the page into a
+                # unique null browsing-context origin so that it cannot access
+                # the g4f server's localStorage, sessionStorage, IndexedDB, or
+                # cookies.  The page can still load sub-resources (CSS, JS,
+                # images) because they are referenced by the explicit
+                # request_origin in the source directives.
+                csp = (
+                    "sandbox allow-scripts allow-forms allow-downloads allow-popups; "
+                    f"default-src {request_origin}; "
+                    f"script-src {request_origin} 'unsafe-inline'; "
+                    f"style-src {request_origin} 'unsafe-inline'; "
+                    f"img-src {request_origin} data:; "
+                    f"font-src {request_origin} data:; "
+                    "connect-src 'none'; "
+                    "object-src 'none'; "
+                    "base-uri 'none';"
+                )
+            else:
+                # Non-HTML sub-resources (CSS, JS, images, fonts) don't need
+                # sandboxing — they are leaf assets without their own browsing
+                # context.  Use the request origin for source directives.
+                csp = (
+                    f"default-src {request_origin}; "
+                    f"script-src {request_origin} 'unsafe-inline'; "
+                    f"style-src {request_origin} 'unsafe-inline'; "
+                    f"img-src {request_origin} data:; "
+                    f"font-src {request_origin} data:; "
+                    "connect-src 'none'; "
+                    "object-src 'none'; "
+                    "base-uri 'none';"
+                )
+
+            headers = {
+                # Prevent the browser from sniffing a different content-type
+                "X-Content-Type-Options": "nosniff",
+                # Prevent this page from being framed by untrusted origins
+                "X-Frame-Options": "SAMEORIGIN",
+                # Basic XSS filter (belt-and-suspenders; CSP is more important)
+                "X-XSS-Protection": "1; mode=block",
+                "Content-Security-Policy": csp,
+                # Restrict powerful browser APIs that workspace pages don't need
+                "Permissions-Policy": (
+                    "geolocation=(), camera=(), microphone=(), "
+                    "payment=(), usb=(), fullscreen=()"
+                ),
+                "Cache-Control": "no-store",
+            }
+
+            return FileResponse(
+                str(resolved),
+                media_type=mime_type,
+                headers=headers,
+            )
 
         responses = {
             HTTP_200_OK: {"model": TranscriptionResponseModel},
