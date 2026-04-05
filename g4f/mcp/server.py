@@ -143,14 +143,7 @@ class MCPServer:
                 return MCPResponse(
                     jsonrpc="2.0",
                     id=request.id,
-                    result={
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": json.dumps(result, indent=2)
-                            }
-                        ]
-                    }
+                    result=result
                 )
             
             elif method == "ping":

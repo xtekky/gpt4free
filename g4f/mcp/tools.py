@@ -760,7 +760,7 @@ class FileListTool(MCPTool):
                     continue
 
             result: Dict[str, Any] = {
-                "workspace": str(workspace),
+                "workspace": "" if self.safe_mode else str(workspace),
                 "path": rel_path or "/",
                 "entries": entries,
                 "count": len(entries),
