@@ -78,6 +78,16 @@ class Ollama(OpenaiTemplate):
                             "used_percent": pct,
                             "reset_time": reset_time,
                         }
+                    match = re.search(r'<span class="text-sm">Premium requests</span>\s*<span class="text-sm">(\d+)/(\d+) used</span>\s*</div>', html)
+                    if match:
+                        used = int(match.group(1))
+                        total = int(match.group(2))
+                        pct = (used / total) * 100 if total > 0 else None
+                        quota["premium_requests"] = {
+                            "used": used,
+                            "total": total,
+                            "used_percent": pct,
+                        }
         except Exception as e:
             raise RuntimeError(f"Failed to get quota information from Ollama: {e}")
         if not quota:

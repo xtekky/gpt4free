@@ -129,6 +129,8 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         if prompt not in RequestConfig.urls:
             RequestConfig.urls[prompt] = []
         def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
+            if not hasattr(event, "request"):
+                return
             if event.request.url.startswith(cls.drive_url) or ".mp4" in event.request.url:
                 RequestConfig.headers = {}
                 for key, value in event.request.headers.items():

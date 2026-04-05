@@ -71,6 +71,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
     check_status_endpoint = "https://composer.opera-api.com/api/v1/images/check-status/"
     
     working = True
+    active_by_default = True
     needs_auth = False
     supports_stream = True
     supports_system_message = True
