@@ -224,7 +224,7 @@ class Api:
             return (
                 path.startswith("/v1")
                 or path.startswith("/api/")
-                or path.startswith("/pa/")
+                or (path.startswith("/pa/") and not demo)
                 or (demo and path == "/backend-api/v2/upload_cookies")
             )
 
@@ -765,95 +765,6 @@ class Api:
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
-
-        @self.app.post("/pa/backend-api/v2/conversation", responses={
-            HTTP_200_OK: {},
-            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
-            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
-            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
-        })
-        async def pa_backend_conversation(request: Request):
-            """GUI-compatible streaming conversation endpoint for PA providers.
-
-            Accepts the same JSON body as ``/backend-api/v2/conversation`` and
-            streams Server-Sent Events in the same format used by the gpt4free
-            web interface (``{"type": "content", "content": "..."}`` etc.).
-
-            The ``provider`` field should contain the opaque PA provider ID
-            returned by ``GET /pa/providers``.  When omitted the first available
-            PA provider is used.
-            """
-            from g4f.mcp.pa_provider import get_pa_registry
-
-            try:
-                body = await request.json()
-            except Exception:
-                return ErrorResponse.from_message(
-                    "Invalid JSON body", HTTP_422_UNPROCESSABLE_ENTITY
-                )
-
-            registry = get_pa_registry()
-            pid = body.get("provider")
-            if pid:
-                provider_cls = registry.get_provider_class(pid)
-                if provider_cls is None:
-                    return ErrorResponse.from_message(
-                        f"PA provider '{pid}' not found", HTTP_404_NOT_FOUND
-                    )
-            else:
-                listing = registry.list_providers()
-                if not listing:
-                    return ErrorResponse.from_message(
-                        "No PA providers found in workspace", HTTP_404_NOT_FOUND
-                    )
-                provider_cls = registry.get_provider_class(listing[0]["id"])
-
-            provider_label = getattr(provider_cls, "label", provider_cls.__name__)
-            messages = body.get("messages") or []
-            model = body.get("model") or getattr(provider_cls, "default_model", "") or ""
-
-            async def gen_backend_stream():
-                yield (
-                    "data: "
-                    + json.dumps({"type": "provider", "provider": provider_label, "model": model})
-                    + "\n\n"
-                )
-                try:
-                    response = self.client.chat.completions.create(
-                        messages=messages,
-                        model=model,
-                        provider=provider_cls,
-                        stream=True,
-                    )
-                    async for chunk in response:
-                        if isinstance(chunk, BaseConversation):
-                            continue
-                        text = ""
-                        if hasattr(chunk, "choices") and chunk.choices:
-                            delta = chunk.choices[0].delta
-                            text = getattr(delta, "content", "") or ""
-                        if text:
-                            yield (
-                                "data: "
-                                + json.dumps({"type": "content", "content": text})
-                                + "\n\n"
-                            )
-                except GeneratorExit:
-                    pass
-                except Exception as e:
-                    logger.exception(e)
-                    yield (
-                        "data: "
-                        + json.dumps({"type": "error", "error": f"{type(e).__name__}: {e}"})
-                        + "\n\n"
-                    )
-                yield (
-                    "data: "
-                    + json.dumps({"type": "finish", "finish": "stop"})
-                    + "\n\n"
-                )
-
-            return StreamingResponse(gen_backend_stream(), media_type="text/event-stream")
 
         # ------------------------------------------------------------------ #
         # PA workspace static file serving (HTML/CSS/JS/images for browser)   #
