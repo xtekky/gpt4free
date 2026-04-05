@@ -392,6 +392,75 @@ class MCPServer:
                 sys.stderr.write(f"Synthesize error: {e}\n")
                 return web.Response(status=500, text=f"Synthesize error: {str(e)}")
         
+        _WORKSPACE_SAFE_TYPES: Dict[str, str] = {
+            "html": "text/html; charset=utf-8",
+            "htm":  "text/html; charset=utf-8",
+            "css":  "text/css; charset=utf-8",
+            "js":   "application/javascript; charset=utf-8",
+            "mjs":  "application/javascript; charset=utf-8",
+            "json": "application/json; charset=utf-8",
+            "txt":  "text/plain; charset=utf-8",
+            "md":   "text/markdown; charset=utf-8",
+            "svg":  "image/svg+xml",
+            "png":  "image/png",
+            "jpg":  "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif":  "image/gif",
+            "webp": "image/webp",
+            "ico":  "image/x-icon",
+            "woff":  "font/woff",
+            "woff2": "font/woff2",
+            "ttf":   "font/ttf",
+            "otf":   "font/otf",
+        }
+
+        async def handle_pa_providers(request: web.Request) -> web.Response:
+            """List all PA providers from workspace."""
+            from .pa_provider import get_pa_registry
+            providers = get_pa_registry().list_providers()
+            return web.json_response(providers, headers={"access-control-allow-origin": "*"})
+
+        async def handle_pa_file(request: web.Request) -> web.Response:
+            """Securely serve a workspace file for browser rendering.
+
+            Only files within ``~/.g4f/workspace`` are served.  Path traversal
+            is blocked.  Only the MIME types in ``_WORKSPACE_SAFE_TYPES`` are
+            allowed — ``.py``, ``.env``, and other sensitive types return 403.
+            HTML files are served with a ``Content-Security-Policy: sandbox``
+            header so they run in an isolated null origin.
+            """
+            from .pa_provider import get_workspace_dir
+            workspace = get_workspace_dir()
+
+            file_path = request.match_info.get("file_path", "")
+            try:
+                resolved = (workspace / file_path).resolve()
+                resolved.relative_to(workspace.resolve())
+            except (ValueError, Exception):
+                return web.Response(status=403, text="Path traversal is not allowed")
+
+            if not resolved.exists() or not resolved.is_file():
+                return web.Response(status=404, text=f"File not found: {file_path}")
+
+            ext = resolved.suffix.lstrip(".").lower()
+            mime = _WORKSPACE_SAFE_TYPES.get(ext)
+            if mime is None:
+                return web.Response(status=403, text=f"File type not allowed: .{ext}")
+
+            content = resolved.read_bytes()
+            headers: Dict[str, str] = {"access-control-allow-origin": "*"}
+            if ext in ("html", "htm"):
+                req_origin = f"{request.scheme}://{request.host}"
+                headers["content-security-policy"] = (
+                    f"sandbox allow-scripts allow-forms allow-popups; "
+                    f"default-src {req_origin}; "
+                    f"img-src {req_origin} data: blob:; "
+                    f"font-src {req_origin}; "
+                    f"style-src {req_origin} 'unsafe-inline'; "
+                    f"script-src {req_origin} 'unsafe-inline'"
+                )
+            return web.Response(body=content, content_type=mime.split(";")[0].strip(), headers=headers)
+
         # Create aiohttp application
         app = web.Application()
         app.router.add_options('/mcp', lambda request: web.Response(headers={"access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "Content-Type"}))
@@ -399,13 +468,17 @@ class MCPServer:
         app.router.add_get('/health', handle_health)
         app.router.add_get('/media/{filename:.*}', handle_media)
         app.router.add_get('/backend-api/v2/synthesize/{provider}', handle_synthesize)
-        
+        app.router.add_get('/pa/providers', handle_pa_providers)
+        app.router.add_get('/pa/files/{file_path:.*}', handle_pa_file)
+
         # Start server
         sys.stderr.write(f"Starting {self.server_info['name']} v{self.server_info['version']} (HTTP mode)\n")
         sys.stderr.write(f"Listening on http://{host}:{port}\n")
         sys.stderr.write(f"MCP endpoint: http://{host}:{port}/mcp\n")
         sys.stderr.write(f"Health check: http://{host}:{port}/health\n")
         sys.stderr.write(f"Media files: http://{host}:{port}/media/{{filename}}\n")
+        sys.stderr.write(f"PA providers: http://{host}:{port}/pa/providers\n")
+        sys.stderr.write(f"PA files: http://{host}:{port}/pa/files/{{path}}\n")
         sys.stderr.flush()
         
         runner = web.AppRunner(app)

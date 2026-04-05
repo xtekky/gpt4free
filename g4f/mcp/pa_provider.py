@@ -188,7 +188,12 @@ def _exec_in_thread(
     prev = sys.getrecursionlimit()
     sys.setrecursionlimit(max_depth)
     try:
-        exec(compiled, safe_globals, local_vars)  # noqa: S102
+        # Use safe_globals as both globals and locals so that top-level
+        # imports (e.g. ``from aiohttp import ClientSession``) are stored in
+        # the same namespace that class method ``__globals__`` points to.
+        # Otherwise imports land only in the locals dict and are invisible
+        # to class methods (NameError at call time).
+        exec(compiled, safe_globals, safe_globals)  # noqa: S102
     except Exception:  # noqa: BLE001
         exc_box.append(traceback.format_exc())
     finally:
@@ -349,8 +354,6 @@ def execute_safe_code(
     if extra_globals:
         safe_globals.update(extra_globals)
 
-    local_vars: Dict[str, Any] = {}
-
     # Compile outside the thread so SyntaxErrors surface immediately.
     try:
         compiled = compile(code, "<pa_provider>", "exec")
@@ -369,7 +372,7 @@ def execute_safe_code(
     exc_box: List = []
     thread = threading.Thread(
         target=_exec_in_thread,
-        args=(compiled, safe_globals, local_vars, max_depth, exc_box),
+        args=(compiled, safe_globals, safe_globals, max_depth, exc_box),
         daemon=True,
         name="g4f-sandbox",
     )
@@ -410,8 +413,8 @@ def execute_safe_code(
         success=True,
         stdout=stdout,
         stderr=stderr,
-        result=local_vars.get("result"),
-        locals=local_vars,
+        result=safe_globals.get("result"),
+        locals=safe_globals,
     )
 
 

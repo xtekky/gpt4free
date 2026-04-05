@@ -682,11 +682,15 @@ class FileWriteTool(MCPTool):
                     f.write(content)
             else:
                 target.write_text(content, encoding="utf-8")
-            return {
+            result: Dict[str, Any] = {
                 "path": rel_path,
                 "size": len(content),
                 "appended": append,
             }
+            origin = arguments.get("origin")
+            if origin:
+                result["url"] = f"{origin}/pa/files/{rel_path}"
+            return result
         except Exception as exc:
             return {"error": f"Write failed: {exc}"}
 
