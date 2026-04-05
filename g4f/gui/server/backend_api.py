@@ -225,9 +225,10 @@ class Backend_Api(Api):
             except json.JSONDecodeError as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": "Invalid JSON data"}}), 400
-            for key in ["base_url", "proxy"]:
-                if key in json_data:
-                    del json_data[key]  # Remove unsupported fields for security
+            if "proxy" in json_data:
+                del json_data["proxy"]
+            if json_data.get("provider") != "Custom" and "base_url" in json_data:
+                del json_data["base_url"]
             if app.demo and has_crypto:
                 secret = request.headers.get("x-secret", request.headers.get("x_secret"))
                 if not secret or not validate_secret(secret):
@@ -676,8 +677,9 @@ class Backend_Api(Api):
 
     def get_provider_models(self, provider: str):
         api_key = request.headers.get("x-api-key")
+        base_url = request.headers.get("x-api-base") if provider == "Custom" else None
         ignored = request.headers.get("x-ignored", "").split()
-        return super().get_provider_models(provider, api_key, ignored)
+        return super().get_provider_models(provider, api_key, base_url, ignored)
 
     def _format_json(self, response_type: str, content = None, **kwargs) -> str:
         """

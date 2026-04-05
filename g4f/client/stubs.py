@@ -41,6 +41,8 @@ class CompletionTokenDetails(BaseModel):
     reasoning_tokens: int
     image_tokens: int
     audio_tokens: int
+    accepted_prediction_tokens: Optional[int] = None
+    rejected_prediction_tokens: Optional[int] = None
 
 class UsageModel(BaseModel):
     prompt_tokens: int

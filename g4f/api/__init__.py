@@ -348,7 +348,7 @@ class Api:
                     "vision": bool(getattr(provider, "vision_models", False)),
                     "provider": True,
                 } for provider_name, provider in ProviderUtils.convert.items()
-                    if provider.working and provider_name not in ("Custom")
+                    if provider.working
                 ]
             }
 

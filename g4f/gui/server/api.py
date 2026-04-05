@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 class Api:
     @staticmethod
-    def get_provider_models(provider: str, api_key: str = None, ignored: list = None):
+    def get_provider_models(provider: str, api_key: str = None, base_url: str = None, ignored: list = None):
         def get_model_data(provider: ProviderModelMixin, model: str, default: bool = False) -> dict:
             model_id = model.get("id") if isinstance(model, dict) else model
             return {
@@ -53,7 +53,7 @@ class Api:
                 has_grouped_models = hasattr(provider, "get_grouped_models")
                 method = provider.get_grouped_models if has_grouped_models else provider.get_models
                 if "api_key" in signature(provider.get_models).parameters:
-                    models = method(api_key=api_key)
+                    models = method(api_key=api_key, base_url=base_url)
                 elif "ignored" in signature(provider.get_models).parameters:
                     models = method(ignored=ignored)
                 else:

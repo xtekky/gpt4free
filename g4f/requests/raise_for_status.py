@@ -58,6 +58,8 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
         raise ResponseStatusError(f"Response {response.status}: Bad Gateway")
     elif response.status == 504:
         raise RateLimitError(f"Response {response.status}: Gateway Timeout ")
+    elif response.status == 400 and "API key not valid" in message:
+        raise MissingAuthError(f"Response {response.status}: Invalid API key")
     else:
         raise ResponseStatusError(f"Response {response.status}: {'HTML content' if is_html else message}")
 
@@ -85,5 +87,7 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
         raise ResponseStatusError(f"Response {response.status_code}: Bad Gateway")
     elif response.status_code == 504:
         raise RateLimitError(f"Response {response.status_code}: Gateway Timeout ")
+    elif response.status_code == 400 and "API key not valid" in message:
+        raise MissingAuthError(f"Response {response.status_code}: Invalid API key")
     else:
         raise ResponseStatusError(f"Response {response.status_code}: {'HTML content' if is_html else message}")
