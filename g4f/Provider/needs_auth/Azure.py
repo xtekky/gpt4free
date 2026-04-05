@@ -17,7 +17,6 @@ class Azure(OpenaiTemplate):
     base_url = "https://g4f.space/api/azure"
     working = True
     active_by_default = False
-    login_url = "https://discord.gg/qXA4Wf4Fsm"
     quota_url = "https://g4f.space/api/azure/chat/completions"
     routes: dict[str, str] = {}
     audio_models = ["gpt-4o-mini-audio-preview"]
