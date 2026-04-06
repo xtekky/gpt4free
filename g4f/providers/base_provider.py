@@ -23,7 +23,6 @@ from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..requests import raise_for_status
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError
-from ..tools.auth import AuthManager
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -408,10 +407,6 @@ class ProviderModelMixin:
         if not cls.models_loaded and hasattr(cls, "get_cache_file"):
             if cls.get_cache_file().exists():
                 cls.live += 1
-            elif not api_key:
-                api_key = AuthManager.load_api_key(cls)
-                if api_key:
-                    cls.live += 1
         cls.models_loaded = True
         return cls.models
 

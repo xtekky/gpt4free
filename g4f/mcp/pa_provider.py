@@ -204,6 +204,32 @@ def _make_restricted_import(allowed: FrozenSet[str]):
     """Return a ``__import__`` replacement that only allows *allowed* modules."""
     original = _builtins.__import__
 
+    # Sensitive g4f submodules that must never be accessible inside a sandbox,
+    # regardless of the top-level module being in *allowed*.
+    _BLOCKED_SUBMODULES: FrozenSet[str] = frozenset({
+        # API-key / credential management
+        "g4f.tools.auth",
+        "g4f.tools.run_tools",
+        # App config (holds g4f_api_key, disable_custom_api_key, …)
+        "g4f.config",
+        # Cookie / session storage
+        "g4f.cookies",
+        # Internals that expose auth helpers transitively
+        "g4f.providers.retry_provider",
+        "g4f.providers.config_provider",
+        # Block the entire Provider package; only specific safe submodules are
+        # explicitly permitted via _ALLOWED_G4F_SUBPATHS below.
+        "g4f.Provider",
+    })
+
+    # Explicit allowlist for g4f sub-paths that would otherwise be blocked.
+    # Checked *before* the blocklist so these entries take priority.
+    _ALLOWED_G4F_SUBPATHS: FrozenSet[str] = frozenset({
+        "g4f.Provider.helper",
+        "g4f.Provider.base_provider",
+        "g4f.typing",
+    })
+
     def _restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
         if level > 0:
             raise ImportError(
@@ -215,6 +241,26 @@ def _make_restricted_import(allowed: FrozenSet[str]):
                 f"Import of '{name}' is not allowed in safe execution mode.\n"
                 f"Allowed top-level modules: {', '.join(sorted(allowed))}"
             )
+        # Explicit allowlist takes priority over the blocklist below.
+        # This permits e.g. "g4f.Provider.helper" even though "g4f.Provider"
+        # is blocked.
+        for allowed_sub in _ALLOWED_G4F_SUBPATHS:
+            if name == allowed_sub or name.startswith(allowed_sub + "."):
+                return original(name, globals, locals, fromlist, level)
+        # Block sensitive g4f submodules even though g4f itself is allowed.
+        if name in _BLOCKED_SUBMODULES:
+            raise ImportError(
+                f"Import of '{name}' is not allowed inside a .pa.py sandbox "
+                f"for security reasons."
+            )
+        # Also block when a blocked submodule is the parent of a deeper import
+        # (e.g. "g4f.tools.auth.something", "g4f.Provider.OpenAI").
+        for blocked in _BLOCKED_SUBMODULES:
+            if name.startswith(blocked + "."):
+                raise ImportError(
+                    f"Import of '{name}' is not allowed inside a .pa.py sandbox "
+                    f"for security reasons."
+                )
         return original(name, globals, locals, fromlist, level)
 
     return _restricted_import
