@@ -17,7 +17,6 @@ import os
 import sys
 from argparse import ArgumentParser
 
-# Local imports (within g4f package)
 from .client import get_parser, run_client_args
 from ..requests import BrowserConfig
 from ..gui.run import gui_parser, run_gui_args
@@ -25,7 +24,7 @@ from ..config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
 from ..Provider.needs_auth.Antigravity import cli_main as antigravity_cli_main
 from ..Provider.qwen.QwenCode import cli_main as qwen_cli_main
 from ..Provider.github.GithubCopilot import cli_main as github_cli_main
-from g4f.Provider.needs_auth.GeminiCLI import cli_main as gemini_cli_main
+from ..Provider.needs_auth.GeminiCLI import cli_main as gemini_cli_main
 from .. import Provider
 from .. import cookies
 
@@ -301,26 +300,33 @@ def main():
     
 
     mode_parser = ArgumentParser(description="Select mode to run g4f in.", exit_on_error=False)
-    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth"], default="api", help="Mode to run g4f in (default: api).")
+    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "debug"], default="api", help="Mode to run g4f in (default: api).")
     
     # Preserve original remaining so the API parser gets all args if mode
     # detection fails (e.g. `python -m g4f --port 8080` without a mode prefix).
     original_remaining = remaining
     try:
-        args, remaining = mode_parser.parse_known_args(remaining)
-    except (argparse.ArgumentError, SystemExit):
-        # If mode parsing fails (e.g. a port number or unknown flag appears
-        # before the mode positional), fall back to API mode and restore the
-        # original argument list so the API parser can handle them.
-        args = argparse.Namespace(mode="api")
-        remaining = original_remaining
-    try:
+        try:
+            args, remaining = mode_parser.parse_known_args(remaining)
+        except argparse.ArgumentError:
+            parser = get_api_parser(exit_on_error=False)
+            args = parser.parse_args(remaining)
+            run_api_args(args)
+            return
         if args.mode == "auth":
             parser = get_auth_parser()
             args, remaining = parser.parse_known_args(remaining)
             print(f"Handling auth for provider: {args.provider}, action: {args.action}")
             handle_auth(args.provider, args.action, remaining)
             return
+        elif args.mode == "debug":
+            parser = get_api_parser()
+            args = parser.parse_args(remaining)
+            args.debug = True
+            args.reload = True
+            if args.port is None:
+                args.port = 8080
+            run_api_args(args)
         elif args.mode == "api":
             parser = get_api_parser()
             args = parser.parse_args(remaining)
@@ -345,16 +351,12 @@ def main():
             )
 
     except argparse.ArgumentError:
-        # Fallback chain:
-        # 1. Try client mode
+        # Try client mode
         try:
-            run_client_args(
-                get_parser(exit_on_error=False).parse_args(),
-                exit_on_error=False
-            )
-        except argparse.ArgumentError:
-            # 2. Try API mode with default arguments
-            run_api_args(get_api_parser().parse_args())
+        run_client_args(
+            get_parser(exit_on_error=False).parse_args(),
+            exit_on_error=False
+        )
 
 def generate_autocomplete():
     # Top-level commands and their subcommands/options
