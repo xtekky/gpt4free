@@ -32,6 +32,7 @@ except ImportError:
     has_curl_cffi = False
 try:
     import zendriver as nodriver
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -264,6 +265,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def get_args(cls, proxy, **kwargs):
         grecaptcha = []
+
         async def callback(page: nodriver.Tab):
             while not await page.evaluate('window.__baxia__ && window.__baxia__.getFYModule'):
                 await asyncio.sleep(1)
@@ -274,6 +276,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 grecaptcha.append(captcha)
             else:
                 raise Exception(captcha)
+
         args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
 
         return args, next(iter(grecaptcha))
@@ -288,7 +291,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 raise CloudflareError(message or html)
 
     @classmethod
-    def _get_headers(cls, token = None):
+    def _get_headers(cls, token=None):
         data = generate_cookies()
         # args,ua  = await cls.get_args(proxy, **kwargs)
         headers = {
@@ -309,7 +312,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         if token:
             headers['Authorization'] = f'Bearer {token}'
         return headers
-    
+
     @classmethod
     async def _get_req_headers(cls, session, proxy=None):
         if not cls._midtoken:
@@ -344,28 +347,28 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 "timestamp": int(time() * 1000)
             }
             async with session.post(
-                f'{cls.url}/api/v2/chats/new', json=chat_payload,
-                headers=await cls._get_req_headers(session, proxy=kwargs.get("proxy")),
-                proxy=kwargs.get("proxy")
+                    f'{cls.url}/api/v2/chats/new', json=chat_payload,
+                    headers=await cls._get_req_headers(session, proxy=kwargs.get("proxy")),
+                    proxy=kwargs.get("proxy")
             ) as resp:
                 await cls.raise_for_status(resp)
                 return await resp.json()
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        media: MediaListType = None,
-        conversation: JsonConversation = None,
-        proxy: str = None,
-        stream: bool = True,
-        reasoning_effort: Optional[Literal["low", "medium", "high"]] = "medium",
-        chat_type: Literal[
-            "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
-        ] = "t2t",
-        aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            media: MediaListType = None,
+            conversation: JsonConversation = None,
+            proxy: str = None,
+            stream: bool = True,
+            reasoning_effort: Optional[Literal["low", "medium", "high"]] = "medium",
+            chat_type: Literal[
+                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+            ] = "t2t",
+            aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+            **kwargs
     ) -> AsyncResult:
         """
         chat_type:
@@ -381,6 +384,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
         enable_thinking = reasoning_effort in ("medium", "high")
+        thinking_mode: Literal["Auto", "Thinking", "Fast"] = kwargs.get("thinking_mode", "Auto")
         timeout = kwargs.get("timeout") or 5 * 60
         token = kwargs.get("token")
         async with StreamSession(headers=cls._get_headers(token)) as session:
@@ -404,8 +408,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             "timestamp": int(time() * 1000)
                         }
                         async with session.post(
-                            f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
-                            proxy=proxy
+                                f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
+                                proxy=proxy
                         ) as resp:
                             await cls.raise_for_status(resp)
                             data = await resp.json()
@@ -421,6 +425,21 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     if media:
                         files = await cls.prepare_files(media, session=session,
                                                         headers=req_headers)
+
+                    feature_config = {
+                        "auto_thinking": "Auto" == thinking_mode,
+                        "thinking_mode": thinking_mode,
+                        # "thinking_format": "summary",
+                        "thinking_enabled": enable_thinking,
+                        "output_schema": "phase",
+                        # "instructions": None,
+                        "research_mode": "normal",
+                        "auto_search": True
+                    } if enable_thinking else {
+                        "thinking_enabled": enable_thinking,
+                        "output_schema": "phase",
+                        "thinking_budget": 81920
+                    }
 
                     msg_payload = {
                         "stream": stream,
@@ -440,28 +459,19 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 "files": files,
                                 "models": [model_name],
                                 "chat_type": chat_type,
-                                "feature_config": {
-                                    "thinking_enabled": enable_thinking,
-                                    "output_schema": "phase",
-                                    "thinking_budget": 81920
-                                },
+                                "feature_config": feature_config,
                                 "sub_chat_type": chat_type
                             }
                         ]
                     }
-                    if enable_thinking:
-                        msg_payload["messages"][0]["feature_config"] = {
-                            "thinking_enabled": True,
-                            "output_schema": "phase",
-                            "thinking_budget": 81920
-                        }
+
                     if aspect_ratio:
                         msg_payload["size"] = aspect_ratio
 
                     async with session.post(
-                        f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
-                        json=msg_payload,
-                        headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
+                            f'{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}',
+                            json=msg_payload,
+                            headers=req_headers, proxy=proxy, timeout=timeout, cookies=conversation.cookies
                     ) as resp:
                         await cls.raise_for_status(resp)
                         if resp.headers.get("content-type", "").startswith("application/json"):
