@@ -186,8 +186,8 @@ class Backend_Api(Api):
                         stream=True,
                     )
                     for chunk in response:
-                        if chunk.choices and chunk.choices[0].delta:
-                            yield f"data: {json.dumps({'type': 'content', 'content': chunk.choices[0].delta.content})}\n\n"
+                        if chunk.choices[0].delta.content:
+                            yield f"data: {json.dumps({'type': 'content', 'content': str(chunk.choices[0].delta.content)})}\n\n"
                 except GeneratorExit:
                     pass
                 except Exception as e:
