@@ -123,7 +123,7 @@ class AbstractProvider(BaseProvider):
         loop = asyncio.get_running_loop() if loop is None else loop
 
         def create_func() -> str:
-            return concat_chunks(cls.create_completion(model, messages, **kwargs))
+            return concat_chunks(cls.create_completion(model=model, messages=messages, **kwargs))
         try:
             return await asyncio.wait_for(
                 loop.run_in_executor(executor, create_func), timeout=timeout
