@@ -352,7 +352,6 @@ def main():
 
     except argparse.ArgumentError:
         # Try client mode
-        try:
         run_client_args(
             get_parser(exit_on_error=False).parse_args(),
             exit_on_error=False
