@@ -8,7 +8,7 @@ from .Provider import (
     ### No Auth Required ###
     Chatai,
     Cloudflare,
-    Copilot,
+    Ollama,
     DeepInfra,
     HuggingSpace,
     Grok,
@@ -31,7 +31,6 @@ from .Provider import (
     ### Needs Auth ###
     Azure,
     BingCreateImages,
-    CopilotAccount,
     Gemini,
     GeminiCLI,
     GeminiPro,
@@ -153,7 +152,7 @@ default = Model(
     best_provider = IterListProvider([
         OIVSCodeSer0501,
         OIVSCodeSer2,
-        Copilot,
+        Ollama,
         DeepInfra,
         OperaAria,
         GLM,
@@ -181,7 +180,7 @@ default_vision = VisionModel(
         HuggingSpace,
         GeminiPro,
         HuggingFaceAPI,
-        CopilotAccount,
+        Ollama,
         OpenaiAccount,
         Gemini,
     ], shuffle=False)
@@ -191,7 +190,7 @@ default_vision = VisionModel(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Copilot, Yqcloud, WeWordle, OpenaiChat])
+    best_provider = IterListProvider([Yqcloud, WeWordle, OpenaiChat])
 )
 
 # gpt-4o
@@ -223,7 +222,7 @@ gpt_4o_mini_tts = AudioModel(
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Copilot, OpenaiAccount])
+    best_provider = IterListProvider([OpenaiAccount])
 )
 
 o1_mini = Model(
@@ -294,7 +293,7 @@ gpt_oss_120b = Model(
 dall_e_3 = ImageModel(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
+    best_provider = IterListProvider([OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 gpt_image = ImageModel(
