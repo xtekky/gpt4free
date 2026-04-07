@@ -180,7 +180,7 @@ class Backend_Api(Api):
                 )
                 try:
                     provider = provider_cls()
-                    provider.__name__ = provider.__name__
+                    provider.__name__ = provider_cls.__name__
                     response = self.client.chat.completions.create(
                         messages=messages,
                         model=model,
