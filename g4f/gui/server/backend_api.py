@@ -182,7 +182,7 @@ class Backend_Api(Api):
                     response = self.client.chat.completions.create(
                         messages=messages,
                         model=model,
-                        provider=provider_cls,
+                        provider=provider_cls(),
                         stream=True,
                     )
                     for chunk in response:
