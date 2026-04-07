@@ -179,10 +179,12 @@ class Backend_Api(Api):
                     + "\n\n"
                 )
                 try:
+                    provider = provider_cls()
+                    provider.__name__ = provider.__name__
                     response = self.client.chat.completions.create(
                         messages=messages,
                         model=model,
-                        provider=provider_cls(),
+                        provider=provider,
                         stream=True,
                     )
                     for chunk in response:
