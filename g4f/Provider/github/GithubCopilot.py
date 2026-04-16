@@ -174,7 +174,12 @@ class GithubCopilot(OpenaiTemplate):
                         "Please run 'g4f auth github-copilot' to authenticate."
                     ) from e
                 raise
-        return super().get_models(api_key, base_url, timeout)
+        response = super().get_models(api_key, base_url, timeout)
+        if isinstance(response, dict):
+            for key in list(response.keys()):
+                if key.startswith("accounts/") or key.startswith("text-embedding-") or key in ("minimax-m2.5", "goldeneye-free-auto"):
+                    del response[key]
+        return response
 
     @classmethod
     def get_headers(cls, stream: bool, api_key: str | None = None, headers: dict[str, str] | None = None) -> dict[str, str]:

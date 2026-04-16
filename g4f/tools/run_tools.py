@@ -22,6 +22,7 @@ from ..providers.helper import filter_none
 from ..providers.asyncio import to_async_iterator, to_sync_generator
 from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
 from ..providers.types import ProviderType
+from ..providers.base_provider import get_async_provider_method, get_provider_method, wait_for
 from ..cookies import get_cookies_dir
 from ..config import AppConfig
 from .web_search import do_search, get_search_message
@@ -296,9 +297,12 @@ async def async_iter_run_tools(
         kwargs.update(extra_kwargs)
 
     # Generate response
+    method = get_async_provider_method(provider)
     response = to_async_iterator(
-        provider.async_create_function(model=model, messages=messages, **kwargs)
+        method(model=model, messages=messages, **kwargs)
     )
+    timeout = kwargs.get("stream_timeout") if provider.use_stream_timeout else kwargs.get("timeout")
+    response = wait_for(response, timeout=timeout) if stream else response
 
     try:
         usage_model = model
@@ -471,9 +475,10 @@ def iter_run_tools(
         usage_provider = provider.__name__
         completion_tokens = 0
         usage = None
-        for chunk in provider.create_function(
+        method = get_provider_method(provider)
+        for chunk in to_sync_generator(method(
             model=model, messages=messages, provider=provider, **kwargs
-        ):
+        )):
             if isinstance(chunk, FinishReason):
                 if sources is not None:
                     yield sources

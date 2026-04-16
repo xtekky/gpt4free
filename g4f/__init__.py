@@ -11,7 +11,9 @@ from .client import Client, AsyncClient, ClientFactory, create_custom_provider
 from .typing import Messages, CreateResult, AsyncResult, ImageType
 from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
+from .providers.base_provider import get_async_provider_method, get_provider_method
 from .providers.helper import concat_chunks, async_concat_chunks
+from .providers.asyncio import to_sync_generator
 from .client.service import get_model_and_provider
 
 # Configure logger
@@ -69,7 +71,9 @@ class ChatCompletion:
             model, messages, provider, stream, image, image_name,
             ignore_working, ignore_stream, **kwargs
         )
-        result = provider.create_function(model, messages, stream=stream, **kwargs)
+        method = get_provider_method(provider)
+        result = method(model, messages, stream=stream, **kwargs)
+        result = to_sync_generator(result)
         return result if stream or ignore_stream else concat_chunks(result)
 
     @staticmethod
@@ -86,7 +90,8 @@ class ChatCompletion:
             model, messages, provider, stream, image, image_name,
             ignore_working, ignore_stream, **kwargs
         )
-        result = provider.async_create_function(model, messages, stream=stream, **kwargs)
+        method = get_async_provider_method(provider)
+        result = method(model, messages, stream=stream, **kwargs)
         if not stream and not ignore_stream and hasattr(result, "__aiter__"):
             result = async_concat_chunks(result)
         return result

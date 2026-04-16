@@ -7,8 +7,8 @@ from typing import Optional, Union
 from ..typing import AsyncResult, Messages, MediaListType
 from ..client.service import get_model_and_provider
 from ..client.helper import filter_json
-from ..providers.types import ProviderType
-from .base_provider import AsyncGeneratorProvider
+from .types import ProviderType
+from .base_provider import AsyncGeneratorProvider, get_async_provider_method, to_async_iterator
 from .response import ToolCalls, FinishReason, Usage
 
 
@@ -74,14 +74,15 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         finish = None
         chunks = []
         has_usage = False
-        async for chunk in provider.async_create_function(
+        method = get_async_provider_method(provider)
+        async for chunk in to_async_iterator(method(
             model,
             messages,
             stream=stream,
             media=media,
             response_format=response_format,
             **kwargs,
-        ):
+        )):
             if isinstance(chunk, str):
                 chunks.append(chunk)
             elif isinstance(chunk, Usage):

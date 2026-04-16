@@ -152,7 +152,7 @@ async def get_args_from_nodriver(
             await page.wait_for(wait_for, timeout=timeout)
         if callback is not None:
             await callback(page)
-        for c in await page.send(nodriver.cdp.network.get_cookies([url])):
+        for c in await asyncio.wait_for(page.send(nodriver.cdp.network.get_cookies([url])), timeout=timeout):
             cookies[c.name] = c.value
         await stop_browser()
         return {

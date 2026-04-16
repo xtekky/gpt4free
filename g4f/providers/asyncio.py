@@ -45,6 +45,23 @@ async def async_generator_to_list(generator: AsyncIterator) -> list:
 
 def to_sync_generator(generator: AsyncIterator, stream: bool = True, timeout: int = None) -> Iterator:
     loop = get_running_loop(check_nested=False)
+    if asyncio.iscoroutine(generator):
+        if loop is not None:
+            try:
+                result = loop.run_until_complete(generator)
+            except RuntimeError as e:
+                if asyncio.iscoroutine(generator):
+                    try:
+                        generator.close()
+                    except Exception:
+                        pass
+                raise NestAsyncioError(
+                    'Install "nest-asyncio2" package | pip install -U nest-asyncio2'
+                ) from e
+        else:
+            result = asyncio.run(generator)
+        yield result
+        return
     if not stream:
         yield from asyncio.run(async_generator_to_list(generator))
         return
@@ -72,6 +89,9 @@ def to_sync_generator(generator: AsyncIterator, stream: bool = True, timeout: in
 
 # Helper function to convert a synchronous iterator to an async iterator
 async def to_async_iterator(iterator) -> AsyncIterator:
+    if isinstance(iterator, (str, bytes)):
+        yield iterator
+        return
     if hasattr(iterator, '__aiter__'):
         async for item in iterator:
             yield item

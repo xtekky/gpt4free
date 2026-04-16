@@ -539,8 +539,6 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         ):
             yield chunk
 
-    async_create_function = create_async_generator
-
 
 # Clean model names function
 def clean_name(name: str) -> str:
