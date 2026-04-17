@@ -4,6 +4,7 @@ from g4f.errors import MissingAuthError
 
 class ProviderMock(AbstractProvider):
     working = True
+    use_stream_timeout = False
 
     @classmethod
     def create_completion(
@@ -13,6 +14,7 @@ class ProviderMock(AbstractProvider):
 
 class AsyncProviderMock(AsyncProvider):
     working = True
+    use_stream_timeout = False
 
     @classmethod
     async def create_async(
@@ -22,6 +24,7 @@ class AsyncProviderMock(AsyncProvider):
 
 class AsyncGeneratorProviderMock(AsyncGeneratorProvider):
     working = True
+    use_stream_timeout = False
 
     @classmethod
     async def create_async_generator(
@@ -29,8 +32,10 @@ class AsyncGeneratorProviderMock(AsyncGeneratorProvider):
     ):
         yield "Mock"
 
+
 class ModelProviderMock(AbstractProvider):
     working = True
+    use_stream_timeout = False  # Added to fix unittest error
 
     @classmethod
     def create_completion(
@@ -40,6 +45,7 @@ class ModelProviderMock(AbstractProvider):
 
 class YieldProviderMock(AsyncGeneratorProvider):
     working = True
+    use_stream_timeout = False
 
     @classmethod
     async def create_async_generator(
@@ -50,6 +56,7 @@ class YieldProviderMock(AsyncGeneratorProvider):
 
 class YieldImageResponseProviderMock(AsyncGeneratorProvider):
     working = True
+    use_stream_timeout = False
 
     @classmethod
     async def create_async_generator(
@@ -58,6 +65,7 @@ class YieldImageResponseProviderMock(AsyncGeneratorProvider):
         yield ImageResponse(prompt, "")
 
 class MissingAuthProviderMock(AbstractProvider):
+    use_stream_timeout = False
     working = True
 
     @classmethod

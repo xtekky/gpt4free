@@ -109,7 +109,7 @@ class RotatedProvider(BaseRetryProvider):
                 method = get_async_provider_method(provider)
                 response = method(model=alias, messages=messages, **extra_body)
                 started = False
-                async for chunk in to_async_iterator(response):
+                async for chunk in response:
                     if isinstance(chunk, JsonConversation):
                         if conversation is None: conversation = JsonConversation()
                         setattr(conversation, provider.__name__, chunk.get_dict())
@@ -168,7 +168,7 @@ class IterListProvider(BaseRetryProvider):
             try:
                 method = get_async_provider_method(provider)
                 response = method(model=alias, messages=messages, **extra_body)
-                async for chunk in to_async_iterator(response):
+                async for chunk in response:
                     if isinstance(chunk, JsonConversation):
                         if conversation is None:
                             conversation = JsonConversation()
@@ -231,7 +231,7 @@ class RetryProvider(IterListProvider):
                     debug.log(f"Using {provider.__name__} provider (attempt {attempt + 1})")
                     method = get_async_provider_method(provider)
                     response = method(model=model, messages=messages, **kwargs)
-                    async for chunk in to_async_iterator(response):
+                    async for chunk in response:
                         yield chunk
                         if is_content(chunk):
                             started = True
@@ -255,9 +255,6 @@ def raise_exceptions(exceptions: dict) -> None:
         RetryNoProviderError: If no provider is found.
     """
     if exceptions:
-        for provider_name, e in exceptions.items():
-            if isinstance(e, (MissingAuthError, NoValidHarFileError)):
-                raise e
         if len(exceptions) == 1:
             raise list(exceptions.values())[0]
         raise RetryProviderError("RetryProvider failed:\n" + "\n".join([

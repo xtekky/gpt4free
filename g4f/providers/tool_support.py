@@ -75,14 +75,14 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         chunks = []
         has_usage = False
         method = get_async_provider_method(provider)
-        async for chunk in to_async_iterator(method(
-            model,
-            messages,
+        async for chunk in method(
+            model=model,
+            messages=messages,
             stream=stream,
             media=media,
             response_format=response_format,
             **kwargs,
-        )):
+        ):
             if isinstance(chunk, str):
                 chunks.append(chunk)
             elif isinstance(chunk, Usage):

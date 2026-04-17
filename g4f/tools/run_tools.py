@@ -298,9 +298,7 @@ async def async_iter_run_tools(
 
     # Generate response
     method = get_async_provider_method(provider)
-    response = to_async_iterator(
-        method(model=model, messages=messages, **kwargs)
-    )
+    response = method(model=model, messages=messages, **kwargs)
     timeout = kwargs.get("stream_timeout") if provider.use_stream_timeout else kwargs.get("timeout")
     response = wait_for(response, timeout=timeout) if stream else response
 
@@ -476,9 +474,9 @@ def iter_run_tools(
         completion_tokens = 0
         usage = None
         method = get_provider_method(provider)
-        for chunk in to_sync_generator(method(
+        for chunk in method(
             model=model, messages=messages, provider=provider, **kwargs
-        )):
+        ):
             if isinstance(chunk, FinishReason):
                 if sources is not None:
                     yield sources

@@ -89,7 +89,9 @@ def get_async_provider_method(provider: type) -> Optional[callable]:
     if hasattr(provider, "create_async_generator"):
         return provider.create_async_generator
     if hasattr(provider, "create_async"):
-        return provider.create_async
+        async def wrapper(*args, **kwargs):
+            yield await provider.create_async(*args, **kwargs)
+        return wrapper
     if hasattr(provider, "create_completion"):
         async def wrapper(*args, **kwargs):
             for chunk in provider.create_completion(*args, **kwargs):
@@ -102,9 +104,13 @@ def get_provider_method(provider: type) -> Optional[callable]:
     if hasattr(provider, "create_completion"):
         return provider.create_completion
     if hasattr(provider, "create_async_generator"):
-        return provider.create_async_generator
+        def wrapper(*args, **kwargs):
+            return to_sync_generator(provider.create_async_generator(*args, **kwargs), stream=provider.supports_stream)
+        return wrapper
     if hasattr(provider, "create_async"):
-        return provider.create_async
+        def wrapper(*args, **kwargs):
+            yield asyncio.run(provider.create_async(*args, **kwargs))
+        return wrapper
     raise NotImplementedError(f"{provider.__name__} does not implement a create method")
 
 class AbstractProvider(BaseProvider):

@@ -73,7 +73,6 @@ class ChatCompletion:
         )
         method = get_provider_method(provider)
         result = method(model, messages, stream=stream, **kwargs)
-        result = to_sync_generator(result)
         return result if stream or ignore_stream else concat_chunks(result)
 
     @staticmethod
