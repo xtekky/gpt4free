@@ -451,7 +451,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 conversation = copy(conversation)
 
             if conversation_mode is None:
-                conversation_mode = {"kind": "primary_assistant"}
+                _gizmo_id = kwargs.get("gizmo_id")
+                if _gizmo_id:
+                    conversation_mode = {"kind": "gizmo_interaction", "gizmo_id": _gizmo_id}
+                else:
+                    conversation_mode = {"kind": "primary_assistant"}
 
             if getattr(auth_result, "cookies", {}).get("oai-did") != getattr(conversation, "user_id", None):
                 conversation = Conversation(None, str(uuid.uuid4()))
@@ -475,7 +479,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         "model": model,
                         "timezone_offset_min": -120,
                         "timezone": "Europe/Berlin",
-                        "conversation_mode": {"kind": "primary_assistant"},
+                        "conversation_mode": conversation_mode,
                         "system_hints": system_hints,
                         "supports_buffering": True,
                         "supported_encodings": ["v1"]
@@ -536,7 +540,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "model": model,
                     "timezone_offset_min": -120,
                     "timezone": "Europe/Berlin",
-                    "conversation_mode": {"kind": "primary_assistant"},
+                    "conversation_mode": conversation_mode,
                     "enable_message_followups": True,
                     "system_hints": system_hints,
                     "supports_buffering": True,
