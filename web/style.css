@@ -1,0 +1,14 @@
+:root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#a0aec0;--user:#0ea5a4}
+*{box-sizing:border-box}
+body{font-family:system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#061021 0%,#0b1220 100%);color:#e6eef8;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.container{width:100%;max-width:720px;padding:20px;background:var(--card);border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,.6)}
+h1{margin:0 0 12px;font-size:20px}
+.messages{min-height:220px;max-height:60vh;overflow:auto;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;margin-bottom:12px;content-visibility:auto;contain-intrinsic-size:200px}
+.msg{padding:8px 10px;border-radius:8px;margin:6px 0;line-height:1.4}
+.msg.user{background:linear-gradient(90deg,rgba(14,165,164,.12),rgba(124,58,237,.06));color:var(--user);text-align:right}
+.msg.bot{background:rgba(255,255,255,0.02);color:var(--muted);text-align:left}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.chat-form button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+.loading{opacity:.7}
