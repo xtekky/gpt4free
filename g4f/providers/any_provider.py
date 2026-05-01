@@ -31,6 +31,7 @@ from ..Provider import (
     gTTS,
     MarkItDown,
     OpenAIFM,
+    PollinationsAudio,
 )
 from ..Provider import (
     HuggingFace,
@@ -461,9 +462,9 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             # Tool calling is an API-level feature; routing should be based on model/media.
             if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 if kwargs.get("audio", {}).get("language") is None:
-                    providers = [PollinationsAI, OpenAIFM, Gemini]
+                    providers = [PollinationsAudio, OpenAIFM, Gemini]
                 else:
-                    providers = [PollinationsAI, OpenAIFM, EdgeTTS, gTTS]
+                    providers = [PollinationsAudio, OpenAIFM, EdgeTTS, gTTS]
             elif has_audio:
                 providers = [PollinationsAI, Microsoft_Phi_4_Multimodal, MarkItDown]
             elif has_image:

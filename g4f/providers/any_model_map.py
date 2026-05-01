@@ -1140,7 +1140,7 @@ model_map = {
     "ApiAirforce": "z-image"
   },
   "openai-audio": {
-    "PollinationsAI": "openai-audio"
+    "PollinationsAudio": "openai-audio"
   },
   "": {
     "Gemini": "",
@@ -4343,7 +4343,7 @@ parents = {
 model_aliases = {
   "openai": "gpt-5-mini",
   "gpt-4o-mini-2024-07-18": "gpt-4o-mini",
-  "openai-audio": "PollinationsAI:openai-audio",
+  "openai-audio": "PollinationsAudio:openai-audio",
   "coral": "gpt-4o-mini-tts",
   "Think Deeper": "o1",
   "openrouter:openai/o3-mini-high": "o3-mini-high",

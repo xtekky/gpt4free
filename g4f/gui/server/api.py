@@ -62,7 +62,7 @@ class Api:
                     return [{
                         "group": model.get("group"),
                         "models": [get_model_data(provider, name) for name in (model.get("models", {}).values() if isinstance(model.get("models"), dict) else model.get("models", []))]
-                    } for model in models]
+                    } if model.get("models") else model for model in models]
                 return [
                     get_model_data(provider, model)
                     for model in (models.values() if isinstance(models, dict) else models)
