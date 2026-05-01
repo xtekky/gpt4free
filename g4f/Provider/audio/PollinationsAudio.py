@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession, FormData
 from urllib.parse import quote
-
-from curl_cffi import requests
+import requests
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...image import is_data_an_audio
