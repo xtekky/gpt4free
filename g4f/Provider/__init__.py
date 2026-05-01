@@ -21,14 +21,11 @@ try:
 except ImportError as e:
     debug.error("HuggingFace Space providers not loaded:", e)
 try:
-    from .audio import *
-except ImportError as e:
-    debug.error("Audio providers not loaded:", e)
-try:
     from .search import *
 except ImportError as e:
     debug.error("Search providers not loaded:", e)
 
+from .audio import *
 from .template import OpenaiTemplate, BackendApi
 from .qwen.QwenCode import QwenCode
 
