@@ -31,7 +31,13 @@ cfg.setdefault("models", {})["providers"] = cfg.get("models", {}).get("providers
 cfg["models"]["providers"]["gpt4free"] = provider
 cfg["models"]["providers"]["g4f-perplexity"] = {
     "baseUrl": "https://perplexity.g4f-dev.workers.dev",
-    "model": "turbo",
+    "api": "openai-completions",
+    "models": [
+        {
+            "id": "turbo",
+            "name": "perplexity"
+        }
+    ]
 }
 cfg["tools"] = cfg.get("tools", {})
 cfg["tools"]["web"] = cfg["tools"].get("web", {})
