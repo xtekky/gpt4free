@@ -19,7 +19,7 @@ except ImportError:
 
 from ..typing import Messages
 from ..providers.helper import filter_none
-from ..providers.asyncio import to_async_iterator, to_sync_generator
+from ..providers.asyncio import to_sync_generator
 from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
 from ..providers.types import ProviderType
 from ..providers.base_provider import get_async_provider_method, get_provider_method, wait_for
@@ -40,6 +40,9 @@ TOOL_NAMES = {
     "CONTINUE": "continue_tool",
     "BUCKET": "bucket_tool",
 }
+
+def is_provider_api_key(api_key: str) -> bool:
+    return api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
 
 
 class ToolHandler:
@@ -284,8 +287,8 @@ async def async_iter_run_tools(
         messages, sources = await perform_web_search(messages, web_search)
 
     # Get API key
-    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key:
-        api_key = AuthManager.load_api_key(provider)
+    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key or not is_provider_api_key(kwargs.get("api_key")):
+        api_key = AuthManager.load_api_key(provider) or kwargs.get("api_key")
         if api_key:
             kwargs["api_key"] = api_key
 
@@ -416,8 +419,8 @@ def iter_run_tools(
             debug.error(f"Couldn't do web search:", e)
 
     # Get API key if needed
-    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key:
-        api_key = AuthManager.load_api_key(provider)
+    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key or not is_provider_api_key(kwargs.get("api_key")):
+        api_key = AuthManager.load_api_key(provider) or kwargs.get("api_key")
         if api_key:
             kwargs["api_key"] = api_key
 

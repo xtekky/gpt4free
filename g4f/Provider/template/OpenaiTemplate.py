@@ -84,8 +84,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             try:
                 if api_key is None and cls.api_key is not None:
                     api_key = cls.api_key
-                if not api_key or AppConfig.disable_custom_api_key:
-                    api_key = AuthManager.load_api_key(cls)
+                if not api_key or AppConfig.disable_custom_api_key or not cls.is_provider_api_key(api_key):
+                    api_key = AuthManager.load_api_key(cls) or api_key
                 if base_url is None:
                     base_url = cls.base_url
                     if not cls.is_provider_api_key(api_key):
