@@ -42,7 +42,7 @@ TOOL_NAMES = {
 }
 
 def is_provider_api_key(api_key: str) -> bool:
-    return api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
+    return isinstance(api_key, str) and api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
 
 
 class ToolHandler:
