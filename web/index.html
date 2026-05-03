@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>g4f Chat UI</title>
+  <!-- Inline critical CSS to avoid render-blocking and preload full stylesheet -->
+  <style>
+    html,body{height:100%}
+    body{margin:0;display:flex;align-items:center;justify-content:center;background:#061021;color:#e6eef8;font-family:system-ui,Segoe UI,Roboto,Arial}
+    .container{width:100%;max-width:720px;padding:20px;border-radius:12px}
+    .messages{min-height:220px;max-height:60vh;overflow:auto;padding:12px;border-radius:8px;margin-bottom:12px}
+  </style>
+  <link rel="preload" href="style.css" as="style" onload="this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="style.css"></noscript>
+  </head>
+<body>
+  <div class="container">
+    <h1>Chat with g4f</h1>
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <form id="chatForm" class="chat-form">
+      <input id="prompt" type="text" placeholder="Type your message..." autocomplete="off" required />
+      <button type="submit">Send</button>
+    </form>
+    <p class="note">Set <code>API_URL</code> in <code>app.js</code> to your g4f server URL (e.g. http://localhost:8080).</p>
+  </div>
+  <script defer src="app.js"></script>
+</body>
+</html>
