@@ -210,6 +210,8 @@ class Usage(JsonMixin, HiddenResponse):
         promptTokenCount: int = None,
         candidatesTokenCount: int = None,
         totalTokenCount: int = None,
+        prompt: int = None,
+        completion: int = None,
         **kwargs
     ):
         if promptTokens is not None:
@@ -226,6 +228,10 @@ class Usage(JsonMixin, HiddenResponse):
             kwargs["completion_tokens"] = candidatesTokenCount
         if totalTokenCount is not None:
             kwargs["total_tokens"] = totalTokenCount
+        if prompt is not None:
+            kwargs["prompt_tokens"] = prompt
+        if completion is not None:
+            kwargs["completion_tokens"] = completion
         if output_tokens_details is not None:
             for key, value in output_tokens_details.items():
                 kwargs[key] = value
