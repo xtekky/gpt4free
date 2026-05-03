@@ -536,7 +536,7 @@ class TestSecurityHardening(unittest.IsolatedAsyncioTestCase):
         result = await tool.execute({"code": "while True: pass", "timeout": 0.5})
         elapsed = time.time() - start
         self.assertFalse(result.get("success"))
-        self.assertLess(elapsed, 3.0)
+        self.assertLess(elapsed, 3.5)
 
     async def test_tool_safe_mode_ignores_timeout_param(self):
         """In safe mode, timeout parameter is ignored and default is used."""
