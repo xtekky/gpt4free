@@ -38,7 +38,7 @@ def get_media_extension(media: str) -> str:
     if not extension or len(extension) > 4:
         return ""
     if extension[1:] not in EXTENSIONS_MAP:
-        raise ""
+        return ""
     return extension
 
 def ensure_media_dir():
