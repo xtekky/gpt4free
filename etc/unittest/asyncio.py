@@ -34,6 +34,8 @@ class TestChatCompletion(unittest.TestCase):
     def test_await_callback(self):
         client = Client(provider=AsyncGeneratorProviderMock)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "", max_tokens=0)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertEqual("Mock", response.choices[0].message.content)
 
 class TestChatCompletionAsync(unittest.IsolatedAsyncioTestCase):

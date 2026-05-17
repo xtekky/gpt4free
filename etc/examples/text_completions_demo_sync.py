@@ -10,4 +10,6 @@ response = client.chat.completions.create(
     ],
 )
 
+if not response.choices or response.choices[0].message is None:
+    raise ValueError("LLM returned empty or filtered response")
 print(response.choices[0].message.content)

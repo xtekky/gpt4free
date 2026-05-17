@@ -68,12 +68,16 @@ class TestPassModel(unittest.TestCase):
         client = Client(provider=AsyncGeneratorProviderMock)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "")
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertEqual("Mock", response.choices[0].message.content)
 
     def test_pass_model(self):
         client = Client(provider=ModelProviderMock)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "Hello")
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertEqual("Hello", response.choices[0].message.content)
 
     def test_max_tokens(self):
@@ -81,9 +85,13 @@ class TestPassModel(unittest.TestCase):
         messages = [{'role': 'user', 'content': chunk} for chunk in ["How ", "are ", "you", "?"]]
         response = client.chat.completions.create(messages, "Hello", max_tokens=1)
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertEqual("How ", response.choices[0].message.content)
         response = client.chat.completions.create(messages, "Hello", max_tokens=2)
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertEqual("How are ", response.choices[0].message.content)
 
     def test_max_stream(self):
@@ -107,6 +115,8 @@ class TestPassModel(unittest.TestCase):
         messages = [{'role': 'user', 'content': chunk} for chunk in ["How ", "are ", "you", "?"]]
         response = client.chat.completions.create(messages, "Hello", stop=["and"])
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertEqual("How are you?", response.choices[0].message.content)
 
     def test_model_not_found(self):
