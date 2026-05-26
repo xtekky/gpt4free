@@ -23,6 +23,8 @@ response = client.chat.completions.create(
     model="gpt-4o-mini",  # AI Badgr supports OpenAI-compatible models
     messages=[{"role": "user", "content": "Hello! What can you help me with?"}]
 )
+if not response.choices or response.choices[0].message is None or response.choices[0].message.content is None:
+    raise ValueError("LLM returned empty or filtered response")
 print(response.choices[0].message.content)
 print()
 
@@ -47,4 +49,6 @@ response = client.chat.completions.create(
         {"role": "user", "content": "Tell me about the weather"}
     ]
 )
+if not response.choices or response.choices[0].message is None or response.choices[0].message.content is None:
+    raise ValueError("LLM returned empty or filtered response")
 print(response.choices[0].message.content)

@@ -13,12 +13,16 @@ class TestProviderIntegration(unittest.TestCase):
         client = Client(provider=Copilot)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "", response_format={"type": "json_object"})
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertIn("success", json.loads(response.choices[0].message.content))
 
     def test_openai(self):
         client = Client(provider=DDG)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "", response_format={"type": "json_object"})
         self.assertIsInstance(response, ChatCompletion)
+        if not response.choices or response.choices[0].message is None:
+            self.fail("LLM returned empty or filtered response")
         self.assertIn("success", json.loads(response.choices[0].message.content))
 
 class TestChatCompletionAsync(unittest.IsolatedAsyncioTestCase):

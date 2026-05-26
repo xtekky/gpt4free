@@ -17,6 +17,8 @@ class ConversationHandler:
             model=self.model,
             messages=self.conversation_history
         )
+        if not response.choices or response.choices[0].message is None:
+            raise ValueError("LLM returned empty or filtered response")
         assistant_message = {
             "role": response.choices[0].message.role,
             "content": response.choices[0].message.content
