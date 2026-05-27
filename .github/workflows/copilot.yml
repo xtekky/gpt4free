@@ -40,7 +40,10 @@ jobs:
             }
       - name: 'Unzip artifact'
         if: ${{ hashFiles('pr_number.zip') != '' }}
-        run: unzip pr_number.zip
+        run: |
+          unzip -j -o pr_number.zip pr_number
+          pr=$(tr -d '[:space:]' < pr_number)
+          [[ "$pr" =~ ^[0-9]+$ ]] || { echo "Invalid PR number: $pr"; exit 1; }
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
