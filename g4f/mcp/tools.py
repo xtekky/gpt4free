@@ -13,9 +13,7 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 from abc import ABC, abstractmethod
 import urllib.parse
 
@@ -820,3 +818,69 @@ class FileDeleteTool(MCPTool):
             return {"path": rel_path, "deleted": True}
         except Exception as exc:
             return {"error": f"Delete failed: {exc}"}
+
+class ApplyPatchTool(MCPTool):
+    """Apply a unified diff patch to a file or directory using the system 'patch' command."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Apply a unified diff patch to a target file or directory using the system 'patch' command. "
+            "Provide the target path, patch content, and optional parameters for strip level, backup, and dry run. "
+            "Returns success status, output from the patch command, and any error messages."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "target_path": {
+                    "type": "string",
+                    "description": "Path to the target file or directory to patch"
+                },
+                "patch_content": {
+                    "type": "string",
+                    "description": "The unified diff patch content to apply"
+                },
+                "strip": {
+                    "type": "integer",
+                    "description": "Number of leading path components to strip from file paths in the patch (default: 1)",
+                    "default": 1
+                },
+                "backup": {
+                    "type": "boolean",
+                    "description": "Whether to create backup files before patching (default: false)",
+                    "default": False
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "description": (
+                        "If true, perform a dry run without making changes (default: false). "
+                        "The output will indicate whether the patch would apply cleanly."
+                    ),
+                    "default": False
+                },
+            },
+            "required": ["target_path", "patch_content"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+        from .apply_patch import apply_patch_with_fallback
+
+        target_path = arguments.get("target_path", "")
+        patch_content = arguments.get("patch_content", "")
+        backup = bool(arguments.get("backup", False))
+        dry_run = bool(arguments.get("dry_run", False))
+        workspace = get_workspace_dir()
+        try:
+            target = (workspace / target_path).resolve()
+            if not str(target).startswith(str(workspace.resolve())):
+                return {"error": "Access outside the workspace is not allowed"}
+            if not target.exists():
+                return {"error": f"File not found: {target_path}"}
+        except Exception as exc:
+            return {"error": f"Invalid target path: {exc}"}
+
+        return apply_patch_with_fallback(patch_content, str(target), backup, dry_run)
