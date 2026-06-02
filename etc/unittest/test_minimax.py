@@ -19,9 +19,13 @@ class TestMiniMaxProvider(unittest.TestCase):
     def test_m27_highspeed_still_available(self):
         self.assertIn("MiniMax-M2.7-highspeed", MiniMax.models)
 
-    def test_old_models_still_available(self):
-        self.assertIn("MiniMax-Text-01", MiniMax.models)
-        self.assertIn("abab6.5s-chat", MiniMax.models)
+    def test_old_models_removed(self):
+        self.assertNotIn("MiniMax-Text-01", MiniMax.models)
+        self.assertNotIn("abab6.5s-chat", MiniMax.models)
+        self.assertNotIn("MiniMax-M2.5", MiniMax.models)
+        self.assertNotIn("MiniMax-M2.1", MiniMax.models)
+        self.assertNotIn("MiniMax-M2", MiniMax.models)
+        self.assertNotIn("MiniMax-M1", MiniMax.models)
 
     def test_model_alias_points_to_m3(self):
         self.assertEqual(MiniMax.model_aliases["MiniMax"], "MiniMax-M3")

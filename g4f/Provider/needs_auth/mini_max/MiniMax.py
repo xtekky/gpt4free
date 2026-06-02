@@ -12,5 +12,5 @@ class MiniMax(OpenaiTemplate):
 
     default_model = "MiniMax-M3"
     default_vision_model = default_model
-    models = [default_model, "MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-Text-01", "abab6.5s-chat"]
+    models = [default_model, "MiniMax-M2.7", "MiniMax-M2.7-highspeed"]
     model_aliases = {"MiniMax": default_model}
