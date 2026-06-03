@@ -62,18 +62,11 @@ ROTATE_COOKIES_URL = "https://accounts.google.com/RotateCookies"
 GOOGLE_SID_COOKIE = "__Secure-1PSID"
 
 models = {
-    "gemini-2.5-pro-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"2525e3954d185b3c"]'},
-    "gemini-2.5-flash": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"35609594dbe934d8"]'},
-    "gemini-2.0-flash-thinking-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"7ca48d02d802f20a"]'},
     "gemini-deep-research": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"cd472a54d2abba7e"]'},
-    "gemini-2.0-flash": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
-    "gemini-2.0-flash-exp": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
-    "gemini-2.0-flash-thinking": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"9c17b1863f581b8a"]'},
-    "gemini-2.0-flash-thinking-with-apps": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f8f8f5ea629f5d37"]'},
     # Currently used models
-    "gemini-3-pro": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"9d8ca3786ebdfbea",null,null,0,[4]]'},
-    "gemini-2.5-pro": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"61530e79959ab139",null,null,null,[4]]'},
-    "gemini-2.5-flash": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"9ec249fc9ad08861",null,null,null,[4]]'},
+    "gemini-3.1-pro": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"e6fa609c3fa255c0",null,null,0,[4,5,6,8],null,null,2,null,null,3,1,"09D681E7-26F2-4A94-A465-38386B7AB93B"]'},
+    "gemini-3.1-flash-lite": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"8c46e95b1a07cecc",null,null,0,[4,5,6,8],null,null,2,null,null,6,1,"09D681E7-26F2-4A94-A465-38386B7AB93B"]'},
+    "gemini-3.5-flash": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"56fdd199312815e2",null,null,0,[4,5,6,8],null,null,2,null,null,1,1,"09D681E7-26F2-4A94-A465-38386B7AB93B"]'},
     "gemini-audio": {}
 }
 
@@ -86,12 +79,12 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     use_nodriver = True
     
-    default_model = ""
+    default_model = "gemini-3.5-flash"
     default_image_model = default_model
     default_vision_model = default_model
     image_models = [default_image_model]
     models = [
-        default_model, "gemini-3-pro", "gemini-2.5-flash", "gemini-2.5-pro"
+        "gemini-3.1-pro", "gemini-3.5-flash", "gemini-3.1-flash-lite"
     ]
 
     synthesize_content_type = "audio/vnd.wav"
@@ -255,6 +248,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                     image_prompt = response_part = None
                     last_content = ""
                     youtube_ids = []
+                    images_yielded = False
                     for line in (await response.text()).split("\n"):
                         try:
                             try:
@@ -290,6 +284,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                     if skip > 0:
                                         skip -= 1
                                         continue
+                                    if isinstance(item, str):
+                                        if item.startswith("$AQ") or item in ("image/png", "imagen_default"):
+                                            continue
+                                        if item.startswith("http://googleusercontent.com/image_generation_content/"):
+                                            continue
                                     yield item
                             if response_part[4]:
                                 reasoning = "\n\n".join(find_str(response_part[4][0], 3))
@@ -327,11 +326,30 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                         else:
                             yield content
                         last_content = content
-                        if image_prompt:
+                        has_images = False
+                        try:
+                            if not images_yielded and len(response_part[4][0]) >= 13 and response_part[4][0][12] and len(response_part[4][0][12]) >= 8 and response_part[4][0][12][7] and response_part[4][0][12][7][0]:
+                                has_images = True
+                        except (TypeError, IndexError, KeyError):
+                            pass
+
+                        if not images_yielded and (image_prompt or has_images):
                             try:
-                                images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
-                                image_prompt = image_prompt.replace("a fake image", "")
-                                yield ImageResponse(images, image_prompt, {"cookies": cls._cookies})
+                                images = []
+                                for image in response_part[4][0][12][7][0]:
+                                    img_data = image[0][3][3]
+                                    if isinstance(img_data, list):
+                                        for item in img_data:
+                                            if isinstance(item, str) and item.startswith("http"):
+                                                images.append(item + "=s2048")
+                                                break
+                                    elif isinstance(img_data, str):
+                                        images.append(img_data + "=s2048")
+                                if images:
+                                    prompt = image_prompt.replace("a fake image", "") if image_prompt else "Generated Image"
+                                    yield ImageResponse(images, prompt, {"cookies": cls._cookies})
+                                    image_prompt = None
+                                    images_yielded = True
                             except (TypeError, IndexError, KeyError):
                                 pass
                         youtube_ids = youtube_ids if youtube_ids else find_youtube_ids(content)

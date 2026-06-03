@@ -523,6 +523,27 @@ gemini_3_pro_preview = Model(
     best_provider = GeminiCLI
 )
 
+# gemini-3.1
+gemini_3_1_pro = Model(
+    name          = 'gemini-3.1-pro',
+    base_provider = 'Google',
+    best_provider = Gemini
+)
+
+gemini_3_1_flash_lite = Model(
+    name          = 'gemini-3.1-flash-lite',
+    base_provider = 'Google',
+    best_provider = Gemini
+)
+
+# gemini-3.5
+gemini_3_5_flash = Model(
+    name          = 'gemini-3.5-flash',
+    base_provider = 'Google',
+    best_provider = Gemini
+)
+
+
 # codegemma
 codegemma_7b = Model(
     name          = 'codegemma-7b',

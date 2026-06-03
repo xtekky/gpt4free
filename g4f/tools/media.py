@@ -66,15 +66,18 @@ def merge_media(media: list, messages: list) -> Iterator:
                         path = render_media(**part, as_path=True)
                         buffer.append((path, os.path.basename(path)))
                     elif part.get("type") == "image_url":
-                        path: str = urlparse(part.get("image_url")).path
+                        image_url = part.get("image_url")
+                        if isinstance(image_url, dict):
+                            image_url = image_url.get("url")
+                        path: str = urlparse(image_url).path
                         if path.startswith("/files/"):
                             path = get_bucket_dir(path.split(path, "/")[1:])
                             if os.path.exists(path):
                                 buffer.append((Path(path), os.path.basename(path)))
                             else:
-                                buffer.append((part.get("image_url"), None))
+                                buffer.append((image_url, None))
                         else:
-                            buffer.append((part.get("image_url"), None))
+                            buffer.append((image_url, None))
         else:
             buffer = []
     yield from buffer

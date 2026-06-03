@@ -42,6 +42,7 @@ from .ItalyGPT             import ItalyGPT
 from .LambdaChat           import LambdaChat
 from .Mintlify             import Mintlify
 from .OIVSCodeSer          import OIVSCodeSer2, OIVSCodeSer0501
+from .OllamaSwarm          import OllamaSwarm
 from .OperaAria            import OperaAria
 from .Perplexity           import Perplexity
 from .PollinationsAI       import PollinationsAI
