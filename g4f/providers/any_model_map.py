@@ -1093,6 +1093,9 @@ model_map = {
     "HuggingChat": "zai-org/GLM-4.7-FP8",
     "OpenRouter": "z-ai/glm-4.7"
   },
+  "minimax-m3": {
+    "MiniMax": "MiniMax-M3"
+  },
   "minimax-m2.7": {
     "MiniMax": "MiniMax-M2.7"
   },
@@ -5407,6 +5410,8 @@ model_aliases = {
   "openrouter:z-ai/glm-4.7": "glm-4.7",
   "zai-org/GLM-4.7-FP8": "glm-4.7",
   "z-ai/glm-4.7": "glm-4.7",
+  "MiniMax-M3": "minimax-m3",
+  "minimax/minimax-m3": "minimax-m3",
   "MiniMax-M2.7": "minimax-m2.7",
   "minimax/minimax-m2.7": "minimax-m2.7",
   "MiniMax-M2.7-highspeed": "minimax-m2.7-highspeed",
