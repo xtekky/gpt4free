@@ -123,50 +123,50 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def _prepare_payload(cls, model: str, message: str) -> Dict[str, Any]:
-        # Map model names to API model names
-        api_model = "grok-latest"
+        # Map model names to modeId based on new Grok API
+        mode_id = "auto" if "auto" in model else "fast"
         
-        if model in ["grok-4", "grok-4-heavy", "grok-4-reasoning"]:
-            api_model = model
-        elif model == "grok-3":
-            api_model = "grok-3"
-        elif model in ["grok-3-mini", "grok-3-mini-reasoning"]:
-            api_model = "grok-3-mini"
-        elif model == "grok-2":
-            api_model = "grok-2"
-        
-        # Check if it's a reasoning model
-        is_reasoning = model.endswith("-reasoning") or model.endswith("-thinking") or model.endswith("-r1")
-        
-        # Enable Big Brain mode for heavy models
-        enable_big_brain = "heavy" in model or "big-brain" in model
-        
-        # Enable DeepSearch for Grok 3+ models
-        enable_deep_search = not model.startswith("grok-2")
-        
+        if "heavy" in model or "big-brain" in model:
+            mode_id = "heavy"
+        elif "expert" in model:
+            mode_id = "expert"
+        elif "reasoning" in model or "thinking" in model or "r1" in model:
+            mode_id = "reasoning"
+        elif "deepsearch" in model:
+            mode_id = "deepsearch"
+            
         return {
             "temporary": True,
-            "modelName": api_model,
             "message": message,
             "fileAttachments": [],
             "imageAttachments": [],
             "disableSearch": False,
-            "enableImageGeneration": model == "grok-2-image" or model == "grok-4",
+            "enableImageGeneration": True,
             "returnImageBytes": False,
             "returnRawGrokInXaiRequest": False,
             "enableImageStreaming": True,
             "imageGenerationCount": 2,
             "forceConcise": False,
-            "toolOverrides": {},
             "enableSideBySide": True,
-            "isPreset": False,
             "sendFinalMetadata": True,
-            "customInstructions": "",
-            "deepsearchPreset": "enabled" if enable_deep_search else "",
-            "isReasoning": is_reasoning,
-            "enableBigBrain": enable_big_brain,
-            "enableLiveSearch": False,  # Real-time search for Grok 4
-            "contextWindow": 256000 if model.startswith("grok-4") else 131072,  # 256k for Grok 4, 128k for others
+            "disableTextFollowUps": False,
+            "responseMetadata": {},
+            "disableMemory": False,
+            "forceSideBySide": False,
+            "isAsyncChat": False,
+            "disableSelfHarmShortCircuit": False,
+            "collectionIds": [],
+            "disabledConnectorIds": [],
+            "deviceEnvInfo": {
+                "darkModeEnabled": True,
+                "devicePixelRatio": 1.0,
+                "screenWidth": 1920,
+                "screenHeight": 1080,
+                "viewportWidth": 1920,
+                "viewportHeight": 1080
+            },
+            "modeId": mode_id,
+            "linkQuery": False
         }
 
     @classmethod
