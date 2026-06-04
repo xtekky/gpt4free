@@ -420,7 +420,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
             payload = cls._build_payload(messages, conversation, attachments, version, **kwargs)
             
             # Save original prompt for ImageResponse alt text
-            original_prompt = prompt if prompt else format_prompt(messages)
+            original_prompt = prompt if prompt else (messages[-1]["content"] if messages else "")
             
             async with session.post(api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
                 response.raise_for_status()
