@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 from ..typing import Optional, Cookies, Union
 from ..requests.aiohttp import get_connector
-from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
+from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP, is_safe_url
 from ..tools.files import secure_filename
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse, quote_url
 from . import is_accepted_format, extract_data_uri
@@ -68,7 +68,7 @@ def update_filename(response, filename: str) -> str:
 async def save_response_media(
     response,
     prompt: str,
-    tags: list[str] = [],
+    tags: list[str] = None,
     transcript: str = None,
     content_type: str = None
 ) -> AsyncIterator:
@@ -189,6 +189,8 @@ async def copy_media(
                         f.write(extract_data_uri(image))
 
                 elif not os.path.exists(target_path) or os.lstat(target_path).st_size <= 0:
+                    if not is_safe_url(image):
+                        raise ValueError(f"Invalid or unsafe image url: {image}")
                     async with session.get(image, ssl=ssl) as response:
                         response.raise_for_status()
                         if target is None:

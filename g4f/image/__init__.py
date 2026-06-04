@@ -346,7 +346,7 @@ def process_image(
     save: str = None
 ) -> Image.Image:
     """
-    Adjusts orientation, strips transparency, resizes image.
+    Adjusts orientation and resizes image. Preserves transparency for PNG output.
     """
     image = ImageOps.exif_transpose(image)
     if image.mode == "RGBA":
@@ -380,6 +380,8 @@ def to_bytes(image: ImageType) -> bytes:
                 else:
                     raise FileNotFoundError(f"File not found: {local_path}")
             else:
+                if not is_safe_url(image):
+                    raise ValueError("Invalid or unsafe image url")
                 resp = requests.get(image, headers={
                     # Updated to Chrome/145 (current as of Mar 2026)
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
@@ -455,7 +457,6 @@ def get_width_height(
 ) -> tuple[int, int]:
     """
     Returns (width, height) for common aspect ratios.
-    All values are multiples of 64 and ≥ 480px on the short side.
     """
     ratio_map = {
         "1:1":   (1024, 1024),
@@ -479,8 +480,8 @@ def get_width_height(
 
 
 class ImageRequest:
-    def __init__(self, options: dict = {}):
-        self.options = options
+    def __init__(self, options: dict = None):
+        self.options = options or {}
 
     def get(self, key: str):
         return self.options.get(key)
