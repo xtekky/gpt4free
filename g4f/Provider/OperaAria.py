@@ -10,7 +10,7 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages, MediaListType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..providers.response import JsonConversation, FinishReason, ImageResponse, Reasoning
+from ..providers.response import JsonConversation, FinishReason, ImageResponse
 from ..image import is_data_an_media
 from ..tools.media import merge_media
 
@@ -444,8 +444,6 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
                     
                     if skip_next:
                         skip_next = False
-                        if isinstance(data, dict) and "message" in data:
-                            yield Reasoning(status=data["message"])
                         continue
                     
                     text, image_url = cls._extract_content(data, version)
