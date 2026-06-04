@@ -8,6 +8,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
+import socket
+import ipaddress
 
 import requests
 
@@ -99,12 +101,27 @@ def get_extension(filename: str) -> Optional[str]:
 
 def is_safe_url(url: str) -> bool:
     """
-    Checks if the URL is safe to download (basic http/https check).
+    Checks if the URL is safe to download (prevents SSRF by blocking private IPs).
     """
     if not isinstance(url, str):
         return False
-    parsed = urlparse(url)
-    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return False
+        
+        host = parsed.hostname
+        if not host:
+            return False
+
+        addr_info = socket.getaddrinfo(host, None)
+        for info in addr_info:
+            ip = info[4][0]
+            if ipaddress.ip_address(ip).is_private or ipaddress.ip_address(ip).is_loopback:
+                return False
+        return True
+    except Exception:
+        return False
 
 
 def is_allowed_extension(filename: str) -> Optional[str]:
