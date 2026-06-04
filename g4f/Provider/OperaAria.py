@@ -300,7 +300,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
     @classmethod
-    def _build_payload(cls, messages: Messages, conversation: Conversation, attachments: list, version: str) -> dict:
+    def _build_payload(cls, messages: Messages, conversation: Conversation, attachments: list, version: str, **kwargs) -> dict:
         """Build request payload."""
         query = format_prompt(messages)
         
@@ -318,7 +318,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
             data = {
                 "query": query,
                 "sia": True,
-                "think_harder": False,
+                "think_harder": kwargs.get("think_harder", False),
                 "supported_features": [],
                 "file_attachments": attachments,
                 "encryption": {"key": conversation.encryption_key}
@@ -417,7 +417,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
                 attachments = await cls._process_media(session, access_token, media, messages)
             
             headers = cls._build_headers(access_token, version)
-            payload = cls._build_payload(messages, conversation, attachments, version)
+            payload = cls._build_payload(messages, conversation, attachments, version, **kwargs)
             
             # Save original prompt for ImageResponse alt text
             original_prompt = prompt if prompt else format_prompt(messages)
