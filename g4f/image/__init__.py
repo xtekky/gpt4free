@@ -97,6 +97,16 @@ def get_extension(filename: str) -> Optional[str]:
     return None
 
 
+def is_safe_url(url: str) -> bool:
+    """
+    Checks if the URL is safe to download (basic http/https check).
+    """
+    if not isinstance(url, str):
+        return False
+    parsed = urlparse(url)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
 def is_allowed_extension(filename: str) -> Optional[str]:
     """
     Returns the MIME type for allowed extensions, or None.
