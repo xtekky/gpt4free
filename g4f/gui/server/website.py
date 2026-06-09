@@ -26,12 +26,7 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         if not path.startswith(base_dir + os.sep) and path != base_dir:
             return redirect('/')
         if os.path.exists(path):
-            if download_url == GITHUB_URL:
-                with open(path, 'r', encoding='utf-8') as f:
-                    html = f.read()
-                is_temp = True
-            else:
-                return send_from_directory(os.path.dirname(path), os.path.basename(path))
+            return send_from_directory(os.path.dirname(path), os.path.basename(path))
     try:
         latest_version = version.utils.latest_version
     except VersionNotFoundError:
@@ -129,14 +124,6 @@ class Website:
                 'function': self._dist,
                 'methods': ['GET']
             },
-            '/gh/<path:name>': {
-                'function': self._gh,
-                'methods': ['GET']
-            },
-            '/npm/<path:name>': {
-                'function': self._npm,
-                'methods': ['GET']
-            },
             '/playground/': {
                 'function': self._playground,
                 'methods': ['GET']
@@ -168,13 +155,7 @@ class Website:
         return render(filename)
 
     def _dist(self, name: str):
-        return send_from_directory(os.path.abspath(DIST_DIR), name)
-
-    def _gh(self, name):
-        return render(f"gh/{name}", JSDELIVR_URL)
-
-    def _npm(self, name):
-        return render(f"npm/{name}", JSDELIVR_URL)
+        return render(f"dist/{name}")
 
     def _playground(self, filename: str = "index.html"):
         PLAYGROUND_URL = "https://raw.githubusercontent.com/gpt4free/playground/refs/heads/main/"
