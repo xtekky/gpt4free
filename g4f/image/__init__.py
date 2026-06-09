@@ -10,6 +10,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
+import socket
+import ipaddress
 
 import requests
 
@@ -118,6 +120,8 @@ def is_allowed_extension(filename: str) -> Optional[str]:
 
 def is_safe_url(url: str) -> bool:
     """Return True only for http/https URLs that do not point to private/loopback/reserved addresses."""
+    if not isinstance(url, str):
+        return False
     try:
         parsed = urlparse(url)
 
@@ -152,8 +156,6 @@ def is_safe_url(url: str) -> bool:
     except Exception:
         return False
     return True
-
-
 def is_data_an_media(data, filename: str = None) -> str:
     content_type = is_data_an_audio(data, filename)
     if content_type is not None:
@@ -387,6 +389,7 @@ def extract_data_uri(data_uri: str) -> bytes:
 def process_image(image: Image.Image, new_width: int = 400, new_height: int = 400, save: str = None) -> Image.Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
+    Preserves transparency for PNG output.
 
     Args:
         image (Image): The image to process.
@@ -440,6 +443,8 @@ def to_bytes(image: ImageType) -> bytes:
                 else:
                     raise FileNotFoundError(f"File not found: {path}")
             else:
+                if not is_safe_url(image):
+                    raise ValueError("Invalid or unsafe image url")
                 resp = requests.get(image, headers={
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
                 })
@@ -510,20 +515,32 @@ def get_width_height(
     width: Optional[int] = None,
     height: Optional[int] = None
 ) -> tuple[int, int]:
-    if aspect_ratio == "1:1":
-        return width or 1024, height or 1024
-    elif aspect_ratio == "16:9":
-        return width or 832, height or 480
-    elif aspect_ratio == "9:16":
-        return width or 480, height or 832,
+    """
+    Returns (width, height) for common aspect ratios.
+    """
+    ratio_map = {
+        "1:1":   (1024, 1024),
+        "16:9":  (1024, 576),
+        "9:16":  (576,  1024),
+        "4:3":   (1024, 768),
+        "3:4":   (768,  1024),
+        "3:2":   (1024, 682),
+        "2:3":   (682,  1024),
+        "21:9":  (1024, 440),
+        "9:21":  (440,  1024),
+        "4:5":   (832,  1040),
+        "5:4":   (1040, 832),
+        "2:1":   (1024, 512),
+        "1:2":   (512,  1024),
+    }
+    if aspect_ratio in ratio_map:
+        default_w, default_h = ratio_map[aspect_ratio]
+        return width or default_w, height or default_h
     return width, height
 
 class ImageRequest:
-    def __init__(
-        self,
-        options: dict = {}
-    ):
-        self.options = options
+    def __init__(self, options: dict = None):
+        self.options = options or {}
 
     def get(self, key: str):
         return self.options.get(key)

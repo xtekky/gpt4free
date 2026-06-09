@@ -91,12 +91,14 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
         async with session.post(
             cls.token_endpoint,
             headers={
-                "User-Agent": cls._user_agent_v1,
+                "User-Agent": "okhttp/5.3.2",
                 "Content-Type": "application/x-www-form-urlencoded",
+                "x-requested-with": "XMLHttpRequest",
+                "x-opera-client-cache": "1"
             },
             data={
-                "client_id": "ofa-client",
-                "client_secret": "N9OscfA3KxlJASuIe29PGZ5RpWaMTBoy",
+                "client_id": "mini-client",
+                "client_secret": "Pcc5NvlCrxl02pMw32kO6WrnhpS0pUZ95YrDP8XNKJJQvFht4wQDkFJ7v9x5hn7C",
                 "grant_type": "client_credentials",
                 "scope": "anonymous_account"
             }
@@ -108,12 +110,14 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
         async with session.post(
             cls.signup_endpoint,
             headers={
-                "User-Agent": "Mozilla 5.0 (Linux; Android 14) com.opera.browser OPR/89.5.4705.84314",
+                "User-Agent": "okhttp/5.3.2",
                 "Authorization": f"Bearer {anon_token}",
                 "Accept": "application/json",
                 "Content-Type": "application/json; charset=utf-8",
+                "x-requested-with": "XMLHttpRequest",
+                "x-opera-client-cache": "1"
             },
-            json={"client_id": "ofa", "service": "aria"}
+            json={"client_id": "mini"}
         ) as response:
             response.raise_for_status()
             auth_token = (await response.json())["token"]
@@ -122,15 +126,16 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
         async with session.post(
             cls.token_endpoint,
             headers={
-                "User-Agent": cls._user_agent_v1,
+                "User-Agent": "okhttp/5.3.2",
                 "Content-Type": "application/x-www-form-urlencoded",
+                "x-requested-with": "XMLHttpRequest",
+                "x-opera-client-cache": "1"
             },
             data={
                 "auth_token": auth_token,
-                "client_id": "ofa",
-                "device_name": "GPT4FREE",
+                "client_id": "mini",
                 "grant_type": "auth_token",
-                "scope": "ALL"
+                "scope": "shodan:aria"
             }
         ) as response:
             response.raise_for_status()
@@ -146,15 +151,20 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
             return conversation.access_token
         
         data = {
-            "client_id": "ofa",
+            "client_id": "mini",
             "grant_type": "refresh_token",
             "refresh_token": conversation.refresh_token,
-            "scope": "shodan:aria user:read"
+            "scope": "shodan:aria"
         }
         
         async with session.post(
             cls.token_endpoint,
-            headers={"User-Agent": cls._user_agent_v1, "Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "User-Agent": "okhttp/5.3.2",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "x-requested-with": "XMLHttpRequest",
+                "x-opera-client-cache": "1"
+            },
             data=data
         ) as response:
             response.raise_for_status()
@@ -290,7 +300,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
     @classmethod
-    def _build_payload(cls, messages: Messages, conversation: Conversation, attachments: list, version: str) -> dict:
+    def _build_payload(cls, messages: Messages, conversation: Conversation, attachments: list, version: str, **kwargs) -> dict:
         """Build request payload."""
         query = format_prompt(messages)
         
@@ -308,7 +318,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
             data = {
                 "query": query,
                 "sia": True,
-                "think_harder": False,
+                "think_harder": kwargs.get("think_harder", False),
                 "supported_features": [],
                 "file_attachments": attachments,
                 "encryption": {"key": conversation.encryption_key}
@@ -407,10 +417,10 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
                 attachments = await cls._process_media(session, access_token, media, messages)
             
             headers = cls._build_headers(access_token, version)
-            payload = cls._build_payload(messages, conversation, attachments, version)
+            payload = cls._build_payload(messages, conversation, attachments, version, **kwargs)
             
             # Save original prompt for ImageResponse alt text
-            original_prompt = prompt if prompt else format_prompt(messages)
+            original_prompt = prompt if prompt else (messages[-1]["content"] if messages else "")
             
             async with session.post(api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
                 response.raise_for_status()
