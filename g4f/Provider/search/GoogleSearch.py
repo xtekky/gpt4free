@@ -4,7 +4,7 @@ import asyncio
 import json
 
 from ...typing import AsyncResult, Messages, Cookies
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin, get_running_loop
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ...requests import Browser, get_nodriver, has_nodriver
 from ...errors import MissingRequirementsError, ModelNotFoundError
 from ... import debug

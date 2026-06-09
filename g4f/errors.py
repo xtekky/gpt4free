@@ -82,6 +82,9 @@ class CloudflareError(ResponseStatusError):
     """Raised when a request is blocked by Cloudflare."""
     pass
 
+class BadRequestError(ResponseStatusError):
+    """Raised when a request is malformed or invalid."""
+    pass
 
 class RateLimitError(ResponseStatusError):
     """Raised when the provider's rate limit has been exceeded."""

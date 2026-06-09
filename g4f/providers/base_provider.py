@@ -13,14 +13,13 @@ try:
 except ImportError:
     NoneType = type(None)
 
-from ..typing import CreateResult, AsyncResult, Messages
+from ..typing import AsyncResult, Messages
 from .types import BaseProvider
-from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
+from .asyncio import to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
-from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..requests import raise_for_status
-from ..errors import ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError
+from ..errors import ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError, BadRequestError, RateLimitError
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -307,29 +306,34 @@ class RaiseErrorMixin():
 
     @staticmethod
     def raise_error(data: dict, status: int = None):
+        message = None
         if "error_message" in data:
-            raise ResponseError(data["error_message"])
+            message = data["error_message"]
         elif "error" in data:
             if isinstance(data["error"], str):
-                if status is not None:
-                    if status == 401:
-                        raise MissingAuthError(f"Error {status}: {data['error']}")
-                    elif status == 402:
-                        raise PaymentRequiredError(f"Error {status}: {data['error']}")
-                    raise ResponseError(f"Error {status}: {data['error']}")
-                raise ResponseError(data["error"])
+                message = data["error"]
             elif isinstance(data["error"], bool):
-                raise ResponseError(data)
-            elif "code" in data["error"]:
-                raise ResponseError("\n".join(
+                message = str(data)
+            elif "code" in data["error"] and data["error"]["code"]:
+                message = "\n".join(
                     [e for e in [f'Error {data["error"]["code"]}: {data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]
-                ))
+                )
             elif "message" in data["error"]:
-                raise ResponseError(data["error"]["message"])
+                message = data["error"]["message"]
             else:
-                raise ResponseError(data["error"])
-        #elif ("choices" not in data or not data["choices"]) and "data" not in data:
-        #    raise ResponseError(f"Invalid response: {json.dumps(data)}")
+                message = str(data["error"])
+        if message is not None:
+            if status is not None:
+                if status == 401:
+                    raise MissingAuthError(f"Error {status}: {message}")
+                elif status == 402:
+                    raise PaymentRequiredError(f"Error {status}: {message}")
+                elif status == 400:
+                    raise BadRequestError(f"Error {status}: {message}")
+                elif status == 429:
+                    raise RateLimitError(f"Error {status}: {message}")
+                raise ResponseError(f"Error {status}: {message}")
+            raise ResponseError(f"Error: {message}")
 
 class AuthFileMixin():
 

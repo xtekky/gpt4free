@@ -81,7 +81,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
             has_headers = False
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
                 nonlocal has_headers
-                if event.request.url.startswith(cls.conversation_url + "/new"):
+                if hasattr(event, "request") and event.request.url.startswith(cls.conversation_url + "/new"):
                     for key, value in event.request.headers.items():
                         auth_result.headers[key.lower()] = value
                     has_headers = True

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import requests
-from functools import lru_cache
 
 from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
@@ -141,6 +140,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         download_media: bool = True,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio", "stream_options", "include_reasoning", "response_format", "max_completion_tokens", "reasoning_effort", "search_settings"],
         extra_body: dict = None,
+        yield_request: bool = True,
         **kwargs
     ) -> AsyncResult:
         if api_key is None and cls.api_key is not None:
@@ -158,7 +158,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 base_url = cls.base_url if cls.is_provider_api_key(api_key) else cls.backup_url
 
             # Proxy for image generation feature
-            if model and model in cls.image_models:
+            if model and model in cls.image_models or prompt:
                 prompt = format_media_prompt(messages, prompt)
                 size = use_aspect_ratio({"width": kwargs.get("width"), "height": kwargs.get("height")}, kwargs.get("aspect_ratio", None))
                 size = {"size": f"{size['width']}x{size['height']}", **size} if cls.use_image_size and "width" in size and "height" in size else size
@@ -168,11 +168,18 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if media is not None:
                     data["image_url"] = next(iter([data for data, _ in media if data and isinstance(data, str) and data.startswith("http://") or data.startswith("https://")]), None)
                 async with session.post(f"{base_url.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:
-                    data = await response.json()
-                    cls.raise_error(data, response.status)
-                    model = data.get("model")
-                    if model:
-                        yield ProviderInfo(**cls.get_dict(), model=model)
+                    content_type = response.headers.get("content-type", "")
+                    if content_type.startswith("application/json"):
+                        data = await response.json()
+                        cls.raise_error(data, response.status)
+                        model = data.get("model")
+                        if model:
+                            yield ProviderInfo(**cls.get_dict(), model=model)
+                    elif content_type.startswith("text/plain"):
+                        raise Exception("Unexpected response: " + await response.text())
+                    else:
+                        raise Exception("Unexpected content type: " + content_type)
+                    await raise_for_status(response)
                     await raise_for_status(response)
                     yield ImageResponse([f"data:image/png;base64,{image['b64_json']}" if image.get("url") is None else image["url"] for image in data["data"]], prompt)
                 return
@@ -200,9 +207,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_endpoint = cls.api_endpoint
                 if api_endpoint is None:
                     api_endpoint = f"{base_url.rstrip('/')}/chat/completions"
-            yield JsonRequest.from_dict(data)
+            if yield_request:
+                yield JsonRequest.from_dict(data)
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
-                async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media):
+                async for chunk in read_response(response, stream, prompt, cls.get_dict(), download_media, yield_request=yield_request):
                     yield chunk
 
     @classmethod
@@ -217,14 +225,15 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             **({} if headers is None else headers)
         }
     
-async def read_response(response: StreamResponse, stream: bool, prompt: str, provider_info: dict, download_media: bool) -> AsyncResult:
-    yield HeadersResponse.from_dict({key: value for key, value in response.headers.items() if key.lower().startswith("x-")})
+async def read_response(response: StreamResponse, stream: bool, prompt: str, provider_info: dict, download_media: bool, yield_request: bool = True) -> AsyncResult:
+    if yield_request:
+        yield HeadersResponse.from_dict({key: value for key, value in response.headers.items() if key.lower().startswith("x-")})
     content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
     if content_type.startswith("application/json"):
         data = await response.json()
         if isinstance(data, list):
             data = next(iter(data), {})
-        if isinstance(data, dict):
+        if yield_request and isinstance(data, dict):
             yield JsonResponse.from_dict(data)
         OpenaiTemplate.raise_error(data, response.status)
         await raise_for_status(response)
