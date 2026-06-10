@@ -18,7 +18,7 @@ class QwenCode(OpenaiTemplate):
     label = "Qwen Code 🤖"
     url = "https://qwen.ai"
     login_url = "https://github.com/QwenLM/qwen-code"
-    working = True
+    working = False
     needs_auth = True
     active_by_default = True
     default_model = "qwen3-coder-plus"

@@ -455,7 +455,7 @@ class MCPServer:
                 req_origin = f"{request.scheme}://{request.host}"
                 headers["content-security-policy"] = (
                     f"sandbox allow-scripts allow-forms allow-popups; "
-                    f"default-src {req_origin}; "
+                    f"default-src {req_origin} https://g4f.space; "
                     f"img-src {req_origin} data: blob:; "
                     f"font-src {req_origin}; "
                     f"style-src {req_origin} 'unsafe-inline'; "

@@ -866,7 +866,7 @@ class Api:
                 # request_origin in the source directives.
                 csp = (
                     "sandbox allow-scripts allow-forms allow-downloads allow-popups; "
-                    f"default-src {request_origin}; "
+                    f"default-src {request_origin} https://g4f.space; "
                     f"script-src {request_origin} 'unsafe-inline'; "
                     f"style-src {request_origin} 'unsafe-inline'; "
                     f"img-src {request_origin} data:; "
@@ -880,7 +880,7 @@ class Api:
                 # sandboxing — they are leaf assets without their own browsing
                 # context.  Use the request origin for source directives.
                 csp = (
-                    f"default-src {request_origin}; "
+                    f"default-src {request_origin} https://g4f.space; "
                     f"script-src {request_origin} 'unsafe-inline'; "
                     f"style-src {request_origin} 'unsafe-inline'; "
                     f"img-src {request_origin} data:; "

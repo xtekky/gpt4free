@@ -15,7 +15,7 @@ class Azure(OpenaiTemplate):
     label = "Azure ☁️"
     url = "https://ai.azure.com"
     base_url = "https://g4f.space/api/azure"
-    working = True
+    working = False
     active_by_default = False
     quota_url = "https://g4f.space/api/azure/chat/completions"
     routes: dict[str, str] = {}

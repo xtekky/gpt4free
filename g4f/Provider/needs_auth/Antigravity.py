@@ -30,7 +30,7 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, RateLimitError
 from ...image.copy_images import save_response_media
 from ...image import to_bytes, is_data_an_media
 from ...providers.response import Usage, ImageResponse, ToolCalls, Reasoning
@@ -1234,8 +1234,13 @@ class AntigravityProvider:
                 if not resp.ok:
                     if resp.status == 401:
                         raise MissingAuthError("Unauthorized (401) from Antigravity API")
-                    error_body = await resp.text()
-                    raise RuntimeError(f"Antigravity API error {resp.status}: {error_body}")
+                    elif resp.status == 429:
+                        try:
+                            message = (await resp.json()).get("error", {}).get("message", "")
+                        except Exception:
+                            message = await resp.text()
+                        raise RateLimitError(f"Error 429: {message}")
+                    raise RuntimeError(f"Antigravity API error {resp.status}: {await resp.text()}")
 
                 usage_metadata = {}
                 async for json_data in parse_sse_stream(resp.content):

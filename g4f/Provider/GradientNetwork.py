@@ -17,7 +17,7 @@ class GradientNetwork(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chat.gradient.network"
     api_endpoint = "https://chat.gradient.network/api/generate"
 
-    working = True
+    working = False
     needs_auth = False
     supports_stream = True
     supports_system_message = True
