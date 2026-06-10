@@ -854,7 +854,7 @@ class GeminiCLIProvider():
                         for i, part in enumerate(tool_calls):
                             tc = part["functionCall"]
                             tool_call_obj = {
-                                "id": f"call_{i}_{tc.get('name', 'unknown')}",
+                                "id": tc.get("id", f"call_{i}_{tc.get('name', 'unknown')}"),
                                 "type": "function",
                                 "function": {
                                     "name": tc.get("name"),

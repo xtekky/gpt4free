@@ -451,6 +451,7 @@ class Api:
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
             HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_429_TOO_MANY_REQUESTS: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
         @self.app.post("/v1/chat/completions", responses=responses)
@@ -555,6 +556,8 @@ class Api:
             except (MissingAuthError, NoValidHarFileError) as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
+            except RateLimitError as e:
+                return ErrorResponse.from_exception(e, config, HTTP_429_TOO_MANY_REQUESTS)
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
@@ -563,6 +566,7 @@ class Api:
             HTTP_200_OK: {"model": ImagesResponse},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_429_TOO_MANY_REQUESTS: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
         @self.app.post("/v1/media/generate", responses=responses)
