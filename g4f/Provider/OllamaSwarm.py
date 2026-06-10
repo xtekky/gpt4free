@@ -25,8 +25,7 @@ from pathlib import Path
 from ..cookies import get_cookies_dir
 
 
-# document.addEventListener('click', e=>{
-#     setTimeout(()=>{
+#     setInterval(()=>{
 #         window.urls = window.urls || JSON.parse(localStorage.getItem('urls')) || [];
 #         document.querySelectorAll('.hsxa-host a').forEach(e=>{
 #             if (!window.urls.includes(e.href)) {
@@ -36,7 +35,6 @@ from ..cookies import get_cookies_dir
 #         localStorage.setItem('urls', JSON.stringify(window.urls));
 #         console.log(window.urls.length);
 #     }, 1000);
-# });
 
 _DEFAULT_SEED_SERVERS = [
   "http://116.202.111.94:11434",
@@ -397,15 +395,6 @@ def _get_cached_servers() -> list[str]:
         debug.error(f"OllamaSwarm: failed to read cache: {e}")
     return list(servers)
 
-def _save_servers_to_cache(servers: list[str]) -> None:
-    try:
-        cache_file = get_cache_file()
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(cache_file, "w") as f:
-            json.dump(servers, f)
-    except Exception as e:
-        debug.error(f"OllamaSwarm: failed to save cache: {e}")
-
 # ---------------------------------------------------------------------------
 # FOFA discovery — free public API
 # ---------------------------------------------------------------------------
@@ -479,7 +468,6 @@ def _probe_server(url: str) -> tuple[str, list[str]] | None:
             for m in resp.json().get("models", [])
             if "/attacker/" not in m.get("name", "")
             and not m.get("name", "").startswith("model-b")
-            and "embed" not in m.get("name", "")
         ]
         if models:
             return url, models

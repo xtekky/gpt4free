@@ -33,7 +33,7 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         latest_version = version.utils.current_version
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
-    if not request.args.get("session_token"):
+    if not request.args.get("g4f_session"):
         latest_version = str(latest_version) + quote(unquote(request.query_string.decode()))
     cache_file = os.path.join(cache_dir, f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}")
     if os.path.isfile(cache_file + ".js"):
