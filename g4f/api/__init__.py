@@ -544,6 +544,9 @@ class Api:
                                 yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
                     except GeneratorExit:
                         pass
+                    except RateLimitError as e:
+                        debug.error(e)
+                        yield f'data: {format_exception(e, config)}\n\n'
                     except Exception as e:
                         logger.exception(e)
                         yield f'data: {format_exception(e, config)}\n\n'
