@@ -381,7 +381,7 @@ class Api:
                             "vision": provider in vision_models,
                             "audio": provider in audio_models,
                             "video": provider in video_models,
-                            "type": "image" if provider in image_models else "chat",
+                            "type": "image" if provider in image_models else "chat"
                         }]
                     }
                 return ErrorResponse.from_message(str(e), 404)
@@ -403,6 +403,7 @@ class Api:
                     "audio": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "audio_models", []),
                     "video": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "video_models", []),
                     "type": "image" if (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "image_models", []) else "chat",
+                    "count": provider.models_count.get(model, 0),
                     **(model if isinstance(model, dict) else {})
                 } for model in (models.values() if isinstance(models, dict) else models)]
             }
