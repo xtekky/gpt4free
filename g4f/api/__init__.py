@@ -403,7 +403,7 @@ class Api:
                     "audio": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "audio_models", []),
                     "video": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "video_models", []),
                     "type": "image" if (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "image_models", []) else "chat",
-                    "count": provider.models_count.get(model, 0),
+                    "count": provider.models_count.get(model.get("id"), 0),
                     **(model if isinstance(model, dict) else {})
                 } for model in (models.values() if isinstance(models, dict) else models)]
             }
