@@ -8,7 +8,8 @@ from pathlib import Path
 from g4f.mcp.server import MCPServer, MCPRequest
 from g4f.mcp.tools import (
     WebSearchTool, WebScrapeTool, ImageGenerationTool,
-    PythonExecuteTool, FileReadTool, FileWriteTool, FileListTool, FileDeleteTool,
+    PythonExecuteTool, FileReadTool, FileReadLinesTool, FileSearchTool,
+    FileWriteTool, FileListTool, FileDeleteTool,
 )
 from g4f.mcp.pa_provider import execute_safe_code, get_workspace_dir, SAFE_MODULES
 
@@ -37,6 +38,8 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertIn('image_generation', server.tools)
         self.assertIn('python_execute', server.tools)
         self.assertIn('file_read', server.tools)
+        self.assertIn('file_read_lines', server.tools)
+        self.assertIn('file_search', server.tools)
         self.assertIn('file_write', server.tools)
         self.assertIn('file_list', server.tools)
         self.assertIn('file_delete', server.tools)
@@ -56,6 +59,11 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(response.result)
         self.assertEqual(response.result["protocolVersion"], "2024-11-05")
         self.assertIn("serverInfo", response.result)
+        self.assertIn("capabilities", response.result)
+        self.assertIn("tools", response.result["capabilities"])
+        self.assertIsInstance(response.result["capabilities"]["tools"], dict)
+        self.assertIn("file_read", response.result["capabilities"]["tools"])
+        self.assertIn("file_read_lines", response.result["capabilities"]["tools"])
 
     async def test_tools_list(self):
         """Test tools/list method"""
@@ -79,6 +87,8 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertIn("image_generation", tool_names)
         self.assertIn("python_execute", tool_names)
         self.assertIn("file_read", tool_names)
+        self.assertIn("file_read_lines", tool_names)
+        self.assertIn("file_search", tool_names)
         self.assertIn("file_write", tool_names)
         self.assertIn("file_list", tool_names)
         self.assertIn("file_delete", tool_names)
@@ -339,6 +349,28 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         read_tool = FileReadTool()
         result = await read_tool.execute({"path": "../../etc/passwd"})
         self.assertIn("error", result)
+
+    async def test_file_read_lines(self):
+        write_tool = FileWriteTool()
+        read_lines_tool = FileReadLinesTool()
+
+        await write_tool.execute({"path": self.test_file, "content": "line1\nline2\nline3\n"})
+        result = await read_lines_tool.execute({"path": self.test_file, "start_line": 2, "end_line": 3})
+
+        self.assertNotIn("error", result)
+        self.assertEqual(result["returned_lines"], 2)
+        self.assertEqual(result["lines"], ["line2\n", "line3\n"])
+
+    async def test_file_search_by_pattern_and_content(self):
+        write_tool = FileWriteTool()
+        search_tool = FileSearchTool()
+
+        await write_tool.execute({"path": self.test_file, "content": "hello workspace"})
+        result = await search_tool.execute({"pattern": "*test.txt", "query": "workspace"})
+
+        self.assertNotIn("error", result)
+        self.assertTrue(result["count"] >= 1)
+        self.assertTrue(any(self.test_file in match["path"] for match in result["matches"]))
 
     async def test_file_append(self):
         write_tool = FileWriteTool()

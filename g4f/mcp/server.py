@@ -28,8 +28,8 @@ from ..image.copy_images import get_media_dir, copy_media, get_source_url
 
 from .tools import (
     MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool,
-    PythonExecuteTool, FileReadTool, FileWriteTool, FileListTool, FileDeleteTool,
-    ApplyPatchTool
+    PythonExecuteTool, FileReadTool, FileReadLinesTool, FileSearchTool,
+    FileWriteTool, FileListTool, FileDeleteTool, ApplyPatchTool
 )
 
 
@@ -77,6 +77,8 @@ class MCPServer:
             'python_execute': PythonExecuteTool(safe_mode=safe_mode),
             'apply_patch': ApplyPatchTool(),
             'file_read': FileReadTool(),
+            'file_read_lines': FileReadLinesTool(),
+            'file_search': FileSearchTool(),
             'file_write': FileWriteTool(),
             'file_list': FileListTool(safe_mode=safe_mode),
             'file_delete': FileDeleteTool(),
@@ -109,11 +111,12 @@ class MCPServer:
             
             # Handle MCP protocol methods
             if method == "initialize":
+                tool_list = self.get_tool_list()
                 result = {
                     "protocolVersion": "2024-11-05",
                     "serverInfo": self.server_info,
                     "capabilities": {
-                        "tools": {}
+                        "tools": {tool["name"]: tool for tool in tool_list}
                     }
                 }
                 return MCPResponse(jsonrpc="2.0", id=request.id, result=result)

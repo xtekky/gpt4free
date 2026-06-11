@@ -19,6 +19,8 @@ from .tools import (
     ImageGenerationTool,
     PythonExecuteTool,
     FileReadTool,
+    FileReadLinesTool,
+    FileSearchTool,
     FileWriteTool,
     FileListTool,
     FileDeleteTool,
@@ -45,6 +47,8 @@ __all__ = [
     # New tools
     'PythonExecuteTool',
     'FileReadTool',
+    'FileReadLinesTool',
+    'FileSearchTool',
     'FileWriteTool',
     'FileListTool',
     'FileDeleteTool',
