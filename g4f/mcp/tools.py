@@ -687,10 +687,10 @@ class FileReadLinesTool(MCPTool):
             if end_line < start_line:
                 return {"error": "end_line must be greater than or equal to start_line"}
 
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
             target = (workspace / rel_path).resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if not target.exists():
                 return {"error": f"File not found: {rel_path}"}
@@ -772,10 +772,10 @@ class FileWriteTool(MCPTool):
         if content is None:
             return {"error": "content parameter is required"}
 
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
             target = (workspace / rel_path).resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             target.parent.mkdir(parents=True, exist_ok=True)
             if append:
@@ -868,10 +868,10 @@ class FileSearchTool(MCPTool):
         if not pattern and not query:
             return {"error": "At least one of pattern or query is required"}
 
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
-            target = (workspace / rel_path).resolve() if rel_path else workspace.resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            target = (workspace / rel_path).resolve() if rel_path else workspace
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if not target.exists():
                 return {"error": f"Directory not found: {rel_path or '/'}"}
@@ -970,12 +970,12 @@ class FileListTool(MCPTool):
         rel_path = arguments.get("path", "") or ""
         recursive = bool(arguments.get("recursive", False))
 
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
-            target = (workspace / rel_path).resolve() if rel_path else workspace.resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            target = (workspace / rel_path).resolve() if rel_path else workspace
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
-            if self.safe_mode and target == workspace.resolve():
+            if self.safe_mode and target == workspace:
                 return {"error": "Listing the workspace root directory is not allowed in safe mode"}
             if not target.exists():
                 return {"error": f"Directory not found: {rel_path or '/'}"}
@@ -1043,10 +1043,10 @@ class FileDeleteTool(MCPTool):
         if not rel_path:
             return {"error": "path parameter is required"}
 
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
             target = (workspace / rel_path).resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if not target.exists():
                 return {"error": f"File not found: {rel_path}"}
@@ -1111,10 +1111,10 @@ class ApplyPatchTool(MCPTool):
         patch_content = arguments.get("patch_content", "")
         backup = bool(arguments.get("backup", False))
         dry_run = bool(arguments.get("dry_run", False))
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
             target = (workspace / target_path).resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if not target.exists():
                 return {"error": f"File not found: {target_path}"}
