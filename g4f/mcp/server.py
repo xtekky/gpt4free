@@ -435,12 +435,13 @@ class MCPServer:
             header so they run in an isolated null origin.
             """
             from .pa_provider import get_workspace_dir
-            workspace = get_workspace_dir()
+            workspace = get_workspace_dir().resolve()
 
             file_path = request.match_info.get("file_path", "")
             try:
                 resolved = (workspace / file_path).resolve()
-                resolved.relative_to(workspace.resolve())
+                # Security: ensure the resolved path is still inside the workspace directory
+                resolved.relative_to(workspace)
             except (ValueError, Exception):
                 return web.Response(status=403, text="Path traversal is not allowed")
 

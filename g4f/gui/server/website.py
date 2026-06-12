@@ -132,6 +132,14 @@ class Website:
                 'function': self._playground,
                 'methods': ['GET']
             },
+            '/apps/': {
+                'function': self._apps,
+                'methods': ['GET']
+            },
+            '/apps/<path:filename>': {
+                'function': self._apps,
+                'methods': ['GET']
+            },
         }
 
     def _index(self, filename = "home"):
@@ -156,6 +164,9 @@ class Website:
 
     def _dist(self, name: str):
         return render(f"dist/{name}")
+    
+    def _apps(self, filename: str = "index.html"):
+        return render(f"apps/{filename}")
 
     def _playground(self, filename: str = "index.html"):
         PLAYGROUND_URL = "https://raw.githubusercontent.com/gpt4free/playground/refs/heads/main/"

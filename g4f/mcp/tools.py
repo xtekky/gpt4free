@@ -609,10 +609,10 @@ class FileReadTool(MCPTool):
         if not rel_path:
             return {"error": "path parameter is required"}
 
-        workspace = get_workspace_dir()
+        workspace = get_workspace_dir().resolve()
         try:
             target = (workspace / rel_path).resolve()
-            if not str(target).startswith(str(workspace.resolve())):
+            if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if not target.exists():
                 return {"error": f"File not found: {rel_path}"}
