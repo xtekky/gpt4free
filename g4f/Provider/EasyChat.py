@@ -1,27 +1,21 @@
 from __future__ import annotations
 
-import os
-import asyncio
-import requests
 import json
-try:
-    import zendriver as nodriver
-except ImportError:
-    pass
+import base64
+import hashlib
+from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from ..config import DEFAULT_MODEL
-from ..requests import get_args_from_nodriver, raise_for_status
-from ..providers.base_provider import AuthFileMixin
+from ..providers.base_provider import ProviderModelMixin
 from .template import OpenaiTemplate
-from .helper import get_last_user_message
 from .. import debug
 
-class EasyChat(OpenaiTemplate, AuthFileMixin):
+class EasyChat(OpenaiTemplate, ProviderModelMixin):
     url = "https://chat3.eqing.tech"
     base_url = f"{url}/api/openai/v1"
     api_endpoint = f"{base_url}/chat/completions"
-    working = False
+    working = True
     active_by_default = True
     use_model_names = True
     
@@ -31,9 +25,6 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
     }
 
     captchaToken: str = None
-    share_url: str = None
-    looked: bool = False
-    guestId: str = None
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
@@ -45,6 +36,45 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         return cls.models
 
     @classmethod
+    async def _solve_altcha(cls, proxy: str = None) -> str:
+        debug.log("EasyChat: Solving Altcha...")
+        async with ClientSession() as session:
+            async with session.get(f"{cls.url}/api/altcaptcha/challenge", proxy=proxy, headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+                "Accept": "application/json"
+            }) as response:
+                response.raise_for_status()
+                data = await response.json()
+                
+            salt = data['salt']
+            challenge = data['challenge']
+            maxnumber = data['maxnumber']
+            algorithm = data['algorithm']
+            signature = data['signature']
+            
+            for n in range(maxnumber + 1):
+                text = f"{salt}{n}".encode('utf-8')
+                if algorithm == "SHA-512":
+                    h = hashlib.sha512(text).hexdigest()
+                elif algorithm == "SHA-256":
+                    h = hashlib.sha256(text).hexdigest()
+                else:
+                    raise ValueError(f"Unknown Altcha algorithm: {algorithm}")
+                    
+                if h == challenge:
+                    payload = {
+                        "algorithm": algorithm,
+                        "challenge": challenge,
+                        "number": n,
+                        "salt": salt,
+                        "signature": signature
+                    }
+                    token = base64.b64encode(json.dumps(payload).encode()).decode()
+                    debug.log(f"EasyChat: Altcha solved (n={n})")
+                    return token
+            raise ValueError("Failed to solve Altcha")
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -54,115 +84,29 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
         extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
-        cls.share_url = os.getenv("G4F_SHARE_URL")
         model = cls.get_model(model.replace("-free", ""))
-        args = None
-        cache_file = cls.get_cache_file()
-        async def callback(page):
-            cls.captchaToken = None
-            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
-                if event.request.url != cls.api_endpoint:
-                    return
-                if not event.request.post_data:
-                    return
-                cls.captchaToken = json.loads(event.request.post_data).get("captchaToken")
-            await page.send(nodriver.cdp.network.enable())
-            page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
-            button = await page.find("我已知晓")
-            if button:
-                await button.click()
-            else:
-                debug.error("No 'Agree' button found.")
-            for _ in range(3):
-                await asyncio.sleep(1)
-                for _ in range(300):
-                    modal = await page.find("Verifying...")
-                    if not modal:
-                        break
-                    debug.log("EasyChat: Waiting for captcha verification...")
-                    await asyncio.sleep(1)
-                if cls.captchaToken:
-                    debug.log("EasyChat: Captcha token found, proceeding.")
+        
+        # Always solve Altcha fresh to avoid expiration
+        cls.captchaToken = await cls._solve_altcha(proxy=proxy)
+        
+        if extra_body is None:
+            extra_body = {}
+        extra_body["captchaToken"] = cls.captchaToken
+
+        try:
+            last_chunk = None
+            async for chunk in super().create_async_generator(
+                model=model,
+                messages=messages,
+                stream=stream,
+                extra_body=extra_body,
+                proxy=proxy,
+                **kwargs
+            ):
+                # Remove provided by
+                if last_chunk == "\n" and chunk == "\n":
                     break
-                textarea = await page.select("[contenteditable=\"true\"]", 180)
-                if textarea is not None:
-                    await textarea.send_keys("Hello")
-                    await asyncio.sleep(1)
-                    button = await page.select("button[class*='chat_chat-input-send']")
-                    if button:
-                        await button.click()
-            for _ in range(300):
-                await asyncio.sleep(1)
-                if cls.captchaToken:
-                    break
-            cls.guestId = await page.evaluate('"" + JSON.parse(localStorage.getItem("user-info") || "{}")?.state?.guestId')
-            await asyncio.sleep(3)
-        if cache_file.exists():
-            with cache_file.open("r") as f:
-                args = json.load(f)
-            cls.captchaToken = args.pop("captchaToken")
-            cls.guestId = args.pop("guestId", None)
-            if cls.captchaToken:
-                debug.log("EasyChat: Using cached captchaToken.")
-        elif not cls.looked and cls.share_url:
-            cls.looked = True
-            try:
-                debug.log("No cache file found, trying to fetch from share URL.")
-                response = requests.get(cls.share_url, params={
-                    "prompt": get_last_user_message(messages),
-                    "model": model,
-                    "provider": cls.__name__
-                })
-                raise_for_status(response)
-                text, *sub = response.text.split("\n" * 10 + "<!--", 1)
-                if sub:
-                    debug.log("Save args to cache file:", str(cache_file))
-                    with cache_file.open("w") as f:
-                        f.write(sub[0].strip())
-                yield text
-            finally:
-                cls.looked = False
-            return
-        for _ in range(2):
-            if not args:
-                args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback, user_data_dir=None)
-            if extra_body is None:
-                extra_body = {}
-            extra_body.setdefault("captchaToken", cls.captchaToken)
-            try:
-                last_chunk = None
-                async for chunk in super().create_async_generator(
-                    model=model,
-                    messages=messages,
-                    stream=True,
-                    extra_body=extra_body,
-                    **{
-                        **args,
-                        "headers": {
-                            "X-Guest-Id": cls.guestId,
-                            **args.get("headers", {})
-                        }
-                    },
-                    **kwargs
-                ):
-                    # Remove provided by
-                    if last_chunk == "\n" and chunk == "\n":
-                        break
-                    last_chunk = chunk
-                    yield chunk
-            except Exception as e:
-                if "CLEAR-CAPTCHA-TOKEN" in str(e):
-                    debug.log("EasyChat: Captcha token expired, clearing cache file.")
-                    cache_file.unlink(missing_ok=True)
-                    args = None
-                    continue
-                raise e
-            break
-        if not args:
-            raise ValueError("Failed to retrieve arguments for EasyChat.")
-        if os.getenv("G4F_SHARE_AUTH"):
-            yield "\n" * 10
-            yield "<!--"
-            yield json.dumps({**args, "captchaToken": cls.captchaToken, "guestId": cls.guestId})
-        with cache_file.open("w") as f:
-            json.dump({**args, "captchaToken": cls.captchaToken, "guestId": cls.guestId}, f)
+                last_chunk = chunk
+                yield chunk
+        except Exception as e:
+            raise e

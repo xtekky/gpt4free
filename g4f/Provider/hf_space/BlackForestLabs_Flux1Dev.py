@@ -10,7 +10,7 @@ from ...image import use_aspect_ratio
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_media_prompt
-from .DeepseekAI_JanusPro7b import get_zerogpu_token
+from .utils import get_zerogpu_token
 from .raise_for_status import raise_for_status
 
 class BlackForestLabs_Flux1Dev(AsyncGeneratorProvider, ProviderModelMixin):

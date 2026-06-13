@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientTimeout
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
+from ..requests import StreamSession
 
 
 class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
@@ -29,7 +30,7 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
         headers = cls._get_headers()
         model = cls.get_model(model)
         
-        async with ClientSession(headers=headers) as session:
+        async with StreamSession(headers=headers, impersonate="chrome") as session:
             prompt = format_prompt(messages)
             data = {"prompt": prompt}
             
@@ -43,7 +44,7 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
             ) as response:
                 response.raise_for_status()
                 buffer = b""
-                async for chunk in response.content.iter_any():
+                async for chunk in response.iter_content():
                     buffer += chunk
                     try:
                         decoded = buffer.decode('utf-8')
@@ -67,16 +68,6 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
             "accept-language": "en-US,en;q=0.9",
             "cache-control": "no-cache",
             "content-type": "application/json",
-            "dnt": "1",
             "origin": "https://www.teach-anything.com",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "https://www.teach-anything.com/",
-            "sec-ch-us": '"Not?A_Brand";v="99", "Chromium";v="130"',
-            "sec-ch-us-mobile": "?0",
-            "sec-ch-us-platform": '"Linux"',
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+            "referer": "https://www.teach-anything.com/"
         }

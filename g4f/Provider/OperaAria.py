@@ -70,7 +70,7 @@ class OperaAria(AsyncGeneratorProvider, ProviderModelMixin):
     }
     
     _user_agent_v1 = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36 OPR/89.0.0.0"
-    _user_agent_v2 = "Mozilla/5.0 (Linux; U; Android 8.1.0; DRA-L21 Build/HUAWEIDRA-L21; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.179 Mobile Safari/537.36 OPR/99.0.2254.81922"
+    _user_agent_v2 = "Mozilla/5.0 (Linux; U; Android 14; Pixel 8 Pro Build/UQ1A.240205.004; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.179 Mobile Safari/537.36 OPR/99.0.2254.81922"
 
     @classmethod
     def get_model(cls, model: str) -> str:
