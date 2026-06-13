@@ -28,3 +28,12 @@ class DeepInfra(OpenaiTemplate):
                 cls.live += 1
 
         return cls.models
+
+    @classmethod
+    def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
+        headers = super().get_headers(stream, api_key, headers)
+        if not api_key:
+            headers["X-Deepinfra-Source"] = "model-embed"
+            headers["Origin"] = "https://deepinfra.com"
+            headers["Referer"] = "https://deepinfra.com/"
+        return headers
