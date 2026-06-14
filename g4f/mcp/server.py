@@ -458,12 +458,15 @@ class MCPServer:
             if ext in ("html", "htm"):
                 req_origin = f"{request.scheme}://{request.host}"
                 headers["content-security-policy"] = (
-                    f"sandbox allow-scripts allow-forms allow-popups; "
+                    f"sandbox allow-scripts allow-forms allow-popups allow-same-origin; "
                     f"default-src {req_origin} https://g4f.space; "
-                    f"img-src {req_origin} data: blob:; "
-                    f"font-src {req_origin}; "
-                    f"style-src {req_origin} 'unsafe-inline'; "
-                    f"script-src {req_origin} 'unsafe-inline'"
+                    f"img-src {req_origin} data: blob: https:; "
+                    f"media-src {req_origin} blob: https:; "
+                    f"font-src {req_origin} https:; "
+                    f"style-src {req_origin} 'unsafe-inline' https:; "
+                    f"script-src {req_origin} 'unsafe-inline' https:; "
+                    f"connect-src {req_origin} https: wss:; "
+                    f"frame-src {req_origin}"
                 )
             return web.Response(body=content, content_type=mime.split(";")[0].strip(), headers=headers)
 
