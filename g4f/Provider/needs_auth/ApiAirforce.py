@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from ..typing import Messages, AsyncResult
-from .template import OpenaiTemplate
-from ..errors import RateLimitError
+from ...typing import Messages, AsyncResult
+from ..template import OpenaiTemplate
+from ...errors import RateLimitError
 
 class ApiAirforce(OpenaiTemplate):
     label = "Api.Airforce"
@@ -10,9 +10,10 @@ class ApiAirforce(OpenaiTemplate):
     login_url = "https://panel.api.airforce/dashboard"
     base_url = "https://api.airforce/v1"
     working = True
+    needs_auth = True
     active_by_default = True
     use_image_size = True
-    default_model = "roleplay:free"
+    default_model = "gpt-4o-mini"
 
     @classmethod
     async def create_async_generator(

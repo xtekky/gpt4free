@@ -1,4 +1,5 @@
 from .AIBadgr           import AIBadgr
+from .ApiAirforce       import ApiAirforce
 from .Anthropic         import Anthropic
 from .Antigravity       import Antigravity
 from .Azure             import Azure
