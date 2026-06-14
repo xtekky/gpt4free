@@ -4,8 +4,7 @@ vision_models = ['gpt-5-2', 'gpt-5-2-instant', 'gpt-5-2-thinking', 'gpt-5-1', 'g
 video_models = ['veo-3.1-fast', 'seedance', 'seedance-pro', 'tencent/HunyuanVideo-1.5', 'meituan-longcat/LongCat-Video', 'Wan-AI/Wan2.2-T2V-A14B', 'Wan-AI/Wan2.1-T2V-1.3B', 'tencent/HunyuanVideo', 'Wan-AI/Wan2.2-TI2V-5B', 'Wan-AI/Wan2.2-T2V-A14B-Diffusers', 'zai-org/CogVideoX-5b', 'genmo/mochi-1-preview', 'Wan-AI/Wan2.1-T2V-14B', 'htdong/Wan-Alpha', 'hunyuanvideo-1.5', 'longcat-video', 'wan2.2-t2v-a14b', 'wan2.1-t2v-1.3b', 'hunyuanvideo', 'wan2.2-ti2v-5b', 'wan2.2-t2v-a14b-diffusers', 'cogvideox-5b', 'mochi-1', 'wan2.1-t2v-14b', 'wan-alpha', 'video', 'video']
 model_map = {
   "default": {
-    "OIVSCodeSer0501": "",
-    "OIVSCodeSer2": "",
+    "CopilotApp": "",
     "Copilot": "",
     "DeepInfra": "",
     "OperaAria": "",
@@ -21,6 +20,7 @@ model_map = {
     "Cloudflare": ""
   },
   "gpt-4": {
+    "CopilotApp": "Copilot",
     "Copilot": "Copilot",
     "Yqcloud": "gpt-4",
     "WeWordle": "gpt-4",
@@ -31,11 +31,11 @@ model_map = {
     "OpenRouter": "openai/gpt-4"
   },
   "gpt-4o": {
+    "CopilotApp": "Copilot",
     "OpenaiChat": "gpt-4o",
     "Copilot": "Copilot",
     "CopilotAccount": "Copilot",
     "PuterJS": "openrouter:openai/gpt-4o:extended",
-    "ItalyGPT": "gpt-4o",
     "CopilotSession": "Copilot",
     "GithubCopilot": "gpt-4o",
     "OpenRouter": "openai/gpt-4o:extended",
@@ -53,6 +53,7 @@ model_map = {
     "OpenAIFM": "coral"
   },
   "o1": {
+    "CopilotApp": "Think Deeper",
     "Copilot": "Think Deeper",
     "OpenaiAccount": "o1",
     "OpenaiChat": "o1",
@@ -969,6 +970,7 @@ model_map = {
     "OpenaiChat": "gpt-5-1-thinking"
   },
   "gpt-5": {
+    "CopilotApp": "Smart (GPT-5)",
     "OpenaiChat": "gpt-5",
     "Copilot": "GPT-5",
     "Perplexity": "gpt-5",

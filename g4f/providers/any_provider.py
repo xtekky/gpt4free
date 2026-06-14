@@ -19,12 +19,10 @@ from ..Provider import (
     Gemini,
     Grok,
     Perplexity,
-    LambdaChat,
     PollinationsAI,
     PuterJS,
 )
 from ..Provider import (
-    Microsoft_Phi_4_Multimodal,
     DeepInfra,
     LMArena,
     EdgeTTS,
@@ -77,7 +75,6 @@ PROVIDERS_LIST_2 = [
 
 # Add all models to the model map
 PROVIDERS_LIST_3 = [
-    LambdaChat,
     DeepInfra,
     HuggingFace,
     HuggingFaceMedia,
@@ -300,7 +297,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 continue
 
         # Process audio providers
-        for provider in [Microsoft_Phi_4_Multimodal, PollinationsAI]:
+        for provider in [PollinationsAI]:
             if provider.working:
                 cls.audio_models.extend(
                     [
@@ -466,7 +463,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 else:
                     providers = [PollinationsAudio, OpenAIFM, EdgeTTS, gTTS]
             elif has_audio:
-                providers = [PollinationsAI, Microsoft_Phi_4_Multimodal, MarkItDown]
+                providers = [PollinationsAI, MarkItDown]
             elif has_image:
                 providers = models.default_vision.best_provider.providers
             else:

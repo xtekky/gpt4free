@@ -29,19 +29,17 @@ from .audio import *
 from .template import OpenaiTemplate, BackendApi
 from .qwen.QwenCode import QwenCode
 
-from .ApiAirforce          import ApiAirforce
-from .Chatai               import Chatai
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
+from .CopilotApp           import CopilotApp
 from .CopilotSession       import CopilotSession
 from .DeepInfra            import DeepInfra
 from .EasyChat             import EasyChat
 from .GLM                  import GLM
 from .GradientNetwork      import GradientNetwork
-from .ItalyGPT             import ItalyGPT
-from .LambdaChat           import LambdaChat
-from .Mintlify             import Mintlify
-from .OIVSCodeSer          import OIVSCodeSer2, OIVSCodeSer0501
+
+from .PhindAi              import PhindAi
+from .Felo                 import Felo
 from .OllamaSwarm          import OllamaSwarm
 from .OperaAria            import OperaAria
 from .Perplexity           import Perplexity

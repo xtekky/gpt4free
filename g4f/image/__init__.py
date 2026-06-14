@@ -451,8 +451,10 @@ def to_bytes(image: ImageType) -> bytes:
                 if resp.ok and is_accepted_format(resp.content):
                     return resp.content
                 raise ValueError("Invalid image url. Expected bytes, str, or PIL Image.")
+        elif os.path.exists(image):
+            return Path(image).read_bytes()
         else:
-            raise ValueError("Invalid image format. Expected bytes, str, or PIL Image.")
+            raise ValueError(f"Invalid image format or file not found. Expected bytes, str, or PIL Image. Got: {image[:100]}")
     elif isinstance(image, Image.Image):
         bytes_io = BytesIO()
         image.save(bytes_io, image.format)
