@@ -88,26 +88,32 @@ def get_oss_headers(method: str, date_str: str, sts_data: dict, content_type: st
 
 
 text_models = [
-    'qwen3.6-plus', 'qwen3.6-max-preview', 'qwen3.5-plus', 'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash',
-    'qwen3.5-max-2026-03-08', 'qwen3.6-plus-preview', 'qwen3.5-397b-a17b', 'qwen3.5-122b-a10b', 'qwen3.5-omni-flash',
-    'qwen3.5-27b', 'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23', 'qwen-plus-2025-07-28', 'qwen3-coder-plus',
-    'qwen3-vl-plus', 'qwen3-omni-flash-2025-12-01', 'qwen-max-latest']
+    'qwen3.7-plus', 'qwen3.7-max', 'qwen3.6-plus', 'qwen3.6-max-preview', 'qwen3.6-27b',
+    'qwen-latest-series-invite-beta-v24', 'qwen-latest-series-invite-beta-v16', 'qwen3.5-plus',
+    'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash', 'qwen3.5-max-2026-03-08',
+    'qwen3.6-plus-preview', 'qwen3.5-397b-a17b', 'qwen3.5-122b-a10b', 'qwen3.5-omni-flash', 'qwen3.5-27b',
+    'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23', 'qwen-plus-2025-07-28', 'qwen3-coder-plus', 'qwen3-vl-plus',
+    'qwen3-omni-flash-2025-12-01']
 
 image_models = [
-    'qwen3.6-plus', 'qwen3.5-plus', 'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash', 'qwen3.5-397b-a17b',
-    'qwen3.5-122b-a10b', 'qwen3.5-omni-flash', 'qwen3.5-27b', 'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23',
-    'qwen-plus-2025-07-28', 'qwen3-coder-plus', 'qwen3-vl-plus', 'qwen3-omni-flash-2025-12-01', 'qwen-max-latest']
+    'qwen3.7-plus', 'qwen3.7-max', 'qwen3.6-plus', 'qwen3.6-27b', 'qwen3.5-plus', 'qwen3.5-omni-plus',
+    'qwen3.6-35b-a3b', 'qwen3.5-flash', 'qwen3.5-397b-a17b', 'qwen3.5-122b-a10b', 'qwen3.5-omni-flash',
+    'qwen3.5-27b', 'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23', 'qwen-plus-2025-07-28', 'qwen3-coder-plus',
+    'qwen3-vl-plus', 'qwen3-omni-flash-2025-12-01']
 
 vision_models = [
-    'qwen3.6-plus', 'qwen3.5-plus', 'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash', 'qwen3.5-397b-a17b',
-    'qwen3.5-122b-a10b', 'qwen3.5-omni-flash', 'qwen3.5-27b', 'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23',
-    'qwen-plus-2025-07-28', 'qwen3-coder-plus', 'qwen3-vl-plus', 'qwen3-omni-flash-2025-12-01', 'qwen-max-latest']
+    'qwen3.7-plus', 'qwen3.6-plus', 'qwen3.6-27b', 'qwen-latest-series-invite-beta-v16', 'qwen3.5-plus',
+    'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash', 'qwen3.5-397b-a17b', 'qwen3.5-122b-a10b',
+    'qwen3.5-omni-flash', 'qwen3.5-27b', 'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23', 'qwen-plus-2025-07-28',
+    'qwen3-coder-plus', 'qwen3-vl-plus', 'qwen3-omni-flash-2025-12-01']
 
 models = [
-    'qwen3.6-plus', 'qwen3.6-max-preview', 'qwen3.5-plus', 'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash',
-    'qwen3.5-max-2026-03-08', 'qwen3.6-plus-preview', 'qwen3.5-397b-a17b', 'qwen3.5-122b-a10b', 'qwen3.5-omni-flash',
-    'qwen3.5-27b', 'qwen3.5-35b-a3b', 'qwen3-max-2026-01-23', 'qwen-plus-2025-07-28', 'qwen3-coder-plus',
-    'qwen3-vl-plus', 'qwen3-omni-flash-2025-12-01', 'qwen-max-latest']
+    'qwen3.7-plus', 'qwen3.7-max', 'qwen3.6-plus', 'qwen3.6-max-preview', 'qwen3.6-27b',
+    'qwen-latest-series-invite-beta-v24', 'qwen-latest-series-invite-beta-v16', 'qwen3.5-plus',
+    'qwen3.5-omni-plus', 'qwen3.6-35b-a3b', 'qwen3.5-flash', 'qwen3.5-max-2026-03-08', 'qwen3.6-plus-preview',
+    'qwen3.5-397b-a17b', 'qwen3.5-122b-a10b', 'qwen3.5-omni-flash', 'qwen3.5-27b', 'qwen3.5-35b-a3b',
+    'qwen3-max-2026-01-23', 'qwen-plus-2025-07-28', 'qwen3-coder-plus', 'qwen3-vl-plus',
+    'qwen3-omni-flash-2025-12-01']
 
 
 class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
@@ -126,7 +132,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = text_models
     vision_models = vision_models
     models: list[str] = models
-    default_model = "qwen3-235b-a22b"
+    default_model = 'qwen3.7-plus'
 
     _midtoken: str = None
     _midtoken_uses: int = 0
@@ -337,6 +343,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         req_headers = session.headers.copy()
         req_headers['bx-umidtoken'] = cls._midtoken
         req_headers['bx-v'] = '2.5.31'
+        # fix error [g4f.errors.CloudflareError:aliyun_waf_aa]
+        req_headers["x-request-id"] = str(uuid.uuid4())
         return req_headers
 
     @classmethod
