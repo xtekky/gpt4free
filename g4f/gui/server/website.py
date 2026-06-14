@@ -92,16 +92,8 @@ class Website:
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
-            '/qrcode.html': {
-                'function': self._qrcode,
-                'methods': ['GET', 'POST']
-            },
-            '/background.html': {
-                'function': self._background,
-                'methods': ['GET', 'POST']
-            },
-            '/home.html': {
-                'function': self._home,
+            '/<filename>.html': {
+                'function': self._index,
                 'methods': ['GET', 'POST']
             },
             '/chat/<filename>': {
@@ -143,15 +135,6 @@ class Website:
         }
 
     def _index(self, filename = "home"):
-        return render(filename)
-
-    def _qrcode(self, filename = "qrcode"):
-        return render(filename)
-
-    def _background(self, filename = "background"):
-        return render(filename)
-
-    def _home(self, filename = "home"):
         return render(filename)
 
     def _chat(self, filename = ""):
