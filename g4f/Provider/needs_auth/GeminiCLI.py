@@ -35,6 +35,7 @@ _UNSUPPORTED_SCHEMA_KEYS = {
     "if", "then", "else", "not", "allOf", "anyOf", "oneOf",
     "default", "examples", "readOnly", "writeOnly",
     "contentEncoding", "contentMediaType", "additionalProperties",
+    "enumDescriptions", "$comment"
 }
 
 
