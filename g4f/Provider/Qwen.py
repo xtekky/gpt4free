@@ -422,7 +422,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         }
                         async with session.post(
                                 f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
-                                proxy=proxy
+                                proxy=proxy,
                         ) as resp:
                             await cls.raise_for_status(resp)
                             data = await resp.json()
@@ -489,7 +489,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         await cls.raise_for_status(resp)
                         if resp.headers.get("content-type", "").startswith("application/json"):
                             resp_json = await resp.json()
-                            if resp_json.get("success") is False or resp_json.get("data", {}).get("code"):
+                            if resp_json.get("success") is False or resp_json.get("data", {}).get("code") or 'FAIL_SYS_USER_VALIDATE' in resp_json.get("ret", []):
                                 raise RuntimeError(f"Response: {resp_json}")
                         # args["cookies"] = merge_cookies(args.get("cookies"), resp)
                         thinking_started = False
