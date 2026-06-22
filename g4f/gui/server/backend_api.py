@@ -210,6 +210,19 @@ class Backend_Api(Api):
                 mimetype='text/event-stream'
             )
 
+        @app.route('/pa/providers', methods=['GET'])
+        def pa_providers():
+            try:
+                from g4f.mcp.pa_provider import get_pa_registry
+                registry = get_pa_registry()
+                listing = registry.list_providers()
+                return jsonify(listing)
+            except ImportError:
+                return jsonify([])
+            except Exception as e:
+                logger.exception(e)
+                return jsonify({"error": {"message": str(e)}}), 500
+
         @app.route('/backend-api/v2/models', methods=['GET'])
         @lru_cache(maxsize=1)
         def jsonify_models():

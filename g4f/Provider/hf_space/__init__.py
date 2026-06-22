@@ -57,8 +57,8 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     async def create_async_generator(
         cls, model: str, messages: Messages, media: MediaListType = None, **kwargs
     ) -> AsyncResult:
-        if not model and media is not None:
-            model = cls.default_vision_model
+        if not model:
+            model = cls.default_vision_model if media is not None else cls.default_model
         is_started = False
         random.shuffle(cls.providers)
         for provider in cls.providers:

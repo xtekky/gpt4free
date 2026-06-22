@@ -26,7 +26,15 @@ def render(filename = "home", download_url: str = GITHUB_URL):
         if not path.startswith(base_dir + os.sep) and path != base_dir:
             return redirect('/')
         if os.path.exists(path):
-            return send_from_directory(os.path.dirname(path), os.path.basename(path))
+            if path.endswith('.html'):
+                try:
+                    latest_version = version.utils.latest_version
+                except VersionNotFoundError:
+                    latest_version = version.utils.current_version
+                with open(path, 'r', encoding='utf-8') as f:
+                    html = f.read()
+                return html.replace("{{ v }}", str(latest_version))
+            return send_from_directory(os.path.dirname(path), os.path.basename(path), max_age=31536000)
     try:
         latest_version = version.utils.latest_version
     except VersionNotFoundError:
@@ -59,7 +67,7 @@ def render(filename = "home", download_url: str = GITHUB_URL):
                                 found = os.path.abspath(root), file
                         break
                     if found:
-                        return send_from_directory(found[0], found[1])
+                        return send_from_directory(found[0], found[1], max_age=31536000)
                     else:
                         raise
             if not cache_file.endswith(".js") and response.headers.get("Content-Type", "").startswith("application/javascript"):
@@ -78,7 +86,7 @@ def render(filename = "home", download_url: str = GITHUB_URL):
             return html
         with open(cache_file, 'w', encoding='utf-8') as f:
             f.write(html)
-    return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))
+    return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file), max_age=31536000)
 
 class Website:
     def __init__(self, app) -> None:
@@ -160,7 +168,7 @@ class Website:
         local_dir = os.path.abspath("./playground")
         local_path = os.path.normpath(os.path.join(local_dir, filename))
         if local_path.startswith(local_dir + os.sep) and os.path.isfile(local_path):
-            return send_from_directory(os.path.dirname(local_path), os.path.basename(local_path))
+            return send_from_directory(os.path.dirname(local_path), os.path.basename(local_path), max_age=31536000)
         # Use cache dir
         cache_dir = os.path.join(get_cookies_dir(), ".playground_cache")
         safe_path = os.path.normpath(os.path.join(cache_dir, filename))
@@ -168,7 +176,7 @@ class Website:
             return redirect("/playground/")
         # Serve from cache if present
         if os.path.isfile(safe_path):
-            return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path))
+            return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path), max_age=31536000)
         # Download and cache from GitHub
         os.makedirs(os.path.dirname(safe_path), exist_ok=True)
         try:
@@ -176,7 +184,7 @@ class Website:
             response.raise_for_status()
             with open(safe_path, 'wb') as f:
                 f.write(response.content)
-            return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path))
+            return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path), max_age=31536000)
         except requests.RequestException:
             pass
         # SPA fallback: serve index.html for unknown sub-paths

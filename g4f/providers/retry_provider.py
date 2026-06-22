@@ -68,7 +68,11 @@ class RotatedProvider(BaseRetryProvider):
 
     def _get_current_provider(self) -> Type[BaseProvider]:
         """Gets the provider at the current index."""
-        return self.providers[self.current_index]
+        p = self.providers[self.current_index]
+        if isinstance(p, str):
+            import g4f.Provider
+            p = getattr(g4f.Provider, p)
+        return p
 
     def _rotate_provider(self) -> None:
         """Rotates to the next provider in the list."""
@@ -189,10 +193,20 @@ class IterListProvider(BaseRetryProvider):
         raise_exceptions(exceptions)
 
     def get_providers(self, ignored: list[str]) -> list[ProviderType]:
-        providers = [p for p in self.providers if p.__name__ not in ignored]
+        import g4f.Provider
+        resolved_providers = []
+        for p in self.providers:
+            if isinstance(p, str):
+                try:
+                    p = getattr(g4f.Provider, p)
+                except AttributeError:
+                    continue
+            if getattr(p, "__name__", "") not in ignored:
+                resolved_providers.append(p)
+        
         if self.shuffle:
-            random.shuffle(providers)
-        return providers
+            random.shuffle(resolved_providers)
+        return resolved_providers
 
 class RetryProvider(IterListProvider):
     def __init__(

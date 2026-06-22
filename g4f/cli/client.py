@@ -6,24 +6,20 @@ import asyncio
 import json
 import argparse
 import traceback
-import requests
+
 
 from pathlib import Path
 from typing import Optional, List, Dict
-from g4f.client import AsyncClient, ClientFactory
-from g4f.providers.response import JsonConversation, MediaResponse, is_content
-from g4f.cookies import set_cookies_dir, read_cookie_files
-from g4f.Provider import ProviderUtils
-from g4f.image import extract_data_uri, is_accepted_format
-from g4f.image.copy_images import get_media_dir
-from g4f.client.helper import filter_markdown
-from g4f.errors import MissingRequirementsError
+from pathlib import Path
+from typing import Optional, List, Dict
 
 try:
-    from g4f.integration.markitdown import MarkItDown
-    has_markitdown = True
+    import aiohttp
 except ImportError:
-    has_markitdown = False
+    aiohttp = None
+
+from g4f.config import CONFIG_DIR, COOKIES_DIR
+from g4f import debug
 
 from g4f.config import CONFIG_DIR, COOKIES_DIR
 from g4f import debug
@@ -44,7 +40,7 @@ class ConversationManager:
         self.model = model
         self.provider = provider
         self.max_messages = max_messages
-        self.conversation: Optional[JsonConversation] = None
+        self.conversation: Optional['JsonConversation'] = None
         self.history: List[Dict[str, str]] = []
         self.data: Dict = {}
         self._load()
@@ -60,6 +56,7 @@ class ConversationManager:
             if self.provider is None:
                 self.provider = data.get("provider")
             self.data = data.get("data", {})
+            from g4f.providers.response import JsonConversation
             if self.provider and self.data.get(self.provider):
                 self.conversation = JsonConversation(**self.data[self.provider])
             elif not self.provider and self.data:
@@ -98,7 +95,7 @@ class ConversationManager:
         return result
 
 async def stream_response(
-    client: AsyncClient,
+    client: 'AsyncClient',
     input_text,
     conversation: ConversationManager,
     output_file: Optional[Path] = None,
@@ -121,6 +118,7 @@ async def stream_response(
         "conversation": conversation.conversation,
     }
 
+    from g4f.providers.response import MediaResponse, is_content
     response_tokens = []
     last_chunk = None
     async for chunk in client.chat.completions.create(**create_args):
@@ -148,7 +146,7 @@ async def stream_response(
         text_response = "".join(str(t) for t in response_tokens)
 
     if output_file:
-        if save_content(text_response, media_chunk, str(output_file)):
+        if await save_content(text_response, media_chunk, str(output_file)):
             print(f"\n→ Response saved to '{output_file}'")
 
     if text_response:
@@ -158,16 +156,19 @@ async def stream_response(
         raise RuntimeError("No response received")
 
 
-def save_content(content, media: Optional[MediaResponse], filepath: str, allowed_types=None) -> bool:
+async def save_content(content, media: Optional['MediaResponse'], filepath: str, allowed_types=None) -> bool:
     if media:
         for url in media.get_list():
             if url.startswith(("http://", "https://")):
                 try:
-                    resp = requests.get(url, cookies=media.get("cookies"), headers=media.get("headers"))
-                    if resp.status_code == 200:
-                        with open(filepath, "wb") as f:
-                            f.write(resp.content)
-                        return True
+                    if aiohttp is None:
+                        import aiohttp
+                    async with aiohttp.ClientSession(cookies=media.get("cookies"), headers=media.get("headers")) as session:
+                        async with session.get(url) as resp:
+                            if resp.status == 200:
+                                with open(filepath, "wb") as f:
+                                    f.write(await resp.read())
+                                return True
                 except Exception as e:
                     print(f"Error fetching media '{url}': {e}", file=sys.stderr)
                 return False
@@ -180,13 +181,16 @@ def save_content(content, media: Optional[MediaResponse], filepath: str, allowed
         print("\nNo content to save.", file=sys.stderr)
         return False
     if content.startswith("data:"):
+        from g4f.image import extract_data_uri
         with open(filepath, "wb") as f:
             f.write(extract_data_uri(content))
         return True
     if content.startswith("/media/"):
+        from g4f.image.copy_images import get_media_dir
         src = content.replace("/media", get_media_dir()).split("?")[0]
         os.rename(src, filepath)
         return True
+    from g4f.client.helper import filter_markdown
     filtered = filter_markdown(content, allowed_types)
     if filtered:
         with open(filepath, "w", encoding="utf-8") as f:
@@ -203,7 +207,7 @@ def get_parser(exit_on_error=True):
     )
     parser.add_argument('-d', '--debug', action='store_true', help="Verbose debug")
     parser.add_argument('-p', '--provider', default=None,
-        help=f"Provider to use: {', '.join(k for k,v in ProviderUtils.convert.items() if v.working)}")
+        help="Provider to use")
     parser.add_argument('-m', '--model', help="Model name")
     parser.add_argument('-O', '--output', type=Path,
         help="Save assistant output to FILE (text or media)")
@@ -250,9 +254,11 @@ async def run_args(input_val, args):
             conv.history = []
             conv.conversation = None
 
+        from g4f.cookies import set_cookies_dir, read_cookie_files
         set_cookies_dir(str(args.cookies_dir))
         read_cookie_files()
 
+        from g4f.client import ClientFactory
         client = ClientFactory.create_async_client(provider=conv.provider)
 
         if input_val == "models":
@@ -283,40 +289,58 @@ async def run_args(input_val, args):
         sys.exit(1)
 
 
-def run_client_args(args, exit_on_error=True):
+async def async_run_client_args(args, exit_on_error=True):
     input_txt = ""
     media = []
     rest = 0
 
-    for idx, tok in enumerate(args.input):
-        if tok.startswith(("http://","https://")):
-            # same URL logic...
-            resp = requests.head(tok, allow_redirects=True)
-            if resp.ok and resp.headers.get("Content-Type","").startswith("image"):
-                media.append(tok)
-            else:
-                if not has_markitdown:
-                    raise MissingRequirementsError("Install markitdown")
-                md = MarkItDown()
-                txt = md.convert_url(tok).text_content
-                input_txt += f"\n```source: {tok}\n{txt}\n```\n"
-        elif os.path.isfile(tok):
-            head = Path(tok).read_bytes()[:12]
-            try:
-                if is_accepted_format(head):
-                    media.append(Path(tok))
-                    is_img = True
+    if aiohttp is None:
+        import aiohttp
+
+    async with aiohttp.ClientSession() as session:
+        for idx, tok in enumerate(args.input):
+            if tok.startswith(("http://","https://")):
+                try:
+                    async with session.head(tok, allow_redirects=True) as resp:
+                        is_ok = resp.status == 200
+                        content_type = resp.headers.get("Content-Type", "")
+                except Exception:
+                    is_ok = False
+                    content_type = ""
+                
+                if is_ok and content_type.startswith("image"):
+                    media.append(tok)
                 else:
+                    try:
+                        from g4f.integration.markitdown import MarkItDown
+                    except ImportError:
+                        from g4f.errors import MissingRequirementsError
+                        raise MissingRequirementsError("Install markitdown")
+                    
+                    def run_markitdown(url):
+                        md = MarkItDown()
+                        return md.convert_url(url).text_content
+                    
+                    txt = await asyncio.to_thread(run_markitdown, tok)
+                    input_txt += f"\n```source: {tok}\n{txt}\n```\n"
+            elif os.path.isfile(tok):
+                from g4f.image import is_accepted_format
+                head = Path(tok).read_bytes()[:12]
+                try:
+                    if is_accepted_format(head):
+                        media.append(Path(tok))
+                        is_img = True
+                    else:
+                        is_img = False
+                except ValueError:
                     is_img = False
-            except ValueError:
-                is_img = False
-            if not is_img:
-                txt = Path(tok).read_text(encoding="utf-8")
-                input_txt += f"\n```file: {tok}\n{txt}\n```\n"
-        else:
-            rest = idx
-            break
-        rest = idx + 1
+                if not is_img:
+                    txt = Path(tok).read_text(encoding="utf-8")
+                    input_txt += f"\n```file: {tok}\n{txt}\n```\n"
+            else:
+                rest = idx
+                break
+            rest = idx + 1
 
     tail = args.input[rest:]
     if tail:
@@ -334,9 +358,14 @@ def run_client_args(args, exit_on_error=True):
         print("No input provided. Use -h.", file=sys.stderr)
         sys.exit(1)
     elif not val:
+        import argparse
         raise argparse.ArgumentError(None, "No input provided. Use -h for help.")
 
-    asyncio.run(run_args(val, args))
+    await run_args(val, args)
+
+
+def run_client_args(args, exit_on_error=True):
+    asyncio.run(async_run_client_args(args, exit_on_error))
 
 
 if __name__ == "__main__":
