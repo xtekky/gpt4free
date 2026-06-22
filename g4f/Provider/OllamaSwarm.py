@@ -600,6 +600,9 @@ class OllamaSwarm(OpenaiTemplate):
         if not cls.models:
             cls.get_models()
 
+        if not model or model == "default":
+            model = getattr(cls, "default_model", "qwen3:14b")
+
         server_urls = cls.model_to_servers.get(model)
         if server_urls is None:
             resolved = cls.get_model(model)

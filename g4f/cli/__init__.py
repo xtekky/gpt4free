@@ -17,16 +17,7 @@ import os
 import sys
 from argparse import ArgumentParser
 
-from .client import get_parser, run_client_args
-from ..requests import BrowserConfig
-from ..gui.run import gui_parser, run_gui_args
 from ..config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
-from ..Provider.needs_auth.Antigravity import cli_main as antigravity_cli_main
-from ..Provider.qwen.QwenCode import cli_main as qwen_cli_main
-from ..Provider.github.GithubCopilot import cli_main as github_cli_main
-from ..Provider.needs_auth.GeminiCLI import cli_main as gemini_cli_main
-from .. import Provider
-from .. import cookies
 
 
 # --------------------------------------------------------------
@@ -79,18 +70,14 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     # Providers for chat completion
     api_parser.add_argument(
         "--provider",
-        choices=[p.__name__ for p in Provider.__providers__ if p.working],
+        type=str,
         default=None,
         help="Default provider for chat completion."
     )
 
-    # Providers for image generation
     api_parser.add_argument(
         "--media-provider",
-        choices=[
-            p.__name__ for p in Provider.__providers__
-            if p.working and bool(getattr(p, "image_models", False))
-        ],
+        type=str,
         default=None,
         help="Default provider for image generation."
     )
@@ -137,7 +124,6 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     api_parser.add_argument(
         "--ignored-providers",
         nargs="+",
-        choices=[p.__name__ for p in Provider.__providers__ if p.working],
         default=[],
         help="Providers to ignore during request processing."
     )
@@ -145,7 +131,6 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     api_parser.add_argument(
         "--cookie-browsers",
         nargs="+",
-        choices=[browser.__name__ for browser in cookies.BROWSERS],
         default=[],
         help="Browsers to fetch cookies from."
     )
@@ -197,6 +182,8 @@ def run_api_args(args):
     Runs the API server using the parsed CLI arguments.
     """
     from g4f.api import AppConfig, run_api
+    from ..requests import BrowserConfig
+    from .. import cookies
 
     # Apply configuration
     AppConfig.set_config(
@@ -332,10 +319,12 @@ def main():
             args = parser.parse_args(remaining)
             run_api_args(args)
         elif args.mode == "gui":
+            from ..gui.run import gui_parser, run_gui_args
             parser = gui_parser()
             args = parser.parse_args(remaining)
             run_gui_args(args)
         elif args.mode == "client":
+            from .client import get_parser, run_client_args
             parser = get_parser()
             args = parser.parse_args(remaining)
             run_client_args(args)
@@ -352,6 +341,7 @@ def main():
 
     except argparse.ArgumentError:
         # Try client mode
+        from .client import get_parser, run_client_args
         run_client_args(
             get_parser(exit_on_error=False).parse_args(),
             exit_on_error=False
@@ -402,12 +392,16 @@ complete -F _g4f_completions g4f
 
 def handle_auth(provider, action, remaining):
     if provider == "gemini-cli":
+        from ..Provider.needs_auth.GeminiCLI import cli_main as gemini_cli_main
         sys.exit(gemini_cli_main([action] + remaining))
     elif provider == "antigravity":
+        from ..Provider.needs_auth.Antigravity import cli_main as antigravity_cli_main
         sys.exit(antigravity_cli_main([action] + remaining))
     elif provider == "qwencode":
+        from ..Provider.qwen.QwenCode import cli_main as qwen_cli_main
         sys.exit(qwen_cli_main([action] + remaining))
     elif provider == "github-copilot":
+        from ..Provider.github.GithubCopilot import cli_main as github_cli_main
         sys.exit(github_cli_main([action] + remaining))
     else:
         print(f"Provider {provider} not supported yet.")

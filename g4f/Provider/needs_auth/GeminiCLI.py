@@ -501,6 +501,8 @@ class GeminiCLIProvider():
                 self._project_id = project
                 return project
             raise RuntimeError("No project information found in API response.")
+        except MissingAuthError:
+            raise
         except Exception as e:
             debug.error(f"Failed to discover project ID: {e}")
             raise RuntimeError(
@@ -555,8 +557,12 @@ class GeminiCLIProvider():
                                 return project_id
                         else:
                             text = await response.text()
+                            if response.status == 403:
+                                raise MissingAuthError("Account not eligible for Gemini Code Assist.")
                             debug.error(f"Onboarding attempt {attempt + 1} failed with status {response.status}: {text}")
                         response.raise_for_status()
+            except MissingAuthError:
+                raise
             except Exception as e:
                 debug.error(f"Failed to onboard managed project: {e}")
 

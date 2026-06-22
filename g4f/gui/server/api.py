@@ -100,17 +100,25 @@ class Api:
         } for provider in Provider.__providers__ if provider.working and safe_get_models(provider)]
 
     def get_all_models(self) -> dict[str, list]:
-        def safe_get_provider_models(provider: ProviderModelMixin) -> list[str]:
+        import concurrent.futures
+        
+        def safe_get_provider_models(provider) -> tuple[str, list[str]]:
             try:
-                return list(provider.get_models(timeout=10))
+                return provider.__name__, list(provider.get_models(timeout=10))
             except Exception as e:
                 debug.error(f"{provider.__name__}: get_models error:", e)
-                return []
-        return {
-            provider.__name__: safe_get_provider_models(provider)
-            for provider in Provider.__providers__
-            if provider.working and hasattr(provider, "get_models")
-        }
+                return provider.__name__, []
+                
+        providers = [p for p in Provider.__providers__ if p.working and hasattr(p, "get_models")]
+        results = {}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            futures = {executor.submit(safe_get_provider_models, p): p for p in providers}
+            for future in concurrent.futures.as_completed(futures):
+                name, models = future.result()
+                results[name] = models
+                
+        return results
 
     @staticmethod
     def get_version() -> dict:

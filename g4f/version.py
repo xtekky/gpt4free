@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import requests
+import os
 from os import environ
 from functools import cached_property, lru_cache
-from importlib.metadata import version as get_package_version, PackageNotFoundError
+
 from subprocess import check_output, CalledProcessError, PIPE
 
 from .errors import VersionNotFoundError
@@ -23,16 +23,17 @@ def get_pypi_version(package_name: str) -> str:
         VersionNotFoundError: If there is a network or parsing error.
     """
     try:
+        import requests
         response = requests.get(
             f"https://pypi.org/pypi/{package_name}/json",
             timeout=REQUEST_TIMEOUT
         )
         response.raise_for_status()
         return response.json()["info"]["version"]
-    except requests.RequestException as e:
-        raise VersionNotFoundError(
-            f"Failed to get PyPI version for '{package_name}'"
-        ) from e
+    except Exception as e:
+        if isinstance(e, ImportError) or e.__class__.__name__ == "RequestException":
+            raise VersionNotFoundError(f"Failed to get PyPI version for '{package_name}'") from e
+        raise e
 
 
 @lru_cache(maxsize=1)
@@ -44,6 +45,7 @@ def get_github_version(repo: str) -> str:
         VersionNotFoundError: If there is a network or parsing error.
     """
     try:
+        import requests
         response = requests.get(
             f"https://api.github.com/repos/{repo}/releases/latest",
             timeout=REQUEST_TIMEOUT
@@ -53,10 +55,10 @@ def get_github_version(repo: str) -> str:
         if "tag_name" not in data:
             raise VersionNotFoundError(f"No tag_name found in latest GitHub release for '{repo}'")
         return data["tag_name"]
-    except requests.RequestException as e:
-        raise VersionNotFoundError(
-            f"Failed to get GitHub release version for '{repo}'"
-        ) from e
+    except Exception as e:
+        if isinstance(e, ImportError) or e.__class__.__name__ == "RequestException":
+            raise VersionNotFoundError(f"Failed to get GitHub release version for '{repo}'") from e
+        raise e
 
 
 def get_git_version() -> str | None:
@@ -89,7 +91,10 @@ class VersionUtils:
             return debug.version
 
         try:
+            from importlib.metadata import version as get_package_version, PackageNotFoundError
             return get_package_version(PACKAGE_NAME)
+        except ImportError:
+            pass
         except PackageNotFoundError:
             pass
 
@@ -110,7 +115,10 @@ class VersionUtils:
         If not installed via PyPI, falls back to GitHub releases.
         """
         try:
+            from importlib.metadata import version as get_package_version, PackageNotFoundError
             get_package_version(PACKAGE_NAME)
+        except ImportError:
+            return get_github_version(GITHUB_REPOSITORY)
         except PackageNotFoundError:
             return get_github_version(GITHUB_REPOSITORY)
         return get_pypi_version(PACKAGE_NAME)

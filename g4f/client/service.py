@@ -105,7 +105,7 @@ def get_model_and_provider(model    : Union[Model, str],
 
     if isinstance(provider, BaseRetryProvider):
         if not ignore_working:
-            provider.providers = [p for p in provider.providers if p.working]
+            provider.providers = [p for p in getattr(provider, "get_providers", lambda x: provider.providers)([]) if getattr(p, "working", False)]
 
     if not ignore_stream and not provider.supports_stream and stream:
         raise StreamNotSupportedError(f'{provider_name} does not support "stream" argument')

@@ -704,8 +704,11 @@ class AntigravityAuthManager(AuthFileMixin):
                         }
                         async with session.post(url, headers=onboard_headers, json=onboard_request_body, timeout=timeout) as resp:
                             if not resp.ok:
+                                text = await resp.text()
+                                if resp.status == 403:
+                                    raise MissingAuthError("Account not eligible for Antigravity Code Assist.")
                                 print(f"Onboarding attempt {attempt+1} at {base_url} failed with status {resp.status}")
-                                print(await resp.text())
+                                print(text)
                                 # Stop attempts on this endpoint and try next base_url
                                 break
 
@@ -723,6 +726,8 @@ class AntigravityAuthManager(AuthFileMixin):
                                 return managed_id
                             if done and configured_project:
                                 return configured_project
+                    except MissingAuthError:
+                        raise
                     except Exception as e:
                         debug.log(f"Failed to onboard managed project at {base_url}: {e}")
                         break
@@ -950,6 +955,8 @@ class AntigravityProvider:
             raise RuntimeError(
                 "Project ID discovery failed - set ANTIGRAVITY_PROJECT_ID in environment."
             )
+        except MissingAuthError:
+            raise
         except Exception as e:
             debug.error(f"Failed to discover project ID: {e}")
             raise RuntimeError(
