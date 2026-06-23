@@ -834,28 +834,21 @@ demo_models = {
 }
 
 # Create a list of all models and their providers
-def _get_working_providers(model: Model) -> List:
+def _get_best_providers(model: Model) -> List:
     """Get list of working providers for a model"""
     if model.best_provider is None:
         return []
     
     if isinstance(model.best_provider, IterListProvider):
-        return [p for p in model.best_provider.get_providers([]) if getattr(p, "working", False)]
+        return model.best_provider.providers
 
-    p = model.best_provider
-    if isinstance(p, str):
-        import g4f.Provider
-        try:
-            p = getattr(g4f.Provider, p)
-        except AttributeError:
-            return []
-    return [p] if getattr(p, "working", False) else []
+    return [model.best_provider]
 
 # Generate __models__ using the auto-discovered models
 __models__ = {
-    name: (model, _get_working_providers(model))
+    name: (model, _get_best_providers(model))
     for name, model in ModelRegistry.all_models().items()
-    if name and _get_working_providers(model)
+    if name and _get_best_providers(model)
 }
 
 # Generate _all_models list

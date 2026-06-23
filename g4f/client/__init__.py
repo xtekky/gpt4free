@@ -20,8 +20,7 @@ from ..providers.response import *
 from ..errors import NoMediaResponseError, ProviderNotFoundError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
-from ..providers.any_provider import AnyProvider
-from ..Provider import OpenaiAccount, PollinationsImage, ProviderUtils
+from ..Provider import PollinationsImage, ProviderUtils
 from ..Provider.template import OpenaiTemplate
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from ..cookies import get_cookies_dir
@@ -63,6 +62,11 @@ def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
     for idx, media in enumerate(kwargs.get("media", [])):
         if not isinstance(media, (list, tuple)):
             kwargs["media"][idx] = (media, getattr(media, "name", None))
+
+def get_name(provider: Union[ProviderType, str]) -> str:
+    if isinstance(provider, str):
+        return provider
+    return getattr(provider, "__name__", type(provider).__name__)
 
 # Synchronous iter_response function
 def iter_response(
@@ -298,6 +302,7 @@ class Completions:
         if provider is None:
             provider = self.provider
             if provider is None:
+                from ..providers.any_provider import AnyProvider
                 provider = AnyProvider
         if isinstance(provider, str):
             provider = convert_to_provider(provider)
@@ -400,7 +405,7 @@ class Images:
         **kwargs
     ) -> ImagesResponse:
         provider_handler = await self.get_provider_handler(model, provider, PollinationsImage)
-        provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
+        provider_name = get_name(provider_handler)
         if proxy is None:
             proxy = self.client.proxy
         if api_key is None:
@@ -408,15 +413,15 @@ class Images:
         error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
-            for provider in provider_handler.providers:
+            for provider in provider_handler.get_providers():
                 try:
-                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
+                    response = await self._generate_image_response(provider, get_name(provider), model, prompt, proxy=proxy, api_key=api_key, **kwargs)
                     if response is not None:
-                        provider_name = provider.__name__
+                        provider_name = get_name(provider)
                         break
                 except Exception as e:
                     error = e
-                    debug.error(f"{provider.__name__}:", e)
+                    debug.error(f"{get_name(provider)}:", e)
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
         if response is None:
@@ -515,8 +520,9 @@ class Images:
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
+        from ..Provider import OpenaiAccount
         provider_handler = await self.get_provider_handler(model, provider, OpenaiAccount)
-        provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
+        provider_name = get_name(provider_handler)
         if proxy is None:
             proxy = self.client.proxy
         resolve_media(kwargs, image, image_name)
@@ -525,13 +531,13 @@ class Images:
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
                 try:
-                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, **kwargs)
+                    response = await self._generate_image_response(provider, get_name(provider), model, prompt, **kwargs)
                     if response is not None:
-                        provider_name = provider.__name__
+                        provider_name = get_name(provider)
                         break
                 except Exception as e:
                     error = e
-                    debug.error(f"{provider.__name__}:", e)
+                    debug.error(f"{get_name(provider)}:", e)
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
         if response is None:
@@ -637,6 +643,7 @@ class AsyncCompletions:
         if provider is None:
             provider = self.provider
             if provider is None:
+                from ..providers.any_provider import AnyProvider
                 provider = AnyProvider
         if isinstance(provider, str):
             provider = convert_to_provider(provider)

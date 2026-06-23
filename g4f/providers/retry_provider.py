@@ -192,7 +192,7 @@ class IterListProvider(BaseRetryProvider):
 
         raise_exceptions(exceptions)
 
-    def get_providers(self, ignored: list[str]) -> list[ProviderType]:
+    def get_providers(self, ignored: list[str] = []) -> list[ProviderType]:
         import g4f.Provider
         resolved_providers = []
         for p in self.providers:

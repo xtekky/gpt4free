@@ -187,16 +187,14 @@ class ProviderUtils:
         if not label:
             raise ValueError("Label must be provided")
             
-        import g4f.Provider
-        
         # Check explicit map
         if label in __map__:
-            return getattr(g4f.Provider, label)
+            return __map__[label]
             
         # Fallback to search
         for provider_name in __map_paths__.keys():
             if provider_name.lower().startswith(label.lower()):
-                provider = getattr(g4f.Provider, provider_name)
+                provider = __map__[provider_name]
                 if provider.working:
                     return provider
                     

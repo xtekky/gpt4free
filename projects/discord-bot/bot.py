@@ -26,8 +26,8 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from g4f.client import AsyncClient
-from g4f.Provider import OpenaiChat  # default provider; change as needed
+import g4f.Provider
+from g4f.client import ClientFactory
 
 from mcp_tools import MCPToolManager, ALL_AVAILABLE_TOOLS, SAFE_DEFAULT_TOOLS
 
@@ -37,7 +37,7 @@ load_dotenv()
 # Configuration
 # ---------------------------------------------------------------------------
 TOKEN = os.getenv("DISCORD_TOKEN")
-MODEL = os.getenv("G4F_MODEL", "gpt-4o-mini")
+MODEL = os.getenv("G4F_MODEL", "auto")
 SYSTEM_PROMPT = os.getenv(
     "G4F_SYSTEM_PROMPT",
     "You are a helpful, friendly Discord assistant. Keep answers concise "
@@ -48,6 +48,11 @@ SYSTEM_PROMPT = os.getenv(
 MAX_HISTORY = int(os.getenv("G4F_MAX_HISTORY", "12"))  # messages per user
 PROXY = os.getenv("G4F_PROXY")  # optional, e.g. "socks5://127.0.0.1:1080"
 MAX_TOOL_LOOPS = int(os.getenv("G4F_MAX_TOOL_LOOPS", "4"))  # safety cap
+
+# Simple validation for runtime model names.
+ALLOWED_MODEL_CHARS = set(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
+)
 
 # Comma-separated list of tools to enable at startup (default: safe set).
 _enabled_env = os.getenv("G4F_ENABLED_TOOLS", "")
@@ -63,7 +68,9 @@ log = logging.getLogger("g4f-discord")
 # ---------------------------------------------------------------------------
 # g4f async client + MCP tool manager (shared across requests)
 # ---------------------------------------------------------------------------
-client = AsyncClient(provider=OpenaiChat)
+client = ClientFactory.create_async_client(provider="default",
+                                           api_key=os.getenv("G4F_API_KEY"),
+                                           media_provider=getattr(g4f.Provider, os.getenv("G4F_MEDIA_PROVIDER", "PollinationsImage")))
 mcp = MCPToolManager(enabled_tools=ENABLED_TOOLS)
 
 # Per-user conversation history: user_id -> deque of {"role", "content"}
@@ -78,6 +85,22 @@ intents.message_content = True  # required to read user messages
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
+# ---------------------------------------------------------------------------
+# Auto image generation from channel messages
+# ---------------------------------------------------------------------------
+# If enabled, the bot listens to messages in the given channel(s) and
+# runs image generation.
+#
+# Env vars:
+# - G4F_IMAGE_CHANNELS: comma-separated channel ids (required to enable)
+_image_channels_env = os.getenv("G4F_IMAGE_CHANNELS", "")
+IMAGE_CHANNELS = {
+    int(x.strip())
+    for x in _image_channels_env.split(",")
+    if x.strip().isdigit()
+}
+
+
 def _build_messages(user_id: int, user_content: str) -> List[dict]:
     """Return the full message list including system prompt and history."""
     messages: List[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -89,6 +112,15 @@ def _build_messages(user_id: int, user_content: str) -> List[dict]:
 def _truncate(text: str, limit: int = 1900) -> str:
     """Truncate text to stay within Discord's 2000-char message limit."""
     return text if len(text) <= limit else text[:limit] + "…"
+
+
+def _normalize_model_name(name: str) -> str:
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("Model name cannot be empty")
+    if any(ch not in ALLOWED_MODEL_CHARS for ch in name):
+        raise ValueError("Model name contains invalid characters")
+    return name
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +137,7 @@ async def _stream_response(
     last_sent = ""
     update_threshold = 80  # characters before each edit
 
-    stream = await client.chat.completions.create(
+    stream = client.chat.completions.create(
         model=MODEL,
         messages=messages,
         stream=True,
@@ -299,6 +331,78 @@ async def model(interaction: discord.Interaction):
     )
 
 
+@bot.tree.command(name="setmodel", description="Set the currently used model.")
+@app_commands.describe(
+    value="Model name/id",
+)
+async def setmodel(interaction: discord.Interaction, value: str):
+    global MODEL
+    try:
+        MODEL = _normalize_model_name(value)
+    except ValueError as e:
+        await interaction.response.send_message(f"❌ {e}", ephemeral=True)
+        return
+
+    await interaction.response.send_message(
+        f"✅ Model set to: `{MODEL}`", ephemeral=True
+    )
+
+
+@bot.tree.command(name="models", description="List available models (best effort).")
+async def models(interaction: discord.Interaction):
+    await interaction.response.defer(thinking=True, ephemeral=True)
+
+    available = None
+    try:
+        available = client.models.get_all()
+    except Exception as e:
+        log.exception(e)
+
+    if not available:
+        await interaction.followup.send(
+            "⚠️ Unable to fetch a model catalog from the current provider. "
+            "Use `/setmodel` with a model id that works for your provider.",
+            ephemeral=True,
+        )
+        return
+    if isinstance(available, dict):
+        lines = [f"• `{n.get('label', k)}` ({n.get('requests', 0)})" for k, n in available.items() if not "requests" in n or n.get("requests") >= 5]
+    else:
+        lines = [f"• `{n}`" for n in available]
+    msg = "**Available models:**\n" + "\n".join(lines)
+    await interaction.followup.send(_truncate(msg, 1900), ephemeral=True)
+
+
+@bot.tree.command(name="image", description="Generate an image from a prompt.")
+@app_commands.describe(
+    prompt="What to generate",
+    model="Optional image model (defaults to current /model)",
+)
+async def image(
+    interaction: discord.Interaction,
+    prompt: str,
+    model: Optional[str] = None,
+):
+    await interaction.response.defer(thinking=True)
+    try:
+        m = _normalize_model_name(model) if model else MODEL
+        generated = await _generate_image(prompt=prompt, model=m)
+    except Exception as e:
+        log.exception("Image generation failed")
+        await interaction.followup.send(f"⚠️ Image generation failed: {e}")
+        return
+
+    if generated.startswith("http://") or generated.startswith("https://"):
+        embed = discord.Embed(title="🖼️ Generated image")
+        embed.set_image(url=generated)
+        await interaction.followup.send(embed=embed)
+    else:
+        await interaction.followup.send(
+            "🖼️ Generated image (non-URL result):\n"
+            f"```{_truncate(generated, 1800)}```"
+        )
+
+
 @bot.tree.command(name="tools", description="List, enable, or disable MCP tools.")
 @app_commands.describe(
     action="What to do (default: list)",
@@ -365,6 +469,48 @@ async def tools(
             )
 
 
+@bot.event
+async def on_message(message: discord.Message):
+    # Let slash commands etc. work as usual.
+    await bot.process_commands(message)
+
+    if not IMAGE_CHANNELS:
+        return
+
+    if message.author.bot:
+        return
+
+    if message.channel.id not in IMAGE_CHANNELS:
+        return
+
+    if not message.content:
+        return
+
+    prompt = message.content.strip()
+    if not prompt:
+        await message.channel.send("🖼️ Usage: !img <prompt>")
+        return
+
+    try:
+        # Create a placeholder then edit/send final result.
+        placeholder = await message.channel.send("🖼️ Generating…")
+        m = MODEL
+        generated = await _generate_image(prompt=prompt, model=m)
+
+        if generated.startswith("http://") or generated.startswith("https://"):
+            embed = discord.Embed(title="🖼️ Generated image")
+            embed.set_image(url=generated)
+            await placeholder.edit(content="", embed=embed)
+        else:
+            await placeholder.edit(
+                content="🖼️ Generated image (non-URL result):\n"
+                + _truncate(generated, 1800)
+            )
+    except Exception as e:
+        log.exception("Auto image generation failed")
+        await message.channel.send(f"⚠️ Image generation failed: {e}")
+
+
 # ---------------------------------------------------------------------------
 # Response finalisation
 # ---------------------------------------------------------------------------
@@ -391,6 +537,20 @@ async def _finalize_response(
         await interaction.edit_original_response(content=_truncate(combined, 1900))
     else:
         await interaction.edit_original_response(content=_truncate(reply))
+
+
+# ---------------------------------------------------------------------------
+# Image generation
+# ---------------------------------------------------------------------------
+async def _generate_image(prompt: str, model: str) -> str:
+    """Generate an image via g4f and return a URL or base64-like string."""
+    result = await client.images.generate(
+        prompt=prompt,
+        model=model,
+        proxy=PROXY,
+        response_format="url",
+    )
+    return str(result.data[0].url)
 
 
 # ---------------------------------------------------------------------------
