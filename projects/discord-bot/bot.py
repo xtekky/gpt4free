@@ -366,10 +366,92 @@ async def models(interaction: discord.Interaction):
         )
         return
     if isinstance(available, dict):
-        lines = [f"• `{n.get('label', k)}` ({n.get('requests', 0)})" for k, n in available.items() if not "requests" in n or n.get("requests") >= 5]
+        lines = [f"• {n.get('owned_by', '') } `{n.get('model', k)}` ({n.get('requests', 0)})" for k, n in available.items() if not "requests" in n or n.get("requests") >= 5]
     else:
         lines = [f"• `{n}`" for n in available]
     msg = "**Available models:**\n" + "\n".join(lines)
+    await interaction.followup.send(_truncate(msg, 1900), ephemeral=True)
+
+
+@bot.tree.command(
+    name="searchmodel",
+    description="Search available models (best effort) by keyword.",
+)
+@app_commands.describe(
+    query="Keyword to search in model names",
+    limit="Max matches to return",
+)
+async def searchmodel(
+    interaction: discord.Interaction,
+    query: str,
+    limit: Optional[int] = 10,
+):
+    await interaction.response.defer(thinking=True, ephemeral=True)
+
+    query = (query or "").strip().lower()
+    if not query:
+        await interaction.followup.send("❌ Provide a non-empty `query`.", ephemeral=True)
+        return
+
+    try:
+        available = client.models.get_all()
+    except Exception as e:
+        log.exception(e)
+        await interaction.followup.send(
+            "⚠️ Unable to fetch a model catalog from the current provider. "
+            "Use `/setmodel` with a model id that works for your provider.",
+            ephemeral=True,
+        )
+        return
+
+    try:
+        limit_val = int(limit) if limit is not None else 10
+    except (TypeError, ValueError):
+        limit_val = 10
+    limit_val = max(1, min(limit_val, 30))
+
+    matches: List[str] = []
+    if isinstance(available, dict):
+        items = list(available.items())
+        # Try to match against common fields in the dict payload.
+        for k, n in items:
+            text = " ".join(
+                str(x).lower()
+                for x in (
+                    n.get("model", k),
+                    n.get("owned_by", ""),
+                    n.get("id", ""),
+                    n.get("object", ""),
+                )
+                if x is not None
+            )
+            if query in text:
+                model_name = n.get("model", k)
+                owned_by = n.get("owned_by", "") or ""
+                reqs = n.get("requests", 0)
+                matches.append(
+                    f"• `{model_name}`"
+                    + (f" ({owned_by})" if owned_by else "")
+                    + (f" [{reqs}]" if isinstance(reqs, int) else "")
+                )
+    else:
+        # If provider returns a list-like model catalog.
+        for n in available:
+            s = str(n).lower()
+            if query in s:
+                matches.append(f"• `{n}`")
+
+    if not matches:
+        await interaction.followup.send(
+            f"No model matches found for `{query}`.",
+            ephemeral=True,
+        )
+        return
+
+    shown = matches[:limit_val]
+    msg = f"**Matches for `{query}`:**\n" + "\n".join(shown)
+    if len(matches) > limit_val:
+        msg += f"\n…(showing first {limit_val} of {len(matches)})"
     await interaction.followup.send(_truncate(msg, 1900), ephemeral=True)
 
 
