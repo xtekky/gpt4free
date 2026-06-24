@@ -120,7 +120,6 @@ default = Model(
         "WeWordle",
         "TeachAnything",
         "OpenaiChat",
-        "Cloudflare",
     ])
 )
 
@@ -268,7 +267,7 @@ meta = Model(
 llama_2_7b = Model(
     name          = "llama-2-7b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Cloudflare"])
+    best_provider = None
 )
 
 llama_2_70b = Model(
@@ -281,7 +280,7 @@ llama_2_70b = Model(
 llama_3_8b = Model(
     name          = "llama-3-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together", "Cloudflare"])
+    best_provider = IterListProvider(["Together"])
 )
 
 llama_3_70b = Model(
@@ -294,7 +293,7 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together", "Cloudflare"])
+    best_provider = IterListProvider(["Together"])
 )
 
 llama_3_1_70b = Model(
@@ -313,7 +312,7 @@ llama_3_1_405b = Model(
 llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
     base_provider = "Meta Llama",
-    best_provider = "Cloudflare"
+    best_provider = None
 )
 
 llama_3_2_3b = Model(
@@ -345,7 +344,7 @@ llama_3_3_70b = Model(
 llama_4_scout = Model(
     name          = "llama-4-scout",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["PollinationsAI", "Together", "Cloudflare"])
+    best_provider = IterListProvider(["PollinationsAI", "Together"])
 )
 
 llama_4_maverick = Model(
@@ -526,7 +525,7 @@ command_a = Model(
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
     base_provider = 'Qwen',
-    best_provider = "Cloudflare"
+    best_provider = None
 )
 
 # qwen-2
@@ -779,7 +778,7 @@ flux_canny = ImageModel(
 flux_kontext_max = ImageModel(
     name = 'flux-kontext',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsAI", "Azure", "Together"])
+    best_provider = IterListProvider(["PollinationsAI", "Together"])
 )
 
 flux_dev_lora = ImageModel(

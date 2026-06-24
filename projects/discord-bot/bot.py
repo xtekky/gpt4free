@@ -51,7 +51,7 @@ MAX_TOOL_LOOPS = int(os.getenv("G4F_MAX_TOOL_LOOPS", "4"))  # safety cap
 
 # Simple validation for runtime model names.
 ALLOWED_MODEL_CHARS = set(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.:"
 )
 
 # Comma-separated list of tools to enable at startup (default: safe set).
@@ -452,7 +452,7 @@ async def searchmodel(
     msg = f"**Matches for `{query}`:**\n" + "\n".join(shown)
     if len(matches) > limit_val:
         msg += f"\n…(showing first {limit_val} of {len(matches)})"
-    await interaction.followup.send(_truncate(msg, 1900), ephemeral=True)
+    await interaction.followup.send(_truncate(msg, 1900))
 
 
 @bot.tree.command(name="image", description="Generate an image from a prompt.")
@@ -570,7 +570,6 @@ async def on_message(message: discord.Message):
 
     prompt = message.content.strip()
     if not prompt:
-        await message.channel.send("🖼️ Usage: !img <prompt>")
         return
 
     try:

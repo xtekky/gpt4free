@@ -2,6 +2,7 @@ import unittest
 from typing import Type
 from requests.exceptions import RequestException
 
+from g4f.Provider import __getattr__
 from g4f.models import __models__
 from g4f.providers.base_provider import BaseProvider, ProviderModelMixin
 from g4f.errors import MissingRequirementsError, MissingAuthError
@@ -12,7 +13,8 @@ class TestProviderHasModel(unittest.TestCase):
     def test_provider_has_model(self):
         for model, providers in __models__.values():
             for provider in providers:
-                if provider.needs_auth:
+                provider = __getattr__(provider)
+                if getattr(provider, "needs_auth", False):
                     continue
                 if issubclass(provider, ProviderModelMixin):
                     try:
@@ -38,4 +40,5 @@ class TestProviderHasModel(unittest.TestCase):
     def test_all_providers_working(self):
         for model, providers in __models__.values():
             for provider in providers:
+                provider = __getattr__(provider)
                 self.assertTrue(provider.working, f"{provider.__name__} in {model.name}")
