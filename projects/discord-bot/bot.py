@@ -70,7 +70,7 @@ log = logging.getLogger("g4f-discord")
 # ---------------------------------------------------------------------------
 client = ClientFactory.create_async_client(provider="default",
                                            api_key=os.getenv("G4F_API_KEY"),
-                                           media_provider=getattr(g4f.Provider, os.getenv("G4F_MEDIA_PROVIDER", "PollinationsImage")))
+                                           media_provider=os.getenv("G4F_MEDIA_PROVIDER"))
 mcp = MCPToolManager(enabled_tools=ENABLED_TOOLS)
 
 # Per-user conversation history: user_id -> deque of {"role", "content"}
