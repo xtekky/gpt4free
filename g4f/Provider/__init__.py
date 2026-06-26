@@ -200,3 +200,20 @@ class ProviderUtils:
                     return provider
                     
         raise ValueError(f"Provider with label '{label}' not found")
+
+import sys
+import types
+
+class LazyProviderModule(types.ModuleType):
+    def __getattribute__(self, name):
+        if name.startswith('__'):
+            return super().__getattribute__(name)
+        
+        map_paths = super().__getattribute__('__map_paths__')
+        if name in map_paths:
+            return super().__getattribute__('__getattr__')(name)
+            
+        return super().__getattribute__(name)
+
+sys.modules[__name__].__class__ = LazyProviderModule
+
