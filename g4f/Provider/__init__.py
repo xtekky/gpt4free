@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 from ..providers.types          import BaseProvider, ProviderType
 from ..providers.retry_provider import RetryProvider, IterListProvider, RotatedProvider
 from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
@@ -134,9 +133,12 @@ def __getattr__(name: str):
         if not isinstance(module_path, str):
             return module_path
         if name not in _loaded_providers:
+            import sys
+            import importlib
             try:
                 module = importlib.import_module(module_path)
                 _loaded_providers[name] = getattr(module, name)
+                setattr(sys.modules["g4f.Provider"], name, _loaded_providers[name])
             except ImportError as e:
                 debug.error(f"Failed to load provider {name}: {e}")
                 raise AttributeError(f"Provider {name} could not be loaded") from e
@@ -152,7 +154,6 @@ def __getattr__(name: str):
         return providers_list
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
-
 def __dir__():
     return __all__
 
