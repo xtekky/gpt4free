@@ -316,7 +316,12 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             'Connection': 'keep-alive',
             'X-Requested-With': 'XMLHttpRequest',
             'Cookie': f'ssxmod_itna={data["ssxmod_itna"]};ssxmod_itna2={data["ssxmod_itna2"]}',
-            'X-Source': 'web'
+            # 'X-Source': 'web',
+            'source': 'web',
+            'version': '0.2.63',
+            # 'timezone': int(time() * 1000),
+            # Fix 'FAIL_SYS_USER_VALIDATE'
+            "X-Accel-Buffering":"no"
         }
         if token:
             headers['Authorization'] = f'Bearer {token}'
@@ -342,7 +347,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
         req_headers = session.headers.copy()
         req_headers['bx-umidtoken'] = cls._midtoken
-        req_headers['bx-v'] = '2.5.31'
+        req_headers['bx-v'] = '2.5.36'
         # fix error [g4f.errors.CloudflareError:aliyun_waf_aa]
         req_headers["x-request-id"] = str(uuid.uuid4())
         return req_headers
@@ -412,17 +417,19 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 try:
                     req_headers = await cls._get_req_headers(session, proxy=proxy)
                     message_id = str(uuid.uuid4())
+                    now = int(time() * 1000)
                     if conversation is None:
                         chat_payload = {
                             "title": "New Chat",
                             "models": [model_name],
                             "chat_mode": "normal",
                             "chat_type": chat_type,
-                            "timestamp": int(time() * 1000)
+                            "timestamp": now,
+                            "project_id": ""
                         }
                         async with session.post(
                                 f'{cls.url}/api/v2/chats/new', json=chat_payload, headers=req_headers,
-                                proxy=proxy
+                                proxy=proxy,
                         ) as resp:
                             await cls.raise_for_status(resp)
                             data = await resp.json()
@@ -456,6 +463,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
                     msg_payload = {
                         "stream": stream,
+                        "version": '2.1',
                         "incremental_output": stream,
                         "chat_id": conversation.chat_id,
                         "chat_mode": "normal",
@@ -470,12 +478,15 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 "content": prompt,
                                 "user_action": "chat",
                                 "files": files,
+                                "timestamp": now,
                                 "models": [model_name],
                                 "chat_type": chat_type,
                                 "feature_config": feature_config,
+                                "extra": {"meta": {"subChatType": chat_type}},
                                 "sub_chat_type": chat_type
                             }
-                        ]
+                        ],
+                        "timestamp": now
                     }
 
                     if aspect_ratio:
@@ -490,6 +501,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         if resp.headers.get("content-type", "").startswith("application/json"):
                             resp_json = await resp.json()
                             if resp_json.get("success") is False or resp_json.get("data", {}).get("code"):
+                                raise RuntimeError(f"Response: {resp_json}")
+                            else:
+                                # cant stream resp after `resp_json = await resp.json()`, so it stick
                                 raise RuntimeError(f"Response: {resp_json}")
                         # args["cookies"] = merge_cookies(args.get("cookies"), resp)
                         thinking_started = False
