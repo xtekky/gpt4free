@@ -178,7 +178,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.model_map = {
             "default": {
                 provider.__name__: ""
-                for provider in models.default.best_provider.providers
+                for provider in models.default.best_provider.get_providers()
             },
         }
         cls.model_map.update(
@@ -465,9 +465,9 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             elif has_audio:
                 providers = [PollinationsAI, MarkItDown]
             elif has_image:
-                providers = models.default_vision.best_provider.providers
+                providers = models.default_vision.best_provider.get_providers()
             else:
-                providers = models.default.best_provider.providers
+                providers = models.default.best_provider.get_providers()
         elif model in RouterConfig.routes:
             async for chunk in ConfigModelProvider(RouterConfig.routes.get(model)).create_async_generator(
                 model, messages, stream=stream, media=media, api_key=api_key, **kwargs
