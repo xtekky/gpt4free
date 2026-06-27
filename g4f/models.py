@@ -839,9 +839,17 @@ def _get_best_providers(model: Model) -> List:
         return []
     
     if isinstance(model.best_provider, IterListProvider):
-        return model.best_provider.providers
+        return model.best_provider.get_providers()
 
-    return [model.best_provider]
+    if isinstance(model.best_provider, str):
+        try:
+            from .Provider import __getattr__
+            provider = __getattr__(model.best_provider)
+            return [provider] if getattr(provider, "working", False) else []
+        except AttributeError:
+            return []
+
+    return [model.best_provider] if getattr(model.best_provider, "working", False) else []
 
 # Generate __models__ using the auto-discovered models
 __models__ = {
