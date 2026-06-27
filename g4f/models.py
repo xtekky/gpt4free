@@ -243,6 +243,31 @@ gpt_oss_120b = Model(
     best_provider = IterListProvider(["Together", "HuggingFace", "OpenRouter", "Groq"])
 )
 
+# Copilot (Microsoft)
+smart = Model(
+    name          = 'smart',
+    base_provider = 'Microsoft',
+    best_provider = IterListProvider(["CopilotApp", "CopilotAccount", "Copilot"])
+)
+
+reasoning = Model(
+    name          = 'reasoning',
+    base_provider = 'Microsoft',
+    best_provider = IterListProvider(["CopilotApp", "CopilotAccount"])
+)
+
+study = Model(
+    name          = 'study',
+    base_provider = 'Microsoft',
+    best_provider = IterListProvider(["CopilotApp", "CopilotAccount"])
+)
+
+search = Model(
+    name          = 'search',
+    base_provider = 'Microsoft',
+    best_provider = IterListProvider(["CopilotApp", "CopilotAccount"])
+)
+
 # dall-e
 dall_e_3 = ImageModel(
     name = 'dall-e-3',

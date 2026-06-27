@@ -18,9 +18,9 @@ from ..Provider import (
     Cloudflare,
     Gemini,
     Grok,
-    Perplexity,
     PollinationsAI,
     PuterJS,
+    CopilotApp,
 )
 from ..Provider import (
     DeepInfra,
@@ -62,6 +62,7 @@ PROVIDERS_LIST_2 = [
     OpenaiChat,
     Copilot,
     CopilotAccount,
+    CopilotApp,
     PollinationsAI,
     Perplexity,
     Gemini,
@@ -501,10 +502,13 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     model = cls.model_aliases[model]
             if model in cls.model_map:
                 for provider, alias in cls.model_map[model].items():
-                    provider = Provider.__map__[provider]
-                    if model not in provider.model_aliases:
-                        provider.model_aliases[model] = alias
-                    providers.append(provider)
+                    try:
+                        provider_cls = Provider.__map__[provider]
+                        if model not in provider_cls.model_aliases:
+                            provider_cls.model_aliases[model] = alias
+                        providers.append(provider_cls)
+                    except KeyError:
+                        pass
         if not providers:
             for provider in PROVIDERS_LIST_2 + PROVIDERS_LIST_3:
                 try:
