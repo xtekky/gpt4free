@@ -31,9 +31,7 @@ def get_pypi_version(package_name: str) -> str:
         response.raise_for_status()
         return response.json()["info"]["version"]
     except Exception as e:
-        if isinstance(e, ImportError) or e.__class__.__name__ == "RequestException":
-            raise VersionNotFoundError(f"Failed to get PyPI version for '{package_name}'") from e
-        raise e
+        raise VersionNotFoundError(f"Failed to get PyPI version for '{package_name}'") from e
 
 
 @lru_cache(maxsize=1)
@@ -56,9 +54,7 @@ def get_github_version(repo: str) -> str:
             raise VersionNotFoundError(f"No tag_name found in latest GitHub release for '{repo}'")
         return data["tag_name"]
     except Exception as e:
-        if isinstance(e, ImportError) or e.__class__.__name__ == "RequestException":
-            raise VersionNotFoundError(f"Failed to get GitHub release version for '{repo}'") from e
-        raise e
+        raise VersionNotFoundError(f"Failed to get GitHub release version for '{repo}'") from e
 
 
 def get_git_version() -> str | None:
@@ -115,13 +111,14 @@ class VersionUtils:
         If not installed via PyPI, falls back to GitHub releases.
         """
         try:
-            from importlib.metadata import version as get_package_version, PackageNotFoundError
-            get_package_version(PACKAGE_NAME)
-        except ImportError:
-            return get_github_version(GITHUB_REPOSITORY)
-        except PackageNotFoundError:
-            return get_github_version(GITHUB_REPOSITORY)
-        return get_pypi_version(PACKAGE_NAME)
+            try:
+                from importlib.metadata import version as get_package_version, PackageNotFoundError
+                get_package_version(PACKAGE_NAME)
+            except (ImportError, PackageNotFoundError):
+                return get_github_version(GITHUB_REPOSITORY)
+            return get_pypi_version(PACKAGE_NAME)
+        except Exception:
+            return self.current_version
 
     @cached_property
     def latest_version_cached(self) -> str:
