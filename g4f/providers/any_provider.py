@@ -174,6 +174,15 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.vision_models = []
         cls.video_models = []
 
+        from ..Provider import __getattr__
+        def resolve_provider(p):
+            if isinstance(p, str):
+                try:
+                    return __getattr__(p)
+                except AttributeError:
+                    return None
+            return p
+
         # Get models from the models registry
         cls.model_map = {
             "default": {
@@ -184,9 +193,9 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.model_map.update(
             {
                 name: {
-                    provider.__name__: model.get_long_name()
-                    for provider in providers
-                    if provider.working
+                    p.__name__: model.get_long_name()
+                    for p in (resolve_provider(provider) for provider in providers)
+                    if p and getattr(p, "working", False)
                 }
                 for name, (model, providers) in models.__models__.items()
             }
