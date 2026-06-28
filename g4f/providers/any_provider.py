@@ -210,7 +210,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if not provider.working:
                 continue
             try:
-                if provider in [Copilot, CopilotAccount, Perplexity]:
+                if provider in [Copilot, CopilotAccount, CopilotApp, Perplexity]:
                     for model in provider.model_aliases.keys():
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
