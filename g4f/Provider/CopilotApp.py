@@ -18,7 +18,7 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "smart"
     models = ["smart", "reasoning", "chat", "study", "search", "gpt-4", "gpt-4o"]
     model_aliases = {
-        "Copilot": default_model,
+        "copilot": default_model,
         "gpt-4": "chat", 
         "gpt-4o": "chat",
         "o1": "reasoning",

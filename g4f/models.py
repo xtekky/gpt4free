@@ -247,25 +247,25 @@ gpt_oss_120b = Model(
 smart = Model(
     name          = 'smart',
     base_provider = 'Microsoft',
-    best_provider = IterListProvider(["CopilotApp", "CopilotAccount", "Copilot"])
+    best_provider = IterListProvider(["CopilotApp"])
 )
 
 reasoning = Model(
     name          = 'reasoning',
     base_provider = 'Microsoft',
-    best_provider = IterListProvider(["CopilotApp", "CopilotAccount"])
+    best_provider = IterListProvider(["CopilotApp"])
 )
 
 study = Model(
     name          = 'study',
     base_provider = 'Microsoft',
-    best_provider = IterListProvider(["CopilotApp", "CopilotAccount"])
+    best_provider = IterListProvider(["CopilotApp"])
 )
 
 search = Model(
     name          = 'search',
     base_provider = 'Microsoft',
-    best_provider = IterListProvider(["CopilotApp", "CopilotAccount"])
+    best_provider = IterListProvider(["CopilotApp"])
 )
 
 # dall-e
