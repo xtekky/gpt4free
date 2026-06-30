@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-from .Openai import Openai
-from ...typing import AsyncResult, Messages
+from ..template import OpenaiTemplate
+from ...config import DEFAULT_MODEL
 
-class Groq(Openai):
-    label = "Groq"
+class Groq(OpenaiTemplate):
     url = "https://console.groq.com/playground"
+    login_url = "https://console.groq.com/keys"
+    base_url = "https://api.groq.com/openai/v1"
+    backup_url = "https://g4f.space/api/groq"
     working = True
-    default_model = "mixtral-8x7b-32768"
-    models = ["mixtral-8x7b-32768", "llama2-70b-4096", "gemma-7b-it"]
-    model_aliases = {"mixtral-8x7b": "mixtral-8x7b-32768", "llama2-70b": "llama2-70b-4096"}
-
-    @classmethod
-    def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        api_base: str = "https://api.groq.com/openai/v1",
-        **kwargs
-    ) -> AsyncResult:
-        return super().create_async_generator(
-            model, messages, api_base=api_base, **kwargs
-        )
+    active_by_default = True
+    default_model = DEFAULT_MODEL
+    model_aliases = {
+        "mixtral-8x7b": "mixtral-8x7b-32768",
+        "llama2-70b": "llama2-70b-4096",
+        "moonshotai/Kimi-K2-Instruct": "moonshotai/kimi-k2-Instruct"
+    }

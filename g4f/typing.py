@@ -1,42 +1,107 @@
-import sys
-from typing import Any, AsyncGenerator, Generator, AsyncIterator, Iterator, NewType, Tuple, Union, List, Dict, Type, IO, Optional
+from __future__ import annotations
 
+import os
+from typing import (
+    Any,
+    AsyncGenerator,
+    Generator,
+    AsyncIterator,
+    Iterator,
+    NewType,
+    Tuple,
+    Union,
+    List,
+    Dict,
+    Type,
+    IO,
+    Optional,
+    TYPE_CHECKING,
+)
 try:
-    from PIL.Image import Image
-except ImportError:
-    from typing import Type as Image
-
-if sys.version_info >= (3, 8):
-    from typing import TypedDict
-else:
     from typing_extensions import TypedDict
+except ImportError:
+    from typing import TypedDict
+# Only import PIL for type-checkers; no runtime dependency required.
+if TYPE_CHECKING:
+    from PIL.Image import Image as PILImage
+else:
+    class PILImage:  # minimal placeholder to avoid runtime import errors
+        pass
 
-SHA256 = NewType('sha_256_hash', str)
-CreateResult = Iterator[str]
-AsyncResult = AsyncIterator[str]
-Messages = List[Dict[str, str]]
+# Response chunk type from providers
+from .providers.response import ResponseType
+
+# ---- Hashes & cookie aliases -------------------------------------------------
+
+SHA256 = NewType("SHA256", str)
 Cookies = Dict[str, str]
-ImageType = Union[str, bytes, IO, Image, None]
+
+# ---- Streaming result types --------------------------------------------------
+
+CreateResult = Iterator[Union[str, ResponseType]]
+AsyncResult = AsyncIterator[Union[str, ResponseType]]
+
+# ---- Message schema ----------------------------------------------------------
+# Typical message structure:
+#   {"role": "user" | "assistant" | "system" | "tool", "content": str | [ContentPart, ...]}
+# where content parts can be text or (optionally) structured pieces like images.
+
+class ContentPart(TypedDict, total=False):
+    type: str           # e.g., "text", "image_url", etc.
+    text: str           # present when type == "text"
+    image_url: Dict[str, str]  # present when type == "image_url"
+    input_audio: Dict[str, str]  # present when type == "input_audio"
+    bucket_id: str
+    name: str
+
+class ToolCallFunction(TypedDict, total=False):
+    name: str
+    arguments: str      # JSON-encoded arguments string
+
+class ToolCall(TypedDict, total=False):
+    id: str
+    type: str           # e.g., "function"
+    function: ToolCallFunction
+
+class Message(TypedDict, total=False):
+    role: str
+    content: Optional[Union[str, List[ContentPart]]]
+    tool_calls: Optional[List[ToolCall]]
+    tool_call_id: str   # present on "tool" role messages
+
+Messages = List[Message]
+
+# ---- Media inputs ------------------------------------------------------------
+
+# Paths, raw bytes, file-like objects, or PIL Image objects are accepted.
+ImageType = Union[str, bytes, IO[bytes], PILImage, os.PathLike]
+MediaListType = List[Tuple[ImageType, Optional[str]]]
 
 __all__ = [
-    'Any',
-    'AsyncGenerator',
-    'Generator',
-    'AsyncIterator',
-    'Iterator'
-    'Tuple',
-    'Union',
-    'List',
-    'Dict',
-    'Type',
-    'IO',
-    'Optional',
-    'TypedDict',
-    'SHA256',
-    'CreateResult',
-    'AsyncResult',
-    'Messages',
-    'Cookies',
-    'Image',
-    'ImageType'
+    "Any",
+    "AsyncGenerator",
+    "Generator",
+    "AsyncIterator",
+    "Iterator",
+    "Tuple",
+    "Union",
+    "List",
+    "Dict",
+    "Type",
+    "IO",
+    "Optional",
+    "TypedDict",
+    "SHA256",
+    "CreateResult",
+    "AsyncResult",
+    "Messages",
+    "Message",
+    "ContentPart",
+    "ToolCall",
+    "ToolCallFunction",
+    "Cookies",
+    "PILImage",  # Changed from "Image" to "PILImage" to match the actual class name
+    "ImageType",
+    "MediaListType",
+    "ResponseType",
 ]

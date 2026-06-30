@@ -1,67 +1,15 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
-
-# Ignore local python virtual environment
-venv/
-
-# Ignore streamlit_chat_app.py conversations pickle
-conversations.pkl
-*.pkl
-
-# Ignore accounts created by api's
-accounts.txt
-
-.idea/
-**/__pycache__/
-__pycache__/
-
-dist/
-*.log
-*.pyc
-*.egg-info/
-*.egg
-*.egg-info
-build
-
-test.py
-update.py
-cookie.json
-notes.txt
-close_issues.py
-xxx.py
-lab.py
-lab.js
-bing.py
-bing2.py
-.DS_Store
-lab/*
-lab
-tstt.py
-providerstest.py
-prv.py
-# Emacs crap
-*~
-x.js
-x.py
-info.txt
-local.py
-*.gguf
-image.py
-.buildozer
-hardir
-har_and_cookies
+bin
+dist
+__pycache__
+generated_media
+site-packages
+projects
 node_modules
-models
-projects/windows/g4f
-doc.txt
-dist.py
-x.txt
-bench.py
-to-reverse.txt
-g4f/Provider/OpenaiChat2.py
+g4f.egg-info
+models/models.json
+pyvenv.cfg
+lib64
+/.idea
+container/
+g4f.dev
+har_and_cookies

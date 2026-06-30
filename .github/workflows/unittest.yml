@@ -14,9 +14,9 @@ jobs:
     name: Build unittest
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: "3.8"
         cache: 'pip'
@@ -24,15 +24,14 @@ jobs:
       run: pip install -r requirements-min.txt
     - name: Run tests
       run: python -m etc.unittest
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v4
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v6
       with:
-        python-version: "3.12"
+        python-version: "3.14"
         cache: 'pip'
     - name: Install requirements
       run: |
         pip install -r requirements.txt
-        pip uninstall -y nodriver
     - name: Run tests
       run: python -m etc.unittest
     - name: Save PR number
@@ -41,7 +40,7 @@ jobs:
       run: |
         mkdir -p ./pr
         echo $PR_NUMBER > ./pr/pr_number
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: pr_number
         path: pr/

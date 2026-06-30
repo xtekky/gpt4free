@@ -1,37 +1,67 @@
-from __future__  import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Dict, List, Optional
 
-from .Provider import RetryProvider, ProviderType
-from .Provider import (
-    Aichatos,
-    Bing,
-    Blackbox,
-    Chatgpt4Online,
-    ChatgptAi,
-    ChatgptNext,
-    Cohere,
-    Cnote,
-    DeepInfra,
-    Feedough,
-    FreeGpt,
-    Gemini,
-    GeminiProChat,
-    GigaChat,
-    HuggingChat,
-    HuggingFace,
-    Koala,
-    Liaobots,
-    Llama,
-    OpenaiChat,
-    PerplexityLabs,
-    Replicate,
-    Pi,
-    Vercel,
-    You,
-    Reka
-)
+from .Provider import ProviderType, IterListProvider, RotatedProvider
 
+
+
+class ModelRegistry:
+    """Simplified registry for automatic model discovery"""
+    _models: Dict[str, 'Model'] = {}
+    _aliases: Dict[str, str] = {}
+    
+    @classmethod
+    def register(cls, model: 'Model', aliases: List[str] = None):
+        """Register a model and optional aliases"""
+        if model.name:
+            cls._models[model.name] = model
+            if aliases:
+                for alias in aliases:
+                    cls._aliases[alias] = model.name
+    
+    @classmethod
+    def get(cls, name: str) -> Optional['Model']:
+        """Get model by name or alias"""
+        if name in cls._models:
+            return cls._models[name]
+        if name in cls._aliases:
+            return cls._models[cls._aliases[name]]
+        return None
+    
+    @classmethod
+    def all_models(cls) -> Dict[str, 'Model']:
+        """Get all registered models"""
+        return cls._models.copy()
+    
+    @classmethod
+    def clear(cls):
+        """Clear registry (for testing)"""
+        cls._models.clear()
+        cls._aliases.clear()
+    
+    @classmethod
+    def list_models_by_provider(cls, provider_name: str) -> List[str]:
+        """List all models that use specific provider"""
+        return [name for name, model in cls._models.items() 
+                if provider_name in str(model.best_provider)]
+    
+    @classmethod
+    def validate_all_models(cls) -> Dict[str, List[str]]:
+        """Validate all models and return issues"""
+        issues = {}
+        for name, model in cls._models.items():
+            model_issues = []
+            if not model.name:
+                model_issues.append("Empty name")
+            if not model.base_provider:
+                model_issues.append("Empty base_provider")
+            if model.best_provider is None:
+                model_issues.append("No best_provider")
+            if model_issues:
+                issues[name] = model_issues
+        return issues
 
 @dataclass(unsafe_hash=True)
 class Model:
@@ -46,343 +76,782 @@ class Model:
     name: str
     base_provider: str
     best_provider: ProviderType = None
+    long_name: Optional[str] = None
+
+    def get_long_name(self) -> str:
+        """Get the long name of the model, if available."""
+        return self.long_name if self.long_name else self.name
+
+    def __post_init__(self):
+        """Auto-register model after initialization"""
+        if self.name:
+            ModelRegistry.register(self)
 
     @staticmethod
     def __all__() -> list[str]:
         """Returns a list of all model names."""
-        return _all_models
+        return list(ModelRegistry.all_models().keys())
 
+class ImageModel(Model):
+    pass
+
+class AudioModel(Model):
+    pass
+    
+class VideoModel(Model):
+    pass
+    
+class VisionModel(Model):
+    pass
+
+### Default ###
 default = Model(
-    name          = "",
+    name = "",
     base_provider = "",
-    best_provider = RetryProvider([
-        Bing,
-        ChatgptAi,
-        You,
-        Chatgpt4Online,
-        OpenaiChat
+    best_provider = IterListProvider([
+        "CopilotApp",
+        "Ollama",
+        "DeepInfra",
+        "OperaAria",
+        "GLM",
+        "PollinationsAI",
+        "Qwen",
+        "Together",
+        "WeWordle",
+        "TeachAnything",
+        "OpenaiChat",
     ])
 )
 
-# GPT-3.5 too, but all providers supports long requests and responses
-gpt_35_long = Model(
-    name          = 'gpt-3.5-turbo',
-    base_provider = 'openai',
-    best_provider = RetryProvider([
-        FreeGpt,
-        You,
-        ChatgptNext,
-        OpenaiChat,
-    ])
+default_vision = VisionModel(
+    name = "",
+    base_provider = "",
+    best_provider = IterListProvider([
+        "DeepInfra",
+        "PollinationsAI",
+        "OperaAria",
+        "Together",
+        "HuggingSpace",
+        "GeminiPro",
+        "HuggingFaceAPI",
+        "Ollama",
+        "OpenaiAccount",
+        "Gemini",
+    ], shuffle=False)
 )
 
-# GPT-3.5 / GPT-4
-gpt_35_turbo = Model(
-    name          = 'gpt-3.5-turbo',
-    base_provider = 'openai',
-    best_provider = RetryProvider([
-        FreeGpt,
-        You,
-        ChatgptNext,
-        Koala,
-        OpenaiChat,
-        Aichatos,
-        Cnote,
-        Feedough,
-    ])
-)
-
+# gpt-4
 gpt_4 = Model(
     name          = 'gpt-4',
-    base_provider = 'openai',
-    best_provider = RetryProvider([
-        Bing, Liaobots, 
-    ])
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["CopilotApp", "Yqcloud", "WeWordle", "OpenaiChat"])
 )
 
-gpt_4_turbo = Model(
-    name          = 'gpt-4-turbo',
-    base_provider = 'openai',
-    best_provider = Bing
+# gpt-4o
+gpt_4o = VisionModel(
+    name          = 'gpt-4o',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["CopilotApp", "OpenaiChat"])
 )
 
-gigachat = Model(
-    name          = 'GigaChat:latest',
-    base_provider = 'gigachat',
-    best_provider = GigaChat
+gpt_4o_mini = Model(
+    name          = 'gpt-4o-mini',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["OpenaiChat"])
 )
 
-gigachat_plus = Model(
-    name          = 'GigaChat-Plus',
-    base_provider = 'gigachat',
-    best_provider = GigaChat
+# gpt_4o_mini_audio = AudioModel(
+#     name          = 'gpt-4o-mini-audio-preview',
+#     base_provider = 'OpenAI',
+#     best_provider = "PollinationsAI"
+# )
+
+gpt_4o_mini_tts = AudioModel(
+    name          = 'gpt-4o-mini-tts',
+    base_provider = 'OpenAI',
+    best_provider = "OpenAIFM"
 )
 
-gigachat_pro = Model(
-    name          = 'GigaChat-Pro',
-    base_provider = 'gigachat',
-    best_provider = GigaChat
+# o1
+o1 = Model(
+    name          = 'o1',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["OpenaiAccount"])
 )
 
-llama2_7b = Model(
-    name          = "meta-llama/Llama-2-7b-chat-hf",
-    base_provider = 'meta',
-    best_provider = RetryProvider([Llama, DeepInfra])
+o1_mini = Model(
+    name          = 'o1-mini',
+    base_provider = 'OpenAI',
+    best_provider = "OpenaiAccount"
 )
 
-llama2_13b = Model(
-    name          = "meta-llama/Llama-2-13b-chat-hf",
-    base_provider = 'meta',
-    best_provider = RetryProvider([Llama, DeepInfra])
+# o3
+o3_mini = Model(
+    name          = 'o3-mini',
+    base_provider = 'OpenAI',
+    best_provider = "OpenaiChat"
 )
 
-llama2_70b = Model(
-    name          = "meta-llama/Llama-2-70b-chat-hf",
-    base_provider = "meta",
-    best_provider = RetryProvider([Llama, DeepInfra])
+o3_mini_high = Model(
+    name          = 'o3-mini-high',
+    base_provider = 'OpenAI',
+    best_provider = "OpenaiAccount"
 )
 
-llama3_8b_instruct = Model(
-    name          = "meta-llama/Meta-Llama-3-8B-Instruct",
-    base_provider = "meta",
-    best_provider = RetryProvider([Llama, DeepInfra, Replicate])
+# o4
+o4_mini = Model(
+    name          = 'o4-mini',
+    base_provider = 'OpenAI',
+    best_provider = "OpenaiChat"
 )
 
-llama3_70b_instruct = Model(
-    name          = "meta-llama/Meta-Llama-3-70B-Instruct",
-    base_provider = "meta",
-    best_provider = RetryProvider([Llama, DeepInfra])
+o4_mini_high = Model(
+    name          = 'o4-mini-high',
+    base_provider = 'OpenAI',
+    best_provider = "OpenaiChat"
 )
 
-codellama_34b_instruct = Model(
-    name          = "codellama/CodeLlama-34b-Instruct-hf",
-    base_provider = "meta",
-    best_provider = HuggingChat
+# gpt-4.1
+gpt_4_1 = Model(
+    name          = 'gpt-4.1',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["OpenaiChat"])
 )
 
-codellama_70b_instruct = Model(
-    name          = "codellama/CodeLlama-70b-Instruct-hf",
-    base_provider = "meta",
-    best_provider = RetryProvider([DeepInfra, PerplexityLabs])
+gpt_4_1_mini = Model(
+    name          = 'gpt-4.1-mini',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["OpenaiChat"])
 )
 
-# Mistral
-mixtral_8x7b = Model(
-    name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingFace, PerplexityLabs])
+gpt_4_1_nano = Model(
+    name          = 'gpt-4.1-nano',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["PollinationsAI"])
 )
 
+gpt_4_5 = Model(
+    name          = 'gpt-4.5',
+    base_provider = 'OpenAI',
+    best_provider = "OpenaiChat"
+)
+
+gpt_oss_120b = Model(
+    name          = 'gpt-oss-120b',
+    long_name     = 'openai/gpt-oss-120b',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["Together", "HuggingFace", "OpenRouter", "Groq"])
+)
+
+# dall-e
+dall_e_3 = ImageModel(
+    name = 'dall-e-3',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["OpenaiAccount", "MicrosoftDesigner", "BingCreateImages"])
+)
+
+gpt_image = ImageModel(
+    name = 'gpt-image',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider(["PollinationsImage"])
+)
+
+### Meta ###
+meta = Model(
+    name          = "meta-ai",
+    base_provider = "Meta",
+    best_provider = "MetaAI"
+)
+
+# llama 2
+llama_2_7b = Model(
+    name          = "llama-2-7b",
+    base_provider = "Meta Llama",
+    best_provider = None
+)
+
+llama_2_70b = Model(
+    name          = "llama-2-70b",
+    base_provider = "Meta Llama",
+    best_provider = "Together"
+)
+
+# llama-3
+llama_3_8b = Model(
+    name          = "llama-3-8b",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together"])
+)
+
+llama_3_70b = Model(
+    name          = "llama-3-70b",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together"])
+)
+
+# llama-3.1
+llama_3_1_8b = Model(
+    name          = "llama-3.1-8b",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together"])
+)
+
+llama_3_1_70b = Model(
+    name          = "llama-3.1-70b",
+    base_provider = "Meta Llama",
+    best_provider = "Together"
+)
+
+llama_3_1_405b = Model(
+    name          = "llama-3.1-405b",
+    base_provider = "Meta Llama",
+    best_provider = "Together"
+)
+
+# llama-3.2
+llama_3_2_1b = Model(
+    name          = "llama-3.2-1b",
+    base_provider = "Meta Llama",
+    best_provider = None
+)
+
+llama_3_2_3b = Model(
+    name          = "llama-3.2-3b",
+    base_provider = "Meta Llama",
+    best_provider = "Together"
+)
+
+llama_3_2_11b = VisionModel(
+    name          = "llama-3.2-11b",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together", "HuggingChat", "HuggingFace"])
+)
+
+llama_3_2_90b = Model(
+    name          = "llama-3.2-90b",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together"])
+)
+
+# llama-3.3
+llama_3_3_70b = Model(
+    name          = "llama-3.3-70b",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together", "HuggingChat", "HuggingFace"])
+)
+
+# llama-4
+llama_4_scout = Model(
+    name          = "llama-4-scout",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["PollinationsAI", "Together"])
+)
+
+llama_4_maverick = Model(
+    name          = "llama-4-maverick",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider(["Together"])
+)
+
+### MistralAI ###
 mistral_7b = Model(
-    name          = "mistralai/Mistral-7B-Instruct-v0.1",
-    base_provider = "huggingface",
-    best_provider = RetryProvider([HuggingChat, HuggingFace, PerplexityLabs])
+    name          = "mistral-7b",
+    base_provider = "Mistral AI",
+    best_provider = "Together"
 )
 
-mistral_7b_v02 = Model(
-    name          = "mistralai/Mistral-7B-Instruct-v0.2",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
+mixtral_8x7b = Model(
+    name          = "mixtral-8x7b",
+    base_provider = "Mistral AI",
+    best_provider = "Together"
 )
 
-mixtral_8x22b = Model(
-    name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
+mistral_nemo = Model(
+    name          = "mistral-nemo",
+    base_provider = "Mistral AI",
+    best_provider = IterListProvider(["HuggingChat", "HuggingFace"])
 )
 
-# Misc models
-dolphin_mixtral_8x7b = Model(
-    name          = "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
+mistral_small_24b = Model(
+    name          = "mistral-small-24b",
+    base_provider = "Mistral AI",
+    best_provider = "Together"
 )
 
-lzlv_70b = Model(
-    name          = "lizpreciatior/lzlv_70b_fp16_hf",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
+mistral_small_3_1_24b = Model(
+    name          = "mistral-small-3.1-24b",
+    base_provider = "Mistral AI",
+    best_provider = IterListProvider(["PollinationsAI"])
 )
 
-airoboros_70b = Model(
-    name          = "deepinfra/airoboros-70b",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
+### NousResearch ###
+# hermes-2
+hermes_2_dpo = Model(
+    name          = "hermes-2-dpo",
+    base_provider = "NousResearch",
+    best_provider = "Together"
 )
 
-openchat_35 = Model(
-    name          = "openchat/openchat_3.5",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
+# phi-3.5
+phi_3_5_mini = Model(
+    name          = "phi-3.5-mini",
+    base_provider = "Microsoft",
+    best_provider = "HuggingChat"
 )
 
-# Bard
-gemini = bard = palm = Model(
-    name          = 'gemini',
-    base_provider = 'google',
-    best_provider = Gemini
+
+
+
+
+
+### Google DeepMind ###
+# gemini
+gemini = Model(
+    name          = 'gemini-2.0',
+    base_provider = 'Google',
+    best_provider = "Gemini"
 )
 
-claude_v2 = Model(
-    name          = 'claude-v2',
-    base_provider = 'anthropic',
-    best_provider = RetryProvider([Vercel])
+# gemini-2.0
+gemini_2_0_flash = Model(
+    name          = 'gemini-2.0-flash',
+    base_provider = 'Google',
+    best_provider = IterListProvider(["Gemini", "GeminiPro"])
 )
 
-claude_3_opus = Model(
-    name          = 'claude-3-opus',
-    base_provider = 'anthropic',
-    best_provider = You
+gemini_2_0_flash_thinking = Model(
+    name          = 'gemini-2.0-flash-thinking',
+    base_provider = 'Google',
+    best_provider = IterListProvider(["Gemini", "GeminiPro"])
 )
 
-claude_3_sonnet = Model(
-    name          = 'claude-3-sonnet',
-    base_provider = 'anthropic',
-    best_provider = You
+gemini_2_0_flash_thinking_with_apps = Model(
+    name          = 'gemini-2.0-flash-thinking-with-apps',
+    base_provider = 'Google',
+    best_provider = "Gemini"
 )
 
-gpt_35_turbo_16k = Model(
-    name          = 'gpt-3.5-turbo-16k',
-    base_provider = 'openai',
-    best_provider = gpt_35_long.best_provider
+# gemini-2.5
+gemini_2_5_flash = Model(
+    name          = 'gemini-2.5-flash',
+    base_provider = 'Google',
+    best_provider = IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"])
 )
 
-gpt_35_turbo_16k_0613 = Model(
-    name          = 'gpt-3.5-turbo-16k-0613',
-    base_provider = 'openai',
-    best_provider = gpt_35_long.best_provider
+gemini_2_5_pro = Model(
+    name          = 'gemini-2.5-pro',
+    base_provider = 'Google',
+    best_provider = IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"])
 )
 
-gpt_35_turbo_0613 = Model(
-    name          = 'gpt-3.5-turbo-0613',
-    base_provider = 'openai',
-    best_provider = gpt_35_turbo.best_provider
+gemini_3_pro_preview = Model(
+    name          = 'gemini-3-pro-preview',
+    base_provider = 'Google',
+    best_provider = "GeminiCLI"
 )
 
-gpt_4_0613 = Model(
-    name          = 'gpt-4-0613',
-    base_provider = 'openai',
-    best_provider = gpt_4.best_provider
+# gemini-3.1
+gemini_3_1_pro = Model(
+    name          = 'gemini-3.1-pro',
+    base_provider = 'Google',
+    best_provider = "Gemini"
 )
 
-gpt_4_32k = Model(
-    name          = 'gpt-4-32k',
-    base_provider = 'openai',
-    best_provider = gpt_4.best_provider
+gemini_3_1_flash_lite = Model(
+    name          = 'gemini-3.1-flash-lite',
+    base_provider = 'Google',
+    best_provider = "Gemini"
 )
 
-gpt_4_32k_0613 = Model(
-    name          = 'gpt-4-32k-0613',
-    base_provider = 'openai',
-    best_provider = gpt_4.best_provider
+# gemini-3.5
+gemini_3_5_flash = Model(
+    name          = 'gemini-3.5-flash',
+    base_provider = 'Google',
+    best_provider = "Gemini"
 )
 
-gemini_pro = Model(
-    name          = 'gemini-pro',
-    base_provider = 'google',
-    best_provider = RetryProvider([GeminiProChat, You])
+
+
+
+
+
+gemma_2_27b = Model(
+    name          = 'gemma-2-27b',
+    base_provider = 'Google',
+    best_provider = "Together"
 )
 
-pi = Model(
-    name = 'pi',
-    base_provider = 'inflection',
-    best_provider = Pi
+
+
+gemma_3_27b = Model(
+    name          = 'gemma-3-27b',
+    base_provider = 'Google',
+    best_provider = IterListProvider(["Together"])
 )
 
-dbrx_instruct = Model(
-    name = 'databricks/dbrx-instruct',
-    base_provider = 'mistral',
-    best_provider = RetryProvider([DeepInfra, PerplexityLabs])
+gemma_3n_e4b = Model(
+    name          = 'gemma-3n-e4b',
+    base_provider = 'Google',
+    best_provider = "Together"
+)
+
+### CohereForAI ###
+command_r = Model(
+    name = 'command-r',
+    base_provider = 'CohereForAI',
+    best_provider = "HuggingSpace"
 )
 
 command_r_plus = Model(
-    name = 'CohereForAI/c4ai-command-r-plus',
-    base_provider = 'mistral',
-    best_provider = RetryProvider([HuggingChat, Cohere])
+    name = 'command-r-plus',
+    base_provider = 'CohereForAI',
+    best_provider = IterListProvider(["HuggingSpace", "HuggingChat"])
 )
 
-blackbox = Model(
-    name = 'blackbox',
-    base_provider = 'blackbox',
-    best_provider = Blackbox
+command_r7b = Model(
+    name = 'command-r7b',
+    base_provider = 'CohereForAI',
+    best_provider = "HuggingSpace"
 )
 
-reka_core = Model(
-    name = 'reka-core',
-    base_provider = 'Reka AI',
-    best_provider = Reka
+command_a = Model(
+    name = 'command-a',
+    base_provider = 'CohereForAI',
+    best_provider = "HuggingSpace"
+)
+
+### "Qwen" ###
+# qwen-1.5
+qwen_1_5_7b = Model(
+    name = 'qwen-1.5-7b',
+    base_provider = 'Qwen',
+    best_provider = None
+)
+
+# qwen-2
+qwen_2_72b = Model(
+    name = 'qwen-2-72b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider(["Together"])
+)
+
+qwen_2_vl_7b = VisionModel(
+    name = "qwen-2-vl-7b",
+    base_provider = 'Qwen',
+    best_provider = "HuggingFaceAPI"
+)
+
+qwen_2_vl_72b = VisionModel(
+    name = "qwen-2-vl-72b",
+    base_provider = 'Qwen',
+    best_provider = "Together"
+)
+
+
+qwen_2_5_7b = Model(
+    name = 'qwen-2.5-7b',
+    base_provider = 'Qwen',
+    best_provider = "Together"
+)
+
+qwen_2_5_72b = Model(
+    name = 'qwen-2.5-72b',
+    base_provider = 'Qwen',
+    best_provider = "Together"
+)
+
+qwen_2_5_coder_32b = Model(
+    name = 'qwen-2.5-coder-32b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider(["Together", "HuggingChat"])
+)
+
+
+
+qwen_2_5_vl_72b = Model(
+    name = 'qwen-2.5-vl-72b',
+    base_provider = 'Qwen',
+    best_provider = "Together"
+)
+
+# qwen3
+qwen_3_235b = Model(
+    name = 'qwen-3-235b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider(["Together"])
+)
+
+qwen_3_32b = Model(
+    name = 'qwen-3-32b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider(["Together"])
+)
+
+
+
+
+
+
+### qwq/qvq ###
+qwq_32b = Model(
+    name = 'qwq-32b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider(["Together", "HuggingChat"])
+)
+
+### "DeepSeek" ###
+# deepseek-v3
+deepseek_v3 = Model(
+    name = 'deepseek-v3',
+    base_provider = 'DeepSeek',
+    best_provider = IterListProvider(["Together"])
+)
+
+# deepseek-r1
+deepseek_r1 = Model(
+    name = 'deepseek-r1',
+    base_provider = 'DeepSeek',
+    best_provider = IterListProvider(["PollinationsAI", "Together", "HuggingChat", "HuggingFace"])
+)
+
+
+deepseek_r1_distill_llama_70b = Model(
+    name = 'deepseek-r1-distill-llama-70b',
+    base_provider = 'DeepSeek',
+    best_provider = IterListProvider(["Together"])
+)
+
+deepseek_r1_distill_qwen_1_5b = Model(
+    name = 'deepseek-r1-distill-qwen-1.5b',
+    base_provider = 'DeepSeek',
+    best_provider = "Together"
+)
+
+deepseek_r1_distill_qwen_14b = Model(
+    name = 'deepseek-r1-distill-qwen-14b',
+    base_provider = 'DeepSeek',
+    best_provider = "Together"
+)
+
+
+
+
+
+
+
+
+
+### x.ai ###
+grok_2 = Model(
+    name = 'grok-2',
+    base_provider = 'x.ai',
+    best_provider = "Grok"
+)
+
+grok_3 = Model(
+    name = 'grok-3',
+    base_provider = 'x.ai',
+    best_provider = "Grok"
+)
+
+grok_3_r1 = Model(
+    name = 'grok-3-r1',
+    base_provider = 'x.ai',
+    best_provider = "Grok"
+)
+
+kimi = Model(
+    name = 'kimi-k2',
+    base_provider = 'kimi.com',
+    best_provider = IterListProvider(["HuggingFace", "Groq"]),
+    long_name = "moonshotai/Kimi-K2-Instruct"
+)
+
+### "Perplexity" AI ### 
+sonar = Model(
+    name = 'sonar',
+    base_provider = 'Perplexity AI',
+    best_provider = "PuterJS"
+)
+
+sonar_pro = Model(
+    name = 'sonar-pro',
+    base_provider = 'Perplexity AI',
+    best_provider = "PuterJS"
+)
+
+sonar_reasoning = Model(
+    name = 'sonar-reasoning',
+    base_provider = 'Perplexity AI',
+    best_provider = "PuterJS"
+)
+
+sonar_reasoning_pro = Model(
+    name = 'sonar-reasoning-pro',
+    base_provider = 'Perplexity AI',
+    best_provider = "PuterJS"
+)
+
+r1_1776 = Model(
+    name = 'r1-1776',
+    base_provider = 'Perplexity AI',
+    best_provider = IterListProvider(["Together", "PuterJS", "Perplexity"])
+)
+
+### "Nvidia" ### 
+nemotron_70b = Model(
+    name = 'nemotron-70b',
+    base_provider = 'Nvidia',
+    best_provider = IterListProvider(["Together", "HuggingChat", "HuggingFace"])
+)
+
+### Cognitive Computations ###
+
+
+### "DeepInfra" ###
+
+### Lizpreciatior ###
+
+### Opera ###
+aria = Model(
+    name = "aria",
+    base_provider = "Opera",
+    best_provider = "OperaAria"
+)
+
+### Stability AI ### 
+sdxl_turbo = ImageModel(
+    name = 'sdxl-turbo',
+    base_provider = 'Stability AI',
+    best_provider = IterListProvider(["HuggingFaceMedia", "PollinationsImage"])
+)
+
+sd_3_5_large = ImageModel(
+    name = 'sd-3.5-large',
+    base_provider = 'Stability AI',
+    best_provider = IterListProvider(["HuggingFaceMedia", "HuggingSpace"])
+)
+
+### Black Forest Labs ###
+flux = ImageModel(
+    name = 'flux',
+    base_provider = 'Black Forest Labs',
+    best_provider = IterListProvider(["HuggingFaceMedia", "PollinationsImage", "Together", "HuggingSpace"])
+)
+
+flux_pro = ImageModel(
+    name = 'flux-pro',
+    base_provider = 'Black Forest Labs',
+    best_provider = IterListProvider(["PollinationsImage", "Together"])
+)
+
+flux_dev = ImageModel(
+    name = 'flux-dev',
+    base_provider = 'Black Forest Labs',
+    best_provider = IterListProvider(["PollinationsImage", "HuggingSpace", "Together", "HuggingChat", "HuggingFace"])
+)
+
+flux_schnell = ImageModel(
+    name = 'flux-schnell',
+    base_provider = 'Black Forest Labs',
+    best_provider = IterListProvider(["PollinationsImage", "Together", "HuggingChat", "HuggingFace"])
+)
+
+flux_redux = ImageModel(
+    name = 'flux-redux',
+    base_provider = 'Black Forest Labs',
+    best_provider = "Together"
+)
+
+flux_depth = ImageModel(
+    name = 'flux-depth',
+    base_provider = 'Black Forest Labs',
+    best_provider = "Together"
+)
+
+flux_canny = ImageModel(
+    name = 'flux-canny',
+    base_provider = 'Black Forest Labs',
+    best_provider = "Together"
+)
+
+flux_kontext_max = ImageModel(
+    name = 'flux-kontext',
+    base_provider = 'Black Forest Labs',
+    best_provider = IterListProvider(["PollinationsAI", "Together"])
+)
+
+flux_dev_lora = ImageModel(
+    name = 'flux-dev-lora',
+    base_provider = 'Black Forest Labs',
+    best_provider = "Together"
 )
 
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
-
-    Attributes:
-        convert (dict[str, Model]): Dictionary mapping model string identifiers to Model instances.
+    Now uses automatic discovery instead of manual mapping.
     """
-    convert: dict[str, Model] = {
-        # gpt-3.5
-        'gpt-3.5-turbo'          : gpt_35_turbo,
-        'gpt-3.5-turbo-0613'     : gpt_35_turbo_0613,
-        'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
-        'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
-        
-        'gpt-3.5-long': gpt_35_long,
-        
-        # gpt-4
-        'gpt-4'          : gpt_4,
-        'gpt-4-0613'     : gpt_4_0613,
-        'gpt-4-32k'      : gpt_4_32k,
-        'gpt-4-32k-0613' : gpt_4_32k_0613,
-        'gpt-4-turbo'    : gpt_4_turbo,
+    
+    convert: Dict[str, Model] = {}
+    
+    @classmethod
+    def refresh(cls):
+        """Refresh the model registry and update convert"""
+        cls.convert = ModelRegistry.all_models()
+    
+    @classmethod
+    def get_model(cls, name: str) -> Optional[Model]:
+        """Get model by name or alias"""
+        return ModelRegistry.get(name)
+    
+    @classmethod
+    def register_alias(cls, alias: str, model_name: str):
+        """Register an alias for a model"""
+        ModelRegistry._aliases[alias] = model_name
 
-        # Llama
-        'llama2-7b' : llama2_7b,
-        'llama2-13b': llama2_13b,
-        'llama2-70b': llama2_70b,
-        
-        'llama3-8b' : llama3_8b_instruct, # alias
-        'llama3-70b': llama3_70b_instruct, # alias
-        'llama3-8b-instruct' : llama3_8b_instruct,
-        'llama3-70b-instruct': llama3_70b_instruct,
-        
-        'codellama-34b-instruct': codellama_34b_instruct,
-        'codellama-70b-instruct': codellama_70b_instruct,
+# Register special aliases after all models are created
+ModelRegistry._aliases["gemini"] = "gemini-2.0"
 
-        # GigaChat
-        'gigachat'     : gigachat,
-        'gigachat_plus': gigachat_plus,
-        'gigachat_pro' : gigachat_pro,
-        
-        # Mistral Opensource
-        'mixtral-8x7b': mixtral_8x7b,
-        'mistral-7b': mistral_7b,
-        'mistral-7b-v02': mistral_7b_v02,
-        'mixtral-8x22b': mixtral_8x22b,
-        'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
-        
-        # google gemini
-        'gemini': gemini,
-        'gemini-pro': gemini_pro,
-        
-        # anthropic
-        'claude-v2': claude_v2,
-        'claude-3-opus': claude_3_opus,
-        'claude-3-sonnet': claude_3_sonnet,
-        
-        # reka core
-        'reka-core': reka_core,
-        'reka': reka_core,
-        'Reka Core': reka_core,
-        
-        # other
-        'blackbox': blackbox,
-        'command-r+': command_r_plus,
-        'dbrx-instruct': dbrx_instruct,
-        'lzlv-70b': lzlv_70b,
-        'airoboros-70b': airoboros_70b,
-        'openchat_3.5': openchat_35,
-        'pi': pi
-    }
+# Fill the convert dictionary
+ModelUtils.convert = ModelRegistry.all_models()
 
-_all_models = list(ModelUtils.convert.keys())
+# Demo models configuration
+demo_models = {
+    llama_3_2_11b.name: [llama_3_2_11b, ["HuggingChat"]],
+    qwen_2_vl_7b.name: [qwen_2_vl_7b, ["HuggingFaceAPI"]],
+    deepseek_r1.name: [deepseek_r1, ["HuggingFace", "PollinationsAI"]],
+    command_r.name: [command_r, ["HuggingSpace"]],
+    command_r_plus.name: [command_r_plus, ["HuggingSpace"]],
+    command_r7b.name: [command_r7b, ["HuggingSpace"]],
+    qwen_2_5_coder_32b.name: [qwen_2_5_coder_32b, ["HuggingFace"]],
+    qwq_32b.name: [qwq_32b, ["HuggingFace"]],
+    llama_3_3_70b.name: [llama_3_3_70b, ["HuggingFace"]],
+    sd_3_5_large.name: [sd_3_5_large, ["HuggingSpace", "HuggingFace"]],
+    flux_dev.name: [flux_dev, ["PollinationsImage", "HuggingFace", "HuggingSpace"]],
+    flux_schnell.name: [flux_schnell, ["PollinationsImage", "HuggingFace", "HuggingSpace"]],
+}
+
+# Create a list of all models and their providers
+def _get_best_providers(model: Model) -> List:
+    """Get list of working providers for a model"""
+    if model.best_provider is None:
+        return []
+    
+    if isinstance(model.best_provider, IterListProvider):
+        return model.best_provider.providers
+
+    return [model.best_provider]
+
+# Generate __models__ using the auto-discovered models
+__models__ = {
+    name: (model, _get_best_providers(model))
+    for name, model in ModelRegistry.all_models().items()
+    if name and _get_best_providers(model)
+}
+
+# Generate _all_models list
+_all_models = list(__models__.keys())
+
+# Backward compatibility - ensure Model.__all__() returns the correct list
+Model.__all__ = staticmethod(lambda: _all_models)

@@ -1,9 +1,27 @@
-import sys, os
-from flask import Flask
+import gzip
+from flask import Flask, request
 
-if getattr(sys, 'frozen', False):
-    template_folder = os.path.join(sys._MEIPASS, "client")
-else:
-    template_folder = "../client"
+def create_app() -> Flask:
+    app = Flask(__name__)
 
-app = Flask(__name__, template_folder=template_folder, static_folder=f"{template_folder}/static")
+    @app.after_request
+    def compress_response(response):
+        accept_encoding = request.headers.get('Accept-Encoding', '')
+        if 'gzip' not in accept_encoding.lower():
+            return response
+        if response.status_code < 200 or response.status_code >= 300:
+            return response
+        if 'Content-Encoding' in response.headers:
+            return response
+        content_type = response.headers.get('Content-Type', '')
+        if not content_type.startswith(('text/', 'application/javascript', 'application/json')):
+            return response
+
+        response.direct_passthrough = False
+        response.data = gzip.compress(response.data)
+        response.headers['Content-Encoding'] = 'gzip'
+        response.headers['Vary'] = 'Accept-Encoding'
+        response.headers['Content-Length'] = len(response.data)
+        return response
+
+    return app

@@ -1,82 +1,104 @@
-import codecs
 import os
 
 from setuptools import find_packages, setup
 
-here = os.path.abspath(os.path.dirname(__file__))
+current_dir = os.path.abspath(os.path.dirname(__file__))
 
-with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
-    long_description = '\n' + fh.read()
+with open(os.path.join(current_dir, 'README.md'), "r", encoding="utf-8") as f:
+    long_description = f.read()
+
+long_description = long_description.replace("[!NOTE]", "")
 
 INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
     "brotli",
-    "pycryptodome"
+    "pycryptodome",
+    "nest-asyncio2",
 ]
 
 EXTRA_REQUIRE = {
     'all': [
         "curl_cffi>=0.6.2",
         "certifi",
-        "browser_cookie3",         # get_cookies
-        "PyExecJS",                # GptForLove, Vercel
-        "duckduckgo-search>=5.0"  ,# internet.search
-        "beautifulsoup4",          # internet.search and bing.create_images
-        "brotli",                  # openai, bing
-        # webdriver
-        #"undetected-chromedriver>=3.5.5",
-        #"setuptools", 
-        #"selenium-wire"
-        # webview
-        "pywebview",
+        "browser_cookie3", # get_cookies
+        "ddgs",            # web_search
+        "beautifulsoup4",  # web_search and bing.create_images
         "platformdirs",
-        "plyer",
-        "cryptography",
-        ####
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
-        "werkzeug", "flask",       # gui
-        "loguru", "fastapi",       # api
-        "uvicorn", "nest_asyncio", # api
-        "pycryptodome"             # openai
+        "werkzeug",
+        "flask[async]",            # gui
+        "fastapi",                 # api
+        "uvicorn",                 # api
+        "zendriver",
+        "python-multipart",
+        "a2wsgi",
+        "setuptools",
+        "markitdown[all]",
+        "python-dotenv",
+        "aiofile",
+        "cloudscraper",
+        "wasmtime",
+        "numpy",
+        "PyYAML",
+    ],
+    'slim': [
+        "curl_cffi>=0.6.2",
+        "certifi",
+        "browser_cookie3",
+        "ddgs",           # web_search
+        "beautifulsoup4", # web_search and bing.create_images
+        "aiohttp_socks",           # proxy
+        "pillow",                  # image
+        "werkzeug",
+        "flask[async]",            # gui
+        "fastapi",                 # api
+        "uvicorn",                 # api
+        "zendriver",
+        "python-multipart",
+        "a2wsgi",
+        "pypdf2",
+        "python-docx",
+        "python-dotenv",
+        "aiofile",
+        "cloudscraper",
+        "PyYAML",
     ],
     "image": [
         "pillow",
         "cairosvg",
-        "beautifulsoup4"
-    ],
-    "webdriver": [
-        "platformdirs",
-        "undetected-chromedriver>=3.5.5",
-        "setuptools",
-        "selenium-wire"
+        "beautifulsoup4",
     ],
     "webview": [
-        "webview",
+        "pywebview",
         "platformdirs",
         "plyer",
-        "cryptography"
-    ],
-    "openai": [
-        "pycryptodome"
+        "cryptography",
     ],
     "api": [
         "loguru", "fastapi",
-        "uvicorn", "nest_asyncio"
+        "uvicorn",
+        "python-multipart",
+        "a2wsgi",
+        "PyYAML"
     ],
     "gui": [
-        "werkzeug", "flask",
+        "werkzeug", "flask[async]",
         "beautifulsoup4", "pillow",
-        "duckduckgo-search>=5.0",
-        "browser_cookie3"
+    ],
+    "search": [
+        "beautifulsoup4",
+        "pillow",
+        "ddgs",
     ],
     "local": [
         "gpt4all"
     ],
-    "curl_cffi": [
-        "curl_cffi>=0.6.2",
+    "files": [
+        "beautifulsoup4",
+        "markitdown[all]",
     ]
 }
 
@@ -95,13 +117,16 @@ setup(
     long_description=long_description,
     packages=find_packages(),
     package_data={
-        'g4f': ['g4f/interference/*', 'g4f/gui/client/*', 'g4f/gui/server/*', 'g4f/Provider/npm/*', 'g4f/local/models/*']
+        'g4f': []
     },
     include_package_data=True,
     install_requires=INSTALL_REQUIRE,
     extras_require=EXTRA_REQUIRE,
     entry_points={
-        'console_scripts': ['g4f=g4f.cli:main'],
+        'console_scripts': [
+            'g4f=g4f.cli:main',
+            'g4f-mcp=g4f.mcp.server:main',
+        ],
     },
     url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
     project_urls={
@@ -109,29 +134,50 @@ setup(
         'Bug Tracker': 'https://github.com/xtekky/gpt4free/issues',  # Link to issue tracker
     },
     keywords=[
-        'python',
-        'chatbot',
-        'reverse-engineering',
-        'openai',
-        'chatbots',
-        'gpt',
-        'language-model',
-        'gpt-3',
-        'gpt3',
-        'openai-api',
-        'gpt-4',
-        'gpt4',
-        'chatgpt',
-        'chatgpt-api',
-        'openai-chatgpt',
-        'chatgpt-free',
-        'chatgpt-4',
-        'chatgpt4',
-        'chatgpt4-api',
-        'free',
-        'free-gpt',
-        'gpt4free',
-        'g4f',
+        "gpt4free",
+        "gpt4free.js",
+        "g4f",
+        "g4f.dev",
+        "javascript",
+        "npm",
+        "browser",
+        "gpt",
+        "chatgpt",
+        "deepseek",
+        "openai",
+        "ai",
+        "client",
+        "sdk",
+        "free",
+        "ai",
+        "gpt-4",
+        "gpt-4o",
+        "chat",
+        "api",
+        "browser",
+        "ai",
+        "ai",
+        "js",
+        "client",
+        "text",
+        "generation",
+        "image",
+        "generation",
+        "in-browser",
+        "ai",
+        "frontend",
+        "ai",
+        "openai",
+        "alternative",
+        "javascript",
+        "ai",
+        "library",
+        "nodejs",
+        "prompt",
+        "engineering",
+        "chatbot",
+        "ai",
+        "integration"
     ],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',

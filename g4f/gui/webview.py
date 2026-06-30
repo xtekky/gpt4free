@@ -40,8 +40,7 @@ def run_webview(
         storage_path=storage_path,
         debug=debug,
         http_port=http_port,
-        ssl=ssl,
-        gui=gui
+        ssl=ssl
     )
 
 if __name__ == "__main__":
@@ -49,4 +48,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.debug:
         g4f.debug.logging = True
-    run_webview(args.debug, args.port)
+    run_webview(args.debug, args.port, not args.debug)

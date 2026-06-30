@@ -1,106 +1,352 @@
 from __future__ import annotations
 
-from typing import Union
+import os
+from typing import Optional, List
+from time import time
 
-class Model():
-    ...
+from ..image import extract_data_uri
+from ..image.copy_images import get_media_dir
+from ..client.helper import filter_markdown
+from ..providers.response import Reasoning, ToolCalls, AudioResponse
+from .helper import filter_none
 
-class ChatCompletion(Model):
-    def __init__(
-        self,
+try:
+    from pydantic import BaseModel, field_serializer
+except ImportError:
+    class BaseModel():
+        @classmethod
+        def model_construct(cls, **data):
+            new = cls()
+            for key, value in data.items():
+                setattr(new, key, value)
+            return new
+    class field_serializer():
+        def __init__(self, field_name):
+            self.field_name = field_name
+        def __call__(self, *args, **kwargs):
+            return args[0]
+
+class BaseModel(BaseModel):
+    @classmethod
+    def model_construct(cls, **data):
+        if hasattr(super(), "model_construct"):
+            return super().model_construct(**data)
+        return cls.construct(**data)
+
+class PromptTokenDetails(BaseModel):
+    cached_tokens: int
+    audio_tokens: int
+
+class CompletionTokenDetails(BaseModel):
+    reasoning_tokens: int
+    image_tokens: int
+    audio_tokens: int
+    accepted_prediction_tokens: Optional[int] = None
+    rejected_prediction_tokens: Optional[int] = None
+
+class UsageModel(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    prompt_tokens_details: PromptTokenDetails
+    completion_tokens_details: CompletionTokenDetails
+    cache: Optional[str] = None
+
+    @classmethod
+    def model_construct(cls, prompt_tokens=0, completion_tokens=0, total_tokens=0, prompt_tokens_details=None, completion_tokens_details=None, **kwargs):
+        return super().model_construct(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            prompt_tokens_details=PromptTokenDetails.model_construct(**prompt_tokens_details if prompt_tokens_details else {"cached_tokens": 0}),
+            completion_tokens_details=CompletionTokenDetails.model_construct(**completion_tokens_details if completion_tokens_details else {}),
+            **kwargs
+        )
+
+class ToolFunctionModel(BaseModel):
+    name: str
+    arguments: str
+
+class ToolCallModel(BaseModel):
+    index: int = 0
+    id: str
+    type: str
+    function: ToolFunctionModel
+    extra_content: Optional[dict] = None
+
+    @classmethod
+    def model_construct(cls, function=None, index=0, **kwargs):
+        # Ensure arguments is always a string
+        if function and "arguments" in function and not isinstance(function["arguments"], str):
+            function["arguments"] = str(function["arguments"])
+        return super().model_construct(
+            index=index,
+            **kwargs,
+            function=ToolFunctionModel.model_construct(**function),
+        )
+
+class ChatCompletionChunk(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    provider: Optional[str]
+    choices: List[ChatCompletionDeltaChoice]
+    usage: UsageModel
+    conversation: dict
+
+    @classmethod
+    def model_construct(
+        cls,
         content: str,
         finish_reason: str,
         completion_id: str = None,
-        created: int = None
+        created: int = None,
+        usage: UsageModel = None,
+        conversation: dict = None
     ):
-        self.id: str = f"chatcmpl-{completion_id}" if completion_id else None
-        self.object: str = "chat.completion"
-        self.created: int = created
-        self.model: str = None
-        self.provider: str = None
-        self.choices = [ChatCompletionChoice(ChatCompletionMessage(content), finish_reason)]
-        self.usage: dict[str, int] = {
-            "prompt_tokens": 0, #prompt_tokens,
-            "completion_tokens": 0, #completion_tokens,
-            "total_tokens": 0, #prompt_tokens + completion_tokens,
-        }
+        return super().model_construct(
+            id=f"chatcmpl-{completion_id}" if completion_id else None,
+            object="chat.completion.chunk",
+            created=created,
+            model=None,
+            provider=None,
+            choices=[ChatCompletionDeltaChoice.model_construct(
+                ChatCompletionDelta.model_construct(content),
+                finish_reason
+            )],
+            **filter_none(usage=usage, conversation=conversation)
+        )
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "choices": [choice.to_json() for choice in self.choices]
-        }
+    @field_serializer('conversation')
+    def serialize_conversation(self, conversation: dict):
+        if hasattr(conversation, "get_dict"):
+            return conversation.get_dict()
+        return conversation
 
-class ChatCompletionChunk(Model):
-    def __init__(
-        self,
-        content: str,
-        finish_reason: str,
-        completion_id: str = None,
-        created: int = None
-    ):
-        self.id: str = f"chatcmpl-{completion_id}" if completion_id else None
-        self.object: str = "chat.completion.chunk"
-        self.created: int = created
-        self.model: str = None
-        self.provider: str = None
-        self.choices = [ChatCompletionDeltaChoice(ChatCompletionDelta(content), finish_reason)]
+class ResponseMessage(BaseModel):
+    type: str = "message"
+    role: str
+    content: list[ResponseMessageContent]
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "choices": [choice.to_json() for choice in self.choices]
-        }
+    @classmethod
+    def model_construct(cls, content: str):
+        return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
 
-class ChatCompletionMessage(Model):
-    def __init__(self, content: Union[str, None]):
-        self.role = "assistant"
-        self.content = content
+class ResponseMessageContent(BaseModel):
+    type: str
+    text: str
 
-    def to_json(self):
-        return self.__dict__
+    @classmethod
+    def model_construct(cls, text: str):
+        return super().model_construct(type="output_text", text=text)
 
-class ChatCompletionChoice(Model):
-    def __init__(self, message: ChatCompletionMessage, finish_reason: str):
-        self.index = 0
-        self.message = message
-        self.finish_reason = finish_reason
+    @field_serializer('text')
+    def serialize_text(self, text: str):
+        return str(text)
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "message": self.message.to_json()
-        }
+class AudioResponseModel(BaseModel):
+    data: str
+    transcript: Optional[str] = None
 
-class ChatCompletionDelta(Model):
-    content: Union[str, None] = None
+    @classmethod
+    def model_construct(cls, data: str, transcript: Optional[str] = None):
+        return super().model_construct(data=data, transcript=transcript)
 
-    def __init__(self, content: Union[str, None]):
+class ChatCompletionMessage(BaseModel):
+    role: str
+    content: str
+    reasoning: Optional[str] = None
+    tool_calls: list[ToolCallModel] = None
+    audio: AudioResponseModel = None
+
+    @classmethod
+    def model_construct(cls, content: str):
+        return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
+
+    @classmethod
+    def model_construct(cls, content: str, reasoning: list[Reasoning] = None, tool_calls: list = None):
+        if isinstance(content, AudioResponse) and content.data.startswith("data:"):
+            return super().model_construct(
+                role="assistant",
+                audio=AudioResponseModel.model_construct(
+                    data=content.data.split(",")[-1],
+                    transcript=content.transcript
+                ),
+                content=content
+            )
+        if reasoning is not None and isinstance(reasoning, list):
+            reasoning = "".join([str(content) for content in reasoning])
+        return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning=reasoning))
+
+    @field_serializer('content')
+    def serialize_content(self, content: str):
+        return str(content)
+
+    def save(self, filepath: str, allowed_types = None):
+        if hasattr(self.content, "data"):
+            os.rename(self.content.data.replace("/media", get_media_dir()), filepath)
+            return
+        if self.content.startswith("data:"):
+            with open(filepath, "wb") as f:
+                f.write(extract_data_uri(self.content))
+            return
+        content = filter_markdown(self.content, allowed_types, self.content if not allowed_types else None)
         if content is not None:
-            self.content = content
+            with open(filepath, "w") as f:
+                f.write(content)
 
-    def to_json(self):
-        return self.__dict__
 
-class ChatCompletionDeltaChoice(Model):
-    def __init__(self, delta: ChatCompletionDelta, finish_reason: Union[str, None]):
-        self.delta = delta
-        self.finish_reason = finish_reason
+class ChatCompletionChoice(BaseModel):
+    index: int
+    message: ChatCompletionMessage
+    finish_reason: str
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "delta": self.delta.to_json()
-        }
+    @classmethod
+    def model_construct(cls, message: ChatCompletionMessage, finish_reason: str):
+        return super().model_construct(index=0, message=message, finish_reason=finish_reason)
 
-class Image(Model):
-    url: str
+class ChatCompletion(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    provider: Optional[str]
+    choices: list[ChatCompletionChoice]
+    usage: UsageModel
+    conversation: dict
 
-    def __init__(self, url: str) -> None:
-        self.url = url
+    @classmethod
+    def model_construct(
+        cls,
+        content: str,
+        finish_reason: str,
+        completion_id: str = None,
+        created: int = None,
+        tool_calls: list[ToolCallModel] = None,
+        usage: UsageModel = None,
+        conversation: dict = None,
+        reasoning: list[Reasoning] = None
+    ):
+        return super().model_construct(
+            id=f"chatcmpl-{completion_id}" if completion_id else None,
+            object="chat.completion",
+            created=created,
+            model=None,
+            provider=None,
+            choices=[ChatCompletionChoice.model_construct(
+                ChatCompletionMessage.model_construct(content, reasoning, tool_calls),
+                finish_reason,
+            )],
+            **filter_none(usage=usage, conversation=conversation)
+        )
 
-class ImagesResponse(Model):
-    data: list[Image]
+    @field_serializer('conversation')
+    def serialize_conversation(self, conversation: dict):
+        if hasattr(conversation, "get_dict"):
+            return conversation.get_dict()
+        return conversation
 
-    def __init__(self, data: list) -> None:
-        self.data = data
+class ClientResponse(BaseModel):
+    id: str
+    object: str
+    created_at: int
+    model: str
+    provider: Optional[str]
+    output: list[ResponseMessage]
+    usage: UsageModel
+    conversation: dict
+
+    @classmethod
+    def model_construct(
+        cls,
+        content: str,
+        response_id: str = None,
+        created_at: int = None,
+        usage: UsageModel = None,
+        conversation: dict = None
+    ) -> ClientResponse:
+        return super().model_construct(
+            id=f"resp-{response_id}" if response_id else None,
+            object="response",
+            created_at=created_at,
+            model=None,
+            provider=None,
+            output=[
+                ResponseMessage.model_construct(content),
+            ],
+            **filter_none(usage=usage, conversation=conversation)
+        )
+
+    @field_serializer('conversation')
+    def serialize_conversation(self, conversation: dict):
+        if hasattr(conversation, "get_dict"):
+            return conversation.get_dict()
+        return conversation
+
+class ChatCompletionDelta(BaseModel):
+    role: str
+    content: Optional[str]
+    reasoning: Optional[str] = None
+    tool_calls: list[ToolCallModel] = None
+
+    @classmethod
+    def model_construct(cls, content: Optional[str]):
+        if isinstance(content, Reasoning):
+            return super().model_construct(role="assistant", content=None, reasoning=str(content))
+        elif isinstance(content, ToolCalls) and content.get_list():
+            return super().model_construct(role="assistant", content=None, tool_calls=[
+                ToolCallModel.model_construct(**tool_call) for tool_call in content.get_list()
+            ])
+        return super().model_construct(role="assistant", content=content)
+
+    @field_serializer('content')
+    def serialize_content(self, content: Optional[str]):
+        if content is None:
+            return ""
+        if isinstance(content, (Reasoning, ToolCalls)):
+            return None
+        return str(content)
+
+class ChatCompletionDeltaChoice(BaseModel):
+    index: int
+    delta: ChatCompletionDelta
+    finish_reason: Optional[str]
+
+    @classmethod
+    def model_construct(cls, delta: ChatCompletionDelta, finish_reason: Optional[str]):
+        return super().model_construct(index=0, delta=delta, finish_reason=finish_reason)
+
+class Image(BaseModel):
+    url: Optional[str]
+    b64_json: Optional[str]
+    revised_prompt: Optional[str]
+
+    @classmethod
+    def model_construct(cls, url: str = None, b64_json: str = None, revised_prompt: str = None):
+        return super().model_construct(**filter_none(
+            url=url,
+            b64_json=b64_json,
+            revised_prompt=revised_prompt
+        ))
+
+    def save(self, path: str):
+        if self.url is not None and self.url.startswith("/media/"):
+            os.rename(self.url.replace("/media", get_media_dir()), path)
+
+class ImagesResponse(BaseModel):
+    data: List[Image]
+    model: str
+    provider: str
+    created: int
+
+    @classmethod
+    def model_construct(cls, data: List[Image], created: int = None, model: str = None, provider: str = None):
+        if created is None:
+            created = int(time())
+        return super().model_construct(
+            data=data,
+            model=model,
+            provider=provider,
+            created=created
+        )

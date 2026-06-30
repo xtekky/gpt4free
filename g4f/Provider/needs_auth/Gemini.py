@@ -4,26 +4,34 @@ import os
 import json
 import random
 import re
+import base64
+import asyncio
+import time
 
+from urllib.parse import quote_plus, unquote_plus
+from pathlib import Path
 from aiohttp import ClientSession, BaseConnector
 
-from ..helper import get_connector
-
 try:
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
+    import zendriver as nodriver
+    has_nodriver = True
 except ImportError:
-    pass
+    has_nodriver = False
 
 from ... import debug
-from ...typing import Messages, Cookies, ImageType, AsyncResult
-from ..base_provider import AsyncGeneratorProvider
-from ..helper import format_prompt, get_cookies
+from ...typing import Messages, Cookies, MediaListType, AsyncResult, AsyncIterator
+from ...providers.response import JsonConversation, Reasoning, RequestLogin, ImageResponse, YouTubeResponse, AudioResponse, TitleGeneration, JsonResponse
 from ...requests.raise_for_status import raise_for_status
-from ...errors import MissingAuthError, MissingRequirementsError
-from ...image import to_bytes, ImageResponse
-from ...webdriver import get_browser, get_driver_cookies
+from ...requests.aiohttp import get_connector
+from ...requests import get_nodriver
+from ...image.copy_images import get_filename, get_media_dir, ensure_media_dir
+from ...errors import MissingAuthError
+from ...image import to_bytes
+from ...cookies import get_cookies_dir
+from ...tools.media import merge_media
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt, get_cookies, get_last_user_message, format_media_prompt
+from ... import debug
 
 REQUEST_HEADERS = {
     "authority": "gemini.google.com",
@@ -32,7 +40,7 @@ REQUEST_HEADERS = {
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
     'x-same-domain': '1',
 }
-REQUEST_BL_PARAM = "boq_assistant-bard-web-server_20240421.18_p0"
+REQUEST_BL_PARAM = "boq_assistant-bard-web-server_20240519.16_p0"
 REQUEST_URL = "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate"
 UPLOAD_IMAGE_URL = "https://content-push.googleapis.com/upload/"
 UPLOAD_IMAGE_HEADERS = {
@@ -49,61 +57,105 @@ UPLOAD_IMAGE_HEADERS = {
     "x-goog-upload-protocol": "resumable",
     "x-tenant-id": "bard-storage",
 }
+GOOGLE_COOKIE_DOMAIN = ".google.com"
+ROTATE_COOKIES_URL = "https://accounts.google.com/RotateCookies"
+GOOGLE_SID_COOKIE = "__Secure-1PSID"
 
-class Gemini(AsyncGeneratorProvider):
+models = {
+    "gemini-deep-research": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"cd472a54d2abba7e"]'},
+    # Currently used models
+    "gemini-3.1-pro": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"e6fa609c3fa255c0",null,null,0,[4,5,6,8],null,null,2,null,null,3,1,"09D681E7-26F2-4A94-A465-38386B7AB93B"]'},
+    "gemini-3.1-flash-lite": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"8c46e95b1a07cecc",null,null,0,[4,5,6,8],null,null,2,null,null,6,1,"09D681E7-26F2-4A94-A465-38386B7AB93B"]'},
+    "gemini-3.5-flash": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"56fdd199312815e2",null,null,0,[4,5,6,8],null,null,2,null,null,1,1,"09D681E7-26F2-4A94-A465-38386B7AB93B"]'},
+    "gemini-audio": {}
+}
+
+class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Google Gemini"
     url = "https://gemini.google.com"
+    
     needs_auth = True
     working = True
-    image_models = ["gemini"]
-    default_vision_model = "gemini"
+    active_by_default = True
+    use_nodriver = True
+    
+    default_model = "gemini-3.5-flash"
+    default_image_model = default_model
+    default_vision_model = default_model
+    image_models = [default_image_model]
+    models = [
+        "gemini-3.1-pro", "gemini-3.5-flash", "gemini-3.1-flash-lite"
+    ]
+
+    synthesize_content_type = "audio/vnd.wav"
+    
     _cookies: Cookies = None
+    _snlm0e: str = None
+    _sid: str = None
+
+    auto_refresh = True
+    refresh_interval = 60 * 15  # 15 minutes
+    rotate_tasks = {}
 
     @classmethod
-    async def nodriver_login(cls) -> Cookies:
-        try:
-            import nodriver as uc
-        except ImportError:
+    async def login_generator(cls, proxy: str = None) -> AsyncIterator[str]:
+        if not has_nodriver:
+            debug.log("Skip nodriver login in Gemini provider")
             return
+        browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         try:
-            from platformdirs import user_config_dir
-            user_data_dir = user_config_dir("g4f-nodriver")
-        except:
-            user_data_dir = None
-        if debug.logging:
-            print(f"Open nodriver with user_dir: {user_data_dir}")
-        browser = await uc.start(user_data_dir=user_data_dir)
-        page = await browser.get(f"{cls.url}/app")
-        await page.select("div.ql-editor.textarea", 240)
-        cookies = {}
-        for c in await page.browser.cookies.get_all():
-            if c.domain.endswith(".google.com"):
+            yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
+            page = await browser.get(f"{cls.url}/app")
+            await page.select("div.ql-editor.textarea", 240)
+            cookies = {}
+            for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
                 cookies[c.name] = c.value
-        await page.close()
-        return cookies
+            await page.close()
+            cls._cookies = cookies
+        finally:
+            await stop_browser()
 
     @classmethod
-    async def webdriver_login(cls, proxy: str):
-        driver = None
-        try:
-            driver = get_browser(proxy=proxy)
-            try:
-                driver.get(f"{cls.url}/app")
-                WebDriverWait(driver, 5).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
-                )
-            except:
-                login_url = os.environ.get("G4F_LOGIN_URL")
-                if login_url:
-                    yield f"Please login: [Google Gemini]({login_url})\n\n"
-                WebDriverWait(driver, 240).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
-                )
-            cls._cookies = get_driver_cookies(driver)
-        except MissingRequirementsError:
+    async def login(cls, proxy: str = None) -> AsyncIterator[str]:
+        async for _ in cls.login_generator(proxy):
             pass
-        finally:
-            if driver:
-                driver.close()
+        return {"success": True, "message": "Login successful"}
+
+    @classmethod
+    async def start_auto_refresh(cls, proxy: str = None) -> None:
+        """
+        Start the background task to automatically refresh cookies.
+        """
+
+        while True:
+            new_1psidts = None
+            try:
+                new_1psidts = await rotate_1psidts(cls.url, cls._cookies, proxy)
+            except Exception as e:
+                debug.error(f"Failed to refresh cookies: {e}")
+                task = cls.rotate_tasks.get(cls._cookies[GOOGLE_SID_COOKIE])
+                if task:
+                    task.cancel()
+                debug.error(
+                    "Failed to refresh cookies. Background auto refresh task canceled."
+                )
+
+            debug.log(f"Gemini: Cookies refreshed. New __Secure-1PSIDTS: {new_1psidts}")
+            if new_1psidts:
+                cls._cookies["__Secure-1PSIDTS"] = new_1psidts
+            await asyncio.sleep(cls.refresh_interval)
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        if not cls._cookies:
+            cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+        if not cls._cookies:
+            raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie')
+        async with ClientSession(
+            headers=REQUEST_HEADERS
+        ) as session:
+            await cls.fetch_snlm0e(session, cls._cookies)
+        return cls._snlm0e
 
     @classmethod
     async def create_async_generator(
@@ -111,40 +163,60 @@ class Gemini(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
-        api_key: str = None,
         cookies: Cookies = None,
         connector: BaseConnector = None,
-        image: ImageType = None,
-        image_name: str = None,
+        media: MediaListType = None,
+        return_conversation: bool = True,
+        conversation: Conversation = None,
+        language: str = "en",
+        prompt: str = None,
+        audio: dict = None,
         **kwargs
     ) -> AsyncResult:
-        prompt = format_prompt(messages)
-        if api_key is not None:
-            if cookies is None:
-                cookies = {}
-            cookies["__Secure-1PSID"] = api_key
-        cls._cookies = cookies or cls._cookies or get_cookies(".google.com", False, True)
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
+        if audio is not None or model == "gemini-audio":
+            prompt = format_media_prompt(messages, prompt)
+            filename = get_filename(["gemini"], prompt, ".ogx", prompt)
+            ensure_media_dir()
+            path = os.path.join(get_media_dir(), filename)
+            with open(path, "wb") as f:
+                async for chunk in cls.synthesize({"text": prompt}, proxy):
+                    f.write(chunk)
+            yield AudioResponse(f"/media/{filename}", text=prompt)
+            return
+        cls._cookies = cookies or cls._cookies or get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+        if conversation is not None and getattr(conversation, "model", None) != model:
+            conversation = None
+        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
         base_connector = get_connector(connector, proxy)
+
         async with ClientSession(
             headers=REQUEST_HEADERS,
             connector=base_connector
         ) as session:
-            snlm0e  = await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
-            if not snlm0e:
-                cls._cookies = await cls.nodriver_login();
-                if cls._cookies is None:
-                    async for chunk in cls.webdriver_login(proxy):
+            if not cls._snlm0e:
+                await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
+            if not cls._snlm0e:
+                try:
+                    async for chunk in cls.login_generator(proxy):
                         yield chunk
-
-            if not snlm0e:
-                if "__Secure-1PSID" not in cls._cookies:
+                except Exception as e:
+                    raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie', e)
+            if not cls._snlm0e:
+                if cls._cookies is None or "__Secure-1PSID" not in cls._cookies:
                     raise MissingAuthError('Missing "__Secure-1PSID" cookie')
-                snlm0e = await cls.fetch_snlm0e(session, cls._cookies)
-            if not snlm0e:
+                await cls.fetch_snlm0e(session, cls._cookies)
+            if not cls._snlm0e:
                 raise RuntimeError("Invalid cookies. SNlM0e not found")
+            if GOOGLE_SID_COOKIE in cls._cookies:
+                task = cls.rotate_tasks.get(cls._cookies[GOOGLE_SID_COOKIE])
+                if not task:
+                    cls.rotate_tasks[cls._cookies[GOOGLE_SID_COOKIE]] = asyncio.create_task(
+                        cls.start_auto_refresh()
+                    )
 
-            image_url = await cls.upload_image(base_connector, to_bytes(image), image_name) if image else None
-        
+            uploads = await cls.upload_images(base_connector, merge_media(media, messages))
             async with ClientSession(
                 cookies=cls._cookies,
                 headers=REQUEST_HEADERS,
@@ -152,63 +224,190 @@ class Gemini(AsyncGeneratorProvider):
             ) as client:
                 params = {
                     'bl': REQUEST_BL_PARAM,
+                    'hl': language,
                     '_reqid': random.randint(1111, 9999),
-                    'rt': 'c'
+                    'rt': 'c',
+                    "f.sid": cls._sid,
                 }
                 data = {
-                    'at': snlm0e,
+                    'at': cls._snlm0e,
                     'f.req': json.dumps([None, json.dumps(cls.build_request(
                         prompt,
-                        image_url=image_url,
-                        image_name=image_name
+                        language=language,
+                        conversation=conversation,
+                        uploads=uploads
                     ))])
                 }
                 async with client.post(
                     REQUEST_URL,
                     data=data,
                     params=params,
+                    headers=models[model] if model in models else None
                 ) as response:
                     await raise_for_status(response)
-                    response = await response.text()
-                    response_part = json.loads(json.loads(response.splitlines()[-5])[0][2])
-                    if response_part[4] is None:
-                        response_part = json.loads(json.loads(response.splitlines()[-7])[0][2])
+                    image_prompt = response_part = None
+                    last_content = ""
+                    youtube_ids = []
+                    images_yielded = False
+                    for line in (await response.text()).split("\n"):
+                        try:
+                            try:
+                                line = json.loads(line)
+                            except ValueError:
+                                continue
+                            if not isinstance(line, list):
+                                continue
+                            yield JsonResponse(data=line, model=model)
+                            if not line or len(line[0]) < 3 or not line[0][2]:
+                                continue
+                            response_part = json.loads(line[0][2])
+                            yield JsonResponse(data=response_part, model=model)
+                            if len(response_part) > 2 and isinstance(response_part[2], dict) and response_part[2].get("11"):
+                                yield TitleGeneration(response_part[2].get("11"))
+                            if len(response_part) < 5:
+                                continue
+                            if return_conversation:
+                                yield Conversation(response_part[1][0], response_part[1][1], response_part[4][0][0], model)
+                            def find_youtube_ids(content: str):
+                                pattern = re.compile(r"http://www.youtube.com/watch\?v=([\w-]+)")
+                                for match in pattern.finditer(content):
+                                    if match.group(1) not in youtube_ids:
+                                        yield match.group(1)
+                            def read_recusive(data):
+                                for item in data:
+                                    if isinstance(item, list):
+                                        yield from read_recusive(item)
+                                    elif isinstance(item, str) and not item.startswith("rc_"):
+                                        yield item
+                            def find_str(data, skip=0):
+                                for item in read_recusive(data):
+                                    if skip > 0:
+                                        skip -= 1
+                                        continue
+                                    if isinstance(item, str):
+                                        if item.startswith("$AQ") or item in ("image/png", "imagen_default"):
+                                            continue
+                                        if item.startswith("http://googleusercontent.com/image_generation_content/"):
+                                            continue
+                                    yield item
+                            if response_part[4]:
+                                reasoning = "\n\n".join(find_str(response_part[4][0], 3))
+                                reasoning = re.sub(r"<b>|</b>", "**", reasoning)
+                                def replace_image(match):
+                                    return f"![](https:{match.group(0)})"
+                                reasoning = re.sub(r"//yt3.(?:ggpht.com|googleusercontent.com/ytc)/[\w=-]+", replace_image, reasoning)
+                                reasoning = re.sub(r"\nyoutube\n", "\n\n\n", reasoning)
+                                reasoning = re.sub(r"\nyoutube_tool\n", "\n\n", reasoning)
+                                reasoning = re.sub(r"\nYouTube\n", "\nYouTube ", reasoning)
+                                reasoning = reasoning.replace('\nhttps://www.gstatic.com/images/branding/productlogos/youtube/v9/192px.svg', '<i class="fa-brands fa-youtube"></i>')
+                                youtube_ids = list(find_youtube_ids(reasoning))
+                                content = response_part[4][0][1][0]
+                                if reasoning:
+                                    yield Reasoning(reasoning, status="🤔")
+                        except (ValueError, KeyError, TypeError, IndexError) as e:
+                            if kwargs.get("debug_mode", False):
+                                raise e
+                            debug.error(f"{cls.__name__} {type(e).__name__}: {e}")
+                            continue
+                        match = re.search(r'\[Imagen of (.*?)\]', content)
+                        if match:
+                            image_prompt = match.group(1)
+                            content = content.replace(match.group(0), '')
+                        pattern = r"http://googleusercontent.com/(?:image_generation|youtube|map)_content/\d+"
+                        content = re.sub(pattern, "", content)
+                        content = content.replace("<!-- end list -->", "")
+                        content = content.replace("<ctrl94>thought", "<think>").replace("<ctrl95>", "</think>")
+                        def replace_link(match):
+                            return f"(https://{quote_plus(unquote_plus(match.group(1)), '/?&=#')})"
+                        content = re.sub(r"\(https://www.google.com/(?:search\?q=|url\?sa=E&source=gmail&q=)https?://(.+?)\)", replace_link, content)
 
-                    content = response_part[4][0][1][0]
-                    image_prompt = None
-                    match = re.search(r'\[Imagen of (.*?)\]', content)
-                    if match:
-                        image_prompt = match.group(1)
-                        content = content.replace(match.group(0), '')
+                        if last_content and content.startswith(last_content):
+                            yield content[len(last_content):]
+                        else:
+                            yield content
+                        last_content = content
+                        has_images = False
+                        try:
+                            if not images_yielded and len(response_part[4][0]) >= 13 and response_part[4][0][12] and len(response_part[4][0][12]) >= 8 and response_part[4][0][12][7] and response_part[4][0][12][7][0]:
+                                has_images = True
+                        except (TypeError, IndexError, KeyError):
+                            pass
 
-                    yield content
-                    if image_prompt:
-                        images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
-                        resolved_images = []
-                        preview = []
-                        for image in images:
-                            async with client.get(image, allow_redirects=False) as fetch:
-                                image = fetch.headers["location"]
-                            async with client.get(image, allow_redirects=False) as fetch:
-                                image = fetch.headers["location"]
-                            resolved_images.append(image)
-                            preview.append(image.replace('=s512', '=s200'))
-                        yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images, "preview": preview})
+                        if not images_yielded and (image_prompt or has_images):
+                            try:
+                                images = []
+                                for image in response_part[4][0][12][7][0]:
+                                    img_data = image[0][3][3]
+                                    if isinstance(img_data, list):
+                                        for item in img_data:
+                                            if isinstance(item, str) and item.startswith("http"):
+                                                images.append(item + "=s2048")
+                                                break
+                                    elif isinstance(img_data, str):
+                                        images.append(img_data + "=s2048")
+                                if images:
+                                    prompt = image_prompt.replace("a fake image", "") if image_prompt else "Generated Image"
+                                    yield ImageResponse(images, prompt, {"cookies": cls._cookies})
+                                    image_prompt = None
+                                    images_yielded = True
+                            except (TypeError, IndexError, KeyError):
+                                pass
+                        youtube_ids = youtube_ids if youtube_ids else find_youtube_ids(content)
+                        if youtube_ids:
+                            yield YouTubeResponse(youtube_ids)
+
+    @classmethod
+    async def synthesize(cls, params: dict, proxy: str = None) -> AsyncIterator[bytes]:
+        if "text" not in params:
+            raise ValueError("Missing parameter text")
+        async with ClientSession(
+            cookies=cls._cookies,
+            headers=REQUEST_HEADERS,
+            connector=get_connector(proxy=proxy),
+        ) as session:
+            if not cls._snlm0e:
+                await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
+            inner_data = json.dumps([None, params["text"], "en-US", None, 2])
+            async with session.post(
+                "https://gemini.google.com/_/BardChatUi/data/batchexecute",
+                data={
+                      "f.req": json.dumps([[["XqA3Ic", inner_data, None, "generic"]]]),
+                      "at": cls._snlm0e,
+                },
+                params={
+                    "rpcids": "XqA3Ic",
+                    "source-path": "/app/2704fb4aafcca926",
+                    "bl": "boq_assistant-bard-web-server_20241119.00_p1",
+                    "f.sid": "" if cls._sid is None else cls._sid,
+                    "hl": "de",
+                    "_reqid": random.randint(1111, 9999),
+                    "rt": "c"
+                },
+            ) as response:
+                await raise_for_status(response)
+                iter_base64_response = iter_filter_base64(response.content.iter_chunked(1024))
+                async for chunk in iter_base64_decode(iter_base64_response):
+                    yield chunk
 
     def build_request(
         prompt: str,
-        conversation_id: str = "",
-        response_id: str = "",
-        choice_id: str = "",
-        image_url: str = None,
-        image_name: str = None,
+        language: str,
+        conversation: Conversation = None,
+        uploads: list[list[str, str]] = None,
         tools: list[list[str]] = []
     ) -> list:
-        image_list = [[[image_url, 1], image_name]] if image_url else []
+        image_list = [[[image_url, 1], image_name] for image_url, image_name in uploads] if uploads else []
         return [
             [prompt, 0, None, image_list, None, None, 0],
-            ["en"],
-            [conversation_id, response_id, choice_id, None, None, []],
+            [language],
+            [
+                None if conversation is None else conversation.conversation_id,
+                None if conversation is None else conversation.response_id,
+                None if conversation is None else conversation.choice_id,
+                None,
+                None,
+                []
+            ],
             None,
             None,
             None,
@@ -220,41 +419,46 @@ class Gemini(AsyncGeneratorProvider):
             0,
         ]
 
-    async def upload_image(connector: BaseConnector, image: bytes, image_name: str = None):
-        async with ClientSession(
-            headers=UPLOAD_IMAGE_HEADERS,
-            connector=connector
-        ) as session:
-            async with session.options(UPLOAD_IMAGE_URL) as reponse:
-                await raise_for_status(response)
+    async def upload_images(connector: BaseConnector, media: MediaListType) -> list:
+        async def upload_image(image: bytes, image_name: str = None):
+            async with ClientSession(
+                headers=UPLOAD_IMAGE_HEADERS,
+                connector=connector
+            ) as session:
+                image = to_bytes(image)
 
-            headers = {
-                "size": str(len(image)),
-                "x-goog-upload-command": "start"
-            }
-            data = f"File name: {image_name}" if image_name else None
-            async with session.post(
-                UPLOAD_IMAGE_URL, headers=headers, data=data
-            ) as response:
-                await raise_for_status(response)
-                upload_url = response.headers["X-Goog-Upload-Url"]
+                async with session.options(UPLOAD_IMAGE_URL) as response:
+                    await raise_for_status(response)
 
-            async with session.options(upload_url, headers=headers) as response:
-                await raise_for_status(response)
+                headers = {
+                    "size": str(len(image)),
+                    "x-goog-upload-command": "start"
+                }
+                data = f"File name: {image_name}" if image_name else None
+                async with session.post(
+                    UPLOAD_IMAGE_URL, headers=headers, data=data
+                ) as response:
+                    await raise_for_status(response)
+                    upload_url = response.headers["X-Goog-Upload-Url"]
 
-            headers["x-goog-upload-command"] = "upload, finalize"
-            headers["X-Goog-Upload-Offset"] = "0"
-            async with session.post(
-                upload_url, headers=headers, data=image
-            ) as response:
-                await raise_for_status(response)
-                return await response.text()
+                async with session.options(upload_url, headers=headers) as response:
+                    await raise_for_status(response)
+
+                headers["x-goog-upload-command"] = "upload, finalize"
+                headers["X-Goog-Upload-Offset"] = "0"
+                async with session.post(
+                    upload_url, headers=headers, data=image
+                ) as response:
+                    await raise_for_status(response)
+                    return [await response.text(), image_name]
+        return await asyncio.gather(*[upload_image(image, image_name) for image, image_name in media])
 
     @classmethod
     async def fetch_snlm0e(cls, session: ClientSession, cookies: Cookies):
+        response_text = ""
         async with session.get(cls.url, cookies=cookies) as response:
-            await raise_for_status(response)
-            text = await response.text()
-        match = re.search(r'SNlM0e\":\"(.*?)\"', text)
+            if response.ok:
+                response_text = await response.text()
+        match = re.search(r'SNlM0e\":\"(.*?)\"', response_text)
         if match:
             return match.group(1)

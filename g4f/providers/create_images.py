@@ -6,7 +6,7 @@ import asyncio
 from .. import debug
 from ..typing import CreateResult, Messages
 from .types import BaseProvider, ProviderType
-from ..image import ImageResponse
+from ..providers.response import ImageResponse
 
 system_message = """
 You can generate images, pictures, photos or img with the DALL-E 3 image generator.

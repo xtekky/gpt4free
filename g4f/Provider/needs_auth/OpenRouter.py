@@ -1,32 +1,30 @@
 from __future__ import annotations
 
-import requests
+from ..template import OpenaiTemplate
 
-from .Openai import Openai
-from ...typing import AsyncResult, Messages
-
-class OpenRouter(Openai):
+class OpenRouter(OpenaiTemplate):
     label = "OpenRouter"
     url = "https://openrouter.ai"
+    login_url = "https://openrouter.ai/settings/keys"
+    base_url = "https://openrouter.ai/api/v1"
     working = True
-    default_model = "mistralai/mistral-7b-instruct:free"
+    needs_auth = True
+    default_model = "openrouter/auto"
+
+class OpenRouterFree(OpenaiTemplate):
+    label = "OpenRouter (free)"
+    url = "https://openrouter.ai"
+    login_url = "https://openrouter.ai/settings/keys"
+    base_url = "https://openrouter.ai/api/v1"
+    backup_url = "https://g4f.space/api/openrouter"
+    max_tokens = 8192
+    working = True
+    active_by_default = True
+    default_model = "openrouter/free"
 
     @classmethod
-    def get_models(cls):
-        if not cls.models:
-            url = 'https://openrouter.ai/api/v1/models'
-            models = requests.get(url).json()["data"]
-            cls.models = [model['id'] for model in models]
-        return cls.models
-
-    @classmethod
-    def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        api_base: str = "https://openrouter.ai/api/v1",
-        **kwargs
-    ) -> AsyncResult:
-        return super().create_async_generator(
-            model, messages, api_base=api_base, **kwargs
-        )
+    def get_models(cls, api_key: str = None, **kwargs):
+        models = super().get_models(api_key=api_key, **kwargs)
+        models = [model for model in models if model.endswith(":free") or model.endswith("/free")]
+        cls.model_aliases = {model.replace(":free", ""): model for model in models}
+        return models

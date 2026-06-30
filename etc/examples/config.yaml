@@ -1,0 +1,66 @@
+# g4f config.yaml – Custom model routing configuration
+#
+# Place this file in the same directory as your .har and .json cookie files
+# (the "cookies dir", typically ~/.config/g4f/cookies/ or ./har_and_cookies/).
+#
+# Each entry under `models` defines a named route.  When a client requests the
+# model by name g4f will try the listed providers in order, honouring any
+# `condition` expression, until one succeeds.
+#
+# Condition syntax
+# ----------------
+# The optional `condition` field is a boolean expression evaluated before each
+# request.  It can reference:
+#
+#   quota           – the full dict returned by the provider's get_quota().
+#                     Each provider has its own format; access nested fields
+#                     with dot-notation, e.g. quota.balance,
+#                     quota.credits.remaining.  Missing keys resolve to 0.0.
+#   balance         – shorthand alias for quota.balance (PollinationsAI compat).
+#   error_count     – recent errors for this provider in the last hour (int).
+#
+# Provider quota formats:
+#   PollinationsAI  → {"balance": float}
+#   Yupp            → {"credits": {"remaining": int, "total": int}}
+#   PuterJS         → raw metering JSON from the API
+#   GeminiCLI       → {"buckets": [...]}
+#   GithubCopilot   → usage details dict
+#
+# Supported operators: >  <  >=  <=  ==  !=
+# Logical connectives: and  or  not
+#
+# Examples:
+#   condition: "balance > 0"                            # PollinationsAI
+#   condition: "quota.credits.remaining > 0"            # Yupp
+#   condition: "error_count < 3"                        # any provider
+#   condition: "balance > 0 or error_count < 3"         # PollinationsAI + fallback
+#   condition: "quota.credits.remaining > 0 or error_count < 3"  # Yupp + fallback
+
+models:
+  # PollinationsAI: prefer OpenaiAccount when it has quota balance,
+  # fall back to PollinationsAI unconditionally.
+  - name: "my-gpt4"
+    providers:
+      - provider: "OpenaiAccount"
+        model: "gpt-4o"
+        condition: "balance > 0 or error_count < 3"
+      - provider: "PollinationsAI"
+        model: "openai-large"
+
+  # Yupp: use provider-specific nested quota field.
+  - name: "yupp-chat"
+    providers:
+      - provider: "Yupp"
+        model: "gpt-4o"
+        condition: "quota.credits.remaining > 0 or error_count < 3"
+      - provider: "PollinationsAI"
+        model: "openai-large"
+
+  # Universal: error-count-only conditions work for any provider.
+  - name: "llama-fast"
+    providers:
+      - provider: "Groq"
+        model: "llama-3.3-70b"
+        condition: "error_count < 3"
+      - provider: "DeepInfra"
+        model: "meta-llama/Llama-3.3-70B-Instruct"

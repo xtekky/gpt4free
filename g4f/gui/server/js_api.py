@@ -5,11 +5,11 @@ import os.path
 from typing import Iterator
 from uuid import uuid4
 from functools import partial
-
 import webview
 import platformdirs
 from plyer import camera
 from plyer import filechooser
+
 app_storage_path = platformdirs.user_pictures_dir
 user_select_image = partial(
     filechooser.open_file,
@@ -17,45 +17,42 @@ user_select_image = partial(
     filters=[["Image", "*.jpg", "*.jpeg", "*.png", "*.webp", "*.svg"]],
 )
 
-try:
-    from android.runnable import run_on_ui_thread
-    import android.permissions
-    from android.permissions import Permission
-    from android.permissions import _RequestPermissionsManager
-    _RequestPermissionsManager.register_callback()
-    from .android_gallery import user_select_image
-    has_android = True
-except:
-    run_on_ui_thread = lambda a : a
-    has_android = False
-
 from .api import Api
 
 class JsApi(Api):
-    def get_conversation(self, options: dict, **kwargs) -> Iterator:
+
+    def get_conversation(self, options: dict, message_id: str = None, scroll: bool = None) -> Iterator:
         window = webview.windows[0]
         if hasattr(self, "image") and self.image is not None:
-            kwargs["image"] = open(self.image, "rb")
+            options["image"] = open(self.image, "rb")
         for message in self._create_response_stream(
-            self._prepare_conversation_kwargs(options, kwargs),
+            self._prepare_conversation_kwargs(options),
             options.get("conversation_id"),
             options.get('provider')
         ):
-            if not window.evaluate_js(f"if (!this.abort) this.add_message_chunk({json.dumps(message)}); !this.abort && !this.error;"):
+            if window.evaluate_js(
+                f"""
+                    is_stopped() ? true :
+                    this.add_message_chunk({
+                        json.dumps(message)
+                    }, {
+                        json.dumps(message_id)
+                    }, {
+                        json.dumps(options.get('provider'))
+                    }, {
+                        'true' if scroll else 'false'
+                    }); is_stopped();
+                """):
                 break
         self.image = None
         self.set_selected(None)
 
-    @run_on_ui_thread
     def choose_image(self):
-        self.request_permissions()
         user_select_image(
             on_selection=self.on_image_selection
         )
 
-    @run_on_ui_thread
     def take_picture(self):
-        self.request_permissions()
         filename = os.path.join(app_storage_path(), f"chat-{uuid4()}.png")
         camera.take_picture(filename=filename, on_complete=self.on_camera)
 
@@ -85,10 +82,14 @@ class JsApi(Api):
                     f'document.querySelector(`label[for="{input_id}"]`)?.classList.add(`selected`);'
                 )
 
-    def request_permissions(self):
-        if has_android:
-            android.permissions.request_permissions([
-                Permission.CAMERA,
-                Permission.READ_EXTERNAL_STORAGE,
-                Permission.WRITE_EXTERNAL_STORAGE
-            ])
+    def get_version(self):
+        return super().get_version()
+
+    def get_models(self):
+        return super().get_models()
+
+    def get_providers(self):
+        return super().get_providers()
+
+    def get_provider_models(self, provider: str, **kwargs):
+        return super().get_provider_models(provider, **kwargs)

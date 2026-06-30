@@ -1,0 +1,13 @@
+services:
+  g4f-slim:
+    container_name: g4f-slim
+    image: hlohaus789/g4f:latest-slim
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-slim
+    volumes:
+      - ./generated_media:/app/generated_media
+      - ./har_and_cookies:/app/har_and_cookies
+    ports:
+      - '8080:8080'
+      - '1337:8080'

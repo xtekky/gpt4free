@@ -13,66 +13,21 @@ class BaseProvider(ABC):
         working (bool): Indicates if the provider is currently working.
         needs_auth (bool): Indicates if the provider needs authentication.
         supports_stream (bool): Indicates if the provider supports streaming.
-        supports_gpt_35_turbo (bool): Indicates if the provider supports GPT-3.5 Turbo.
-        supports_gpt_4 (bool): Indicates if the provider supports GPT-4.
         supports_message_history (bool): Indicates if the provider supports message history.
+        supports_system_message (bool): Indicates if the provider supports system messages.
         params (str): List parameters for the provider.
     """
 
     url: str = None
     working: bool = False
+    active_by_default: bool = None
     needs_auth: bool = False
     supports_stream: bool = False
-    supports_gpt_35_turbo: bool = False
-    supports_gpt_4: bool = False
     supports_message_history: bool = False
     supports_system_message: bool = False
     params: str
+    live: int = 0
 
-    @classmethod
-    @abstractmethod
-    def create_completion(
-        cls,
-        model: str,
-        messages: Messages,
-        stream: bool,
-        **kwargs
-    ) -> CreateResult:
-        """
-        Create a completion with the given parameters.
-
-        Args:
-            model (str): The model to use.
-            messages (Messages): The messages to process.
-            stream (bool): Whether to use streaming.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            CreateResult: The result of the creation process.
-        """
-        raise NotImplementedError()
-
-    @classmethod
-    @abstractmethod
-    async def create_async(
-        cls,
-        model: str,
-        messages: Messages,
-        **kwargs
-    ) -> str:
-        """
-        Asynchronously create a completion with the given parameters.
-
-        Args:
-            model (str): The model to use.
-            messages (Messages): The messages to process.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            str: The result of the creation process.
-        """
-        raise NotImplementedError()
-    
     @classmethod
     def get_dict(cls) -> Dict[str, str]:
         """
@@ -81,7 +36,11 @@ class BaseProvider(ABC):
         Returns:
             Dict[str, str]: A dictionary with provider's details.
         """
-        return {'name': cls.__name__, 'url': cls.url} 
+        return {'name': cls.__name__, 'url': cls.url, 'label': getattr(cls, 'label', None)} 
+
+    @classmethod
+    def get_parent(cls) -> str:
+        return getattr(cls, "parent", cls.__name__)
 
 class BaseRetryProvider(BaseProvider):
     """
@@ -96,13 +55,10 @@ class BaseRetryProvider(BaseProvider):
 
     __name__: str = "RetryProvider"
     supports_stream: bool = True
+    use_stream_timeout: bool = True
     last_provider: Type[BaseProvider] = None
 
 ProviderType = Union[Type[BaseProvider], BaseRetryProvider]
-
-class FinishReason():
-    def __init__(self, reason: str):
-        self.reason = reason
 
 class Streaming():
     def __init__(self, data: str) -> None:

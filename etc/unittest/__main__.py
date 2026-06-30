@@ -1,11 +1,22 @@
 import unittest
+
+import g4f.debug
+
+g4f.debug.version_check = False
+
 from .asyncio import *
 from .backend import *
 from .main import *
 from .model import *
 from .client import *
-from .async_client import *
+from .image_client import *
 from .include import *
-from .integration import *
+from .retry_provider import *
+from .thinking import *
+from .web_search import *
+from .models import *
+from .mcp import *
+from .tool_support_provider import *
+from .config_provider import *
 
 unittest.main()
