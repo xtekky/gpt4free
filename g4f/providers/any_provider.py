@@ -18,9 +18,9 @@ from ..Provider import (
     Cloudflare,
     Gemini,
     Grok,
-    Perplexity,
     PollinationsAI,
     PuterJS,
+    CopilotApp,
 )
 from ..Provider import (
     DeepInfra,
@@ -62,6 +62,7 @@ PROVIDERS_LIST_2 = [
     OpenaiChat,
     Copilot,
     CopilotAccount,
+    CopilotApp,
     PollinationsAI,
     Perplexity,
     Gemini,
@@ -174,19 +175,28 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.vision_models = []
         cls.video_models = []
 
+        from ..Provider import __getattr__
+        def resolve_provider(p):
+            if isinstance(p, str):
+                try:
+                    return __getattr__(p)
+                except AttributeError:
+                    return None
+            return p
+
         # Get models from the models registry
         cls.model_map = {
             "default": {
                 provider.__name__: ""
-                for provider in models.default.best_provider.providers
+                for provider in models.default.best_provider.get_providers()
             },
         }
         cls.model_map.update(
             {
                 name: {
-                    provider.__name__: model.get_long_name()
-                    for provider in providers
-                    if provider.working
+                    p.__name__: model.get_long_name()
+                    for p in (resolve_provider(provider) for provider in providers)
+                    if p and getattr(p, "working", False)
                 }
                 for name, (model, providers) in models.__models__.items()
             }
@@ -200,7 +210,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if not provider.working:
                 continue
             try:
-                if provider in [Copilot, CopilotAccount, Perplexity]:
+                if provider in [Copilot, CopilotAccount, CopilotApp, Perplexity]:
                     for model in provider.model_aliases.keys():
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
@@ -465,9 +475,9 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             elif has_audio:
                 providers = [PollinationsAI, MarkItDown]
             elif has_image:
-                providers = models.default_vision.best_provider.providers
+                providers = models.default_vision.best_provider.get_providers()
             else:
-                providers = models.default.best_provider.providers
+                providers = models.default.best_provider.get_providers()
         elif model in RouterConfig.routes:
             async for chunk in ConfigModelProvider(RouterConfig.routes.get(model)).create_async_generator(
                 model, messages, stream=stream, media=media, api_key=api_key, **kwargs
@@ -492,10 +502,13 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     model = cls.model_aliases[model]
             if model in cls.model_map:
                 for provider, alias in cls.model_map[model].items():
-                    provider = Provider.__map__[provider]
-                    if model not in provider.model_aliases:
-                        provider.model_aliases[model] = alias
-                    providers.append(provider)
+                    try:
+                        provider_cls = Provider.__map__[provider]
+                        if model not in provider_cls.model_aliases:
+                            provider_cls.model_aliases[model] = alias
+                        providers.append(provider_cls)
+                    except KeyError:
+                        pass
         if not providers:
             for provider in PROVIDERS_LIST_2 + PROVIDERS_LIST_3:
                 try:

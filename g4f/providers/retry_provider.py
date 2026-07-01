@@ -238,7 +238,10 @@ class RetryProvider(IterListProvider):
         started = False
 
         if self.single_provider_retry:
-            provider = self.providers[0]
+            providers = self.get_providers()
+            if not providers:
+                raise RetryNoProviderError("No providers available")
+            provider = providers[0]
             self.last_provider = provider
             for attempt in range(self.max_retries):
                 try:

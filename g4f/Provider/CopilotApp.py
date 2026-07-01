@@ -16,15 +16,15 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
 
     default_model = "smart"
-    models = ["smart", "reasoning", "chat", "study", "search", "gpt-4", "gpt-4o"]
+    models = ["smart", "reasoning", "chat", "study", "search"]
     model_aliases = {
-        "Copilot": default_model,
+        "copilot": default_model,
         "gpt-4": "chat", 
         "gpt-4o": "chat",
         "o1": "reasoning",
+        "o1-preview": "reasoning",
         "o3-mini": "reasoning",
-        "gpt-5": "smart",
-        "think-deeper": "reasoning"
+        "gpt-5": "smart"
     }
 
     @classmethod

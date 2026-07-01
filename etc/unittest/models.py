@@ -13,7 +13,8 @@ class TestProviderHasModel(unittest.TestCase):
     def test_provider_has_model(self):
         for model, providers in __models__.values():
             for provider in providers:
-                provider = __getattr__(provider)
+                if isinstance(provider, str):
+                    provider = __getattr__(provider)
                 if getattr(provider, "needs_auth", False):
                     continue
                 if issubclass(provider, ProviderModelMixin):
@@ -40,5 +41,6 @@ class TestProviderHasModel(unittest.TestCase):
     def test_all_providers_working(self):
         for model, providers in __models__.values():
             for provider in providers:
-                provider = __getattr__(provider)
+                if isinstance(provider, str):
+                    provider = __getattr__(provider)
                 self.assertTrue(provider.working, f"{provider.__name__} in {model.name}")

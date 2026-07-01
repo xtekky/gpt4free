@@ -529,7 +529,7 @@ class Images:
         error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
-            for provider in provider_handler.providers:
+            for provider in provider_handler.get_providers():
                 try:
                     response = await self._generate_image_response(provider, get_name(provider), model, prompt, **kwargs)
                     if response is not None:
