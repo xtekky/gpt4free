@@ -1252,6 +1252,8 @@ class AntigravityProvider:
                     raise RuntimeError(f"Antigravity API error {resp.status}: {await resp.text()}")
 
                 usage_metadata = {}
+                openai_tool_calls = []
+                tool_calls_index = 0
                 async for json_data in parse_sse_stream(resp.content):
                     # Process JSON data according to Gemini API structure
                     candidates = json_data.get("response", {}).get("candidates", [])
@@ -1291,11 +1293,10 @@ class AntigravityProvider:
 
                     if tool_calls:
                         # Convert Gemini tool calls to OpenAI format
-                        openai_tool_calls = []
                         for i, part in enumerate(tool_calls):
                             tc = part["functionCall"]
                             tool_call_obj = {
-                                "index": len(openai_tool_calls),
+                                "index": tool_calls_index,
                                 "id": tc.get("id", f"call_{i}_{tc.get('name', 'unknown')}"),
                                 "type": "function",
                                 "function": {
@@ -1311,7 +1312,9 @@ class AntigravityProvider:
                                     }
                                 }
                             openai_tool_calls.append(tool_call_obj)
-                        yield ToolCalls(openai_tool_calls)
+                            tool_calls_index += 1
+                if openai_tool_calls:
+                    yield ToolCalls(openai_tool_calls)
 
                 if usage_metadata:
                     yield Usage(**usage_metadata)

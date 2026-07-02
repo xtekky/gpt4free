@@ -816,6 +816,9 @@ class GeminiCLIProvider():
                     error_body = await resp.text()
                     raise RuntimeError(f"Gemini API error {resp.status}: {error_body}")
 
+                usage_metadata = {}
+                openai_tool_calls = []
+                tool_calls_index = 0
                 async for json_data in parse_sse_stream(resp.content):
                     # Process JSON data according to Gemini API structure
                     candidates = json_data.get("response", {}).get("candidates", [])
@@ -861,7 +864,7 @@ class GeminiCLIProvider():
                         for i, part in enumerate(tool_calls):
                             tc = part["functionCall"]
                             tool_call_obj = {
-                                "index": len(openai_tool_calls),
+                                "index": i,
                                 "id": tc.get("id", f"call_{i}_{tc.get('name', 'unknown')}"),
                                 "type": "function",
                                 "function": {
@@ -877,7 +880,9 @@ class GeminiCLIProvider():
                                     }
                                 }
                             openai_tool_calls.append(tool_call_obj)
-                        yield ToolCalls(openai_tool_calls)
+                            tool_calls_index += 1
+                if openai_tool_calls:
+                    yield ToolCalls(openai_tool_calls)
                 if usage_metadata:
                     yield Usage(**usage_metadata)
 
