@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import time
+from collections import deque
 from email.utils import formatdate
 import os.path
 import hashlib
@@ -73,6 +74,7 @@ from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
 from g4f.providers.any_model_map import model_map, vision_models, image_models, audio_models, video_models
 from g4f.config import AppConfig
+from g4f.client import ClientFactory
 from g4f import Provider
 from g4f.Provider import ProviderUtils
 
@@ -94,6 +96,164 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Request / response log store
+# ---------------------------------------------------------------------------
+
+_MAX_LOG_ENTRIES = 1000
+_MAX_BODY_LOG_SIZE = 1024 * 1024  # 1 MB
+_SENSITIVE_HEADERS = {"authorization", "g4f-api-key", "cookie", "set-cookie", "x-api-key"}
+
+_request_log: deque = deque(maxlen=_MAX_LOG_ENTRIES)
+_log_id_counter: int = 0
+
+
+def _sanitize_headers(headers: dict) -> dict:
+    return {k: ("***" if k.lower() in _SENSITIVE_HEADERS else v) for k, v in headers.items()}
+
+
+def _try_parse_body(body_bytes: bytes, content_type: str):
+    if not body_bytes:
+        return None
+    if len(body_bytes) > _MAX_BODY_LOG_SIZE:
+        return f"<{len(body_bytes)} bytes – truncated>"
+    if "application/json" in content_type:
+        try:
+            return json.loads(body_bytes)
+        except Exception:
+            pass
+    try:
+        return body_bytes.decode("utf-8", errors="replace")
+    except Exception:
+        return f"<binary {len(body_bytes)} bytes>"
+
+
+_LOGS_HTML = '''<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>g4f – Request Log</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;font-size:14px}
+a{color:#58a6ff}
+.header{padding:14px 20px;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:14px}
+.header h1{font-size:15px;font-weight:600;color:#f0f6fc}
+.header .sub{font-size:12px;color:#8b949e}
+.toolbar{padding:10px 20px;border-bottom:1px solid #21262d;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar input[type=text]{flex:1;min-width:180px;background:#161b22;border:1px solid #30363d;color:#c9d1d9;padding:5px 10px;border-radius:6px;font-size:13px;outline:none}
+.toolbar input[type=text]:focus{border-color:#58a6ff}
+.toolbar label{display:flex;align-items:center;gap:5px;font-size:13px;color:#8b949e;cursor:pointer;user-select:none}
+.btn{padding:5px 14px;border-radius:6px;border:1px solid #30363d;cursor:pointer;font-size:13px;background:#21262d;color:#c9d1d9}
+.btn:hover{background:#30363d}
+.btn-danger{border-color:#6e3435;background:#1c1214;color:#ffa198}
+.btn-danger:hover{background:#6e3435}
+.meta{margin-left:auto;font-size:12px;color:#6e7681}
+.table-wrap{overflow-x:auto;padding:0 20px 40px}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+th{padding:6px 8px;text-align:left;color:#8b949e;font-weight:500;border-bottom:1px solid #21262d;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid #161b22;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:#161b22}
+.GET{color:#3fb950}.POST{color:#58a6ff}.PUT{color:#e3b341}.DELETE{color:#f85149}.PATCH{color:#d2a8ff}
+.s2{color:#3fb950}.s3{color:#58a6ff}.s4{color:#e3b341}.s5{color:#f85149}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:500}
+.tag-sse{background:#0d2044;color:#79c0ff}
+.tag-body{background:#0d2820;color:#56d364}
+.tag-empty{background:#1c2128;color:#6e7681}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;padding:24px;align-items:flex-start;justify-content:center;overflow-y:auto}
+.overlay.active{display:flex}
+.modal{background:#161b22;border:1px solid #30363d;border-radius:10px;width:100%;max-width:1040px;display:flex;flex-direction:column}
+.modal-head{padding:14px 18px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.modal-head h2{font-size:13px;font-weight:600;color:#f0f6fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,monospace}
+.modal-close{background:none;border:none;color:#6e7681;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;flex-shrink:0}
+.modal-close:hover{color:#c9d1d9}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr}
+.panel{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.panel:first-child{border-right:1px solid #21262d}
+.panel-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6e7681}
+.panel pre{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:12px;font-size:12px;line-height:1.5;overflow:auto;max-height:440px;white-space:pre-wrap;word-break:break-all;color:#c9d1d9;margin:0;font-family:ui-monospace,monospace}
+@media(max-width:640px){.modal-grid{grid-template-columns:1fr}.panel:first-child{border-right:none;border-bottom:1px solid #21262d}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>g4f Request Log</h1>
+  <span class="sub">last 500 entries &middot; <a href="/v1">/v1 API</a></span>
+</div>
+<div class="toolbar">
+  <input type="text" id="q" placeholder="Filter by path, method, status, user&hellip;" oninput="render()">
+  <label><input type="checkbox" id="auto" checked onchange="toggleAuto()"> Auto&#8209;refresh&nbsp;(3s)</label>
+  <button class="btn btn-danger" onclick="clearLogs()">Clear</button>
+  <span class="meta" id="meta"></span>
+</div>
+<div class="table-wrap"><table>
+  <thead><tr>
+    <th>#</th><th>Time (UTC)</th><th>Method</th><th>Path</th>
+    <th>Status</th><th>ms</th><th>User</th><th>Body</th>
+  </tr></thead>
+  <tbody id="tb"></tbody>
+</table></div>
+<div class="overlay" id="ov" onclick="overlayClick(event)">
+  <div class="modal" id="mod">
+    <div class="modal-head">
+      <h2 id="mtitle">&ndash;</h2>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-grid">
+      <div class="panel"><div class="panel-title">Request</div><pre id="preq"></pre></div>
+      <div class="panel"><div class="panel-title">Response</div><pre id="pres"></pre></div>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+var all=[], timer=null;
+function sc(s){return s>=500?'s5':s>=400?'s4':s>=300?'s3':'s2';}
+function btag(e){if(e.streaming&&e.response_body==null)return\'<span class="tag tag-sse">SSE&hellip;</span>\';if(e.response_body!=null)return\'<span class="tag tag-body">\'+(e.streaming?\'SSE\':\'body\')+\'</span>\';return\'<span class="tag tag-empty">&ndash;</span>\';}
+function esc(s){return String(s??\'\'). replace(/&/g,\'&amp;\').replace(/</g,\'&lt;\').replace(/>/g,\'&gt;\');}
+function fmt(v){if(v==null)return\'(empty)\';if(typeof v===\'object\')return JSON.stringify(v,null,2);return String(v);}
+async function load(){
+  try{var r=await fetch(\'/api/logs?limit=500\');if(!r.ok)return;var d=await r.json();all=d.entries||[];render();}catch(e){}
+}
+function render(){
+  var q=document.getElementById(\'q\').value.trim().toLowerCase();
+  var rows=q?all.filter(function(e){return(e.method+\' \'+e.path+\' \'+e.status+\' \'+(e.user||\'\')).toLowerCase().includes(q);}):all;
+  document.getElementById(\'meta\').textContent=rows.length+\' / \'+all.length+\' entries\';
+  document.getElementById(\'tb\').innerHTML=rows.map(function(e){
+    var t=(e.timestamp||\'\').replace(\'T\',\' \').replace(\'Z\',\'\');
+    var p=esc(e.path+(e.query?\'?\'+e.query:\'\'));
+    return\'<tr onclick="detail(\'+e.id+\')">\'+
+      \'<td style="color:#484f58">\'+e.id+\'</td>\'+
+      \'<td style="color:#6e7681;font-size:12px">\'+esc(t)+\'</td>\'+
+      \'<td class="\'+esc(e.method)+\'">\'+esc(e.method)+\'</td>\'+
+      \'<td title="\'+p+\'">\'+p+\'</td>\'+
+      \'<td class="\'+sc(e.status)+\'">\'+e.status+\'</td>\'+
+      \'<td style="color:#8b949e">\'+e.duration_ms+\'</td>\'+
+      \'<td style="color:#6e7681">\'+esc(e.user||\'\')+\'</td>\'+
+      \'<td>\'+btag(e)+\'</td>\'+
+      \'</tr>\';
+  }).join(\'\');
+}
+function detail(id){
+  var e=all.find(function(x){return x.id===id;});
+  if(!e)return;
+  document.getElementById(\'mtitle\').textContent=\'#\'+e.id+\'  \'+e.method+\' \'+e.path+(e.query?\'?\'+e.query:\'\')+\' \u2192 \'+e.status+\'  (\'+e.duration_ms+\'ms)\';
+  var req=\'\';
+  if(e.request_headers){req+=\'Headers:\\n\';for(var k in e.request_headers)req+=\'  \'+k+\': \'+e.request_headers[k]+\'\\n\';}
+  if(e.request_body!=null)req+=\'\\nBody:\\n\'+fmt(e.request_body);
+  document.getElementById(\'preq\').textContent=req||\'(none)\';
+  document.getElementById(\'pres\').textContent=e.response_body!=null?fmt(e.response_body):(e.streaming?\'(streaming – collecting…)\':\'(empty)\');
+  document.getElementById(\'ov\').classList.add(\'active\');
+}
+function closeModal(){document.getElementById(\'ov\').classList.remove(\'active\');}
+function overlayClick(ev){if(ev.target===document.getElementById(\'ov\'))closeModal();}
+document.addEventListener(\'keydown\',function(e){if(e.key===\'Escape\')closeModal();});
+async function clearLogs(){await fetch(\'/api/logs\',{method:\'DELETE\'});all=[];render();}
+function toggleAuto(){clearInterval(timer);timer=null;if(document.getElementById(\'auto\').checked)timer=setInterval(load,3000);}
+load();timer=setInterval(load,3000);
+</script>
+</body></html>'''
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Read cookie files if not ignored
@@ -113,6 +273,9 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 debug.error(f"Failed to remove lock file {lock_file}:", e)
 
+_LOG_SKIP_PREFIXES = ("/images/", "/media/", "/thumbnail/", "/dist/", "/.well-known/")
+_LOG_SKIP_EXACT = {"/api/logs", "/logs", "/favicon.ico"}
+
 def create_app():
     app = FastAPI(lifespan=lifespan)
 
@@ -125,6 +288,89 @@ def create_app():
         allow_headers=["*"],
         expose_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        if AppConfig.demo:
+            return await call_next(request)
+        global _log_id_counter
+        path = request.url.path
+        if any(path.startswith(p) for p in _LOG_SKIP_PREFIXES) or path in _LOG_SKIP_EXACT:
+            return await call_next(request)
+
+        qs = f"?{request.url.query}" if request.url.query else ""
+        user = request.headers.get("x-user", "")
+        user_info = f" user={user}" if user else ""
+        logger.debug("→ %s %s%s%s", request.method, path, qs, user_info)
+
+        # Capture request body (Starlette caches after first read)
+        req_body_bytes = await request.body()
+        req_body = _try_parse_body(req_body_bytes, request.headers.get("content-type", ""))
+
+        start = time.monotonic()
+        response = await call_next(request)
+        duration_ms = round((time.monotonic() - start) * 1000)
+
+        resp_content_type = response.headers.get("content-type", "")
+        is_streaming = "text/event-stream" in resp_content_type
+        log_entry: dict = {}
+
+        if not is_streaming:
+            chunks: list[bytes] = []
+            async for chunk in response.body_iterator:
+                chunks.append(chunk)
+            resp_body_bytes = b"".join(chunks)
+            resp_body = _try_parse_body(resp_body_bytes, resp_content_type)
+            # Reconstruct response so it can still be sent to the client
+            resp_headers = {k: v for k, v in response.headers.items() if k.lower() != "content-length"}
+            response = Response(
+                content=resp_body_bytes,
+                status_code=response.status_code,
+                headers=resp_headers,
+                media_type=response.media_type,
+            )
+        else:
+            # Tee the streaming iterator: forward chunks to client AND accumulate for log
+            sse_chunks: list[bytes] = []
+            resp_body = None
+            orig_iterator = response.body_iterator
+
+            async def tee_iterator():
+                async for chunk in orig_iterator:
+                    if isinstance(chunk, bytes):
+                        sse_chunks.append(chunk)
+                    else:
+                        sse_chunks.append(chunk.encode("utf-8", errors="replace"))
+                    yield chunk
+                # After iteration completes, parse and store the full SSE body
+                raw = b"".join(sse_chunks)
+                parsed = _try_parse_body(raw, "text/plain")
+                log_entry["response_body"] = parsed
+
+            response.body_iterator = tee_iterator()
+
+        level = logging.WARNING if response.status_code >= 400 else logging.INFO
+        logger.log(level, "%s %s%s → %d (%dms)%s",
+                   request.method, path, qs, response.status_code, duration_ms, user_info)
+
+        _log_id_counter += 1
+        log_entry.update({
+            "id": _log_id_counter,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "method": request.method,
+            "path": path,
+            "query": request.url.query or None,
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+            "user": user or None,
+            "streaming": is_streaming,
+            "request_headers": _sanitize_headers(dict(request.headers)),
+            "request_body": req_body,
+            "response_body": resp_body,  # None for SSE until iterator completes
+        })
+        _request_log.append(log_entry)
+
+        return response
 
     api = Api(app)
 
@@ -187,6 +433,15 @@ def update_headers(request: Request, new_api_key: str = None, user: str = None) 
     request.scope["headers"] = new_headers.raw
     delattr(request, "_headers")
     return request
+
+def get_provider_by_label(provider: str) -> ProviderType:
+    try:
+        return ProviderUtils.get_by_label(provider)
+    except ValueError as e:
+        try:
+            return ClientFactory.create_provider(None, provider)
+        except ProviderNotFoundError:
+            raise e
 
 class Api:
     def __init__(self, app: FastAPI) -> None:
@@ -367,23 +622,8 @@ class Api:
         })
         async def models(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = get_provider_by_label(provider)
             except ValueError as e:
-                if provider in model_map:
-                    return {
-                        "object": "list",
-                        "data": [{
-                            "id": provider,
-                            "object": "model",
-                            "created": 0,
-                            "owned_by": provider,
-                            "image": provider in image_models,
-                            "vision": provider in vision_models,
-                            "audio": provider in audio_models,
-                            "video": provider in video_models,
-                            "type": "image" if provider in image_models else "chat"
-                        }]
-                    }
                 return ErrorResponse.from_message(str(e), 404)
             if not hasattr(provider, "get_models"):
                 models = []
@@ -412,7 +652,7 @@ class Api:
         @self.app.get("/api/{provider}/quota")
         async def provider_quota(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = get_provider_by_label(provider)
             except ValueError as e:
                 return ErrorResponse.from_message(str(e), 404)
             if not hasattr(provider, "get_quota"):
@@ -465,20 +705,15 @@ class Api:
             conversation_id: str = None,
             x_user: Annotated[str | None, Header()] = None,
         ):
-            if provider is None:
-                provider = config.provider
-            if provider is None:
-                provider = AppConfig.provider
-            try:
-                provider = ProviderUtils.get_by_label(provider).__name__
-            except ValueError as e:
-                if provider in model_map:
-                    config.model = provider
-                    provider = None
-                elif provider is not None:
-                    return ErrorResponse.from_message(str(e), 404)
-            try:
+            if provider is not None:
                 config.provider = provider
+            if config.provider is None:
+                config.provider = AppConfig.provider
+            try:
+                provider = get_provider_by_label(config.provider)
+            except ValueError as e:
+                return ErrorResponse.from_message(str(e), 404)
+            try:
                 if config.conversation_id is None:
                     config.conversation_id = conversation_id
                 if config.timeout is None:
@@ -520,6 +755,7 @@ class Api:
                             "proxy": AppConfig.proxy,
                             **(config.model_dump(exclude_none=True) if hasattr(config, "model_dump") else config.dict(exclude_none=True)),
                             **{
+                                "provider": provider,
                                 "conversation_id": None,
                                 "conversation": conversation,
                                 "user": x_user,
@@ -588,19 +824,17 @@ class Api:
             if provider is None:
                 provider = AppConfig.provider
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = get_provider_by_label(provider)
             except ValueError as e:
-                if provider in model_map:
-                    config.model = provider
-                    provider = None
-                elif provider is not None:
-                    return ErrorResponse.from_message(str(e), 404)
-            config.provider = provider
+                return ErrorResponse.from_message(str(e), 404)
             if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
                 response = await self.client.images.generate(
-                    **config.dict(exclude_none=True),
+                    **config.model_dump(exclude_none=True)
+                    if hasattr(config, "model_dump")
+                    else config.dict(exclude_none=True),
+                    provider=provider
                 )
                 for image in response.data:
                     if hasattr(image, "url") and image.url.startswith("/"):
@@ -634,7 +868,7 @@ class Api:
         })
         async def providers_info(provider: str):
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = get_provider_by_label(provider)
             except ValueError as e:
                 return ErrorResponse.from_message(str(e), 404)
             def safe_get_models(provider: ProviderType) -> list[str]:
@@ -941,18 +1175,10 @@ class Api:
             if provider is None:
                 provider = "MarkItDown"
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = get_provider_by_label(provider)
             except ValueError as e:
-                if provider in model_map:
-                    model = provider
-                    provider = None 
-                else:
-                    return ErrorResponse.from_message(str(e), 404)
+                return ErrorResponse.from_message(str(e), 404)
             kwargs = {"modalities": ["text"]}
-            if provider == "MarkItDown":
-                kwargs = {
-                    "llm_client": self.client,
-                }
             try:
                 response = await self.client.chat.completions.create(
                     messages=prompt,
@@ -993,7 +1219,7 @@ class Api:
             if provider is None:
                 provider = AppConfig.media_provider
             try:
-                provider = ProviderUtils.get_by_label(provider)
+                provider = get_provider_by_label(provider)
             except ValueError as e:
                 return ErrorResponse.from_message(str(e), 404)
             try:
@@ -1157,6 +1383,24 @@ class Api:
         })
         async def get_media_thumbnail(filename: str, request: Request):
             return await get_media(filename, request, True)
+
+        @self.app.get("/logs", response_class=HTMLResponse)
+        async def logs_inspector():
+            return HTMLResponse(_LOGS_HTML)
+
+        @self.app.get("/api/logs")
+        async def get_logs(limit: int = 500, offset: int = 0):
+            entries = list(_request_log)
+            total = len(entries)
+            start = max(0, total - limit - offset)
+            end = total - offset if offset < total else total
+            page = list(reversed(entries[start:end]))
+            return {"total": total, "entries": page}
+
+        @self.app.delete("/api/logs")
+        async def clear_logs():
+            _request_log.clear()
+            return {"status": "cleared"}
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
     provider = (AppConfig.media_provider if image else AppConfig.provider)
