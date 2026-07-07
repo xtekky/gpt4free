@@ -157,6 +157,7 @@ async def stream_response(
 
 
 async def save_content(content, media: Optional['MediaResponse'], filepath: str, allowed_types=None) -> bool:
+    global aiohttp
     if media:
         for url in media.get_list():
             if url.startswith(("http://", "https://")):
@@ -290,6 +291,7 @@ async def run_args(input_val, args):
 
 
 async def async_run_client_args(args, exit_on_error=True):
+    global aiohttp
     input_txt = ""
     media = []
     rest = 0

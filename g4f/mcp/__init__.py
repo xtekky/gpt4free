@@ -24,6 +24,13 @@ from .tools import (
     FileWriteTool,
     FileListTool,
     FileDeleteTool,
+    CreateDirectoryTool,
+    CreateFileTool,
+    FetchWebpageTool,
+    FileSearchGlobTool,
+    GrepSearchTool,
+    GithubRepoTool,
+    GithubTextSearchTool,
 )
 from .pa_provider import (
     execute_safe_code,
@@ -52,6 +59,13 @@ __all__ = [
     'FileWriteTool',
     'FileListTool',
     'FileDeleteTool',
+    'CreateDirectoryTool',
+    'CreateFileTool',
+    'FetchWebpageTool',
+    'FileSearchGlobTool',
+    'GrepSearchTool',
+    'GithubRepoTool',
+    'GithubTextSearchTool',
     # PA provider system
     'execute_safe_code',
     'load_pa_provider',

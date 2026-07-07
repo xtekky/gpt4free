@@ -270,6 +270,56 @@ def get_auth_parser(exit_on_error: bool = True) -> ArgumentParser:
     auth_parser.add_argument("action", nargs="?", choices=["status", "login", "logout"], default="login", help="Action to perform (default: login)")
     return auth_parser
 
+
+# --------------------------------------------------------------
+#  SYSTRAY PARSER / RUNNER
+# --------------------------------------------------------------
+def get_tray_parser(exit_on_error: bool = True) -> ArgumentParser:
+    """
+    Parser for:
+        g4f systray ...
+    """
+    tray_parser = ArgumentParser(
+        description="Run g4f as a system tray application",
+        exit_on_error=exit_on_error,
+    )
+    tray_parser.add_argument(
+        "--port", "-p",
+        type=int,
+        default=DEFAULT_PORT,
+        help=f"Port for the API server (default: {DEFAULT_PORT}).",
+    )
+    tray_parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Bind host for the API server (default: 0.0.0.0).",
+    )
+    tray_parser.add_argument(
+        "--debug", "-d",
+        action="store_true",
+        help="Enable verbose logging.",
+    )
+    tray_parser.add_argument(
+        "--no-autostart",
+        action="store_true",
+        help="Do not start the API server automatically on launch.",
+    )
+    return tray_parser
+
+
+def run_tray_args(args):
+    """
+    Launches the system tray icon using the parsed CLI arguments.
+    """
+    from ..tray import run_tray
+    run_tray(
+        port=args.port,
+        host=args.host,
+        debug=args.debug,
+        no_autostart=args.no_autostart,
+    )
+
+
 # --------------------------------------------------------------
 #  MAIN ENTRYPOINT
 # --------------------------------------------------------------
@@ -287,7 +337,7 @@ def main():
     
 
     mode_parser = ArgumentParser(description="Select mode to run g4f in.", exit_on_error=False)
-    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "dev"], default="api", help="Mode to run g4f in (default: api).")
+    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray"], default="api", help="Mode to run g4f in (default: api).")
     
     # Preserve original remaining so the API parser gets all args if mode
     # detection fails (e.g. `python -m g4f --port 8080` without a mode prefix).
@@ -332,6 +382,10 @@ def main():
             parser = get_mcp_parser()
             args = parser.parse_args(remaining)
             run_mcp_args(args)
+        elif args.mode in ("systray", "tray"):
+            parser = get_tray_parser()
+            args = parser.parse_args(remaining)
+            run_tray_args(args)
         else:
             # No mode provided
             raise argparse.ArgumentError(

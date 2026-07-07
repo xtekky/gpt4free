@@ -99,7 +99,12 @@ EXTRA_REQUIRE = {
     "files": [
         "beautifulsoup4",
         "markitdown[all]",
-    ]
+    ],
+    "tray": [
+        "pystray",
+        "pillow",
+        "cairosvg",
+    ],
 }
 
 DESCRIPTION = (
@@ -126,6 +131,7 @@ setup(
         'console_scripts': [
             'g4f=g4f.cli:main',
             'g4f-mcp=g4f.mcp.server:main',
+            'g4f-tray=g4f.tray:_tray_main',
         ],
     },
     url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository

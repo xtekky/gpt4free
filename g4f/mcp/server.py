@@ -29,7 +29,9 @@ from ..image.copy_images import get_media_dir, copy_media, get_source_url
 from .tools import (
     MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool,
     PythonExecuteTool, FileReadTool, FileReadLinesTool, FileSearchTool,
-    FileWriteTool, FileListTool, FileDeleteTool, ApplyPatchTool
+    FileWriteTool, FileListTool, FileDeleteTool, ApplyPatchTool,
+    CreateDirectoryTool, CreateFileTool, FetchWebpageTool,
+    FileSearchGlobTool, GrepSearchTool, GithubRepoTool, GithubTextSearchTool,
 )
 
 
@@ -82,6 +84,13 @@ class MCPServer:
             'file_write': FileWriteTool(),
             'file_list': FileListTool(safe_mode=safe_mode),
             'file_delete': FileDeleteTool(),
+            'create_directory': CreateDirectoryTool(),
+            'create_file': CreateFileTool(),
+            'fetch_webpage': FetchWebpageTool(),
+            'file_search_glob': FileSearchGlobTool(),
+            'grep_search': GrepSearchTool(),
+            'github_repo': GithubRepoTool(),
+            'github_text_search': GithubTextSearchTool(),
         }
         self.server_info = {
             "name": "gpt4free-mcp-server",

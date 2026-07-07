@@ -5,7 +5,7 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 - WebScrapeTool: Web page scraping and content extraction
 - ImageGenerationTool: Image generation using various AI providers
 - PythonExecuteTool: Safe Python code execution with whitelisted modules
-- FileReadTool: Read files from the ~/.g4f/workspace directory
+- FileReadTool: Read files from the ~/.g4f/workspace directory (supports startLine/endLine)
 - FileReadLinesTool: Read a range of lines from a workspace file
 - FileSearchTool: Search files and file contents in the workspace
 - FileWriteTool: Write files to the ~/.g4f/workspace directory
@@ -586,7 +586,8 @@ class FileReadTool(MCPTool):
     def description(self) -> str:
         return (
             "Read the text content of a file inside the ~/.g4f/workspace directory. "
-            "Provide a relative path from the workspace root."
+            "Provide a relative path from the workspace root. "
+            "Optionally specify startLine and endLine (1-based) to read only a range of lines."
         )
 
     @property
@@ -597,7 +598,15 @@ class FileReadTool(MCPTool):
                 "path": {
                     "type": "string",
                     "description": "Relative path to the file inside the workspace",
-                }
+                },
+                "startLine": {
+                    "type": "number",
+                    "description": "The line number to start reading from, 1-based. If omitted, reads from the beginning.",
+                },
+                "endLine": {
+                    "type": "number",
+                    "description": "The inclusive line number to end reading at, 1-based. If omitted, reads to the end of file.",
+                },
             },
             "required": ["path"],
         }
@@ -609,6 +618,25 @@ class FileReadTool(MCPTool):
         if not rel_path:
             return {"error": "path parameter is required"}
 
+        start_line = arguments.get("startLine")
+        end_line = arguments.get("endLine")
+
+        if start_line is not None:
+            try:
+                start_line = int(start_line)
+            except (TypeError, ValueError):
+                return {"error": "startLine must be a number"}
+            if start_line < 1:
+                return {"error": "startLine must be >= 1"}
+
+        if end_line is not None:
+            try:
+                end_line = int(end_line)
+            except (TypeError, ValueError):
+                return {"error": "endLine must be a number"}
+            if start_line is not None and end_line < start_line:
+                return {"error": "endLine must be >= startLine"}
+
         workspace = get_workspace_dir().resolve()
         try:
             target = (workspace / rel_path).resolve()
@@ -618,6 +646,24 @@ class FileReadTool(MCPTool):
                 return {"error": f"File not found: {rel_path}"}
             if not target.is_file():
                 return {"error": f"Path is not a file: {rel_path}"}
+
+            if start_line is not None or end_line is not None:
+                lines = target.read_text(encoding="utf-8").splitlines(True)
+                total_lines = len(lines)
+                s = (start_line - 1) if start_line is not None else 0
+                e = end_line if end_line is not None else total_lines
+                s = max(0, min(s, total_lines))
+                e = max(s, min(e, total_lines))
+                content = "".join(lines[s:e])
+                return {
+                    "path": rel_path,
+                    "content": content,
+                    "size": len(content),
+                    "startLine": s + 1,
+                    "endLine": e,
+                    "totalLines": total_lines,
+                }
+
             content = target.read_text(encoding="utf-8")
             return {
                 "path": rel_path,
@@ -1056,6 +1102,456 @@ class FileDeleteTool(MCPTool):
             return {"path": rel_path, "deleted": True}
         except Exception as exc:
             return {"error": f"Delete failed: {exc}"}
+
+class CreateDirectoryTool(MCPTool):
+    """Create a directory (and all parents) inside the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Create a new directory structure in the ~/.g4f/workspace. "
+            "Will recursively create all directories in the path, like mkdir -p. "
+            "You do not need to use this tool before using create_file, that tool will automatically create the needed directories."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "dirPath": {
+                    "type": "string",
+                    "description": "Relative path to the directory to create inside the workspace",
+                }
+            },
+            "required": ["dirPath"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("dirPath", "")
+        if not rel_path:
+            return {"error": "dirPath parameter is required"}
+
+        workspace = get_workspace_dir().resolve()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace)):
+                return {"error": "Access outside the workspace is not allowed"}
+            target.mkdir(parents=True, exist_ok=True)
+            return {"dirPath": rel_path, "created": True}
+        except Exception as exc:
+            return {"error": f"Create directory failed: {exc}"}
+
+
+class CreateFileTool(MCPTool):
+    """Create a new file inside the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Create a new file in the ~/.g4f/workspace with the specified content. "
+            "The directory will be created if it does not already exist. "
+            "Never use this tool to edit a file that already exists."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "filePath": {
+                    "type": "string",
+                    "description": "Relative path to the file to create inside the workspace",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The content to write to the file",
+                },
+            },
+            "required": ["filePath", "content"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("filePath", "")
+        content = arguments.get("content")
+
+        if not rel_path:
+            return {"error": "filePath parameter is required"}
+        if content is None:
+            return {"error": "content parameter is required"}
+
+        workspace = get_workspace_dir().resolve()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace)):
+                return {"error": "Access outside the workspace is not allowed"}
+            if target.exists():
+                return {"error": f"File already exists: {rel_path}. Use FileWriteTool to overwrite."}
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+            return {"filePath": rel_path, "created": True, "size": len(content)}
+        except Exception as exc:
+            return {"error": f"Create file failed: {exc}"}
+
+
+class FetchWebpageTool(MCPTool):
+    """Fetch and return the main content from one or more web pages."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Fetches the main content from web pages. Useful for summarizing or analyzing webpage content. "
+            "Provide one or more URLs and a query describing what content to find."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "urls": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "An array of URLs to fetch content from.",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The query to search for in the web page's content.",
+                },
+                "max_words": {
+                    "type": "integer",
+                    "description": "Maximum number of words to extract per page (default: 1000)",
+                    "default": 1000,
+                },
+            },
+            "required": ["urls", "query"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..tools.fetch_and_scrape import fetch_and_scrape
+
+        urls = arguments.get("urls", [])
+        query = arguments.get("query", "")
+        max_words = int(arguments.get("max_words", 1000))
+
+        if not urls:
+            return {"error": "urls parameter is required"}
+        if not query:
+            return {"error": "query parameter is required"}
+
+        results = []
+        async with ClientSession() as session:
+            for url in urls:
+                try:
+                    content = await fetch_and_scrape(
+                        session=session,
+                        url=url,
+                        max_words=max_words,
+                        add_metadata=True,
+                    )
+                    results.append({
+                        "url": url,
+                        "content": content or "",
+                        "word_count": len((content or "").split()),
+                    })
+                except Exception as exc:
+                    results.append({"url": url, "error": str(exc)})
+
+        return {"query": query, "results": results}
+
+
+class FileSearchGlobTool(MCPTool):
+    """Search for files in the workspace by glob pattern."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Search for files in the ~/.g4f/workspace by glob pattern. "
+            "Returns the paths of matching files. "
+            "Examples: **/*.py to match all Python files; src/** to match all files under src/."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Glob pattern to match file names or paths (e.g. '**/*.py', 'src/**')",
+                },
+                "maxResults": {
+                    "type": "number",
+                    "description": "The maximum number of results to return (default: 50)",
+                    "default": 50,
+                },
+            },
+            "required": ["query"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        pattern = arguments.get("query", "")
+        max_results = int(arguments.get("maxResults", 50))
+
+        if not pattern:
+            return {"error": "query parameter is required"}
+
+        workspace = get_workspace_dir().resolve()
+        try:
+            matches = []
+            for entry in workspace.rglob("*"):
+                if not entry.is_file():
+                    continue
+                rel = entry.relative_to(workspace)
+                rel_str = rel.as_posix()
+                if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(entry.name, pattern):
+                    matches.append(rel_str)
+                if len(matches) >= max_results:
+                    break
+            return {"pattern": pattern, "matches": matches, "count": len(matches)}
+        except Exception as exc:
+            return {"error": f"File search failed: {exc}"}
+
+
+class GrepSearchTool(MCPTool):
+    """Fast text search in workspace files."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Do a fast text search in the ~/.g4f/workspace files. "
+            "Supports exact string or regex patterns. "
+            "Use includePattern to restrict to specific file types. "
+            "Returns matching file paths and line snippets."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The pattern to search for. Use regex alternation (e.g. 'word1|word2') for multiple words.",
+                },
+                "isRegexp": {
+                    "type": "boolean",
+                    "description": "Whether the pattern is a regular expression.",
+                    "default": False,
+                },
+                "includePattern": {
+                    "type": "string",
+                    "description": "Glob pattern to filter which files to search (e.g. '**/*.py').",
+                },
+                "maxResults": {
+                    "type": "number",
+                    "description": "Maximum number of matching lines to return (default: 100)",
+                    "default": 100,
+                },
+            },
+            "required": ["query", "isRegexp"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        pattern = arguments.get("query", "")
+        is_regexp = bool(arguments.get("isRegexp", False))
+        include_pattern = arguments.get("includePattern")
+        max_results = int(arguments.get("maxResults", 100))
+
+        if not pattern:
+            return {"error": "query parameter is required"}
+
+        workspace = get_workspace_dir().resolve()
+        try:
+            if is_regexp:
+                try:
+                    compiled = re.compile(pattern, re.IGNORECASE)
+                except re.error as exc:
+                    return {"error": f"Invalid regular expression: {exc}"}
+            else:
+                compiled = None
+
+            matches = []
+            for entry in sorted(workspace.rglob("*")):
+                if not entry.is_file():
+                    continue
+                rel_str = entry.relative_to(workspace).as_posix()
+                if include_pattern and not fnmatch.fnmatch(rel_str, include_pattern):
+                    continue
+                try:
+                    lines = entry.read_text(encoding="utf-8", errors="ignore").splitlines()
+                except Exception:
+                    continue
+                for lineno, line in enumerate(lines, 1):
+                    if is_regexp:
+                        hit = bool(compiled.search(line))
+                    else:
+                        hit = pattern.lower() in line.lower()
+                    if hit:
+                        matches.append({
+                            "path": rel_str,
+                            "line": lineno,
+                            "text": line,
+                        })
+                    if len(matches) >= max_results:
+                        break
+                if len(matches) >= max_results:
+                    break
+
+            return {"pattern": pattern, "matches": matches, "count": len(matches)}
+        except Exception as exc:
+            return {"error": f"Grep search failed: {exc}"}
+
+
+class GithubRepoTool(MCPTool):
+    """Search a GitHub repository for relevant source code snippets."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Searches a GitHub repository for relevant source code snippets. "
+            "Only use this tool if the user is clearly asking for code from a specific GitHub repository. "
+            "Do not use for repos the user has open locally."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string",
+                    "description": "The GitHub repository to search, formatted as '<owner>/<repo>'.",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The query to search for in the repository.",
+                },
+            },
+            "required": ["repo", "query"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        repo = arguments.get("repo", "")
+        query = arguments.get("query", "")
+
+        if not repo:
+            return {"error": "repo parameter is required"}
+        if not query:
+            return {"error": "query parameter is required"}
+        if "/" not in repo:
+            return {"error": "repo must be formatted as '<owner>/<repo>'"}
+
+        try:
+            search_url = f"https://api.github.com/search/code?q={urllib.parse.quote(query)}+repo:{urllib.parse.quote(repo)}"
+            headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+            async with ClientSession() as session:
+                async with session.get(search_url, headers=headers) as resp:
+                    if resp.status == 403:
+                        return {"error": "GitHub API rate limit exceeded. Try again later."}
+                    if resp.status != 200:
+                        return {"error": f"GitHub API error: HTTP {resp.status}"}
+                    data = await resp.json()
+
+            items = data.get("items", [])[:10]
+            results = []
+            for item in items:
+                results.append({
+                    "path": item.get("path"),
+                    "url": item.get("html_url"),
+                    "repository": item.get("repository", {}).get("full_name"),
+                })
+            return {"repo": repo, "query": query, "results": results, "count": len(results)}
+        except Exception as exc:
+            return {"error": f"GitHub repo search failed: {exc}"}
+
+
+class GithubTextSearchTool(MCPTool):
+    """Lexically search a GitHub repository or organisation for files with specific keywords."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Lexically searches a GitHub repository or organization for files containing "
+            "specific keywords or code patterns. Use 'owner/repo' to search a single repository "
+            "or an org name (no slash) to search across an entire organization. "
+            "Unlike semantic search, this uses keyword matching."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "scope": {
+                    "type": "string",
+                    "description": "GitHub scope: 'owner/repo' for a single repo, or an org name for org-wide search.",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Keyword search query. Supports GitHub code search syntax (e.g. 'language:python', 'path:src/').",
+                },
+                "maxResults": {
+                    "type": "number",
+                    "description": "Maximum number of search results to return (default: 100)",
+                    "default": 100,
+                },
+            },
+            "required": ["scope", "query"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        scope = arguments.get("scope", "")
+        query = arguments.get("query", "")
+        max_results = int(arguments.get("maxResults", 100))
+
+        if not scope:
+            return {"error": "scope parameter is required"}
+        if not query:
+            return {"error": "query parameter is required"}
+
+        try:
+            # Determine if scope is a repo or an org
+            if "/" in scope:
+                qualifier = f"repo:{scope}"
+            else:
+                qualifier = f"org:{scope}"
+
+            search_url = (
+                f"https://api.github.com/search/code"
+                f"?q={urllib.parse.quote(query)}+{urllib.parse.quote(qualifier)}"
+                f"&per_page={min(max_results, 100)}"
+            )
+            headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+            async with ClientSession() as session:
+                async with session.get(search_url, headers=headers) as resp:
+                    if resp.status == 403:
+                        return {"error": "GitHub API rate limit exceeded. Try again later."}
+                    if resp.status != 200:
+                        return {"error": f"GitHub API error: HTTP {resp.status}"}
+                    data = await resp.json()
+
+            items = data.get("items", [])[:max_results]
+            results = []
+            for item in items:
+                results.append({
+                    "path": item.get("path"),
+                    "url": item.get("html_url"),
+                    "repository": item.get("repository", {}).get("full_name"),
+                    "name": item.get("name"),
+                })
+            return {"scope": scope, "query": query, "results": results, "count": len(results)}
+        except Exception as exc:
+            return {"error": f"GitHub text search failed: {exc}"}
+
 
 class ApplyPatchTool(MCPTool):
     """Apply a unified diff patch to a file or directory using the system 'patch' command."""
