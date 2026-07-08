@@ -13,8 +13,8 @@ from .models import model_aliases, vision_models, default_model, default_vision_
 class HuggingFaceAPI(OpenaiTemplate):
     label = "HuggingFace (Text Generation)"
     parent = "HuggingFace"
-    url = "https://api-inference.huggingface.com"
-    base_url = "https://api-inference.huggingface.co/v1"
+    url = "https://huggingface.com"
+    base_url = "https://router.huggingface.co/v1"
     working = True
     needs_auth = True
 
@@ -24,37 +24,8 @@ class HuggingFaceAPI(OpenaiTemplate):
     model_aliases = model_aliases
     fallback_models = text_models + vision_models
 
-    provider_mapping: dict[str, dict] = {
-        "google/gemma-3-27b-it": {
-            "hf-inference/models/google/gemma-3-27b-it": {
-                "task": "conversational",
-                "providerId": "google/gemma-3-27b-it"}}}
+    provider_mapping: dict[str, dict] = {}
 
-    @classmethod
-    def get_model(cls, model: str, **kwargs) -> str:
-        try:
-            return super().get_model(model, **kwargs)
-        except ModelNotFoundError:
-            return model
-
-    @classmethod
-    def get_models(cls, **kwargs) -> list[str]:
-        if not cls.models:
-            url = "https://huggingface.co/api/models?inference=warm&&expand[]=inferenceProviderMapping"
-            response = requests.get(url)
-            if response.ok: 
-                cls.models = [
-                    model["id"]
-                    for model in response.json()
-                    if [
-                        provider
-                        for provider in model.get("inferenceProviderMapping")
-                        if provider.get("status") == "live" and provider.get("task") == "conversational"
-                    ]
-                ] + list(cls.provider_mapping.keys())
-            else:
-                cls.models = cls.fallback_models
-        return cls.models
 
     @classmethod
     async def get_mapping(cls, model: str, api_key: str = None):
@@ -127,6 +98,3 @@ class HuggingFaceAPI(OpenaiTemplate):
                 continue
         if error is not None:
             raise error
-
-# def calculate_lenght(messages: Messages) -> int:
-#     return sum([len(message["content"]) + 16 for message in messages])
