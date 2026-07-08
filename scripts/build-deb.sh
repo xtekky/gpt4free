@@ -41,7 +41,7 @@ cat > debian/${PACKAGE_NAME}/DEBIAN/postinst << 'EOF'
 set -e
 
 # Install Python dependencies
-pip3 install --break-system-packages aiohttp requests brotli pycryptodome nest_asyncio
+pip3 install --break-system-packages aiohttp requests brotli pycryptodome nest-asyncio2
 
 # Make g4f command available
 if [ ! -L /usr/local/bin/g4f ]; then
