@@ -73,5 +73,6 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             async for chunk in HuggingFaceAPI.create_async_generator(model, messages, **kwargs):
                 yield chunk
         except (ModelNotFoundError, MissingAuthError):
-            async for chunk in HuggingFaceInference.create_async_generator(model, messages, **kwargs):
-                yield chunk
+            raise
+            # async for chunk in HuggingFaceInference.create_async_generator(model, messages, **kwargs):
+                # yield chunk
