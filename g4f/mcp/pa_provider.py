@@ -67,7 +67,7 @@ import traceback
 import builtins as _builtins
 from pathlib import Path
 from typing import Any, Dict, FrozenSet, List, Optional, Type
-
+from .. import debug
 # ---------------------------------------------------------------------------
 # Workspace directory
 # ---------------------------------------------------------------------------
@@ -227,6 +227,7 @@ def _make_restricted_import(allowed: FrozenSet[str]):
     _ALLOWED_G4F_SUBPATHS: FrozenSet[str] = frozenset({
         "g4f.Provider.helper",
         "g4f.Provider.base_provider",
+        "g4f.Provider.template",
         "g4f.typing",
     })
 
@@ -605,9 +606,10 @@ class PaProviderRegistry:
                     bool(getattr(cls, "working", True)),
                     getattr(cls, "url", None),
                     cls,
-                    str(pa_path)[len(str(directory)):]
+                    str(pa_path)[len(str(directory))+1:]
                 ))
-            except Exception:
+            except Exception as e:
+                debug.error(f"Failed to load PA provider from {pa_path}:", e)
                 pass
         self._entries = entries
         self._loaded_at = _time_module.monotonic()

@@ -732,7 +732,7 @@ class ClientFactory(AbstractClientFactory):
     
     Example usage:
         # Create client with a named provider
-        client = AbstractClientFactory.create_client("PollinationsAI")
+        client = ClientFactory.create_client("PollinationsAI")
                 
         # Create client with custom provider
         client = ClientFactory.create_client(

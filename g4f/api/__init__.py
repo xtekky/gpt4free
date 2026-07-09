@@ -74,7 +74,7 @@ from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
 from g4f.providers.any_model_map import model_map, vision_models, image_models, audio_models, video_models
 from g4f.config import AppConfig
-from g4f.client import ClientFactory
+from g4f.client.factory import AbstractClientFactory
 from g4f import Provider
 from g4f.Provider import ProviderUtils
 
@@ -432,15 +432,6 @@ def update_headers(request: Request, new_api_key: str = None, user: str = None) 
     delattr(request, "_headers")
     return request
 
-def get_provider_by_label(provider: str) -> ProviderType:
-    try:
-        return ProviderUtils.get_by_label(provider)
-    except ValueError as e:
-        try:
-            return ClientFactory.create_provider(None, provider)
-        except ProviderNotFoundError:
-            raise e
-
 class Api:
     def __init__(self, app: FastAPI) -> None:
         self.app = app
@@ -620,8 +611,8 @@ class Api:
         })
         async def models(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
             try:
-                provider = get_provider_by_label(provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             if not hasattr(provider, "get_models"):
                 models = getattr(provider, "models", [])
@@ -641,7 +632,7 @@ class Api:
                     "audio": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "audio_models", []),
                     "video": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "video_models", []),
                     "type": "image" if (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "image_models", []) else "chat",
-                    "count": provider.models_count.get(model.get("id"), 0) if isinstance(model, dict) else 0,
+                    "count": getattr(provider, "models_count", {}).get(model.get("id") if isinstance(model, dict) else model, 0),
                     **(model if isinstance(model, dict) else {})
                 } for model in (models.values() if isinstance(models, dict) else models)]
             }
@@ -650,8 +641,8 @@ class Api:
         @self.app.get("/api/{provider}/quota")
         async def provider_quota(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
             try:
-                provider = get_provider_by_label(provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             if not hasattr(provider, "get_quota"):
                 return ErrorResponse.from_message("Provider doesn't support get_quota", HTTP_500_INTERNAL_SERVER_ERROR)
@@ -708,8 +699,8 @@ class Api:
             if config.provider is None:
                 config.provider = AppConfig.provider
             try:
-                provider = get_provider_by_label(config.provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, config.provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             try:
                 if config.conversation_id is None:
@@ -822,8 +813,8 @@ class Api:
             if provider is None:
                 provider = AppConfig.provider
             try:
-                provider = get_provider_by_label(provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
@@ -866,8 +857,8 @@ class Api:
         })
         async def providers_info(provider: str):
             try:
-                provider = get_provider_by_label(provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             def safe_get_models(provider: ProviderType) -> list[str]:
                 try:
@@ -1173,8 +1164,8 @@ class Api:
             if provider is None:
                 provider = "MarkItDown"
             try:
-                provider = get_provider_by_label(provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             kwargs = {"modalities": ["text"]}
             try:
@@ -1217,8 +1208,8 @@ class Api:
             if provider is None:
                 provider = AppConfig.media_provider
             try:
-                provider = get_provider_by_label(provider)
-            except ValueError as e:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
             try:
                 audio = filter_none(voice=config.voice, format=config.response_format, language=config.language)

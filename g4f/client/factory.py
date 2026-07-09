@@ -103,9 +103,10 @@ class AbstractClientFactory:
                 if path.exists():
                     with open(path, "r", encoding="utf-8") as f:
                         cls._live_providers = json.load(f)
-                cls._live_providers = requests.get(cls._live_providers_url).json()
-                with open(path, "w", encoding="utf-8") as f:
-                    json.dump(cls._live_providers, f, indent=4)
+                if not cls._live_providers:
+                    cls._live_providers = requests.get(cls._live_providers_url).json()
+                    with open(path, "w", encoding="utf-8") as f:
+                        json.dump(cls._live_providers, f, indent=4)
             if provider in cls._live_providers.get("providers", {}):
                 config = cls._live_providers["providers"][provider]
                 if "provider" in config and config.get("provider") in ProviderUtils.convert:
