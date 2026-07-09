@@ -26,13 +26,11 @@ from ..typing import AsyncResult, Messages, MediaListType
 
 try:
     import curl_cffi
-
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
 try:
     import zendriver as nodriver
-
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -124,8 +122,6 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chat.qwen.ai"
     working = True
     active_by_default = True
-    supports_stream = True
-    supports_message_history = False
     image_cache = True
     _models_loaded = True
     image_models = image_models
@@ -372,19 +368,19 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-            cls,
-            model: str,
-            messages: Messages,
-            media: MediaListType = None,
-            conversation: JsonConversation = None,
-            proxy: str = None,
-            stream: bool = True,
-            reasoning_effort: Optional[Literal["low", "medium", "high"]] = "medium",
-            chat_type: Literal[
-                "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
-            ] = "t2t",
-            aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
-            **kwargs
+        cls,
+        model: str,
+        messages: Messages,
+        media: MediaListType = None,
+        conversation: JsonConversation = None,
+        proxy: str = None,
+        stream: bool = True,
+        reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = "medium",
+        chat_type: Literal[
+            "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
+        ] = "t2t",
+        aspect_ratio: Optional[Literal["1:1", "4:3", "3:4", "16:9", "9:16"]] = None,
+        **kwargs
     ) -> AsyncResult:
         """
         chat_type:
@@ -539,7 +535,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             except (json.JSONDecodeError, KeyError, IndexError):
                                 continue
                         if usage:
-                            yield Usage(**usage)
+                            yield Usage.from_dict(usage)
                         return
 
                 except (aiohttp.ClientResponseError, RuntimeError) as e:
@@ -556,10 +552,4 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         raise e
             raise RateLimitError("The Qwen provider reached the request limit after 5 attempts.")
-
-            # except CloudflareError as e:
-            #     debug.error(f"{cls.__name__}: {e}")
-            #     args = await cls.get_args(proxy, **kwargs)
-            #     cookie = "; ".join([f"{k}={v}" for k, v in args["cookies"].items()])
-            #     continue
         raise RateLimitError("The Qwen provider reached the limit Cloudflare.")

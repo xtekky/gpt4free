@@ -10,7 +10,6 @@ from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
 from ...providers.response import *
 from ...tools.media import render_messages
-from ...tools.run_tools import AuthManager
 from ...config import AppConfig
 from ...errors import MissingAuthError
 from ... import debug
@@ -37,6 +36,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
         """Get the quota information for the API key."""
         if not api_key:
+            from ...tools.run_tools import AuthManager
             api_key = AuthManager.load_api_key(cls)
         if api_key and cls.models_needs_auth and cls.quota_url is None:
             cls.quota_url = f"{cls.base_url}/models"
@@ -84,6 +84,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if api_key is None and cls.api_key is not None:
                     api_key = cls.api_key
                 if not api_key or AppConfig.disable_custom_api_key or not cls.is_provider_api_key(api_key):
+                    from ...tools.run_tools import AuthManager
                     api_key = AuthManager.load_api_key(cls) or api_key
                 if base_url is None:
                     base_url = cls.base_url

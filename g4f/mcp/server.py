@@ -27,9 +27,9 @@ from ..image import EXTENSIONS_MAP
 from ..image.copy_images import get_media_dir, copy_media, get_source_url
 
 from .tools import (
-    MarkItDownTool, TextToAudioTool, WebSearchTool, WebScrapeTool, ImageGenerationTool,
-    PythonExecuteTool, FileReadTool, FileReadLinesTool, FileSearchTool,
-    FileWriteTool, FileListTool, FileDeleteTool, ApplyPatchTool,
+    MarkItDownTool, TextToAudioTool, WebSearchTool, ImageGenerationTool,
+    PythonExecuteTool, FileReadTool,
+    FileListTool, FileDeleteTool, ApplyPatchTool,
     CreateDirectoryTool, CreateFileTool, FetchWebpageTool,
     FileSearchGlobTool, GrepSearchTool, GithubRepoTool, GithubTextSearchTool,
 )
@@ -72,16 +72,12 @@ class MCPServer:
         self.safe_mode = safe_mode
         self.tools = {
             'web_search': WebSearchTool(),
-            'web_scrape': WebScrapeTool(),
             'image_generation': ImageGenerationTool(),
             'text_to_audio': TextToAudioTool(),
             'mark_it_down': MarkItDownTool(),
             'python_execute': PythonExecuteTool(safe_mode=safe_mode),
             'apply_patch': ApplyPatchTool(),
             'file_read': FileReadTool(),
-            'file_read_lines': FileReadLinesTool(),
-            'file_search': FileSearchTool(),
-            'file_write': FileWriteTool(),
             'file_list': FileListTool(safe_mode=safe_mode),
             'file_delete': FileDeleteTool(),
             'create_directory': CreateDirectoryTool(),

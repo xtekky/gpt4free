@@ -78,6 +78,9 @@ def get_workspace_dir() -> Path:
     workspace.mkdir(parents=True, exist_ok=True)
     return workspace
 
+def is_hidden_file(path: str) -> bool:
+    """Return True if *path* is a hidden file (starts with a dot)."""
+    return any(part.startswith(".") for part in str(path).replace("\\", "/").split("/"))
 
 # ---------------------------------------------------------------------------
 # Whitelisted modules
@@ -599,6 +602,10 @@ class PaProviderRegistry:
                         models_list = list(getattr(cls, "models") or [])
                 except Exception:
                     pass
+                relative_path = pa_path.relative_to(directory).as_posix()
+                print(f"Loaded PA provider: {provider_id} ({relative_path})")
+                if is_hidden_file(relative_path):
+                    relative_path = None
                 entries.append((
                     provider_id,
                     getattr(cls, "label", cls.__name__),
@@ -606,7 +613,7 @@ class PaProviderRegistry:
                     bool(getattr(cls, "working", True)),
                     getattr(cls, "url", None),
                     cls,
-                    str(pa_path)[len(str(directory))+1:]
+                    relative_path
                 ))
             except Exception as e:
                 debug.error(f"Failed to load PA provider from {pa_path}:", e)

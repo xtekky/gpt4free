@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import os
 import json
-import time
 import uuid
 import base64
 from datetime import datetime
-from typing import AsyncIterator
 from pathlib import Path
+from typing import Optional, Literal
 
 from g4f.typing import AsyncResult, Messages, Cookies
 from g4f.requests import StreamSession, raise_for_status, sse_stream, FormData
@@ -335,6 +334,7 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
         conversation: JsonConversation = None,
         web_search: bool = False,
         media: list = None,
+        reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = None,
         delete_session: bool = False,
         **kwargs
     ) -> AsyncResult:
@@ -412,7 +412,10 @@ class DeepSeekAPI(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = get_last_user_message(messages)
         
         # Determine thinking mode
-        thinking_enabled = bool(model) and "deepseek-r1" in model
+        if reasoning_effort is not None and reasoning_effort != "none":
+            thinking_enabled = True
+        else:
+            thinking_enabled = bool(model) and "deepseek-r1" in model
         
         yield JsonRequest.from_dict({
             "prompt": prompt,

@@ -6,7 +6,6 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 - ImageGenerationTool: Image generation using various AI providers
 - PythonExecuteTool: Safe Python code execution with whitelisted modules
 - FileReadTool: Read files from the ~/.g4f/workspace directory (supports startLine/endLine)
-- FileReadLinesTool: Read a range of lines from a workspace file
 - FileSearchTool: Search files and file contents in the workspace
 - FileWriteTool: Write files to the ~/.g4f/workspace directory
 - FileListTool: List files in the ~/.g4f/workspace directory
@@ -127,75 +126,6 @@ class WebSearchTool(MCPTool):
         except Exception as e:
             return {
                 "error": f"Search failed: {str(e)}"
-            }
-
-
-class WebScrapeTool(MCPTool):
-    """Web scraping tool using gpt4free's scraping capabilities"""
-    
-    @property
-    def description(self) -> str:
-        return "Scrape and extract text content from a web page URL. Returns cleaned text content with optional word limit."
-    
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "url": {
-                    "type": "string",
-                    "description": "The URL of the web page to scrape"
-                },
-                "max_words": {
-                    "type": "integer",
-                    "description": "Maximum number of words to extract (default: 1000)",
-                    "default": 1000
-                }
-            },
-            "required": ["url"]
-        }
-    
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute web scraping
-        
-        Returns:
-            Dict[str, Any]: Scraped content or error message
-        """
-        from ..tools.fetch_and_scrape import fetch_and_scrape
-        from aiohttp import ClientSession
-        
-        url = arguments.get("url", "")
-        max_words = arguments.get("max_words", 1000)
-        
-        if not url:
-            return {
-                "error": "URL parameter is required"
-            }
-        
-        try:
-            # Scrape the URL
-            async with ClientSession() as session:
-                content = await fetch_and_scrape(
-                    session=session,
-                    url=url,
-                    max_words=max_words,
-                    add_metadata=True
-                )
-            
-            if not content:
-                return {
-                    "error": "Failed to scrape content from URL"
-                }
-            
-            return {
-                "url": url,
-                "content": content,
-                "word_count": len(content.split())
-            }
-        
-        except Exception as e:
-            return {
-                "error": f"Scraping failed: {str(e)}"
             }
 
 
@@ -674,309 +604,6 @@ class FileReadTool(MCPTool):
             return {"error": f"Read failed: {exc}"}
 
 
-class FileReadLinesTool(MCPTool):
-    """Read a range of lines from a file inside the workspace."""
-
-    @property
-    def description(self) -> str:
-        return (
-            "Read a range of lines from a text file inside the ~/.g4f/workspace directory. "
-            "Provide a relative path and optional start/end line indexes."
-        )
-
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "Relative path to the file inside the workspace",
-                },
-                "start_line": {
-                    "type": "integer",
-                    "description": "1-based first line to read (default: 1)",
-                    "default": 1,
-                },
-                "end_line": {
-                    "type": "integer",
-                    "description": "1-based last line to read (inclusive)",
-                },
-                "max_lines": {
-                    "type": "integer",
-                    "description": "Maximum number of lines to return when end_line is not provided",
-                    "default": 1000,
-                },
-            },
-            "required": ["path"],
-        }
-
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir
-
-        rel_path = arguments.get("path", "")
-        if not rel_path:
-            return {"error": "path parameter is required"}
-
-        start_line = int(arguments.get("start_line", 1))
-        end_line = arguments.get("end_line")
-        max_lines = int(arguments.get("max_lines", 1000))
-
-        if start_line < 1:
-            return {"error": "start_line must be >= 1"}
-
-        if end_line is not None:
-            try:
-                end_line = int(end_line)
-            except (TypeError, ValueError):
-                return {"error": "end_line must be an integer"}
-            if end_line < start_line:
-                return {"error": "end_line must be greater than or equal to start_line"}
-
-        workspace = get_workspace_dir().resolve()
-        try:
-            target = (workspace / rel_path).resolve()
-            if not str(target).startswith(str(workspace)):
-                return {"error": "Access outside the workspace is not allowed"}
-            if not target.exists():
-                return {"error": f"File not found: {rel_path}"}
-            if not target.is_file():
-                return {"error": f"Path is not a file: {rel_path}"}
-
-            lines = target.read_text(encoding="utf-8").splitlines(True)
-            total_lines = len(lines)
-            if start_line > total_lines:
-                return {
-                    "path": rel_path,
-                    "start_line": start_line,
-                    "end_line": end_line,
-                    "lines": [],
-                    "total_lines": total_lines,
-                }
-
-            start_index = start_line - 1
-            if end_line is None:
-                end_index = min(total_lines, start_index + max_lines)
-            else:
-                end_index = min(total_lines, end_line)
-
-            selected = lines[start_index:end_index]
-            return {
-                "path": rel_path,
-                "start_line": start_line,
-                "end_line": end_index,
-                "lines": selected,
-                "total_lines": total_lines,
-                "returned_lines": len(selected),
-            }
-        except Exception as exc:
-            return {"error": f"Read lines failed: {exc}"}
-
-
-class FileWriteTool(MCPTool):
-    """Write (or create) a file inside the ``~/.g4f/workspace`` directory."""
-
-    @property
-    def description(self) -> str:
-        return (
-            "Write text content to a file inside the ~/.g4f/workspace directory. "
-            "Creates parent directories as needed. "
-            "Provide a relative path from the workspace root and the content to write."
-        )
-
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "Relative path to the file inside the workspace",
-                },
-                "content": {
-                    "type": "string",
-                    "description": "Text content to write to the file",
-                },
-                "append": {
-                    "type": "boolean",
-                    "description": "If true, append to existing file instead of overwriting (default: false)",
-                    "default": False,
-                },
-            },
-            "required": ["path", "content"],
-        }
-
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir
-
-        rel_path = arguments.get("path", "")
-        content = arguments.get("content")
-        append = bool(arguments.get("append", False))
-
-        if not rel_path:
-            return {"error": "path parameter is required"}
-        if content is None:
-            return {"error": "content parameter is required"}
-
-        workspace = get_workspace_dir().resolve()
-        try:
-            target = (workspace / rel_path).resolve()
-            if not str(target).startswith(str(workspace)):
-                return {"error": "Access outside the workspace is not allowed"}
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if append:
-                with open(target, "a", encoding="utf-8") as f:
-                    f.write(content)
-            else:
-                target.write_text(content, encoding="utf-8")
-            result: Dict[str, Any] = {
-                "path": rel_path,
-                "size": len(content),
-                "appended": append,
-            }
-            origin = arguments.get("origin")
-            if origin:
-                result["url"] = f"{origin}/pa/files/{rel_path}"
-            return result
-        except Exception as exc:
-            return {"error": f"Write failed: {exc}"}
-
-
-class FileSearchTool(MCPTool):
-    """Search files and file contents inside the ``~/.g4f/workspace`` directory."""
-
-    @property
-    def description(self) -> str:
-        return (
-            "Search files and contents inside the ~/.g4f/workspace directory. "
-            "Provide a relative path, filename pattern, or text query to search."
-        )
-
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": (
-                        "Relative path to a workspace directory to search in "
-                        "(default: workspace root)"
-                    ),
-                    "default": "",
-                },
-                "pattern": {
-                    "type": "string",
-                    "description": (
-                        "File name glob or substring pattern to filter files "
-                        "(example: '*.py' or 'README')."
-                    ),
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Text query to search inside file contents.",
-                },
-                "regex": {
-                    "type": "boolean",
-                    "description": "Interpret the query as a regular expression.",
-                    "default": False,
-                },
-                "case_sensitive": {
-                    "type": "boolean",
-                    "description": "Perform case-sensitive matching for names and content.",
-                    "default": False,
-                },
-                "recursive": {
-                    "type": "boolean",
-                    "description": "Search directories recursively (default: true).",
-                    "default": True,
-                },
-                "max_results": {
-                    "type": "integer",
-                    "description": "Maximum number of matched files to return.",
-                    "default": 100,
-                },
-            },
-            "required": [],
-        }
-
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir
-
-        rel_path = arguments.get("path", "") or ""
-        pattern = arguments.get("pattern")
-        query = arguments.get("query")
-        regex = bool(arguments.get("regex", False))
-        case_sensitive = bool(arguments.get("case_sensitive", False))
-        recursive = bool(arguments.get("recursive", True))
-        max_results = int(arguments.get("max_results", 100))
-
-        if not pattern and not query:
-            return {"error": "At least one of pattern or query is required"}
-
-        workspace = get_workspace_dir().resolve()
-        try:
-            target = (workspace / rel_path).resolve() if rel_path else workspace
-            if not str(target).startswith(str(workspace)):
-                return {"error": "Access outside the workspace is not allowed"}
-            if not target.exists():
-                return {"error": f"Directory not found: {rel_path or '/'}"}
-            if not target.is_dir():
-                return {"error": f"Path is not a directory: {rel_path}"}
-
-            if pattern and not case_sensitive:
-                pattern_lower = pattern.lower()
-
-            if query and regex:
-                flags = 0 if case_sensitive else re.IGNORECASE
-                try:
-                    query_re = re.compile(query, flags)
-                except re.error as exc:
-                    return {"error": f"Invalid regular expression: {exc}"}
-
-            matches = []
-            iterator = target.rglob("*") if recursive else target.iterdir()
-            for entry in sorted(iterator):
-                if not entry.is_file():
-                    continue
-
-                name = entry.name
-                if pattern:
-                    candidate = name if case_sensitive else name.lower()
-                    pattern_to_match = pattern if case_sensitive else pattern_lower
-                    if not fnmatch.fnmatch(candidate, pattern_to_match):
-                        continue
-
-                if query:
-                    try:
-                        content = entry.read_text(encoding="utf-8", errors="ignore")
-                    except Exception:
-                        continue
-                    if regex:
-                        if not query_re.search(content):
-                            continue
-                    else:
-                        haystack = content if case_sensitive else content.lower()
-                        needle = query if case_sensitive else query.lower()
-                        if needle not in haystack:
-                            continue
-
-                matches.append({
-                    "path": str(entry.relative_to(workspace)),
-                    "name": name,
-                })
-                if len(matches) >= max_results:
-                    break
-
-            return {
-                "path": str(target.relative_to(workspace)),
-                "matches": matches,
-                "count": len(matches),
-            }
-        except Exception as exc:
-            return {"error": f"Search failed: {exc}"}
-
-
 class FileListTool(MCPTool):
     """List files and directories inside the ``~/.g4f/workspace`` directory."""
 
@@ -1011,7 +638,7 @@ class FileListTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir
+        from .pa_provider import get_workspace_dir, is_hidden_file
 
         rel_path = arguments.get("path", "") or ""
         recursive = bool(arguments.get("recursive", False))
@@ -1033,6 +660,8 @@ class FileListTool(MCPTool):
             iterator = target.rglob("*") if recursive else target.iterdir()
             for entry in sorted(iterator):
                 try:
+                    if is_hidden_file(entry):
+                        continue
                     rel = str(entry.relative_to(workspace))
                     info: Dict[str, Any] = {
                         "path": rel,
@@ -1294,7 +923,7 @@ class FileSearchGlobTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir
+        from .pa_provider import get_workspace_dir, is_hidden_file
 
         pattern = arguments.get("query", "")
         max_results = int(arguments.get("maxResults", 50))
@@ -1310,6 +939,8 @@ class FileSearchGlobTool(MCPTool):
                     continue
                 rel = entry.relative_to(workspace)
                 rel_str = rel.as_posix()
+                if is_hidden_file(rel_str):
+                    continue
                 if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(entry.name, pattern):
                     matches.append(rel_str)
                 if len(matches) >= max_results:
@@ -1359,7 +990,7 @@ class GrepSearchTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir
+        from .pa_provider import get_workspace_dir, is_hidden_file
 
         pattern = arguments.get("query", "")
         is_regexp = bool(arguments.get("isRegexp", False))
@@ -1384,6 +1015,8 @@ class GrepSearchTool(MCPTool):
                 if not entry.is_file():
                     continue
                 rel_str = entry.relative_to(workspace).as_posix()
+                if is_hidden_file(rel_str):
+                    continue
                 if include_pattern and not fnmatch.fnmatch(rel_str, include_pattern):
                     continue
                 try:

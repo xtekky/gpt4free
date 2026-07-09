@@ -43,7 +43,7 @@ class RequestConfig(BaseModel):
             ]
         ],
     )
-    reasoning_effort: Optional[Literal["low", "medium", "high"]] = None
+    reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = None
     logit_bias: Optional[dict] = None
     audio: Optional[dict] = None
     response_format: Optional[dict] = None
