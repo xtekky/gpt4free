@@ -5,6 +5,7 @@ import requests
 import time
 
 from ..template import OpenaiTemplate
+from ...requests import BrowserConfig
 from .turnstile import Turnstile
 
 def find_free_port() -> int:
@@ -17,12 +18,16 @@ def get_turnstile_token_sync(model: str) -> str:
     """Get Turnstile token using Turnstile with a fallback to DrissionPage."""
     # 1. Try our lightweight CDP client first
     try:
-        import os
-        import tempfile
-        port = find_free_port()
-        # Use a persistent temp directory to preserve browser session cookies and Turnstile reputation
-        user_data_dir = os.path.join(tempfile.gettempdir(), "g4f_chrome_profile_light")
-        client = Turnstile(port=port, user_data_dir=user_data_dir)
+        if not BrowserConfig.port:
+            import os
+            import tempfile
+            port = find_free_port()
+            # Use a persistent temp directory to preserve browser session cookies and Turnstile reputation
+            user_data_dir = os.path.join(tempfile.gettempdir(), "g4f_chrome_profile_light")
+            client = Turnstile(port=port, user_data_dir=user_data_dir)
+        else:
+            client = Turnstile(port=BrowserConfig.port)
+            client.connect()  # Ensure connection if using a specified port
         try:
             token = client.get_token(model)
             if token:
@@ -92,6 +97,10 @@ class DeepInfra(OpenaiTemplate):
     active_by_default = True
     
     default_model = "zai-org/GLM-5.2"
+
+    @classmethod
+    async def get_quota(cls, **kwargs):
+        return {}
 
     @classmethod
     def get_models(cls, **kwargs):

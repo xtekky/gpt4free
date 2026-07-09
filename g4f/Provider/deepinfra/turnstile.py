@@ -96,7 +96,10 @@ class Turnstile:
         ]
         
         self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
+
+        self.connect()  # Wait for Chrome to be ready and connect via WebSocket
+    
+    def connect(self):
         # Wait for CDP port readiness and retrieve the WebSocket URL
         ws_url = None
         for i in range(40):  # Up to 20 seconds
