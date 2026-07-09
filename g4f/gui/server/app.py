@@ -1,11 +1,13 @@
 import gzip
 from flask import Flask, request
 
-def create_app() -> Flask:
+def create_app(compress: bool = True) -> Flask:
     app = Flask(__name__)
 
     @app.after_request
     def compress_response(response):
+        if not compress:
+            return response
         accept_encoding = request.headers.get('Accept-Encoding', '')
         if 'gzip' not in accept_encoding.lower():
             return response

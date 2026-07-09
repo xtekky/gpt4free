@@ -11,7 +11,7 @@ except ImportError as e:
 def get_gui_app(demo: bool = False, timeout: int = None, stream_timeout: int = None):
     if import_error is not None:
         raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
-    app = create_app()
+    app = create_app(False)
     app.demo = demo
     app.timeout = timeout
     app.stream_timeout = stream_timeout
