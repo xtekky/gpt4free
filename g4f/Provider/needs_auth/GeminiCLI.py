@@ -20,6 +20,7 @@ from aiohttp import ClientSession, ClientTimeout
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...errors import MissingAuthError
+from ...requests.raise_for_status import raise_for_status
 from ...image.copy_images import save_response_media
 from ...image import to_bytes, is_data_an_media
 from ...providers.response import Usage, ImageResponse, ToolCalls, Reasoning
@@ -809,12 +810,7 @@ class GeminiCLIProvider():
 
         async with ClientSession(headers=headers, timeout=timeout, connector=connector) as session:
             async with session.post(url, json=req_body) as resp:
-                if not resp.ok:
-                    if resp.status == 401:
-                        # Possibly token expired: try login retry logic, omitted here for brevity
-                        raise MissingAuthError(f"Unauthorized (401) from Gemini API")
-                    error_body = await resp.text()
-                    raise RuntimeError(f"Gemini API error {resp.status}: {error_body}")
+                await raise_for_status(resp)
 
                 usage_metadata = {}
                 openai_tool_calls = []

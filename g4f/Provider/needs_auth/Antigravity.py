@@ -31,6 +31,7 @@ from aiohttp import ClientSession, ClientTimeout
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...errors import MissingAuthError, RateLimitError
+from ...requests.raise_for_status import raise_for_status
 from ...image.copy_images import save_response_media
 from ...image import to_bytes, is_data_an_media
 from ...providers.response import Usage, ImageResponse, ToolCalls, Reasoning
@@ -1239,17 +1240,7 @@ class AntigravityProvider:
                             resp = await session.post(url, json=req_body)
                             if not resp.ok:
                                 debug.error(f"Retry after 503 failed with status {resp.status}")
-                if not resp.ok:
-                    if resp.status == 401:
-                        raise MissingAuthError("Unauthorized (401) from Antigravity API")
-                    elif resp.status == 429:
-                        try:
-                            message = (await resp.json(content_type=None)).get("error", {}).get("message", "")
-                        except Exception as e:
-                            debug.error("Error parsing error message:", e)
-                            message = await resp.text()
-                        raise RateLimitError(f"Error 429: {message}")
-                    raise RuntimeError(f"Antigravity API error {resp.status}: {await resp.text()}")
+                await raise_for_status(resp)
 
                 usage_metadata = {}
                 openai_tool_calls = []
