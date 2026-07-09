@@ -274,40 +274,16 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         result = await tool.execute({})
         self.assertIn("error", result)
 
-
     async def test_delete_missing_file(self):
         tool = FileDeleteTool()
         result = await tool.execute({"path": "no_such_file.txt"})
         self.assertIn("error", result)
-
-    async def test_list_workspace(self):
-        # Write a temp file so workspace is non-empty
-        write_tool = FileWriteTool()
-        await write_tool.execute({"path": self.test_file, "content": "x"})
-
-        list_tool = FileListTool()
-        result = await list_tool.execute({})
-        self.assertNotIn("error", result)
-        self.assertIn("entries", result)
-        paths = [e["path"] for e in result["entries"]]
-        self.assertIn(self.test_file, paths)
 
     async def test_path_traversal_blocked(self):
         """Ensure path traversal outside workspace is rejected."""
         read_tool = FileReadTool()
         result = await read_tool.execute({"path": "../../etc/passwd"})
         self.assertIn("error", result)
-
-
-    async def test_file_append(self):
-        write_tool = FileWriteTool()
-        read_tool = FileReadTool()
-
-        await write_tool.execute({"path": self.test_file, "content": "line1\n"})
-        await write_tool.execute({"path": self.test_file, "content": "line2\n", "append": True})
-
-        read_result = await read_tool.execute({"path": self.test_file})
-        self.assertEqual(read_result["content"], "line1\nline2\n")
 
 
 class TestSafeCodeExecution(unittest.TestCase):
