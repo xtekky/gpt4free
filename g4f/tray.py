@@ -26,21 +26,10 @@ _G4F_SVG = """\
       <stop offset="0%" style="stop-color:#6e48aa"/>
       <stop offset="100%" style="stop-color:#4776E6"/>
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="shadow">
-      <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#1a1a2e" flood-opacity="0.5"/>
-    </filter>
   </defs>
-  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)" filter="url(#shadow)"/>
-  <circle cx="256" cy="256" r="210" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
-  <text x="250" y="328" font-family="Arial,Helvetica,sans-serif" font-size="194" font-weight="900"
-        fill="#f8f9fa" text-anchor="middle" letter-spacing="-5" filter="url(#glow)">G4F</text>
+  <circle cx="256" cy="256" r="256" fill="url(#bgGrad)"/>
+  <text x="256" y="328" font-family="Arial,Helvetica,sans-serif" font-size="194" font-weight="900"
+        fill="#f8f9fa" text-anchor="middle" letter-spacing="-5">G4F</text>
 </svg>"""
 
 
@@ -63,8 +52,8 @@ def _make_icon():
         import cairosvg
         png_bytes = cairosvg.svg2png(
             bytestring=_G4F_SVG.encode(),
-            output_width=64,
-            output_height=64,
+            output_width=16,
+            output_height=16,
         )
         return Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     except Exception:
@@ -76,15 +65,15 @@ def _make_icon():
     except ImportError:
         return None
 
-    size = 64
+    size = 256
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     # Gradient-ish background (approximate purple→blue)
-    draw.ellipse([2, 2, size - 2, size - 2], fill=(110, 72, 170, 255))
+    draw.ellipse([4, 4, size - 4, size - 4], fill=(110, 72, 170, 255))
 
     try:
-        font = ImageFont.truetype("arial.ttf", 18)
+        font = ImageFont.truetype("arial.ttf", 72)
     except Exception:
         font = ImageFont.load_default()
 
