@@ -213,7 +213,7 @@ function btag(e){if(e.streaming&&e.response_body==null)return\'<span class="tag 
 function esc(s){return String(s??\'\'). replace(/&/g,\'&amp;\').replace(/</g,\'&lt;\').replace(/>/g,\'&gt;\');}
 function fmt(v){if(v==null)return\'(empty)\';if(typeof v===\'object\')return JSON.stringify(v,null,2);return String(v);}
 async function load(){
-  try{var r=await fetch(\'/api/logs?limit=500\');if(!r.ok)return;var d=await r.json();all=d.entries||[];render();}catch(e){}
+  try{var r=await fetch(\'/api/logs?limit=500\', { credentials: 'include' });if(!r.ok)return;var d=await r.json();all=d.entries||[];render();}catch(e){}
 }
 function render(){
   var q=document.getElementById(\'q\').value.trim().toLowerCase();
@@ -478,9 +478,9 @@ class Api:
             """Return ``True`` when *path* must present a G4F API key."""
             return (
                 path.startswith("/v1/")
-                or path.startswith("/api/")
+                or (path.startswith("/api/") and path != "/api/logs")
                 or (path.startswith("/pa/") and not demo)
-                or (demo and path in ["/backend-api/v2/upload_cookies", "/logs", "/api/logs"])
+                or (demo and path in ["/backend-api/v2/upload_cookies"])
             )
 
         @self.app.middleware("http")
@@ -542,7 +542,7 @@ class Api:
                     if user_g4f_api_key:
                         if user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                    elif path.startswith("/backend-api/") or path.startswith("/chat/"):
+                    elif path.startswith("/backend-api/") or path.startswith("/chat/") or path.startswith("/playground/") or path in ["/logs", "/api/logs"]:
                         try:
                             user = await self.get_username(request)
                         except HTTPException as e:
