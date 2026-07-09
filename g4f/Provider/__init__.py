@@ -33,7 +33,7 @@ __map_paths__ = {
     "CopilotSession": "g4f.Provider.CopilotSession",
     "CreateImagesProvider": "g4f.providers.create_images",
     "Custom": "g4f.Provider.needs_auth.Custom",
-    "DeepInfra": "g4f.Provider.DeepInfra",
+    "DeepInfra": "g4f.Provider.deepinfra",
     "DeepSeek": "g4f.Provider.needs_auth.DeepSeek",
     "DeepSeekAPI": "g4f.Provider.needs_auth.DeepSeekAPI",
     "EasyChat": "g4f.Provider.EasyChat",
