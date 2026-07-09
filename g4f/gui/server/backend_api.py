@@ -38,7 +38,6 @@ except ImportError:
     has_crypto = False
 
 from ...client import Client
-from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
 from ...providers.response import FinishReason, AudioResponse, MediaResponse, Reasoning, HiddenResponse, JsonResponse
 from ...client.helper import filter_markdown
@@ -49,10 +48,7 @@ from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP, is_saf
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ...client.service import get_model_and_provider
-from ...providers.any_model_map import model_map
-from ... import Provider
-from ... import models
-from ...Provider import ProviderUtils
+from ...client.factory import AbstractClientFactory
 from .api import Api
 
 logger = logging.getLogger(__name__)
@@ -260,8 +256,8 @@ class Backend_Api(Api):
 
             # Resolve provider class
             try:
-                provider_class = ProviderUtils.get_by_label(provider)
-            except ValueError as e:
+                provider_class = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
                 return jsonify({"error": {"message": str(e)}}), 404
 
             if request.method == 'GET':
@@ -345,25 +341,16 @@ class Backend_Api(Api):
                 json_data['timeout'] = app.timeout
             if app.stream_timeout:
                 json_data['stream_timeout'] = app.stream_timeout
-            if app.demo and not json_data.get("provider"):
-                model = json_data.get("model")
-                if model != "default" and model in models.demo_models:
-                    json_data["provider"] = random.choice(models.demo_models[model][1])
-                else:
-                    json_data["provider"] = models.HuggingFace
             if app.demo:
                 json_data["user"] = request.headers.get("x-user", "error")
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
 
             kwargs = self._prepare_conversation_kwargs(json_data)
-            provider = kwargs.pop("provider", None)
-            if provider and provider  not in Provider.__map__:
-                if provider in model_map:
-                    kwargs['model'] = provider
-                    provider = None
-                else:
-                    return jsonify({"error": {"message": "Provider not found"}}), 404
+            try:
+                provider = AbstractClientFactory.create_provider(None, kwargs.pop("provider", None))
+            except ProviderNotFoundError as e:
+                return jsonify({"error": {"message": str(e)}}), 404
             return self.app.response_class(
                 safe_iter_generator(self._create_response_stream(
                     kwargs,
@@ -406,11 +393,11 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/quota/<provider>', methods=['GET'])
         async def get_quota(provider: str):
             try:
-                provider_handler = convert_to_provider(provider)
-            except ProviderNotFoundError:
-                return "Provider not found", 404
+                provider_handler = AbstractClientFactory.create_provider(None, provider)
+            except ProviderNotFoundError as e:
+                return jsonify({"error": {"message": str(e)}}), 404
             if not hasattr(provider_handler, "get_quota"):
-                return "Provider doesn't support get_quota", 500
+                return jsonify({"error": {"message": "Provider doesn't support get_quota"}}), 500
             request_api_key = request.headers.get("x-api-key")
             try:
                 return jsonify(await provider_handler.get_quota(api_key=request_api_key))
@@ -751,11 +738,11 @@ class Backend_Api(Api):
 
     def handle_synthesize(self, provider: str):
         try:
-            provider_handler = convert_to_provider(provider)
-        except ProviderNotFoundError:
-            return "Provider not found", 404
+            provider_handler = AbstractClientFactory.create_provider(None, provider)
+        except ProviderNotFoundError as e:
+            return jsonify({"error": {"message": str(e)}}), 404
         if not hasattr(provider_handler, "synthesize"):
-            return "Provider doesn't support synthesize", 500
+            return jsonify({"error": {"message": "Provider doesn't support synthesize"}}), 500
         response_data = provider_handler.synthesize({**request.args})
         if asyncio.iscoroutinefunction(provider_handler.synthesize):
             response_data = asyncio.run(response_data)

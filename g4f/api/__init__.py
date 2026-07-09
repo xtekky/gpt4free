@@ -1023,6 +1023,7 @@ class Api:
             "woff2": "font/woff2",
             "ttf":   "font/ttf",
             "otf":   "font/otf",
+            "py":    "text/plain; charset=utf-8",
         }
 
         @self.app.get("/pa/files/{file_path:path}", responses={

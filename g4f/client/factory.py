@@ -126,6 +126,8 @@ class AbstractClientFactory:
                     from g4f.mcp.pa_provider import get_pa_registry
                     registry = get_pa_registry()
                     if provider:
+                        if provider.startswith("pa:"):
+                            provider = provider[3:]
                         provider_cls = registry.get_provider_class(provider)
                         if provider_cls:
                             return provider_cls
