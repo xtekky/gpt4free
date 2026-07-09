@@ -100,7 +100,7 @@ logger = logging.getLogger(__name__)
 # Request / response log store
 # ---------------------------------------------------------------------------
 
-_MAX_LOG_ENTRIES = 1000
+_MAX_LOG_ENTRIES = 250
 _MAX_BODY_LOG_SIZE = 1024 * 1024  # 1 MB
 _SENSITIVE_HEADERS = {"authorization", "g4f-api-key", "cookie", "set-cookie", "x-api-key"}
 
@@ -477,10 +477,10 @@ class Api:
         def _requires_api_key(path: str, demo: bool) -> bool:
             """Return ``True`` when *path* must present a G4F API key."""
             return (
-                path.startswith("/v1")
+                path.startswith("/v1/")
                 or path.startswith("/api/")
                 or (path.startswith("/pa/") and not demo)
-                or (demo and path == "/backend-api/v2/upload_cookies")
+                or (demo and path in ["/backend-api/v2/upload_cookies", "/logs", "/api/logs"])
             )
 
         @self.app.middleware("http")
