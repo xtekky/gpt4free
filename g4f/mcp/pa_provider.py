@@ -594,6 +594,7 @@ class PaProviderRegistry:
                 if cls is None:
                     continue
                 provider_id = self._make_id(pa_path)
+                cls.__name__ = f"pa:{provider_id}"
                 models_list: List[str] = []
                 try:
                     if hasattr(cls, "get_models"):
