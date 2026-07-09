@@ -291,8 +291,6 @@ def create_app():
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
-        if AppConfig.demo:
-            return await call_next(request)
         global _log_id_counter
         path = request.url.path
         if any(path.startswith(p) for p in _LOG_SKIP_PREFIXES) or path in _LOG_SKIP_EXACT:
@@ -480,7 +478,7 @@ class Api:
                 path.startswith("/v1/")
                 or (path.startswith("/api/") and path != "/api/logs")
                 or (path.startswith("/pa/") and not demo)
-                or (demo and path in ["/backend-api/v2/upload_cookies"])
+                or (demo and path in ["/backend-api/v2/upload_cookies", "/api/logs"])
             )
 
         @self.app.middleware("http")
