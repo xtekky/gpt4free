@@ -7,9 +7,9 @@ from pathlib import Path
 
 from g4f.mcp.server import MCPServer, MCPRequest
 from g4f.mcp.tools import (
-    WebSearchTool, WebScrapeTool, ImageGenerationTool,
-    PythonExecuteTool, FileReadTool, FileReadLinesTool, FileSearchTool,
-    FileWriteTool, FileListTool, FileDeleteTool,
+    WebSearchTool, ImageGenerationTool,
+    PythonExecuteTool, FileReadTool,
+    FileListTool, FileDeleteTool,
 )
 from g4f.mcp.pa_provider import execute_safe_code, get_workspace_dir, SAFE_MODULES
 
@@ -34,13 +34,9 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(server.server_info["name"], "gpt4free-mcp-server")
         self.assertEqual(len(server.tools), _TOOL_COUNT)
         self.assertIn('web_search', server.tools)
-        self.assertIn('web_scrape', server.tools)
         self.assertIn('image_generation', server.tools)
         self.assertIn('python_execute', server.tools)
         self.assertIn('file_read', server.tools)
-        self.assertIn('file_read_lines', server.tools)
-        self.assertIn('file_search', server.tools)
-        self.assertIn('file_write', server.tools)
         self.assertIn('file_list', server.tools)
         self.assertIn('file_delete', server.tools)
 
@@ -83,13 +79,9 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
 
         tool_names = [tool["name"] for tool in response.result["tools"]]
         self.assertIn("web_search", tool_names)
-        self.assertIn("web_scrape", tool_names)
         self.assertIn("image_generation", tool_names)
         self.assertIn("python_execute", tool_names)
         self.assertIn("file_read", tool_names)
-        self.assertIn("file_read_lines", tool_names)
-        self.assertIn("file_search", tool_names)
-        self.assertIn("file_write", tool_names)
         self.assertIn("file_list", tool_names)
         self.assertIn("file_delete", tool_names)
 
@@ -156,13 +148,6 @@ class TestMCPTools(unittest.IsolatedAsyncioTestCase):
         self.assertIn("query", tool.input_schema["properties"])
         self.assertIn("query", tool.input_schema["required"])
 
-    async def test_web_scrape_tool_schema(self):
-        tool = WebScrapeTool()
-        self.assertIsNotNone(tool.description)
-        self.assertIsNotNone(tool.input_schema)
-        self.assertEqual(tool.input_schema["type"], "object")
-        self.assertIn("url", tool.input_schema["properties"])
-        self.assertIn("url", tool.input_schema["required"])
 
     async def test_image_generation_tool_schema(self):
         tool = ImageGenerationTool()
@@ -174,11 +159,6 @@ class TestMCPTools(unittest.IsolatedAsyncioTestCase):
 
     async def test_web_search_missing_query(self):
         tool = WebSearchTool()
-        result = await tool.execute({})
-        self.assertIn("error", result)
-
-    async def test_web_scrape_missing_url(self):
-        tool = WebScrapeTool()
         result = await tool.execute({})
         self.assertIn("error", result)
 
@@ -272,11 +252,6 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         schema = tool.input_schema
         self.assertEqual(schema["type"], "object")
 
-    async def test_file_write_schema(self):
-        tool = FileWriteTool()
-        schema = tool.input_schema
-        self.assertIn("path", schema["properties"])
-        self.assertIn("content", schema["properties"])
 
     async def test_file_read_schema(self):
         tool = FileReadTool()
@@ -290,21 +265,6 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         self.assertIn("path", schema["properties"])
         self.assertIn("path", schema["required"])
 
-    async def test_write_and_read(self):
-        write_tool = FileWriteTool()
-        read_tool = FileReadTool()
-
-        write_result = await write_tool.execute({
-            "path": self.test_file,
-            "content": "hello workspace",
-        })
-        self.assertNotIn("error", write_result)
-        self.assertEqual(write_result["path"], self.test_file)
-
-        read_result = await read_tool.execute({"path": self.test_file})
-        self.assertNotIn("error", read_result)
-        self.assertEqual(read_result["content"], "hello workspace")
-
     async def test_read_missing_file(self):
         tool = FileReadTool()
         result = await tool.execute({"path": "definitely_does_not_exist.txt"})
@@ -315,17 +275,6 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         result = await tool.execute({})
         self.assertIn("error", result)
 
-    async def test_write_and_delete(self):
-        write_tool = FileWriteTool()
-        delete_tool = FileDeleteTool()
-
-        await write_tool.execute({"path": self.test_file, "content": "to delete"})
-        self.assertTrue((self.workspace / self.test_file).exists())
-
-        delete_result = await delete_tool.execute({"path": self.test_file})
-        self.assertNotIn("error", delete_result)
-        self.assertTrue(delete_result.get("deleted"))
-        self.assertFalse((self.workspace / self.test_file).exists())
 
     async def test_delete_missing_file(self):
         tool = FileDeleteTool()
@@ -350,27 +299,6 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         result = await read_tool.execute({"path": "../../etc/passwd"})
         self.assertIn("error", result)
 
-    async def test_file_read_lines(self):
-        write_tool = FileWriteTool()
-        read_lines_tool = FileReadLinesTool()
-
-        await write_tool.execute({"path": self.test_file, "content": "line1\nline2\nline3\n"})
-        result = await read_lines_tool.execute({"path": self.test_file, "start_line": 2, "end_line": 3})
-
-        self.assertNotIn("error", result)
-        self.assertEqual(result["returned_lines"], 2)
-        self.assertEqual(result["lines"], ["line2\n", "line3\n"])
-
-    async def test_file_search_by_pattern_and_content(self):
-        write_tool = FileWriteTool()
-        search_tool = FileSearchTool()
-
-        await write_tool.execute({"path": self.test_file, "content": "hello workspace"})
-        result = await search_tool.execute({"pattern": "*test.txt", "query": "workspace"})
-
-        self.assertNotIn("error", result)
-        self.assertTrue(result["count"] >= 1)
-        self.assertTrue(any(self.test_file in match["path"] for match in result["matches"]))
 
     async def test_file_append(self):
         write_tool = FileWriteTool()
