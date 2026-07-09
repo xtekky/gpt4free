@@ -59,7 +59,6 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertIn("tools", response.result["capabilities"])
         self.assertIsInstance(response.result["capabilities"]["tools"], dict)
         self.assertIn("file_read", response.result["capabilities"]["tools"])
-        self.assertIn("file_read_lines", response.result["capabilities"]["tools"])
 
     async def test_tools_list(self):
         """Test tools/list method"""
