@@ -529,8 +529,8 @@ def list_pa_providers(directory: "Optional[str | Path]" = None) -> List[Path]:
         directory = get_workspace_dir()
     directory = Path(directory)
     if not directory.exists():
-        return []
-    return sorted(directory.rglob("*.pa.py"))
+        return directory, []
+    return directory, sorted(directory.rglob("*.pa.py"))
 
 
 # ---------------------------------------------------------------------------
@@ -582,7 +582,8 @@ class PaProviderRegistry:
     def refresh(self) -> None:
         """Re-scan the workspace and reload all ``.pa.py`` providers."""
         entries: List[tuple] = []
-        for pa_path in list_pa_providers():
+        directory, pa_paths = list_pa_providers()
+        for pa_path in pa_paths:
             try:
                 cls = load_pa_provider(pa_path)
                 if cls is None:
@@ -604,6 +605,7 @@ class PaProviderRegistry:
                     bool(getattr(cls, "working", True)),
                     getattr(cls, "url", None),
                     cls,
+                    str(pa_path)[len(str(directory)):]
                 ))
             except Exception:
                 pass
@@ -621,6 +623,7 @@ class PaProviderRegistry:
                 "models": e[2],
                 "working": e[3],
                 "url": e[4],
+                "path": e[6]
             }
             for e in self._entries
         ]
@@ -645,6 +648,7 @@ class PaProviderRegistry:
                     "models": e[2],
                     "working": e[3],
                     "url": e[4],
+                    "path": e[6]
                 }
         return None
 

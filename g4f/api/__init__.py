@@ -624,7 +624,7 @@ class Api:
             except ValueError as e:
                 return ErrorResponse.from_message(str(e), 404)
             if not hasattr(provider, "get_models"):
-                models = []
+                models = getattr(provider, "models", [])
             elif credentials is not None and credentials.credentials != "secret":
                 models = provider.get_models(api_key=credentials.credentials)
             else:
@@ -641,7 +641,7 @@ class Api:
                     "audio": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "audio_models", []),
                     "video": (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "video_models", []),
                     "type": "image" if (model.get("id") if isinstance(model, dict) else model) in getattr(provider, "image_models", []) else "chat",
-                    "count": provider.models_count.get(model.get("id") if isinstance(model, dict) else model, 0),
+                    "count": provider.models_count.get(model.get("id"), 0) if isinstance(model, dict) else 0,
                     **(model if isinstance(model, dict) else {})
                 } for model in (models.values() if isinstance(models, dict) else models)]
             }

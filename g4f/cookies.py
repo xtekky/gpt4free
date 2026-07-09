@@ -67,6 +67,10 @@ class BrowserConfig:
         cls.host = os.environ.get("G4F_BROWSER_HOST", cls.host)
         cls.executable_path = os.environ.get("G4F_BROWSER_EXECUTABLE_PATH", cls.executable_path)
         cls.connection_timeout = float(os.environ.get("G4F_BROWSER_CONNECTION_TIMEOUT", cls.connection_timeout))
+        if cls.port:
+            cls.port = int(cls.port)
+            debug.log(f"Using browser: {cls.host}:{cls.port}")
+        cls.impersonate = os.environ.get("G4F_BROWSER_IMPERSONATE", cls.impersonate)
 
 COOKIE_DOMAINS = (
     ".bing.com",
@@ -231,12 +235,8 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
         debug.error("Warning: 'python-dotenv' is not installed. Env vars not loaded.")
 
     AppConfig.load_from_env()
-
     BrowserConfig.load_from_env()
-    if BrowserConfig.port:
-        BrowserConfig.port = int(BrowserConfig.port)
-        debug.log(f"Using browser: {BrowserConfig.host}:{BrowserConfig.port}")
-    BrowserConfig.impersonate = os.environ.get("G4F_BROWSER_IMPERSONATE", BrowserConfig.impersonate)
+    
     if os.path.exists(os.path.join(dir_path, ".browser_is_open")):
         os.remove(os.path.join(dir_path, ".browser_is_open"))
 
