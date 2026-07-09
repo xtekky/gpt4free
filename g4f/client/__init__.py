@@ -81,6 +81,7 @@ def iter_response(
     conversation: JsonConversation = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
+    headers = None
 
     if hasattr(response, '__aiter__'):
         response = to_sync_generator(response)
@@ -104,6 +105,9 @@ def iter_response(
             continue
         elif isinstance(chunk, Reasoning):
             reasoning.append(chunk)
+        elif isinstance(chunk, HeadersResponse):
+            headers = chunk
+            continue
         elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
             continue
         elif not chunk:
@@ -125,6 +129,8 @@ def iter_response(
             if provider_info is not None:
                 chunk.provider = provider_info.name
                 chunk.model = provider_info.model
+            if headers is not None:
+                chunk._headers = headers
             yield chunk
 
         if finish_reason is not None:
@@ -156,6 +162,8 @@ def iter_response(
     if provider_info is not None:
         chat_completion.provider = provider_info.name
         chat_completion.model = provider_info.model
+    if headers is not None:
+        chat_completion._headers = headers
     yield chat_completion
 
 async def async_iter_response(
@@ -174,6 +182,7 @@ async def async_iter_response(
     tool_calls = None
     usage = None
     conversation: JsonConversation = None
+    headers = None
 
     try:
         async for chunk in response:
@@ -195,6 +204,9 @@ async def async_iter_response(
                 continue
             elif isinstance(chunk, Reasoning) and not stream:
                 reasoning.append(chunk)
+            elif isinstance(chunk, HeadersResponse):
+                headers = chunk
+                continue
             elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
                 continue
             elif not chunk:
@@ -216,6 +228,8 @@ async def async_iter_response(
                 if provider_info is not None:
                     chunk.provider = provider_info.name
                     chunk.model = provider_info.model
+                if headers is not None:
+                    chunk._headers = headers
                 yield chunk
 
             if finish_reason is not None:
@@ -244,6 +258,8 @@ async def async_iter_response(
                 conversation=conversation,
                 reasoning=reasoning if reasoning else None
             )
+        if headers is not None:
+            chat_completion._headers = headers
         if provider_info is not None:
             chat_completion.provider = provider_info.name
             chat_completion.model = provider_info.model

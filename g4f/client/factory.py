@@ -89,11 +89,13 @@ class AbstractClientFactory:
         """
         if not isinstance(provider, str):
             return provider
+        elif provider.startswith("http://") or provider.startswith("https://"):
+            provider = create_custom_provider(provider, api_key, name=name, **kwargs)
         elif provider.startswith("custom:"):
             base_url = f"https://g4f.space/custom/{provider[7:]}"
             if not api_key and not cls.is_provider_api_key(AppConfig.g4f_api_key):
                 api_key = AppConfig.g4f_api_key
-            provider = create_custom_provider(base_url, api_key, name=name, **kwargs)            
+            provider = create_custom_provider(base_url, api_key, name=name, **kwargs)
         elif provider in ProviderUtils.convert:
             provider = ProviderUtils.convert[provider]
         else:
