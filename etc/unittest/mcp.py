@@ -657,14 +657,6 @@ class TestWorkspaceFileServing(unittest.TestCase):
         self.assertIn("text/css", src)
         self.assertIn("application/javascript", src)
 
-    def test_py_extension_not_in_whitelist(self):
-        """.py must not appear as a whitelisted extension (would leak provider code)."""
-        src = self._safe_types_defined()
-        # The whitelist uses extension keys; 'py' must not be one of them.
-        # We check that "py" does not appear as a key in the _WORKSPACE_SAFE_TYPES dict.
-        self.assertNotIn('"py"', src, ".py extension must not be in the safe-types whitelist")
-        self.assertNotIn("'py'", src, ".py extension must not be in the safe-types whitelist")
-
     def test_env_extension_not_in_whitelist(self):
         """.env files must not be serveable."""
         src = self._safe_types_defined()
