@@ -88,6 +88,7 @@ def is_hidden_file(path: str) -> bool:
 
 #: Modules that are allowed inside the safe execution sandbox.
 SAFE_MODULES: FrozenSet[str] = frozenset({
+    "__future__", "concurrent", "warnings", "urllib3", "urllib3.exceptions",
     # Math / numeric
     "math", "cmath", "decimal", "fractions", "statistics", "random", "numbers",
     # String / text
@@ -603,7 +604,7 @@ class PaProviderRegistry:
                 except Exception:
                     pass
                 relative_path = pa_path.relative_to(directory).as_posix()
-                print(f"Loaded PA provider: {provider_id} ({relative_path})")
+                debug.log(f"Loaded PA provider: {provider_id} ({relative_path})")
                 if is_hidden_file(relative_path):
                     relative_path = None
                 entries.append((

@@ -26,7 +26,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
-import g4f.Provider
+from g4f.providers.any_provider import AnyProvider
 from g4f.client import ClientFactory
 
 from mcp_tools import MCPToolManager, ALL_AVAILABLE_TOOLS, SAFE_DEFAULT_TOOLS
@@ -38,6 +38,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 TOKEN = os.getenv("DISCORD_TOKEN")
 MODEL = os.getenv("G4F_MODEL", "auto")
+IMAGE_MODEL = os.getenv("G4F_IMAGE_MODEL", "flux")
 SYSTEM_PROMPT = os.getenv(
     "G4F_SYSTEM_PROMPT",
     "You are a helpful, friendly Discord assistant. Keep answers concise "
@@ -70,7 +71,7 @@ log = logging.getLogger("g4f-discord")
 # ---------------------------------------------------------------------------
 client = ClientFactory.create_async_client(provider="default",
                                            api_key=os.getenv("G4F_API_KEY"),
-                                           media_provider=os.getenv("G4F_MEDIA_PROVIDER"))
+                                           media_provider=os.getenv("G4F_MEDIA_PROVIDER", AnyProvider))
 mcp = MCPToolManager(enabled_tools=ENABLED_TOOLS)
 
 # Per-user conversation history: user_id -> deque of {"role", "content"}
@@ -467,7 +468,7 @@ async def image(
 ):
     await interaction.response.defer(thinking=True)
     try:
-        m = _normalize_model_name(model) if model else MODEL
+        m = _normalize_model_name(model) if model else IMAGE_MODEL
         generated = await _generate_image(prompt=prompt, model=m)
     except Exception as e:
         log.exception("Image generation failed")
@@ -575,8 +576,7 @@ async def on_message(message: discord.Message):
     try:
         # Create a placeholder then edit/send final result.
         placeholder = await message.channel.send("🖼️ Generating…")
-        m = MODEL
-        generated = await _generate_image(prompt=prompt, model=m)
+        generated = await _generate_image(prompt=prompt, model=IMAGE_MODEL)
 
         if generated.startswith("http://") or generated.startswith("https://"):
             embed = discord.Embed(title="🖼️ Generated image")

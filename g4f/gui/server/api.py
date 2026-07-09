@@ -178,6 +178,7 @@ class Api:
         debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         try:
+            model = kwargs.get("model")
             provider_handler = provider or AnyProvider
             provider = provider_handler.__name__ if provider_handler else provider
             if "user" in kwargs:
