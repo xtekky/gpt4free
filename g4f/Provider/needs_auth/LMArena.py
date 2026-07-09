@@ -119,6 +119,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         "getEmailProvider": "607c2dd3d84af5a00b322b577498d1b2a739c5dfe0",
         "deleteAccount": "40a57e8c369eaf8a82483fae2f8106489ce041dffd",
     }
+    _grecaptcha = []
 
     @classmethod
     def load_models(cls, models_data: str):
@@ -199,7 +200,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     @classmethod
     async def get_args_from_nodriver(cls, proxy, clear_cookies=False):
         cache_file = cls.get_cache_file()
-        grecaptcha = []
 
         async def callback(page: nodriver.Tab):
             try:
@@ -245,11 +245,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 await asyncio.sleep(1)
             while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
                 await asyncio.sleep(1)
-            captcha = await page.evaluate(
-                """window.grecaptcha.enterprise.execute('6LeTGMcsAAAAALuIlkVwIxaAuZA8VledA6d3Nnb0',  { action: 'chat_submit' }  );""",
-                await_promise=True)
-            grecaptcha.append(captcha)
-            debug.log("Obtained grecaptcha token.")
+            for _ in range(1):
+                captcha = await page.evaluate(
+                    """window.grecaptcha.enterprise.execute('6LeTGMcsAAAAALuIlkVwIxaAuZA8VledA6d3Nnb0',  { action: 'chat_submit' }  );""",
+                    await_promise=True)
+                cls._grecaptcha.append(captcha)
+                debug.log("Obtained grecaptcha token.")
             html = await page.get_content()
             await cls.__load_actions(html)
 
@@ -259,37 +260,39 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         with cache_file.open("w") as f:
             json.dump(args, f)
 
-        return args, next(iter(grecaptcha))
+        return args
 
     @classmethod
     async def get_grecaptcha(cls, args, proxy):
         cache_file = cls.get_cache_file()
-        grecaptcha = []
+        if cls._grecaptcha:
+            return args
 
         async def callback(page: nodriver.Tab):
             while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
                 await asyncio.sleep(1)
-            captcha = await page.evaluate(
-                """new Promise((resolve) => {
-                    window.grecaptcha.enterprise.ready(async () => {
-                        try {
-                            const token = await window.grecaptcha.enterprise.execute(
-                                '6LeTGMcsAAAAALuIlkVwIxaAuZA8VledA6d3Nnb0',
-                                { action: 'chat_submit' }
-                            );
-                            resolve(token);
-                        } catch (e) {
-                            console.error("[LMArena API] reCAPTCHA execute failed:", e);
-                            resolve(null);
-                        }
-                    });
-                });""",
-                await_promise=True
-            )
-            if isinstance(captcha, str):
-                grecaptcha.append(captcha)
-            else:
-                raise Exception(captcha)
+            for _ in range(1):
+                captcha = await page.evaluate(
+                    """new Promise((resolve) => {
+                        window.grecaptcha.enterprise.ready(async () => {
+                            try {
+                                const token = await window.grecaptcha.enterprise.execute(
+                                    '6LeTGMcsAAAAALuIlkVwIxaAuZA8VledA6d3Nnb0',
+                                    { action: 'chat_submit' }
+                                );
+                                resolve(token);
+                            } catch (e) {
+                                console.error("[LMArena API] reCAPTCHA execute failed:", e);
+                                resolve(null);
+                            }
+                        });
+                    });""",
+                    await_promise=True
+                )
+                if isinstance(captcha, str):
+                    cls._grecaptcha.append(captcha)
+                else:
+                    raise Exception(captcha)
             html = await page.get_content()
             await cls.__load_actions(html)
 
@@ -300,7 +303,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         with cache_file.open("w") as f:
             json.dump(args, f)
 
-        return args, next(iter(grecaptcha))
+        return args
 
     @classmethod
     async def __load_actions(cls, html):
@@ -375,7 +378,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         for v, k in start_id:
             if len(v) == 42:
                 cls._next_actions[k] = v
-                debug.log(f"{k}: {v}")
             else:
                 debug.error(f"wrong {k} value: {v}")
 
@@ -496,13 +498,12 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
         args = cls.read_args(kwargs.get("lmarena_args", {}))
-        grecaptcha = kwargs.pop("grecaptcha", "")
         _need_clear_cookies = False
         for _ in range(2):
             if args:
                 pass
             elif has_nodriver:
-                args, grecaptcha = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
+                args = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
             else:
                 raise MissingRequirementsError("No auth file found and nodriver is not available.")
 
@@ -533,7 +534,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             if modelAId and modelBId:
                 mode = "side-by-side"
             elif modelAId:
-                mode = "direct"
+                mode = "direct-battle"
             else:
                 mode = "battle"
             if conversation and getattr(conversation, "evaluationSessionId", None):
@@ -546,9 +547,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             userMessageId = str(uuid7())
             modelAMessageId = str(uuid7())
             modelBMessageId = str(uuid7())
-            if not grecaptcha and has_nodriver:
+            if not cls._grecaptcha and has_nodriver:
                 debug.log("No grecaptcha token found, obtaining new one...")
-                args, grecaptcha = await cls.get_grecaptcha(args, proxy)
+                args = await cls.get_grecaptcha(args, proxy)
             files = await cls.prepare_images(args, media)
             data = {
                 "id": evaluationSessionId,
@@ -561,7 +562,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     "metadata": {}
                 },
                 "modality": "image" if is_image_model else "chat",
-                "recaptchaV3Token": grecaptcha
+                "recaptchaV3Token": cls._grecaptcha.pop() if cls._grecaptcha else "",
             }
             if modelAId:
                 data["modelAId"] = modelAId
@@ -630,6 +631,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 debug.log(f"{cls.__name__}: Cloudflare error")
                 continue
             except RateLimitError as error:
+                if "prompt failed" in str(error):
+                    raise
                 args = None
                 _need_clear_cookies = True
                 debug.error(error)

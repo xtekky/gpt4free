@@ -131,6 +131,7 @@ if [[ "$BROWSER_BIN" == *.exe ]]; then
     rm -f ~/.g4f/cookies/.browser_is_open
     "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
 else
+    socat tcp-listen:9223,reuseaddr,fork tcp:localhost:57011 &
     # Linux: loop and relaunch if the browser exits
     while true; do
         rm -f ~/.g4f/cookies/.browser_is_open
