@@ -478,7 +478,7 @@ class Api:
                 path.startswith("/v1/")
                 or (path.startswith("/api/") and path != "/api/logs")
                 or (path.startswith("/pa/") and not demo)
-                or (demo and path in ["/backend-api/v2/upload_cookies", "/api/logs"])
+                or (demo and path in ["/backend-api/v2/upload_cookies"])
             )
 
         @self.app.middleware("http")
@@ -536,11 +536,11 @@ class Api:
                             return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                         if AppConfig.g4f_api_key is None and user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                elif not AppConfig.demo and not path.startswith("/images/") and not path.startswith("/media/"):
+                elif path == "/logs" or (not AppConfig.demo and not path.startswith("/images/") and not path.startswith("/media/")):
                     if user_g4f_api_key:
                         if user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                    elif path.startswith("/backend-api/") or path.startswith("/chat/") or path.startswith("/playground/") or path in ["/logs", "/api/logs"]:
+                    elif path.startswith("/backend-api/") or path.startswith("/chat/") or path.startswith("/playground/") or path in ["/logs"]:
                         try:
                             user = await self.get_username(request)
                         except HTTPException as e:
