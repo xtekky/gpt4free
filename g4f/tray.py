@@ -154,8 +154,8 @@ def run_tray(
     # ------------------------------------------------------------------ #
     # Menu callbacks                                                       #
     # ------------------------------------------------------------------ #
-    def on_open_browser(icon, item):
-        webbrowser.open(browser_url)
+    def on_open_browser(pathname: str = ""):
+        webbrowser.open(f"{browser_url}{pathname}")
 
     def on_toggle_server(icon, item):
         if _server_running.is_set():
@@ -181,6 +181,8 @@ def run_tray(
         pystray.MenuItem("Open in Browser", on_open_browser, default=True),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(server_label, on_toggle_server, enabled=server_enabled),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Show logs", lambda: on_open_browser("/logs")),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", on_quit),
     )
