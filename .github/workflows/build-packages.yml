@@ -154,6 +154,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip uninstall -y wasmtime
           pip install nuitka
           pip install -e .
       - name: Write g4f_cli.py
