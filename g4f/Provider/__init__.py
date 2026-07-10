@@ -41,7 +41,7 @@ __map_paths__ = {
     "Feature": "g4f.Provider.needs_auth.Custom",
     "Felo": "g4f.Provider.Felo",
     "FenayAI": "g4f.Provider.needs_auth.FenayAI",
-    "GLM": "g4f.Provider.GLM",
+    "GLM": "g4f.Provider.glm",
     "Gemini": "g4f.Provider.needs_auth.Gemini",
     "GeminiCLI": "g4f.Provider.needs_auth.GeminiCLI",
     "GeminiPro": "g4f.Provider.needs_auth.GeminiPro",

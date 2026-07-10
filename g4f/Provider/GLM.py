@@ -4,7 +4,6 @@ import os
 import json
 import time
 import hashlib
-import hmac
 import uuid
 import requests
 import urllib.parse
@@ -14,11 +13,12 @@ from ..providers.response import Usage, Reasoning
 from ..requests import StreamSession, raise_for_status
 from ..errors import ModelNotFoundError, ProviderException
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
+from .helper import get_last_user_message
 
 class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     url = "https://chat.z.ai"
     api_endpoint = "https://chat.z.ai/api/chat/completions"
-    working = False
+    working = True
     active_by_default = True
     default_model = "GLM-4.5"
 
@@ -26,50 +26,26 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     auth_user_id = None
 
     @classmethod
-    def create_signature_with_timestamp(cls,e: str, t: str):
-        current_time = int(time.time() * 1000)  # Current time in milliseconds
-        current_time_string = str(current_time)
-        data_string = f"{e}|{t}|{current_time_string}"
-        time_window = current_time // (5 * 60 * 1000)  # 5 minutes in milliseconds
-        
-        base_signature = hmac.new(
-            "junjie".encode("utf-8"),
-            str(time_window).encode("utf-8"),
-            hashlib.sha256
-        ).hexdigest()
-        
-        signature = hmac.new(
-            base_signature.encode("utf-8"),
-            data_string.encode("utf-8"),
-            hashlib.sha256
-        ).hexdigest()
-        
-        return {
-            "signature": signature,
-            "timestamp": current_time
-        }
-
-    @classmethod
-    def prepare_auth_params(cls, token: str, user_id: str):
-        # Basic parameters
+    def _build_url_params(cls, token: str, user_id: str) -> str:
+        """Build URL query parameters including browser fingerprint data."""
         current_time = str(int(time.time() * 1000))
-        request_id = str(uuid.uuid1())  # Using uuid1 which is equivalent to v1
-        
-        basic_params = {
+        request_id = str(uuid.uuid1())
+
+        params = {
             "timestamp": current_time,
             "requestId": request_id,
-            "user_id": user_id,
-        }
-        
-        # Additional parameters
-        additional_params = {
+            "user_id": user_id or "",
             "version": "0.0.1",
             "platform": "web",
             "token": token,
-            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "user_agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/130.0.0.0 Safari/537.36"
+            ),
             "language": "en-US",
             "languages": "en-US,en",
-            "timezone": "Asia/Jakarta",
+            "timezone": "America/New_York",
             "cookie_enabled": "true",
             "screen_width": "1920",
             "screen_height": "1080",
@@ -79,115 +55,79 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "viewport_size": "1440x900",
             "color_depth": "24",
             "pixel_ratio": "1",
-            "current_url": "https://chat.z.ai/c/e1295904-98d3-4d85-b6ee-a211471101e9",
+            "current_url": "https://chat.z.ai/",
             "pathname": "/",
             "search": "",
             "hash": "",
-            "host": "z.ai",
+            "host": "chat.z.ai",
             "hostname": "chat.z.ai",
-            "protocol": "https",
-            "referrer": "https://accounts.google.com/",
-            "title": "A Little House Keeping",
+            "protocol": "https:",
+            "referrer": "",
+            "title": "Z.ai",
             "timezone_offset": str(-(time.timezone if time.daylight == 0 else time.altzone) // 60),
-            "local_time": time.strftime('%Y-%m-%dT%H:%M:%S.%fZ', time.gmtime()),
+            "local_time": time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime()),
             "utc_time": time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime()),
             "is_mobile": "false",
             "is_touch": "false",
-            "max_touch_points": "5",
+            "max_touch_points": "0",
             "browser_name": "Chrome",
-            "os_name": "Linux",
+            "os_name": "Windows",
         }
-        
-        # Combine parameters
-        all_params = {**basic_params, **additional_params}
-        
-        # Create URLSearchParams equivalent
-        url_params_string = urllib.parse.urlencode(all_params)
-        
-        # Create sorted payload (basic params only, sorted by key)
-        sorted_payload = ','.join([f"{k},{v}" for k, v in sorted(basic_params.items())])
-        
-        return {
-            "sortedPayload": sorted_payload,
-            "urlParams": url_params_string
-        }
-    
+
+        return urllib.parse.urlencode(params)
+
     @classmethod
-    def get_endpoint_signature(cls, token: str, user_id: str, user_prompt: str):
-        # Get auth parameters
-        auth_params = cls.prepare_auth_params(token, user_id)
-        sorted_payload = auth_params["sortedPayload"]
-        url_params = auth_params["urlParams"]
-        
-        # debug.log(f"Prompt:{user_prompt}")
-        last_user_prompt = user_prompt.strip()
-        
-        # Create signature with timestamp
-        signature_data = cls.create_signature_with_timestamp(sorted_payload, last_user_prompt)
-        signature = signature_data["signature"]
-        timestamp = signature_data["timestamp"]
-        
-        # Construct the endpoint URL
-        endpoint = f"{cls.api_endpoint}?{url_params}&signature_timestamp={timestamp}"
-        
-        return (endpoint, signature, timestamp)
-    
+    def _compute_signature(cls, body_json: str) -> str:
+        """Compute x-signature as SHA-256 hex digest of the serialised request body."""
+        return hashlib.sha256(body_json.encode("utf-8")).hexdigest()
+
     @classmethod
     def get_auth_from_cache(cls):
         cache_file_path = cls.get_cache_file()
-        #get file mtime
-        #if time compared by now is less than 5 minutes
-        # read cache_file_path and return json
-        #else return none
         if cache_file_path.is_file():
-            # Get the modification time of the file
             file_mtime = cache_file_path.stat().st_mtime
-            # Get current time
-            current_time = time.time()
-            # Calculate the difference in seconds
-            time_diff = current_time - file_mtime
-            # Check if the file is less than 30 minutes old (30 * 60 seconds)
-            if time_diff < 5 * 60:
+            if time.time() - file_mtime < 5 * 60:
                 try:
-                    with open(cache_file_path, 'r') as file:
-                        return json.load(file)
+                    with open(cache_file_path, 'r') as f:
+                        return json.load(f)
                 except (json.JSONDecodeError, IOError):
-                    # If there's an error reading or parsing the file, delete it and return None
                     try:
                         os.remove(cache_file_path)
                     except OSError:
-                        pass  # If we can't delete the file, just return None
-                    return None
+                        pass
         return None
-            
-    @classmethod
-    def save_auth_to_cache(cls,data):
-        cache_file_path = cls.get_cache_file()
-        with cache_file_path.open('w') as file:
-            json.dump(data, file)
 
     @classmethod
-    def get_models(cls, **kwargs) -> str:
+    def save_auth_to_cache(cls, data):
+        cache_file_path = cls.get_cache_file()
+        with cache_file_path.open('w') as f:
+            json.dump(data, f)
+
+    @classmethod
+    def get_models(cls, **kwargs) -> list:
         if not cls.models:
             response = requests.get(f"{cls.url}/api/v1/auths/")
-            cls.api_key = response.json().get("token")
-            response = requests.get(f"{cls.url}/api/models", headers={"Authorization": f"Bearer {cls.api_key}"})
-            data = response.json().get("data", [])
-            cls.model_aliases = {data.get("name", "").replace("\u4efb\u52a1\u4e13\u7528", "ChatGLM"): data.get("id") for data in data}
+            auth_data = response.json()
+            cls.api_key = auth_data.get("token")
+            cls.auth_user_id = auth_data.get("id", "")
+            response = requests.get(
+                f"{cls.url}/api/models",
+                headers={"Authorization": f"Bearer {cls.api_key}"}
+            )
+            items = response.json().get("data", [])
+            cls.model_aliases = {
+                item.get("name", "").replace("\u4efb\u52a1\u4e13\u7528", "ChatGLM"): item.get("id")
+                for item in items
+            }
             cls.models = list(cls.model_aliases.keys())
         return cls.models
 
     @classmethod
     def get_last_user_message_content(cls, messages):
-        """
-        Get the content of the last message with role 'user'
-        """
-        # Iterate through messages in reverse order to find the last user message
         for message in reversed(messages):
             if message.get('role') == 'user':
-                return message.get('content')
-        # Return None if no user message is found
-        return None
+                return message.get('content', '')
+        return ''
 
     @classmethod
     async def create_async_generator(
@@ -195,44 +135,135 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        reasoning_effort: str = "max",
+        enable_thinking: bool = True,
+        web_search: bool = False,
         **kwargs
     ) -> AsyncResult:
         cls.get_models()
         try:
             model = cls.get_model(model)
         except ModelNotFoundError:
-            # If get_model fails, use the provided model directly
-            model = model
-        
-        # Ensure we have an API key before proceeding
+            pass
+
         if not cls.api_key:
-            raise ProviderException("Failed to obtain API key from authentication endpoint")
-        
-        user_prompt = cls.get_last_user_message_content(messages)
-        endpoint, signature, timestamp = cls.get_endpoint_signature(cls.api_key,cls.auth_user_id,user_prompt)    
+            raise ProviderException("Failed to obtain API key from Z.ai authentication endpoint")
+
+        # Build the request body first so we can sign the exact bytes we send.
+        # Shape matches the browser's actual chat completions payload.
+        message_id = str(uuid.uuid4())
+        prompt = get_last_user_message(messages)
         data = {
-            "chat_id": "local",
-            "id": str(uuid.uuid4()),
-            "stream": True,
-            "model": model,
-            "messages": messages,
-            "params": {},
-            "tool_servers": [],
-            "features": {
-                "enable_thinking": True
+            "chat": {
+                "id": "",
+                "title": "New Chat",
+                "models": [
+                    "glm-4.7"
+                ],
+                "params": {},
+                "history": {
+                    "messages": {
+                        message_id: {
+                            "id": message_id,
+                            "parentId": None,
+                            "childrenIds": [],
+                            "role": "user",
+                            "content": prompt,
+                            "timestamp": int(time.time() * 1000),
+                            "models": [
+                                "glm-4.7"
+                            ]
+                        }
+                    },
+                    "currentId": message_id
+                },
+                "tags": [],
+                "flags": [],
+                "features": [],
+                "mcp_servers": [],
+                "enable_thinking": enable_thinking,
+                "reasoning_effort": reasoning_effort,
+                "auto_web_search": web_search,
+                "message_version": 1,
+                "extra": {},
+                "timestamp": int(time.time() * 1000),
+                "type": "default"
             }
         }
         async with StreamSession(
             impersonate="chrome",
             proxy=proxy,
         ) as session:
+            url = "https://chat.z.ai/api/v1/chats/new"
             async with session.post(
-                endpoint,
+                url,
                 json=data,
                 headers={
                     "Authorization": f"Bearer {cls.api_key}",
-                      "x-fe-version": "prod-fe-1.0.95", 
-                      "x-signature": signature
+                    "Content-Type": "application/json",
+                }
+            ) as response:
+                await raise_for_status(response)
+                chat_data = await response.json()
+                chat_id = chat_data.get("id")
+                if not chat_id:
+                    raise ProviderException("Failed to create new chat session")
+            # Compact JSON matching browser JSON.stringify() output.
+            data = {
+                "stream": True,
+                "model": "glm-4.7",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                "signature_prompt": prompt,
+                "params": {},
+                "extra": {},
+                "features": {
+                    "image_generation": False,
+                    "web_search": False,
+                    "auto_web_search": False,
+                    "preview_mode": True,
+                    "flags": [],
+                    "vlm_tools_enable": False,
+                    "vlm_web_search_enable": False,
+                    "vlm_website_mode": False,
+                    "enable_thinking": True
+                },
+                "variables": {
+                    "{{USER_NAME}}": "Guest-1783644168311",
+                    "{{USER_LOCATION}}": "Unknown",
+                    "{{CURRENT_DATETIME}}": "2026-07-10 03:54:21",
+                    "{{CURRENT_DATE}}": "2026-07-10",
+                    "{{CURRENT_TIME}}": "03:54:21",
+                    "{{CURRENT_WEEKDAY}}": "Friday",
+                    "{{CURRENT_TIMEZONE}}": "Europe/Berlin",
+                    "{{USER_LANGUAGE}}": "en-US"
+                },
+                "chat_id": chat_id,
+                "id": str(uuid.uuid4()),
+                "current_user_message_id": message_id,
+                "current_user_message_parent_id": None,
+                "background_tasks": {
+                    "title_generation": True,
+                    "tags_generation": True
+                },
+                "captcha_verify_param": "eyJjZXJ0aWZ5SWQiOiJ1eTZSaXVCSkxaIiwic2NlbmVJZCI6ImRpZGszM2UwIiwiaXNTaWduIjp0cnVlLCJzZWN1cml0eVRva2VuIjoiNm9PbzdlNzJuQTYxdVZMaVpWS2lMWXFGMW05ck9ubzN2RUlQSkthTDdLTHhDSnFiMVVCd1JwbDRwN0VjRlRnZFA1OVdiNDA1WVhZRmZkRVlzZjMzZ05qUGNxYWZscWJRTFpRZFgycllkLzhiaG5xaElwQzdTblJsSXhHUHNxdlgifQ=="
+            }
+            body_json = json.dumps(data, separators=(',', ':'))
+
+            url_params = cls._build_url_params(cls.api_key, cls.auth_user_id or "")
+            signature = cls._compute_signature(body_json)
+            endpoint = f"https://chat.z.ai/api/v2/chat/completions?{url_params}"
+            async with session.get(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {cls.api_key}",
+                    "Content-Type": "application/json",
+                    "x-fe-version": "prod-fe-1.0.95",
+                    "x-signature": signature,
                 },
             ) as response:
                 await raise_for_status(response)
