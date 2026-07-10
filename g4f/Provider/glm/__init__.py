@@ -394,7 +394,8 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 pass  # Best effort — continue with cached values
 
             # 2. Create chat session (session.ts: getOrCreateChatSession)
-            conversation.chat_id = await cls._get_or_create_chat_session(session, model)
+            if conversation.chat_id is None:
+                conversation.chat_id = await cls._get_or_create_chat_session(session, model)
 
             yield conversation
 
