@@ -8,40 +8,7 @@ from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
-from ..Provider.needs_auth import OpenaiChat, CopilotAccount
-from ..Provider.hf_space import HuggingSpace
-from ..Provider import (
-    Custom,
-    PollinationsImage,
-    OpenaiAccount,
-    Copilot,
-    Cloudflare,
-    Gemini,
-    Grok,
-    PollinationsAI,
-    PuterJS,
-    CopilotApp,
-)
-from ..Provider import (
-    DeepInfra,
-    LMArena,
-    EdgeTTS,
-    gTTS,
-    MarkItDown,
-    OpenAIFM,
-    PollinationsAudio,
-)
-from ..Provider import (
-    HuggingFace,
-    HuggingFaceMedia,
-    Azure,
-    Qwen,
-    EasyChat,
-    GLM,
-    OpenRouterFree,
-    GeminiPro,
-    Perplexity,
-)
+from ..Provider import __getattr__
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
@@ -59,30 +26,30 @@ from .any_model_map import (
 
 # Add providers to existing models on map
 PROVIDERS_LIST_2 = [
-    OpenaiChat,
-    Copilot,
-    CopilotAccount,
-    CopilotApp,
-    PollinationsAI,
-    Perplexity,
-    Gemini,
-    Grok,
-    Azure,
-    Qwen,
-    EasyChat,
-    GLM,
-    OpenRouterFree,
+    "OpenaiChat",
+    "Copilot",
+    "CopilotAccount",
+    "CopilotApp",
+    "PollinationsAI",
+    "Perplexity",
+    "Gemini",
+    "Grok",
+    "Azure",
+    "Qwen",
+    "EasyChat",
+    "GLM",
+    "OpenRouterFree",
 ]
 
 # Add all models to the model map
 PROVIDERS_LIST_3 = [
-    DeepInfra,
-    HuggingFace,
-    HuggingFaceMedia,
-    LMArena,
-    PuterJS,
-    Cloudflare,
-    HuggingSpace,
+    "DeepInfra",
+    "HuggingFace",
+    "HuggingFaceMedia",
+    "LMArena",
+    "PuterJS",
+    "Cloudflare",
+    "HuggingSpace",
 ]
 
 LABELS = {
@@ -206,11 +173,11 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 cls.image_models.append(name)
 
         # Process special providers
-        for provider in PROVIDERS_LIST_2:
+        for provider in [__getattr__(provider) for provider in PROVIDERS_LIST_2]:
             if not provider.working:
                 continue
             try:
-                if provider in [Copilot, CopilotAccount, CopilotApp, Perplexity]:
+                if provider in [__getattr__("Copilot"), __getattr__("CopilotAccount"), __getattr__("CopilotApp"), __getattr__("Perplexity")]:
                     for model in provider.model_aliases.keys():
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
@@ -235,7 +202,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if hasattr(provider, "video_models"):
                 cls.video_models.extend(provider.video_models)
 
-        for provider in PROVIDERS_LIST_3:
+        for provider in [__getattr__(provider) for provider in PROVIDERS_LIST_3]:
             if not provider.working:
                 continue
             try:
@@ -245,7 +212,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     f"Error getting models for provider {provider.__name__}:", e
                 )
                 continue
-            if provider == HuggingFaceMedia:
+            if provider == __getattr__("HuggingFaceMedia"):
                 new_models = provider.video_models
             model_map = {}
             for model in new_models:
@@ -278,7 +245,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         for provider in Provider.__providers__:
             try:
-                if provider == Perplexity:
+                if provider == __getattr__("Perplexity"):
                     for model in provider.fallback_models:
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
@@ -287,7 +254,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     provider.working
                     and hasattr(provider, "get_models")
                     and provider
-                    not in [AnyProvider, Custom, PollinationsImage, OpenaiAccount]
+                    not in [AnyProvider, __getattr__("Custom"), __getattr__("PollinationsImage"), __getattr__("OpenaiAccount")]
                 ):
                     for model in provider.get_models():
                         clean = clean_name(model)
@@ -296,7 +263,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     for alias, model in provider.model_aliases.items():
                         if alias in cls.model_map:
                             cls.model_map[alias].update({provider.__name__: model})
-                    if provider == GeminiPro:
+                    if provider == __getattr__("GeminiPro"):
                         for model in cls.model_map.keys():
                             if "gemini" in model or "gemma" in model:
                                 cls.model_map[alias].update({provider.__name__: model})
@@ -307,7 +274,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 continue
 
         # Process audio providers
-        for provider in [PollinationsAI]:
+        for provider in [__getattr__("PollinationsAI")]:
             if provider.working:
                 cls.audio_models.extend(
                     [
@@ -469,11 +436,11 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             # Tool calling is an API-level feature; routing should be based on model/media.
             if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 if kwargs.get("audio", {}).get("language") is None:
-                    providers = [PollinationsAudio, OpenAIFM, Gemini]
+                    providers = [__getattr__("PollinationsAudio"), __getattr__("OpenAIFM"), __getattr__("Gemini")]
                 else:
-                    providers = [PollinationsAudio, OpenAIFM, EdgeTTS, gTTS]
+                    providers = [__getattr__("PollinationsAudio"), __getattr__("OpenAIFM"), __getattr__("EdgeTTS"), __getattr__("gTTS")]
             elif has_audio:
-                providers = [PollinationsAI, MarkItDown]
+                providers = [__getattr__("PollinationsAI"), __getattr__("MarkItDown")]
             elif has_image:
                 providers = models.default_vision.best_provider.get_providers()
             else:
@@ -510,7 +477,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     except KeyError:
                         pass
         if not providers:
-            for provider in PROVIDERS_LIST_2 + PROVIDERS_LIST_3:
+            for provider in [__getattr__(p) for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3]:
                 try:
                     if model in provider.get_models():
                         providers.append(provider)
