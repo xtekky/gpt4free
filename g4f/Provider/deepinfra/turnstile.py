@@ -8,6 +8,8 @@ import json
 import urllib.request
 import urllib.error
 
+from ... import debug
+
 def find_chrome_path():
     """Search for Google Chrome or Chromium binary depending on OS."""
     # Respect g4f's custom BrowserConfig.executable_path if configured
@@ -45,9 +47,9 @@ def find_chrome_path():
     return None
 
 class Turnstile:
-    def __init__(self, port=9222, user_data_dir=None):
+    def __init__(self, port=9222, host='127.0.0.1', user_data_dir=None):
         self.port = port
-        
+        self.host = host
         # Respect g4f's central cookies/cache directory if available
         if user_data_dir is None:
             try:
@@ -73,7 +75,7 @@ class Turnstile:
         if not chrome_path:
             raise RuntimeError("Google Chrome / Chromium executable not found.")
             
-        print(f"[Turnstile] Launching Chrome: {chrome_path} on port {self.port}")
+        debug.log(f"[Turnstile] Launching Chrome: {chrome_path} on port {self.port}")
         
         # Create an isolated profile directory
         os.makedirs(self.user_data_dir, exist_ok=True)
@@ -105,7 +107,7 @@ class Turnstile:
         for i in range(40):  # Up to 20 seconds
             time.sleep(0.5)
             try:
-                with urllib.request.urlopen(f"http://127.0.0.1:{self.port}/json", timeout=2) as req:
+                with urllib.request.urlopen(f"http://{self.host}:{self.port}/json", timeout=2) as req:
                     targets = json.loads(req.read().decode('utf-8'))
                     for target in targets:
                         if target.get('type') in ('page', 'webview'):
@@ -118,13 +120,13 @@ class Turnstile:
                 
         if not ws_url:
             self.close()
-            raise RuntimeError(f"Failed to connect to Chrome debugging port 127.0.0.1:{self.port}")
+            raise RuntimeError(f"Failed to connect to Chrome debugging port {self.host}:{self.port}")
             
-        print(f"[Turnstile] Connected to CDP WebSocket: {ws_url}")
+        debug.log(f"[Turnstile] Connected to CDP WebSocket: {ws_url}")
         try:
             from websocket import create_connection
         except ImportError:
-            from g4f.errors import MissingRequirementsError
+            from ...errors import MissingRequirementsError
             raise MissingRequirementsError('Install "websocket-client" package | pip install websocket-client')
             
         self.ws = create_connection(ws_url)
@@ -163,7 +165,7 @@ class Turnstile:
             self.start_chrome()
             
         target_url = f"https://deepinfra.com/{model}"
-        print(f"[Turnstile] Navigating to {target_url}...")
+        debug.log(f"[Turnstile] Navigating to {target_url}...")
         self.call_cdp("Page.navigate", url=target_url)
         
         # Give some time to load
@@ -191,7 +193,7 @@ class Turnstile:
         """)
         
         # Wait for textarea readiness, focus and input text
-        print("[Turnstile] Waiting for active textarea...")
+        debug.log("[Turnstile] Waiting for active textarea...")
         text_entered = False
         for _ in range(40):  # Up to 20 seconds
             try:
@@ -208,7 +210,7 @@ class Turnstile:
                 """)
                 
                 if ready == 'ready':
-                    print("[Turnstile] Textarea found, focusing and entering text...")
+                    debug.log("[Turnstile] Textarea found, focusing and entering text...")
                     
                     # Retrieve textarea nodeId for native focusing
                     doc = self.call_cdp('DOM.getDocument')
@@ -247,18 +249,18 @@ class Turnstile:
             time.sleep(0.5)
             
         if not text_entered:
-            print("[-] Turnstile initiation error: textarea not found or disabled.")
+            debug.log("[-] Turnstile initiation error: textarea not found or disabled.")
             return ""
             
         # Poll page for Turnstile token presence
-        print("[Turnstile] Waiting for Cloudflare Turnstile solve...")
+        debug.log("[Turnstile] Waiting for Cloudflare Turnstile solve...")
         token_js = "document.querySelector('[name=cf-turnstile-response]') ? document.querySelector('[name=cf-turnstile-response]').value : ''"
         token = ""
         for i in range(120):  # Up to 60 seconds
             try:
                 token = self.evaluate_js(token_js)
                 if token:
-                    print(f"[Turnstile] Token generated on check {i+1}!")
+                    debug.log(f"[Turnstile] Token generated on check {i+1}!")
                     break
             except Exception:
                 pass

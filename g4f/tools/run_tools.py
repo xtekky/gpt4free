@@ -7,6 +7,7 @@ import math
 import asyncio
 import time
 import datetime
+import hashlib
 from pathlib import Path
 from typing import Optional, AsyncIterator, Iterator, Dict, Any, Tuple, List, Union
 
@@ -20,7 +21,8 @@ except ImportError:
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_sync_generator
-from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
+from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo, HeadersResponse, JsonConversation
+from .optimize_request import optimize_request
 from ..providers.types import ProviderType
 from ..providers.base_provider import get_async_provider_method, get_provider_method, wait_for
 from ..cookies import get_cookies_dir
@@ -29,6 +31,82 @@ from .web_search import do_search, get_search_message
 from .auth import AuthManager
 from .files import read_bucket, get_bucket_dir
 from .. import debug
+
+
+# ---- In-memory conversation cache -------------------------------------------
+# Stores the ``JsonConversation`` session state yielded by the underlying
+# provider, keyed by a hash of all messages except the last user message and the
+# last assistant/bot response (combined with the model name).  When the same
+# conversation prefix is seen again the cached ``JsonConversation`` is passed to
+# the provider so it can continue the session without starting fresh.
+#
+# This cache is applied for ALL providers (not only tool-emulated ones) so that
+# web-API providers that rely on a server-side conversation handle can resume
+# across multi-turn tool interactions.
+
+_conversation_cache: dict[str, dict] = {}
+_CACHE_MAX_SIZE = 128
+_CACHE_TTL = 3600.0  # seconds
+
+
+def _messages_cache_key(messages: Messages, model: str) -> Optional[str]:
+    """Build a cache key from all messages except the last user message and the
+    last assistant/bot response, combined with the model name.
+
+    Returns ``None`` when there is no conversation history to cache on (e.g.
+    only a single user message with no prior turns).
+    """
+    if not messages:
+        return None
+    last_user_idx = None
+    last_assistant_idx = None
+    for i in range(len(messages) - 1, -1, -1):
+        msg = messages[i]
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role")
+        if role == "user" and last_user_idx is None:
+            last_user_idx = i
+        elif role == "assistant" and last_assistant_idx is None:
+            last_assistant_idx = i
+        if last_user_idx is not None and last_assistant_idx is not None:
+            break
+    exclude = {idx for idx in (last_user_idx, last_assistant_idx) if idx is not None}
+    if len(exclude) >= len(messages):
+        return None
+    parts = [model]
+    for i, msg in enumerate(messages):
+        if i in exclude:
+            continue
+        try:
+            parts.append(json.dumps(msg, sort_keys=True, ensure_ascii=True, default=str))
+        except Exception:
+            return None
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+
+
+def _cache_get(key: Optional[str]) -> Optional[JsonConversation]:
+    """Return cached ``JsonConversation`` for *key* or ``None`` on miss / expiry."""
+    if not key:
+        return None
+    entry = _conversation_cache.get(key)
+    if entry is None:
+        return None
+    if time.time() - entry["time"] > _CACHE_TTL:
+        _conversation_cache.pop(key, None)
+        return None
+    return entry["conversation"]
+
+
+def _cache_put(key: Optional[str], conversation: JsonConversation) -> None:
+    """Store *conversation* under *key*, evicting oldest entries when full."""
+    if not key or conversation is None:
+        return
+    if len(_conversation_cache) >= _CACHE_MAX_SIZE:
+        oldest = sorted(_conversation_cache.items(), key=lambda kv: kv[1]["time"])
+        for k, _ in oldest[: max(1, len(_conversation_cache) - _CACHE_MAX_SIZE + 1)]:
+            _conversation_cache.pop(k, None)
+    _conversation_cache[key] = {"conversation": conversation, "time": time.time()}
 
 # Constants
 BUCKET_INSTRUCTIONS = """
@@ -43,6 +121,16 @@ TOOL_NAMES = {
 
 def is_provider_api_key(api_key: str) -> bool:
     return isinstance(api_key, str) and api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
+
+
+def provider_supports_native_tools(provider: ProviderType) -> bool:
+    """Return True if the provider supports native OpenAI-style tool calls.
+
+    Providers that extend ``OpenaiTemplate`` (or set ``supports_native_tools = True``)
+    are assumed to forward ``tools``/``tool_choice`` to an OpenAI-compatible endpoint
+    and therefore do not need prompt-injection emulation.
+    """
+    return bool(getattr(provider, "supports_native_tools", False))
 
 
 class ToolHandler:
@@ -247,6 +335,13 @@ async def async_iter_run_tools(
 ) -> AsyncIterator:
     """Asynchronously run tools and yield results"""
 
+    # Optimize the system prompt and tool descriptions to reduce token usage.
+    # This is applied for all providers and the saved tokens are tracked.
+    tools_ref = kwargs.get("tools")
+    saved_tokens, _optimize_logs = optimize_request(messages, tools_ref)
+    if saved_tokens:
+        debug.log(f"Optimized request: saved ~{saved_tokens} tokens")
+
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
         tool_emulation = os.environ.get("G4F_TOOL_EMULATION", "").strip().lower() in (
@@ -257,6 +352,11 @@ async def async_iter_run_tools(
 
     stream = bool(kwargs.get("stream"))
     tools = kwargs.get("tools")
+    # Auto-enable tool emulation for providers without native tool support
+    # (i.e. web-API providers that are not OpenaiTemplate subclasses).
+    if tools and not tool_calls and not tool_emulation:
+        if not provider_supports_native_tools(provider):
+            tool_emulation = True
     if tool_emulation and tools and not tool_calls:
         from ..providers.tool_support import ToolSupportProvider
 
@@ -299,6 +399,15 @@ async def async_iter_run_tools(
         )
         kwargs.update(extra_kwargs)
 
+    # Build a cache key from all messages except the last user message and the
+    # last assistant/bot response.  A cache hit supplies the cached
+    # ``JsonConversation`` to the provider so it can continue the session.
+    cache_key = _messages_cache_key(messages, model)
+    cached_conversation = _cache_get(cache_key)
+    if cached_conversation is not None:
+        kwargs["conversation"] = cached_conversation
+    conversation: JsonConversation = kwargs.get("conversation")
+
     # Generate response
     method = get_async_provider_method(provider)
     response = method(model=model, messages=messages, **kwargs)
@@ -326,16 +435,26 @@ async def async_iter_run_tools(
                 usage_provider = getattr(chunk, "name", usage_provider)
             elif isinstance(chunk, Usage):
                 usage = chunk
+            elif isinstance(chunk, JsonConversation):
+                conversation = chunk
             yield chunk
+
+        # Store the JsonConversation session state in the cache for reuse on
+        # subsequent requests that share the same conversation prefix.
+        if cached_conversation is None and conversation is not None:
+            _cache_put(cache_key, conversation)
         if usage is None:
             usage = get_usage(messages, completion_tokens)
             yield usage
-        usage = {
+        usage_dict = {
             "user": kwargs.get("user"),
             "model": usage_model,
             "provider": usage_provider,
             **usage.get_dict(),
         }
+        if saved_tokens:
+            usage_dict["saved_tokens"] = saved_tokens
+        usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)
@@ -365,6 +484,13 @@ def iter_run_tools(
 ) -> Iterator:
     """Run tools synchronously and yield results"""
 
+    # Optimize the system prompt and tool descriptions to reduce token usage.
+    # This is applied for all providers and the saved tokens are tracked.
+    tools_ref = kwargs.get("tools")
+    saved_tokens, _optimize_logs = optimize_request(messages, tools_ref)
+    if saved_tokens:
+        debug.log(f"Optimized request: saved ~{saved_tokens} tokens")
+
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
         tool_emulation = os.environ.get("G4F_TOOL_EMULATION", "").strip().lower() in (
@@ -375,6 +501,11 @@ def iter_run_tools(
 
     stream = bool(kwargs.get("stream"))
     tools = kwargs.get("tools")
+    # Auto-enable tool emulation for providers without native tool support
+    # (i.e. web-API providers that are not OpenaiTemplate subclasses).
+    if tools and not tool_calls and not tool_emulation:
+        if not provider_supports_native_tools(provider):
+            tool_emulation = True
     if tool_emulation and tools and not tool_calls:
         from ..providers.tool_support import ToolSupportProvider
 
@@ -468,6 +599,15 @@ def iter_run_tools(
                         if "\nSource: " in last_message:
                             messages[-1]["content"] = last_message + BUCKET_INSTRUCTIONS
 
+    # Build a cache key from all messages except the last user message and the
+    # last assistant/bot response.  A cache hit supplies the cached
+    # ``JsonConversation`` to the provider so it can continue the session.
+    cache_key = _messages_cache_key(messages, model)
+    cached_conversation = _cache_get(cache_key)
+    if cached_conversation is not None:
+        kwargs["conversation"] = cached_conversation
+    conversation: JsonConversation = kwargs.get("conversation")
+
     # Process response chunks
     try:
         thinking_start_time = 0
@@ -495,6 +635,8 @@ def iter_run_tools(
                 usage_provider = getattr(chunk, "name", usage_provider)
             elif isinstance(chunk, Usage):
                 usage = chunk
+            elif isinstance(chunk, JsonConversation):
+                conversation = chunk
             if not isinstance(chunk, str):
                 yield chunk
                 continue
@@ -504,15 +646,23 @@ def iter_run_tools(
             )
             for result in results:
                 yield result
+
+        # Store the JsonConversation session state in the cache for reuse on
+        # subsequent requests that share the same conversation prefix.
+        if cached_conversation is None and conversation is not None:
+            _cache_put(cache_key, conversation)
         if usage is None:
             usage = get_usage(messages, completion_tokens)
             yield usage
-        usage = {
+        usage_dict = {
             "user": kwargs.get("user"),
             "model": usage_model,
             "provider": usage_provider,
             **usage.get_dict(),
         }
+        if saved_tokens:
+            usage_dict["saved_tokens"] = saved_tokens
+        usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)

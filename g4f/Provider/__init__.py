@@ -51,7 +51,7 @@ def _resolve_provider(name: str) -> ProviderType:
     elif name == "DeepSeek":
         from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "DeepSeekAPI":
-        from g4f.Provider.needs_auth.DeepSeekAPI import DeepSeekAPI; return DeepSeekAPI
+        from g4f.Provider.needs_auth.DeepSeek import DeepSeekAPI; return DeepSeekAPI
     elif name == "EasyChat":
         from g4f.Provider.EasyChat import EasyChat; return EasyChat
     elif name == "EdgeTTS":

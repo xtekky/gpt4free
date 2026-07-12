@@ -167,12 +167,13 @@ tbody tr:hover td{background:#161b22}
 .modal-head h2{font-size:13px;font-weight:600;color:#f0f6fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,monospace}
 .modal-close{background:none;border:none;color:#6e7681;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;flex-shrink:0}
 .modal-close:hover{color:#c9d1d9}
-.modal-grid{display:grid;grid-template-columns:1fr 1fr}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr 1fr}
 .panel{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
 .panel:first-child{border-right:1px solid #21262d}
+.panel:not(:last-child){border-right:1px solid #21262d}
 .panel-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6e7681}
 .panel pre{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:12px;font-size:12px;line-height:1.5;overflow:auto;max-height:440px;white-space:pre-wrap;word-break:break-all;color:#c9d1d9;margin:0;font-family:ui-monospace,monospace}
-@media(max-width:640px){.modal-grid{grid-template-columns:1fr}.panel:first-child{border-right:none;border-bottom:1px solid #21262d}}
+@media(max-width:640px){.modal-grid{grid-template-columns:1fr}.panel:first-child{border-right:none;border-bottom:1px solid #21262d}.panel:not(:last-child){border-right:none;border-bottom:1px solid #21262d}}
 </style>
 </head>
 <body>
@@ -202,6 +203,7 @@ tbody tr:hover td{background:#161b22}
     <div class="modal-grid">
       <div class="panel"><div class="panel-title">Request</div><pre id="preq"></pre></div>
       <div class="panel"><div class="panel-title">Response</div><pre id="pres"></pre></div>
+      <div class="panel"><div class="panel-title">Response Headers</div><pre id="presh"></pre></div>
     </div>
   </div>
 </div>
@@ -243,6 +245,9 @@ function detail(id){
   if(e.request_body!=null)req+=\'\\nBody:\\n\'+fmt(e.request_body);
   document.getElementById(\'preq\').textContent=req||\'(none)\';
   document.getElementById(\'pres\').textContent=e.response_body!=null?fmt(e.response_body):(e.streaming?\'(streaming – collecting…)\':\'(empty)\');
+  var resh=\'\';
+  if(e.response_headers){resh+=\'Headers:\\n\';for(var k in e.response_headers)resh+=\'  \'+k+\': \'+e.response_headers[k]+\'\\n\';}
+  document.getElementById(\'presh\').textContent=resh||\'(none)\';
   document.getElementById(\'ov\').classList.add(\'active\');
 }
 function closeModal(){document.getElementById(\'ov\').classList.remove(\'active\');}
@@ -313,6 +318,7 @@ def create_app():
         is_streaming = "text/event-stream" in resp_content_type
         log_entry: dict = {}
 
+        resp_headers_log = _sanitize_headers(dict(response.headers))
         if not is_streaming:
             chunks: list[bytes] = []
             async for chunk in response.body_iterator:
@@ -364,6 +370,7 @@ def create_app():
             "streaming": is_streaming,
             "request_headers": _sanitize_headers(dict(request.headers)),
             "request_body": req_body,
+            "response_headers": resp_headers_log,
             "response_body": resp_body,  # None for SSE until iterator completes
         })
         _request_log.append(log_entry)
@@ -783,11 +790,12 @@ class Api:
                         logger.exception(e)
                         yield f'data: {format_exception(e, config)}\n\n'
                     yield "data: [DONE]\n\n"
-
+                headers = getattr(first_chunk, "_headers").get_dict() if hasattr(first_chunk, "_headers") else {}
+                headers = {k.encode("latin-1","ignore").decode("latin-1"): v.encode("latin-1","ignore").decode("latin-1") for k, v in headers.items()}
                 return StreamingResponse(
                     streaming(),
                     media_type="text/event-stream",
-                    headers=getattr(first_chunk, "_headers").get_dict() if hasattr(first_chunk, "_headers") else None
+                    headers=headers
                 )
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)

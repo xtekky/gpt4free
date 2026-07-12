@@ -164,6 +164,10 @@ class ObjectMixin:
             for key, value in self.__dict__.items()
             if not key.startswith("__")
         }
+    
+    def get(self, key: str, default: any = None) -> any:
+        """Get an attribute value by key."""
+        return getattr(self, key, default)
 
     @classmethod
     def from_dict(cls, data: Dict) -> JsonMixin:

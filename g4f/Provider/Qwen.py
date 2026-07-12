@@ -128,7 +128,30 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = text_models
     vision_models = vision_models
     models: list[str] = models
-    default_model = 'qwen3.7-plus'
+    default_model: str = models[0]
+    tool_support_prompts = [
+        "<tool_response> blocks, or any proprietary function-calling markup. Only the plain "
+        "JSON object described below is allowed when a tool is needed.",
+        # --- Delegate execution to the caller ---
+        "When a tool is needed, do not execute it yourself. Instead, reply with ONLY the JSON "
+        "tool-call object described below so the caller can run the tool and return the result "
+        "to you. Do not attempt to run, simulate, guess, or imagine the tool's output, and do "
+        "not produce a fake tool result.",
+        "Do not wrap the JSON in markdown code fences (no ```json or ```), do not add "
+        "explanatory text before or after it, and do not prefix it with phrases like 'Here is "
+        "the tool call:' or 'I will use a tool.'. Output the raw JSON object only.",
+        "Use only the tool names provided in the 'Available tools' list below. Do not invent "
+        "tool names, do not call tools that were not listed, and do not rename the listed tools.",
+        "The `arguments` value MUST be a JSON object (not a string, not null) matching the "
+        "tool's parameter schema. Omit optional parameters you do not need rather than passing "
+        "null or empty strings.",
+        # --- Plain-text fallback ---
+        "If no tool is needed, answer normally with plain text and do not output any JSON "
+        "tool-call object. Never mix a normal answer with a tool-call JSON in the same reply.",
+        "If the user's request can be answered directly from your own knowledge, do not call a "
+        "tool. Only request a tool when the task genuinely requires external data, computation, "
+        "or an action that you cannot perform yourself.",
+    ]
 
     _midtoken: str = None
     _midtoken_uses: int = 0
@@ -375,7 +398,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         conversation: JsonConversation = None,
         proxy: str = None,
         stream: bool = True,
-        reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = "medium",
+        reasoning_effort: Optional[str] = "none",
         chat_type: Literal[
             "t2t", "search", "artifacts", "web_dev", "deep_research", "t2i", "image_edit", "t2v"
         ] = "t2t",
@@ -395,7 +418,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         """
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
-        enable_thinking = reasoning_effort in ("medium", "high")
+        enable_thinking = reasoning_effort and reasoning_effort.lower() != "none"
         thinking_mode: Literal["Auto", "Thinking", "Fast"] = kwargs.get("thinking_mode",
                                                                         "Auto" if enable_thinking else "Fast")
         auto_thinking = thinking_mode == "Auto"

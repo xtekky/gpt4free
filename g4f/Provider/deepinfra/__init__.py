@@ -27,7 +27,7 @@ def get_turnstile_token_sync(model: str) -> str:
             user_data_dir = os.path.join(tempfile.gettempdir(), "g4f_chrome_profile_light")
             client = Turnstile(port=port, user_data_dir=user_data_dir)
         else:
-            client = Turnstile(port=BrowserConfig.port)
+            client = Turnstile(port=BrowserConfig.port, host=BrowserConfig.host)
             client.connect()  # Ensure connection if using a specified port
         try:
             token = client.get_token(model)

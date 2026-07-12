@@ -30,6 +30,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     add_user = True
     use_image_size = False
     max_tokens: int = None
+    supports_native_tools: bool = True
     _checked_api_keys: dict = {}
 
     @classmethod

@@ -12,8 +12,7 @@ from .Cohere            import Cohere
 from .CopilotAccount    import CopilotAccount
 from .Custom            import Custom
 from .Custom            import Feature
-from .DeepSeek          import DeepSeek
-from .DeepSeekAPI       import DeepSeekAPI
+from .DeepSeek          import DeepSeekAPI
 from .FenayAI           import FenayAI
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
