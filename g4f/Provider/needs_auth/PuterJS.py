@@ -350,12 +350,24 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     if finish_reason:
                         yield FinishReason(finish_reason)
                 elif mime_type.startswith("application/x-ndjson"):
+                    tools_idx = 0
                     async for line in response.content:
                         data = json.loads(line)
                         if data.get("type") == "text":
                             yield data.get("text", "")
                         elif data.get("type") == "reasoning":
                             yield Reasoning(data.get("reasoning", ""))
+                        elif data.get("type") == "tool_use":
+                            yield ToolCalls([{
+                                "id": tools_idx,
+                                "type": "function",
+                                "id": data.get("id"),
+                                "function": {
+                                    "name": data.get("name"),
+                                    "arguments": data.get("input")
+                                }}
+                            ])
+                            tools_idx += 1
                         elif data.get("type") == "tool_calls":
                             yield ToolCalls(data.get("tool_calls", []))
                         elif data.get("type") == "usage":
