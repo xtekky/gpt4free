@@ -17,6 +17,7 @@ def find_free_port() -> int:
 def get_turnstile_token_sync(model: str) -> str:
     """Get Turnstile token using Turnstile with a fallback to DrissionPage."""
     # 1. Try our lightweight CDP client first
+    first_error = None
     try:
         if not BrowserConfig.port:
             import os
@@ -33,10 +34,12 @@ def get_turnstile_token_sync(model: str) -> str:
             if token:
                 return token
             print("[DeepInfra] Turnstile failed to obtain token. Trying fallback option (DrissionPage)...")
+        except:
+            raise
         finally:
             client.close()
     except Exception as e:
-        print(f"[DeepInfra] Turnstile error: {e}. Trying fallback option (DrissionPage)...")
+        first_error = e
 
     # 2. Fallback option: try original DrissionPage if installed
     try:
@@ -79,9 +82,8 @@ def get_turnstile_token_sync(model: str) -> str:
                 page.quit()
             except:
                 pass
-    except Exception as e:
-        print(f"[DeepInfra] Fallback DrissionPage method error: {e}")
-
+    except:
+        raise first_error if first_error else Exception("Failed to obtain Turnstile token using both methods.")
     return ""
 
 async def get_turnstile_token_async() -> str:
@@ -125,6 +127,8 @@ class DeepInfra(OpenaiTemplate):
                 if headers is None:
                     headers = {}
                 headers["X-DeepInfra-Turnstile"] = token
+            else:
+                raise ValueError("Failed to obtain Turnstile token for DeepInfra request.")
 
         async for chunk in super().create_async_generator(model, messages, api_key=api_key, headers=headers, **kwargs):
             yield chunk
