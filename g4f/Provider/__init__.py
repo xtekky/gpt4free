@@ -7,275 +7,185 @@ from ..providers.create_images  import CreateImagesProvider
 
 def _resolve_provider(name: str) -> ProviderType:
     if name == "AnyProvider":
-        from g4f.providers.any_provider import AnyProvider
-        return AnyProvider
+        from g4f.providers.any_provider import AnyProvider; return AnyProvider
     if name == "AIBadgr":
-        from g4f.Provider.needs_auth.AIBadgr import AIBadgr
-        return AIBadgr
+        from g4f.Provider.needs_auth.AIBadgr import AIBadgr; return AIBadgr
     elif name == "Anthropic":
-        from g4f.Provider.needs_auth.Anthropic import Anthropic
-        return Anthropic
+        from g4f.Provider.needs_auth.Anthropic import Anthropic; return Anthropic
     elif name == "Antigravity":
-        from g4f.Provider.needs_auth.Antigravity import Antigravity
-        return Antigravity
+        from g4f.Provider.needs_auth.Antigravity import Antigravity; return Antigravity
     elif name == "ApiAirforce":
-        from g4f.Provider.needs_auth.ApiAirforce import ApiAirforce
-        return ApiAirforce
+        from g4f.Provider.needs_auth.ApiAirforce import ApiAirforce; return ApiAirforce
     elif name == "BingCreateImages":
-        from g4f.Provider.needs_auth.BingCreateImages import BingCreateImages
-        return BingCreateImages
+        from g4f.Provider.needs_auth.BingCreateImages import BingCreateImages; return BingCreateImages
     elif name == "BlackForestLabs_Flux1Dev":
-        from g4f.Provider.hf_space.BlackForestLabs_Flux1Dev import BlackForestLabs_Flux1Dev
-        return BlackForestLabs_Flux1Dev
+        from g4f.Provider.hf_space.BlackForestLabs_Flux1Dev import BlackForestLabs_Flux1Dev; return BlackForestLabs_Flux1Dev
     elif name == "BlackForestLabs_Flux1KontextDev":
-        from g4f.Provider.hf_space.BlackForestLabs_Flux1KontextDev import BlackForestLabs_Flux1KontextDev
-        return BlackForestLabs_Flux1KontextDev
+        from g4f.Provider.hf_space.BlackForestLabs_Flux1KontextDev import BlackForestLabs_Flux1KontextDev; return BlackForestLabs_Flux1KontextDev
     elif name == "BlackboxPro":
-        from g4f.Provider.needs_auth.BlackboxPro import BlackboxPro
-        return BlackboxPro
+        from g4f.Provider.needs_auth.BlackboxPro import BlackboxPro; return BlackboxPro
     elif name == "CablyAI":
-        from g4f.Provider.needs_auth.CablyAI import CablyAI
-        return CablyAI
+        from g4f.Provider.needs_auth.CablyAI import CablyAI; return CablyAI
     elif name == "CachedSearch":
-        from g4f.Provider.search.CachedSearch import CachedSearch
-        return CachedSearch
+        from g4f.Provider.search.CachedSearch import CachedSearch; return CachedSearch
     elif name == "Cerebras":
-        from g4f.Provider.needs_auth.Cerebras import Cerebras
-        return Cerebras
+        from g4f.Provider.needs_auth.Cerebras import Cerebras; return Cerebras
     elif name == "Claude":
-        from g4f.Provider.needs_auth.Claude import Claude
-        return Claude
+        from g4f.Provider.needs_auth.Claude import Claude; return Claude
     elif name == "Cohere":
-        from g4f.Provider.needs_auth.Cohere import Cohere
-        return Cohere
+        from g4f.Provider.needs_auth.Cohere import Cohere; return Cohere
     elif name == "CohereForAI_C4AI_Command":
-        from g4f.Provider.hf_space.CohereForAI_C4AI_Command import CohereForAI_C4AI_Command
-        return CohereForAI_C4AI_Command
+        from g4f.Provider.hf_space.CohereForAI_C4AI_Command import CohereForAI_C4AI_Command; return CohereForAI_C4AI_Command
     elif name == "Copilot":
-        from g4f.Provider.Copilot import Copilot
-        return Copilot
+        from g4f.Provider.Copilot import Copilot; return Copilot
     elif name == "CopilotAccount":
-        from g4f.Provider.needs_auth.CopilotAccount import CopilotAccount
-        return CopilotAccount
+        from g4f.Provider.needs_auth.CopilotAccount import CopilotAccount; return CopilotAccount
     elif name == "CopilotApp":
-        from g4f.Provider.CopilotApp import CopilotApp
-        return CopilotApp
+        from g4f.Provider.CopilotApp import CopilotApp; return CopilotApp
     elif name == "CopilotSession":
-        from g4f.Provider.CopilotSession import CopilotSession
-        return CopilotSession
+        from g4f.Provider.CopilotSession import CopilotSession; return CopilotSession
     elif name == "Custom":
-        from g4f.Provider.needs_auth.Custom import Custom
-        return Custom
+        from g4f.Provider.needs_auth.Custom import Custom; return Custom
     elif name == "DeepInfra":
-        from g4f.Provider.deepinfra import DeepInfra
-        return DeepInfra
+        from g4f.Provider.deepinfra import DeepInfra; return DeepInfra
     elif name == "DeepSeek":
-        from g4f.Provider.needs_auth.DeepSeek import DeepSeek
-        return DeepSeek
+        from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "DeepSeekAPI":
-        from g4f.Provider.needs_auth.DeepSeekAPI import DeepSeekAPI
-        return DeepSeekAPI
+        from g4f.Provider.needs_auth.DeepSeekAPI import DeepSeekAPI; return DeepSeekAPI
     elif name == "EasyChat":
-        from g4f.Provider.EasyChat import EasyChat
-        return EasyChat
+        from g4f.Provider.EasyChat import EasyChat; return EasyChat
     elif name == "EdgeTTS":
-        from g4f.Provider.audio.EdgeTTS import EdgeTTS
-        return EdgeTTS
+        from g4f.Provider.audio.EdgeTTS import EdgeTTS; return EdgeTTS
     elif name == "Felo":
-        from g4f.Provider.Felo import Felo
-        return Felo
+        from g4f.Provider.Felo import Felo; return Felo
     elif name == "FenayAI":
-        from g4f.Provider.needs_auth.FenayAI import FenayAI
-        return FenayAI
+        from g4f.Provider.needs_auth.FenayAI import FenayAI; return FenayAI
     elif name == "GLM":
-        from g4f.Provider.glm import GLM
-        return GLM
+        from g4f.Provider.glm import GLM; return GLM
     elif name == "Gemini":
-        from g4f.Provider.needs_auth.Gemini import Gemini
-        return Gemini
+        from g4f.Provider.needs_auth.Gemini import Gemini; return Gemini
     elif name == "GeminiCLI":
-        from g4f.Provider.needs_auth.GeminiCLI import GeminiCLI
-        return GeminiCLI
+        from g4f.Provider.needs_auth.GeminiCLI import GeminiCLI; return GeminiCLI
     elif name == "GeminiPro":
-        from g4f.Provider.needs_auth.GeminiPro import GeminiPro
-        return GeminiPro
+        from g4f.Provider.needs_auth.GeminiPro import GeminiPro; return GeminiPro
     elif name == "GigaChat":
-        from g4f.Provider.needs_auth.GigaChat import GigaChat
-        return GigaChat
+        from g4f.Provider.needs_auth.GigaChat import GigaChat; return GigaChat
     elif name == "GithubCopilot":
-        from g4f.Provider.github.GithubCopilot import GithubCopilot
-        return GithubCopilot
+        from g4f.Provider.github.GithubCopilot import GithubCopilot; return GithubCopilot
     elif name == "GithubCopilotAPI":
-        from g4f.Provider.needs_auth.GithubCopilotAPI import GithubCopilotAPI
-        return GithubCopilotAPI
+        from g4f.Provider.needs_auth.GithubCopilotAPI import GithubCopilotAPI; return GithubCopilotAPI
     elif name == "GlhfChat":
-        from g4f.Provider.needs_auth.GlhfChat import GlhfChat
-        return GlhfChat
+        from g4f.Provider.needs_auth.GlhfChat import GlhfChat; return GlhfChat
     elif name == "GoogleSearch":
-        from g4f.Provider.search.GoogleSearch import GoogleSearch
-        return GoogleSearch
+        from g4f.Provider.search.GoogleSearch import GoogleSearch; return GoogleSearch
     elif name == "GradientNetwork":
-        from g4f.Provider.GradientNetwork import GradientNetwork
-        return GradientNetwork
+        from g4f.Provider.GradientNetwork import GradientNetwork; return GradientNetwork
     elif name == "Grok":
-        from g4f.Provider.needs_auth.Grok import Grok
-        return Grok
+        from g4f.Provider.needs_auth.Grok import Grok; return Grok
     elif name == "Groq":
-        from g4f.Provider.needs_auth.Groq import Groq
-        return Groq
+        from g4f.Provider.needs_auth.Groq import Groq; return Groq
     elif name == "HailuoAI":
-        from g4f.Provider.needs_auth.mini_max.HailuoAI import HailuoAI
-        return HailuoAI
+        from g4f.Provider.needs_auth.mini_max.HailuoAI import HailuoAI; return HailuoAI
     elif name == "HuggingChat":
-        from g4f.Provider.needs_auth.hf.HuggingChat import HuggingChat
-        return HuggingChat
+        from g4f.Provider.needs_auth.hf.HuggingChat import HuggingChat; return HuggingChat
     elif name == "HuggingFace":
-        from g4f.Provider.needs_auth.hf import HuggingFace
-        return HuggingFace
+        from g4f.Provider.needs_auth.hf import HuggingFace; return HuggingFace
     elif name == "HuggingFaceAPI":
-        from g4f.Provider.needs_auth.hf.HuggingFaceAPI import HuggingFaceAPI
-        return HuggingFaceAPI
+        from g4f.Provider.needs_auth.hf.HuggingFaceAPI import HuggingFaceAPI; return HuggingFaceAPI
     elif name == "HuggingFaceInference":
-        from g4f.Provider.needs_auth.hf.HuggingFaceInference import HuggingFaceInference
-        return HuggingFaceInference
+        from g4f.Provider.needs_auth.hf.HuggingFaceInference import HuggingFaceInference; return HuggingFaceInference
     elif name == "HuggingFaceMedia":
-        from g4f.Provider.needs_auth.hf.HuggingFaceMedia import HuggingFaceMedia
-        return HuggingFaceMedia
+        from g4f.Provider.needs_auth.hf.HuggingFaceMedia import HuggingFaceMedia; return HuggingFaceMedia
     elif name == "HuggingSpace":
-        from g4f.Provider.hf_space import HuggingSpace
-        return HuggingSpace
+        from g4f.Provider.hf_space import HuggingSpace; return HuggingSpace
     elif name == "LMArena":
-        from g4f.Provider.needs_auth.LMArena import LMArena
-        return LMArena
+        from g4f.Provider.needs_auth.LMArena import LMArena; return LMArena
     elif name == "Local":
-        from g4f.Provider.local import Local
-        return Local
+        from g4f.Provider.local import Local; return Local
     elif name == "MarkItDown":
-        from g4f.Provider.audio.MarkItDown import MarkItDown
-        return MarkItDown
+        from g4f.Provider.audio.MarkItDown import MarkItDown; return MarkItDown
     elif name == "MetaAI":
-        from g4f.Provider.needs_auth.MetaAI import MetaAI
-        return MetaAI
+        from g4f.Provider.needs_auth.MetaAI import MetaAI; return MetaAI
     elif name == "MetaAIAccount":
-        from g4f.Provider.needs_auth.MetaAIAccount import MetaAIAccount
-        return MetaAIAccount
+        from g4f.Provider.needs_auth.MetaAIAccount import MetaAIAccount; return MetaAIAccount
     elif name == "MicrosoftDesigner":
-        from g4f.Provider.needs_auth.MicrosoftDesigner import MicrosoftDesigner
-        return MicrosoftDesigner
+        from g4f.Provider.needs_auth.MicrosoftDesigner import MicrosoftDesigner; return MicrosoftDesigner
     elif name == "MiniMax":
-        from g4f.Provider.needs_auth.mini_max.MiniMax import MiniMax
-        return MiniMax
+        from g4f.Provider.needs_auth.mini_max.MiniMax import MiniMax; return MiniMax
     elif name == "Nvidia":
-        from g4f.Provider.needs_auth.Nvidia import Nvidia
-        return Nvidia
+        from g4f.Provider.needs_auth.Nvidia import Nvidia; return Nvidia
     elif name == "Ollama":
-        from g4f.Provider.local.Ollama import Ollama
-        return Ollama
+        from g4f.Provider.local.Ollama import Ollama; return Ollama
     elif name == "OllamaSwarm":
-        from g4f.Provider.OllamaSwarm import OllamaSwarm
-        return OllamaSwarm
+        from g4f.Provider.OllamaSwarm import OllamaSwarm; return OllamaSwarm
     elif name == "OpenAIFM":
-        from g4f.Provider.audio.OpenAIFM import OpenAIFM
-        return OpenAIFM
+        from g4f.Provider.audio.OpenAIFM import OpenAIFM; return OpenAIFM
     elif name == "OllamaSwarm":
-        from g4f.Provider.OllamaSwarm import OllamaSwarm
-        return OllamaSwarm
+        from g4f.Provider.OllamaSwarm import OllamaSwarm; return OllamaSwarm
     elif name == "OpenRouter":
-        from g4f.Provider.needs_auth.OpenRouter import OpenRouter
-        return OpenRouter
+        from g4f.Provider.needs_auth.OpenRouter import OpenRouter; return OpenRouter
     elif name == "OpenRouterFree":
-        from g4f.Provider.needs_auth.OpenRouter import OpenRouter
-        return OpenRouter
+        from g4f.Provider.needs_auth.OpenRouter import OpenRouter; return OpenRouter
     elif name == "OpenaiAPI":
-        from g4f.Provider.needs_auth.OpenaiAPI import OpenaiAPI
-        return OpenaiAPI
+        from g4f.Provider.needs_auth.OpenaiAPI import OpenaiAPI; return OpenaiAPI
     elif name == "OpenaiAccount":
-        from g4f.Provider.needs_auth.OpenaiAccount import OpenaiAccount
-        return OpenaiAccount
+        from g4f.Provider.needs_auth.OpenaiAccount import OpenaiAccount; return OpenaiAccount
     elif name == "OpenaiChat":
-        from g4f.Provider.needs_auth.OpenaiChat import OpenaiChat
-        return OpenaiChat
+        from g4f.Provider.needs_auth.OpenaiChat import OpenaiChat; return OpenaiChat
     elif name == "OpenaiTemplate":
-        from g4f.Provider.template.OpenaiTemplate import OpenaiTemplate
-        return OpenaiTemplate
+        from g4f.Provider.template.OpenaiTemplate import OpenaiTemplate; return OpenaiTemplate
     elif name == "OperaAria":
-        from g4f.Provider.OperaAria import OperaAria
-        return OperaAria
+        from g4f.Provider.OperaAria import OperaAria; return OperaAria
     elif name == "Perplexity":
-        from g4f.Provider.Perplexity import Perplexity
-        return Perplexity
+        from g4f.Provider.Perplexity import Perplexity; return Perplexity
     elif name == "PerplexityApi":
-        from g4f.Provider.needs_auth.PerplexityApi import PerplexityApi
-        return PerplexityApi
+        from g4f.Provider.needs_auth.PerplexityApi import PerplexityApi; return PerplexityApi
     elif name == "PhindAi":
-        from g4f.Provider.PhindAi import PhindAi
-        return PhindAi
+        from g4f.Provider.PhindAi import PhindAi; return PhindAi
     elif name == "Pi":
-        from g4f.Provider.needs_auth.Pi import Pi
-        return Pi
+        from g4f.Provider.needs_auth.Pi import Pi; return Pi
     elif name == "PollinationsAI":
-        from g4f.Provider.PollinationsAI import PollinationsAI
-        return PollinationsAI
+        from g4f.Provider.PollinationsAI import PollinationsAI; return PollinationsAI
     elif name == "PollinationsAudio":
-        from g4f.Provider.audio.PollinationsAudio import PollinationsAudio
-        return PollinationsAudio
+        from g4f.Provider.audio.PollinationsAudio import PollinationsAudio; return PollinationsAudio
     elif name == "PollinationsImage":
-        from g4f.Provider.PollinationsImage import PollinationsImage
-        return PollinationsImage
+        from g4f.Provider.PollinationsImage import PollinationsImage; return PollinationsImage
     elif name == "PuterJS":
-        from g4f.Provider.needs_auth.PuterJS import PuterJS
-        return PuterJS
+        from g4f.Provider.needs_auth.PuterJS import PuterJS; return PuterJS
     elif name == "Qwen":
-        from g4f.Provider.Qwen import Qwen
-        return Qwen
+        from g4f.Provider.Qwen import Qwen; return Qwen
     elif name == "QwenCode":
-        from g4f.Provider.qwen.QwenCode import QwenCode
-        return QwenCode
+        from g4f.Provider.qwen.QwenCode import QwenCode; return QwenCode
     elif name == "Reka":
-        from g4f.Provider.needs_auth.Reka import Reka
-        return Reka
+        from g4f.Provider.needs_auth.Reka import Reka; return Reka
     elif name == "Replicate":
-        from g4f.Provider.needs_auth.Replicate import Replicate
-        return Replicate
+        from g4f.Provider.needs_auth.Replicate import Replicate; return Replicate
     elif name == "SearXNG":
-        from g4f.Provider.search.SearXNG import SearXNG
-        return SearXNG
+        from g4f.Provider.search.SearXNG import SearXNG; return SearXNG
     elif name == "StabilityAI_SD35Large":
-        from g4f.Provider.hf_space.StabilityAI_SD35Large import StabilityAI_SD35Large
-        return StabilityAI_SD35Large
+        from g4f.Provider.hf_space.StabilityAI_SD35Large import StabilityAI_SD35Large; return StabilityAI_SD35Large
     elif name == "TeachAnything":
-        from g4f.Provider.TeachAnything import TeachAnything
-        return TeachAnything
+        from g4f.Provider.TeachAnything import TeachAnything; return TeachAnything
     elif name == "ThebApi":
-        from g4f.Provider.needs_auth.ThebApi import ThebApi
-        return ThebApi
+        from g4f.Provider.needs_auth.ThebApi import ThebApi; return ThebApi
     elif name == "Together":
-        from g4f.Provider.needs_auth.Together import Together
-        return Together
+        from g4f.Provider.needs_auth.Together import Together; return Together
     elif name == "Video":
-        from g4f.Provider.needs_auth.Video import Video
-        return Video
+        from g4f.Provider.needs_auth.Video import Video; return Video
     elif name == "WeWordle":
-        from g4f.Provider.WeWordle import WeWordle
-        return WeWordle
+        from g4f.Provider.WeWordle import WeWordle; return WeWordle
     elif name == "WhiteRabbitNeo":
-        from g4f.Provider.needs_auth.WhiteRabbitNeo import WhiteRabbitNeo
-        return WhiteRabbitNeo
+        from g4f.Provider.needs_auth.WhiteRabbitNeo import WhiteRabbitNeo; return WhiteRabbitNeo
     elif name == "You":
-        from g4f.Provider.needs_auth.You import You
-        return You
+        from g4f.Provider.needs_auth.You import You; return You
     elif name == "YouTube":
-        from g4f.Provider.search.YouTube import YouTube
-        return YouTube
+        from g4f.Provider.search.YouTube import YouTube; return YouTube
     elif name == "Yqcloud":
-        from g4f.Provider.Yqcloud import Yqcloud
-        return Yqcloud
+        from g4f.Provider.Yqcloud import Yqcloud; return Yqcloud
     elif name == "gTTS":
-        from g4f.Provider.audio.gTTS import gTTS
-        return gTTS
+        from g4f.Provider.audio.gTTS import gTTS; return gTTS
     elif name == "xAI":
-        from g4f.Provider.needs_auth.xAI import xAI
-        return xAI
+        from g4f.Provider.needs_auth.xAI import xAI; return xAI
     else:
         raise ValueError(f"Provider '{name}' not found")
 
