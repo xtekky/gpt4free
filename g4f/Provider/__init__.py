@@ -9,7 +9,7 @@ def _resolve_provider(name: str) -> ProviderType:
     if name == "AnyProvider":
         from g4f.providers.any_provider import AnyProvider
         return AnyProvider
-    if name == "AiBadgr":
+    if name == "AIBadgr":
         from g4f.Provider.needs_auth.AIBadgr import AIBadgr
         return AIBadgr
     elif name == "Anthropic":
@@ -229,7 +229,7 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.Qwen import Qwen
         return Qwen
     elif name == "QwenCode":
-        from g4f.Provider.qwen import QwenCode
+        from g4f.Provider.qwen.QwenCode import QwenCode
         return QwenCode
     elif name == "Reka":
         from g4f.Provider.needs_auth.Reka import Reka
@@ -356,7 +356,6 @@ _provider_names = [
     "QwenCode",
     "Reka",
     "Replicate",
-    "RetryProvider",
     "SearXNG",
     "StabilityAI_SD35Large",
     "TeachAnything",

@@ -12,7 +12,7 @@ from ...tools.media import render_messages
 from ...requests import sse_stream, raise_for_status
 from ...errors import ResponseError, ModelNotFoundError, MissingAuthError
 from ..helper import format_media_prompt
-from .. import debug
+from ... import debug
 
 class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Puter.js"

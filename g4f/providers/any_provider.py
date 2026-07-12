@@ -34,7 +34,6 @@ PROVIDERS_LIST_2 = [
     "Perplexity",
     "Gemini",
     "Grok",
-    "Azure",
     "Qwen",
     "EasyChat",
     "GLM",
@@ -48,7 +47,6 @@ PROVIDERS_LIST_3 = [
     "HuggingFaceMedia",
     "LMArena",
     "PuterJS",
-    "Cloudflare",
     "HuggingSpace",
 ]
 
