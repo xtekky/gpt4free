@@ -30,8 +30,9 @@ from .tools import (
     MarkItDownTool, TextToAudioTool, WebSearchTool, ImageGenerationTool,
     PythonExecuteTool, FileReadTool,
     FileListTool, FileDeleteTool, ApplyPatchTool,
-    CreateDirectoryTool, CreateFileTool, FetchWebpageTool,
+    CreateDirectoryTool, CreateFileTool, FileWriteTool, FetchWebpageTool,
     FileSearchGlobTool, GrepSearchTool, GithubRepoTool, GithubTextSearchTool,
+    TokenOptimizerTool,
 )
 
 
@@ -82,11 +83,13 @@ class MCPServer:
             'file_delete': FileDeleteTool(),
             'create_directory': CreateDirectoryTool(),
             'create_file': CreateFileTool(),
+            'file_write': FileWriteTool(),
             'fetch_webpage': FetchWebpageTool(),
             'file_search_glob': FileSearchGlobTool(),
             'grep_search': GrepSearchTool(),
             'github_repo': GithubRepoTool(),
             'github_text_search': GithubTextSearchTool(),
+            'token_optimizer': TokenOptimizerTool(),
         }
         self.server_info = {
             "name": "gpt4free-mcp-server",

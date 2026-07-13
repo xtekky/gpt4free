@@ -81,6 +81,7 @@ from g4f.Provider import ProviderUtils
 from g4f.gui import get_gui_app
 from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
+    ResponsesConfig, MessagesConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
     FileResponseModel,
@@ -540,7 +541,9 @@ class Api:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                     elif path.startswith("/backend-api/") or path.startswith("/chat/") or path.startswith("/playground/") or path in ["/logs"]:
                         try:
-                            user = await self.get_username(request)
+                            new_user = await self.get_username(request)
+                            if user is None:
+                                user = new_user
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
                 if user_g4f_api_key and update_authorization:
@@ -580,7 +583,9 @@ class Api:
         async def read_root_v1():
             return HTMLResponse('g4f API: Go to '
                                 '<a href="/v1/models">models</a>, '
-                                '<a href="/v1/chat/completions">chat/completions</a>, or '
+                                '<a href="/v1/chat/completions">chat/completions</a>, '
+                                '<a href="/v1/responses">responses</a> (OpenAI), '
+                                '<a href="/v1/messages">messages</a> (Anthropic), or '
                                 '<a href="/v1/media/generate">media/generate</a> <br><br>'
                                 'Open Swagger UI at: '
                                 '<a href="/docs">/docs</a>')
@@ -794,6 +799,234 @@ class Api:
                 headers = {k.encode("latin-1","ignore").decode("latin-1"): v.encode("latin-1","ignore").decode("latin-1") for k, v in headers.items()}
                 return StreamingResponse(
                     streaming(),
+                    media_type="text/event-stream",
+                    headers=headers
+                )
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
+            except (MissingAuthError, NoValidHarFileError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
+            except RateLimitError as e:
+                return ErrorResponse.from_exception(e, config, HTTP_429_TOO_MANY_REQUESTS)
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # ------------------------------------------------------------------ #
+        # OpenAI Responses API  (/v1/responses)                               #
+        # https://platform.openai.com/docs/api-reference/responses            #
+        # ------------------------------------------------------------------ #
+        @self.app.post("/v1/responses", responses=responses)
+        @self.app.post("/api/{provider:path}/responses", responses=responses)
+        async def create_response(
+            config: ResponsesConfig,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+            provider: str = None,
+            x_user: Annotated[str | None, Header()] = None,
+        ):
+            if provider is not None:
+                config.provider = provider
+            if config.provider is None:
+                config.provider = AppConfig.provider
+            try:
+                provider = AbstractClientFactory.create_provider(None, config.provider)
+            except ProviderNotFoundError as e:
+                return ErrorResponse.from_message(str(e), 404)
+            try:
+                if config.timeout is None:
+                    config.timeout = AppConfig.timeout
+                if config.stream_timeout is None and config.stream:
+                    config.stream_timeout = AppConfig.stream_timeout
+                if credentials is not None and credentials.credentials != "secret":
+                    config.api_key = credentials.credentials
+
+                # Normalize `input` into a messages list.
+                messages = config.input
+                if isinstance(messages, str):
+                    messages = [{"role": "user", "content": messages}]
+                if config.instructions:
+                    messages = [{"role": "system", "content": config.instructions}, *messages]
+
+                response = self.client.chat.completions.create(
+                    **filter_none(
+                        **{
+                            "model": AppConfig.model,
+                            "provider": AppConfig.provider,
+                            "proxy": AppConfig.proxy,
+                            **(config.model_dump(exclude_none=True) if hasattr(config, "model_dump") else config.dict(exclude_none=True)),
+                            **{
+                                "provider": provider,
+                                "messages": messages,
+                                "user": x_user,
+                            }
+                        },
+                        ignored=AppConfig.ignored_providers
+                    ),
+                )
+
+                if not config.stream:
+                    result = await response
+                    text = result.choices[0].message.content if result.choices else ""
+                    usage = getattr(result, "usage", None)
+                    if usage is not None and hasattr(usage, "model_dump"):
+                        usage = usage.model_dump()
+                    elif usage is not None and hasattr(usage, "dict"):
+                        usage = usage.dict()
+                    return JSONResponse({
+                        "id": getattr(result, "id", f"resp_{secrets.token_hex(12)}"),
+                        "object": "response",
+                        "created_at": getattr(result, "created", int(time.time())),
+                        "model": getattr(result, "model", config.model),
+                        "provider": getattr(provider, "__name__", config.provider),
+                        "output": [
+                            {
+                                "type": "message",
+                                "role": "assistant",
+                                "content": [{"type": "output_text", "text": text}],
+                            }
+                        ],
+                        "output_text": text,
+                        "usage": usage,
+                    })
+
+                first_chunk = await response.__anext__()
+                async def responses_streaming():
+                    yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
+                    try:
+                        async for chunk in response:
+                            if isinstance(chunk, BaseConversation):
+                                pass
+                            else:
+                                yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
+                    except GeneratorExit:
+                        pass
+                    except RateLimitError as e:
+                        debug.error(e)
+                        yield f'data: {format_exception(e, config)}\n\n'
+                    except Exception as e:
+                        logger.exception(e)
+                        yield f'data: {format_exception(e, config)}\n\n'
+                    yield "data: [DONE]\n\n"
+                headers = getattr(first_chunk, "_headers").get_dict() if hasattr(first_chunk, "_headers") else {}
+                headers = {k.encode("latin-1","ignore").decode("latin-1"): v.encode("latin-1","ignore").decode("latin-1") for k, v in headers.items()}
+                return StreamingResponse(
+                    responses_streaming(),
+                    media_type="text/event-stream",
+                    headers=headers
+                )
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
+            except (MissingAuthError, NoValidHarFileError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
+            except RateLimitError as e:
+                return ErrorResponse.from_exception(e, config, HTTP_429_TOO_MANY_REQUESTS)
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # ------------------------------------------------------------------ #
+        # Anthropic Messages API  (/v1/messages)                              #
+        # https://docs.anthropic.com/en/api/messages                          #
+        # ------------------------------------------------------------------ #
+        @self.app.post("/v1/messages", responses=responses)
+        @self.app.post("/api/{provider:path}/messages", responses=responses)
+        async def create_message(
+            config: MessagesConfig,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+            provider: str = None,
+            x_user: Annotated[str | None, Header()] = None,
+        ):
+            if provider is not None:
+                config.provider = provider
+            if config.provider is None:
+                config.provider = AppConfig.provider
+            try:
+                provider = AbstractClientFactory.create_provider(None, config.provider)
+            except ProviderNotFoundError as e:
+                return ErrorResponse.from_message(str(e), 404)
+            try:
+                if config.timeout is None:
+                    config.timeout = AppConfig.timeout
+                if config.stream_timeout is None and config.stream:
+                    config.stream_timeout = AppConfig.stream_timeout
+                if credentials is not None and credentials.credentials != "secret":
+                    config.api_key = credentials.credentials
+
+                # Anthropic uses a top-level `system` field; fold it into messages.
+                messages = config.messages
+                if config.system:
+                    system_content = config.system
+                    if isinstance(system_content, list):
+                        system_content = " ".join(
+                            b.get("text", "") if isinstance(b, dict) else str(b)
+                            for b in system_content
+                        )
+                    messages = [{"role": "system", "content": system_content}, *messages]
+
+                response = self.client.chat.completions.create(
+                    **filter_none(
+                        **{
+                            "model": AppConfig.model,
+                            "provider": AppConfig.provider,
+                            "proxy": AppConfig.proxy,
+                            **(config.model_dump(exclude_none=True) if hasattr(config, "model_dump") else config.dict(exclude_none=True)),
+                            **{
+                                "provider": provider,
+                                "messages": messages,
+                                "user": x_user,
+                            }
+                        },
+                        ignored=AppConfig.ignored_providers
+                    ),
+                )
+
+                if not config.stream:
+                    result = await response
+                    text = result.choices[0].message.content if result.choices else ""
+                    usage = getattr(result, "usage", None)
+                    input_tokens = getattr(usage, "prompt_tokens", 0) or 0
+                    output_tokens = getattr(usage, "completion_tokens", 0) or 0
+                    return JSONResponse({
+                        "id": getattr(result, "id", f"msg_{secrets.token_hex(12)}"),
+                        "type": "message",
+                        "role": "assistant",
+                        "model": getattr(result, "model", config.model),
+                        "provider": getattr(provider, "__name__", config.provider),
+                        "content": [{"type": "text", "text": text}],
+                        "stop_reason": getattr(result.choices[0], "finish_reason", None) if result.choices else None,
+                        "stop_sequence": None,
+                        "usage": {
+                            "input_tokens": input_tokens,
+                            "output_tokens": output_tokens,
+                        },
+                    })
+
+                first_chunk = await response.__anext__()
+                async def messages_streaming():
+                    yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
+                    try:
+                        async for chunk in response:
+                            if isinstance(chunk, BaseConversation):
+                                pass
+                            else:
+                                yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
+                    except GeneratorExit:
+                        pass
+                    except RateLimitError as e:
+                        debug.error(e)
+                        yield f'data: {format_exception(e, config)}\n\n'
+                    except Exception as e:
+                        logger.exception(e)
+                        yield f'data: {format_exception(e, config)}\n\n'
+                    yield "data: [DONE]\n\n"
+                headers = getattr(first_chunk, "_headers").get_dict() if hasattr(first_chunk, "_headers") else {}
+                headers = {k.encode("latin-1","ignore").decode("latin-1"): v.encode("latin-1","ignore").decode("latin-1") for k, v in headers.items()}
+                return StreamingResponse(
+                    messages_streaming(),
                     media_type="text/event-stream",
                     headers=headers
                 )

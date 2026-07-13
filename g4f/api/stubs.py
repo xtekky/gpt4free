@@ -71,6 +71,43 @@ class ChatCompletionsConfig(RequestConfig):
 
 class ResponsesConfig(RequestConfig):
     input: Union[Messages, str]
+    stream: bool = False
+    instructions: Optional[str] = None
+    previous_response_id: Optional[str] = None
+
+
+class MessagesConfig(BaseModel):
+    """Anthropic Messages API request body."""
+    model: str = Field(default="")
+    messages: Messages = Field(
+        examples=[[{"role": "user", "content": "Hello"}]]
+    )
+    system: Optional[Union[str, list]] = None
+    max_tokens: int = 4096
+    stream: bool = False
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+    top_k: Optional[int] = None
+    stop_sequences: Optional[list[str]] = None
+    metadata: Optional[dict] = None
+    tools: Optional[list] = None
+    tool_choice: Optional[Union[str, dict]] = None
+    provider: Optional[str] = None
+    api_key: Optional[Union[str, dict[str, str]]] = None
+    conversation: Optional[dict] = None
+    conversation_id: Optional[str] = None
+    timeout: Optional[int] = None
+    stream_timeout: Optional[int] = None
+    image: Optional[str] = None
+    image_name: Optional[str] = None
+    images: Optional[list[tuple[str, str]]] = None
+    media: Optional[list[tuple[str, str]]] = None
+    web_search: Optional[Union[str, bool]] = None
+    response_format: Optional[dict] = None
+    reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = None
+    raw: bool = False
+    extra_body: Optional[dict] = None
+    tool_emulation: Optional[bool] = None
 
 
 class ImageGenerationConfig(BaseModel):

@@ -27,6 +27,7 @@ from .tools import (
     GrepSearchTool,
     GithubRepoTool,
     GithubTextSearchTool,
+    TokenOptimizerTool,
 )
 from .pa_provider import (
     execute_safe_code,
@@ -58,6 +59,7 @@ __all__ = [
     'GrepSearchTool',
     'GithubRepoTool',
     'GithubTextSearchTool',
+    'TokenOptimizerTool',
     # PA provider system
     'execute_safe_code',
     'load_pa_provider',

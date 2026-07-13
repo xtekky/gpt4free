@@ -827,6 +827,75 @@ class CreateFileTool(MCPTool):
             return {"error": f"Create file failed: {exc}"}
 
 
+class FileWriteTool(MCPTool):
+    """Write (or create) a file inside the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Write text content to a file inside the ~/.g4f/workspace directory. "
+            "Creates parent directories as needed. Overwrites the file if it already exists. "
+            "Provide a relative path from the workspace root and the content to write."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Relative path to the file inside the workspace",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Text content to write to the file",
+                },
+                "append": {
+                    "type": "boolean",
+                    "description": "If true, append to existing file instead of overwriting (default: false)",
+                    "default": False,
+                },
+            },
+            "required": ["path", "content"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("path", "")
+        content = arguments.get("content")
+        append = bool(arguments.get("append", False))
+
+        if not rel_path:
+            return {"error": "path parameter is required"}
+        if content is None:
+            return {"error": "content parameter is required"}
+
+        workspace = get_workspace_dir().resolve()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace)):
+                return {"error": "Access outside the workspace is not allowed"}
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if append:
+                with open(target, "a", encoding="utf-8") as f:
+                    f.write(content)
+            else:
+                target.write_text(content, encoding="utf-8")
+            result: Dict[str, Any] = {
+                "path": rel_path,
+                "size": len(content),
+                "appended": append,
+            }
+            origin = arguments.get("origin")
+            if origin:
+                result["url"] = f"{origin}/pa/files/{rel_path}"
+            return result
+        except Exception as exc:
+            return {"error": f"Write failed: {exc}"}
+
+
 class FetchWebpageTool(MCPTool):
     """Fetch and return the main content from one or more web pages."""
 
@@ -1251,3 +1320,80 @@ class ApplyPatchTool(MCPTool):
             return {"error": f"Invalid target path: {exc}"}
 
         return apply_patch_with_fallback(patch_content, str(target), backup, dry_run)
+
+
+class TokenOptimizerTool(MCPTool):
+    """Optimize a prompt (messages list) to reduce token waste before sending to providers.
+
+    Wraps the optional `token_optimizer` plugin
+    (https://github.com/alexgreensh/token-optimizer). When the package is not
+    installed the tool reports that it is unavailable so callers can fall back
+    to the built-in request optimizer.
+    """
+
+    @property
+    def description(self) -> str:
+        return (
+            "Optimize a prompt (OpenAI-style messages list) to cut wasted input tokens "
+            "before it reaches AI providers. Compresses verbose system prompts, repeated "
+            "tool output, and stale context. Requires the optional `token_optimizer` package. "
+            "Returns the optimized messages and the number of tokens saved."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "description": "OpenAI-style messages list to optimize.",
+                    "items": {"type": "object"},
+                },
+                "tools": {
+                    "type": "array",
+                    "description": "Optional list of tool definitions to compress alongside the messages.",
+                    "items": {"type": "object"},
+                },
+            },
+            "required": ["messages"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..tools.token_optimizer import (
+            is_available,
+            get_install_path,
+            optimize_messages,
+        )
+
+        if not is_available():
+            return {
+                "available": False,
+                "error": (
+                    "token_optimizer package is not installed. "
+                    "Install it from https://github.com/alexgreensh/token-optimizer "
+                    "to enable prompt optimization."
+                ),
+            }
+
+        messages = arguments.get("messages")
+        if not isinstance(messages, list) or not messages:
+            return {"available": True, "error": "messages must be a non-empty list"}
+
+        tools = arguments.get("tools")
+        # Copy so we don't mutate the caller's input across the MCP boundary.
+        messages_copy = [dict(m) if isinstance(m, dict) else m for m in messages]
+        tools_copy = [dict(t) if isinstance(t, dict) else t for t in tools] if isinstance(tools, list) else None
+
+        try:
+            saved_tokens, logs = optimize_messages(messages_copy, tools_copy)
+        except Exception as exc:
+            return {"available": True, "error": f"Optimization failed: {exc}"}
+
+        return {
+            "available": True,
+            "install_path": get_install_path(),
+            "saved_tokens": saved_tokens,
+            "logs": logs,
+            "optimized_messages": messages_copy,
+        }

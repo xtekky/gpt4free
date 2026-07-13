@@ -23,6 +23,7 @@ from ..providers.helper import filter_none
 from ..providers.asyncio import to_sync_generator
 from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo, HeadersResponse, JsonConversation
 from .optimize_request import optimize_request
+from .token_optimizer import optimize_messages as token_optimizer_optimize_messages, is_available as token_optimizer_available
 from ..providers.types import ProviderType
 from ..providers.base_provider import get_async_provider_method, get_provider_method, wait_for
 from ..cookies import get_cookies_dir
@@ -342,6 +343,15 @@ async def async_iter_run_tools(
     if saved_tokens:
         debug.log(f"Optimized request: saved ~{saved_tokens} tokens")
 
+    # Optional token-optimizer plugin: compress the prompt messages before
+    # they reach the provider. Only active when the `token_optimizer` package
+    # is installed in the environment.
+    if token_optimizer_available():
+        to_saved, _to_logs = token_optimizer_optimize_messages(messages, tools_ref)
+        if to_saved:
+            saved_tokens += to_saved
+            debug.log(f"Token Optimizer plugin: saved ~{to_saved} tokens")
+
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
         tool_emulation = os.environ.get("G4F_TOOL_EMULATION", "").strip().lower() in (
@@ -490,6 +500,15 @@ def iter_run_tools(
     saved_tokens, _optimize_logs = optimize_request(messages, tools_ref)
     if saved_tokens:
         debug.log(f"Optimized request: saved ~{saved_tokens} tokens")
+
+    # Optional token-optimizer plugin: compress the prompt messages before
+    # they reach the provider. Only active when the `token_optimizer` package
+    # is installed in the environment.
+    if token_optimizer_available():
+        to_saved, _to_logs = token_optimizer_optimize_messages(messages, tools_ref)
+        if to_saved:
+            saved_tokens += to_saved
+            debug.log(f"Token Optimizer plugin: saved ~{to_saved} tokens")
 
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
