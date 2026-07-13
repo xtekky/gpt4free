@@ -24,6 +24,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     needs_auth = True
     quota_url = "https://api.puter.com/metering/usage"
+    supports_native_tools = True
 
     default_model = 'gpt-5.1'
     default_vision_model = default_model
@@ -371,6 +372,6 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                         elif data.get("type") == "tool_calls":
                             yield ToolCalls(data.get("tool_calls", []))
                         elif data.get("type") == "usage":
-                            yield Usage(**data.get("usage", {}))
+                            yield Usage.from_dict(data.get("usage", {}))
                 else:
                     raise ResponseError(f"Unexpected content type: {mime_type}")
