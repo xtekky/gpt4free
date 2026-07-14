@@ -420,6 +420,7 @@ class Backend_Api(Api):
                         "requests": 0,
                         "prompt_tokens": 0,
                         "completion_tokens": 0,
+                        "saved_tokens": 0,
                         "total_tokens": 0,
                     },
                 })
@@ -435,6 +436,7 @@ class Backend_Api(Api):
                 "requests": 0,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
+                "saved_tokens": 0,
                 "total_tokens": 0,
             }
 
@@ -447,6 +449,7 @@ class Backend_Api(Api):
                     "requests": 0,
                     "prompt_tokens": 0,
                     "completion_tokens": 0,
+                    "saved_tokens": 0,
                     "total_tokens": 0,
                 }
                 try:
@@ -462,6 +465,7 @@ class Backend_Api(Api):
                             continue
                         prompt = int(entry.get("prompt_tokens", 0) or 0)
                         completion = int(entry.get("completion_tokens", 0) or 0)
+                        saved = int(entry.get("saved_tokens", 0) or 0)
                         total = int(entry.get("total_tokens", 0) or (prompt + completion))
                         model = entry.get("model", "unknown")
                         provider = entry.get("provider", "unknown")
@@ -470,38 +474,43 @@ class Backend_Api(Api):
                         day_stats["requests"] += 1
                         day_stats["prompt_tokens"] += prompt
                         day_stats["completion_tokens"] += completion
+                        day_stats["saved_tokens"] += saved
                         day_stats["total_tokens"] += total
 
                         m = models.setdefault(model, {
                             "requests": 0, "prompt_tokens": 0,
-                            "completion_tokens": 0, "total_tokens": 0,
+                            "completion_tokens": 0, "saved_tokens": 0, "total_tokens": 0,
                         })
                         m["requests"] += 1
                         m["prompt_tokens"] += prompt
                         m["completion_tokens"] += completion
+                        m["saved_tokens"] += saved
                         m["total_tokens"] += total
 
                         p = providers.setdefault(provider, {
                             "requests": 0, "prompt_tokens": 0,
-                            "completion_tokens": 0, "total_tokens": 0,
+                            "completion_tokens": 0, "saved_tokens": 0, "total_tokens": 0,
                         })
                         p["requests"] += 1
                         p["prompt_tokens"] += prompt
                         p["completion_tokens"] += completion
+                        p["saved_tokens"] += saved
                         p["total_tokens"] += total
 
                         u = users.setdefault(user, {
                             "requests": 0, "prompt_tokens": 0,
-                            "completion_tokens": 0, "total_tokens": 0,
+                            "completion_tokens": 0, "saved_tokens": 0, "total_tokens": 0,
                         })
                         u["requests"] += 1
                         u["prompt_tokens"] += prompt
                         u["completion_tokens"] += completion
+                        u["saved_tokens"] += saved
                         u["total_tokens"] += total
 
                         totals["requests"] += 1
                         totals["prompt_tokens"] += prompt
                         totals["completion_tokens"] += completion
+                        totals["saved_tokens"] += saved
                         totals["total_tokens"] += total
                 except OSError:
                     pass
