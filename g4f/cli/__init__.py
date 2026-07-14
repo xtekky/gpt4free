@@ -339,16 +339,19 @@ def main():
     mode_parser = ArgumentParser(description="Select mode to run g4f in.", exit_on_error=False)
     mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray"], default="api", help="Mode to run g4f in (default: api).")
     
-    # Preserve original remaining so the API parser gets all args if mode
-    # detection fails (e.g. `python -m g4f --port 8080` without a mode prefix).
-    original_remaining = remaining
     try:
         try:
             args, remaining = mode_parser.parse_known_args(remaining)
         except argparse.ArgumentError:
-            parser = get_api_parser(exit_on_error=False)
-            args = parser.parse_args(remaining)
-            run_api_args(args)
+            try:
+                parser = get_tray_parser(exit_on_error=False)
+                args = parser.parse_args(remaining)
+                run_tray_args(args)
+            except (argparse.ArgumentError, ImportError) as e:
+                print(e)
+                parser = get_api_parser(exit_on_error=False)
+                args = parser.parse_args(remaining)
+                run_api_args(args)
             return
         if args.mode == "auth":
             parser = get_auth_parser()

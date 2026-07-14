@@ -43,6 +43,9 @@ EXTRA_REQUIRE = {
         "wasmtime",
         "numpy",
         "PyYAML",
+        "prompt_optimizer",
+        "websocket-client",
+        "pystray",
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -65,6 +68,8 @@ EXTRA_REQUIRE = {
         "aiofile",
         "cloudscraper",
         "PyYAML",
+        "websocket-client",
+        "pystray",
     ],
     "image": [
         "pillow",

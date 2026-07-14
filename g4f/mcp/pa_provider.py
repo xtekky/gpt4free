@@ -224,6 +224,7 @@ def _make_restricted_import(allowed: FrozenSet[str]):
         # Block the entire Provider package; only specific safe submodules are
         # explicitly permitted via _ALLOWED_G4F_SUBPATHS below.
         "g4f.Provider",
+        "g4f.config"
     })
 
     # Explicit allowlist for g4f sub-paths that would otherwise be blocked.

@@ -20,3 +20,5 @@ python-dotenv
 ddgs
 cloudscraper
 PyYAML
+websocket-client
+pystray

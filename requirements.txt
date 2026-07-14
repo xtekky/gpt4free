@@ -22,3 +22,5 @@ cloudscraper
 numpy
 PyYAML
 prompt_optimizer
+websocket-client
+pystray

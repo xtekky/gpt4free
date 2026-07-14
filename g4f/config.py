@@ -52,6 +52,7 @@ class AppConfig:
     timeout: int = DEFAULT_TIMEOUT
     stream_timeout: int = DEFAULT_STREAM_TIMEOUT
     disable_custom_api_key: bool = False
+    g4f_space_api_key: Optional[str] = None
 
     @classmethod
     def set_config(cls, **data):
@@ -68,3 +69,4 @@ class AppConfig:
         cls.model = os.environ.get("G4F_MODEL", cls.model)
         cls.provider = os.environ.get("G4F_PROVIDER", cls.provider)
         cls.disable_custom_api_key = os.environ.get("G4F_DISABLE_CUSTOM_API_KEY", str(cls.disable_custom_api_key)).lower() in ("true", "1", "yes")
+        cls.g4f_space_api_key = os.environ.get("G4F_SPACE_API_KEY", cls.g4f_space_api_key)

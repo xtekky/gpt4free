@@ -8,6 +8,7 @@ from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
+from ..client.factory import AbstractClientFactory
 from ..Provider import __getattr__
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
@@ -469,6 +470,8 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 for provider, alias in cls.model_map[model].items():
                     try:
                         provider_cls = Provider.__map__[provider]
+                        if provider_cls.model_aliases is None:
+                            provider_cls.model_aliases = {}
                         if model not in provider_cls.model_aliases:
                             provider_cls.model_aliases[model] = alias
                         providers.append(provider_cls)
@@ -501,6 +504,8 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         if not has_api_key:
             providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
 
+        providers.append(AbstractClientFactory.create_provider(None, "default"))
+
         if len(providers) == 0:
             raise ModelNotFoundError(
                 f"AnyProvider: Model {model} not found in any provider."
@@ -510,7 +515,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"
         )
 
-        async for chunk in RotatedProvider(providers).create_async_generator(
+        async for chunk in RotatedProvider(providers, False).create_async_generator(
             model, messages, stream=stream, media=media, api_key=api_key, **kwargs
         ):
             yield chunk

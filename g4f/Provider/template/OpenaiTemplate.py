@@ -91,6 +91,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     base_url = cls.base_url
                     if not cls.is_provider_api_key(api_key):
                         base_url = cls.backup_url
+                    if base_url is None:
+                        raise NotImplementedError("No base_url or backup_url specified.")
+                    if base_url.startswith("https://g4f.space/") and not api_key:
+                        api_key = AppConfig.g4f_space_api_key
                     elif cls.models_needs_auth and not api_key:
                         raise MissingAuthError("API key is required.")
                 response = requests.get(f"{base_url}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl, timeout=timeout)

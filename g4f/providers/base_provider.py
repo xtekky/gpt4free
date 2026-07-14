@@ -268,7 +268,7 @@ class AsyncGeneratorProvider(AbstractProvider):
 class ProviderModelMixin:
     default_model: str = None
     models: list[str] = []
-    model_aliases: dict[str, str] = {}
+    model_aliases: Optional[dict[str, str]] = None
     models_count: dict = {}
     image_models: list = []
     vision_models: list = []
@@ -292,7 +292,7 @@ class ProviderModelMixin:
     def get_model(cls, model: str, **kwargs) -> str:
         if not model and cls.default_model is not None:
             model = cls.default_model
-        if model in cls.model_aliases:
+        if cls.model_aliases is not None and model in cls.model_aliases:
             alias = cls.model_aliases[model]
             if isinstance(alias, list):
                 selected_model = random.choice(alias)
