@@ -348,7 +348,6 @@ def main():
                 args = parser.parse_args(remaining)
                 run_tray_args(args)
             except (argparse.ArgumentError, ImportError) as e:
-                print(e)
                 parser = get_api_parser(exit_on_error=False)
                 args = parser.parse_args(remaining)
                 run_api_args(args)
