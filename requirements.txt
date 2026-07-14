@@ -19,6 +19,6 @@ a2wsgi
 python-dotenv
 ddgs
 cloudscraper
-wasmtime
 numpy
 PyYAML
+prompt_optimizer

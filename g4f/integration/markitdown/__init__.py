@@ -168,3 +168,69 @@ class MarkItDown(BaseMarkItDown):
             file_stream=stream, base_guess=base_guess or StreamInfo()
         )
         return self._convert(file_stream=stream, stream_info_guesses=guesses, **kwargs)
+
+    @staticmethod
+    def _convert_github_url_to_raw(url: str) -> str:
+        """Convert a github.com URL to a raw.githubusercontent.com content URL.
+
+        Handles the following patterns:
+        - https://github.com/{owner}/{repo}/blob/{ref}/{path}
+            -> https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}
+        - https://github.com/{owner}/{repo}/raw/{ref}/{path}
+            -> https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}
+        - https://gist.github.com/{user}/{gist_id}
+            -> https://gist.githubusercontent.com/{user}/{gist_id}/raw
+        - URLs already pointing to raw.githubusercontent.com or
+          gist.githubusercontent.com are returned unchanged.
+
+        Tree URLs (directories) and repository root URLs cannot be converted
+        to a single raw file and are returned unchanged so the caller can
+        decide how to handle them.
+        """
+        if url is None:
+            raise ValueError("url must not be None")
+
+        # Already raw -- nothing to do
+        if url.startswith(("https://raw.githubusercontent.com/",
+                           "https://gist.githubusercontent.com/")):
+            return url
+
+        # Gist URLs
+        m = re.match(
+            r"^https?://gist\.github\.com/([^/]+)/([0-9a-fA-F]+)(?:/.*)?$",
+            url,
+        )
+        if m:
+            user, gist_id = m.group(1), m.group(2)
+            return f"https://gist.githubusercontent.com/{user}/{gist_id}/raw"
+
+        # github.com/{owner}/{repo}/blob/{ref}/{path}
+        m = re.match(
+            r"^https?://github\.com/([^/]+)/([^/]+)/(?:blob|raw)/([^/]+)/(.+?)(?:[?#].*)?$",
+            url,
+        )
+        if m:
+            owner, repo, ref, path = (m.group(1), m.group(2),
+                                      m.group(3), m.group(4))
+            # Strip a trailing slash if any
+            path = path.rstrip("/")
+            return f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"
+
+        # Tree (directory) URLs and repo roots: cannot map to a single raw file
+        return url
+
+    def convert_url(
+        self,
+        url: str,
+        *,
+        stream_info: Optional[StreamInfo] = None,
+        **kwargs: Any,
+    ) -> DocumentConverterResult:
+        if url is None or not isinstance(url, str) or url.strip() == "":
+            raise ValueError("url must be a non-empty string")
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("url must start with http:// or https://")
+        if url.startswith("https://github.com/"):
+            # Special case for GitHub URLs -- convert to raw content URL
+            url = self._convert_github_url_to_raw(url)
+        return super().convert_url(url, stream_info=stream_info, **kwargs)

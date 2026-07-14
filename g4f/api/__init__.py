@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import json
+import asyncio
 import uvicorn
 import secrets
 import os
@@ -22,13 +23,16 @@ from fastapi.security import APIKeyHeader
 from starlette.exceptions import HTTPException
 from starlette.status import (
     HTTP_200_OK,
-    HTTP_422_UNPROCESSABLE_ENTITY, 
     HTTP_404_NOT_FOUND,
     HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_429_TOO_MANY_REQUESTS,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
+try:
+    from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
+except ImportError:
+    HTTP_422_UNPROCESSABLE_CONTENT = 422
 from starlette.staticfiles import NotModifiedResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
@@ -569,7 +573,7 @@ class Api:
                     "type": error["type"],
                 })
             return JSONResponse(
-                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=HTTP_422_UNPROCESSABLE_CONTENT,
                 content=jsonable_encoder({"detail": modified_details}),
             )
 
@@ -692,7 +696,7 @@ class Api:
             HTTP_200_OK: {"model": ChatCompletion},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
-            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponseModel},
             HTTP_429_TOO_MANY_REQUESTS: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
@@ -736,7 +740,7 @@ class Api:
                     try:
                         is_data_an_media(config.image)
                     except ValueError as e:
-                        return ErrorResponse.from_message(f"The image you send must be a data URI. Example: data:image/jpeg;base64,...", status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+                        return ErrorResponse.from_message(f"The image you send must be a data URI. Example: data:image/jpeg;base64,...", status_code=HTTP_422_UNPROCESSABLE_CONTENT)
                 if config.media is None:
                     config.media = config.images
                 if config.media is not None:
@@ -745,7 +749,7 @@ class Api:
                             is_data_an_media(image[0], image[1])
                         except ValueError as e:
                             example = json.dumps({"media": [["data:image/jpeg;base64,...", "filename.jpg"]]})
-                            return ErrorResponse.from_message(f'The media you send must be a data URIs. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+                            return ErrorResponse.from_message(f'The media you send must be a data URIs. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_CONTENT)
 
                 # Create the completion response
                 response = self.client.chat.completions.create(
@@ -1345,6 +1349,57 @@ class Api:
             except MissingAuthError as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, None, HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, None, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        responses = {
+            HTTP_200_OK: {"model": TranscriptionResponseModel},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        }
+        @self.app.get("/markitdown/{url:path}", responses=responses)
+        async def convert_url(
+            request: Request,
+            url: str,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
+        ):
+            """Convert a URL to Markdown using MarkItDown.
+
+            The full URL (including scheme) is passed in the path, e.g.:
+            GET /markitdown/https://example.com/page
+
+            Query strings are preserved by reading them from the incoming
+            request and re-appending them to the target URL, e.g.:
+            GET /markitdown/https://example.com/page?foo=bar
+            """
+            # FastAPI strips the query string from the {url:path} parameter,
+            # so re-attach it from the incoming request when present.
+            query_string = request.url.query
+            if query_string and "?" not in url:
+                url = f"{url}?{query_string}"
+            elif query_string:
+                # url already contains a '?', append remaining params with '&'
+                url = f"{url}&{query_string}"
+            if not url.startswith(("http://", "https://")):
+                return ErrorResponse.from_message(
+                    f"Invalid URL: {url}. URL must start with http:// or https://",
+                    HTTP_422_UNPROCESSABLE_CONTENT,
+                )
+            try:
+                from g4f.integration.markitdown import MarkItDown
+                md = MarkItDown()
+                result = md.convert_url(url)
+                text = result.text_content
+                if asyncio.iscoroutine(text):
+                    text = await text
+                return JSONResponse(
+                    {"text": text, "title": result.title, "url": url},
+                )
+            except ImportError as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, None, HTTP_500_INTERNAL_SERVER_ERROR)
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, None, HTTP_500_INTERNAL_SERVER_ERROR)

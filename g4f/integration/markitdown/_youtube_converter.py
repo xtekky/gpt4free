@@ -2,11 +2,74 @@ import json
 import time
 import re
 import bs4
-from typing import Any, BinaryIO, Dict, List, Union
+from typing import Any, BinaryIO, Dict, List, Optional, Union
 from urllib.parse import parse_qs, urlparse, unquote
 
 from markitdown._base_converter import DocumentConverter, DocumentConverterResult
 from markitdown._stream_info import StreamInfo
+
+# Hosts that serve YouTube content we can transcribe
+_YOUTUBE_HOSTS = (
+    "www.youtube.com",
+    "youtube.com",
+    "m.youtube.com",
+    "music.youtube.com",
+    "youtu.be",
+)
+
+# Regex patterns for the various YouTube URL formats
+_YOUTUBE_PATTERNS = [
+    # youtu.be/{video_id}
+    re.compile(r"^https?://(?:www\.)?youtu\.be/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    # youtube.com/watch?v={video_id}
+    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/watch(?:[?&#].*)?(?:[?&]v=)(?P<id>[A-Za-z0-9_-]{6,})(?:[&#].*)?$"),
+    # youtube.com/embed/{video_id}
+    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/embed/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    # youtube.com/shorts/{video_id}
+    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/shorts/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    # youtube.com/live/{video_id}
+    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/live/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    # youtube.com/v/{video_id}
+    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/v/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+]
+
+
+def _extract_youtube_video_id(url: str) -> Optional[str]:
+    """Extract the YouTube video ID from any supported URL format.
+
+    Supports:
+      - https://www.youtube.com/watch?v=ID
+      - https://youtu.be/ID
+      - https://www.youtube.com/embed/ID
+      - https://www.youtube.com/shorts/ID
+      - https://www.youtube.com/live/ID
+      - https://www.youtube.com/v/ID
+      - m.youtube.com / music.youtube.com variants
+    """
+    if not url:
+        return None
+    url = unquote(url).strip()
+    # Normalize escaped characters that some sources emit
+    url = url.replace(r"\?", "?").replace(r"\=", "=")
+    for pattern in _YOUTUBE_PATTERNS:
+        m = pattern.match(url)
+        if m:
+            return m.group("id")
+    # Fallback: parse query string for a `v` parameter on a youtube host
+    try:
+        parsed = urlparse(url)
+        if parsed.hostname and parsed.hostname.endswith("youtube.com"):
+            params = parse_qs(parsed.query)
+            if "v" in params and params["v"][0]:
+                return str(params["v"][0])
+    except Exception:
+        pass
+    return None
+
+
+def _is_youtube_url(url: str) -> bool:
+    """Return True if the URL points to a YouTube video page we can transcribe."""
+    return _extract_youtube_video_id(url) is not None
 
 # Optional YouTube transcription support
 try:
@@ -50,13 +113,11 @@ class YouTubeConverter(DocumentConverter):
         mimetype = (stream_info.mimetype or "").lower()
         extension = (stream_info.extension or "").lower()
 
-        url = unquote(url)
-        url = url.replace(r"\?", "?").replace(r"\=", "=")
 
-        if not url.startswith("https://www.youtube.com/watch?"):
+        if not _is_youtube_url(url):
             # Not a YouTube URL
             return False
-        
+
         if extension in ACCEPTED_FILE_EXTENSIONS:
             return True
 
@@ -148,10 +209,8 @@ class YouTubeConverter(DocumentConverter):
             try:
                 ytt_api = YouTubeTranscriptApi()
                 transcript_text = ""
-                parsed_url = urlparse(stream_info.url)  # type: ignore
-                params = parse_qs(parsed_url.query)  # type: ignore
-                if "v" in params and params["v"][0]:
-                    video_id = str(params["v"][0])
+                video_id = _extract_youtube_video_id(stream_info.url or "")
+                if video_id:
                     transcript_list = ytt_api.list(video_id)
                     languages = ["en"]
                     for transcript in transcript_list:
