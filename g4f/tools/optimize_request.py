@@ -1444,7 +1444,8 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         # the changes.
         tools[:] = filtered
         saved_bytes += tool_saved
-        logs.update(tool_logs)
+        #logs.update(tool_logs)
+        logs["tools"] = f"optimized tools (-{tool_saved} bytes)"
 
     # Report overall savings as a percentage of the baseline.
     if baseline_bytes > 0 and saved_bytes > 0:

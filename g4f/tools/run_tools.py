@@ -340,9 +340,6 @@ async def async_iter_run_tools(
     # This is applied for all providers and the saved tokens are tracked.
     tools_ref = kwargs.get("tools")
     saved_tokens, _optimize_logs = optimize_request(messages, tools_ref)
-    if saved_tokens:
-        _summary = _optimize_logs.get("summary", f"saved ~{saved_tokens} tokens")
-        # debug.log(f"Optimized request: {_summary}")
 
     # Optional token-optimizer plugin: compress the prompt messages before
     # they reach the provider. Only active when the `token_optimizer` package
@@ -351,12 +348,6 @@ async def async_iter_run_tools(
     if to_saved:
         saved_tokens += to_saved
         debug.log(f"Token Optimizer plugin: saved ~{to_saved} tokens")
-
-    # Calculate the percentage of original prompt tokens saved by optimization.
-    _original_prompt_tokens = caculate_prompt_tokens(messages) + saved_tokens
-    saved_percent = round(saved_tokens / _original_prompt_tokens * 100) if _original_prompt_tokens > 0 and saved_tokens > 0 else 0
-    if saved_tokens:
-        debug.log(f"Token savings: {saved_tokens} tokens ({saved_percent}%)")
 
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
@@ -470,6 +461,9 @@ async def async_iter_run_tools(
         }
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
+            old_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
+            saved_percent = round(saved_tokens / old_tokens * 100) if old_tokens > 0 and saved_tokens > 0 else 0
+            debug.log(f"Token savings: {saved_tokens}/{old_tokens} tokens ({saved_percent}%)")
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
@@ -504,9 +498,6 @@ def iter_run_tools(
     # This is applied for all providers and the saved tokens are tracked.
     tools_ref = kwargs.get("tools")
     saved_tokens, _optimize_logs = optimize_request(messages, tools_ref)
-    if saved_tokens:
-        _summary = _optimize_logs.get("summary", f"saved ~{saved_tokens} tokens")
-        # debug.log(f"Optimized request: {_summary}")
 
     # Optional token-optimizer plugin: compress the prompt messages before
     # they reach the provider. Only active when the `token_optimizer` package
@@ -515,12 +506,6 @@ def iter_run_tools(
     if to_saved:
         saved_tokens += to_saved
         debug.log(f"Token Optimizer plugin: saved ~{to_saved} tokens")
-
-    # Calculate the percentage of original prompt tokens saved by optimization.
-    _original_prompt_tokens = caculate_prompt_tokens(messages) + saved_tokens
-    saved_percent = round(saved_tokens / _original_prompt_tokens * 100) if _original_prompt_tokens > 0 and saved_tokens > 0 else 0
-    if saved_tokens:
-        debug.log(f"Token savings: {saved_tokens} tokens ({saved_percent}%)")
 
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:
@@ -693,6 +678,9 @@ def iter_run_tools(
         }
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
+            old_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
+            saved_percent = round(saved_tokens / old_tokens * 100) if old_tokens > 0 and saved_tokens > 0 else 0
+            debug.log(f"Token savings: {saved_tokens}/{old_tokens} tokens ({saved_percent}%)")
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
