@@ -390,6 +390,137 @@ class Backend_Api(Api):
             else:
                 return (jsonify({"error": {"message": "No usage data found for this date"}}), 404)
 
+        @app.route('/backend-api/v2/stats', methods=['GET'])
+        def get_stats():
+            """Aggregate usage data across all stored days.
+
+            Query params:
+              days  – how many recent days to include (default 30)
+              user  – filter by user (optional)
+
+            Returns JSON with per-day totals, per-model, per-provider, and
+            overall summary statistics.
+            """
+            days = request.args.get("days", "30")
+            try:
+                days = int(days)
+            except (TypeError, ValueError):
+                days = 30
+            days = max(1, min(days, 365))
+            filter_user = request.args.get("user")
+
+            cache_dir = Path(get_cookies_dir()) / ".usage"
+            if not cache_dir.is_dir():
+                return jsonify({
+                    "days": [],
+                    "models": {},
+                    "providers": {},
+                    "users": {},
+                    "totals": {
+                        "requests": 0,
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                        "total_tokens": 0,
+                    },
+                })
+
+            today = datetime.date.today()
+            date_list = [today - datetime.timedelta(days=i) for i in range(days)]
+
+            per_day: list = []
+            models: dict = {}
+            providers: dict = {}
+            users: dict = {}
+            totals = {
+                "requests": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+            }
+
+            for date in reversed(date_list):
+                cache_file = cache_dir / f"{date.isoformat()}.jsonl"
+                if not cache_file.exists():
+                    continue
+                day_stats = {
+                    "date": date.isoformat(),
+                    "requests": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                }
+                try:
+                    for line in cache_file.read_text().splitlines():
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if filter_user and entry.get("user", "unknown") != filter_user:
+                            continue
+                        prompt = int(entry.get("prompt_tokens", 0) or 0)
+                        completion = int(entry.get("completion_tokens", 0) or 0)
+                        total = int(entry.get("total_tokens", 0) or (prompt + completion))
+                        model = entry.get("model", "unknown")
+                        provider = entry.get("provider", "unknown")
+                        user = entry.get("user", "unknown")
+
+                        day_stats["requests"] += 1
+                        day_stats["prompt_tokens"] += prompt
+                        day_stats["completion_tokens"] += completion
+                        day_stats["total_tokens"] += total
+
+                        m = models.setdefault(model, {
+                            "requests": 0, "prompt_tokens": 0,
+                            "completion_tokens": 0, "total_tokens": 0,
+                        })
+                        m["requests"] += 1
+                        m["prompt_tokens"] += prompt
+                        m["completion_tokens"] += completion
+                        m["total_tokens"] += total
+
+                        p = providers.setdefault(provider, {
+                            "requests": 0, "prompt_tokens": 0,
+                            "completion_tokens": 0, "total_tokens": 0,
+                        })
+                        p["requests"] += 1
+                        p["prompt_tokens"] += prompt
+                        p["completion_tokens"] += completion
+                        p["total_tokens"] += total
+
+                        u = users.setdefault(user, {
+                            "requests": 0, "prompt_tokens": 0,
+                            "completion_tokens": 0, "total_tokens": 0,
+                        })
+                        u["requests"] += 1
+                        u["prompt_tokens"] += prompt
+                        u["completion_tokens"] += completion
+                        u["total_tokens"] += total
+
+                        totals["requests"] += 1
+                        totals["prompt_tokens"] += prompt
+                        totals["completion_tokens"] += completion
+                        totals["total_tokens"] += total
+                except OSError:
+                    pass
+                if day_stats["requests"]:
+                    per_day.append(day_stats)
+
+            # Sort models / providers by total tokens descending.
+            models = dict(sorted(models.items(), key=lambda kv: kv[1]["total_tokens"], reverse=True))
+            providers = dict(sorted(providers.items(), key=lambda kv: kv[1]["total_tokens"], reverse=True))
+            users = dict(sorted(users.items(), key=lambda kv: kv[1]["total_tokens"], reverse=True))
+
+            return jsonify({
+                "days": per_day,
+                "models": models,
+                "providers": providers,
+                "users": users,
+                "totals": totals,
+            })
+
         @app.route('/backend-api/v2/quota/<provider>', methods=['GET'])
         async def get_quota(provider: str):
             try:

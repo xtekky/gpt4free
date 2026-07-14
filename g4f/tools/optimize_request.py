@@ -8,6 +8,7 @@ be accumulated per-provider and surfaced to the user.
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any, Dict, List, Tuple
 
@@ -603,22 +604,838 @@ def _dump_tools(tools: List[dict]) -> str:
     return json.dumps(tools, ensure_ascii=False, sort_keys=True)
 
 
-def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str]]:
-    """Optimize the system message and tools in-place.
+# ── Message-level optimization ──────────────────────────────────────────────
+# These run *before* the request reaches any provider so the saved tokens are
+# detected centrally in ``run_tools`` rather than being silently dropped by
+# each provider's own message-cleaning logic.
 
-    Mutates ``messages`` (system prompt) and ``tools`` (list, replaced in place
-    via slice assignment when possible) and returns (saved_tokens, logs).
+def _msg_bytes(msg: Any) -> int:
+    """Approximate byte size of a single message's content."""
+    if not isinstance(msg, dict):
+        return 0
+    content = msg.get("content")
+    if isinstance(content, str):
+        return len(content.encode("utf-8", errors="replace"))
+    if isinstance(content, list):
+        total = 0
+        for part in content:
+            if isinstance(part, dict):
+                text = part.get("text")
+                if isinstance(text, str):
+                    total += len(text.encode("utf-8", errors="replace"))
+        return total
+    return 0
+
+
+def _msg_signature(msg: Any) -> Tuple[str, int]:
+    """A stable signature for duplicate detection.
+
+    Returns ``(role, content_hash)``. Two messages with the same signature are
+    considered duplicates for the purposes of collapsing.
+    """
+    if not isinstance(msg, dict):
+        return ("", 0)
+    role = msg.get("role", "") or ""
+    content = msg.get("content")
+    if isinstance(content, str):
+        return (role, hash(content))
+    if isinstance(content, list):
+        # Hash the concatenated text of all parts so structurally identical
+        # multi-part messages compare equal.
+        parts = []
+        for part in content:
+            if isinstance(part, dict):
+                text = part.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return (role, hash("\n".join(parts)))
+    return (role, 0)
+
+
+def _is_empty_content(msg: Any) -> bool:
+    """True when a message carries no usable content."""
+    if not isinstance(msg, dict):
+        return True
+    content = msg.get("content")
+    if content is None:
+        return True
+    if isinstance(content, str):
+        return not content.strip()
+    if isinstance(content, list):
+        for part in content:
+            if isinstance(part, dict):
+                text = part.get("text")
+                if isinstance(text, str) and text.strip():
+                    return False
+        return True
+    return False
+
+
+def dedup_messages(messages: Messages) -> tuple[Messages, int]:
+    """Remove duplicate and redundant messages.
+
+    * Drops empty/whitespace-only messages (except the system prompt).
+    * Removes exact duplicate messages (same role + content), keeping first.
+    * Collapses consecutive same-role messages, keeping the one with
+      tool_calls or more content.
+
+    Returns (messages, bytes_saved).
+    """
+    if not messages:
+        return [], 0
+
+    original_bytes = sum(_msg_bytes(m) for m in messages)
+
+    seen: set = set()
+    result: list = []
+
+    for msg in messages:
+        if not isinstance(msg, dict):
+            result.append(msg)
+            continue
+        role = msg.get("role", "")
+
+        # Always keep system messages.
+        if role == "system":
+            result.append(msg)
+            continue
+
+        # Drop empty messages, but keep assistant messages that carry tool_calls.
+        if _is_empty_content(msg) and not msg.get("tool_calls"):
+            continue
+
+        # Collapse consecutive same-role messages.
+        if result and isinstance(result[-1], dict) and result[-1].get("role") == role:
+            prev = result[-1]
+            # Keep the message that has tool_calls.
+            if msg.get("tool_calls") and not prev.get("tool_calls"):
+                result.pop()
+                result.append(msg)
+                continue
+            # If previous has tool_calls and this one doesn't, skip this one.
+            if prev.get("tool_calls") and not msg.get("tool_calls"):
+                continue
+            # Neither has tool_calls — skip the duplicate.
+            continue
+
+        # Remove exact duplicates (same role + content hash).
+        sig = _msg_signature(msg)
+        if sig[1] and sig in seen:
+            continue
+        seen.add(sig)
+
+        result.append(msg)
+
+    new_bytes = sum(_msg_bytes(m) for m in result)
+    return result, max(0, original_bytes - new_bytes)
+
+
+# ── Tool-loop detection ─────────────────────────────────────────────────────
+
+_MAX_TOOL_REPEATS = 3  # max times the same tool call may appear before breaking
+
+
+def _tool_call_signature(tool_calls: list) -> str:
+    """Build a stable signature from a list of tool calls.
+
+    Two tool-call lists with the same function names and (semantically)
+    identical arguments produce the same signature.
+    """
+    parts: list[str] = []
+    for tc in tool_calls:
+        if not isinstance(tc, dict):
+            continue
+        fn = tc.get("function", {})
+        if not isinstance(fn, dict):
+            fn = {}
+        name = fn.get("name", "")
+        args = fn.get("arguments", "")
+        # Normalise JSON arguments so trivial differences (key order,
+        # whitespace) don't defeat dedup.
+        if isinstance(args, str):
+            try:
+                args = json.dumps(json.loads(args), sort_keys=True)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        parts.append(f"{name}:{args}")
+    return "|".join(parts)
+
+
+def break_tool_loop(messages: Messages, max_repeats: int = _MAX_TOOL_REPEATS) -> int:
+    """Detect and break tool-call loops.
+
+    When the model repeatedly calls the same tool(s) with the same arguments
+    (getting the same results), this function:
+
+    * Keeps only the **first** occurrence of the repeated tool call and its
+      tool-result messages.
+    * Removes all subsequent duplicate assistant calls **and** their
+      corresponding ``tool``/``function`` result messages.
+    * Injects a guidance ``user`` message telling the model to stop
+      repeating and try a different approach.
+
+    Returns bytes saved.
+    """
+    if not messages:
+        return 0
+
+    # Group assistant-with-tool_calls indices by their call signature.
+    sig_groups: dict[str, list[int]] = {}
+    for i, msg in enumerate(messages):
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        tc = msg.get("tool_calls")
+        if not tc:
+            continue
+        sig = _tool_call_signature(tc)
+        if not sig:
+            continue
+        sig_groups.setdefault(sig, []).append(i)
+
+    # Only act when a signature repeats enough times.
+    looped_sigs = {
+        sig for sig, indices in sig_groups.items()
+        if len(indices) >= max_repeats
+    }
+    if not looped_sigs:
+        return 0
+
+    # Mark indices to remove: duplicate assistant messages + their tool results.
+    indices_to_remove: set[int] = set()
+    for sig in looped_sigs:
+        indices = sig_groups[sig]
+        # Keep the first occurrence, remove the rest.
+        for idx in indices[1:]:
+            indices_to_remove.add(idx)
+            # Also remove the following tool/function result messages.
+            for j in range(idx + 1, len(messages)):
+                m = messages[j]
+                if not isinstance(m, dict):
+                    break
+                if m.get("role") in ("tool", "function"):
+                    indices_to_remove.add(j)
+                else:
+                    break
+
+    if not indices_to_remove:
+        return 0
+
+    saved_bytes = sum(_msg_bytes(messages[i]) for i in indices_to_remove)
+
+    # Build the new message list without the removed indices.
+    new_messages = [
+        msg for i, msg in enumerate(messages) if i not in indices_to_remove
+    ]
+
+    # Inject a guidance message after the first looped assistant's results.
+    for sig in looped_sigs:
+        first_idx = sig_groups[sig][0]
+        removed_before = sum(1 for i in indices_to_remove if i < first_idx)
+        adjusted_idx = first_idx - removed_before
+
+        # Find where the tool results end.
+        insert_pos = adjusted_idx + 1
+        for j in range(adjusted_idx + 1, len(new_messages)):
+            m = new_messages[j]
+            if not isinstance(m, dict):
+                break
+            if m.get("role") in ("tool", "function"):
+                insert_pos = j + 1
+            else:
+                break
+
+        guidance = {
+            "role": "user",
+            "content": (
+                "[SYSTEM] You are repeating the same tool calls with identical "
+                "arguments. The previous results did not change. Do NOT call the "
+                "same tools again with the same arguments. Try a different approach, "
+                "use different search terms, or proceed with the information you "
+                "already have."
+            ),
+        }
+        if 0 <= insert_pos <= len(new_messages):
+            new_messages.insert(insert_pos, guidance)
+        break  # Only inject one guidance message.
+
+    messages[:] = new_messages
+    return max(0, saved_bytes)
+
+
+def strip_reasoning_echo(messages: Messages) -> int:
+    """Remove reasoning/thinking blocks echoed back in later assistant messages.
+
+    Providers sometimes re-emit the same ``<think>…</think>`` reasoning block
+    across consecutive assistant turns. Keeping only the first occurrence
+    avoids paying for the same reasoning tokens twice.
+
+    Returns the number of bytes saved.
+    """
+    if not messages:
+        return 0
+
+    _THINK = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
+    _REASONING_TAG = re.compile(
+        r"<reasoning[\s\S]*?</reasoning>", re.IGNORECASE
+    )
+
+    seen_think = False
+    seen_reasoning = False
+    saved_bytes = 0
+
+    for i, msg in enumerate(messages):
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        content = msg.get("content")
+        if not isinstance(content, str):
+            continue
+
+        new_content = content
+        if _THINK.search(new_content):
+            if seen_think:
+                before = len(new_content.encode("utf-8", errors="replace"))
+                new_content = _THINK.sub("", new_content)
+                after = len(new_content.encode("utf-8", errors="replace"))
+                saved_bytes += before - after
+            else:
+                seen_think = True
+        if _REASONING_TAG.search(new_content):
+            if seen_reasoning:
+                before = len(new_content.encode("utf-8", errors="replace"))
+                new_content = _REASONING_TAG.sub("", new_content)
+                after = len(new_content.encode("utf-8", errors="replace"))
+                saved_bytes += before - after
+            else:
+                seen_reasoning = True
+
+        if new_content != content:
+            # Clean up leftover blank lines from the removals.
+            new_content = re.sub(r"\n{3,}", "\n\n", new_content).strip()
+            if not new_content:
+                # The whole message was reasoning — drop it.
+                saved_bytes += len(content.encode("utf-8", errors="replace"))
+                messages[i] = {"role": "assistant", "content": ""}
+            else:
+                msg["content"] = new_content
+
+    return max(0, saved_bytes)
+
+
+# ── Tool result truncation ──────────────────────────────────────────────────
+
+# Cap the byte size of any single tool result / function call output embedded
+# in the conversation. Older results are rarely re-read by the model but still
+# consume the full input budget on every turn.
+_TOOL_RESULT_CAP = 4096  # bytes per tool result
+_OLD_TOOL_RESULT_CAP = 1200  # stricter cap for results older than 2 turns
+
+
+def _truncate_tool_results(messages: Messages) -> int:
+    """Truncate oversized tool/function call results in place.
+
+    Keeps the head and tail of each result with an omission marker, so the
+    model still sees the start (usually the most relevant part) and the
+    exit status at the end. Older results are capped more aggressively.
+
+    Returns the number of bytes saved.
+    """
+    if not messages:
+        return 0
+
+    saved_bytes = 0
+    # Count tool-role messages from the end so we can apply the stricter cap
+    # to older ones.
+    tool_indices = [
+        i for i, m in enumerate(messages)
+        if isinstance(m, dict) and m.get("role") in ("tool", "function")
+    ]
+    # Reverse so index 0 = newest, 1 = second newest, etc.
+    tool_indices.reverse()
+
+    for age, idx in enumerate(tool_indices):
+        msg = messages[idx]
+        cap = _OLD_TOOL_RESULT_CAP if age >= 2 else _TOOL_RESULT_CAP
+
+        content = msg.get("content")
+        if isinstance(content, str):
+            raw = content.encode("utf-8", errors="replace")
+            if len(raw) <= cap:
+                continue
+            before = len(raw)
+            head = cap // 2
+            tail = cap // 4
+            new_content = (
+                content[:head]
+                + f"\n... [{before - head - tail} chars truncated] ...\n"
+                + content[-tail:]
+            )
+            msg["content"] = new_content
+            saved_bytes += before - len(new_content.encode("utf-8", errors="replace"))
+        elif isinstance(content, list):
+            for part in content:
+                if not isinstance(part, dict):
+                    continue
+                text = part.get("text")
+                if not isinstance(text, str):
+                    continue
+                raw = text.encode("utf-8", errors="replace")
+                if len(raw) <= cap:
+                    continue
+                before = len(raw)
+                head = cap // 2
+                tail = cap // 4
+                new_text = (
+                    text[:head]
+                    + f"\n... [{before - head - tail} chars truncated] ...\n"
+                    + text[-tail:]
+                )
+                part["text"] = new_text
+                saved_bytes += before - len(new_text.encode("utf-8", errors="replace"))
+
+    return max(0, saved_bytes)
+
+
+# ── Strip redundant tool_call fields ─────────────────────────────────────────
+
+def _strip_redundant_tool_fields(messages: Messages) -> int:
+    """Remove fields from assistant messages that the provider doesn't need.
+
+    Some providers echo back ``tool_calls`` on the assistant message *and*
+    keep the matching ``tool`` role result. The echoed call metadata is
+    redundant once the result is present. We drop:
+    * ``tool_calls`` on assistant messages that already have a following
+      ``tool``/``function`` result (keeps the last occurrence only).
+    * Empty ``function_call`` fields.
+
+    Returns bytes saved.
+    """
+    if not messages:
+        return 0
+
+    import json
+    saved_bytes = 0
+
+    # Find assistant messages with tool_calls that are followed by a tool result.
+    for i, msg in enumerate(messages):
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        tc = msg.get("tool_calls")
+        if not tc:
+            continue
+        # Check if a subsequent tool message references this call.
+        has_result = False
+        for j in range(i + 1, len(messages)):
+            m = messages[j]
+            if not isinstance(m, dict):
+                continue
+            if m.get("role") in ("tool", "function"):
+                has_result = True
+                break
+            if isinstance(m, dict) and m.get("role") == "assistant":
+                # Next assistant turn — stop looking.
+                break
+        if has_result:
+            before = len(json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+            msg.pop("tool_calls", None)
+            # Also drop the now-orphaned function_call if present.
+            msg.pop("function_call", None)
+            after = len(json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+            saved_bytes += max(0, before - after)
+
+    return max(0, saved_bytes)
+
+
+# ── Collapse whitespace in message content ──────────────────────────────────
+
+_WS_RE = re.compile(r"[ \t]+\n")
+_BLANK_RUN_RE = re.compile(r"\n{3,}")
+
+
+def _collapse_message_whitespace(messages: Messages) -> int:
+    """Normalize trailing whitespace and repeated blank lines in all messages.
+
+    Returns bytes saved.
+    """
+    if not messages:
+        return 0
+
+    saved_bytes = 0
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if isinstance(content, str) and len(content) > 64:
+            original = len(content.encode("utf-8", errors="replace"))
+            new = _WS_RE.sub("\n", content)
+            new = _BLANK_RUN_RE.sub("\n\n", new)
+            if new != content:
+                saved_bytes += original - len(new.encode("utf-8", errors="replace"))
+                msg["content"] = new
+        elif isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict):
+                    text = part.get("text")
+                    if isinstance(text, str) and len(text) > 64:
+                        original = len(text.encode("utf-8", errors="replace"))
+                        new = _WS_RE.sub("\n", text)
+                        new = _BLANK_RUN_RE.sub("\n\n", new)
+                        if new != text:
+                            saved_bytes += original - len(new.encode("utf-8", errors="replace"))
+                            part["text"] = new
+    return max(0, saved_bytes)
+
+
+# ── Drop stale context (old user turns beyond a threshold) ───────────────────
+
+_MAX_TURNS = 40  # keep at most this many non-system messages
+
+
+def _trim_old_turns(messages: Messages) -> int:
+    """Drop the oldest non-system messages when the conversation is very long.
+
+    Keeps the system prompt and the most recent ``_MAX_TURNS`` messages.
+    Returns bytes saved.
+    """
+    if not messages or len(messages) <= _MAX_TURNS + 1:
+        return 0
+
+    # Separate system messages (kept) from the rest.
+    system_msgs = []
+    rest = []
+    for m in messages:
+        if isinstance(m, dict) and m.get("role") == "system":
+            system_msgs.append(m)
+        else:
+            rest.append(m)
+
+    if len(rest) <= _MAX_TURNS:
+        return 0
+
+    dropped = rest[:-_MAX_TURNS]
+    kept = rest[-_MAX_TURNS:]
+    saved_bytes = sum(_msg_bytes(m) for m in dropped)
+
+    messages[:] = system_msgs + kept
+    return max(0, saved_bytes)
+
+
+def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str]]:
+    """Truncate very old tool-result messages to a head+tail snippet.
+
+    Only messages *before* the last user/assistant turn are truncated so the
+    most recent context is preserved verbatim.  Returns bytes saved.
+    """
+    if not messages:
+        return 0
+
+    # Find the index of the last "fresh" turn — the last user or assistant
+    # message that is not an empty tool-response.  Messages before that
+    # index are candidates for truncation.
+    last_fresh = -1
+    for i in range(len(messages) - 1, -1, -1):
+        msg = messages[i]
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role")
+        if role in ("user", "assistant") and msg.get("content"):
+            last_fresh = i
+            break
+    if last_fresh <= 0:
+        return 0
+
+    saved_bytes = 0
+    for i in range(0, last_fresh):
+        msg = messages[i]
+        if not isinstance(msg, dict) or msg.get("role") != "tool":
+            continue
+        content = msg.get("content")
+        if not isinstance(content, str):
+            continue
+        raw = content.encode("utf-8", errors="replace")
+        if len(raw) <= _TOOL_RESULT_CAP:
+            continue
+        head = raw[:_TOOL_RESULT_KEEP_HEAD].decode("utf-8", errors="replace")
+        tail = raw[-_TOOL_RESULT_KEEP_TAIL:].decode("utf-8", errors="replace")
+        omitted = len(raw) - _TOOL_RESULT_KEEP_HEAD - _TOOL_RESULT_KEEP_TAIL
+        msg["content"] = (
+            f"{head}\n\n... [{omitted} bytes omitted — old tool result truncated] ...\n\n{tail}"
+        )
+        saved_bytes += len(raw) - len(msg["content"].encode("utf-8", errors="replace"))
+    return max(0, saved_bytes)
+
+
+def _strip_redundant_tool_calls(messages: Messages) -> int:
+    """Remove ``tool_calls`` from assistant messages once the corresponding
+    tool result has been returned.  Providers keep the full tool-call spec
+    (function name + arguments) in history even after the result is in
+    context, which wastes tokens.  Returns bytes saved.
+    """
+    if not messages:
+        return 0
+    import json as _json
+
+    saved_bytes = 0
+    for i, msg in enumerate(messages):
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        tool_calls = msg.get("tool_calls")
+        if not tool_calls:
+            continue
+        # Is there a later ``tool`` message in the conversation?  If so the
+        # result is already in context and the call spec is redundant.
+        has_result = any(
+            isinstance(m, dict) and m.get("role") == "tool"
+            for m in messages[i + 1:]
+        )
+        if not has_result:
+            continue
+        before = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+        # Keep only the id so providers can still correlate, strip verbose keys.
+        stripped_calls = []
+        for tc in tool_calls:
+            if not isinstance(tc, dict):
+                stripped_calls.append(tc)
+                continue
+            tc = {k: v for k, v in tc.items() if k not in _TOOL_CALL_STRIP_KEYS}
+            # Replace the full arguments with a short marker — the actual
+            # arguments are recoverable from the tool-result message.
+            fn = tc.get("function")
+            if isinstance(fn, dict) and fn.get("arguments"):
+                fn = {k: v for k, v in fn.items() if k != "arguments"}
+                fn["arguments"] = "{}"
+                tc["function"] = fn
+            stripped_calls.append(tc)
+        msg["tool_calls"] = stripped_calls
+        after = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+        saved_bytes += max(0, before - after)
+    return saved_bytes
+
+
+def _collapse_whitespace(messages: Messages) -> int:
+    """Collapse runs of blank lines and trailing whitespace inside every
+    string content.  Returns bytes saved.
+    """
+    saved_bytes = 0
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if not isinstance(content, str):
+            continue
+        new = re.sub(r"[ \t]+\n", "\n", content)      # trailing spaces
+        new = re.sub(r"\n{3,}", "\n\n", new)            # blank-line runs
+        new = new.strip()
+        if len(new) < len(content):
+            saved_bytes += len(content.encode("utf-8", errors="replace")) - len(new.encode("utf-8", errors="replace"))
+            if new:
+                msg["content"] = new
+            else:
+                msg["content"] = ""
+    return max(0, saved_bytes)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# New optimizers
+# ──────────────────────────────────────────────────────────────────────
+
+# Cap on how many bytes of a *single* tool-result message we keep.
+# Anything longer is truncated to head+tail with an omission marker.
+_TOOL_RESULT_CAP = 4000  # ≈1000 tokens per tool result is plenty for context
+
+_TOOL_RESULT_HEAD = 1500
+_TOOL_RESULT_TAIL = 1500
+
+# Fields on message dicts that some providers echo back but that are not
+# needed for the next turn (the assistant already produced them).
+_DROP_ASSISTANT_FIELDS = ("tool_calls", "function_call", "name", "refusal")
+
+
+def _content_bytes(content: Any) -> int:
+    """Byte length of a message's content (str or list of parts)."""
+    if isinstance(content, str):
+        return len(content.encode("utf-8", errors="replace"))
+    if isinstance(content, list):
+        total = 0
+        for part in content:
+            if isinstance(part, dict):
+                total += len(str(part.get("text", "")).encode("utf-8", errors="replace"))
+            elif isinstance(part, str):
+                total += len(part.encode("utf-8", errors="replace"))
+        return total
+    return 0
+
+
+def _set_content(msg: dict, content: Any) -> None:
+    """Set content on a message dict, handling both str and list forms."""
+    msg["content"] = content
+
+
+def truncate_tool_results(messages: Messages) -> int:
+    """Truncate very long ``tool`` role messages to a head+tail cap.
+
+    Tool results (e.g. web-search dumps, file contents) are often huge but
+    only the most recent lines matter for the next turn.  We keep the first
+    ``_TOOL_RESULT_HEAD`` bytes (so the model knows what was returned) and
+    the last ``_TOOL_RESULT_TAIL`` bytes (the freshest output), dropping the
+    middle.
+
+    Returns bytes saved.
+    """
+    saved = 0
+    for msg in messages:
+        if not isinstance(msg, dict) or msg.get("role") != "tool":
+            continue
+        content = msg.get("content")
+        if not isinstance(content, str):
+            continue
+        b = content.encode("utf-8", errors="replace")
+        if len(b) <= _TOOL_RESULT_CAP:
+            continue
+        head = b[:_TOOL_RESULT_HEAD].decode("utf-8", errors="replace")
+        tail = b[-_TOOL_RESULT_TAIL:].decode("utf-8", errors="replace")
+        omitted = len(b) - _TOOL_RESULT_HEAD - _TOOL_RESULT_TAIL
+        new_content = f"{head}\n\n... [{omitted} chars truncated by optimize_request] ...\n\n{tail}"
+        saved += len(b) - len(new_content.encode("utf-8", errors="replace"))
+        _set_content(msg, new_content)
+    return max(0, saved)
+
+
+def strip_redundant_assistant_fields(messages: Messages) -> int:
+    """Remove fields on assistant messages that are no longer needed.
+
+    Once an assistant turn is in the history, the ``tool_calls`` /
+    ``function_call`` metadata is redundant — the corresponding ``tool``
+    messages that follow already carry the result.  Dropping these fields
+    avoids providers re-serialising them on every turn.
+
+    Returns bytes saved (approximated from JSON length).
+    """
+    import json as _json
+
+    saved = 0
+    for msg in messages:
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+        before = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+        changed = False
+        for field in _DROP_ASSISTANT_FIELDS:
+            if field in msg:
+                # Only drop tool_calls if there is content to keep, so we
+                # never produce an empty assistant message.
+                if field == "tool_calls" and not msg.get("content"):
+                    continue
+                del msg[field]
+                changed = True
+        if changed:
+            after = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+            saved += before - after
+    return max(0, saved)
+
+
+def collapse_whitespace_in_messages(messages: Messages) -> int:
+    """Collapse runs of 3+ newlines and trailing whitespace inside message content.
+
+    Returns bytes saved.
+    """
+    saved = 0
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if not isinstance(content, str):
+            continue
+        new = re.sub(r"[ \t]+\n", "\n", content)          # trailing spaces on lines
+        new = re.sub(r"\n{3,}", "\n\n", new)               # 3+ newlines → 2
+        new = new.strip()
+        if len(new) != len(content):
+            saved += len(content.encode("utf-8", errors="replace")) - len(new.encode("utf-8", errors="replace"))
+            _set_content(msg, new)
+    return max(0, saved)
+
+
+def drop_empty_trailing_messages(messages: Messages) -> int:
+    """Drop trailing messages with empty content (no value for the next turn).
+
+    Returns bytes saved (always 0 — these are empty, but we count messages
+    removed so callers can log it).
+    """
+    removed = 0
+    while messages:
+        last = messages[-1]
+        if not isinstance(last, dict):
+            break
+        content = last.get("content")
+        if content in (None, "", []):
+            messages.pop()
+            removed += 1
+        else:
+            break
+    return removed
+
+
+def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str]]:
+    """Optimize the system message, messages, and tools in-place.
+
+    Mutates ``messages`` (system prompt + message list) and ``tools`` (list,
+    replaced in place via slice assignment when possible) and returns
+    (saved_tokens, logs).
 
     ``tools`` may be a list (mutated in place) or None.
     """
     saved_bytes = 0
     logs: Dict[str, str] = {}
 
+    # Capture baseline size for percentage calculation.
+    baseline_bytes = sum(_msg_bytes(m) for m in messages)
+    if isinstance(tools, list) and tools:
+        baseline_bytes += len(_dump_tools(tools).encode("utf-8"))
+
     # ── System prompt ──
     sys_saved = optimize_system_message(messages)
     if sys_saved:
         saved_bytes += sys_saved
         logs["system"] = f"condensed system prompt (-{sys_saved} bytes)"
+
+    # ── Message-level dedup & reasoning echo removal ──
+    messages, dedup_saved = dedup_messages(messages)
+    if dedup_saved:
+        saved_bytes += dedup_saved
+        logs["dedup"] = f"removed duplicate/empty messages (-{dedup_saved} bytes)"
+
+    # ── Break tool-call loops ──
+    loop_saved = break_tool_loop(messages)
+    if loop_saved:
+        saved_bytes += loop_saved
+        logs["tool_loop"] = f"broke tool-call loop (-{loop_saved} bytes)"
+
+    echo_saved = strip_reasoning_echo(messages)
+    if echo_saved:
+        saved_bytes += echo_saved
+        logs["reasoning_echo"] = f"stripped repeated reasoning blocks (-{echo_saved} bytes)"
+
+    # ── Tool result truncation ──
+    tool_trunc_saved = _truncate_tool_results(messages)
+    if tool_trunc_saved:
+        saved_bytes += tool_trunc_saved
+        logs["tool_trunc"] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
+
+    # ── Strip redundant tool_call fields ──
+    tool_field_saved = _strip_redundant_tool_fields(messages)
+    if tool_field_saved:
+        saved_bytes += tool_field_saved
+        logs["tool_fields"] = f"stripped redundant tool_call fields (-{tool_field_saved} bytes)"
+
+    # ── Collapse whitespace ──
+    ws_saved = _collapse_message_whitespace(messages)
+    if ws_saved:
+        saved_bytes += ws_saved
+        logs["whitespace"] = f"collapsed whitespace (-{ws_saved} bytes)"
+
+    # ── Trim old turns ──
+    trim_saved = _trim_old_turns(messages)
+    if trim_saved:
+        saved_bytes += trim_saved
+        logs["trim_old"] = f"dropped {trim_saved} bytes of stale turns"
 
     # ── Tools ──
     if isinstance(tools, list) and tools:
@@ -628,5 +1445,14 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         tools[:] = filtered
         saved_bytes += tool_saved
         logs.update(tool_logs)
+
+    # Report overall savings as a percentage of the baseline.
+    if baseline_bytes > 0 and saved_bytes > 0:
+        pct = (saved_bytes / baseline_bytes) * 100
+        saved_tokens = _bytes_to_tokens(saved_bytes)
+        logs["summary"] = (
+            f"saved {saved_tokens} tokens / {baseline_bytes} baseline "
+            f"({pct:.1f}%)"
+        )
 
     return _bytes_to_tokens(saved_bytes), logs

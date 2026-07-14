@@ -140,10 +140,17 @@ class Website:
                 'function': self._apps,
                 'methods': ['GET']
             },
+            '/stats/': {
+                'function': self._stats,
+                'methods': ['GET']
+            },
         }
 
     def _index(self, filename = "home"):
         return render(filename)
+
+    def _stats(self):
+        return render("stats")
 
     def _chat(self, filename = ""):
         filename = f"chat/{filename}" if filename else "chat/index"
