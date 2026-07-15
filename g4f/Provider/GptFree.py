@@ -91,17 +91,17 @@ class GptFree(AsyncGeneratorProvider, ProviderModelMixin):
             "images": images,
             "history": history
         }
-
         firebase_api_key = "AIzaSyBdU-Np8RSh1tPSsPOWg3qIm6PnVK5PQb4"
 
         async with ClientSession() as session:
-            auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={firebase_api_key}"
-            async with session.post(auth_url, json={"returnSecureToken": True}, proxy=proxy) as auth_resp:
-                auth_resp.raise_for_status()
-                auth_data = await auth_resp.json()
-                id_token = auth_data["idToken"]
+            if not hasattr(cls, '_id_token'):
+                auth_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={firebase_api_key}"
+                async with session.post(auth_url, json={"returnSecureToken": True}, proxy=proxy) as auth_resp:
+                    auth_resp.raise_for_status()
+                    auth_data = await auth_resp.json()
+                    cls._id_token = auth_data["idToken"]
 
-            headers["Authorization"] = f"Bearer {id_token}"
+            headers["Authorization"] = f"Bearer {cls._id_token}"
 
             async with session.post(
                 cls.api_endpoint,
@@ -109,6 +109,8 @@ class GptFree(AsyncGeneratorProvider, ProviderModelMixin):
                 json=payload,
                 proxy=proxy
             ) as response:
+                if response.status == 401 and hasattr(cls, '_id_token'):
+                    delattr(cls, '_id_token')
                 response.raise_for_status()
                 
                 async for line in response.content:

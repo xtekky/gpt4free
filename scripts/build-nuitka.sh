@@ -65,6 +65,7 @@ NUITKA_COMMON_ARGS="
     --assume-yes-for-downloads
     --show-progress
     --show-memory
+    --include-package=g4f
 "
 
 # Platform-specific optimizations

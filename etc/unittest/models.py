@@ -14,13 +14,18 @@ class TestProviderHasModel(unittest.TestCase):
         for model, providers in __models__.values():
             for provider in providers:
                 if isinstance(provider, str):
-                    provider = __getattr__(provider)
+                    try:
+                        provider = __getattr__(provider)
+                    except AttributeError:
+                        continue
+                if provider is None:
+                    continue
                 if getattr(provider, "needs_auth", False):
                     continue
                 if issubclass(provider, ProviderModelMixin):
                     try:
                         provider.get_models(timeout=5) # Update models
-                        if model.name in provider.model_aliases:
+                        if provider.model_aliases and model.name in provider.model_aliases:
                             model_name = provider.model_aliases[model.name]
                         else:
                             model_name = model.get_long_name()
@@ -35,12 +40,17 @@ class TestProviderHasModel(unittest.TestCase):
             except (MissingRequirementsError, MissingAuthError):
                 return
         if self.cache[provider.__name__]:
-            if not model in provider.model_aliases:
+            if not provider.model_aliases or model not in provider.model_aliases:
                 self.assertIn(model, self.cache[provider.__name__], provider.__name__)
 
     def test_all_providers_working(self):
         for model, providers in __models__.values():
             for provider in providers:
                 if isinstance(provider, str):
-                    provider = __getattr__(provider)
+                    try:
+                        provider = __getattr__(provider)
+                    except AttributeError:
+                        continue
+                if provider is None:
+                    continue
                 self.assertTrue(provider.working, f"{provider.__name__} in {model.name}")

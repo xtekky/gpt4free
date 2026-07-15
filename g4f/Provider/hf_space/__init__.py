@@ -42,10 +42,13 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
             cls.model_aliases = {}
             for provider in cls.providers:
                 models.extend(provider.get_models(**kwargs))
-                models.extend(provider.model_aliases.keys())
-                image_models.extend(provider.image_models)
-                vision_models.extend(provider.vision_models)
-                cls.model_aliases.update(provider.model_aliases)
+                if provider.model_aliases:
+                    models.extend(provider.model_aliases.keys())
+                    cls.model_aliases.update(provider.model_aliases)
+                if provider.image_models:
+                    image_models.extend(provider.image_models)
+                if provider.vision_models:
+                    vision_models.extend(provider.vision_models)
             models = list(set(models))
             models.sort()
             cls.models = models

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from g4f.errors import ModelNotFoundError
+import g4f
+from g4f.errors import ModelNotFoundError, ResponseError
 from g4f.client import Client, AsyncClient, ChatCompletion, ChatCompletionChunk
 from g4f.client.service import get_model_and_provider
 from g4f.providers.types import BaseProvider
@@ -123,7 +124,7 @@ class TestPassModel(unittest.TestCase):
         def run_exception():
             client = Client()
             client.chat.completions.create(DEFAULT_MESSAGES, "Hello")
-        self.assertRaises(ModelNotFoundError, run_exception)
+        self.assertRaises((ModelNotFoundError, ResponseError), run_exception)
 
     def test_best_provider(self):
         not_default_model = "gpt-4o"

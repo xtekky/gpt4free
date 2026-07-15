@@ -43,7 +43,8 @@ model_map = {
     "PuterJS": "openrouter:openai/gpt-4o-mini-2024-07-18",
     "ApiAirforce": "gpt-4o-mini",
     "OpenRouter": "openai/gpt-4o-mini-2024-07-18",
-    "WeWordle": "gpt-4o-mini"
+    "WeWordle": "gpt-4o-mini",
+    "Surfsense": "gpt-o4-mini-no-login"
   },
   "gpt-4o-mini-tts": {
     "OpenAIFM": "coral",
@@ -84,7 +85,8 @@ model_map = {
     "LMArena": "o4-mini-2025-04-16",
     "PuterJS": "openai:openai/o4-mini",
     "ApiAirforce": "o4-mini",
-    "OpenRouter": "openai/o4-mini"
+    "OpenRouter": "openai/o4-mini",
+    "Surfsense": "gpt-o4-mini-no-login"
   },
   "o4-mini-high": {
     "OpenaiChat": "o4-mini-high",
@@ -113,6 +115,9 @@ model_map = {
   "gpt-4.5": {
     "OpenaiChat": "gpt-4-5",
     "PuterJS": "openai:openai/gpt-4.5-preview"
+  },
+  "gpt-4.5-mini": {
+    "Surfsense": "gpt-5.4-mini-no-login"
   },
   "gpt-oss-120b": {
     "Together": "openai/gpt-oss-120b",
@@ -620,6 +625,12 @@ model_map = {
     "Together": "r1-1776",
     "PuterJS": "openrouter:perplexity/r1-1776",
     "Perplexity": "r1-1776"
+  },
+  "miklium": {
+    "Miklium": "miklium"
+  },
+  "surfsense": {
+    "Surfsense": "surfsense"
   },
   "nemotron-70b": {
     "Together": "nemotron-70b",

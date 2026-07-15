@@ -39,6 +39,9 @@ PROVIDERS_LIST_2 = [
     "EasyChat",
     "GLM",
     "OpenRouterFree",
+    "Perchance",
+    "Surfsense",
+    "Miklium"
 ]
 
 # Add all models to the model map
@@ -172,7 +175,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 cls.image_models.append(name)
 
         # Process special providers
-        for provider in [__getattr__(provider) for provider in PROVIDERS_LIST_2]:
+        for provider in [p for p in (resolve_provider(name) for name in PROVIDERS_LIST_2) if p is not None]:
             if not provider.working:
                 continue
             try:
@@ -201,7 +204,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if hasattr(provider, "video_models"):
                 cls.video_models.extend(provider.video_models)
 
-        for provider in [__getattr__(provider) for provider in PROVIDERS_LIST_3]:
+        for provider in [p for p in (resolve_provider(name) for name in PROVIDERS_LIST_3) if p is not None]:
             if not provider.working:
                 continue
             try:
@@ -478,7 +481,12 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     except KeyError:
                         pass
         if not providers:
-            for provider in [__getattr__(p) for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3]:
+            def _safe_getattr(p):
+                try:
+                    return __getattr__(p)
+                except AttributeError:
+                    return None
+            for provider in [_p for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3 if (_p := _safe_getattr(p)) is not None]:
                 try:
                     if model in provider.get_models():
                         providers.append(provider)
