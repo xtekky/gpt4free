@@ -319,6 +319,27 @@ class CDPSession:
         await self.call("Network.enable")
         await self.call("Emulation.setFocusEmulationEnabled", enabled=True)
         
+        # Anti-detect: Override User-Agent to remove "HeadlessChrome"
+        user_agent = await self.evaluate_js("navigator.userAgent")
+        if user_agent and "HeadlessChrome" in user_agent:
+            clean_ua = user_agent.replace("HeadlessChrome", "Chrome")
+            await self.call("Network.setUserAgentOverride", userAgent=clean_ua)
+            
+        # Anti-detect: Inject Stealth Script
+        stealth_js = """
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        window.chrome = { runtime: {} };
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+        const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+        WebGLRenderingContext.prototype.getParameter = function(parameter) {
+            if (parameter === 37445) return 'Intel Inc.';
+            if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+            return originalGetParameter.call(this, parameter);
+        };
+        """
+        await self.call("Page.addScriptToEvaluateOnNewDocument", source=stealth_js)
+        
     async def _receiver_loop(self):
         """Listen for WebSocket messages."""
         try:
@@ -463,6 +484,53 @@ class CDPSession:
             if fut in self._event_handlers.get("Page.loadEventFired", []):
                 self._event_handlers["Page.loadEventFired"].remove(fut)
             logger.warning(f"Timeout waiting for Page.loadEventFired when navigating to {url}")
+
+    async def mouse_move(self, x: int, y: int):
+        """Simulate a mouse movement to the given coordinates."""
+        await self.call("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=y)
+
+    async def click(self, x: int, y: int, delay: float = 0.05):
+        """Simulate a realistic mouse click at the given coordinates."""
+        await self.mouse_move(x, y)
+        await asyncio.sleep(0.02)
+        await self.call("Input.dispatchMouseEvent", type="mousePressed", button="left", clickCount=1, x=x, y=y)
+        await asyncio.sleep(delay)
+        await self.call("Input.dispatchMouseEvent", type="mouseReleased", button="left", clickCount=1, x=x, y=y)
+
+    async def bypass_turnstile(self):
+        """Execute a sequence of anti-detect actions to bypass Cloudflare Turnstile."""
+        import random
+        # 1. Force the tab to be active
+        if self.target_id:
+            try:
+                await self.call("Target.activateTarget", targetId=self.target_id)
+            except Exception:
+                pass
+                
+        # 2. Simulate realistic mouse movements
+        start_x, start_y = random.randint(10, 50), random.randint(10, 50)
+        end_x, end_y = random.randint(300, 600), random.randint(200, 500)
+        
+        steps = 5
+        for i in range(steps):
+            x = start_x + (end_x - start_x) * (i / steps) + random.randint(-5, 5)
+            y = start_y + (end_y - start_y) * (i / steps) + random.randint(-5, 5)
+            await self.mouse_move(int(x), int(y))
+            await asyncio.sleep(random.uniform(0.05, 0.1))
+            
+        # 3. Click randomly to gain focus
+        await self.click(end_x, end_y)
+        
+        # 4. Scroll down slightly
+        await self.evaluate_js(f"window.scrollBy(0, {random.randint(100, 300)})")
+        await asyncio.sleep(0.2)
+        
+        # 5. Temporarily disable Network interception to hide debugger overhead
+        try:
+            await self.call("Network.disable")
+            await asyncio.sleep(2)
+        finally:
+            await self.call("Network.enable")
 
     async def close(self):
         """Close WebSocket session and close the specific target tab."""

@@ -62,6 +62,9 @@ class Perchance(AsyncGeneratorProvider, ProviderModelMixin):
             """
             await session.evaluate_js(verify_js)
             
+            # Anti-detect: warm up the browser and disable debugger overhead DURING Turnstile check
+            await session.bypass_turnstile()
+            
             # Poll for userKey-0
             user_key = None
             for _ in range(30):
