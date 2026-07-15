@@ -51,7 +51,7 @@ def _resolve_provider(name: str) -> ProviderType:
     elif name == "DeepSeek":
         from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "DeepSeekAPI":
-        from g4f.Provider.needs_auth.DeepSeek import DeepSeekAPI; return DeepSeekAPI
+        from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "EasyChat":
         from g4f.Provider.EasyChat import EasyChat; return EasyChat
     elif name == "EdgeTTS":
@@ -187,7 +187,7 @@ def _resolve_provider(name: str) -> ProviderType:
     elif name == "xAI":
         from g4f.Provider.needs_auth.xAI import xAI; return xAI
     else:
-        raise ValueError(f"Provider '{name}' not found")
+        raise ImportError(f"Provider '{name}' not found")
 
 _provider_names = [
     "AnyProvider",
@@ -212,7 +212,6 @@ _provider_names = [
     "Custom",
     "DeepInfra",
     "DeepSeek",
-    "DeepSeekAPI",
     "EasyChat",
     "EdgeTTS",
     "Felo",
@@ -300,9 +299,10 @@ _loaded_providers = {}
 def __getattr__(name: str):
     if name in _loaded_providers:
         return _loaded_providers[name]
-    if name in _provider_names:
-        _loaded_providers[name] = _resolve_provider(name)
-        return _loaded_providers[name]
+    try:
+        return _resolve_provider(name)
+    except ImportError:
+        pass
     if name == "__providers__":
         # Load all providers if specifically requested
         providers_list = []
@@ -347,8 +347,10 @@ class ProviderUtils:
             raise ValueError("Label must be provided")
             
         # Check explicit map
-        if label in __map__:
-            return __map__[label]
+        try:
+            return __getattr__(label)
+        except AttributeError:
+            pass
             
         # Fallback to search
         for provider_name in _provider_names:
@@ -367,9 +369,11 @@ class LazyProviderModule(types.ModuleType):
         if name.startswith('__'):
             return super().__getattribute__(name)
         
-        if name in _provider_names:
+        try:
             return __getattr__(name)
-            
+        except AttributeError:
+            pass
+        
         return super().__getattribute__(name)
 
 sys.modules[__name__].__class__ = LazyProviderModule
