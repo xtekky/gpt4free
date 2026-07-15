@@ -10,7 +10,7 @@ from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
 from ...providers.response import *
 from ...tools.media import render_messages
-from ...config import AppConfig
+from ...config import SPACE_URL, AppConfig
 from ...errors import MissingAuthError
 from ... import debug
 
@@ -93,10 +93,13 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                         base_url = cls.backup_url
                     if base_url is None:
                         raise NotImplementedError("No base_url or backup_url specified.")
-                    if base_url.startswith("https://g4f.space/") and not api_key:
+                    if base_url.startswith(SPACE_URL) and not api_key:
                         api_key = AppConfig.g4f_space_api_key
                     elif cls.models_needs_auth and not api_key:
                         raise MissingAuthError("API key is required.")
+                elif not base_url.startswith(SPACE_URL) and api_key and (api_key.startswith("g4f_") or api_key.startswith("gfs_")):
+                    raise ValueError("Invalid API key for the specified base_url.")
+
                 response = requests.get(f"{base_url}/models", headers=cls.get_headers(False, api_key), verify=cls.ssl, timeout=timeout)
                 response.raise_for_status()
                 data = response.json()

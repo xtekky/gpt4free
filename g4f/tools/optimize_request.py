@@ -1403,10 +1403,10 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         logs["dedup"] = f"removed duplicate/empty messages (-{dedup_saved} bytes)"
 
     # ── Break tool-call loops ──
-    loop_saved = break_tool_loop(messages)
-    if loop_saved:
-        saved_bytes += loop_saved
-        logs["tool_loop"] = f"broke tool-call loop (-{loop_saved} bytes)"
+    # loop_saved = break_tool_loop(messages)
+    # if loop_saved:
+    #     saved_bytes += loop_saved
+    #     logs["tool_loop"] = f"broke tool-call loop (-{loop_saved} bytes)"
 
     echo_saved = strip_reasoning_echo(messages)
     if echo_saved:

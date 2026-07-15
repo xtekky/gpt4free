@@ -530,7 +530,7 @@ class Api:
                             debug.log(f"Invalid user name (screaming): '{user}'")
                             return ErrorResponse.from_message("Invalid user name (screaming)", HTTP_401_UNAUTHORIZED)
                         debug.log(f"User: '{user}' G4F API key expires in {hours}h {minutes}m {seconds}s")
-                else:
+                elif user is None:
                     user = "admin"
                 path = request.url.path
                 if _requires_api_key(path, AppConfig.demo):
