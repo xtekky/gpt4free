@@ -40,8 +40,15 @@ class Perchance(AsyncGeneratorProvider, ProviderModelMixin):
         session = CDPSession(headless=False)
         await session.start()
         try:
-            verify_url = "https://image-generation.perchance.org/embed" if is_image else cls.verify_url
-            origin = "https://image-generation.perchance.org" if is_image else "https://text-generation.perchance.org"
+            if is_image:
+                import urllib.parse
+                hash_data = {"prompt": "a", "resolution": "512x512", "guidanceScale": 7, "channel": "ai-text-to-image-generator", "subChannel": "public", "seed": -1, "requestId": "a"}
+                hash_str = urllib.parse.quote(json.dumps(hash_data))
+                verify_url = f"https://image-generation.perchance.org/embed#{hash_str}"
+                origin = "https://image-generation.perchance.org"
+            else:
+                verify_url = cls.verify_url
+                origin = "https://text-generation.perchance.org"
             
             await session.navigate(verify_url)
             
@@ -57,9 +64,10 @@ class Perchance(AsyncGeneratorProvider, ProviderModelMixin):
             await session.evaluate_js(setup_js)
             
             # Always trigger verifyUser to ensure Turnstile solving/checking is executed
-            verify_js = """
-            window.postMessage({type: "verifyUser"}, window.location.origin);
-            """
+            if is_image:
+                verify_js = "if(typeof start === 'function') start({reloadPageOnFail: false});"
+            else:
+                verify_js = 'window.postMessage({type: "verifyUser"}, window.location.origin);'
             await session.evaluate_js(verify_js)
             
             # Anti-detect: warm up the browser and disable debugger overhead DURING Turnstile check
@@ -130,22 +138,25 @@ class Perchance(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": -1,
                 "resolution": "512x512",
                 "guidanceScale": 7,
-                "channel": "text-to-image-plugin-example",
+                "channel": "ai-text-to-image-generator",
                 "subChannel": "public",
                 "userKey": cls._image_user_key,
                 "adAccessCode": ad_access_code,
                 "requestId": str(req_id)
             }
             
-            gen_url = f"{cls.image_api_endpoint}?userKey={cls._image_user_key}&requestId={req_id}&adAccessCode={ad_access_code}&__cacheBust={random.random()}"
+            gen_url = f"{cls.image_api_endpoint}?userKey={cls._image_user_key}&requestId={req_id}&adAccessCode={ad_access_code}&__cacheBust={random.random()}&bdf={random.random()}"
+
+            headers = cls._image_headers.copy()
+            headers["Content-Type"] = "text/plain;charset=UTF-8"
 
             async with StreamSession(
-                headers=cls._image_headers,
+                headers=headers,
                 cookies=cls._image_cookies,
                 proxies={"all": proxy} if proxy else None,
                 impersonate="chrome"
             ) as session:
-                async with session.post(gen_url, json=payload, proxy=proxy) as response:
+                async with session.post(gen_url, data=json.dumps(payload), proxy=proxy) as response:
                     if response.status in (401, 403):
                         cls._image_user_key = cls._image_cookies = cls._image_headers = None
                         raise RuntimeError("auth_failed")

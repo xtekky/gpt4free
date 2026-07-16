@@ -210,8 +210,7 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
             chrome_path,
             f"--remote-debugging-port={port}",
             f"--user-data-dir={user_data_dir}",
-            "--window-position=-2000,-2000",
-            "--window-size=1024,768",
+            "--window-size=1920,1080",
             "--no-default-browser-check",
             "--disable-suggestions-ui",
             "--no-first-run",
@@ -219,6 +218,7 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
             "--disable-popup-blocking",
             "--hide-crash-restore-bubble",
             "--disable-features=PrivacySandboxSettings4",
+            "--disable-blink-features=AutomationControlled",
             "--remote-allow-origins=*"
         ]
         if headless:
@@ -497,6 +497,42 @@ class CDPSession:
         await asyncio.sleep(delay)
         await self.call("Input.dispatchMouseEvent", type="mouseReleased", button="left", clickCount=1, x=x, y=y)
 
+    async def click_turnstile_checkbox(self) -> bool:
+        """Find the Cloudflare Turnstile iframe on the page and click its center."""
+        js_code = """
+        (() => {
+            const iframes = document.querySelectorAll('iframe');
+            let cfIframe = null;
+            for (let iframe of iframes) {
+                if (iframe.src && iframe.src.includes('challenges.cloudflare.com')) {
+                    cfIframe = iframe;
+                    break;
+                }
+            }
+            if (!cfIframe) return null;
+            
+            const rect = cfIframe.getBoundingClientRect();
+            return {
+                x: rect.left + window.scrollX,
+                y: rect.top + window.scrollY,
+                width: rect.width,
+                height: rect.height
+            };
+        })()
+        """
+        try:
+            rect = await self.evaluate_js(js_code)
+            if rect and isinstance(rect, dict) and rect.get('width', 0) > 0:
+                # Center of the Turnstile checkbox (usually left aligned in the iframe)
+                center_x = int(rect['x'] + rect['width'] / 4)
+                center_y = int(rect['y'] + rect['height'] / 2)
+                
+                await self.click(center_x, center_y)
+                return True
+        except Exception as e:
+            logger.debug(f"Failed to auto-click Turnstile: {e}")
+        return False
+
     async def bypass_turnstile(self):
         """Execute a sequence of anti-detect actions to bypass Cloudflare Turnstile."""
         import random
@@ -518,19 +554,25 @@ class CDPSession:
             await self.mouse_move(int(x), int(y))
             await asyncio.sleep(random.uniform(0.05, 0.1))
             
-        # 3. Click randomly to gain focus
-        await self.click(end_x, end_y)
+        # 3. Try to click the specific Cloudflare Turnstile checkbox
+        clicked_cf = await self.click_turnstile_checkbox()
         
-        # 4. Scroll down slightly
+        # 4. If Cloudflare iframe not found, click randomly to gain focus
+        if not clicked_cf:
+            await self.click(end_x, end_y)
+            
+        # 5. Scroll down slightly
         await self.evaluate_js(f"window.scrollBy(0, {random.randint(100, 300)})")
         await asyncio.sleep(0.2)
         
-        # 5. Temporarily disable Network interception to hide debugger overhead
+        # 6. Temporarily disable Network and Runtime interception to hide debugger overhead
         try:
             await self.call("Network.disable")
+            await self.call("Runtime.disable")
             await asyncio.sleep(2)
         finally:
             await self.call("Network.enable")
+            await self.call("Runtime.enable")
 
     async def close(self):
         """Close WebSocket session and close the specific target tab."""
