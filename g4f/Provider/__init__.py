@@ -8,14 +8,14 @@ from ..providers.create_images  import CreateImagesProvider
 def _resolve_provider(name: str) -> ProviderType:
     if name == "AnyProvider":
         from g4f.providers.any_provider import AnyProvider; return AnyProvider
-    if name == "AIBadgr":
+    elif name == "AIBadgr":
         from g4f.Provider.needs_auth.AIBadgr import AIBadgr; return AIBadgr
     elif name == "Anthropic":
         from g4f.Provider.needs_auth.Anthropic import Anthropic; return Anthropic
     elif name == "Antigravity":
         from g4f.Provider.needs_auth.Antigravity import Antigravity; return Antigravity
-    elif name == "ApiAirforce":
-        from g4f.Provider.needs_auth.ApiAirforce import ApiAirforce; return ApiAirforce
+    elif name == "Airforce" or name == "ApiAirforce":
+        from g4f.Provider.needs_auth.Airforce import Airforce; return Airforce
     elif name == "BingCreateImages":
         from g4f.Provider.needs_auth.BingCreateImages import BingCreateImages; return BingCreateImages
     elif name == "BlackForestLabs_Flux1Dev":
@@ -50,9 +50,7 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.Custom import Custom; return Custom
     elif name == "DeepInfra":
         from .DeepInfra import DeepInfra; return DeepInfra
-    elif name == "DeepSeek":
-        from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
-    elif name == "DeepSeekAPI":
+    elif name == "DeepSeek" or name == "DeepSeekAPI":
         from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "EasyChat":
         from g4f.Provider.EasyChat import EasyChat; return EasyChat
@@ -151,14 +149,14 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.PhindAi import PhindAi; return PhindAi
     elif name == "Pi":
         from g4f.Provider.needs_auth.Pi import Pi; return Pi
-    elif name == "PollinationsAI":
-        from g4f.Provider.PollinationsAI import PollinationsAI; return PollinationsAI
+    elif name == "Pollinations" or name == "PollinationsAI":
+        from g4f.Provider.Pollinations import Pollinations; return Pollinations
     elif name == "PollinationsAudio":
         from g4f.Provider.audio.PollinationsAudio import PollinationsAudio; return PollinationsAudio
     elif name == "PollinationsImage":
         from g4f.Provider.PollinationsImage import PollinationsImage; return PollinationsImage
-    elif name == "PuterJS":
-        from g4f.Provider.needs_auth.PuterJS import PuterJS; return PuterJS
+    elif name == "Puter" or name == "PuterJS":
+        from g4f.Provider.needs_auth.Puter import Puter; return Puter
     elif name == "Qwen":
         from g4f.Provider.Qwen import Qwen; return Qwen
     elif name == "QwenCode":
@@ -313,10 +311,6 @@ _loaded_providers = {}
 def __getattr__(name: str):
     if name in _loaded_providers:
         return _loaded_providers[name]
-    try:
-        return _resolve_provider(name)
-    except ImportError:
-        pass
     if name == "__providers__":
         # Load all providers if specifically requested
         providers_list = []
@@ -326,8 +320,10 @@ def __getattr__(name: str):
             except AttributeError:
                 pass
         return providers_list
-
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+    try:
+        return _resolve_provider(name)
+    except ImportError as e:
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'") from e
 
 def __dir__():
     return __all__
@@ -359,7 +355,7 @@ class ProviderUtils:
     def get_by_label(cls, label: str) -> ProviderType:
         if not label:
             raise ValueError("Label must be provided")
-            
+
         # Check explicit map
         try:
             return __getattr__(label)

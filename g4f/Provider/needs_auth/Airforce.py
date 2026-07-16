@@ -4,7 +4,7 @@ from ...typing import Messages, AsyncResult
 from ..template import OpenaiTemplate
 from ...errors import RateLimitError
 
-class ApiAirforce(OpenaiTemplate):
+class Airforce(OpenaiTemplate):
     label = "Api.Airforce"
     url = "https://api.airforce"
     login_url = "https://panel.api.airforce/dashboard"

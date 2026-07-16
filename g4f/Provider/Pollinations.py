@@ -29,7 +29,7 @@ from ..config import AppConfig
 from .template.OpenaiTemplate import read_response
 from .. import debug
 
-class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
+class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations 🌸"
     url = "https://pollinations.ai"
     login_url = "https://enter.pollinations.ai"
@@ -238,7 +238,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort",
-                                        "logit_bias", "voice", "modalities", "audio"],
+                                        "logit_bias", "voice", "modalities", "audio", "prompt_cache_key"],
         **kwargs
     ) -> AsyncResult:
         if cache is None:

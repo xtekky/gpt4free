@@ -1349,6 +1349,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_system_message = True
+    supports_native_tools = True
     needs_auth = True
     active_by_default = True
 

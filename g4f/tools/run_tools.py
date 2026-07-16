@@ -628,7 +628,7 @@ def iter_run_tools(
     try:
         thinking_start_time = 0
         processor = ThinkingProcessor()
-        usage_model = model
+        usage_model = model or getattr(provider, "default_model", model)
         usage_provider = provider.__name__
         completion_tokens = 0
         usage = None

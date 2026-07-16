@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import json
 import requests
 from aiohttp import ClientSession
@@ -14,7 +13,7 @@ from ...errors import ResponseError, ModelNotFoundError, MissingAuthError
 from ..helper import format_media_prompt
 from ... import debug
 
-class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
+class Puter(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Puter.js"
     url = "https://docs.puter.com/playground"
     login_url = "https://github.com/HeyPuter/puter-cli"
@@ -233,7 +232,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         api_key: str = None,
         media: MediaListType = None,
-        extra_parameters: list[str] = ["temperature", "presence_penalty", "top_p", "frequency_penalty", "response_format", "tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],
+        extra_parameters: list[str] = ["temperature", "presence_penalty", "top_p", "frequency_penalty", "response_format", "tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio", "prompt_cache_key"],
         **kwargs
     ) -> AsyncResult:
         if not api_key:

@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import os
 import asyncio
+import threading
 from typing import Iterator
 from flask import send_from_directory, request
 from inspect import signature
+import concurrent.futures
 
 try:
     from PIL import Image 
@@ -31,6 +33,8 @@ from ... import debug
 logger = logging.getLogger(__name__)
 
 class Api:
+    models_lock = threading.Lock()
+
     @staticmethod
     def get_provider_models(provider: str, api_key: str = None, base_url: str = None, ignored: list = None):
         def get_model_data(provider: ProviderModelMixin, model: str, default: bool = False) -> dict:
@@ -100,25 +104,26 @@ class Api:
         } for provider in Provider.__providers__ if provider.working and safe_get_models(provider)]
 
     def get_all_models(self) -> dict[str, list]:
-        import concurrent.futures
-        
-        def safe_get_provider_models(provider) -> tuple[str, list[str]]:
-            try:
-                return provider.__name__, list(provider.get_models(timeout=10))
-            except Exception as e:
-                debug.error(f"{provider.__name__}: get_models error:", e)
-                return provider.__name__, []
-                
-        providers = [p for p in Provider.__providers__ if p.working and hasattr(p, "get_models")]
-        results = {}
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            futures = {executor.submit(safe_get_provider_models, p): p for p in providers}
-            for future in concurrent.futures.as_completed(futures):
-                name, models = future.result()
-                results[name] = models
-                
-        return results
+        with self.models_lock:            
+            def safe_get_provider_models(provider) -> tuple[str, list[str]]:
+                try:
+                    return provider.__name__, list(provider.get_models(timeout=10))
+                except MissingAuthError as e:
+                    return provider.__name__, []
+                except Exception as e:
+                    debug.error(f"{provider.__name__}: get_models error:", e)
+                    return provider.__name__, []
+                    
+            providers = [p for p in Provider.__providers__ if p.working and hasattr(p, "get_models")]
+            results = {}
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+                futures = {executor.submit(safe_get_provider_models, p): p for p in providers}
+                for future in concurrent.futures.as_completed(futures):
+                    name, models = future.result()
+                    results[name] = models
+                    
+            return results
 
     @staticmethod
     def get_version() -> dict:

@@ -4,11 +4,11 @@ from typing import Optional
 
 from .helper import format_media_prompt
 from ..typing import AsyncResult, Messages, MediaListType
-from .PollinationsAI import PollinationsAI
+from .Pollinations import Pollinations
 
-class PollinationsImage(PollinationsAI):
+class PollinationsImage(Pollinations):
     label = "PollinationsImage"
-    parent = PollinationsAI.__name__
+    parent = Pollinations.__name__
     active_by_default = False
     default_model = "auto"
     default_vision_model = None
@@ -17,8 +17,8 @@ class PollinationsImage(PollinationsAI):
 
     @classmethod
     def get_models(cls, **kwargs):
-        PollinationsAI.get_models()
-        cls.image_models = {"Auto-Select": "auto", **PollinationsAI.image_models}
+        Pollinations.get_models()
+        cls.image_models = {"Auto-Select": "auto", **Pollinations.image_models}
         cls.models = cls.image_models
         return cls.models
 
