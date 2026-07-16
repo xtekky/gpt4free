@@ -32,6 +32,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.Cerebras import Cerebras; return Cerebras
     elif name == "Claude":
         from g4f.Provider.needs_auth.Claude import Claude; return Claude
+    elif name == "Cloudflare":
+        from g4f.Provider.Cloudflare import Cloudflare; return Cloudflare
     elif name == "Cohere":
         from g4f.Provider.needs_auth.Cohere import Cohere; return Cohere
     elif name == "CohereForAI_C4AI_Command":
@@ -47,7 +49,7 @@ def _resolve_provider(name: str) -> ProviderType:
     elif name == "Custom":
         from g4f.Provider.needs_auth.Custom import Custom; return Custom
     elif name == "DeepInfra":
-        from g4f.Provider.deepinfra import DeepInfra; return DeepInfra
+        from .DeepInfra import DeepInfra; return DeepInfra
     elif name == "DeepSeek" or name == "DeepSeekAPI":
         from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "EasyChat":
@@ -76,8 +78,9 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.GlhfChat import GlhfChat; return GlhfChat
     elif name == "GoogleSearch":
         from g4f.Provider.search.GoogleSearch import GoogleSearch; return GoogleSearch
+
     elif name == "GradientNetwork":
-        from g4f.Provider.GradientNetwork import GradientNetwork; return GradientNetwork
+        from .GradientNetwork import GradientNetwork; return GradientNetwork
     elif name == "Grok":
         from g4f.Provider.needs_auth.Grok import Grok; return Grok
     elif name == "Groq":
@@ -108,6 +111,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.MetaAIAccount import MetaAIAccount; return MetaAIAccount
     elif name == "MicrosoftDesigner":
         from g4f.Provider.needs_auth.MicrosoftDesigner import MicrosoftDesigner; return MicrosoftDesigner
+    elif name == "Miklium":
+        from g4f.Provider.Miklium import Miklium; return Miklium
     elif name == "MiniMax":
         from g4f.Provider.needs_auth.mini_max.MiniMax import MiniMax; return MiniMax
     elif name == "Nvidia":
@@ -134,6 +139,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.template.OpenaiTemplate import OpenaiTemplate; return OpenaiTemplate
     elif name == "OperaAria":
         from g4f.Provider.OperaAria import OperaAria; return OperaAria
+    elif name == "Perchance":
+        from g4f.Provider.Perchance import Perchance; return Perchance
     elif name == "Perplexity":
         from g4f.Provider.Perplexity import Perplexity; return Perplexity
     elif name == "PerplexityApi":
@@ -162,6 +169,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.search.SearXNG import SearXNG; return SearXNG
     elif name == "StabilityAI_SD35Large":
         from g4f.Provider.hf_space.StabilityAI_SD35Large import StabilityAI_SD35Large; return StabilityAI_SD35Large
+    elif name == "Surfsense":
+        from g4f.Provider.Surfsense import Surfsense; return Surfsense
     elif name == "TeachAnything":
         from g4f.Provider.TeachAnything import TeachAnything; return TeachAnything
     elif name == "ThebApi":
@@ -201,6 +210,7 @@ _provider_names = [
     "CachedSearch",
     "Cerebras",
     "Claude",
+    "Cloudflare",
     "Cohere",
     "CohereForAI_C4AI_Command",
     "Copilot",
@@ -223,6 +233,7 @@ _provider_names = [
     "GithubCopilotAPI",
     "GlhfChat",
     "GoogleSearch",
+
     "GradientNetwork",
     "Grok",
     "Groq",
@@ -239,6 +250,7 @@ _provider_names = [
     "MetaAI",
     "MetaAIAccount",
     "MicrosoftDesigner",
+    "Miklium",
     "MiniMax",
     "Nvidia",
     "Ollama",
@@ -251,6 +263,7 @@ _provider_names = [
     "OpenaiChat",
     "OpenaiTemplate",
     "OperaAria",
+    "Perchance",
     "Perplexity",
     "PerplexityApi",
     "PhindAi",
@@ -265,6 +278,7 @@ _provider_names = [
     "Replicate",
     "SearXNG",
     "StabilityAI_SD35Large",
+    "Surfsense",
     "TeachAnything",
     "ThebApi",
     "Together",

@@ -157,7 +157,7 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiChat"])
+    best_provider = IterListProvider(["OpenaiChat", "Surfsense"])
 )
 
 # gpt_4o_mini_audio = AudioModel(
@@ -202,7 +202,7 @@ o3_mini_high = Model(
 o4_mini = Model(
     name          = 'o4-mini',
     base_provider = 'OpenAI',
-    best_provider = "OpenaiChat"
+    best_provider = IterListProvider(["OpenaiChat", "Surfsense"])
 )
 
 o4_mini_high = Model(
@@ -234,6 +234,12 @@ gpt_4_5 = Model(
     name          = 'gpt-4.5',
     base_provider = 'OpenAI',
     best_provider = "OpenaiChat"
+)
+
+gpt_4_5_mini = Model(
+    name          = 'gpt-4.5-mini',
+    base_provider = 'OpenAI',
+    best_provider = "Surfsense"
 )
 
 gpt_oss_120b = Model(
@@ -786,6 +792,7 @@ flux_dev_lora = ImageModel(
     base_provider = 'Black Forest Labs',
     best_provider = "Together"
 )
+
 
 class ModelUtils:
     """

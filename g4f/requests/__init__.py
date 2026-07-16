@@ -44,6 +44,11 @@ try:
     has_platformdirs = True
 except ImportError:
     has_platformdirs = False
+try:
+    from .cdp import CDPSession
+    has_cdp = True
+except ImportError:
+    has_cdp = False
 
 from .. import debug
 from .raise_for_status import raise_for_status
@@ -168,6 +173,50 @@ async def get_args_from_nodriver(
     except Exception:
         await stop_browser()
         raise
+
+
+async def get_args_from_cdp(
+    url: str,
+    proxy: str = None,
+    timeout: int = 120,
+    user_data_dir: str = "cdp",
+    headless: bool = True
+) -> dict:
+    """Use the lightweight CDP client to get auth cookies and user-agent."""
+    if not has_cdp:
+        raise MissingRequirementsError('Missing CDP requirements')
+        
+    debug.log(f"Open CDP session with url: {url}")
+    session = CDPSession(user_data_dir=user_data_dir, headless=headless)
+    await session.start()
+    
+    try:
+        await session.navigate(url)
+        
+        # Wait for Cloudflare/protection to pass
+        for _ in range(timeout):
+            title = await session.evaluate_js("document.title") or ""
+            content = await session.evaluate_js("document.body.innerText") or ""
+            
+            if "Just a moment" not in title and "Attention Required" not in title and "cf-browser-verification" not in content:
+                break
+            await asyncio.sleep(1)
+            
+        cookies = await session.get_cookies()
+        user_agent = await session.get_user_agent()
+        
+        return {
+            "impersonate": "chrome",
+            "cookies": cookies,
+            "headers": {
+                **DEFAULT_HEADERS,
+                "user-agent": user_agent,
+                "referer": f"{url.rstrip('/')}/",
+            },
+            "proxy": proxy,
+        }
+    finally:
+        await session.close()
 
 
 def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:

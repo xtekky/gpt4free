@@ -55,9 +55,15 @@ def render(filename = "home", download_url: str = GITHUB_URL):
             try:
                 response = requests.get(f"{download_url}{filename}")
                 response.raise_for_status()
+            except requests.exceptions.SSLError:
+                response = requests.get(f"{download_url}{filename}", verify=False)
+                response.raise_for_status()
             except requests.RequestException:
                 try:
                     response = requests.get(f"{DOWNLOAD_URL}{filename}")
+                    response.raise_for_status()
+                except requests.exceptions.SSLError:
+                    response = requests.get(f"{DOWNLOAD_URL}{filename}", verify=False)
                     response.raise_for_status()
                 except requests.RequestException:
                     found = None
@@ -65,7 +71,9 @@ def render(filename = "home", download_url: str = GITHUB_URL):
                         for file in files:
                             if file.startswith(secure_filename(filename)):
                                 found = os.path.abspath(root), file
-                        break
+                                break
+                        if found:
+                            break
                     if found:
                         return send_from_directory(found[0], found[1], max_age=31536000)
                     else:
@@ -189,11 +197,19 @@ class Website:
         try:
             response = requests.get(f"{PLAYGROUND_URL}{filename}", timeout=10)
             response.raise_for_status()
+        except requests.exceptions.SSLError:
+            try:
+                response = requests.get(f"{PLAYGROUND_URL}{filename}", timeout=10, verify=False)
+                response.raise_for_status()
+            except requests.RequestException:
+                pass
+        except requests.RequestException:
+            pass
+            
+        if 'response' in locals() and response.status_code == 200:
             with open(safe_path, 'wb') as f:
                 f.write(response.content)
             return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path), max_age=31536000)
-        except requests.RequestException:
-            pass
         # SPA fallback: serve index.html for unknown sub-paths
         index_path = os.path.join(cache_dir, "index.html")
         if os.path.isfile(index_path):
