@@ -1,5 +1,5 @@
 from .AIBadgr           import AIBadgr
-from .ApiAirforce       import ApiAirforce
+from .Airforce          import Airforce
 from .Anthropic         import Anthropic
 from .Antigravity       import Antigravity
 from .Azure             import Azure
@@ -12,7 +12,6 @@ from .Cohere            import Cohere
 from .CopilotAccount    import CopilotAccount
 from .Custom            import Custom
 from .Custom            import Feature
-from .DeepSeek          import DeepSeekAPI
 from .FenayAI           import FenayAI
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
@@ -35,7 +34,7 @@ from .OpenRouter        import OpenRouter
 from .OpenRouter        import OpenRouterFree
 from .PerplexityApi     import PerplexityApi
 from .Pi                import Pi
-from .PuterJS           import PuterJS
+from .Puter             import Puter
 from .Reka              import Reka
 from .Replicate         import Replicate
 from .ThebApi           import ThebApi

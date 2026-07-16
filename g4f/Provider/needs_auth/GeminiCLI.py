@@ -930,6 +930,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     supports_system_message = True
     needs_auth = True
+    supports_native_tools = True
     active_by_default = True
 
     auth_manager: Optional[AuthManager] = None

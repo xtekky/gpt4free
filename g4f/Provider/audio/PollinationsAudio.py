@@ -16,12 +16,12 @@ from ...tools.run_tools import AuthManager
 from ...image import to_bytes
 from ...tools.media import merge_media
 from ..helper import filter_none, format_media_prompt
-from ..PollinationsAI import PollinationsAI
+from ..Pollinations import Pollinations
 from ... import debug
 
 class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
     label = "PollinationsAudio"
-    parent = PollinationsAI.__name__
+    parent = Pollinations.__name__
     active_by_default = False
     working = True
     supports_stream = False
