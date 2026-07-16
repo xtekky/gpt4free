@@ -24,6 +24,7 @@ jobs:
       run: pip install -r requirements-min.txt
     - name: Run tests
       run: python -m etc.unittest
+      timeout-minutes: 5
     - name: Set up Python 3.14
       uses: actions/setup-python@v6
       with:
@@ -34,6 +35,7 @@ jobs:
         pip install -r requirements.txt
     - name: Run tests
       run: python -m etc.unittest
+      timeout-minutes: 5
     - name: Save PR number
       env:
         PR_NUMBER: ${{ github.event.number }}

@@ -50,7 +50,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             try:
-                models = requests.get(f"{cls.url}/api/v2/models").json().get("json")
+                models = requests.get(f"{cls.url}/api/v2/models", timeout=kwargs.get("timeout", 15)).json().get("json")
                 cls.text_models = [model["id"] for model in models] 
                 cls.models = cls.text_models + cls.image_models
                 cls.vision_models = [model["id"] for model in models if model["multimodal"]]

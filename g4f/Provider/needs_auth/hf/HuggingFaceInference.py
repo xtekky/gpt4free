@@ -38,12 +38,12 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         if not cls.models:
             models = text_models.copy()
             url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
-            response = requests.get(url)
+            response = requests.get(url, timeout=kwargs.get("timeout", 15))
             if response.ok: 
                 extra_models = [model["id"] for model in response.json() if model.get("trendingScore", 0) >= 10]
                 models = extra_models + vision_models + [model for model in models if model not in extra_models]
             url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
-            response = requests.get(url)
+            response = requests.get(url, timeout=kwargs.get("timeout", 15))
             cls.image_models = image_models.copy()
             if response.ok:
                 extra_models = [model["id"] for model in response.json() if model.get("trendingScore", 0) >= 20] 

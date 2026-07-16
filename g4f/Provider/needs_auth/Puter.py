@@ -209,7 +209,7 @@ class Puter(AsyncGeneratorProvider, ProviderModelMixin):
         if not cls.models:
             try:
                 url = cls.models_endpoint
-                cls.models = requests.get(url).json().get("models", [])
+                cls.models = requests.get(url, timeout=kwargs.get("timeout", 15)).json().get("models", [])
                 cls.models = [model for model in cls.models if model not in ["abuse", "costly", "fake", "model-fallback-test-1"]]
                 cls.live += 1
             except Exception as e:

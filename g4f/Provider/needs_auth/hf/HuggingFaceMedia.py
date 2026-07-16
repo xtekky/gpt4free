@@ -32,7 +32,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
     def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             url = "https://huggingface.co/api/models?inference=warm&expand[]=inferenceProviderMapping"
-            response = requests.get(url)
+            response = requests.get(url, timeout=kwargs.get("timeout", 15))
             if response.ok:
                 models = response.json()
                 providers = {
