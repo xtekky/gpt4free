@@ -34,7 +34,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
     model_data: dict[str, dict] = {}
 
     @classmethod
-    def get_models(cls) -> list[str]:
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             models = text_models.copy()
             url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
