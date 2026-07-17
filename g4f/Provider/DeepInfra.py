@@ -162,7 +162,7 @@ class DeepInfra(OpenaiTemplate):
     def get_models(cls, **kwargs):
         if not cls.models:
             url = 'https://api.deepinfra.com/models/featured'
-            response = requests.get(url)
+            response = requests.get(url, timeout=kwargs.get("timeout", 15))
             models = response.json()
             
             cls.models = {model["model_name"]: {"id": model["model_name"], **model} for model in models if model.get("type") == "text-generation" or model.get("reported_type") == "text-to-image"}

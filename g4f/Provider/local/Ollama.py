@@ -100,7 +100,7 @@ class Ollama(OpenaiTemplate):
             cls.models = []
             if not api_key or AppConfig.disable_custom_api_key:
                 api_key = AuthManager.load_api_key(cls)
-            models = requests.get("https://ollama.com/api/tags").json()["models"]
+            models = requests.get("https://ollama.com/api/tags", timeout=kwargs.get("timeout", 15)).json()["models"]
             if models:
                 cls.live += 1
             cls.models = [model["name"] for model in models]
@@ -111,7 +111,7 @@ class Ollama(OpenaiTemplate):
             else:
                 url = base_url.replace("/v1", "/api/tags")
             try:
-                models = requests.get(url).json()["models"]
+                models = requests.get(url, timeout=kwargs.get("timeout", 15)).json()["models"]
             except requests.exceptions.RequestException as e:
                 return cls.models
             if cls.live == 0 and models:

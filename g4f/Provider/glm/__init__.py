@@ -220,14 +220,15 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     @classmethod
     def get_models(cls, **kwargs) -> list:
         if not cls.models:
-            response = requests.get(f"{cls.url}/api/v1/auths/")
+            response = requests.get(f"{cls.url}/api/v1/auths/", timeout=kwargs.get("timeout", 15))
             auth_data = response.json()
             cls.api_key = auth_data.get("token")
             cls.auth_user_id = str(auth_data.get("id", ""))
             cls.auth_user_name = auth_data.get("name") or auth_data.get("nickname") or "User"
             response = requests.get(
                 f"{cls.url}/api/models",
-                headers={"Authorization": f"Bearer {cls.api_key}"}
+                headers={"Authorization": f"Bearer {cls.api_key}"},
+                timeout=kwargs.get("timeout", 15)
             )
             items = response.json().get("data", [])
             cls.model_aliases = {
