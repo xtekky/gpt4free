@@ -51,20 +51,19 @@ import asyncio
 import json
 import logging
 import os
-import random
 import shutil
 import platform
 import subprocess
-import tempfile
 import time
 import urllib.request
-import urllib.error
 from typing import Optional, Dict, Any, List
 
 try:
     import aiohttp
 except ImportError:
     pass
+
+from ..cookies import BrowserConfig
 
 logger = logging.getLogger(__name__)
 
@@ -254,20 +253,12 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
 
 class CDPSession:
     def __init__(self, port: Optional[int] = None, host: Optional[str] = None, user_data_dir: Optional[str] = None, headless: bool = True):
-        try:
-            from g4f.cookies import BrowserConfig
-            if port is None:
-                port = BrowserConfig.port
-            if host is None:
-                host = BrowserConfig.host
-        except ImportError:
-            pass
-            
         if port is None:
-            port = 9222
+            port = BrowserConfig.port
+        if host is None:
+            host = BrowserConfig.host
         if host is None:
             host = '127.0.0.1'
-            
         self.port = port
         self.host = host
         self.headless = headless
@@ -289,7 +280,8 @@ class CDPSession:
 
     async def start(self):
         """Launch/get shared Chrome and connect via CDP targeting a new tab."""
-        self.port = get_shared_browser(self.host, self.port, self.headless)
+        if self.port is None:
+            self.port = get_shared_browser(self.host, self.port, self.headless)
         
         # Create a new tab target
         ws_url = None
@@ -634,7 +626,13 @@ class SyncCDPSession:
         result = await asyncio.get_event_loop().run_in_executor(None, run_sync)
     """
 
-    def __init__(self, port: int = 9222, host: str = '127.0.0.1', user_data_dir: Optional[str] = None, headless: bool = False):
+    def __init__(self, port: Optional[int] = None, host: str = '127.0.0.1', user_data_dir: Optional[str] = None, headless: bool = False):
+        if port is None:
+            port = BrowserConfig.port
+        if host is None:
+            host = BrowserConfig.host
+        if host is None:
+            host = '127.0.0.1'
         self.port = port
         self.host = host
         self.headless = headless
@@ -650,7 +648,8 @@ class SyncCDPSession:
 
     def start_chrome(self):
         """Launch/get shared Chrome and connect via CDP targeting a new tab."""
-        self.port = get_shared_browser(self.host, self.port, self.headless)
+        if self.port is None:
+            self.port = get_shared_browser(self.host, self.port, self.headless)
         
         # Create a new tab target
         ws_url = None

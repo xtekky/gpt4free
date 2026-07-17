@@ -7,12 +7,6 @@ from ..requests.cdp import SyncCDPSession
 from .. import debug
 from .template import OpenaiTemplate
 
-def find_free_port() -> int:
-    import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
-        return s.getsockname()[1]
-
 def _get_turnstile_token_sync(model: str) -> str:
     """
     Synchronous Turnstile token retrieval using SyncCDPSession with retries.
@@ -22,8 +16,7 @@ def _get_turnstile_token_sync(model: str) -> str:
     import time
     
     for attempt in range(3):
-        port = find_free_port()
-        session = SyncCDPSession(port=port, headless=False)
+        session = SyncCDPSession(headless=False)
         session.start_chrome()
         
         try:
