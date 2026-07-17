@@ -164,6 +164,13 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
     global _shared_browser_process, _shared_browser_port
     
     with _shared_browser_lock:
+        if preferred_port is not None:
+            try:
+                with urllib.request.urlopen(f"http://{host}:{preferred_port}/json", timeout=0.5) as response:
+                    if response.status == 200:
+                        return preferred_port
+            except Exception:
+                pass
         # 1. If we already started a shared browser in this thread, check if it's still alive/reachable
         if _shared_browser_port is not None:
             try:
