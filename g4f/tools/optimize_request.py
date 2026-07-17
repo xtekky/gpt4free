@@ -14,6 +14,23 @@ from typing import Any, Dict, List, Tuple
 
 from ..typing import Messages
 
+_MAX_TOOL_REPEATS = 3  # max times the same tool call may appear before breaking
+
+# Cap the byte size of any single tool result / function call output embedded
+# in the conversation. Older results are rarely re-read by the model but still
+# consume the full input budget on every turn.
+_TOOL_RESULT_CAP = 4096  # bytes per tool result
+_OLD_TOOL_RESULT_CAP = 1200  # stricter cap for results older than 2 turns
+
+_WS_RE = re.compile(r"[ \t]+\n")
+_BLANK_RUN_RE = re.compile(r"\n{3,}")
+_MAX_TURNS = 40  # keep at most this many non-system messages
+
+# Cap on how many bytes of a *single* tool-result message we keep.
+# Anything longer is truncated to head+tail with an omission marker.
+_TOOL_RESULT_CAP = 4000  # ≈1000 tokens per tool result is plenty for context
+_TOOL_RESULT_HEAD = 1500
+_TOOL_RESULT_TAIL = 1500
 
 # ── System prompt condensation ──────────────────────────────────────────────
 # Replaces the verbose Copilot system preamble with a condensed version.
@@ -732,8 +749,6 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
 
 # ── Tool-loop detection ─────────────────────────────────────────────────────
 
-_MAX_TOOL_REPEATS = 3  # max times the same tool call may appear before breaking
-
 
 def _tool_call_signature(tool_calls: list) -> str:
     """Build a stable signature from a list of tool calls.
@@ -923,12 +938,6 @@ def strip_reasoning_echo(messages: Messages) -> int:
 
 # ── Tool result truncation ──────────────────────────────────────────────────
 
-# Cap the byte size of any single tool result / function call output embedded
-# in the conversation. Older results are rarely re-read by the model but still
-# consume the full input budget on every turn.
-_TOOL_RESULT_CAP = 4096  # bytes per tool result
-_OLD_TOOL_RESULT_CAP = 1200  # stricter cap for results older than 2 turns
-
 
 def _truncate_tool_results(messages: Messages) -> int:
     """Truncate oversized tool/function call results in place.
@@ -1047,9 +1056,6 @@ def _strip_redundant_tool_fields(messages: Messages) -> int:
 
 # ── Collapse whitespace in message content ──────────────────────────────────
 
-_WS_RE = re.compile(r"[ \t]+\n")
-_BLANK_RUN_RE = re.compile(r"\n{3,}")
-
 
 def _collapse_message_whitespace(messages: Messages) -> int:
     """Normalize trailing whitespace and repeated blank lines in all messages.
@@ -1087,9 +1093,6 @@ def _collapse_message_whitespace(messages: Messages) -> int:
 
 # ── Drop stale context (old user turns beyond a threshold) ───────────────────
 
-_MAX_TURNS = 40  # keep at most this many non-system messages
-
-
 def _trim_old_turns(messages: Messages) -> int:
     """Drop the oldest non-system messages when the conversation is very long.
 
@@ -1118,152 +1121,9 @@ def _trim_old_turns(messages: Messages) -> int:
     messages[:] = system_msgs + kept
     return max(0, saved_bytes)
 
-
-def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str]]:
-    """Truncate very old tool-result messages to a head+tail snippet.
-
-    Only messages *before* the last user/assistant turn are truncated so the
-    most recent context is preserved verbatim.  Returns bytes saved.
-    """
-    if not messages:
-        return 0
-
-    # Find the index of the last "fresh" turn — the last user or assistant
-    # message that is not an empty tool-response.  Messages before that
-    # index are candidates for truncation.
-    last_fresh = -1
-    for i in range(len(messages) - 1, -1, -1):
-        msg = messages[i]
-        if not isinstance(msg, dict):
-            continue
-        role = msg.get("role")
-        if role in ("user", "assistant") and msg.get("content"):
-            last_fresh = i
-            break
-    if last_fresh <= 0:
-        return 0
-
-    saved_bytes = 0
-    for i in range(0, last_fresh):
-        msg = messages[i]
-        if not isinstance(msg, dict) or msg.get("role") != "tool":
-            continue
-        content = msg.get("content")
-        if not isinstance(content, str):
-            continue
-        raw = content.encode("utf-8", errors="replace")
-        if len(raw) <= _TOOL_RESULT_CAP:
-            continue
-        head = raw[:_TOOL_RESULT_KEEP_HEAD].decode("utf-8", errors="replace")
-        tail = raw[-_TOOL_RESULT_KEEP_TAIL:].decode("utf-8", errors="replace")
-        omitted = len(raw) - _TOOL_RESULT_KEEP_HEAD - _TOOL_RESULT_KEEP_TAIL
-        msg["content"] = (
-            f"{head}\n\n... [{omitted} bytes omitted — old tool result truncated] ...\n\n{tail}"
-        )
-        saved_bytes += len(raw) - len(msg["content"].encode("utf-8", errors="replace"))
-    return max(0, saved_bytes)
-
-
-def _strip_redundant_tool_calls(messages: Messages) -> int:
-    """Remove ``tool_calls`` from assistant messages once the corresponding
-    tool result has been returned.  Providers keep the full tool-call spec
-    (function name + arguments) in history even after the result is in
-    context, which wastes tokens.  Returns bytes saved.
-    """
-    if not messages:
-        return 0
-    import json as _json
-
-    saved_bytes = 0
-    for i, msg in enumerate(messages):
-        if not isinstance(msg, dict) or msg.get("role") != "assistant":
-            continue
-        tool_calls = msg.get("tool_calls")
-        if not tool_calls:
-            continue
-        # Is there a later ``tool`` message in the conversation?  If so the
-        # result is already in context and the call spec is redundant.
-        has_result = any(
-            isinstance(m, dict) and m.get("role") == "tool"
-            for m in messages[i + 1:]
-        )
-        if not has_result:
-            continue
-        before = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
-        # Keep only the id so providers can still correlate, strip verbose keys.
-        stripped_calls = []
-        for tc in tool_calls:
-            if not isinstance(tc, dict):
-                stripped_calls.append(tc)
-                continue
-            tc = {k: v for k, v in tc.items() if k not in _TOOL_CALL_STRIP_KEYS}
-            # Replace the full arguments with a short marker — the actual
-            # arguments are recoverable from the tool-result message.
-            fn = tc.get("function")
-            if isinstance(fn, dict) and fn.get("arguments"):
-                fn = {k: v for k, v in fn.items() if k != "arguments"}
-                fn["arguments"] = "{}"
-                tc["function"] = fn
-            stripped_calls.append(tc)
-        msg["tool_calls"] = stripped_calls
-        after = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
-        saved_bytes += max(0, before - after)
-    return saved_bytes
-
-
-def _collapse_whitespace(messages: Messages) -> int:
-    """Collapse runs of blank lines and trailing whitespace inside every
-    string content.  Returns bytes saved.
-    """
-    saved_bytes = 0
-    for msg in messages:
-        if not isinstance(msg, dict):
-            continue
-        content = msg.get("content")
-        if not isinstance(content, str):
-            continue
-        new = re.sub(r"[ \t]+\n", "\n", content)      # trailing spaces
-        new = re.sub(r"\n{3,}", "\n\n", new)            # blank-line runs
-        new = new.strip()
-        if len(new) < len(content):
-            saved_bytes += len(content.encode("utf-8", errors="replace")) - len(new.encode("utf-8", errors="replace"))
-            if new:
-                msg["content"] = new
-            else:
-                msg["content"] = ""
-    return max(0, saved_bytes)
-
-
 # ──────────────────────────────────────────────────────────────────────
 # New optimizers
 # ──────────────────────────────────────────────────────────────────────
-
-# Cap on how many bytes of a *single* tool-result message we keep.
-# Anything longer is truncated to head+tail with an omission marker.
-_TOOL_RESULT_CAP = 4000  # ≈1000 tokens per tool result is plenty for context
-
-_TOOL_RESULT_HEAD = 1500
-_TOOL_RESULT_TAIL = 1500
-
-# Fields on message dicts that some providers echo back but that are not
-# needed for the next turn (the assistant already produced them).
-_DROP_ASSISTANT_FIELDS = ("tool_calls", "function_call", "name", "refusal")
-
-
-def _content_bytes(content: Any) -> int:
-    """Byte length of a message's content (str or list of parts)."""
-    if isinstance(content, str):
-        return len(content.encode("utf-8", errors="replace"))
-    if isinstance(content, list):
-        total = 0
-        for part in content:
-            if isinstance(part, dict):
-                total += len(str(part.get("text", "")).encode("utf-8", errors="replace"))
-            elif isinstance(part, str):
-                total += len(part.encode("utf-8", errors="replace"))
-        return total
-    return 0
-
 
 def _set_content(msg: dict, content: Any) -> None:
     """Set content on a message dict, handling both str and list forms."""
@@ -1299,61 +1159,7 @@ def truncate_tool_results(messages: Messages) -> int:
         _set_content(msg, new_content)
     return max(0, saved)
 
-
-def strip_redundant_assistant_fields(messages: Messages) -> int:
-    """Remove fields on assistant messages that are no longer needed.
-
-    Once an assistant turn is in the history, the ``tool_calls`` /
-    ``function_call`` metadata is redundant — the corresponding ``tool``
-    messages that follow already carry the result.  Dropping these fields
-    avoids providers re-serialising them on every turn.
-
-    Returns bytes saved (approximated from JSON length).
-    """
-    import json as _json
-
-    saved = 0
-    for msg in messages:
-        if not isinstance(msg, dict) or msg.get("role") != "assistant":
-            continue
-        before = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
-        changed = False
-        for field in _DROP_ASSISTANT_FIELDS:
-            if field in msg:
-                # Only drop tool_calls if there is content to keep, so we
-                # never produce an empty assistant message.
-                if field == "tool_calls" and not msg.get("content"):
-                    continue
-                del msg[field]
-                changed = True
-        if changed:
-            after = len(_json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
-            saved += before - after
-    return max(0, saved)
-
-
-def collapse_whitespace_in_messages(messages: Messages) -> int:
-    """Collapse runs of 3+ newlines and trailing whitespace inside message content.
-
-    Returns bytes saved.
-    """
-    saved = 0
-    for msg in messages:
-        if not isinstance(msg, dict):
-            continue
-        content = msg.get("content")
-        if not isinstance(content, str):
-            continue
-        new = re.sub(r"[ \t]+\n", "\n", content)          # trailing spaces on lines
-        new = re.sub(r"\n{3,}", "\n\n", new)               # 3+ newlines → 2
-        new = new.strip()
-        if len(new) != len(content):
-            saved += len(content.encode("utf-8", errors="replace")) - len(new.encode("utf-8", errors="replace"))
-            _set_content(msg, new)
-    return max(0, saved)
-
-
-def drop_empty_trailing_messages(messages: Messages) -> int:
+def _drop_empty_trailing_messages(messages: Messages) -> int:
     """Drop trailing messages with empty content (no value for the next turn).
 
     Returns bytes saved (always 0 — these are empty, but we count messages
@@ -1402,12 +1208,6 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         saved_bytes += dedup_saved
         logs["dedup"] = f"removed duplicate/empty messages (-{dedup_saved} bytes)"
 
-    # ── Break tool-call loops ──
-    # loop_saved = break_tool_loop(messages)
-    # if loop_saved:
-    #     saved_bytes += loop_saved
-    #     logs["tool_loop"] = f"broke tool-call loop (-{loop_saved} bytes)"
-
     echo_saved = strip_reasoning_echo(messages)
     if echo_saved:
         saved_bytes += echo_saved
@@ -1436,6 +1236,11 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
     if trim_saved:
         saved_bytes += trim_saved
         logs["trim_old"] = f"dropped {trim_saved} bytes of stale turns"
+
+    # ── Drop empty trailing messages ──
+    empty_removed = _drop_empty_trailing_messages(messages)
+    if empty_removed:
+        logs["empty_trailing"] = f"dropped {empty_removed} empty trailing message(s)"
 
     # ── Tools ──
     if isinstance(tools, list) and tools:

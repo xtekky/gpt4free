@@ -47,7 +47,7 @@ from .. import debug
 
 _conversation_cache: dict[str, dict] = {}
 _CACHE_MAX_SIZE = 128
-_CACHE_TTL = 3600.0  # seconds
+_CACHE_TTL = 3600 * 12 # 1h * 12 = 12h
 
 
 def _messages_cache_key(messages: Messages, model: str) -> Optional[str]:
@@ -422,7 +422,7 @@ async def async_iter_run_tools(
     response = wait_for(response, timeout=timeout) if stream else response
 
     try:
-        usage_model = model
+        usage_model = model or getattr(provider, "default_model", model)
         usage_provider = provider.__name__
         completion_tokens = 0
         usage = None
