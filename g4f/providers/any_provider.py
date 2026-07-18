@@ -561,8 +561,3 @@ def clean_name(name: str) -> str:
     name = name.replace("claude-haiku-4.5", "claude-haiku-4-5")
     name = name.replace("claude-sonnet-4.5", "claude-sonnet-4-5")
     return name
-
-
-setattr(Provider, "AnyProvider", AnyProvider)
-Provider.__map__["AnyProvider"] = AnyProvider
-Provider.__providers__.append(AnyProvider)

@@ -17,7 +17,7 @@ from .... import debug
 from .models import image_model_aliases
 
 class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "HuggingFace"
+    label = "HuggingFace Media"
     parent = "HuggingFace"
     url = "https://huggingface.co"
     working = True

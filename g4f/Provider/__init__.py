@@ -82,12 +82,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.mini_max.HailuoAI import HailuoAI; return HailuoAI
     elif name == "HuggingChat":
         from g4f.Provider.needs_auth.hf.HuggingChat import HuggingChat; return HuggingChat
-    elif name == "HuggingFace":
+    elif name == "HuggingFace" or name == "HuggingFaceAPI":
         from g4f.Provider.needs_auth.hf import HuggingFace; return HuggingFace
-    elif name == "HuggingFaceAPI":
-        from g4f.Provider.needs_auth.hf.HuggingFaceAPI import HuggingFaceAPI; return HuggingFaceAPI
-    elif name == "HuggingFaceInference":
-        from g4f.Provider.needs_auth.hf.HuggingFaceInference import HuggingFaceInference; return HuggingFaceInference
     elif name == "HuggingFaceMedia":
         from g4f.Provider.needs_auth.hf.HuggingFaceMedia import HuggingFaceMedia; return HuggingFaceMedia
     elif name == "HuggingSpace":
@@ -184,7 +180,7 @@ _provider_names = [
     "AIBadgr",
     "Anthropic",
     "Antigravity",
-    "ApiAirforce",
+    "Airforce",
     "BingCreateImages",
     "BlackForestLabs_Flux1Dev",
     "BlackForestLabs_Flux1KontextDev",
@@ -203,9 +199,7 @@ _provider_names = [
     "Custom",
     "DeepInfra",
     "DeepSeek",
-    "EasyChat",
     "EdgeTTS",
-    "Felo",
     "FenayAI",
     "GLM",
     "Gemini",
@@ -216,15 +210,11 @@ _provider_names = [
     "GithubCopilotAPI",
     "GlhfChat",
     "GoogleSearch",
-
-    "GradientNetwork",
     "Grok",
     "Groq",
     "HailuoAI",
     "HuggingChat",
     "HuggingFace",
-    "HuggingFaceAPI",
-    "HuggingFaceInference",
     "HuggingFaceMedia",
     "HuggingSpace",
     "LMArena",
@@ -233,11 +223,9 @@ _provider_names = [
     "MetaAI",
     "MetaAIAccount",
     "MicrosoftDesigner",
-    "Miklium",
     "MiniMax",
     "Nvidia",
     "Ollama",
-    "OllamaSwarm",
     "OpenAIFM",
     "OpenRouter",
     "OpenRouterFree",
@@ -246,22 +234,20 @@ _provider_names = [
     "OpenaiChat",
     "OpenaiTemplate",
     "OperaAria",
-    "Perchance",
     "Perplexity",
     "PerplexityApi",
     "PhindAi",
     "Pi",
-    "PollinationsAI",
+    "Pollinations",
     "PollinationsAudio",
     "PollinationsImage",
-    "PuterJS",
+    "Puter",
     "Qwen",
     "QwenCode",
     "Reka",
     "Replicate",
     "SearXNG",
     "StabilityAI_SD35Large",
-    "Surfsense",
     "TeachAnything",
     "ThebApi",
     "Together",
