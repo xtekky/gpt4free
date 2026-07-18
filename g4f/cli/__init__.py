@@ -171,6 +171,27 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
         help="Host for browser automation tool."
     )
 
+    api_parser.add_argument(
+        "--disable-pa-auto-download",
+        action="store_true",
+        default=False,
+        help="Do not automatically download PA providers from gpt4free/pa-providers on startup.",
+    )
+
+    api_parser.add_argument(
+        "--pa-repo",
+        type=str,
+        default="gpt4free/pa-providers",
+        help="GitHub repository (owner/repo) to auto-download PA providers from.",
+    )
+
+    api_parser.add_argument(
+        "--pa-branch",
+        type=str,
+        default="main",
+        help="Branch/ref to auto-download PA providers from.",
+    )
+
     return api_parser
 
 
@@ -217,6 +238,16 @@ def run_api_args(args):
         except Exception:
             pass
         cookies.set_cookies_dir(args.cookies_dir)
+
+    # Auto-download PA providers from gpt4free/pa-providers on startup,
+    # unless explicitly disabled with --disable-pa-auto-download.
+    if not getattr(args, "disable_pa_auto_download", False):
+        try:
+            from ..mcp.pa_downloader import auto_download_pa_providers
+            auto_download_pa_providers()
+        except Exception as e:
+            # Auto-download is best-effort; never block server startup.
+            print(f"[pa] Auto-download skipped: {e}")
 
     # Launch server
     run_api(
@@ -321,6 +352,82 @@ def run_tray_args(args):
 
 
 # --------------------------------------------------------------
+#  PA PROVIDERS PARSER
+# --------------------------------------------------------------
+def get_pa_parser(exit_on_error: bool = True) -> ArgumentParser:
+    """
+    Parser for:
+        g4f pa ...
+    """
+    pa_parser = ArgumentParser(
+        description="Manage PA providers (download from gpt4free/pa-providers, list, remove).",
+        exit_on_error=exit_on_error,
+    )
+    pa_parser.add_argument(
+        "action",
+        choices=["download", "list", "remove", "update"],
+        help="download: fetch *.pa.py files from gpt4free/pa-providers into the workspace; "
+             "list: show installed PA providers; "
+             "remove: delete a PA provider by filename; "
+             "update: re-download all installed PA providers.",
+    )
+    pa_parser.add_argument(
+        "--repo", default="gpt4free/pa-providers",
+        help="GitHub repository to download from (default: gpt4free/pa-providers).",
+    )
+    pa_parser.add_argument(
+        "--branch", default="main",
+        help="Branch to download from (default: main).",
+    )
+    pa_parser.add_argument(
+        "--file", "-f", default=None,
+        help="Download only this file (e.g. koala.pa.py). For 'remove', the filename to delete.",
+    )
+    pa_parser.add_argument(
+        "--all", action="store_true",
+        help="Download all *.pa.py files even if they already exist (overwrite).",
+    )
+    pa_parser.add_argument(
+        "--dir", default=None,
+        help="Target directory (default: ~/.g4f/workspace).",
+    )
+    pa_parser.add_argument(
+        "--timeout", type=float, default=30.0,
+        help="Per-request timeout in seconds for GitHub API calls (default: 30).",
+    )
+    return pa_parser
+
+
+def run_pa_args(args):
+    """
+    Runs the PA provider management action.
+    """
+    from ..mcp.pa_downloader import run_pa_download, run_pa_list, run_pa_remove
+    if args.action == "download":
+        run_pa_download(
+            repo=args.repo,
+            ref=args.branch,
+            force=args.all,
+            timeout=args.timeout,
+        )
+    elif args.action == "update":
+        # 'update' is 'download' with overwrite enabled
+        run_pa_download(
+            repo=args.repo,
+            ref=args.branch,
+            force=True,
+            timeout=args.timeout,
+        )
+    elif args.action == "list":
+        run_pa_list()
+    elif args.action == "remove":
+        if not args.file:
+            print("Error: --file is required for 'remove' action.")
+            return
+        run_pa_remove(args.file)
+
+
+# --------------------------------------------------------------
 #  MAIN ENTRYPOINT
 # --------------------------------------------------------------
 def main():
@@ -328,7 +435,7 @@ def main():
     Main entry function exposed via CLI (e.g. g4f).
     Handles selecting: api / gui / client / mcp
     """
-    parser = argparse.ArgumentParser(description="Run gpt4free", exit_on_error=False)
+    parser = argparse.ArgumentParser(description="Run gpt4free", exit_on_error=False, add_help=False)
     parser.add_argument("--install-autocomplete", action="store_true", help="Install Bash autocompletion for g4f CLI.")
     args, remaining = parser.parse_known_args()
     if args.install_autocomplete:
@@ -336,8 +443,8 @@ def main():
         return
     
 
-    mode_parser = ArgumentParser(description="Select mode to run g4f in.", exit_on_error=False)
-    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray"], default="api", help="Mode to run g4f in (default: api).")
+    mode_parser = ArgumentParser(description="Select mode to run g4f in.", exit_on_error=False, add_help=False)
+    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa"], default="api", help="Mode to run g4f in (default: api).")
     
     try:
         try:
@@ -388,6 +495,10 @@ def main():
             parser = get_tray_parser()
             args = parser.parse_args(remaining)
             run_tray_args(args)
+        elif args.mode == "pa":
+            parser = get_pa_parser()
+            args = parser.parse_args(remaining)
+            run_pa_args(args)
         else:
             # No mode provided
             raise argparse.ArgumentError(
@@ -405,7 +516,7 @@ def main():
 
 def generate_autocomplete():
     # Top-level commands and their subcommands/options
-    commands = ["api", "gui", "client", "mcp", "auth"]
+    commands = ["api", "gui", "client", "mcp", "auth", "pa"]
     auth_providers = ["gemini-cli", "antigravity", "qwencode", "github-copilot"]
     auth_subcommands = ["status", "login"]
     # Options for each command

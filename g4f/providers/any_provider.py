@@ -10,7 +10,7 @@ from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
 from ..client.factory import AbstractClientFactory
 from ..Provider import __getattr__
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_async_provider_method
 from .. import Provider
 from .. import models
 from .. import debug
@@ -462,9 +462,12 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             provider, submodel = model.split(":", maxsplit=1)
             if hasattr(Provider, provider):
                 provider = getattr(Provider, provider)
-                if provider.working and provider.get_parent() not in ignored:
-                    providers.append(provider)
-                    model = submodel
+                method = get_async_provider_method(provider)
+                async for chunk in method(
+                    submodel, messages, stream=stream, media=media, api_key=api_key, **kwargs
+                ):
+                    yield chunk
+                return
         else:
             if model not in cls.model_map:
                 if model in cls.model_aliases:

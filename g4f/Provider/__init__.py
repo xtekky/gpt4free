@@ -52,12 +52,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from .DeepInfra import DeepInfra; return DeepInfra
     elif name == "DeepSeek" or name == "DeepSeekAPI":
         from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
-    elif name == "EasyChat":
-        from g4f.Provider.EasyChat import EasyChat; return EasyChat
     elif name == "EdgeTTS":
         from g4f.Provider.audio.EdgeTTS import EdgeTTS; return EdgeTTS
-    elif name == "Felo":
-        from g4f.Provider.Felo import Felo; return Felo
     elif name == "FenayAI":
         from g4f.Provider.needs_auth.FenayAI import FenayAI; return FenayAI
     elif name == "GLM":
@@ -78,9 +74,6 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.GlhfChat import GlhfChat; return GlhfChat
     elif name == "GoogleSearch":
         from g4f.Provider.search.GoogleSearch import GoogleSearch; return GoogleSearch
-
-    elif name == "GradientNetwork":
-        from .GradientNetwork import GradientNetwork; return GradientNetwork
     elif name == "Grok":
         from g4f.Provider.needs_auth.Grok import Grok; return Grok
     elif name == "Groq":
@@ -111,20 +104,14 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.MetaAIAccount import MetaAIAccount; return MetaAIAccount
     elif name == "MicrosoftDesigner":
         from g4f.Provider.needs_auth.MicrosoftDesigner import MicrosoftDesigner; return MicrosoftDesigner
-    elif name == "Miklium":
-        from g4f.Provider.Miklium import Miklium; return Miklium
     elif name == "MiniMax":
         from g4f.Provider.needs_auth.mini_max.MiniMax import MiniMax; return MiniMax
     elif name == "Nvidia":
         from g4f.Provider.needs_auth.Nvidia import Nvidia; return Nvidia
     elif name == "Ollama":
         from g4f.Provider.local.Ollama import Ollama; return Ollama
-    elif name == "OllamaSwarm":
-        from g4f.Provider.OllamaSwarm import OllamaSwarm; return OllamaSwarm
     elif name == "OpenAIFM":
         from g4f.Provider.audio.OpenAIFM import OpenAIFM; return OpenAIFM
-    elif name == "OllamaSwarm":
-        from g4f.Provider.OllamaSwarm import OllamaSwarm; return OllamaSwarm
     elif name == "OpenRouter":
         from g4f.Provider.needs_auth.OpenRouter import OpenRouter; return OpenRouter
     elif name == "OpenRouterFree":
@@ -139,8 +126,6 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.template.OpenaiTemplate import OpenaiTemplate; return OpenaiTemplate
     elif name == "OperaAria":
         from g4f.Provider.OperaAria import OperaAria; return OperaAria
-    elif name == "Perchance":
-        from g4f.Provider.Perchance import Perchance; return Perchance
     elif name == "Perplexity":
         from g4f.Provider.Perplexity import Perplexity; return Perplexity
     elif name == "PerplexityApi":
@@ -169,8 +154,6 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.search.SearXNG import SearXNG; return SearXNG
     elif name == "StabilityAI_SD35Large":
         from g4f.Provider.hf_space.StabilityAI_SD35Large import StabilityAI_SD35Large; return StabilityAI_SD35Large
-    elif name == "Surfsense":
-        from g4f.Provider.Surfsense import Surfsense; return Surfsense
     elif name == "TeachAnything":
         from g4f.Provider.TeachAnything import TeachAnything; return TeachAnything
     elif name == "ThebApi":

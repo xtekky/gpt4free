@@ -75,7 +75,7 @@ def _messages_cache_key(messages: Messages, model: str) -> Optional[str]:
     exclude = {idx for idx in (last_user_idx, last_assistant_idx) if idx is not None}
     if len(exclude) >= len(messages):
         return None
-    parts = [model]
+    parts = [model] if model else []
     for i, msg in enumerate(messages):
         if i in exclude:
             continue
