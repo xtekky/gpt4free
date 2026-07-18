@@ -23,7 +23,6 @@ from ....requests.raise_for_status import raise_for_status
 from ....providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin, FinishReason
 from ....cookies import get_cookies
 from ....tools.media import merge_media
-from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases, image_model_aliases
 from .... import debug
 
 class Conversation(JsonConversation):
@@ -40,11 +39,6 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     use_nodriver = True
     supports_stream = True
     needs_auth = True
-    default_model = default_model
-    default_vision_model = default_vision_model
-    model_aliases = {**model_aliases, **image_model_aliases}
-    image_models = image_models
-    text_models = fallback_models
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
@@ -56,7 +50,6 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 cls.vision_models = [model["id"] for model in models if model["multimodal"]]
             except Exception as e:
                 debug.error(f"{cls.__name__}: Error reading models: {type(e).__name__}: {e}")
-                cls.models = [*fallback_models]
         return cls.models
 
     @classmethod
@@ -94,8 +87,6 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if not has_curl_cffi:
             raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
-        if not model and media is not None:
-            model = cls.default_vision_model
         model = cls.get_model(model)
 
         session = Session(**auth_result.get_dict())
