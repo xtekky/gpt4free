@@ -57,7 +57,6 @@ Typical layout of a ``.pa.py`` file::
 from __future__ import annotations
 
 import io
-import ast
 import sys
 import json
 import hashlib
@@ -88,7 +87,7 @@ def is_hidden_file(path: str) -> bool:
 
 #: Modules that are allowed inside the safe execution sandbox.
 SAFE_MODULES: FrozenSet[str] = frozenset({
-    "__future__", "concurrent", "warnings", "urllib3", "urllib3.exceptions",
+    "__future__", "concurrent", "warnings", "urllib3", "urllib3.exceptions", "uuid",
     # Math / numeric
     "math", "cmath", "decimal", "fractions", "statistics", "random", "numbers",
     # String / text
