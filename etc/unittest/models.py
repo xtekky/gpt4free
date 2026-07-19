@@ -36,7 +36,7 @@ class TestProviderHasModel(unittest.TestCase):
     def provider_has_model(self, provider: Type[BaseProvider], model: str):
         if provider.__name__ not in self.cache:
             try:
-                self.cache[provider.__name__] = provider.get_models()
+                self.cache[provider.__name__] = list(provider.get_models())
             except (MissingRequirementsError, MissingAuthError):
                 return
         if self.cache[provider.__name__]:

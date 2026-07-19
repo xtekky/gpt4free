@@ -133,7 +133,6 @@ default_vision = VisionModel(
         "Together",
         "HuggingSpace",
         "GeminiPro",
-        "HuggingFaceAPI",
         "Ollama",
         "OpenaiAccount",
         "Gemini",
@@ -246,7 +245,7 @@ gpt_oss_120b = Model(
     name          = 'gpt-oss-120b',
     long_name     = 'openai/gpt-oss-120b',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider(["Together", "HuggingFace", "OpenRouter", "Groq"])
+    best_provider = IterListProvider(["Together", "OpenRouter", "Groq"])
 )
 
 # dall-e
@@ -330,7 +329,7 @@ llama_3_2_3b = Model(
 llama_3_2_11b = VisionModel(
     name          = "llama-3.2-11b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together", "HuggingChat", "HuggingFace"])
+    best_provider = None
 )
 
 llama_3_2_90b = Model(
@@ -343,7 +342,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together", "HuggingChat", "HuggingFace"])
+    best_provider = None
 )
 
 # llama-4
@@ -375,7 +374,7 @@ mixtral_8x7b = Model(
 mistral_nemo = Model(
     name          = "mistral-nemo",
     base_provider = "Mistral AI",
-    best_provider = IterListProvider(["HuggingChat", "HuggingFace"])
+    best_provider = None
 )
 
 mistral_small_24b = Model(
@@ -402,7 +401,7 @@ hermes_2_dpo = Model(
 phi_3_5_mini = Model(
     name          = "phi-3.5-mini",
     base_provider = "Microsoft",
-    best_provider = "HuggingChat"
+    best_provider = None
 )
 
 
@@ -505,13 +504,13 @@ gemma_3n_e4b = Model(
 command_r = Model(
     name = 'command-r',
     base_provider = 'CohereForAI',
-    best_provider = "HuggingSpace"
+    best_provider = None
 )
 
 command_r_plus = Model(
     name = 'command-r-plus',
     base_provider = 'CohereForAI',
-    best_provider = IterListProvider(["HuggingSpace", "HuggingChat"])
+    best_provider = None
 )
 
 command_r7b = Model(
@@ -544,7 +543,7 @@ qwen_2_72b = Model(
 qwen_2_vl_7b = VisionModel(
     name = "qwen-2-vl-7b",
     base_provider = 'Qwen',
-    best_provider = "HuggingFaceAPI"
+    best_provider = None
 )
 
 qwen_2_vl_72b = VisionModel(
@@ -617,7 +616,7 @@ deepseek_v3 = Model(
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider(["PollinationsAI", "Together", "HuggingChat", "HuggingFace"])
+    best_provider = IterListProvider(["PollinationsAI", "Together"])
 )
 
 
@@ -669,7 +668,7 @@ grok_3_r1 = Model(
 kimi = Model(
     name = 'kimi-k2',
     base_provider = 'kimi.com',
-    best_provider = IterListProvider(["HuggingFace", "Groq"]),
+    best_provider = IterListProvider(["Groq"]),
     long_name = "moonshotai/Kimi-K2-Instruct"
 )
 
@@ -708,7 +707,7 @@ r1_1776 = Model(
 nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
-    best_provider = IterListProvider(["Together", "HuggingChat", "HuggingFace"])
+    best_provider = IterListProvider(["Together", "HuggingChat"])
 )
 
 ### Cognitive Computations ###
@@ -754,13 +753,13 @@ flux_pro = ImageModel(
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsImage", "HuggingSpace", "Together", "HuggingChat", "HuggingFace"])
+    best_provider = IterListProvider(["PollinationsImage", "HuggingSpace", "Together", "HuggingChat"])
 )
 
 flux_schnell = ImageModel(
     name = 'flux-schnell',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsImage", "Together", "HuggingChat", "HuggingFace"])
+    best_provider = IterListProvider(["PollinationsImage", "Together", "HuggingChat"])
 )
 
 flux_redux = ImageModel(
@@ -822,22 +821,6 @@ ModelRegistry._aliases["gemini"] = "gemini-2.0"
 
 # Fill the convert dictionary
 ModelUtils.convert = ModelRegistry.all_models()
-
-# Demo models configuration
-demo_models = {
-    llama_3_2_11b.name: [llama_3_2_11b, ["HuggingChat"]],
-    qwen_2_vl_7b.name: [qwen_2_vl_7b, ["HuggingFaceAPI"]],
-    deepseek_r1.name: [deepseek_r1, ["HuggingFace", "PollinationsAI"]],
-    command_r.name: [command_r, ["HuggingSpace"]],
-    command_r_plus.name: [command_r_plus, ["HuggingSpace"]],
-    command_r7b.name: [command_r7b, ["HuggingSpace"]],
-    qwen_2_5_coder_32b.name: [qwen_2_5_coder_32b, ["HuggingFace"]],
-    qwq_32b.name: [qwq_32b, ["HuggingFace"]],
-    llama_3_3_70b.name: [llama_3_3_70b, ["HuggingFace"]],
-    sd_3_5_large.name: [sd_3_5_large, ["HuggingSpace", "HuggingFace"]],
-    flux_dev.name: [flux_dev, ["PollinationsImage", "HuggingFace", "HuggingSpace"]],
-    flux_schnell.name: [flux_schnell, ["PollinationsImage", "HuggingFace", "HuggingSpace"]],
-}
 
 # Create a list of all models and their providers
 def _get_best_providers(model: Model) -> List:
