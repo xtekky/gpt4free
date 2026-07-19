@@ -117,7 +117,7 @@ def _download_raw(repo: str, ref: str, name: str, timeout: float) -> bytes:
 
 def _workspace_target(directory: Optional[str] = None) -> Path:
     """Resolve the target workspace directory, creating it if needed."""
-    target = Path(directory).expanduser() if directory else get_workspace_dir()
+    target = Path(directory).expanduser() if directory else (get_workspace_dir() / "pa-providers")
     target.mkdir(parents=True, exist_ok=True)
     return target
 
