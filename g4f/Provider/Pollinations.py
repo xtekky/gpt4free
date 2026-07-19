@@ -367,9 +367,9 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
         def get_url_with_seed(i: int, seed: Optional[int] = None):
             if i == 0:
                 if not cache and seed is None:
-                    seed = random.randint(0, 2 ** 32)
+                    seed = random.randint(0, int(2e9))
             else:
-                seed = random.randint(0, 2 ** 32)
+                seed = random.randint(0, int(2e9))
             return f"{url}&seed={seed}" if seed else url
 
         headers = None

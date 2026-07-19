@@ -626,7 +626,7 @@ class SyncCDPSession:
         result = await asyncio.get_event_loop().run_in_executor(None, run_sync)
     """
 
-    def __init__(self, port: Optional[int] = None, host: str = '127.0.0.1', user_data_dir: Optional[str] = None, headless: bool = False):
+    def __init__(self, port: Optional[int] = None, host: Optional[str] = None, user_data_dir: Optional[str] = None, headless: bool = False):
         if port is None:
             port = BrowserConfig.port
         if host is None:

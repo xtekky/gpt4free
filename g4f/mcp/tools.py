@@ -822,7 +822,11 @@ class CreateFileTool(MCPTool):
                 return {"error": f"File already exists: {rel_path}. Use FileWriteTool to overwrite."}
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
-            return {"filePath": rel_path, "created": True, "size": len(content)}
+            result: Dict[str, Any] = {"filePath": rel_path, "created": True, "size": len(content)}
+            origin = arguments.get("origin")
+            if origin:
+                result["url"] = f"{origin}/pa/files/{rel_path}"
+            return result
         except Exception as exc:
             return {"error": f"Create file failed: {exc}"}
 
