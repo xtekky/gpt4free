@@ -475,6 +475,30 @@ gemini_3_5_flash = Model(
     best_provider = "Gemini"
 )
 
+gemini_3_5_flash_thinking = Model(
+    name          = 'gemini-3.5-flash-thinking',
+    base_provider = 'Google',
+    best_provider = "Gemini"
+)
+
+gemini_auto = Model(
+    name          = 'gemini-auto',
+    base_provider = 'Google',
+    best_provider = "Gemini"
+)
+
+gemini_3_5_flash_thinking_lite = Model(
+    name          = 'gemini-3.5-flash-thinking-lite',
+    base_provider = 'Google',
+    best_provider = "Gemini"
+)
+
+gemini_flash_lite = Model(
+    name          = 'gemini-flash-lite',
+    base_provider = 'Google',
+    best_provider = "Gemini"
+)
+
 
 
 
@@ -817,7 +841,7 @@ class ModelUtils:
         ModelRegistry._aliases[alias] = model_name
 
 # Register special aliases after all models are created
-ModelRegistry._aliases["gemini"] = "gemini-2.0"
+ModelRegistry._aliases["gemini"] = "gemini-3.5-flash"
 
 # Fill the convert dictionary
 ModelUtils.convert = ModelRegistry.all_models()

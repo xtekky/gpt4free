@@ -18,5 +18,6 @@ from .models import *
 from .mcp import *
 from .tool_support_provider import *
 from .config_provider import *
+from .test_gemini import *
 
 unittest.main()
