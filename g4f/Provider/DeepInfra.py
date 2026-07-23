@@ -132,7 +132,7 @@ def _get_turnstile_token_sync(model: str) -> str:
 
 async def get_turnstile_token_async(model: str = None) -> str:
     """Run the synchronous Turnstile solver in a thread pool executor."""
-    if model is None:
+    if not model:
         model = DeepInfra.default_model
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _get_turnstile_token_sync, model)

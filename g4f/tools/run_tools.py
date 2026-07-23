@@ -116,8 +116,6 @@ Instruction: Make sure to add the sources of cites using [[domain]](Url) notatio
 
 TOOL_NAMES = {
     "SEARCH": "search_tool",
-    "CONTINUE": "continue_tool",
-    "BUCKET": "bucket_tool",
 }
 
 def is_provider_api_key(api_key: str) -> bool:
@@ -163,47 +161,6 @@ class ToolHandler:
         return messages, sources
 
     @staticmethod
-    def process_continue_tool(
-        messages: Messages, tool: dict, provider: Any
-    ) -> Tuple[Messages, Dict[str, Any]]:
-        """Process continue tool requests"""
-        kwargs = {}
-        if provider not in ("OpenaiAccount", "HuggingFaceAPI"):
-            messages = messages.copy()
-            last_line = messages[-1]["content"].strip().splitlines()[-1]
-            content = f"Carry on from this point:\n{last_line}"
-            messages.append({"role": "user", "content": content})
-        else:
-            # Enable provider native continue
-            kwargs["action"] = "continue"
-        return messages, kwargs
-
-    @staticmethod
-    def process_bucket_tool(messages: Messages, tool: dict) -> Messages:
-        """Process bucket tool requests"""
-        messages = messages.copy()
-
-        def on_bucket(match):
-            return "".join(read_bucket(get_bucket_dir(match.group(1))))
-
-        has_bucket = False
-        for message in messages:
-            if "content" in message and isinstance(message["content"], str):
-                new_message_content = re.sub(
-                    r'{"bucket_id":\s*"([^"]*)"}', on_bucket, message["content"]
-                )
-                if new_message_content != message["content"]:
-                    has_bucket = True
-                    message["content"] = new_message_content
-
-        last_message_content = messages[-1]["content"]
-        if has_bucket and isinstance(last_message_content, str):
-            if "\nSource: " in last_message_content:
-                messages[-1]["content"] = last_message_content + BUCKET_INSTRUCTIONS
-
-        return messages
-
-    @staticmethod
     async def process_tools(
         messages: Messages, tool_calls: List[dict], provider: Any
     ) -> Tuple[Messages, Dict[str, Any]]:
@@ -226,15 +183,6 @@ class ToolHandler:
                 messages, sources = await ToolHandler.process_search_tool(
                     messages, tool
                 )
-
-            elif function_name == TOOL_NAMES["CONTINUE"]:
-                messages, kwargs = ToolHandler.process_continue_tool(
-                    messages, tool, provider
-                )
-                extra_kwargs.update(kwargs)
-
-            elif function_name == TOOL_NAMES["BUCKET"]:
-                messages = ToolHandler.process_bucket_tool(messages, tool)
 
         return messages, sources, extra_kwargs
 
@@ -424,6 +372,7 @@ async def async_iter_run_tools(
     try:
         usage_model = model or getattr(provider, "default_model", model)
         usage_provider = provider.__name__
+        usage_label = getattr(provider, "label", usage_provider)
         completion_tokens = 0
         usage = None
         async for chunk in response:
@@ -457,6 +406,7 @@ async def async_iter_run_tools(
             "user": kwargs.get("user"),
             "model": usage_model,
             "provider": usage_provider,
+            "label": usage_label,
             **usage.get_dict(),
         }
         if saved_tokens:
@@ -630,6 +580,7 @@ def iter_run_tools(
         processor = ThinkingProcessor()
         usage_model = model or getattr(provider, "default_model", model)
         usage_provider = provider.__name__
+        usage_label = getattr(provider, "label", usage_provider)
         completion_tokens = 0
         usage = None
         method = get_provider_method(provider)
@@ -674,6 +625,7 @@ def iter_run_tools(
             "user": kwargs.get("user"),
             "model": usage_model,
             "provider": usage_provider,
+            "label": usage_label,
             **usage.get_dict(),
         }
         if saved_tokens:
