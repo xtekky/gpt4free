@@ -493,7 +493,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 try:
                     if model in provider.get_models():
                         providers.append(provider)
-                    elif model in provider.model_aliases:
+                    elif provider.model_aliases is not None and model in provider.model_aliases:
                         providers.append(provider)
                 except Exception as e:
                     debug.error(
