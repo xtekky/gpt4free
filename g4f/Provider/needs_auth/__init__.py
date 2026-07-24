@@ -27,6 +27,7 @@ from .LMArena           import LMArena
 from .MetaAI            import MetaAI
 from .MetaAIAccount     import MetaAIAccount
 from .MicrosoftDesigner import MicrosoftDesigner
+from .MiniApps          import MiniApps
 from .Nvidia            import Nvidia
 from .OpenaiAccount     import OpenaiAccount
 from .OpenaiAPI         import OpenaiAPI
