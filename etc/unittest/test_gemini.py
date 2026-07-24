@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import unittest
+from unittest.mock import AsyncMock, patch
 
 from g4f.Provider.needs_auth.Gemini import (
     ACCOUNT_STATUS_AVAILABLE,
@@ -12,12 +13,15 @@ from g4f.Provider.needs_auth.Gemini import (
     _build_model_headers,
     _extract_gemini_error_code,
     _extract_reasoning,
+    _is_xsrf_error,
     _iter_response_lines,
+    _normalize_messages,
     _parse_account_models,
     _parse_google_frames,
+    _resolve_gemini_prompt,
     _resolve_model,
 )
-from g4f.errors import MissingAuthError, ResponseError
+from g4f.errors import MissingAuthError, ResponseError, ResponseStatusError
 from g4f.models import ModelRegistry
 
 
@@ -119,6 +123,15 @@ class GeminiHelpersTest(unittest.TestCase):
                 resolved, _ = _resolve_model(legacy_name)
                 self.assertEqual(resolved, current_name)
 
+    def test_unknown_model_lists_supported_models(self):
+        with self.assertRaises(ValueError) as context:
+            _resolve_model("gemini-3.6-flash")
+
+        message = str(context.exception)
+        self.assertIn("Unknown Gemini model: gemini-3.6-flash", message)
+        self.assertIn("Supported models:", message)
+        self.assertIn("gemini-3.5-flash", message)
+
     def test_public_model_registry_exposes_current_models(self):
         self.assertEqual(ModelRegistry.get("gemini").name, "gemini-3.5-flash")
         for model in (
@@ -129,6 +142,28 @@ class GeminiHelpersTest(unittest.TestCase):
         ):
             with self.subTest(model=model):
                 self.assertEqual(ModelRegistry.get(model).name, model)
+
+    def test_prompt_only_requests_accept_missing_messages(self):
+        messages = _normalize_messages(None)
+
+        self.assertEqual(messages, [])
+        self.assertEqual(
+            _resolve_gemini_prompt(messages, "prompt-only request", None),
+            "prompt-only request",
+        )
+        with self.assertRaises(TypeError):
+            _normalize_messages({"role": "user"})
+
+    def test_xsrf_response_is_retryable(self):
+        error = ResponseStatusError(
+            'Response 400: [["er",null,{"reason":"xsrf"}]]'
+        )
+
+        self.assertTrue(_is_xsrf_error(error, 400))
+        self.assertFalse(_is_xsrf_error(error, 401))
+        self.assertFalse(
+            _is_xsrf_error(ResponseStatusError("Response 400"), 400)
+        )
 
     def test_extract_reasoning_from_dedicated_field(self):
         candidate = [None] * 38
@@ -175,6 +210,198 @@ class GeminiHelpersTest(unittest.TestCase):
 
 
 class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
+    async def test_public_generator_retries_xsrf_with_prompt_only_request(self):
+        class FakeResponse:
+            def __init__(self, status, content=b"[]\n"):
+                self.status = status
+                self.headers = {}
+                self.released = False
+                self.content = self
+                self._content = content
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, _exc_type, _exc, _traceback):
+                return False
+
+            async def iter_any(self):
+                yield self._content
+
+            def release(self):
+                self.released = True
+
+        class FakeSession:
+            def __init__(self, responses):
+                self.responses = iter(responses)
+                self.calls = []
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, _exc_type, _exc, _traceback):
+                return False
+
+            async def post(self, _url, **kwargs):
+                self.calls.append(
+                    {
+                        "data": dict(kwargs["data"]),
+                        "params": dict(kwargs["params"]),
+                        "cookies": dict(kwargs["cookies"]),
+                        "cookies_object": kwargs["cookies"],
+                    }
+                )
+                return next(self.responses)
+
+        class ProbeGemini(Gemini):
+            auto_refresh = False
+            _cookies = None
+            _metadata_cookie_key = None
+            _metadata_auth_user = None
+            _metadata_fetched_at = 0
+            _account_status = None
+            _account_models = {}
+            _account_models_fetched_at = 0
+            _snlm0e = None
+            _sid = None
+
+        first_response = FakeResponse(400)
+        session = FakeSession([first_response, FakeResponse(200)])
+        source_cookies = {
+            "__Secure-1PSID": "session",
+            "__Secure-1PSIDTS": "old",
+        }
+        metadata_fetches = 0
+
+        async def fetch_metadata(_session, cookies, _auth_user=None):
+            nonlocal metadata_fetches
+            metadata_fetches += 1
+            self.assertIsNot(cookies, source_cookies)
+            ProbeGemini._snlm0e = f"token-{metadata_fetches}"
+            ProbeGemini._sid = f"sid-{metadata_fetches}"
+            ProbeGemini._bl = f"build-{metadata_fetches}"
+
+        async def check_status(response):
+            if response.status == 400:
+                raise ResponseStatusError(
+                    'Response 400: [["er",null,{"reason":"xsrf"}]]'
+                )
+
+        with patch(
+            "g4f.Provider.needs_auth.Gemini.ClientSession",
+            return_value=session,
+        ):
+            with patch.object(
+                ProbeGemini,
+                "fetch_snlm0e",
+                new_callable=AsyncMock,
+                side_effect=fetch_metadata,
+            ) as fetch:
+                with patch.object(
+                    ProbeGemini,
+                    "fetch_account_models",
+                    new_callable=AsyncMock,
+                ):
+                    with patch.object(
+                        ProbeGemini,
+                        "upload_images",
+                        new_callable=AsyncMock,
+                        return_value=[],
+                    ):
+                        with patch(
+                            "g4f.Provider.needs_auth.Gemini.raise_for_status",
+                            side_effect=check_status,
+                        ):
+                            generator = ProbeGemini.create_async_generator(
+                                model="gemini-3.5-flash",
+                                messages=None,
+                                prompt="prompt-only request",
+                                cookies=source_cookies,
+                                max_retries=1,
+                            )
+                            await generator.__anext__()
+                            await generator.aclose()
+
+        self.assertEqual(fetch.await_count, 2)
+        self.assertEqual(len(session.calls), 2)
+        self.assertTrue(first_response.released)
+        self.assertEqual(session.calls[0]["data"]["at"], "token-1")
+        self.assertEqual(session.calls[0]["params"]["bl"], "build-1")
+        self.assertEqual(session.calls[0]["params"]["f.sid"], "sid-1")
+        self.assertEqual(session.calls[1]["data"]["at"], "token-2")
+        self.assertEqual(session.calls[1]["params"]["bl"], "build-2")
+        self.assertEqual(session.calls[1]["params"]["f.sid"], "sid-2")
+        self.assertIs(
+            session.calls[0]["cookies_object"],
+            session.calls[1]["cookies_object"],
+        )
+        self.assertIsNot(session.calls[0]["cookies_object"], source_cookies)
+        self.assertEqual(source_cookies["__Secure-1PSIDTS"], "old")
+        request = json.loads(json.loads(session.calls[1]["data"]["f.req"])[1])
+        self.assertEqual(request[0][0], "prompt-only request")
+
+    async def test_auto_refresh_waits_before_rotating(self):
+        with patch(
+            "g4f.Provider.needs_auth.Gemini.asyncio.sleep",
+            new_callable=AsyncMock,
+            side_effect=asyncio.CancelledError(),
+        ) as sleep:
+            with patch(
+                "g4f.Provider.needs_auth.Gemini.rotate_1psidts",
+                new_callable=AsyncMock,
+            ) as rotate:
+                with self.assertRaises(asyncio.CancelledError):
+                    await Gemini.start_auto_refresh(
+                        cookies={"__Secure-1PSID": "session"}
+                    )
+
+        sleep.assert_awaited_once_with(Gemini.refresh_interval)
+        rotate.assert_not_awaited()
+
+    async def test_auto_refresh_ignores_missing_cookies(self):
+        with patch(
+            "g4f.Provider.needs_auth.Gemini.rotate_1psidts",
+            new_callable=AsyncMock,
+        ) as rotate:
+            await Gemini.start_auto_refresh(cookies=None)
+
+            rotate.assert_not_awaited()
+
+    async def test_auto_refresh_uses_cookie_snapshot(self):
+        source = {
+            "__Secure-1PSID": "session",
+            "__Secure-1PSIDTS": "old",
+        }
+        observed = {}
+
+        async def rotate(_url, cookies, _proxy):
+            observed["same_object"] = cookies is source
+            observed["sidts"] = cookies.get("__Secure-1PSIDTS")
+            raise asyncio.CancelledError()
+
+        previous_cookies = Gemini._cookies
+        Gemini._cookies = None
+        try:
+            with patch(
+                "g4f.Provider.needs_auth.Gemini.asyncio.sleep",
+                new_callable=AsyncMock,
+            ) as sleep:
+                with patch(
+                    "g4f.Provider.needs_auth.Gemini.rotate_1psidts",
+                    new_callable=AsyncMock,
+                    side_effect=rotate,
+                ) as rotate_mock:
+                    with self.assertRaises(asyncio.CancelledError):
+                        await Gemini.start_auto_refresh(cookies=source)
+
+            sleep.assert_awaited_once_with(Gemini.refresh_interval)
+            rotate_mock.assert_awaited_once()
+            self.assertFalse(observed["same_object"])
+            self.assertEqual(observed["sidts"], "old")
+            self.assertEqual(source["__Secure-1PSIDTS"], "old")
+        finally:
+            Gemini._cookies = previous_cookies
+
     async def test_stream_idle_timeout(self):
         class SlowContent:
             async def iter_any(self):
