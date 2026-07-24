@@ -14,13 +14,16 @@ from g4f.Provider.needs_auth.Gemini import (
     _build_model_headers,
     _extract_gemini_error_code,
     _extract_reasoning,
+    _has_authenticated_session,
     _is_xsrf_error,
     _iter_response_lines,
     _normalize_messages,
     _parse_account_models,
     _parse_google_frames,
+    _resolve_gemini_conversation,
     _resolve_gemini_prompt,
     _resolve_model,
+    Conversation,
 )
 from g4f.errors import MissingAuthError, ResponseError, ResponseStatusError
 from g4f.models import ModelRegistry
@@ -156,6 +159,67 @@ class GeminiHelpersTest(unittest.TestCase):
         )
         with self.assertRaises(TypeError):
             _normalize_messages({"role": "user"})
+
+    def test_anonymous_followup_uses_full_message_history(self):
+        messages = [
+            {"role": "user", "content": "first turn"},
+            {"role": "assistant", "content": "first answer"},
+            {"role": "user", "content": "second turn"},
+        ]
+        conversation = Conversation(
+            "conversation-id",
+            "response-id",
+            "choice-id",
+            "gemini-auto",
+        )
+
+        self.assertFalse(_has_authenticated_session({}))
+        resolved = _resolve_gemini_conversation(
+            conversation,
+            "gemini-auto",
+            {},
+        )
+        prompt = _resolve_gemini_prompt(messages, None, resolved)
+        request = Gemini.build_request(
+            prompt,
+            "en",
+            "gemini-auto",
+            4,
+            conversation=resolved,
+            request_uuid="test-request",
+        )
+
+        self.assertIsNone(resolved)
+        self.assertIn("first turn", prompt)
+        self.assertIn("first answer", prompt)
+        self.assertIn("second turn", prompt)
+        self.assertEqual(request[2][:3], ["", "", ""])
+
+    def test_authenticated_followup_keeps_conversation_handle(self):
+        conversation = Conversation(
+            "conversation-id",
+            "response-id",
+            "choice-id",
+            "gemini-3.5-flash",
+        )
+        cookies = {"__Secure-1PSID": "session"}
+
+        self.assertTrue(_has_authenticated_session(cookies))
+        self.assertIs(
+            _resolve_gemini_conversation(
+                conversation,
+                "gemini-3.5-flash",
+                cookies,
+            ),
+            conversation,
+        )
+        self.assertIsNone(
+            _resolve_gemini_conversation(
+                conversation,
+                "gemini-auto",
+                cookies,
+            )
+        )
 
     def test_xsrf_response_is_retryable(self):
         error = ResponseStatusError(

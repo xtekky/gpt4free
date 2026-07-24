@@ -258,6 +258,27 @@ def _resolve_gemini_prompt(
     return get_last_user_message(messages)
 
 
+def _has_authenticated_session(cookies: Cookies) -> bool:
+    return bool(cookies.get(GOOGLE_SID_COOKIE))
+
+
+def _resolve_gemini_conversation(
+    conversation,
+    model: str,
+    cookies: Cookies,
+):
+    if conversation is None:
+        return None
+    if getattr(conversation, "model", None) != model:
+        return None
+    # Gemini currently returns conversation identifiers to anonymous sessions,
+    # but rejects those identifiers with BardErrorInfo 1096 when they are used
+    # on the next turn. Keep the full message history for anonymous requests.
+    if not _has_authenticated_session(cookies):
+        return None
+    return conversation
+
+
 def _is_xsrf_error(error: Exception, status: int | None) -> bool:
     return status == 400 and "xsrf" in str(error).lower()
 
@@ -510,8 +531,12 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         elif cls._cookies is None:
             cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
         request_cookies = dict(cls._cookies or {})
-        if conversation is not None and getattr(conversation, "model", None) != model:
-            conversation = None
+        authenticated_session = _has_authenticated_session(request_cookies)
+        conversation = _resolve_gemini_conversation(
+            conversation,
+            model,
+            request_cookies,
+        )
         prompt = _resolve_gemini_prompt(messages, prompt, conversation)
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
@@ -719,7 +744,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                             yield TitleGeneration(response_part[2].get("11"))
                         if len(response_part) < 5:
                             continue
-                        if return_conversation:
+                        if return_conversation and authenticated_session:
                             try:
                                 yield Conversation(
                                     response_part[1][0],
