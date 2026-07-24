@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import unittest
 from unittest.mock import AsyncMock, patch
@@ -23,6 +24,8 @@ from g4f.Provider.needs_auth.Gemini import (
 )
 from g4f.errors import MissingAuthError, ResponseError, ResponseStatusError
 from g4f.models import ModelRegistry
+
+GEMINI_MODULE = importlib.import_module("g4f.Provider.needs_auth.Gemini")
 
 
 def build_account_response(status: int) -> tuple[str, dict[str, dict]]:
@@ -287,8 +290,9 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
                     'Response 400: [["er",null,{"reason":"xsrf"}]]'
                 )
 
-        with patch(
-            "g4f.Provider.needs_auth.Gemini.ClientSession",
+        with patch.object(
+            GEMINI_MODULE,
+            "ClientSession",
             return_value=session,
         ):
             with patch.object(
@@ -308,8 +312,9 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
                         new_callable=AsyncMock,
                         return_value=[],
                     ):
-                        with patch(
-                            "g4f.Provider.needs_auth.Gemini.raise_for_status",
+                        with patch.object(
+                            GEMINI_MODULE,
+                            "raise_for_status",
                             side_effect=check_status,
                         ):
                             generator = ProbeGemini.create_async_generator(
@@ -341,13 +346,15 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request[0][0], "prompt-only request")
 
     async def test_auto_refresh_waits_before_rotating(self):
-        with patch(
-            "g4f.Provider.needs_auth.Gemini.asyncio.sleep",
+        with patch.object(
+            GEMINI_MODULE.asyncio,
+            "sleep",
             new_callable=AsyncMock,
             side_effect=asyncio.CancelledError(),
         ) as sleep:
-            with patch(
-                "g4f.Provider.needs_auth.Gemini.rotate_1psidts",
+            with patch.object(
+                GEMINI_MODULE,
+                "rotate_1psidts",
                 new_callable=AsyncMock,
             ) as rotate:
                 with self.assertRaises(asyncio.CancelledError):
@@ -359,8 +366,9 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
         rotate.assert_not_awaited()
 
     async def test_auto_refresh_ignores_missing_cookies(self):
-        with patch(
-            "g4f.Provider.needs_auth.Gemini.rotate_1psidts",
+        with patch.object(
+            GEMINI_MODULE,
+            "rotate_1psidts",
             new_callable=AsyncMock,
         ) as rotate:
             await Gemini.start_auto_refresh(cookies=None)
@@ -382,12 +390,14 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
         previous_cookies = Gemini._cookies
         Gemini._cookies = None
         try:
-            with patch(
-                "g4f.Provider.needs_auth.Gemini.asyncio.sleep",
+            with patch.object(
+                GEMINI_MODULE.asyncio,
+                "sleep",
                 new_callable=AsyncMock,
             ) as sleep:
-                with patch(
-                    "g4f.Provider.needs_auth.Gemini.rotate_1psidts",
+                with patch.object(
+                    GEMINI_MODULE,
+                    "rotate_1psidts",
                     new_callable=AsyncMock,
                     side_effect=rotate,
                 ) as rotate_mock:
