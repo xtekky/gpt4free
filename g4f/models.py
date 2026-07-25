@@ -3,8 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from .Provider import ProviderType, IterListProvider, RotatedProvider
-
+from .Provider import ProviderType, IterListProvider
 
 
 class ModelRegistry:
@@ -114,7 +113,7 @@ default = Model(
         "DeepInfra",
         "OperaAria",
         "GLM",
-        "PollinationsAI",
+        "Pollinations",
         "Qwen",
         "Together",
         "WeWordle",
@@ -128,7 +127,7 @@ default_vision = VisionModel(
     base_provider = "",
     best_provider = IterListProvider([
         "DeepInfra",
-        "PollinationsAI",
+        "Pollinations",
         "OperaAria",
         "Together",
         "HuggingSpace",
@@ -159,11 +158,6 @@ gpt_4o_mini = Model(
     best_provider = IterListProvider(["OpenaiChat", "Surfsense"])
 )
 
-# gpt_4o_mini_audio = AudioModel(
-#     name          = 'gpt-4o-mini-audio-preview',
-#     base_provider = 'OpenAI',
-#     best_provider = "PollinationsAI"
-# )
 
 gpt_4o_mini_tts = AudioModel(
     name          = 'gpt-4o-mini-tts',
@@ -226,19 +220,13 @@ gpt_4_1_mini = Model(
 gpt_4_1_nano = Model(
     name          = 'gpt-4.1-nano',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider(["PollinationsAI"])
+    best_provider = IterListProvider(["Pollinations"])
 )
 
 gpt_4_5 = Model(
     name          = 'gpt-4.5',
     base_provider = 'OpenAI',
     best_provider = "OpenaiChat"
-)
-
-gpt_4_5_mini = Model(
-    name          = 'gpt-4.5-mini',
-    base_provider = 'OpenAI',
-    best_provider = "Surfsense"
 )
 
 gpt_oss_120b = Model(
@@ -349,7 +337,7 @@ llama_3_3_70b = Model(
 llama_4_scout = Model(
     name          = "llama-4-scout",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider(["PollinationsAI", "Together"])
+    best_provider = IterListProvider(["Pollinations", "Together"])
 )
 
 llama_4_maverick = Model(
@@ -386,7 +374,7 @@ mistral_small_24b = Model(
 mistral_small_3_1_24b = Model(
     name          = "mistral-small-3.1-24b",
     base_provider = "Mistral AI",
-    best_provider = IterListProvider(["PollinationsAI"])
+    best_provider = IterListProvider(["Pollinations"])
 )
 
 ### NousResearch ###
@@ -404,39 +392,8 @@ phi_3_5_mini = Model(
     best_provider = None
 )
 
-
-
-
-
-
 ### Google DeepMind ###
-# gemini
-gemini = Model(
-    name          = 'gemini-2.0',
-    base_provider = 'Google',
-    best_provider = "Gemini"
-)
 
-# gemini-2.0
-gemini_2_0_flash = Model(
-    name          = 'gemini-2.0-flash',
-    base_provider = 'Google',
-    best_provider = IterListProvider(["Gemini", "GeminiPro"])
-)
-
-gemini_2_0_flash_thinking = Model(
-    name          = 'gemini-2.0-flash-thinking',
-    base_provider = 'Google',
-    best_provider = IterListProvider(["Gemini", "GeminiPro"])
-)
-
-gemini_2_0_flash_thinking_with_apps = Model(
-    name          = 'gemini-2.0-flash-thinking-with-apps',
-    base_provider = 'Google',
-    best_provider = "Gemini"
-)
-
-# gemini-2.5
 gemini_2_5_flash = Model(
     name          = 'gemini-2.5-flash',
     base_provider = 'Google',
@@ -455,7 +412,6 @@ gemini_3_pro_preview = Model(
     best_provider = "GeminiCLI"
 )
 
-# gemini-3.1
 gemini_3_1_pro = Model(
     name          = 'gemini-3.1-pro',
     base_provider = 'Google',
@@ -468,7 +424,6 @@ gemini_3_1_flash_lite = Model(
     best_provider = "Gemini"
 )
 
-# gemini-3.5
 gemini_3_5_flash = Model(
     name          = 'gemini-3.5-flash',
     base_provider = 'Google',
@@ -481,7 +436,7 @@ gemini_3_5_flash_thinking = Model(
     best_provider = "Gemini"
 )
 
-gemini_auto = Model(
+gemini = Model(
     name          = 'gemini-auto',
     base_provider = 'Google',
     best_provider = "Gemini"
@@ -497,31 +452,6 @@ gemini_flash_lite = Model(
     name          = 'gemini-flash-lite',
     base_provider = 'Google',
     best_provider = "Gemini"
-)
-
-
-
-
-
-
-gemma_2_27b = Model(
-    name          = 'gemma-2-27b',
-    base_provider = 'Google',
-    best_provider = "Together"
-)
-
-
-
-gemma_3_27b = Model(
-    name          = 'gemma-3-27b',
-    base_provider = 'Google',
-    best_provider = IterListProvider(["Together"])
-)
-
-gemma_3n_e4b = Model(
-    name          = 'gemma-3n-e4b',
-    base_provider = 'Google',
-    best_provider = "Together"
 )
 
 ### CohereForAI ###
@@ -550,52 +480,11 @@ command_a = Model(
 )
 
 ### "Qwen" ###
-# qwen-1.5
-qwen_1_5_7b = Model(
-    name = 'qwen-1.5-7b',
-    base_provider = 'Qwen',
-    best_provider = None
-)
-
-# qwen-2
-qwen_2_72b = Model(
-    name = 'qwen-2-72b',
-    base_provider = 'Qwen',
-    best_provider = IterListProvider(["Together"])
-)
-
-qwen_2_vl_7b = VisionModel(
-    name = "qwen-2-vl-7b",
-    base_provider = 'Qwen',
-    best_provider = None
-)
-
-qwen_2_vl_72b = VisionModel(
-    name = "qwen-2-vl-72b",
-    base_provider = 'Qwen',
-    best_provider = "Together"
-)
-
-
-qwen_2_5_7b = Model(
-    name = 'qwen-2.5-7b',
-    base_provider = 'Qwen',
-    best_provider = "Together"
-)
-
-qwen_2_5_72b = Model(
-    name = 'qwen-2.5-72b',
-    base_provider = 'Qwen',
-    best_provider = "Together"
-)
-
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
     best_provider = IterListProvider(["Together", "HuggingChat"])
 )
-
-
 
 qwen_2_5_vl_72b = Model(
     name = 'qwen-2.5-vl-72b',
@@ -603,7 +492,6 @@ qwen_2_5_vl_72b = Model(
     best_provider = "Together"
 )
 
-# qwen3
 qwen_3_235b = Model(
     name = 'qwen-3-235b',
     base_provider = 'Qwen',
@@ -615,10 +503,6 @@ qwen_3_32b = Model(
     base_provider = 'Qwen',
     best_provider = IterListProvider(["Together"])
 )
-
-
-
-
 
 
 ### qwq/qvq ###
@@ -640,7 +524,7 @@ deepseek_v3 = Model(
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider(["PollinationsAI", "Together"])
+    best_provider = IterListProvider(["Pollinations", "Together"])
 )
 
 
@@ -661,13 +545,6 @@ deepseek_r1_distill_qwen_14b = Model(
     base_provider = 'DeepSeek',
     best_provider = "Together"
 )
-
-
-
-
-
-
-
 
 
 ### x.ai ###
@@ -734,13 +611,6 @@ nemotron_70b = Model(
     best_provider = IterListProvider(["Together", "HuggingChat"])
 )
 
-### Cognitive Computations ###
-
-
-### "DeepInfra" ###
-
-### Lizpreciatior ###
-
 ### Opera ###
 aria = Model(
     name = "aria",
@@ -773,47 +643,10 @@ flux_pro = ImageModel(
     base_provider = 'Black Forest Labs',
     best_provider = IterListProvider(["PollinationsImage", "Together"])
 )
-
-flux_dev = ImageModel(
-    name = 'flux-dev',
-    base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsImage", "HuggingSpace", "Together", "HuggingChat"])
-)
-
-flux_schnell = ImageModel(
-    name = 'flux-schnell',
-    base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsImage", "Together", "HuggingChat"])
-)
-
-flux_redux = ImageModel(
-    name = 'flux-redux',
-    base_provider = 'Black Forest Labs',
-    best_provider = "Together"
-)
-
-flux_depth = ImageModel(
-    name = 'flux-depth',
-    base_provider = 'Black Forest Labs',
-    best_provider = "Together"
-)
-
-flux_canny = ImageModel(
-    name = 'flux-canny',
-    base_provider = 'Black Forest Labs',
-    best_provider = "Together"
-)
-
 flux_kontext_max = ImageModel(
     name = 'flux-kontext',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsAI", "Together"])
-)
-
-flux_dev_lora = ImageModel(
-    name = 'flux-dev-lora',
-    base_provider = 'Black Forest Labs',
-    best_provider = "Together"
+    best_provider = IterListProvider(["Pollinations", "Together"])
 )
 
 
@@ -840,8 +673,6 @@ class ModelUtils:
         """Register an alias for a model"""
         ModelRegistry._aliases[alias] = model_name
 
-# Register special aliases after all models are created
-ModelRegistry._aliases["gemini"] = "gemini-3.5-flash"
 
 # Fill the convert dictionary
 ModelUtils.convert = ModelRegistry.all_models()

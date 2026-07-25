@@ -9,7 +9,7 @@ from flask import send_from_directory, redirect, request
 from ...image.copy_images import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
-from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, JSDELIVR_URL, GITHUB_URL
+from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, GITHUB_URL
 from ... import version
 
 def redirect_home():
@@ -80,20 +80,22 @@ def render(filename = "home", download_url: str = GITHUB_URL):
                         raise
             if not cache_file.endswith(".js") and response.headers.get("Content-Type", "").startswith("application/javascript"):
                 cache_file += ".js"
-            html = response.text
-            dist_url = "/dist/" if os.path.exists(DIST_DIR) else f"{STATIC_URL}dist/"
-            html = html.replace('"../dist/', f'"{dist_url}')
-            html = html.replace('"/dist/', f'"{dist_url}')
-            html = html.replace('"dist/', f'"{dist_url}')
-            html = html.replace("'../dist/", f"'{dist_url}")
-            html = html.replace("'/dist/", f"'{dist_url}")
-            html = html.replace("'dist/", f"'{dist_url}")
-        # html = html.replace(JSDELIVR_URL, "/")
-        html = html.replace("{{ v }}", latest_version)
-        if is_temp:
-            return html
-        with open(cache_file, 'w', encoding='utf-8') as f:
-            f.write(html)
+            if filename.endswith(".html"):
+                html = response.text
+                dist_url = "/dist/" if os.path.exists(DIST_DIR) else f"{STATIC_URL}dist/"
+                html = html.replace("'../dist/", f"'{dist_url}")
+                html = html.replace("'/dist/", f"'{dist_url}")
+                html = html.replace("'dist/", f"'{dist_url}")
+                html = html.replace('<base href="/">', f'<base href="/sillytavern/">')
+        if html is None:
+            with open(cache_file, 'wb') as f:
+                f.write(response.content)
+        else:
+            html = html.replace("{{ v }}", latest_version)
+            if is_temp:
+                return html
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                f.write(html)
     return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file), max_age=31536000)
 
 class Website:
@@ -140,6 +142,14 @@ class Website:
                 'function': self._playground,
                 'methods': ['GET']
             },
+            '/sillytavern/': {
+                'function': self._sillytavern,
+                'methods': ['GET']
+            },
+            '/sillytavern/<path:filename>': {
+                'function': self._sillytavern,
+                'methods': ['GET']
+            },
             '/apps/': {
                 'function': self._apps,
                 'methods': ['GET']
@@ -153,6 +163,18 @@ class Website:
                 'methods': ['GET']
             },
         }
+        @app.route('/lib.js', methods=['GET'])
+        def lib_js():
+            return self._sillytavern("lib.js")
+        @app.route('/script.js', methods=['GET'])
+        def script_js():
+            return self._sillytavern("script.js")
+        @app.route('/lib/<path:filename>', methods=['GET'])
+        def lib_files(filename):
+            return self._sillytavern(f"lib/{filename}")
+        @app.route('/scripts/<path:filename>', methods=['GET'])
+        def script_files(filename):
+            return self._sillytavern(f"scripts/{filename}")
 
     def _index(self, filename = "home"):
         return render(filename)
@@ -173,6 +195,10 @@ class Website:
     
     def _apps(self, filename: str = "index.html"):
         return render(f"apps/{filename}")
+
+    def _sillytavern(self, filename: str = "index.html"):
+        SILLYTAVERN_URL = "https://raw.githubusercontent.com/SillyTavern/SillyTavern/refs/heads/release/"
+        return render(f"public/{filename}", SILLYTAVERN_URL)
 
     def _playground(self, filename: str = "index.html"):
         PLAYGROUND_URL = "https://raw.githubusercontent.com/gpt4free/playground/refs/heads/main/"
