@@ -54,6 +54,8 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.DeepSeek import DeepSeek; return DeepSeek
     elif name == "EdgeTTS":
         from g4f.Provider.audio.EdgeTTS import EdgeTTS; return EdgeTTS
+    elif name == "ElevenLabs":
+        from g4f.Provider.audio.ElevenLabs import ElevenLabs; return ElevenLabs
     elif name == "FenayAI":
         from g4f.Provider.needs_auth.FenayAI import FenayAI; return FenayAI
     elif name == "GLM":
@@ -200,6 +202,7 @@ _provider_names = [
     "DeepInfra",
     "DeepSeek",
     "EdgeTTS",
+    "ElevenLabs",
     "FenayAI",
     "GLM",
     "Gemini",
