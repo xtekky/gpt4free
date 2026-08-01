@@ -31,26 +31,22 @@ PROVIDERS_LIST_2 = [
     "Copilot",
     "CopilotAccount",
     "CopilotApp",
-    "PollinationsAI",
+    "Pollinations",
     "Perplexity",
     "Gemini",
     "Grok",
     "Qwen",
-    "EasyChat",
     "GLM",
     "OpenRouterFree",
-    "Perchance",
-    "Surfsense",
-    "Miklium"
+    "LMArena",
+    "Puter",
+    "HuggingFaceMedia"
 ]
 
 # Add all models to the model map
 PROVIDERS_LIST_3 = [
     "DeepInfra",
     "HuggingFace",
-    "HuggingFaceMedia",
-    "LMArena",
-    "PuterJS",
     "HuggingSpace",
 ]
 
@@ -67,7 +63,7 @@ LABELS = {
     "command": "Cohere: Command",
     "phi": "Microsoft: Phi / WizardLM",
     "mistral": "Mistral",
-    "PollinationsAI": "Pollinations AI",
+    "Pollinations": "Pollinations AI",
     "voices": "Voices",
     "perplexity": "Perplexity Labs",
     "openrouter": "OpenRouter",
@@ -174,36 +170,6 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if isinstance(model, models.ImageModel):
                 cls.image_models.append(name)
 
-        # Process special providers
-        for provider in [p for p in (resolve_provider(name) for name in PROVIDERS_LIST_2) if p is not None]:
-            if not provider.working:
-                continue
-            try:
-                if provider in [__getattr__("Copilot"), __getattr__("CopilotAccount"), __getattr__("CopilotApp"), __getattr__("Perplexity")]:
-                    for model in provider.model_aliases.keys():
-                        if model not in cls.model_map:
-                            cls.model_map[model] = {}
-                        cls.model_map[model].update({provider.__name__: model})
-                else:
-                    for model in provider.get_models():
-                        cleaned = clean_name(model)
-                        if cleaned not in cls.model_map:
-                            cls.model_map[cleaned] = {}
-                        cls.model_map[cleaned].update({provider.__name__: model})
-            except Exception as e:
-                debug.error(
-                    f"Error getting models for provider {provider.__name__}:", e
-                )
-                continue
-
-            # Update special model lists
-            if hasattr(provider, "image_models"):
-                cls.image_models.extend(provider.image_models)
-            if hasattr(provider, "vision_models"):
-                cls.vision_models.extend(provider.vision_models)
-            if hasattr(provider, "video_models"):
-                cls.video_models.extend(provider.video_models)
-
         for provider in [p for p in (resolve_provider(name) for name in PROVIDERS_LIST_3) if p is not None]:
             if not provider.working:
                 continue
@@ -221,7 +187,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 clean_value = clean_name(model)
                 if clean_value not in model_map:
                     model_map[clean_value] = model
-            if provider.model_aliases:
+            if provider.model_aliases is not None:
                 model_map.update(provider.model_aliases)
             for alias, model in model_map.items():
                 if alias not in cls.model_map:
@@ -262,13 +228,14 @@ class AnyModelProviderMixin(ProviderModelMixin):
                         clean = clean_name(model)
                         if clean in cls.model_map:
                             cls.model_map[clean].update({provider.__name__: model})
-                    for alias, model in provider.model_aliases.items():
-                        if alias in cls.model_map:
-                            cls.model_map[alias].update({provider.__name__: model})
+                    if provider.model_aliases is not None:
+                        for alias, model in provider.model_aliases.items():
+                            if alias in cls.model_map:
+                                cls.model_map[alias].update({provider.__name__: model})
                     if provider == __getattr__("GeminiPro"):
                         for model in cls.model_map.keys():
                             if "gemini" in model or "gemma" in model:
-                                cls.model_map[alias].update({provider.__name__: model})
+                                cls.model_map[model].update({provider.__name__: model})
             except Exception as e:
                 debug.error(
                     f"Error getting models for provider {provider.__name__}:", e
@@ -276,7 +243,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 continue
 
         # Process audio providers
-        for provider in [__getattr__("PollinationsAI")]:
+        for provider in [__getattr__("Pollinations")]:
             if provider.working:
                 cls.audio_models.extend(
                     [
@@ -311,6 +278,8 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     and isinstance(alias, str)
                     and alias not in cls.model_map
                 ):
+                    if cls.model_aliases is None:
+                        cls.model_aliases = {}
                     cls.model_aliases[alias] = model
 
     @classmethod
@@ -330,7 +299,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             added = False
             # Check for models with prefix
             start = model.split(":")[0]
-            if start in ("PollinationsAI", "openrouter"):
+            if start in ("Pollinations", "openrouter"):
                 added = True
             # Check for Mistral company models specifically
             elif model.startswith("mistral") and not any(
@@ -411,6 +380,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
 class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
     working = True
     active_by_default = True
+    supports_native_tools = True
 
     @classmethod
     async def create_async_generator(
@@ -442,7 +412,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 else:
                     providers = [__getattr__("PollinationsAudio"), __getattr__("OpenAIFM"), __getattr__("EdgeTTS"), __getattr__("gTTS")]
             elif has_audio:
-                providers = [__getattr__("PollinationsAI"), __getattr__("MarkItDown")]
+                providers = [__getattr__("Pollinations"), __getattr__("MarkItDown")]
             elif has_image:
                 providers = models.default_vision.best_provider.get_providers()
             else:
@@ -469,7 +439,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     yield chunk
                 return
         else:
-            if model not in cls.model_map:
+            if model not in cls.model_map and cls.model_aliases is not None:
                 if model in cls.model_aliases:
                     model = cls.model_aliases[model]
             if model in cls.model_map:
@@ -489,7 +459,9 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     return __getattr__(p)
                 except AttributeError:
                     return None
-            for provider in [_p for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3 if (_p := _safe_getattr(p)) is not None]:
+            for provider in [ _safe_getattr(p) for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3]:
+                if provider is None or not provider.working:
+                    continue
                 try:
                     if model in provider.get_models():
                         providers.append(provider)

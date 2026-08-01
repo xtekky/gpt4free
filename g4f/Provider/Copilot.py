@@ -144,12 +144,22 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype", None) else "")
             headers["authorization"] = f"Bearer {auth_result.access_token}"
 
+        cookies = getattr(auth_result, "cookies", None)
+        if not cookies:
+            # Cached AuthResult from an older version may not have cookies.
+            # Re-run auth to obtain a fresh AuthResult with cookies.
+            async for chunk in cls.on_auth_async(proxy=proxy):
+                if isinstance(chunk, AuthResult):
+                    auth_result = chunk
+                    cookies = getattr(auth_result, "cookies", None)
+                    break
+            cls.write_cache_file(cls.get_cache_file(), auth_result)
         async with AsyncSession(
             timeout=timeout,
             proxy=proxy,
             impersonate="chrome",
             headers=headers,
-            cookies=auth_result.cookies
+            cookies=cookies
         ) as session:
             if conversation is None:
                 # har_file = os.path.join(os.path.dirname(__file__), "copilot", "copilot.microsoft.com.har")

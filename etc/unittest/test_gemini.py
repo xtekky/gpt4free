@@ -139,7 +139,7 @@ class GeminiHelpersTest(unittest.TestCase):
         self.assertIn("gemini-3.5-flash", message)
 
     def test_public_model_registry_exposes_current_models(self):
-        self.assertEqual(ModelRegistry.get("gemini").name, "gemini-3.5-flash")
+        self.assertEqual(ModelRegistry.get("gemini-auto").name, "gemini-auto")
         for model in (
             "gemini-3.5-flash-thinking",
             "gemini-auto",

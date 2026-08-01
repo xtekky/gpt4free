@@ -81,6 +81,13 @@ REQUEST_HEADERS = {
     ),
     "x-same-domain": "1",
 }
+# Gemini responses occasionally include very large header values (e.g. Set-Cookie
+# chains or x-goog-* metadata) that exceed aiohttp's default 8190-byte limit.
+# Raise both the per-line and per-field limits so these responses parse cleanly.
+RESPONSE_HEADER_LIMITS = {
+    "max_line_size": 64 * 1024,
+    "max_field_size": 64 * 1024,
+}
 REQUEST_BL_PARAM = "boq_assistant-bard-web-server_20260525.09_p0"
 REQUEST_PATH = "/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate"
 UPLOAD_IMAGE_URL = "https://content-push.googleapis.com/upload/"
@@ -479,7 +486,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         if not cls._cookies:
             raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie')
         async with ClientSession(
-            headers=REQUEST_HEADERS
+            headers=REQUEST_HEADERS,
+            **RESPONSE_HEADER_LIMITS,
         ) as session:
             await cls.fetch_snlm0e(session, cls._cookies)
         return cls._snlm0e
@@ -548,7 +556,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
 
         async with ClientSession(
             headers=REQUEST_HEADERS,
-            connector=base_connector
+            connector=base_connector,
+            **RESPONSE_HEADER_LIMITS,
         ) as session:
             cookie_key = (
                 request_cookies.get(GOOGLE_SID_COOKIE),
@@ -857,6 +866,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             cookies=cls._cookies,
             headers=REQUEST_HEADERS,
             connector=get_connector(proxy=proxy),
+            **RESPONSE_HEADER_LIMITS,
         ) as session:
             if not cls._snlm0e:
                 await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
@@ -1086,7 +1096,7 @@ async def rotate_1psidts(url, cookies: dict, proxy: str | None = None) -> str:
 
     # Check if the cache file was modified in the last minute to avoid 429 Too Many Requests
     if not (path.is_file() and time.time() - os.path.getmtime(path) <= 60):
-        async with ClientSession(proxy=proxy) as client:
+        async with ClientSession(proxy=proxy, **RESPONSE_HEADER_LIMITS) as client:
             async with client.post(
                 url=ROTATE_COOKIES_URL,
                 headers={
