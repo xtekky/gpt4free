@@ -126,21 +126,35 @@ MAX_CONCURRENT_UPLOADS = 4
 RETRYABLE_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
 
 models = {
-    "gemini-3.5-flash": {"mode": 1, "think": 4},
-    "gemini-3.5-flash-thinking": {"mode": 2, "think": 0},
-    "gemini-3.1-pro": {"mode": 3, "think": 4},
-    "gemini-auto": {"mode": 4, "think": 4},
-    "gemini-3.5-flash-thinking-lite": {"mode": 5, "think": 0},
-    "gemini-flash-lite": {"mode": 6, "think": 4},
+    # Values captured from authenticated Gemini Web requests. The model is
+    # selected by field 79; expanded thinking is an independent field 80.
+    "gemini-3.6-flash": {"mode": 1},
+    "gemini-3.5-flash-lite": {"mode": 6},
+    "gemini-3.1-pro": {"mode": 3},
 }
 MODEL_ALIASES = {
-    "gemini-2.0": "gemini-3.5-flash",
-    "gemini-2.0-flash": "gemini-3.5-flash",
-    "gemini-2.0-flash-thinking": "gemini-3.5-flash-thinking",
-    "gemini-2.0-flash-thinking-with-apps": "gemini-3.5-flash-thinking",
-    "gemini-2.5-flash": "gemini-3.5-flash",
+    "gemini-2.0": "gemini-3.6-flash",
+    "gemini-2.0-flash": "gemini-3.6-flash",
+    "gemini-2.0-flash-thinking": "gemini-3.6-flash",
+    "gemini-2.0-flash-thinking-with-apps": "gemini-3.6-flash",
+    "gemini-2.5-flash": "gemini-3.6-flash",
     "gemini-2.5-pro": "gemini-3.1-pro",
-    "gemini-3.1-flash-lite": "gemini-flash-lite",
+    "gemini-3.1-flash-lite": "gemini-3.5-flash-lite",
+    "gemini-3.5-flash": "gemini-3.6-flash",
+    "gemini-3.5-flash-thinking": "gemini-3.6-flash",
+    "gemini-3.6-flash-thinking": "gemini-3.6-flash",
+    "gemini-auto": "gemini-3.6-flash",
+    "gemini-3.5-flash-thinking-lite": "gemini-3.5-flash-lite",
+    "gemini-3.5-flash-lite-thinking": "gemini-3.5-flash-lite",
+    "gemini-flash-lite": "gemini-3.5-flash-lite",
+}
+EXPANDED_MODEL_ALIASES = {
+    "gemini-2.0-flash-thinking",
+    "gemini-2.0-flash-thinking-with-apps",
+    "gemini-3.5-flash-thinking",
+    "gemini-3.6-flash-thinking",
+    "gemini-3.5-flash-thinking-lite",
+    "gemini-3.5-flash-lite-thinking",
 }
 
 
@@ -223,10 +237,12 @@ async def _iter_response_lines(
         yield buffer.decode("utf-8", errors="replace")
 
 
-def _resolve_model(model: str, think_override: int = None) -> tuple[str, int]:
+def _resolve_model(model: str, think_override: int = None) -> tuple[str, bool]:
+    requested_model = model
     think_mode = think_override
     if "@think=" in model:
         model, think_value = model.rsplit("@think=", 1)
+        requested_model = model
         try:
             think_mode = int(think_value)
         except ValueError as exc:
@@ -240,7 +256,12 @@ def _resolve_model(model: str, think_override: int = None) -> tuple[str, int]:
             f"Unknown Gemini model: {model}. "
             f"Supported models: {', '.join(models)}"
         )
-    return model, models[model]["think"] if think_mode is None else think_mode
+    expanded_thinking = (
+        requested_model in EXPANDED_MODEL_ALIASES
+        if think_mode is None
+        else think_mode <= 2
+    )
+    return model, expanded_thinking
 
 
 def _normalize_messages(messages: Messages | None) -> Messages:
@@ -276,7 +297,9 @@ def _resolve_gemini_conversation(
 ):
     if conversation is None:
         return None
-    if getattr(conversation, "model", None) != model:
+    model = MODEL_ALIASES.get(model, model)
+    conversation_model = getattr(conversation, "model", None)
+    if MODEL_ALIASES.get(conversation_model, conversation_model) != model:
         return None
     # Gemini currently returns conversation identifiers to anonymous sessions,
     # but rejects those identifiers with BardErrorInfo 1096 when they are used
@@ -299,7 +322,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     use_nodriver = True
     
-    default_model = "gemini-3.5-flash"
+    default_model = "gemini-3.6-flash"
     default_image_model = default_model
     default_vision_model = default_model
     image_models = [default_image_model]
@@ -442,9 +465,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_model_headers(cls, model: str) -> dict[str, str]:
         family = MODEL_FAMILIES.get(model)
-        # The 80-field request's mode category selects Flash/Thinking/Lite.
-        # Pro additionally needs the account-specific model header or Google
-        # silently routes it back to Flash.
+        # Request field 79 selects the model. Pro additionally needs the
+        # account-specific model header or Google silently routes it to Flash.
         if family != "pro":
             return {}
         for model_data in cls._account_models.values():
@@ -458,6 +480,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         allow_model_fallback: bool = False,
     ) -> None:
+        model = MODEL_ALIASES.get(model, model)
         if allow_model_fallback or cls._account_status is None:
             return
         if cls._account_status == ACCOUNT_STATUS_UNAUTHENTICATED:
@@ -508,12 +531,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         audio: dict = None,
         auth_user: int | str = None,
         think_override: int = None,
+        expanded_thinking: bool = None,
         **kwargs
     ) -> AsyncResult:
         messages = _normalize_messages(messages)
         model = model or cls.default_model
-        if cls.model_aliases and model in cls.model_aliases:
-            model = cls.model_aliases[model]
         if audio is not None or model == "gemini-audio":
             prompt = format_media_prompt(messages, prompt)
             filename = get_filename(["gemini"], prompt, ".ogx", prompt)
@@ -524,7 +546,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                     f.write(chunk)
             yield AudioResponse(f"/media/{filename}", text=prompt)
             return
-        if think_override is None:
+        if expanded_thinking is not None:
+            if not isinstance(expanded_thinking, bool):
+                raise TypeError("expanded_thinking must be a boolean")
+            think_override = 0 if expanded_thinking else 4
+        elif think_override is None:
             think_override = {
                 "none": 4,
                 "minimal": 4,
@@ -533,7 +559,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 "high": 1,
                 "xhigh": 0,
             }.get(kwargs.get("reasoning_effort"))
-        model, think_mode = _resolve_model(model, think_override)
+        model, expanded_thinking = _resolve_model(model, think_override)
         if cookies is not None:
             cls._cookies = cookies
         elif cls._cookies is None:
@@ -631,7 +657,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 'f.req': json.dumps([None, json.dumps(cls.build_request(
                     prompt,
                     model=model,
-                    think_mode=think_mode,
+                    expanded_thinking=expanded_thinking,
                     language=language,
                     conversation=conversation,
                     uploads=uploads,
@@ -760,6 +786,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                     response_part[1][1],
                                     response_part[4][0][0],
                                     model,
+                                    turn_index=(
+                                        getattr(conversation, "turn_index", 0) + 1
+                                        if conversation is not None
+                                        else 1
+                                    ),
                                 )
                             except (IndexError, TypeError):
                                 pass
@@ -896,14 +927,19 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str,
         language: str,
         model: str,
-        think_mode: int,
+        expanded_thinking: bool = False,
         conversation: Conversation = None,
         uploads: list[list[str, str]] = None,
         tools: list[list[str]] = None,
         request_uuid: str = None,
     ) -> list:
         image_list = [[[image_url, 1], image_name] for image_url, image_name in uploads] if uploads else []
-        request = [None] * 80
+        turn_index = (
+            getattr(conversation, "turn_index", 0)
+            if conversation is not None
+            else 0
+        )
+        request = [None] * 97
         request[0] = [prompt, 0, None, image_list, None, None, 0]
         request[1] = [language]
         request[2] = [
@@ -918,21 +954,26 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             None,
             "",
         ]
-        request[6] = [0]
+        request[6] = [1]
         request[7] = 1
-        request[9] = tools or []
+        if tools:
+            request[9] = tools
         request[10] = 1
         request[11] = 0
-        request[17] = [[think_mode]]
+        request[17] = [[turn_index]]
         request[18] = 0
         request[27] = 1
         request[30] = [4]
-        request[41] = [2]
+        request[41] = [1]
         request[53] = 0
         request[59] = request_uuid or str(uuid.uuid4())
         request[61] = []
-        request[68] = 1
+        request[68] = 2
         request[79] = models[model]["mode"]
+        request[80] = 2 if expanded_thinking else 1
+        request[91] = 0
+        # Gemini Web marks the first turn with 1 and follow-up turns with 0.
+        request[96] = int(conversation is None)
         return request
 
     @classmethod
@@ -1038,12 +1079,14 @@ class Conversation(JsonConversation):
         conversation_id: str,
         response_id: str,
         choice_id: str,
-        model: str
+        model: str,
+        turn_index: int = 0,
     ) -> None:
         self.conversation_id = conversation_id
         self.response_id = response_id
         self.choice_id = choice_id
         self.model = model
+        self.turn_index = turn_index
 
 
 async def iter_filter_base64(chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:

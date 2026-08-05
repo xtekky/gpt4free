@@ -311,6 +311,12 @@ model_map = {
     "Pollinations": "gemini",
     "Puter": "openrouter:google/gemini-3.5-flash"
   },
+  "gemini-3.6-flash": {
+    "Gemini": "gemini-3.6-flash"
+  },
+  "gemini-3.5-flash-lite": {
+    "Gemini": "gemini-3.5-flash-lite"
+  },
   "gemini-3.5-flash-thinking": {
     "Gemini": "gemini-3.5-flash-thinking",
     "GeminiPro": "gemini-3.5-flash-thinking"

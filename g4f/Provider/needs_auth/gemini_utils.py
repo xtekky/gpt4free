@@ -16,11 +16,11 @@ MODEL_HEADER_AUXILIARY = {
     "x-goog-ext-73010990-jspb": "[0]",
 }
 MODEL_FAMILIES = {
-    "gemini-3.5-flash": "flash",
-    "gemini-3.5-flash-thinking": "thinking",
+    "gemini-3.6-flash": "flash",
+    "gemini-3.5-flash-lite": "flash",
     "gemini-3.1-pro": "pro",
 }
-ANONYMOUS_MODELS = {"gemini-3.5-flash", "gemini-auto"}
+ANONYMOUS_MODELS = {"gemini-3.6-flash", "gemini-3.5-flash-lite"}
 KNOWN_MODEL_IDS = {
     "fbb127bbb056c959": "flash",
     "5bf011840784117a": "thinking",
