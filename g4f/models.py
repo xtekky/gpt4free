@@ -424,6 +424,18 @@ gemini_3_1_flash_lite = Model(
     best_provider = "Gemini"
 )
 
+gemini_3_6_flash = Model(
+    name          = 'gemini-3.6-flash',
+    base_provider = 'Google',
+    best_provider = "Gemini"
+)
+
+gemini_3_5_flash_lite = Model(
+    name          = 'gemini-3.5-flash-lite',
+    base_provider = 'Google',
+    best_provider = "Gemini"
+)
+
 gemini_3_5_flash = Model(
     name          = 'gemini-3.5-flash',
     base_provider = 'Google',

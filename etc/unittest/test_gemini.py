@@ -27,6 +27,7 @@ from g4f.Provider.needs_auth.Gemini import (
 )
 from g4f.errors import MissingAuthError, ResponseError, ResponseStatusError
 from g4f.models import ModelRegistry
+from g4f.providers.any_model_map import model_map
 
 GEMINI_MODULE = importlib.import_module("g4f.Provider.needs_auth.Gemini")
 
@@ -83,45 +84,96 @@ class GeminiHelpersTest(unittest.TestCase):
         self.assertIsNone(field_13[11])
         self.assertEqual(field_13[12], 2)
 
-    def test_mode_categories_and_default_thinking_depths(self):
+    def test_current_models_match_authenticated_web_request_fields(self):
         expected = {
-            "gemini-3.5-flash": (1, 4),
-            "gemini-3.5-flash-thinking": (2, 0),
-            "gemini-3.1-pro": (3, 4),
-            "gemini-auto": (4, 4),
-            "gemini-3.5-flash-thinking-lite": (5, 0),
-            "gemini-flash-lite": (6, 4),
+            "gemini-3.6-flash": (1, 1),
+            "gemini-3.5-flash-lite": (6, 1),
+            "gemini-3.1-pro": (3, 1),
         }
 
-        for requested, (mode, default_think) in expected.items():
+        for requested, (mode, request_96) in expected.items():
             with self.subTest(model=requested):
-                model, think = _resolve_model(requested)
+                model, expanded = _resolve_model(requested)
                 request = Gemini.build_request(
-                    "test", "en", model, think, request_uuid="test-request"
+                    "test", "en", model, expanded, request_uuid="test-request"
                 )
+                self.assertEqual(len(request), 97)
+                self.assertEqual(request[6], [1])
+                self.assertIsNone(request[9])
+                self.assertEqual(request[17], [[0]])
+                self.assertEqual(request[41], [1])
+                self.assertEqual(request[68], 2)
                 self.assertEqual(request[79], mode)
-                self.assertEqual(request[17], [[default_think]])
+                self.assertEqual(request[80], 1)
+                self.assertEqual(request[91], 0)
+                self.assertEqual(request[96], request_96)
 
-    def test_explicit_thinking_depths_are_preserved(self):
+    def test_expanded_thinking_is_independent_for_every_current_model(self):
+        for requested in (
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-pro",
+        ):
+            with self.subTest(model=requested):
+                model, _ = _resolve_model(requested)
+                request = Gemini.build_request(
+                    "test", "en", model, True, request_uuid="test-request"
+                )
+                self.assertEqual(request[17], [[0]])
+                self.assertEqual(request[80], 2)
+                self.assertEqual(request[96], 1)
+
+    def test_legacy_thinking_depths_map_to_binary_expanded_option(self):
         for requested_depth in range(5):
             with self.subTest(depth=requested_depth):
-                model, think = _resolve_model(
+                model, expanded = _resolve_model(
                     f"gemini-3.5-flash-thinking@think={requested_depth}"
                 )
-                request = Gemini.build_request(
-                    "test", "en", model, think, request_uuid="test-request"
+                self.assertEqual(model, "gemini-3.6-flash")
+                self.assertEqual(expanded, requested_depth <= 2)
+
+    def test_conversation_turn_counter_uses_request_field_17(self):
+        for model, expanded in (
+            ("gemini-3.6-flash", False),
+            ("gemini-3.6-flash", True),
+            ("gemini-3.5-flash-lite", False),
+            ("gemini-3.1-pro", False),
+        ):
+            with self.subTest(model=model, expanded=expanded):
+                conversation = Conversation(
+                    "conversation-id",
+                    "response-id",
+                    "choice-id",
+                    model,
+                    turn_index=2,
                 )
-                self.assertEqual(request[17], [[requested_depth]])
+
+                request = Gemini.build_request(
+                    "test",
+                    "en",
+                    model,
+                    expanded,
+                    conversation=conversation,
+                    request_uuid="test-request",
+                )
+
+                self.assertEqual(request[17], [[2]])
+                self.assertEqual(request[96], 0)
 
     def test_legacy_model_names_resolve_to_current_modes(self):
         expected = {
-            "gemini-2.0": "gemini-3.5-flash",
-            "gemini-2.0-flash": "gemini-3.5-flash",
-            "gemini-2.0-flash-thinking": "gemini-3.5-flash-thinking",
-            "gemini-2.0-flash-thinking-with-apps": "gemini-3.5-flash-thinking",
-            "gemini-2.5-flash": "gemini-3.5-flash",
+            "gemini-2.0": "gemini-3.6-flash",
+            "gemini-2.0-flash": "gemini-3.6-flash",
+            "gemini-2.0-flash-thinking": "gemini-3.6-flash",
+            "gemini-2.0-flash-thinking-with-apps": "gemini-3.6-flash",
+            "gemini-2.5-flash": "gemini-3.6-flash",
+            "gemini-3.5-flash": "gemini-3.6-flash",
+            "gemini-3.5-flash-thinking": "gemini-3.6-flash",
+            "gemini-auto": "gemini-3.6-flash",
             "gemini-2.5-pro": "gemini-3.1-pro",
-            "gemini-3.1-flash-lite": "gemini-flash-lite",
+            "gemini-3.1-flash-lite": "gemini-3.5-flash-lite",
+            "gemini-flash-lite": "gemini-3.5-flash-lite",
+            "gemini-3.5-flash-thinking-lite": "gemini-3.5-flash-lite",
         }
 
         for legacy_name, current_name in expected.items():
@@ -131,16 +183,20 @@ class GeminiHelpersTest(unittest.TestCase):
 
     def test_unknown_model_lists_supported_models(self):
         with self.assertRaises(ValueError) as context:
-            _resolve_model("gemini-3.6-flash")
+            _resolve_model("gemini-3.7-flash")
 
         message = str(context.exception)
-        self.assertIn("Unknown Gemini model: gemini-3.6-flash", message)
+        self.assertIn("Unknown Gemini model: gemini-3.7-flash", message)
         self.assertIn("Supported models:", message)
-        self.assertIn("gemini-3.5-flash", message)
+        self.assertIn("gemini-3.6-flash", message)
+        self.assertIn("gemini-3.5-flash-lite", message)
 
     def test_public_model_registry_exposes_current_models(self):
         self.assertEqual(ModelRegistry.get("gemini-auto").name, "gemini-auto")
         for model in (
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-pro",
             "gemini-3.5-flash-thinking",
             "gemini-auto",
             "gemini-3.5-flash-thinking-lite",
@@ -148,6 +204,7 @@ class GeminiHelpersTest(unittest.TestCase):
         ):
             with self.subTest(model=model):
                 self.assertEqual(ModelRegistry.get(model).name, model)
+                self.assertEqual(model_map[model]["Gemini"], model)
 
     def test_prompt_only_requests_accept_missing_messages(self):
         messages = _normalize_messages(None)
@@ -170,21 +227,21 @@ class GeminiHelpersTest(unittest.TestCase):
             "conversation-id",
             "response-id",
             "choice-id",
-            "gemini-auto",
+            "gemini-3.6-flash",
         )
 
         self.assertFalse(_has_authenticated_session({}))
         resolved = _resolve_gemini_conversation(
             conversation,
-            "gemini-auto",
+            "gemini-3.6-flash",
             {},
         )
         prompt = _resolve_gemini_prompt(messages, None, resolved)
         request = Gemini.build_request(
             prompt,
             "en",
-            "gemini-auto",
-            4,
+            "gemini-3.6-flash",
+            False,
             conversation=resolved,
             request_uuid="test-request",
         )
@@ -216,7 +273,7 @@ class GeminiHelpersTest(unittest.TestCase):
         self.assertIsNone(
             _resolve_gemini_conversation(
                 conversation,
-                "gemini-auto",
+                "gemini-3.1-pro",
                 cookies,
             )
         )
@@ -254,6 +311,7 @@ class GeminiHelpersTest(unittest.TestCase):
 
         with self.assertRaises(MissingAuthError):
             ProbeGemini.validate_model_access("gemini-3.1-pro")
+        ProbeGemini.validate_model_access("gemini-3.6-flash")
         ProbeGemini.validate_model_access("gemini-3.5-flash")
         ProbeGemini.validate_model_access(
             "gemini-3.1-pro", allow_model_fallback=True
@@ -382,10 +440,11 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
                             side_effect=check_status,
                         ):
                             generator = ProbeGemini.create_async_generator(
-                                model="gemini-3.5-flash",
+                                model="gemini-3.6-flash",
                                 messages=None,
                                 prompt="prompt-only request",
                                 cookies=source_cookies,
+                                expanded_thinking=True,
                                 max_retries=1,
                             )
                             await generator.__anext__()
@@ -408,6 +467,9 @@ class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(source_cookies["__Secure-1PSIDTS"], "old")
         request = json.loads(json.loads(session.calls[1]["data"]["f.req"])[1])
         self.assertEqual(request[0][0], "prompt-only request")
+        self.assertEqual(request[79], 1)
+        self.assertEqual(request[80], 2)
+        self.assertEqual(request[96], 1)
 
     async def test_auto_refresh_waits_before_rotating(self):
         with patch.object(
