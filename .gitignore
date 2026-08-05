@@ -6,10 +6,11 @@ site-packages
 projects
 node_modules
 g4f.egg-info
-models/models.json
+models
 pyvenv.cfg
 lib64
 /.idea
 container/
 g4f.dev
 har_and_cookies
+playground
