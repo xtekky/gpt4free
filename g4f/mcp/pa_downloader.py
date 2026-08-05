@@ -104,7 +104,7 @@ def _list_repo_files(repo: str, ref: str, timeout: float) -> List[str]:
         if not isinstance(entry, dict):
             continue
         name = entry.get("name", "")
-        if name.endswith(".pa.py") and entry.get("type") == "file":
+        if name.endswith(".py") and entry.get("type") == "file":
             files.append(name)
     return files
 
@@ -162,7 +162,7 @@ def run_pa_download(
         return written
 
     for name in names:
-        if not name.endswith(".pa.py"):
+        if not name.endswith(".py"):
             continue
         dest = target / name
         if dest.exists() and not force:
@@ -221,8 +221,8 @@ def run_pa_remove(filename: str, directory: Optional[str] = None) -> bool:
     except ValueError:
         print(f"Error: {filename} escapes the workspace directory.")
         return False
-    if not candidate.name.endswith(".pa.py"):
-        print(f"Error: {filename} is not a .pa.py file.")
+    if not candidate.name.endswith(".py"):
+        print(f"Error: {filename} is not a .py file.")
         return False
     if not candidate.exists():
         print(f"Error: {filename} not found in {target}")

@@ -4,7 +4,7 @@ import json
 import requests
 from pathlib import Path
 from datetime import datetime
-from typing import Union, List, Dict, Type
+from typing import Union, List, Dict, Type, Optional
 
 from ..providers.types import ProviderType, BaseProvider
 from ..errors import ProviderNotFoundError
@@ -15,11 +15,11 @@ from ..config import AppConfig
 
 def create_custom_provider(
     base_url: str,
-    api_key: str = None,
-    name: str = None,
+    api_key: Optional[str] = None,
+    name: Optional[str] = None,
     working: bool = True,
     default_model: str = "",
-    models: List[str] = None,
+    models: Optional[List[str]] = None,
     **kwargs
 ) -> ProviderType:
     """
@@ -68,10 +68,10 @@ class AbstractClientFactory:
     @classmethod
     def create_provider(
         cls,
-        name: str,
+        name: Optional[str],
         provider: Union[Type[BaseProvider], str],
-        base_url: str = None,
-        api_key: str = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs
     ) -> Type[BaseProvider]:
         """

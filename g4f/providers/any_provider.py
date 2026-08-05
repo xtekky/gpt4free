@@ -487,12 +487,15 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         if not has_api_key:
             providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
 
-        providers.append(AbstractClientFactory.create_provider(None, "default"))
 
         if len(providers) == 0:
-            raise ModelNotFoundError(
-                f"AnyProvider: Model {model} not found in any provider."
-            )
+            provider: AsyncGeneratorProvider = AbstractClientFactory.create_provider(None, "default")
+            async for chunk in provider.create_async_generator(model, messages, stream=stream, media=media, api_key=api_key, **kwargs):
+                yield chunk
+            return
+            # raise ModelNotFoundError(
+            #     f"AnyProvider: Model {model} not found in any provider."
+            # )
 
         debug.log(
             f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"

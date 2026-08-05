@@ -57,12 +57,14 @@ Typical layout of a ``.pa.py`` file::
 from __future__ import annotations
 
 import io
+import os as _os
 import sys
 import json
 import hashlib
 import threading
 import time as _time_module
 import traceback
+import types
 import builtins as _builtins
 from pathlib import Path
 from typing import Any, Dict, FrozenSet, List, Optional, Type
@@ -87,7 +89,7 @@ def is_hidden_file(path: str) -> bool:
 
 #: Modules that are allowed inside the safe execution sandbox.
 SAFE_MODULES: FrozenSet[str] = frozenset({
-    "__future__", "concurrent", "warnings", "urllib3", "urllib3.exceptions", "uuid",
+    "__future__", "concurrent", "warnings", "urllib3", "urllib3.exceptions", "uuid", "secrets",
     # Math / numeric
     "math", "cmath", "decimal", "fractions", "statistics", "random", "numbers",
     # String / text
@@ -116,6 +118,10 @@ SAFE_MODULES: FrozenSet[str] = frozenset({
     "aiohttp", "requests",
     # gpt4free itself
     "g4f",
+    # wasmtime
+    "wasmtime",
+    # Restricted os shim (only urandom and safe read-only attrs exposed)
+    "os",
 })
 
 
@@ -203,6 +209,141 @@ def _exec_in_thread(
         sys.setrecursionlimit(prev)
 
 
+def _load_workspace_module(
+    name: str,
+    workspace: Path,
+    globals_dict: Optional[Dict[str, Any]],
+    fromlist: tuple = (),
+    level: int = 0,
+) -> Optional[types.ModuleType]:
+    """Try to load *name* as a ``.py`` file from the workspace.
+
+    Searches recursively for ``<name>.py`` (or ``<name>/__init__.py`` for
+    packages) anywhere under *workspace*.  If found, executes it inside the
+    sandbox and returns the resulting module object.  Returns ``None`` if no
+    matching file exists.
+
+    The directory of ``__file__`` in *globals_dict* (if set) is searched
+    first so sibling modules are found quickly, then the entire workspace is
+    searched recursively as a fallback.
+
+    The loaded module is cached in :data:`sys.modules` so subsequent imports
+    return the same object.
+
+    Args:
+        name: Top-level module name (e.g. ``"freegpt_wasm_signer"``).
+        workspace: Workspace root directory to search.
+        globals_dict: Globals dict of the calling frame (used to find
+            ``__file__`` for sibling-first lookup).
+        fromlist: ``fromlist`` argument from the import statement.
+        level: Relative import level (always 0 for absolute imports).
+    """
+    # Only handle simple top-level names (no dots).
+    if "." in name:
+        return None
+
+    # Build search directories: __file__ dir first, then workspace root
+    search_dirs: List[Path] = []
+    if globals_dict:
+        cur_file = globals_dict.get("__file__")
+        if cur_file:
+            search_dirs.append(Path(cur_file).parent)
+    search_dirs.append(workspace)
+
+    source_path: Optional[Path] = None
+    for d in search_dirs:
+        py_file = d / f"{name}.py"
+        pkg_init = d / name / "__init__.py"
+        if py_file.is_file():
+            source_path = py_file
+            break
+        elif pkg_init.is_file():
+            source_path = pkg_init
+            break
+    else:
+        # Recursive fallback: search entire workspace
+        for candidate in workspace.rglob(f"{name}.py"):
+            # Skip .pa.py files — those are providers, not importable modules
+            if not candidate.name.endswith(".pa.py"):
+                source_path = candidate
+                break
+        if source_path is None:
+            for candidate in workspace.rglob(f"{name}/__init__.py"):
+                source_path = candidate
+                break
+
+    if source_path is None:
+        return None
+
+    # Return cached module if already loaded
+    if name in sys.modules:
+        return sys.modules[name]
+
+    # Read and execute the module source in a sandbox
+    code = source_path.read_text(encoding="utf-8")
+    module = types.ModuleType(name)
+    module.__file__ = str(source_path.resolve())
+    module.__name__ = name
+    if pkg_init.is_file():
+        module.__path__ = [str((workspace / name).resolve())]
+        module.__package__ = name
+    else:
+        module.__package__ = ""
+
+    # Build sandbox globals for the module
+    module_globals = _make_safe_globals(SAFE_MODULES)
+    module_globals["__file__"] = str(source_path.resolve())
+    module_globals["__name__"] = name
+    module_globals["__package__"] = module.__package__
+    module.__dict__.update(module_globals)
+
+    try:
+        compiled = compile(code, str(source_path), "exec")
+    except SyntaxError:
+        raise ImportError(
+            f"Syntax error in workspace module '{name}' "
+            f"({source_path}):\n{traceback.format_exc()}"
+        )
+
+    # Execute in the current thread (no timeout — module loading is expected
+    # to be fast and we need the module object synchronously).
+    prev_depth = sys.getrecursionlimit()
+    sys.setrecursionlimit(MAX_RECURSION_DEPTH)
+    try:
+        exec(compiled, module.__dict__, module.__dict__)  # noqa: S102
+    except Exception:
+        raise ImportError(
+            f"Failed to load workspace module '{name}' "
+            f"({source_path}):\n{traceback.format_exc()}"
+        )
+    finally:
+        sys.setrecursionlimit(prev_depth)
+
+    sys.modules[name] = module
+    return module
+
+
+# ---------------------------------------------------------------------------
+# Restricted os shim
+# ---------------------------------------------------------------------------
+
+def _make_restricted_os() -> types.ModuleType:
+    """Return a restricted ``os`` module that only exposes safe, read-only
+    attributes (``urandom``, ``name``, ``sep``, ``linesep``, ``altsep``,
+    ``pathsep``).  All filesystem, process, and environment operations are
+    absent.
+    """
+    _SAFE_OS_ATTRS = frozenset({
+        "urandom", "name", "sep", "linesep", "altsep", "pathsep",
+    })
+    shim = types.ModuleType("os")
+    for attr in _SAFE_OS_ATTRS:
+        if hasattr(_os, attr):
+            setattr(shim, attr, getattr(_os, attr))
+    shim.__name__ = "os"
+    return shim
+
+
 def _make_restricted_import(allowed: FrozenSet[str]):
     """Return a ``__import__`` replacement that only allows *allowed* modules."""
     original = _builtins.__import__
@@ -241,7 +382,37 @@ def _make_restricted_import(allowed: FrozenSet[str]):
                 "Relative imports are not allowed inside a .pa.py sandbox."
             )
         base = name.split(".")[0]
+        # Return the restricted os shim instead of the real os module.
+        if base == "os":
+            _os_shim = _make_restricted_os()
+            if name == "os":
+                return _os_shim
+            # Handle "os.submodule" — try to resolve from the shim
+            obj = _os_shim
+            for part in name.split(".")[1:]:
+                obj = getattr(obj, part, None)
+                if obj is None:
+                    raise ImportError(
+                        f"'{name}' is not available in the restricted os shim."
+                    )
+            return obj
         if base not in allowed:
+            # Before rejecting, check if it's a workspace module (sibling .py file).
+            workspace = get_workspace_dir()
+            ws_module = _load_workspace_module(base, workspace, globals, fromlist, level)
+            if ws_module is not None:
+                # Handle submodule imports (e.g. "pkg.sub")
+                if name != base:
+                    # Try to resolve the full dotted path from the loaded module
+                    obj = ws_module
+                    for part in name.split(".")[1:]:
+                        obj = getattr(obj, part, None)
+                        if obj is None:
+                            raise ImportError(
+                                f"Cannot find submodule '{name}' in workspace module '{base}'."
+                            )
+                    return obj
+                return ws_module
             raise ImportError(
                 f"Import of '{name}' is not allowed in safe execution mode.\n"
                 f"Allowed top-level modules: {', '.join(sorted(allowed))}"
@@ -377,6 +548,7 @@ def execute_safe_code(
     allowed_modules: FrozenSet[str] = SAFE_MODULES,
     timeout: Optional[float] = MAX_EXEC_TIMEOUT,
     max_depth: int = MAX_RECURSION_DEPTH,
+    file_path: "Optional[str | Path]" = None,
 ) -> SafeExecutionResult:
     """Execute *code* inside a safe sandbox with whitelisted module imports.
 
@@ -393,6 +565,9 @@ def execute_safe_code(
             ``None`` to disable.  Defaults to :data:`MAX_EXEC_TIMEOUT`.
         max_depth: Maximum recursion depth inside the sandbox.  Defaults to
             :data:`MAX_RECURSION_DEPTH`.
+        file_path: When provided, sets ``__file__`` in the sandbox globals so
+            the executed code can reference its own location (e.g. to load
+            sibling files relative to the ``.pa.py`` file).
 
     Returns:
         :class:`SafeExecutionResult` containing captured stdout/stderr, any
@@ -402,6 +577,8 @@ def execute_safe_code(
     stderr_buf = _LimitedStringIO(MAX_OUTPUT_BYTES)
 
     safe_globals = _make_safe_globals(allowed_modules, stdout_buf=stdout_buf, stderr_buf=stderr_buf)
+    if file_path is not None:
+        safe_globals["__file__"] = str(Path(file_path).resolve())
     if extra_globals:
         safe_globals.update(extra_globals)
 
@@ -499,7 +676,7 @@ def load_pa_provider(file_path: "str | Path") -> Optional[Type]:
         raise ValueError(f"File must have .pa.py extension: {file_path}")
 
     code = file_path.read_text(encoding="utf-8")
-    result = execute_safe_code(code)
+    result = execute_safe_code(code, file_path=file_path)
 
     if not result.success:
         raise RuntimeError(

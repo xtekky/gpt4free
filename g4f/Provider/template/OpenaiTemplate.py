@@ -189,7 +189,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     else:
                         raise Exception("Unexpected content type: " + content_type)
                     await raise_for_status(response)
-                    await raise_for_status(response)
                     yield ImageResponse([f"data:image/png;base64,{image['b64_json']}" if image.get("url") is None else image["url"] for image in data["data"]], prompt)
                 return
 

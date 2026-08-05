@@ -411,19 +411,25 @@ async def async_iter_run_tools(
         }
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
-            old_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
-            saved_percent = round(saved_tokens / old_tokens * 100) if old_tokens > 0 and saved_tokens > 0 else 0
-            debug.log(f"Token savings: {saved_tokens}/{old_tokens} tokens ({saved_percent}%)")
+            prompt_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
+            saved_percent = round(saved_tokens / prompt_tokens * 100) if prompt_tokens > 0 and saved_tokens > 0 else 0
+            debug.log(f"Token savings:", (f"{int(saved_tokens/1000)}k" if saved_tokens >= 1000 else str(saved_tokens)) + f"/{prompt_tokens} tokens ({saved_percent}%)")
+        cached_tokens = usage_dict.get("prompt_tokens_details", usage_dict).get("cached_tokens", 0)
+        if cached_tokens > 0:
+            debug.log(f"Cached tokens:", (f"{int(cached_tokens/1000)}k" if cached_tokens >= 1000 else str(cached_tokens)) + f"/{usage_dict.get('prompt_tokens', 0)} tokens ({round(cached_tokens / usage_dict.get('prompt_tokens', 1) * 100)}%)")
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)
         if has_aiofile:
             async with async_open(usage_file, "a") as f:
-                asyncio.create_task(f.write(f"{json.dumps(usage)}\n"))
+                async def write_usage():
+                    await f.write(f"{json.dumps(usage)}\n")
+                asyncio.create_task(write_usage())
         else:
             with usage_file.open("a") as f:
-                f.write(f"{json.dumps(usage)}\n")
+                json.dump(usage, f)
+                f.write("\n")
         if completion_tokens > 0:
             provider.live += 1
     except Exception:
@@ -630,9 +636,9 @@ def iter_run_tools(
         }
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
-            old_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
-            saved_percent = round(saved_tokens / old_tokens * 100) if old_tokens > 0 and saved_tokens > 0 else 0
-            debug.log(f"Token savings: {saved_tokens}/{old_tokens} tokens ({saved_percent}%)")
+            prompt_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
+            saved_percent = round(saved_tokens / prompt_tokens * 100) if prompt_tokens > 0 and saved_tokens > 0 else 0
+            debug.log(f"Token savings: {saved_tokens}/{prompt_tokens} tokens ({saved_percent}%)")
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
