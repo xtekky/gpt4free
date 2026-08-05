@@ -269,6 +269,8 @@ jobs:
             file: docker/Dockerfile-armv7
             platforms: linux/arm/v7
             push: true
+            provenance: mode=max
+            sbom: true
             tags: |
               hlohaus789/g4f:latest-armv7
               hlohaus789/g4f:${{ needs.prepare.outputs.version }}-armv7
@@ -282,6 +284,8 @@ jobs:
           file: docker/Dockerfile-slim
           platforms: linux/amd64,linux/arm64
           push: true
+          provenance: mode=max
+          sbom: true
           tags: |
             hlohaus789/g4f:latest-slim
             hlohaus789/g4f:${{ needs.prepare.outputs.version }}-slim
@@ -295,6 +299,8 @@ jobs:
           file: docker/Dockerfile
           platforms: linux/amd64
           push: true
+          provenance: mode=max
+          sbom: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
