@@ -614,13 +614,13 @@ class GeminiCLIProvider:
                                 return project_id
                         else:
                             text = await response.text()
+                            debug.error(
+                                f"Onboarding attempt {attempt + 1} failed with status {response.status}: {text}"
+                            )
                             if response.status == 403:
                                 raise MissingAuthError(
                                     "Account not eligible for Gemini Code Assist."
                                 )
-                            debug.error(
-                                f"Onboarding attempt {attempt + 1} failed with status {response.status}: {text}"
-                            )
                         response.raise_for_status()
             except MissingAuthError:
                 raise
@@ -1039,7 +1039,6 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     needs_auth = True
     supports_native_tools = True
-    active_by_default = True
 
     auth_manager: Optional[AuthManager] = None
 
