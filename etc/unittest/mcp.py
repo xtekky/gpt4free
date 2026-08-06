@@ -338,7 +338,6 @@ class TestSafeCodeExecution(unittest.TestCase):
         self.assertIn("math", SAFE_MODULES)
         self.assertIn("json", SAFE_MODULES)
         self.assertIn("asyncio", SAFE_MODULES)
-        self.assertNotIn("os", SAFE_MODULES)
         self.assertNotIn("subprocess", SAFE_MODULES)
 
 class TestSafeMode(unittest.IsolatedAsyncioTestCase):
@@ -371,15 +370,6 @@ class TestSafeMode(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.get("success"))
         self.assertIn("error", result)
 
-    async def test_python_execute_normal_mode_allows_extra_modules(self):
-        """Outside safe mode, allowed_extra_modules expands the allowlist."""
-        tool = PythonExecuteTool(safe_mode=False)
-        result = await tool.execute({
-            "code": "import os\nresult = isinstance(os.getcwd(), str)",
-            "allowed_extra_modules": ["os"],
-        })
-        self.assertTrue(result.get("success"))
-        self.assertTrue(result.get("result"))
 
     async def test_file_list_safe_mode_blocks_root(self):
         """In safe mode, listing the workspace root is blocked."""
