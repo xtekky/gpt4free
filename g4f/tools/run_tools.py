@@ -409,9 +409,10 @@ async def async_iter_run_tools(
             "label": usage_label,
             **usage.get_dict(),
         }
+        prompt_tokens = usage_dict.get("prompt_tokens", 0)
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
-            prompt_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
+            prompt_tokens += saved_tokens
             saved_percent = round(saved_tokens / prompt_tokens * 100) if prompt_tokens > 0 and saved_tokens > 0 else 0
             debug.log(f"Token savings:", (f"{int(saved_tokens/1000)}k" if saved_tokens >= 1000 else str(saved_tokens)) + f"/{prompt_tokens} tokens ({saved_percent}%)")
         cached_tokens = usage_dict.get("prompt_tokens_details", usage_dict).get("cached_tokens", 0)
@@ -542,34 +543,6 @@ def iter_run_tools(
                         raise_search_exceptions=True,
                         **tool["function"]["arguments"],
                     )
-                elif function_name == TOOL_NAMES["CONTINUE"]:
-                    if provider.__name__ not in ("OpenaiAccount", "HuggingFace"):
-                        last_line = messages[-1]["content"].strip().splitlines()[-1]
-                        content = f"Carry on from this point:\n{last_line}"
-                        messages.append({"role": "user", "content": content})
-                    else:
-                        # Enable provider native continue
-                        kwargs["action"] = "continue"
-                elif function_name == TOOL_NAMES["BUCKET"]:
-
-                    def on_bucket(match):
-                        return "".join(read_bucket(get_bucket_dir(match.group(1))))
-
-                    has_bucket = False
-                    for message in messages:
-                        if "content" in message and isinstance(message["content"], str):
-                            new_message_content = re.sub(
-                                r'{"bucket_id":"([^"]*)"}',
-                                on_bucket,
-                                message["content"],
-                            )
-                            if new_message_content != message["content"]:
-                                has_bucket = True
-                                message["content"] = new_message_content
-                    last_message = messages[-1]["content"]
-                    if has_bucket and isinstance(last_message, str):
-                        if "\nSource: " in last_message:
-                            messages[-1]["content"] = last_message + BUCKET_INSTRUCTIONS
 
     # Build a cache key from all messages except the last user message and the
     # last assistant/bot response.  A cache hit supplies the cached
