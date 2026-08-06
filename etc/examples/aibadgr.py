@@ -14,16 +14,20 @@ from g4f.Provider import AIBadgr
 # Using AI Badgr with the g4f client
 client = Client(
     provider=AIBadgr,
-    api_key="your-api-key-here"  # Or set AIBADGR_API_KEY environment variable
+    api_key="your-api-key-here",  # Or set AIBADGR_API_KEY environment variable
 )
 
 # Example 1: Simple chat completion
 print("Example 1: Simple chat completion")
 response = client.chat.completions.create(
     model="gpt-4o-mini",  # AI Badgr supports OpenAI-compatible models
-    messages=[{"role": "user", "content": "Hello! What can you help me with?"}]
+    messages=[{"role": "user", "content": "Hello! What can you help me with?"}],
 )
-if not response.choices or response.choices[0].message is None or response.choices[0].message.content is None:
+if (
+    not response.choices
+    or response.choices[0].message is None
+    or response.choices[0].message.content is None
+):
     raise ValueError("LLM returned empty or filtered response")
 print(response.choices[0].message.content)
 print()
@@ -33,7 +37,7 @@ print("Example 2: Streaming response")
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Count from 1 to 5"}],
-    stream=True
+    stream=True,
 )
 for chunk in response:
     if chunk.choices[0].delta.content:
@@ -45,10 +49,17 @@ print("Example 3: With system message")
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": "You are a helpful assistant that speaks like a pirate."},
-        {"role": "user", "content": "Tell me about the weather"}
-    ]
+        {
+            "role": "system",
+            "content": "You are a helpful assistant that speaks like a pirate.",
+        },
+        {"role": "user", "content": "Tell me about the weather"},
+    ],
 )
-if not response.choices or response.choices[0].message is None or response.choices[0].message.content is None:
+if (
+    not response.choices
+    or response.choices[0].message is None
+    or response.choices[0].message.content is None
+):
     raise ValueError("LLM returned empty or filtered response")
 print(response.choices[0].message.content)

@@ -46,15 +46,11 @@ def object_to_urlencoded(data: Dict[str, str]) -> str:
     return "&".join([f"{k}={v}" for k, v in data.items()])
 
 
-def isDeviceAuthorizationSuccess(
-    response: Union[Dict, ErrorDataDict]
-) -> bool:
+def isDeviceAuthorizationSuccess(response: Union[Dict, ErrorDataDict]) -> bool:
     return "device_code" in response
 
 
-def isDeviceTokenSuccess(
-    response: Union[Dict, ErrorDataDict]
-) -> bool:
+def isDeviceTokenSuccess(response: Union[Dict, ErrorDataDict]) -> bool:
     return (
         "access_token" in response
         and response["access_token"]
@@ -63,22 +59,17 @@ def isDeviceTokenSuccess(
     )
 
 
-def isDeviceTokenPending(
-    response: Union[Dict, ErrorDataDict]
-) -> bool:
+def isDeviceTokenPending(response: Union[Dict, ErrorDataDict]) -> bool:
     return response.get("status") == "pending"
 
 
-def isErrorResponse(
-    response: Union[Dict, ErrorDataDict]
-) -> bool:
+def isErrorResponse(response: Union[Dict, ErrorDataDict]) -> bool:
     return "error" in response
 
 
-def isTokenRefreshResponse(
-    response: Union[Dict, ErrorDataDict]
-) -> bool:
+def isTokenRefreshResponse(response: Union[Dict, ErrorDataDict]) -> bool:
     return "access_token" in response and "token_type" in response
+
 
 class QwenOAuth2Client(IQwenOAuth2Client):
     def __init__(self):
@@ -97,14 +88,15 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             return {"token": credentials.get("access_token")}
         except Exception:
             # fallback to internal credentials if valid
-            if (
-                self.credentials.get("access_token")
-                and self.isTokenValid(self.credentials)
+            if self.credentials.get("access_token") and self.isTokenValid(
+                self.credentials
             ):
                 return {"token": self.credentials["access_token"]}
             return {"token": None}
 
-    async def requestDeviceAuthorization(self, options: dict) -> Union[Dict, ErrorDataDict]:
+    async def requestDeviceAuthorization(
+        self, options: dict
+    ) -> Union[Dict, ErrorDataDict]:
         body_data = {
             "client_id": QWEN_OAUTH_CLIENT_ID,
             "scope": options["scope"],
@@ -112,14 +104,20 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             "code_challenge_method": options["code_challenge_method"],
         }
         async with aiohttp.ClientSession(headers={"user-agent": ""}) as session:
-            async with session.post(QWEN_OAUTH_DEVICE_CODE_ENDPOINT, headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json",
-                "x-request-id": str(uuid.uuid4()),
-            }, data=object_to_urlencoded(body_data)) as resp:
+            async with session.post(
+                QWEN_OAUTH_DEVICE_CODE_ENDPOINT,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json",
+                    "x-request-id": str(uuid.uuid4()),
+                },
+                data=object_to_urlencoded(body_data),
+            ) as resp:
                 resp_json = await resp.json()
                 if resp.status != 200:
-                    raise Exception(f"Device authorization failed {resp.status}: {resp_json}")
+                    raise Exception(
+                        f"Device authorization failed {resp.status}: {resp_json}"
+                    )
                 if not isDeviceAuthorizationSuccess(resp_json):
                     raise Exception(
                         f"Device authorization error: {resp_json.get('error')} - {resp_json.get('error_description')}"
@@ -134,10 +132,14 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             "code_verifier": options["code_verifier"],
         }
         async with aiohttp.ClientSession(headers={"user-agent": ""}) as session:
-            async with session.post(QWEN_OAUTH_TOKEN_ENDPOINT, headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json",
-            }, data=object_to_urlencoded(body_data)) as resp:
+            async with session.post(
+                QWEN_OAUTH_TOKEN_ENDPOINT,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json",
+                },
+                data=object_to_urlencoded(body_data),
+            ) as resp:
                 resp_json = await resp.json()
                 if resp.status != 200:
                     # Check for OAuth RFC 8628 responses
@@ -159,10 +161,14 @@ class QwenOAuth2Client(IQwenOAuth2Client):
             "client_id": QWEN_OAUTH_CLIENT_ID,
         }
         async with aiohttp.ClientSession(headers={"user-agent": ""}) as session:
-            async with session.post(QWEN_OAUTH_TOKEN_ENDPOINT, headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json",
-            }, data=object_to_urlencoded(body_data)) as resp:
+            async with session.post(
+                QWEN_OAUTH_TOKEN_ENDPOINT,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json",
+                },
+                data=object_to_urlencoded(body_data),
+            ) as resp:
                 resp_json = await resp.json()
                 if resp.status != 200:
                     if resp.status == 400:

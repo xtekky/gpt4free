@@ -13,6 +13,7 @@ from ..Provider.template import OpenaiTemplate
 from ..cookies import get_cookies_dir
 from ..config import AppConfig
 
+
 def create_custom_provider(
     base_url: str,
     api_key: Optional[str] = None,
@@ -20,11 +21,11 @@ def create_custom_provider(
     working: bool = True,
     default_model: str = "",
     models: Optional[List[str]] = None,
-    **kwargs
+    **kwargs,
 ) -> ProviderType:
     """
     Create a custom provider class based on OpenaiTemplate.
-    
+
     Args:
         base_url: The base URL for the API (e.g., "https://api.example.com/v1")
         api_key: Optional API key for authentication
@@ -33,18 +34,21 @@ def create_custom_provider(
         default_model: Default model to use
         models: List of available models
         **kwargs: Additional attributes to set on the provider class
-    
+
     Returns:
         A custom provider class that extends OpenaiTemplate
     """
     if name is None:
         # Derive name from base_url
         from urllib.parse import urlparse
+
         parsed = urlparse(base_url)
-        name = parsed.netloc.replace(".", "_").replace("-", "_").title().replace("_", "")
+        name = (
+            parsed.netloc.replace(".", "_").replace("-", "_").title().replace("_", "")
+        )
         if not name:
             name = "CustomProvider"
-    
+
     # Create a new class that extends OpenaiTemplate
     class_attrs = {
         "url": base_url,
@@ -53,9 +57,9 @@ def create_custom_provider(
         "working": working,
         "default_model": default_model,
         "models": models or [],
-        **kwargs
+        **kwargs,
     }
-    
+
     CustomProvider = type(name, (OpenaiTemplate,), class_attrs)
     return CustomProvider
 
@@ -64,7 +68,7 @@ class AbstractClientFactory:
     # Registry of live/custom providers
     _live_providers_url = "https://g4f.dev/dist/js/providers.json"
     _live_providers: Dict[str, Dict] = {}
-    
+
     @classmethod
     def create_provider(
         cls,
@@ -72,18 +76,18 @@ class AbstractClientFactory:
         provider: Union[Type[BaseProvider], str],
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Type[BaseProvider]:
         """
         Register a live/custom provider that can be used by name.
-        
+
         Args:
             name: Name to register the provider under
             provider: Either a provider class or "custom" to create a custom provider
             base_url: Base URL for custom providers
             api_key: API key for custom providers
             **kwargs: Additional arguments for custom provider creation
-            
+
         Returns:
             The registered provider class
         """
@@ -100,7 +104,12 @@ class AbstractClientFactory:
             provider = ProviderUtils.convert[provider]
         else:
             if not cls._live_providers:
-                path = Path(get_cookies_dir()) / "models" / datetime.today().strftime('%Y-%m-%d') / f"providers.json"
+                path = (
+                    Path(get_cookies_dir())
+                    / "models"
+                    / datetime.today().strftime("%Y-%m-%d")
+                    / f"providers.json"
+                )
                 path.parent.mkdir(parents=True, exist_ok=True)
                 if path.exists():
                     with open(path, "r", encoding="utf-8") as f:
@@ -111,21 +120,34 @@ class AbstractClientFactory:
                         json.dump(cls._live_providers, f, indent=4)
             if provider in cls._live_providers.get("providers", {}):
                 config = cls._live_providers["providers"][provider]
-                if "provider" in config and config.get("provider") in ProviderUtils.convert:
+                if (
+                    "provider" in config
+                    and config.get("provider") in ProviderUtils.convert
+                ):
                     return ProviderUtils.convert[config.get("provider")]
-                if not api_key and not cls.is_provider_api_key(AppConfig.g4f_api_key) and config.get("backupUrl"):
+                if (
+                    not api_key
+                    and not cls.is_provider_api_key(AppConfig.g4f_api_key)
+                    and config.get("backupUrl")
+                ):
                     api_key = AppConfig.g4f_api_key
                 return create_custom_provider(
-                    base_url=config.get("baseUrl") if cls.is_provider_api_key(api_key) or config.get("backupUrl") is None else config.get("backupUrl", config.get("baseUrl")),
+                    base_url=config.get("baseUrl")
+                    if cls.is_provider_api_key(api_key)
+                    or config.get("backupUrl") is None
+                    else config.get("backupUrl", config.get("baseUrl")),
                     api_key=api_key,
                     name=provider,
-                    default_model=cls._live_providers["defaultModels"].get(provider, ""),
+                    default_model=cls._live_providers["defaultModels"].get(
+                        provider, ""
+                    ),
                 )
             else:
                 try:
                     provider = ProviderUtils.get_by_label(provider)
                 except ValueError as e:
                     from g4f.mcp.pa_provider import get_pa_registry
+
                     registry = get_pa_registry()
                     if provider:
                         if provider.startswith("pa:"):
@@ -138,4 +160,8 @@ class AbstractClientFactory:
 
     @classmethod
     def is_provider_api_key(cls, api_key: str) -> bool:
-        return api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
+        return (
+            api_key
+            and not api_key.startswith("g4f_")
+            and not api_key.startswith("gfs_")
+        )

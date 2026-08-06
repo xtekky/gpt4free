@@ -8,10 +8,7 @@ DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 
 class QwenContentGenerator:
-    def __init__(
-        self,
-        qwen_client: IQwenOAuth2Client
-    ):
+    def __init__(self, qwen_client: IQwenOAuth2Client):
         self.qwen_client = qwen_client
         self.base_url = DEFAULT_QWEN_BASE_URL
         self.shared_manager = SharedTokenManager.getInstance()

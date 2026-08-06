@@ -2,24 +2,29 @@ from __future__ import annotations
 
 try:
     from curl_cffi.requests import AsyncSession, Response
+
     has_curl_cffi = True
 except ImportError:
     # Fallback for systems where curl_cffi is not available or causes illegal instruction errors
     class AsyncSession:
         def __init__(self, *args, **kwargs):
             raise ImportError("curl_cffi is not available on this platform")
+
     class Response:
         pass
+
     has_curl_cffi = False
 
 if has_curl_cffi:
     try:
         from curl_cffi import CurlMime
+
         has_curl_mime = True
     except ImportError:
         has_curl_mime = False
     try:
         from curl_cffi import CurlWsFlag
+
         has_curl_ws = True
     except ImportError:
         has_curl_ws = False
@@ -32,6 +37,7 @@ import json
 from ..cookies import BrowserConfig
 
 if has_curl_cffi:
+
     class StreamResponse:
         """
         A wrapper class for handling asynchronous streaming responses.
@@ -58,7 +64,7 @@ if has_curl_cffi:
 
         def iter_lines(self) -> AsyncGenerator[bytes, None]:
             """Asynchronously iterate over the lines of the response."""
-            return  self.inner.aiter_lines()
+            return self.inner.aiter_lines()
 
         def iter_content(self) -> AsyncGenerator[bytes, None]:
             """Asynchronously iterate over the response content."""
@@ -100,18 +106,23 @@ if has_curl_cffi:
 
         Inherits from AsyncSession.
         """
+
         def __init__(self, impersonate: str = None, **kwargs) -> None:
             if impersonate == "chrome":
                 impersonate = BrowserConfig.impersonate
             super().__init__(impersonate=impersonate, **kwargs)
 
-        def request(
-            self, method: str, url: str, ssl = None, **kwargs
-        ) -> StreamResponse:
-            if has_curl_mime and kwargs.get("data") and isinstance(kwargs.get("data"), CurlMime):
+        def request(self, method: str, url: str, ssl=None, **kwargs) -> StreamResponse:
+            if (
+                has_curl_mime
+                and kwargs.get("data")
+                and isinstance(kwargs.get("data"), CurlMime)
+            ):
                 kwargs["multipart"] = kwargs.pop("data")
             """Create and return a StreamResponse object for the given HTTP request."""
-            return StreamResponse(super().request(method, url, stream=True, verify=ssl, **kwargs))
+            return StreamResponse(
+                super().request(method, url, stream=True, verify=ssl, **kwargs)
+            )
 
         def ws_connect(self, url, *args, **kwargs):
             return WebSocket(self, url, **kwargs)
@@ -138,17 +149,25 @@ else:
         def __init__(self, *args, **kwargs):
             raise ImportError("curl_cffi is not available on this platform")
 
+
 if has_curl_cffi and has_curl_mime:
+
     class FormData(CurlMime):
-        def add_field(self, name, data=None, content_type: str = None, filename: str = None) -> None:
+        def add_field(
+            self, name, data=None, content_type: str = None, filename: str = None
+        ) -> None:
             self.addpart(name, content_type=content_type, filename=filename, data=data)
+
 else:
-    class FormData():
+
+    class FormData:
         def __init__(self) -> None:
             raise RuntimeError("curl_cffi FormData is not available on this platform")
 
+
 if has_curl_cffi and has_curl_ws:
-    class WebSocket():
+
+    class WebSocket:
         def __init__(self, session, url, **kwargs) -> None:
             self.session: StreamSession = session
             self.url: str = url
@@ -161,17 +180,25 @@ if has_curl_cffi and has_curl_ws:
             return self
 
         async def __aexit__(self, *args):
-            await self.inner.aclose() if hasattr(self.inner, "aclose") else await self.inner.close()
+            await self.inner.aclose() if hasattr(
+                self.inner, "aclose"
+            ) else await self.inner.close()
 
         async def receive_str(self, **kwargs) -> str:
-            method = self.inner.arecv if hasattr(self.inner, "arecv") else self.inner.recv
+            method = (
+                self.inner.arecv if hasattr(self.inner, "arecv") else self.inner.recv
+            )
             bytes, _ = await method()
             return bytes.decode(errors="ignore")
 
         async def send_str(self, data: str):
-            method = self.inner.asend if hasattr(self.inner, "asend") else self.inner.send
+            method = (
+                self.inner.asend if hasattr(self.inner, "asend") else self.inner.send
+            )
             await method(data.encode(), CurlWsFlag.TEXT)
+
 else:
-    class WebSocket():
+
+    class WebSocket:
         def __init__(self, *args, **kwargs) -> None:
             raise RuntimeError("curl_cffi WebSocket is not available on this platform")

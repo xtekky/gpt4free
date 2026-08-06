@@ -67,11 +67,13 @@ USER_AGENT = (
 # ---------------------------------------------------------------------------
 def create_session(token: str) -> requests.Session:
     s = requests.Session()
-    s.headers.update({
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-    })
+    s.headers.update(
+        {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+    )
     s.cookies.set("fofa_token", token, domain="fofa.info")
     s.cookies.set("theme", "dark", domain="fofa.info")
     return s
@@ -88,14 +90,14 @@ def _extract_models_from_html(html: str, host: str) -> list[str]:
     # Typical pattern: Ollama model tags like "llama3:latest", "qwen2:7b"
     # These appear in <td> cells or inline text blocks
     model_pattern = re.compile(
-        r'\b([a-zA-Z][a-zA-Z0-9._-]{1,40}(?::[a-zA-Z0-9._-]{1,30}))\b'
+        r"\b([a-zA-Z][a-zA-Z0-9._-]{1,40}(?::[a-zA-Z0-9._-]{1,30}))\b"
     )
 
     # Search in area around the host IP within the HTML
     ip = host.split(":")[0]
     # Find all sections mentioning this IP and extract model-like strings
     for block in re.findall(
-        rf'{re.escape(ip)}.*?(?:</tr>|</div>)', html, re.DOTALL | re.IGNORECASE
+        rf"{re.escape(ip)}.*?(?:</tr>|</div>)", html, re.DOTALL | re.IGNORECASE
     ):
         for m in model_pattern.findall(block):
             # Filter: must have a colon (model:tag format) and not be a URL/protocol
@@ -118,6 +120,7 @@ def scrape_page(session: requests.Session, query: str, page: int) -> list[dict]:
         resp = session.get(url, timeout=30)
         if resp.status_code == 429:
             import time
+
             print(f" [429 Rate Limit] Retrying in 5s...", end="", flush=True)
             time.sleep(5)
             continue
@@ -125,9 +128,11 @@ def scrape_page(session: requests.Session, query: str, page: int) -> list[dict]:
         break
 
     html = resp.text
-    if '800004' in html or '权限不足' in html:
-        raise Exception("Free tier limit reached! [800004] 权限不足 (FOFA limits pagination for free accounts)")
-        
+    if "800004" in html or "权限不足" in html:
+        raise Exception(
+            "Free tier limit reached! [800004] 权限不足 (FOFA limits pagination for free accounts)"
+        )
+
     results: list[dict] = []
     seen: set[str] = set()
 
@@ -158,6 +163,7 @@ def scrape_page(session: requests.Session, query: str, page: int) -> list[dict]:
 
 import random
 
+
 def build_query(base: str, country: str = None, model: str = None) -> str:
     query = base
     if country:
@@ -166,15 +172,31 @@ def build_query(base: str, country: str = None, model: str = None) -> str:
         query += f' && "{model}"'
     return query
 
-def scrape_all(session: requests.Session, base_query: str, pages: int, is_deep_scan: bool = False, specific_country: str = None, specific_model: str = None) -> list[dict]:
+
+def scrape_all(
+    session: requests.Session,
+    base_query: str,
+    pages: int,
+    is_deep_scan: bool = False,
+    specific_country: str = None,
+    specific_model: str = None,
+) -> list[dict]:
     """Scrape multiple pages, optionally using dork slicing for deep scans."""
     all_results: list[dict] = []
     seen: set[str] = set()
 
     # Dork Slicing configuration
-    countries = ["US", "CN", "DE", "KR", "SG", "JP", "GB", "FR", "TW", "RU"] if is_deep_scan and not specific_country else [specific_country]
-    models = ["llama3", "deepseek", "qwen", "mistral", "gemma", "phi3"] if is_deep_scan and not specific_model else [specific_model]
-    
+    countries = (
+        ["US", "CN", "DE", "KR", "SG", "JP", "GB", "FR", "TW", "RU"]
+        if is_deep_scan and not specific_country
+        else [specific_country]
+    )
+    models = (
+        ["llama3", "deepseek", "qwen", "mistral", "gemma", "phi3"]
+        if is_deep_scan and not specific_model
+        else [specific_model]
+    )
+
     # If not deep scan and no specific filters, just use a single empty iteration
     if not is_deep_scan and not specific_country and not specific_model:
         countries = [None]
@@ -190,30 +212,32 @@ def scrape_all(session: requests.Session, base_query: str, pages: int, is_deep_s
     for q_idx, query in enumerate(queries_to_run, 1):
         if len(queries_to_run) > 1:
             print(f"\n[*] Executing Query {q_idx}/{len(queries_to_run)}: {query}")
-            
+
         for page in range(1, pages + 1):
             try:
                 print(f"[*] Page {page}/{pages} ...", end="", flush=True)
                 results = scrape_page(session, query, page)
-                
+
                 # Count how many are actually new
                 new_results = []
                 for r in results:
                     if r["host"] not in seen:
                         seen.add(r["host"])
                         new_results.append(r)
-                        
+
                 print(f" {len(results)} found, {len(new_results)} new")
-                
+
                 if not results:
                     # No results on this page at all
                     break
-                    
+
                 all_results.extend(new_results)
-                
+
                 # If FOFA starts repeating the same results (common on free tier pagination limit)
                 if len(new_results) == 0 and len(results) > 0:
-                    print("[-] FOFA is repeating results. Free tier limit reached for this query. Moving to next.")
+                    print(
+                        "[-] FOFA is repeating results. Free tier limit reached for this query. Moving to next."
+                    )
                     break
 
                 if page < pages:
@@ -221,7 +245,7 @@ def scrape_all(session: requests.Session, base_query: str, pages: int, is_deep_s
             except Exception as exc:
                 print(f" ERROR: {exc}")
                 break
-                
+
         if q_idx < len(queries_to_run):
             # Sleep between different queries to avoid FOFA rate limiting
             sleep_time = random.uniform(2.0, 5.0)
@@ -275,7 +299,7 @@ def parse_internal_json(data: dict) -> list[dict]:
 
             # Extract model names (format: name:tag)
             for m in re.findall(
-                r'\b([a-zA-Z][a-zA-Z0-9._-]{1,40}:[a-zA-Z0-9._-]{1,30})\b', text
+                r"\b([a-zA-Z][a-zA-Z0-9._-]{1,40}:[a-zA-Z0-9._-]{1,30})\b", text
             ):
                 if not m.startswith(("http:", "https:", "ftp:")):
                     if m not in models:
@@ -303,23 +327,24 @@ def parse_internal_json(data: dict) -> list[dict]:
     print(f"[+] Parsed {len(results)} endpoints from JSON")
     return results
 
+
 def parse_har_file(har_path: str) -> list[dict]:
     """Parse FOFA HAR file to extract IPs and ports."""
     print(f"[*] Parsing HAR file: {har_path}")
     try:
-        with open(har_path, 'r', encoding='utf-8') as f:
+        with open(har_path, "r", encoding="utf-8") as f:
             har_data = json.load(f)
     except Exception as e:
         print(f"[!] Error reading HAR file: {e}", file=sys.stderr)
         return []
 
-    ip_port_pattern = re.compile(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b')
+    ip_port_pattern = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b")
     all_matches = set()
 
-    for entry in har_data.get('log', {}).get('entries', []):
-        response = entry.get('response', {})
-        content = response.get('content', {})
-        text = content.get('text', '')
+    for entry in har_data.get("log", {}).get("entries", []):
+        response = entry.get("response", {})
+        content = response.get("content", {})
+        text = content.get("text", "")
         if text:
             matches = ip_port_pattern.findall(text)
             all_matches.update(matches)
@@ -327,30 +352,32 @@ def parse_har_file(har_path: str) -> list[dict]:
     results = []
     for host in all_matches:
         results.append({"host": host, "models": []})
-        
+
     print(f"[+] Found {len(results)} endpoints in HAR.")
     return results
+
 
 def parse_txt_file(txt_path: str) -> list[dict]:
     """Parse any text file to extract IPs and ports using regex."""
     print(f"[*] Parsing raw text file: {txt_path}")
     try:
-        with open(txt_path, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(txt_path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
     except Exception as e:
         print(f"[!] Error reading text file: {e}", file=sys.stderr)
         return []
 
-    ip_port_pattern = re.compile(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b')
+    ip_port_pattern = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b")
     matches = ip_port_pattern.findall(content)
     unique_matches = set(matches)
 
     results = []
     for host in unique_matches:
         results.append({"host": host, "models": []})
-        
+
     print(f"[+] Found {len(results)} endpoints in text file.")
     return results
+
 
 # ---------------------------------------------------------------------------
 # Validation via /api/tags
@@ -368,11 +395,15 @@ def _check_one(host: str, timeout: int) -> tuple[str, bool, list[str], int]:
 
 
 def validate(
-    endpoints: list[dict], timeout: int = DEFAULT_TIMEOUT, workers: int = DEFAULT_WORKERS
+    endpoints: list[dict],
+    timeout: int = DEFAULT_TIMEOUT,
+    workers: int = DEFAULT_WORKERS,
 ) -> list[dict]:
     """Validate concurrently. Updates model lists with live data."""
     hosts = [ep["host"] for ep in endpoints]
-    print(f"\n[*] Validating {len(hosts)} endpoints (timeout={timeout}s, workers={workers}) ...")
+    print(
+        f"\n[*] Validating {len(hosts)} endpoints (timeout={timeout}s, workers={workers}) ..."
+    )
     results: list[dict] = []
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -380,7 +411,7 @@ def validate(
         for i, fut in enumerate(as_completed(futures), 1):
             host, ok, models, speed = fut.result()
             sym = "✓" if ok else "✗"
-            
+
             speed_str = ""
             if ok:
                 if speed < 500:
@@ -389,8 +420,12 @@ def validate(
                     speed_str = f"[Med {speed}ms]"
                 else:
                     speed_str = f"[Slow {speed}ms]"
-            
-            info = ", ".join(models[:4]) if models else ("unreachable" if not ok else "no models")
+
+            info = (
+                ", ".join(models[:4])
+                if models
+                else ("unreachable" if not ok else "no models")
+            )
             if len(models) > 4:
                 info += f" +{len(models) - 4}"
             print(f"  [{i}/{len(hosts)}] {sym} {host:<22} {speed_str:<14} {info}")
@@ -398,7 +433,7 @@ def validate(
                 results.append({"host": host, "models": models, "speed": speed})
 
     print(f"\n[+] Alive: {len(results)} / {len(hosts)}")
-    
+
     # Sort by speed
     results.sort(key=lambda x: x.get("speed", 99999))
     return results
@@ -416,22 +451,22 @@ def print_table(endpoints: list[dict], validated: bool = True) -> None:
     print("=" * 70)
     print(f"  {'ENDPOINT':<26} {'SPEED':<12} {'MODELS'}")
     print(f"  {'─' * 26} {'─' * 12} {'─' * 30}")
-    
+
     model_counts: dict[str, int] = {}
-    
+
     for ep in endpoints:
         models_list = ep.get("models", [])
         for m in models_list:
             model_counts[m] = model_counts.get(m, 0) + 1
-            
+
         models = ", ".join(models_list[:3])
         if len(models_list) > 3:
             models += f" +{len(models_list) - 3}"
-        speed = ep.get('speed', 0)
+        speed = ep.get("speed", 0)
         speed_fmt = f"{speed}ms" if speed else "—"
         print(f"  http://{ep['host']:<19} {speed_fmt:<12} {models or '—'}")
     print("=" * 70)
-    
+
     if model_counts:
         print(f"\n  [+] MODEL SUMMARY (Top 15):")
         sorted_models = sorted(model_counts.items(), key=lambda x: x[1], reverse=True)
@@ -442,13 +477,18 @@ def print_table(endpoints: list[dict], validated: bool = True) -> None:
 
 def output_json(endpoints: list[dict]) -> None:
     """Print JSON output."""
-    print(json.dumps({
-        "count": len(endpoints),
-        "servers": [
-            {"url": f"http://{ep['host']}", "models": ep.get("models", [])}
-            for ep in endpoints
-        ],
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "count": len(endpoints),
+                "servers": [
+                    {"url": f"http://{ep['host']}", "models": ep.get("models", [])}
+                    for ep in endpoints
+                ],
+            },
+            indent=2,
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -457,9 +497,10 @@ def output_json(endpoints: list[dict]) -> None:
 def update_swarm(hosts: list[str], path: Path = OLLAMA_SWARM_PATH) -> None:
     import sys
     import os
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
     from g4f.Provider.OllamaSwarm import _get_cached_servers, _save_servers_to_cache
-    
+
     cached = _get_cached_servers()
     new_count = 0
     for h in hosts:
@@ -467,7 +508,7 @@ def update_swarm(hosts: list[str], path: Path = OLLAMA_SWARM_PATH) -> None:
         if url not in cached:
             cached.append(url)
             new_count += 1
-            
+
     if new_count > 0:
         _save_servers_to_cache(cached)
         print(f"\n[+] Added {new_count} new servers to cache (Total: {len(cached)})")
@@ -495,44 +536,81 @@ Examples:
     )
     # Data source
     src = p.add_argument_group("data source")
-    src.add_argument("--token", default=os.environ.get("FOFA_TOKEN"),
-                     help="fofa_token cookie value (or FOFA_TOKEN env var)")
-    src.add_argument("--from-json", metavar="FILE",
-                     help="Read FOFA internal API JSON (file path or - for stdin)")
-    src.add_argument("--from-har", metavar="FILE",
-                     help="Parse endpoints directly from a saved FOFA .har file")
-    src.add_argument("--from-txt", metavar="FILE",
-                     help="Parse endpoints directly from any raw text file using regex")
+    src.add_argument(
+        "--token",
+        default=os.environ.get("FOFA_TOKEN"),
+        help="fofa_token cookie value (or FOFA_TOKEN env var)",
+    )
+    src.add_argument(
+        "--from-json",
+        metavar="FILE",
+        help="Read FOFA internal API JSON (file path or - for stdin)",
+    )
+    src.add_argument(
+        "--from-har",
+        metavar="FILE",
+        help="Parse endpoints directly from a saved FOFA .har file",
+    )
+    src.add_argument(
+        "--from-txt",
+        metavar="FILE",
+        help="Parse endpoints directly from any raw text file using regex",
+    )
 
     # Scraping options
     scrape = p.add_argument_group("scraping options")
     scrape.add_argument("--query", default=DEFAULT_QUERY, help="Base FOFA query")
-    scrape.add_argument("--pages", type=int, default=DEFAULT_PAGES,
-                        help=f"Pages to scrape per query, ~50 results each (default: {DEFAULT_PAGES})")
-    scrape.add_argument("--deep-scan", action="store_true",
-                        help="Dork Slicing: automatically run multiple queries by country/model to bypass free tier limits")
-    scrape.add_argument("--country", default=None,
-                        help="Filter by country code (e.g., US, CN, DE)")
-    scrape.add_argument("--model", default=None,
-                        help="Append a specific model to the query (e.g., deepseek)")
+    scrape.add_argument(
+        "--pages",
+        type=int,
+        default=DEFAULT_PAGES,
+        help=f"Pages to scrape per query, ~50 results each (default: {DEFAULT_PAGES})",
+    )
+    scrape.add_argument(
+        "--deep-scan",
+        action="store_true",
+        help="Dork Slicing: automatically run multiple queries by country/model to bypass free tier limits",
+    )
+    scrape.add_argument(
+        "--country", default=None, help="Filter by country code (e.g., US, CN, DE)"
+    )
+    scrape.add_argument(
+        "--model",
+        default=None,
+        help="Append a specific model to the query (e.g., deepseek)",
+    )
 
     # Validation & filtering
     filt = p.add_argument_group("validation & filtering")
-    filt.add_argument("--no-validate", action="store_true",
-                      help="Skip /api/tags validation (use HTML models only)")
+    filt.add_argument(
+        "--no-validate",
+        action="store_true",
+        help="Skip /api/tags validation (use HTML models only)",
+    )
     filt.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     filt.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
-    filt.add_argument("--filter-model", default=None,
-                      help="Only keep endpoints with this model (substring match)")
-    filt.add_argument("--min-models", type=int, default=0,
-                      help="Only keep endpoints with at least N models")
+    filt.add_argument(
+        "--filter-model",
+        default=None,
+        help="Only keep endpoints with this model (substring match)",
+    )
+    filt.add_argument(
+        "--min-models",
+        type=int,
+        default=0,
+        help="Only keep endpoints with at least N models",
+    )
 
     # Output
     out = p.add_argument_group("output")
-    out.add_argument("--json", action="store_true", dest="output_json",
-                     help="Output as JSON")
-    out.add_argument("--save", action="store_true",
-                     help="Save newly found servers to the provider cache (ollama_servers.json)")
+    out.add_argument(
+        "--json", action="store_true", dest="output_json", help="Output as JSON"
+    )
+    out.add_argument(
+        "--save",
+        action="store_true",
+        help="Save newly found servers to the provider cache (ollama_servers.json)",
+    )
 
     args = p.parse_args()
 
@@ -563,12 +641,12 @@ Examples:
         # Source: web scraping
         session = create_session(args.token)
         endpoints = scrape_all(
-            session, 
-            base_query=args.query, 
-            pages=args.pages, 
+            session,
+            base_query=args.query,
+            pages=args.pages,
             is_deep_scan=args.deep_scan,
             specific_country=args.country,
-            specific_model=args.model
+            specific_model=args.model,
         )
     else:
         p.error(
@@ -590,8 +668,10 @@ Examples:
     if not args.no_validate:
         endpoints = validate(endpoints, args.timeout, args.workers)
     elif has_html_models:
-        print(f"[*] Skipping validation. Using {sum(1 for e in endpoints if e.get('models'))} "
-              f"endpoints with HTML-extracted models.")
+        print(
+            f"[*] Skipping validation. Using {sum(1 for e in endpoints if e.get('models'))} "
+            f"endpoints with HTML-extracted models."
+        )
 
     if not endpoints:
         print("[!] No endpoints remaining after validation.", file=sys.stderr)
@@ -604,7 +684,8 @@ Examples:
         pat = args.filter_model.lower()
         before = len(endpoints)
         endpoints = [
-            ep for ep in endpoints
+            ep
+            for ep in endpoints
             if any(pat in m.lower() for m in ep.get("models", []))
         ]
         print(f"[*] Filter model='{args.filter_model}': {len(endpoints)}/{before}")
@@ -612,8 +693,7 @@ Examples:
     if args.min_models > 0:
         before = len(endpoints)
         endpoints = [
-            ep for ep in endpoints
-            if len(ep.get("models", [])) >= args.min_models
+            ep for ep in endpoints if len(ep.get("models", [])) >= args.min_models
         ]
         print(f"[*] Filter min-models≥{args.min_models}: {len(endpoints)}/{before}")
 

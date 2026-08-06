@@ -9,6 +9,7 @@ from ..tools.files import get_bucket_dir, read_bucket
 from .response import JsonResponse, HiddenResponse
 from .. import debug
 
+
 def to_string(value) -> str:
     if isinstance(value, str):
         return value
@@ -27,6 +28,7 @@ def to_string(value) -> str:
         return ""
     return str(value)
 
+
 def render_messages(messages: Messages) -> Iterator:
     for idx, message in enumerate(messages):
         if isinstance(message, dict) and isinstance(message.get("content"), list):
@@ -37,7 +39,13 @@ def render_messages(messages: Messages) -> Iterator:
         else:
             yield message
 
-def format_prompt(messages: Messages, add_special_tokens: bool = False, do_continue: bool = False, include_system: bool = True) -> str:
+
+def format_prompt(
+    messages: Messages,
+    add_special_tokens: bool = False,
+    do_continue: bool = False,
+    include_system: bool = True,
+) -> str:
     """
     Format a series of messages into a single string, optionally adding special tokens.
 
@@ -55,17 +63,23 @@ def format_prompt(messages: Messages, add_special_tokens: bool = False, do_conti
         for message in messages
         if include_system or message.get("role") not in ("developer", "system")
     ]
-    formatted = "\n".join([
-        f'{role.capitalize()}: {content}'
-        for role, content in messages
-        if content.strip()
-    ])
+    formatted = "\n".join(
+        [
+            f"{role.capitalize()}: {content}"
+            for role, content in messages
+            if content.strip()
+        ]
+    )
     if do_continue:
         return formatted
     return f"{formatted}\nAssistant:"
 
+
 def get_system_prompt(messages: Messages) -> str:
-    return "\n".join([m["content"] for m in messages if m["role"] in ("developer", "system")])
+    return "\n".join(
+        [m["content"] for m in messages if m["role"] in ("developer", "system")]
+    )
+
 
 def get_last_user_message(messages: Messages, include_buckets: bool = True) -> str:
     user_messages = []
@@ -88,6 +102,7 @@ def get_last_user_message(messages: Messages, include_buckets: bool = True) -> s
             return "\n".join(user_messages[::-1])
     return "\n".join(user_messages[::-1])
 
+
 def get_last_message(messages: Messages, prompt: str = None) -> str:
     if prompt is None:
         for message in messages[::-1]:
@@ -96,10 +111,12 @@ def get_last_message(messages: Messages, prompt: str = None) -> str:
                 prompt = content
     return prompt
 
+
 def format_media_prompt(messages, prompt: str = None) -> str:
     if prompt is None:
         return get_last_user_message(messages)
     return prompt
+
 
 def format_prompt_max_length(messages: Messages, max_lenght: int) -> str:
     prompt = format_prompt(messages)
@@ -109,11 +126,14 @@ def format_prompt_max_length(messages: Messages, max_lenght: int) -> str:
             prompt = format_prompt(messages[:3] + messages[-3:])
         if len(prompt) > max_lenght:
             if len(messages) > 2:
-                prompt = format_prompt([m for m in messages if m["role"] == "system"] + messages[-1:])
+                prompt = format_prompt(
+                    [m for m in messages if m["role"] == "system"] + messages[-1:]
+                )
             if len(prompt) > max_lenght:
                 prompt = messages[-1]["content"]
         debug.log(f"Messages trimmed from: {start} to: {len(prompt)}")
     return prompt
+
 
 def get_random_string(length: int = 10) -> str:
     """
@@ -125,10 +145,10 @@ def get_random_string(length: int = 10) -> str:
     Returns:
         str: A random string of the specified length.
     """
-    return ''.join(
-        random.choice(string.ascii_lowercase + string.digits)
-        for _ in range(length)
+    return "".join(
+        random.choice(string.ascii_lowercase + string.digits) for _ in range(length)
     )
+
 
 def get_random_hex(length: int = 32) -> str:
     """
@@ -137,26 +157,27 @@ def get_random_hex(length: int = 32) -> str:
     Returns:
         str: A random hexadecimal string of n characters.
     """
-    return ''.join(
-        random.choice("abcdef" + string.digits)
-        for _ in range(length)
-    )
+    return "".join(random.choice("abcdef" + string.digits) for _ in range(length))
+
 
 def filter_none(**kwargs) -> dict:
-    return {
-        key: value
-        for key, value in kwargs.items()
-        if value is not None
-    }
+    return {key: value for key, value in kwargs.items() if value is not None}
+
 
 async def async_concat_chunks(chunks: AsyncIterator) -> str:
     return concat_chunks([chunk async for chunk in chunks])
 
+
 def concat_chunks(chunks: Iterator) -> str:
-    return "".join([
-        str(chunk) for chunk in chunks
-        if chunk and not isinstance(chunk, (JsonResponse, HiddenResponse, Exception))
-    ])
+    return "".join(
+        [
+            str(chunk)
+            for chunk in chunks
+            if chunk
+            and not isinstance(chunk, (JsonResponse, HiddenResponse, Exception))
+        ]
+    )
+
 
 def format_cookies(cookies: Cookies) -> str:
     return "; ".join([f"{k}={v}" for k, v in cookies.items()])

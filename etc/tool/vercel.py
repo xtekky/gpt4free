@@ -24,7 +24,6 @@ def get_model_info() -> dict[str, Any]:
 
     models_regex = r'let .="\\n\\nHuman:\",r=(.+?),.='
     for script in scripts:
-
         matches = re.findall(models_regex, script)
         if matches:
             models_str = matches[0]

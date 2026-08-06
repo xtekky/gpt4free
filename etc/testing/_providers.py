@@ -31,19 +31,22 @@ def main():
 
 
 def get_providers() -> list[ProviderType]:
-    return [
-        provider
-        for provider in __providers__
-        if provider.url is not None
-    ]
+    return [provider for provider in __providers__ if provider.url is not None]
+
 
 def create_response(provider: ProviderType) -> str:
     response = provider.create_completion(
         model=models.default.name,
-        messages=[{"role": "user", "content": "Hello, who are you? Answer in detail much as possible."}],
+        messages=[
+            {
+                "role": "user",
+                "content": "Hello, who are you? Answer in detail much as possible.",
+            }
+        ],
         stream=False,
     )
     return "".join(response)
+
 
 def test(provider: ProviderType) -> bool:
     try:
@@ -57,4 +60,3 @@ def test(provider: ProviderType) -> bool:
 
 if __name__ == "__main__":
     main()
-    

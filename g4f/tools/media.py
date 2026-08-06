@@ -7,11 +7,25 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 from ..typing import Messages
-from ..image import is_data_an_media, to_input_audio, is_valid_media, is_valid_audio, to_data_uri
+from ..image import (
+    is_data_an_media,
+    to_input_audio,
+    is_valid_media,
+    is_valid_audio,
+    to_data_uri,
+)
 from .files import get_bucket_dir, read_bucket
 
-def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_base64: bool = False, **kwargs) -> Union[str, Path]:
-    if (as_base64 or as_path or url.startswith("/")):
+
+def render_media(
+    bucket_id: str,
+    name: str,
+    url: str,
+    as_path: bool = False,
+    as_base64: bool = False,
+    **kwargs,
+) -> Union[str, Path]:
+    if as_base64 or as_path or url.startswith("/"):
         file = Path(get_bucket_dir(bucket_id, "thumbnail", name))
         if not file.exists():
             file = Path(get_bucket_dir(bucket_id, "media", name))
@@ -24,35 +38,28 @@ def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_
         return f"data:{is_data_an_media(data, name)};base64,{data_base64}"
     return url
 
+
 def render_part(part: dict) -> dict:
     if "type" in part:
         return part
     text = part.get("text")
     if text:
-        return {
-            "type": "text",
-            "text": text
-        }
+        return {"type": "text", "text": text}
     filename = part.get("name")
-    if (filename is None):
+    if filename is None:
         bucket_dir = Path(get_bucket_dir(part.get("bucket_id")))
-        return {
-            "type": "text",
-            "text": "".join(read_bucket(bucket_dir))
-        }
+        return {"type": "text", "text": "".join(read_bucket(bucket_dir))}
     if is_valid_audio(filename=filename):
         return {
             "type": "input_audio",
             "input_audio": {
                 "data": render_media(**part, as_base64=True),
-                "format": os.path.splitext(filename)[1][1:]
-            }
+                "format": os.path.splitext(filename)[1][1:],
+            },
         }
     if is_valid_media(filename=filename):
-        return {
-            "type": "image_url",
-            "image_url": {"url": render_media(**part)}
-        }
+        return {"type": "image_url", "image_url": {"url": render_media(**part)}}
+
 
 def merge_media(media: list, messages: list) -> Iterator:
     buffer = []
@@ -84,6 +91,7 @@ def merge_media(media: list, messages: list) -> Iterator:
     if media is not None:
         yield from media
 
+
 def render_messages(messages: Messages, media: list = None) -> Iterator:
     last_is_assistant = False
     for idx, message in enumerate(messages):
@@ -98,10 +106,7 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
         if isinstance(message.get("content"), list):
             parts = [render_part(part) for part in message["content"] if part]
             if parts:
-                yield {
-                    **message,
-                    "content": [part for part in parts if part]
-                }
+                yield {**message, "content": [part for part in parts if part]}
         else:
             # Append media to the last message
             if media is not None and idx == len(messages) - 1:
@@ -110,15 +115,21 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
                     "content": [
                         {
                             "type": "input_audio",
-                            "input_audio": to_input_audio(media_data, filename)
+                            "input_audio": to_input_audio(media_data, filename),
                         }
-                        if is_valid_audio(media_data, filename) else {
+                        if is_valid_audio(media_data, filename)
+                        else {
                             "type": "image_url",
-                            "image_url": {"url": to_data_uri(media_data)}
+                            "image_url": {"url": to_data_uri(media_data)},
                         }
                         for media_data, filename in media
                         if media_data and is_valid_media(media_data, filename)
-                    ] + ([{"type": "text", "text": message["content"]}] if isinstance(message["content"], str) else message["content"])
+                    ]
+                    + (
+                        [{"type": "text", "text": message["content"]}]
+                        if isinstance(message["content"], str)
+                        else message["content"]
+                    ),
                 }
             else:
                 yield message

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ..template import OpenaiTemplate
 
+
 class GeminiPro(OpenaiTemplate):
     label = "Google Gemini API"
     url = "https://ai.google.dev"

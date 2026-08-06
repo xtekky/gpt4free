@@ -6,12 +6,14 @@ import hashlib
 import random
 from Crypto.Cipher import AES
 
+
 def pad(data: str) -> bytes:
     # Convert the string to bytes and calculate the number of bytes to pad
     data_bytes = data.encode()
     padding = 16 - (len(data_bytes) % 16)
     # Append the padding bytes with their value
     return data_bytes + bytes([padding] * padding)
+
 
 def encrypt(data, key):
     salt = ""
@@ -41,10 +43,12 @@ def encrypt(data, key):
         }
     )
 
+
 def unpad(data: bytes) -> bytes:
     # Extract the padding value from the last byte and remove padding
     padding_value = data[-1]
     return data[:-padding_value]
+
 
 def decrypt(data: str, key: str):
     # Parse JSON data
@@ -53,15 +57,13 @@ def decrypt(data: str, key: str):
     iv = bytes.fromhex(parsed_data["iv"])
     salt = bytes.fromhex(parsed_data["s"])
 
-    salted = ''
-    dx = b''
+    salted = ""
+    dx = b""
     for x in range(3):
         dx = hashlib.md5(dx + key.encode() + salt).digest()
         salted += dx.hex()
-        
-    aes = AES.new(
-        bytes.fromhex(salted[:64]), AES.MODE_CBC, iv
-    )
+
+    aes = AES.new(bytes.fromhex(salted[:64]), AES.MODE_CBC, iv)
 
     data = aes.decrypt(ct)
     if data.startswith(b'[{"key":'):

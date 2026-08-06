@@ -1,15 +1,17 @@
-import sys,logging
+import sys, logging
 
-#from loguru import logger
+# from loguru import logger
+
 
 def __exception_handle(e_type, e_value, e_traceback):
     if issubclass(e_type, KeyboardInterrupt):
-        print('\nBye...')
+        print("\nBye...")
         sys.exit(0)
 
     sys.__excepthook__(e_type, e_value, e_traceback)
 
-#class __InterceptHandler(logging.Handler):
+
+# class __InterceptHandler(logging.Handler):
 #    def emit(self, record):
 #        try:
 #            level = logger.level(record.levelname).name
@@ -25,8 +27,10 @@ def __exception_handle(e_type, e_value, e_traceback):
 #            level, record.getMessage()
 #        )
 
+
 def hook_except_handle():
     sys.excepthook = __exception_handle
 
-#def hook_logging(**kwargs):
+
+# def hook_logging(**kwargs):
 #    logging.basicConfig(handlers=[__InterceptHandler()], **kwargs)

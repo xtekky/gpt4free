@@ -6,6 +6,7 @@ import base64
 
 try:
     import zendriver as nodriver
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -57,7 +58,7 @@ class ElevenLabs(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         audio: dict = {},
         proxy: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         prompt = get_last_message(messages, prompt)
         if not prompt:
@@ -71,33 +72,37 @@ class ElevenLabs(AsyncGeneratorProvider, ProviderModelMixin):
         # hcaptcha accessibility cookie — kwarg, then browser cookie store
         cookie_val = kwargs.get("hc_accessibility")
         if not cookie_val:
-            cookie_val = get_cookies(".hcaptcha.com", raise_requirements_error=False).get("hc_accessibility")
+            cookie_val = get_cookies(
+                ".hcaptcha.com", raise_requirements_error=False
+            ).get("hc_accessibility")
         if not cookie_val:
             raise RuntimeError(
                 "hCaptcha accessibility cookie required: log in at "
                 "https://dashboard.hcaptcha.com/signup?type=accessibility "
-                "in your browser, or pass hc_accessibility=\"...\"."
+                'in your browser, or pass hc_accessibility="...".'
             )
 
         browser, stop_browser = await get_nodriver(proxy=proxy)
         try:
             cookie_params = get_cookie_params_from_dict(
-                {"hc_accessibility": cookie_val},
-                domain=".hcaptcha.com"
+                {"hc_accessibility": cookie_val}, domain=".hcaptcha.com"
             )
             await browser.cookies.set_all(cookie_params)
 
             page = await browser.get(cls.url)
             # Wait until DOM body exists before injecting elements
-            await page.evaluate("""
+            await page.evaluate(
+                """
                 document.body || new Promise(r => {
                     document.addEventListener('DOMContentLoaded', r, {once: true});
                 })
-            """, await_promise=True)
+            """,
+                await_promise=True,
+            )
 
             chunks = await page.evaluate(
                 _build_js(prompt, voice, model_id, output_format, language),
-                await_promise=True
+                await_promise=True,
             )
         finally:
             await stop_browser()
@@ -116,7 +121,9 @@ class ElevenLabs(AsyncGeneratorProvider, ProviderModelMixin):
         yield AudioResponse(f"/media/{filename}", text=prompt)
 
 
-def _build_js(prompt: str, voice: str, model_id: str, output_format: str, language: str) -> str:
+def _build_js(
+    prompt: str, voice: str, model_id: str, output_format: str, language: str
+) -> str:
     """Render invisible hcaptcha, fetch elevenlabs API with token, collect SSE audio chunks."""
     _text = json.dumps(prompt)
     _voice = json.dumps(voice)

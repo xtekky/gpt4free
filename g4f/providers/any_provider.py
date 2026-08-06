@@ -10,7 +10,11 @@ from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
 from ..client.factory import AbstractClientFactory
 from ..Provider import __getattr__
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_async_provider_method
+from .base_provider import (
+    AsyncGeneratorProvider,
+    ProviderModelMixin,
+    get_async_provider_method,
+)
 from .. import Provider
 from .. import models
 from .. import debug
@@ -40,7 +44,7 @@ PROVIDERS_LIST_2 = [
     "OpenRouterFree",
     "LMArena",
     "Puter",
-    "HuggingFaceMedia"
+    "HuggingFaceMedia",
 ]
 
 # Add all models to the model map
@@ -141,6 +145,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.video_models = []
 
         from ..Provider import __getattr__
+
         def resolve_provider(p):
             if isinstance(p, str):
                 try:
@@ -170,7 +175,11 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if isinstance(model, models.ImageModel):
                 cls.image_models.append(name)
 
-        for provider in [p for p in (resolve_provider(name) for name in PROVIDERS_LIST_3) if p is not None]:
+        for provider in [
+            p
+            for p in (resolve_provider(name) for name in PROVIDERS_LIST_3)
+            if p is not None
+        ]:
             if not provider.working:
                 continue
             try:
@@ -222,7 +231,12 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     provider.working
                     and hasattr(provider, "get_models")
                     and provider
-                    not in [AnyProvider, __getattr__("Custom"), __getattr__("PollinationsImage"), __getattr__("OpenaiAccount")]
+                    not in [
+                        AnyProvider,
+                        __getattr__("Custom"),
+                        __getattr__("PollinationsImage"),
+                        __getattr__("OpenaiAccount"),
+                    ]
                 ):
                     for model in provider.get_models():
                         clean = clean_name(model)
@@ -408,9 +422,18 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             # Tool calling is an API-level feature; routing should be based on model/media.
             if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 if kwargs.get("audio", {}).get("language") is None:
-                    providers = [__getattr__("PollinationsAudio"), __getattr__("OpenAIFM"), __getattr__("Gemini")]
+                    providers = [
+                        __getattr__("PollinationsAudio"),
+                        __getattr__("OpenAIFM"),
+                        __getattr__("Gemini"),
+                    ]
                 else:
-                    providers = [__getattr__("PollinationsAudio"), __getattr__("OpenAIFM"), __getattr__("EdgeTTS"), __getattr__("gTTS")]
+                    providers = [
+                        __getattr__("PollinationsAudio"),
+                        __getattr__("OpenAIFM"),
+                        __getattr__("EdgeTTS"),
+                        __getattr__("gTTS"),
+                    ]
             elif has_audio:
                 providers = [__getattr__("Pollinations"), __getattr__("MarkItDown")]
             elif has_image:
@@ -418,7 +441,9 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             else:
                 providers = models.default.best_provider.get_providers()
         elif model in RouterConfig.routes:
-            async for chunk in ConfigModelProvider(RouterConfig.routes.get(model)).create_async_generator(
+            async for chunk in ConfigModelProvider(
+                RouterConfig.routes.get(model)
+            ).create_async_generator(
                 model, messages, stream=stream, media=media, api_key=api_key, **kwargs
             ):
                 yield chunk
@@ -434,7 +459,12 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 provider = getattr(Provider, provider)
                 method = get_async_provider_method(provider)
                 async for chunk in method(
-                    submodel, messages, stream=stream, media=media, api_key=api_key, **kwargs
+                    submodel,
+                    messages,
+                    stream=stream,
+                    media=media,
+                    api_key=api_key,
+                    **kwargs,
                 ):
                     yield chunk
                 return
@@ -454,18 +484,25 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     except KeyError:
                         pass
         if not providers:
+
             def _safe_getattr(p):
                 try:
                     return __getattr__(p)
                 except AttributeError:
                     return None
-            for provider in [ _safe_getattr(p) for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3]:
+
+            for provider in [
+                _safe_getattr(p) for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3
+            ]:
                 if provider is None or not provider.working:
                     continue
                 try:
                     if model in provider.get_models():
                         providers.append(provider)
-                    elif provider.model_aliases is not None and model in provider.model_aliases:
+                    elif (
+                        provider.model_aliases is not None
+                        and model in provider.model_aliases
+                    ):
                         providers.append(provider)
                 except Exception as e:
                     debug.error(
@@ -487,10 +524,13 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         if not has_api_key:
             providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
 
-
         if len(providers) == 0:
-            provider: AsyncGeneratorProvider = AbstractClientFactory.create_provider(None, "default")
-            async for chunk in provider.create_async_generator(model, messages, stream=stream, media=media, api_key=api_key, **kwargs):
+            provider: AsyncGeneratorProvider = AbstractClientFactory.create_provider(
+                None, "default"
+            )
+            async for chunk in provider.create_async_generator(
+                model, messages, stream=stream, media=media, api_key=api_key, **kwargs
+            ):
                 yield chunk
             return
             # raise ModelNotFoundError(

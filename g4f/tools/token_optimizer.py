@@ -58,7 +58,12 @@ def _detect() -> Tuple[bool, Any]:
         return _AVAILABLE, _OPTIMIZE_FUNC
 
     # Allow explicit opt-out via env var.
-    if os.environ.get("G4F_TOKEN_OPTIMIZER", "").strip().lower() in ("0", "false", "no", "off"):
+    if os.environ.get("G4F_TOKEN_OPTIMIZER", "").strip().lower() in (
+        "0",
+        "false",
+        "no",
+        "off",
+    ):
         _AVAILABLE = False
         _OPTIMIZE_FUNC = None
         return _AVAILABLE, _OPTIMIZE_FUNC
@@ -94,8 +99,10 @@ def get_install_path() -> Optional[str]:
     try:
         import token_optimizer  # type: ignore
 
-        return getattr(token_optimizer, "__file__", None) or getattr(
-            token_optimizer, "__path__", [None])[0]
+        return (
+            getattr(token_optimizer, "__file__", None)
+            or getattr(token_optimizer, "__path__", [None])[0]
+        )
     except Exception:
         return None
 
@@ -135,9 +142,7 @@ def _compress_content(text: str) -> Tuple[str, int]:
                 head = line[:800]
                 tail = line[-800:]
                 omitted = len(line) - 1600
-                new_lines.append(
-                    f"{head}\n... [{omitted} chars omitted] ...\n{tail}"
-                )
+                new_lines.append(f"{head}\n... [{omitted} chars omitted] ...\n{tail}")
             else:
                 new_lines.append(line)
         out = "\n".join(new_lines)
@@ -155,6 +160,7 @@ def _compress_content(text: str) -> Tuple[str, int]:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def _bytes_to_tokens(num_bytes: int) -> int:
     """Approximate token count from byte count (~4 bytes/token)."""
@@ -194,13 +200,19 @@ def optimize_messages(
         # Delegate to the upstream package. It is expected to return either
         # a tuple ``(new_messages, saved_tokens)`` or just ``new_messages``.
         try:
-            result = optimize_func(messages, tools) if tools is not None else optimize_func(messages)
+            result = (
+                optimize_func(messages, tools)
+                if tools is not None
+                else optimize_func(messages)
+            )
             if isinstance(result, tuple) and len(result) == 2:
                 new_messages, saved_tokens = result
                 if isinstance(new_messages, list):
                     messages[:] = new_messages
                 if isinstance(saved_tokens, int) and saved_tokens > 0:
-                    logs["token_optimizer"] = f"upstream optimizer saved ~{saved_tokens} tokens"
+                    logs[
+                        "token_optimizer"
+                    ] = f"upstream optimizer saved ~{saved_tokens} tokens"
                     return saved_tokens, logs
             elif isinstance(result, list):
                 messages[:] = result
@@ -234,7 +246,9 @@ def optimize_messages(
                             logs[f"msg-{i:02d}-part"] = f"trimmed ~{saved} bytes"
 
     if saved_bytes:
-        logs["token_optimizer"] = f"vendored compressor saved ~{_bytes_to_tokens(saved_bytes)} tokens"
+        logs[
+            "token_optimizer"
+        ] = f"vendored compressor saved ~{_bytes_to_tokens(saved_bytes)} tokens"
 
     return _bytes_to_tokens(saved_bytes), logs
 

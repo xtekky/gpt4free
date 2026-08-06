@@ -13,11 +13,11 @@ from typing import Dict
 from urllib.parse import urlparse, parse_qs
 
 
-
 from g4f.image import to_bytes, detect_file_type
 
 try:
     import curl_cffi
+
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -25,6 +25,7 @@ except ImportError:
 try:
     import zendriver as nodriver
     from zendriver import cdp
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -34,10 +35,22 @@ from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
 from ...requests import StreamSession
 from ...cookies import get_cookies_dir
 from ...tools.files import secure_filename
-from ...errors import ModelNotFoundError, CloudflareError, MissingAuthError, MissingRequirementsError, \
-    RateLimitError
-from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse, Reasoning, PlainTextResponse, \
-    JsonRequest
+from ...errors import (
+    ModelNotFoundError,
+    CloudflareError,
+    MissingAuthError,
+    MissingRequirementsError,
+    RateLimitError,
+)
+from ...providers.response import (
+    FinishReason,
+    Usage,
+    JsonConversation,
+    ImageResponse,
+    Reasoning,
+    PlainTextResponse,
+    JsonRequest,
+)
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
 from ..helper import get_last_user_message
 from ... import debug
@@ -54,7 +67,7 @@ def uuid7():
 
     uuid_int = timestamp_ms << 80
     uuid_int |= (0x7000 | rand_a) << 64
-    uuid_int |= (0x8000000000000000 | rand_b)
+    uuid_int |= 0x8000000000000000 | rand_b
 
     hex_str = f"{uuid_int:032x}"
     return f"{hex_str[0:8]}-{hex_str[8:12]}-{hex_str[12:16]}-{hex_str[16:20]}-{hex_str[20:32]}"
@@ -72,18 +85,23 @@ def check_link_expiry(url):
     expires_delta = params.get("X-Amz-Expires", [None])[0]
     if not amz_date_str or not expires_delta:
         return False
-    creation_time = datetime.strptime(amz_date_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    creation_time = datetime.strptime(amz_date_str, "%Y%m%dT%H%M%SZ").replace(
+        tzinfo=timezone.utc
+    )
     expiry_time = creation_time.timestamp() + int(expires_delta)
     current_time = datetime.now(timezone.utc).timestamp()
     return current_time <= expiry_time
 
 
 if has_nodriver:
-    async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
+
+    async def click_trunstile(
+        page: nodriver.Tab, element='document.getElementById("cf-turnstile")'
+    ):
         for _ in range(3):
             size = None
             for idx in range(15):
-                size = await page.js_dumps(f'{element}?.getBoundingClientRect()||{{}}')
+                size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
                 debug.log(f"Found size: {size.get('x'), size.get('y')}")
                 if "x" not in size:
                     break
@@ -123,21 +141,37 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
     @classmethod
     def load_models(cls, models_data: str):
-        cls.text_models = {model["publicName"]: model["id"] for model in models_data if
-                            "text" in model["capabilities"]["outputCapabilities"]}
-        cls.image_models = {model["publicName"]: model["id"] for model in models_data if
-                                "image" in model["capabilities"]["outputCapabilities"]}
-        cls.video_models = {model["publicName"]: model["id"] for model in models_data if
-                                "video" in model["capabilities"]["outputCapabilities"]}
-        cls.vision_models = [model["publicName"] for model in models_data if
-                                "image" in model["capabilities"]["inputCapabilities"]]
+        cls.text_models = {
+            model["publicName"]: model["id"]
+            for model in models_data
+            if "text" in model["capabilities"]["outputCapabilities"]
+        }
+        cls.image_models = {
+            model["publicName"]: model["id"]
+            for model in models_data
+            if "image" in model["capabilities"]["outputCapabilities"]
+        }
+        cls.video_models = {
+            model["publicName"]: model["id"]
+            for model in models_data
+            if "video" in model["capabilities"]["outputCapabilities"]
+        }
+        cls.vision_models = [
+            model["publicName"]
+            for model in models_data
+            if "image" in model["capabilities"]["inputCapabilities"]
+        ]
         cls.models = list(cls.text_models) + list(cls.image_models)
         cls.default_model = list(cls.text_models.keys())[0]
         cls._models_loaded = True
 
     @classmethod
     def load_models_from_cache(cls):
-        models_path = Path(get_cookies_dir()) / ".models" / f"{secure_filename(cls.models_url)}.json"
+        models_path = (
+            Path(get_cookies_dir())
+            / ".models"
+            / f"{secure_filename(cls.models_url)}.json"
+        )
         if models_path.exists():
             try:
                 data = models_path.read_text()
@@ -163,30 +197,42 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 for line in response.text.splitlines():
                     if "initialModels" not in line:
                         continue
-                    line = line.split("initialModels", maxsplit=1)[-1].split("initialModelAId")[0][3:-3]
+                    line = line.split("initialModels", maxsplit=1)[-1].split(
+                        "initialModelAId"
+                    )[0][3:-3]
                     line = line.encode("utf-8").decode("unicode_escape")
                     models = json.loads(line)
                     cls.load_models(models)
                     cls.live += 1
                     break
                 try:
-                    models_path = Path(get_cookies_dir()) / ".models" / f"{secure_filename(cls.models_url)}.json"
+                    models_path = (
+                        Path(get_cookies_dir())
+                        / ".models"
+                        / f"{secure_filename(cls.models_url)}.json"
+                    )
                     models_path.parent.mkdir(parents=True, exist_ok=True)
                     with open(models_path, "w") as f:
-                        json.dump({
-                            "text_models": cls.text_models,
-                            "image_models": cls.image_models,
-                            "video_models": cls.video_models,
-                            "vision_models": cls.vision_models,
-                            "models": cls.models,
-                            "default_model": cls.default_model
-                        }, f, indent=4)
+                        json.dump(
+                            {
+                                "text_models": cls.text_models,
+                                "image_models": cls.image_models,
+                                "video_models": cls.video_models,
+                                "vision_models": cls.vision_models,
+                                "models": cls.models,
+                                "default_model": cls.default_model,
+                            },
+                            f,
+                            indent=4,
+                        )
                 except Exception as e:
                     debug.error(f"Failed to cache models to {models_path}: {e}")
             else:
                 cls.live -= 1
                 cls.load_models_from_cache()
-                debug.log(f"Failed to load models from {cls.url}: {response.status_code} {response.reason}")
+                debug.log(
+                    f"Failed to load models from {cls.url}: {response.status_code} {response.reason}"
+                )
         return cls.models
 
     @classmethod
@@ -233,29 +279,42 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             #     element = None
             # if element:
             #     await click_trunstile(page, 'document.querySelector(\'[style="display: grid;"]\')')
-            while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
+            while not await page.evaluate(
+                'document.cookie.indexOf("arena-auth-prod-v1") >= 0'
+            ):
                 debug.log("No authentication cookie found, waiting for authenticate.")
-                #await page.select('#cf-turnstile', 300)
-                #debug.log("Found Element: 'cf-turnstile'")
+                # await page.select('#cf-turnstile', 300)
+                # debug.log("Found Element: 'cf-turnstile'")
                 await asyncio.sleep(3)
-                #await click_trunstile(page)
-            while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
+                # await click_trunstile(page)
+            while not await page.evaluate(
+                'document.cookie.indexOf("arena-auth-prod-v1") >= 0'
+            ):
                 await asyncio.sleep(1)
-            while not await page.evaluate('!!document.querySelector(\'textarea\')'):
+            while not await page.evaluate("!!document.querySelector('textarea')"):
                 await asyncio.sleep(1)
-            while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
+            while not await page.evaluate(
+                "window.grecaptcha && window.grecaptcha.enterprise"
+            ):
                 await asyncio.sleep(1)
             for _ in range(1):
                 captcha = await page.evaluate(
                     """window.grecaptcha.enterprise.execute('6LeTGMcsAAAAALuIlkVwIxaAuZA8VledA6d3Nnb0',  { action: 'chat_submit' }  );""",
-                    await_promise=True)
+                    await_promise=True,
+                )
                 cls._grecaptcha.append(captcha)
                 debug.log("Obtained grecaptcha token.")
             html = await page.get_content()
             await cls.__load_actions(html)
 
-        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback,
-                                            clear_cookies_except=["cf_clearance", "app_banner_state"] if clear_cookies else None)
+        args = await get_args_from_nodriver(
+            cls.url,
+            proxy=proxy,
+            callback=callback,
+            clear_cookies_except=["cf_clearance", "app_banner_state"]
+            if clear_cookies
+            else None,
+        )
 
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -269,7 +328,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             return args
 
         async def callback(page: nodriver.Tab):
-            while not await page.evaluate('window.grecaptcha && window.grecaptcha.enterprise'):
+            while not await page.evaluate(
+                "window.grecaptcha && window.grecaptcha.enterprise"
+            ):
                 await asyncio.sleep(1)
             for _ in range(1):
                 captcha = await page.evaluate(
@@ -287,7 +348,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             }
                         });
                     });""",
-                    await_promise=True
+                    await_promise=True,
                 )
                 if isinstance(captcha, str):
                     cls._grecaptcha.append(captcha)
@@ -296,9 +357,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             html = await page.get_content()
             await cls.__load_actions(html)
 
-        args = await get_args_from_nodriver(
-            cls.url, proxy=proxy, callback=callback
-        )
+        args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
 
         with cache_file.open("w") as f:
             json.dump(args, f)
@@ -333,16 +392,16 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 return
             if not json_data:
                 return
-            if 'userState' in json_data:
+            if "userState" in json_data:
                 debug.log(json_data)
-            elif 'initialModels' in json_data:
+            elif "initialModels" in json_data:
                 models = json_data["initialModels"]
                 cls.load_models(models)
-            elif 'children' in json_data:
+            elif "children" in json_data:
                 pars_children(json_data)
 
         line_pattern = re.compile("^([0-9a-fA-F]+):(.*)")
-        pattern = r'self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)'
+        pattern = r"self\.__next_f\.push\((\[[\s\S]*?\])\)(?=<\/script>)"
         matches = re.findall(pattern, html)
         for match in matches:
             # Parse the JSON array
@@ -386,7 +445,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         files = []
         if not media:
             return files
-        async with StreamSession(**args, ) as session:
+        async with StreamSession(
+            **args,
+        ) as session:
             for index, (_file, file_name) in enumerate(media):
                 data_bytes = to_bytes(_file)
                 # Check Cache
@@ -404,18 +465,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 extension, file_type = detect_file_type(data_bytes)
                 file_name = file_name or f"file-{len(data_bytes)}{extension}"
                 async with session.post(
-                        url=cls.url,
-                        json=[file_name, file_type],
-                        headers={
-                            "accept": "text/x-component",
-                            "content-type": "text/plain;charset=UTF-8",
-                            "next-action": cls._next_actions["generateUploadUrl"],
-                            "referer": cls.url
-                        }
+                    url=cls.url,
+                    json=[file_name, file_type],
+                    headers={
+                        "accept": "text/x-component",
+                        "content-type": "text/plain;charset=UTF-8",
+                        "next-action": cls._next_actions["generateUploadUrl"],
+                        "referer": cls.url,
+                    },
                 ) as response:
                     await raise_for_status(response)
                     text = await response.text()
-                    line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
+                    line = next(
+                        filter(lambda x: x.startswith("1:"), text.split("\n")), ""
+                    )
                     if not line:
                         raise Exception("Failed to get upload URL")
                     chunk = json.loads(line[2:])
@@ -435,18 +498,20 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 ) as response:
                     await raise_for_status(response)
                 async with session.post(
-                        url=cls.url,
-                        json=[key],
-                        headers={
-                            "accept": "text/x-component",
-                            "content-type": "text/plain;charset=UTF-8",
-                            "next-action": cls._next_actions["getSignedUrl"],
-                            "referer": cls.url
-                        }
+                    url=cls.url,
+                    json=[key],
+                    headers={
+                        "accept": "text/x-component",
+                        "content-type": "text/plain;charset=UTF-8",
+                        "next-action": cls._next_actions["getSignedUrl"],
+                        "referer": cls.url,
+                    },
                 ) as response:
                     await raise_for_status(response)
                     text = await response.text()
-                    line = next(filter(lambda x: x.startswith("1:"), text.split("\n")), "")
+                    line = next(
+                        filter(lambda x: x.startswith("1:"), text.split("\n")), ""
+                    )
                     if not line:
                         raise Exception("Failed to get download URL")
 
@@ -457,7 +522,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     uploaded_file = {
                         "name": key,
                         "contentType": file_type,
-                        "url": image_url
+                        "url": image_url,
                     }
                 debug.log(f"Uploaded image to: {image_url}")
                 ImagesCache[image_hash] = uploaded_file
@@ -493,7 +558,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         media: MediaListType = None,
         proxy: str = None,
         timeout: int = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
@@ -505,7 +570,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             elif has_nodriver:
                 args = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
             else:
-                raise MissingRequirementsError("No auth file found and nodriver is not available.")
+                raise MissingRequirementsError(
+                    "No auth file found and nodriver is not available."
+                )
 
             if not cls._models_loaded:
                 # change to async
@@ -524,11 +591,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 elif _model in cls.video_models:
                     model_id = cls.video_models[_model]
                 elif _model:
-                    raise ModelNotFoundError(f"Model '{_model}' is not supported by LMArena provider.")
+                    raise ModelNotFoundError(
+                        f"Model '{_model}' is not supported by LMArena provider."
+                    )
                 return model_id
 
-            modelA:str = model
-            modelB:str = kwargs.get("modelB", "")
+            modelA: str = model
+            modelB: str = kwargs.get("modelB", "")
             modelAId = get_mode_id(modelA)
             modelBId = get_mode_id(modelB) if modelB else None
             if modelAId and modelBId:
@@ -559,7 +628,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 "userMessage": {
                     "content": prompt,
                     "experimental_attachments": files,
-                    "metadata": {}
+                    "metadata": {},
                 },
                 "modality": "image" if is_image_model else "chat",
                 "recaptchaV3Token": cls._grecaptcha.pop() if cls._grecaptcha else "",
@@ -575,9 +644,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             try:
                 async with StreamSession(**args, timeout=timeout or 5 * 60) as session:
                     async with session.post(
-                            url,
-                            json=data,
-                            proxy=proxy,
+                        url,
+                        json=data,
+                        proxy=proxy,
                     ) as response:
                         await raise_for_status(response)
                         args["cookies"] = merge_cookies(args["cookies"], response)
@@ -587,30 +656,48 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             if line.startswith("a0:"):
                                 chunk = json.loads(line[3:])
                                 if chunk == "hasArenaError":
-                                    raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                                    raise ModelNotFoundError(
+                                        "LMArena Beta encountered an error: hasArenaError"
+                                    )
                                 yield chunk
                             elif line.startswith("b0:"):
                                 ...
                             elif line.startswith("ag:"):
                                 chunk = json.loads(line[3:])
                                 yield Reasoning(chunk)
-                            elif (line.startswith("a2:") or line.startswith("b2:")) and line == 'a2:[{"type":"heartbeat"}]':
+                            elif (
+                                line.startswith("a2:") or line.startswith("b2:")
+                            ) and line == 'a2:[{"type":"heartbeat"}]':
                                 # 'a2:[{"type":"heartbeat"}]'
                                 continue
                             elif line.startswith("a2:"):
                                 chunk = json.loads(line[3:])
-                                __images = [image.get("image") for image in chunk if image.get("image")]
+                                __images = [
+                                    image.get("image")
+                                    for image in chunk
+                                    if image.get("image")
+                                ]
                                 if __images:
-                                    yield ImageResponse(__images, prompt, {"model": modelA})
+                                    yield ImageResponse(
+                                        __images, prompt, {"model": modelA}
+                                    )
 
                             elif line.startswith("b2:"):
                                 chunk = json.loads(line[3:])
-                                __images = [image.get("image") for image in chunk if image.get("image")]
+                                __images = [
+                                    image.get("image")
+                                    for image in chunk
+                                    if image.get("image")
+                                ]
                                 if __images:
-                                    yield ImageResponse(__images, prompt, {"model": modelB})
+                                    yield ImageResponse(
+                                        __images, prompt, {"model": modelB}
+                                    )
 
                             elif line.startswith("ad:"):
-                                yield JsonConversation(evaluationSessionId=evaluationSessionId)
+                                yield JsonConversation(
+                                    evaluationSessionId=evaluationSessionId
+                                )
                                 finish = json.loads(line[3:])
                                 if "finishReason" in finish:
                                     yield FinishReason(finish["finishReason"])
@@ -643,6 +730,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             debug.log("Save args to cache file:", str(cache_file))
             with cache_file.open("w") as f:
                 f.write(json.dumps(args))
+
 
 def get_content_type(url: str) -> str:
     if url.endswith(".webp"):

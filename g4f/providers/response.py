@@ -7,6 +7,7 @@ from typing import Union, Dict, List, Optional
 from abc import abstractmethod
 from urllib.parse import quote, unquote
 
+
 def is_content(chunk):
     if isinstance(chunk, Reasoning):
         if chunk.is_thinking is None and chunk.token is None:
@@ -14,24 +15,25 @@ def is_content(chunk):
         return True
     return isinstance(chunk, (str, MediaResponse, AudioResponse, ToolCalls))
 
+
 def quote_url(url: str) -> str:
     """
     Quote parts of a URL while preserving the domain structure.
-    
+
     Args:
         url: The URL to quote
-        
+
     Returns:
         str: The properly quoted URL
     """
     # Only unquote if needed to avoid double-unquoting
-    if '%' in url:
+    if "%" in url:
         url = unquote(url)
 
     url_parts = url.split("//", maxsplit=1)
     # If there is no "//" in the URL, then it is a relative URL
     if len(url_parts) == 1:
-        return quote(url_parts[0], '/?&=#')
+        return quote(url_parts[0], "/?&=#")
 
     protocol, rest = url_parts
     domain_parts = rest.split("/", maxsplit=1)
@@ -42,35 +44,40 @@ def quote_url(url: str) -> str:
     domain, path = domain_parts
     return f"{protocol}//{domain}/{quote(path, '/?&=#')}"
 
+
 def quote_title(title: str) -> str:
     """
     Normalize whitespace in a title.
-    
+
     Args:
         title: The title to normalize
-        
+
     Returns:
         str: The title with normalized whitespace
     """
     return " ".join(title.split()) if title else ""
 
+
 def format_link(url: str, title: Optional[str] = None) -> str:
     """
     Format a URL and title as a markdown link.
-    
+
     Args:
         url: The URL to link to
         title: The title to display. If None, extracts from URL
-        
+
     Returns:
         str: The formatted markdown link
     """
     if title is None or not title.strip():
         try:
-            title = unquote(url.split("//", maxsplit=1)[1].split("?")[0].replace("www.", ""))
+            title = unquote(
+                url.split("//", maxsplit=1)[1].split("?")[0].replace("www.", "")
+            )
         except IndexError:
             title = url
     return f"[{quote_title(title)}]({quote_url(url)})"
+
 
 def format_image(image: str, alt: str, preview: Optional[str] = None) -> str:
     """
@@ -84,13 +91,15 @@ def format_image(image: str, alt: str, preview: Optional[str] = None) -> str:
     Returns:
         str: The formatted markdown string.
     """
-    preview_url = preview.replace('{image}', image) if preview else image
+    preview_url = preview.replace("{image}", image) if preview else image
     # if preview_url.startswith("/media/"):
     #    preview_url = "/thumbnail" + preview_url[6:]
     return f"[![{quote_title(alt)}]({quote_url(preview_url)})]({quote_url(image)})"
 
-def format_images_markdown(images: Union[str, List[str]], alt: str, 
-                           preview: Union[str, List[str]] = None) -> str:
+
+def format_images_markdown(
+    images: Union[str, List[str]], alt: str, preview: Union[str, List[str]] = None
+) -> str:
     """
     Formats the given images as a markdown string.
 
@@ -111,19 +120,23 @@ def format_images_markdown(images: Union[str, List[str]], alt: str,
     else:
         result = "\n".join(
             format_image(
-                image, 
-                f"#{idx+1} {alt}", 
-                preview[idx] if isinstance(preview, list) and idx < len(preview) else preview
+                image,
+                f"#{idx+1} {alt}",
+                preview[idx]
+                if isinstance(preview, list) and idx < len(preview)
+                else preview,
             )
             for idx, image in enumerate(images)
         )
     return result
+
 
 class ResponseType:
     @abstractmethod
     def __str__(self) -> str:
         """Convert the response to a string representation."""
         raise NotImplementedError
+
 
 class JsonMixin:
     def __init__(self, **kwargs) -> None:
@@ -148,23 +161,40 @@ class JsonMixin:
         """Reset all attributes."""
         self.__dict__ = {}
 
+
 class RawResponse(ResponseType, JsonMixin):
     pass
+
 
 class ObjectMixin:
     def __init__(self, **kwargs) -> None:
         """Initialize with keyword arguments as attributes."""
         for key, value in kwargs.items():
-            setattr(self, key, ObjectMixin.from_dict(value) if isinstance(value, dict) else [ObjectMixin.from_dict(v) if isinstance(v, dict) else v for v in value] if isinstance(value, list) else value)
+            setattr(
+                self,
+                key,
+                ObjectMixin.from_dict(value)
+                if isinstance(value, dict)
+                else [
+                    ObjectMixin.from_dict(v) if isinstance(v, dict) else v
+                    for v in value
+                ]
+                if isinstance(value, list)
+                else value,
+            )
 
     def get_dict(self) -> Dict:
         """Return a dictionary of non-private attributes."""
         return {
-            key: value.get_dict() if isinstance(value, ObjectMixin) else [v.get_dict() if isinstance(v, ObjectMixin) else v for v in value] if isinstance(value, list) else value
+            key: value.get_dict()
+            if isinstance(value, ObjectMixin)
+            else [v.get_dict() if isinstance(v, ObjectMixin) else v for v in value]
+            if isinstance(value, list)
+            else value
             for key, value in self.__dict__.items()
             if not key.startswith("__")
         }
-    
+
     def get(self, key: str, default: any = None) -> any:
         """Get an attribute value by key."""
         return getattr(self, key, default)
@@ -174,25 +204,31 @@ class ObjectMixin:
         """Create an instance from a dictionary."""
         return cls(**data)
 
+
 class JsonResponse(ResponseType, ObjectMixin):
     def __str__(self) -> str:
         return str(self.get_dict())
+
 
 class HiddenResponse(ResponseType):
     def __str__(self) -> str:
         """Hidden responses return an empty string."""
         return ""
-    
+
+
 class HeadersResponse(HiddenResponse, ObjectMixin):
     pass
 
+
 class JsonRequest(HiddenResponse, ObjectMixin):
     pass
+
 
 class FinishReason(JsonMixin, HiddenResponse):
     def __init__(self, reason: str) -> None:
         """Initialize with a reason."""
         self.reason = reason
+
 
 class ToolCalls(HiddenResponse):
     def __init__(self, list: List) -> None:
@@ -202,6 +238,7 @@ class ToolCalls(HiddenResponse):
     def get_list(self) -> List:
         """Return the list of tool calls."""
         return self.list
+
 
 class Usage(JsonMixin, HiddenResponse):
     def __init__(
@@ -216,7 +253,7 @@ class Usage(JsonMixin, HiddenResponse):
         totalTokenCount: int = None,
         prompt: int = None,
         completion: int = None,
-        **kwargs
+        **kwargs,
     ):
         if promptTokens is not None:
             kwargs["prompt_tokens"] = promptTokens
@@ -239,43 +276,56 @@ class Usage(JsonMixin, HiddenResponse):
         if output_tokens_details is not None:
             for key, value in output_tokens_details.items():
                 kwargs[key] = value
-        if "total_tokens" not in kwargs and "prompt_tokens" in kwargs and "completion_tokens" in kwargs:
-            kwargs["total_tokens"] = kwargs["prompt_tokens"] + kwargs["completion_tokens"]
+        if (
+            "total_tokens" not in kwargs
+            and "prompt_tokens" in kwargs
+            and "completion_tokens" in kwargs
+        ):
+            kwargs["total_tokens"] = (
+                kwargs["prompt_tokens"] + kwargs["completion_tokens"]
+            )
         return super().__init__(**kwargs)
+
 
 class AuthResult(JsonMixin, HiddenResponse):
     pass
+
 
 class TitleGeneration(HiddenResponse):
     def __init__(self, title: str) -> None:
         """Initialize with a title."""
         self.title = title
 
+
 class DebugResponse(HiddenResponse):
     def __init__(self, log: str) -> None:
         """Initialize with a log message."""
         self.log = log
 
+
 class PlainTextResponse(HiddenResponse):
     def __init__(self, text: str) -> None:
         self.text = text
+
 
 class VariantResponse(HiddenResponse):
     def __init__(self, text: str) -> None:
         self.text = text
 
+
 class ContinueResponse(HiddenResponse):
     def __init__(self, text: str) -> None:
         self.text = text
 
+
 class Reasoning(ResponseType):
     def __init__(
-            self,
-            token: Optional[str] = None,
-            label: Optional[str] = None,
-            status: Optional[str] = None,
-            is_thinking: Optional[str] = None
-        ) -> None:
+        self,
+        token: Optional[str] = None,
+        label: Optional[str] = None,
+        status: Optional[str] = None,
+        is_thinking: Optional[str] = None,
+    ) -> None:
         """Initialize with token, status, and thinking state."""
         self.token = token
         self.label = label
@@ -302,7 +352,12 @@ class Reasoning(ResponseType):
             if self.status is None:
                 return {"token": self.token}
             return {"token": self.token, "status": self.status}
-        return {"token": self.token, "status": self.status, "is_thinking": self.is_thinking}
+        return {
+            "token": self.token,
+            "status": self.status,
+            "is_thinking": self.is_thinking,
+        }
+
 
 class Sources(ResponseType):
     def __init__(self, sources: List[Dict[str, str]]) -> None:
@@ -324,10 +379,15 @@ class Sources(ResponseType):
         """Return formatted sources as a string."""
         if not self.list:
             return ""
-        return "\n\n\n\n" + ("\n>\n".join([
-            f"> [{idx}] {format_link(link['url'], link.get('title', link.get('name', None)))}"
-            for idx, link in enumerate(self.list)
-        ]))
+        return "\n\n\n\n" + (
+            "\n>\n".join(
+                [
+                    f"> [{idx}] {format_link(link['url'], link.get('title', link.get('name', None)))}"
+                    for idx, link in enumerate(self.list)
+                ]
+            )
+        )
+
 
 class SourceLink(ResponseType):
     def __init__(self, title: str, url: str) -> None:
@@ -337,6 +397,7 @@ class SourceLink(ResponseType):
     def __str__(self) -> str:
         title = f"[{self.title}]"
         return f" {format_link(self.url, title)}"
+
 
 class YouTubeResponse(HiddenResponse):
     def __init__(self, ids: List[str], add_links: bool = False) -> None:
@@ -351,10 +412,8 @@ class YouTubeResponse(HiddenResponse):
         template = '<iframe type="text/html" src="https://www.youtube.com/embed/{id}"></iframe>'
         if self.add_links:
             template += '\n\n<a href="https://www.youtube.com/watch?v={id}">Watch on YouTube</a>'
-        return "\n\n" + ("\n".join([
-            template.format(id=id)
-            for id in self.ids
-        ]))
+        return "\n\n" + ("\n".join([template.format(id=id) for id in self.ids]))
+
 
 class AudioResponse(ResponseType):
     def __init__(self, data: str, transcript: str = None, **kwargs) -> None:
@@ -366,7 +425,7 @@ class AudioResponse(ResponseType):
     def to_uri(self) -> str:
         if isinstance(self.data, str):
             if self.data.startswith("/media/"):
-                return quote(self.data, '/?&=')
+                return quote(self.data, "/?&=")
             return self.data
         """Return audio data as a base64-encoded data URI."""
         data_base64 = base64.b64encode(self.data).decode()
@@ -375,16 +434,23 @@ class AudioResponse(ResponseType):
     def __str__(self) -> str:
         """Return audio as html element."""
         if isinstance(self.data, str) and self.data.startswith("data:"):
-            return f'<audio controls></audio>' + (f"\n\n{self.transcript}" if self.transcript else "")
-        return f'<audio controls src="{self.to_uri()}"></audio>' + (f"\n\n{self.transcript}" if self.transcript else "")
+            return f"<audio controls></audio>" + (
+                f"\n\n{self.transcript}" if self.transcript else ""
+            )
+        return f'<audio controls src="{self.to_uri()}"></audio>' + (
+            f"\n\n{self.transcript}" if self.transcript else ""
+        )
+
 
 class BaseConversation(ResponseType):
     def __str__(self) -> str:
         """Return an empty string by default."""
         return ""
 
+
 class JsonConversation(BaseConversation, JsonMixin):
     pass
+
 
 class SynthesizeData(HiddenResponse, JsonMixin):
     def __init__(self, provider: str, data: Dict) -> None:
@@ -392,9 +458,11 @@ class SynthesizeData(HiddenResponse, JsonMixin):
         self.provider = provider
         self.data = data
 
+
 class SuggestedFollowups(HiddenResponse):
     def __init__(self, suggestions: list[str]):
         self.suggestions = suggestions
+
 
 class RequestLogin(HiddenResponse):
     def __init__(self, label: str, login_url: str) -> None:
@@ -406,13 +474,10 @@ class RequestLogin(HiddenResponse):
         """Return formatted login link as a string."""
         return format_link(self.login_url, f"[Login to {self.label}]") + "\n\n"
 
+
 class MediaResponse(ResponseType):
     def __init__(
-        self,
-        urls: Union[str, List[str]],
-        alt: str,
-        options: Dict = {},
-        **kwargs
+        self, urls: Union[str, List[str]], alt: str, options: Dict = {}, **kwargs
     ) -> None:
         """Initialize with images, alt text, and options."""
         self.urls = kwargs.get("images", urls)
@@ -427,6 +492,7 @@ class MediaResponse(ResponseType):
         """Return images as a list."""
         return [self.urls] if isinstance(self.urls, str) else self.urls
 
+
 class ImageResponse(MediaResponse):
     def __str__(self) -> str:
         return self.to_string()
@@ -434,12 +500,15 @@ class ImageResponse(MediaResponse):
     def to_string(self) -> str:
         """Return images as markdown."""
         if self.get("width") and self.get("height"):
-            return "\n".join([
-                f'<a href="{html.escape(url)}" data-src="{self.get("image", url)}" data-width="{self.get("width")}" data-height="{self.get("height")}" data-source="{html.escape(self.get("source_url", ""))}">'
-                + f'<img src="{self.get("thumbnail", url.replace("/media/", "/thumbnail/"))}" alt="{html.escape(self.alt)}" width="{html.escape(str(self.get("thumbnail_width", "")))}" height="{html.escape(str(self.get("thumbnail_height", "")))}"></a>'
-                for url in self.get_list()
-            ])
+            return "\n".join(
+                [
+                    f'<a href="{html.escape(url)}" data-src="{self.get("image", url)}" data-width="{self.get("width")}" data-height="{self.get("height")}" data-source="{html.escape(self.get("source_url", ""))}">'
+                    + f'<img src="{self.get("thumbnail", url.replace("/media/", "/thumbnail/"))}" alt="{html.escape(self.alt)}" width="{html.escape(str(self.get("thumbnail_width", "")))}" height="{html.escape(str(self.get("thumbnail_height", "")))}"></a>'
+                    for url in self.get_list()
+                ]
+            )
         return format_images_markdown(self.urls, self.alt, self.get("preview"))
+
 
 class VideoResponse(MediaResponse):
     def __str__(self) -> str:
@@ -450,12 +519,18 @@ class VideoResponse(MediaResponse):
                 image = self.get("preview")
                 if isinstance(image, list) and len(image) > idx:
                     image = image[idx]
-                result.append(f'<video src="{quote_url(video)}" poster="{quote_url(image)}"></video>')
+                result.append(
+                    f'<video src="{quote_url(video)}" poster="{quote_url(image)}"></video>'
+                )
             return "\n".join(result)
-        return "\n".join([f'<video src="{quote_url(video)}"></video>' for video in self.get_list()])
+        return "\n".join(
+            [f'<video src="{quote_url(video)}"></video>' for video in self.get_list()]
+        )
+
 
 class ImagePreview(HiddenResponse, ImageResponse):
     pass
+
 
 class PreviewResponse(HiddenResponse):
     def __init__(self, data: str) -> None:
@@ -464,12 +539,18 @@ class PreviewResponse(HiddenResponse):
 
     def to_string(self) -> str:
         """Return data as a string."""
-        return "".join([str(item) for item in self.data]) if isinstance(self.data, list) else str(self.data)
+        return (
+            "".join([str(item) for item in self.data])
+            if isinstance(self.data, list)
+            else str(self.data)
+        )
+
 
 class Parameters(ResponseType, JsonMixin):
     def __str__(self) -> str:
         """Return an empty string."""
         return ""
+
 
 class ProviderInfo(HiddenResponse, JsonMixin):
     pass

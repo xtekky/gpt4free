@@ -67,57 +67,72 @@ from ..cookies import BrowserConfig
 
 logger = logging.getLogger(__name__)
 
+
 def find_chrome_path() -> Optional[str]:
     """Search for Google Chrome or Chromium binary depending on OS."""
     try:
         from g4f.cookies import BrowserConfig
-        if BrowserConfig.executable_path and os.path.exists(BrowserConfig.executable_path):
+
+        if BrowserConfig.executable_path and os.path.exists(
+            BrowserConfig.executable_path
+        ):
             return BrowserConfig.executable_path
     except ImportError:
         pass
 
-    for name in ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'chrome', 'msedge', 'helium']:
+    for name in [
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+        "chrome",
+        "msedge",
+        "helium",
+    ]:
         path = shutil.which(name)
         if path:
             return path
-            
+
     sys_name = platform.system().lower()
-    if sys_name == 'linux':
+    if sys_name == "linux":
         for path in [
-            '/usr/bin/google-chrome', 
-            '/opt/google/chrome/google-chrome', 
-            '/usr/bin/chromium-browser',
-            '/usr/bin/microsoft-edge',
-            '/opt/helium/helium'
+            "/usr/bin/google-chrome",
+            "/opt/google/chrome/google-chrome",
+            "/usr/bin/chromium-browser",
+            "/usr/bin/microsoft-edge",
+            "/opt/helium/helium",
         ]:
             if os.path.exists(path):
                 return path
-    elif sys_name in ('macos', 'darwin'):
+    elif sys_name in ("macos", "darwin"):
         for path in [
-            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-            '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
         ]:
             if os.path.exists(path):
                 return path
-    elif sys_name == 'windows':
+    elif sys_name == "windows":
         paths = [
             r"C:\Program Files\Google\Chrome\Application\chrome.exe",
             r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
             r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Helium\Application\helium.exe",
             r"C:\Program Files (x86)\Helium\Application\helium.exe",
-            r"C:\Program Files\Helium\helium.exe"
+            r"C:\Program Files\Helium\helium.exe",
         ]
         for path in paths:
             if os.path.exists(path):
                 return path
     return None
+
+
 import threading
 import atexit
 
 _shared_browser_process = None
 _shared_browser_port = None
 _shared_browser_lock = threading.Lock()
+
 
 def _cleanup_shared_browser():
     global _shared_browser_process
@@ -128,23 +143,31 @@ def _cleanup_shared_browser():
             pass
         _shared_browser_process = None
 
+
 atexit.register(_cleanup_shared_browser)
+
 
 def find_running_cdp_port(host: str) -> Optional[int]:
     """Scan running processes for an active Chrome/Helium instance with remote debugging enabled."""
     try:
         import psutil
-        for proc in psutil.process_iter(['name', 'cmdline']):
+
+        for proc in psutil.process_iter(["name", "cmdline"]):
             try:
-                cmdline = proc.info.get('cmdline') or []
-                proc_name = (proc.info.get('name') or '').lower()
-                if any(n in proc_name for n in ('chrome', 'chromium', 'edge', 'helium', 'app')):
+                cmdline = proc.info.get("cmdline") or []
+                proc_name = (proc.info.get("name") or "").lower()
+                if any(
+                    n in proc_name
+                    for n in ("chrome", "chromium", "edge", "helium", "app")
+                ):
                     for arg in cmdline:
-                        if arg.startswith('--remote-debugging-port='):
+                        if arg.startswith("--remote-debugging-port="):
                             try:
-                                port = int(arg.split('=')[1])
+                                port = int(arg.split("=")[1])
                                 # Verify if it's reachable and working
-                                with urllib.request.urlopen(f"http://{host}:{port}/json", timeout=0.5) as response:
+                                with urllib.request.urlopen(
+                                    f"http://{host}:{port}/json", timeout=0.5
+                                ) as response:
                                     if response.status == 200:
                                         return port
                             except Exception:
@@ -155,17 +178,20 @@ def find_running_cdp_port(host: str) -> Optional[int]:
         pass
     return None
 
+
 def get_shared_browser(host: str, preferred_port: int, headless: bool = True) -> int:
     """
     Ensure a single shared browser instance is running and return its port.
     If a browser is already running anywhere on the system, we use it directly.
     """
     global _shared_browser_process, _shared_browser_port
-    
+
     with _shared_browser_lock:
         if preferred_port is not None:
             try:
-                with urllib.request.urlopen(f"http://{host}:{preferred_port}/json", timeout=0.5) as response:
+                with urllib.request.urlopen(
+                    f"http://{host}:{preferred_port}/json", timeout=0.5
+                ) as response:
                     if response.status == 200:
                         return preferred_port
             except Exception:
@@ -173,7 +199,9 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
         # 1. If we already started a shared browser in this thread, check if it's still alive/reachable
         if _shared_browser_port is not None:
             try:
-                with urllib.request.urlopen(f"http://{host}:{_shared_browser_port}/json", timeout=0.5) as response:
+                with urllib.request.urlopen(
+                    f"http://{host}:{_shared_browser_port}/json", timeout=0.5
+                ) as response:
                     if response.status == 200:
                         return _shared_browser_port
             except Exception:
@@ -199,17 +227,22 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
 
         # Find a free port dynamically
         import socket
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('', 0))
+            s.bind(("", 0))
             port = s.getsockname()[1]
 
         # Use standard user config directory for profile caching (like other g4f browsers)
         try:
             from platformdirs import user_config_dir
+
             user_data_dir = user_config_dir("g4f-cdp")
         except ImportError:
             import tempfile
-            user_data_dir = os.path.join(tempfile.gettempdir(), "g4f_chrome_profile_cdp")
+
+            user_data_dir = os.path.join(
+                tempfile.gettempdir(), "g4f_chrome_profile_cdp"
+            )
         os.makedirs(user_data_dir, exist_ok=True)
 
         cmd = [
@@ -225,18 +258,22 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
             "--hide-crash-restore-bubble",
             "--disable-features=PrivacySandboxSettings4",
             "--disable-blink-features=AutomationControlled",
-            "--remote-allow-origins=*"
+            "--remote-allow-origins=*",
         ]
         if headless:
             cmd.append("--headless=new")
-        
-        _shared_browser_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
+
+        _shared_browser_process = subprocess.Popen(
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+
         # Wait up to 20 seconds for readiness
         for _ in range(40):
             time.sleep(0.5)
             try:
-                with urllib.request.urlopen(f"http://{host}:{port}/json", timeout=1) as response:
+                with urllib.request.urlopen(
+                    f"http://{host}:{port}/json", timeout=1
+                ) as response:
                     if response.status == 200:
                         _shared_browser_port = port
                         return _shared_browser_port
@@ -251,18 +288,27 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
             _shared_browser_process = None
         raise RuntimeError(f"Failed to start shared Chrome on port {port}")
 
+
 class CDPSession:
-    def __init__(self, port: Optional[int] = None, host: Optional[str] = None, user_data_dir: Optional[str] = None, headless: bool = True):
+    def __init__(
+        self,
+        port: Optional[int] = None,
+        host: Optional[str] = None,
+        user_data_dir: Optional[str] = None,
+        headless: bool = True,
+    ):
         if port is None:
             port = BrowserConfig.port
         if host is None:
             host = BrowserConfig.host
         if host is None:
-            host = '127.0.0.1'
+            host = "127.0.0.1"
         self.port = port
         self.host = host
         self.headless = headless
-        self.user_data_dir = user_data_dir  # Ignored if using shared pool, but kept for compatibility
+        self.user_data_dir = (
+            user_data_dir  # Ignored if using shared pool, but kept for compatibility
+        )
         self.process = None
         self.ws = None
         self.session = None
@@ -273,7 +319,7 @@ class CDPSession:
         self._event_handlers: Dict[str, List[asyncio.Future]] = {}
         self._event_queues: Dict[str, List[asyncio.Queue]] = {}
         self._closing = False
-        
+
         # Network event loggers
         self.network_requests: List[dict] = []
         self.network_responses: List[dict] = []
@@ -282,24 +328,26 @@ class CDPSession:
         """Launch/get shared Chrome and connect via CDP targeting a new tab."""
         if self.port is None:
             self.port = get_shared_browser(self.host, self.port, self.headless)
-        
+
         # Create a new tab target
         ws_url = None
         for _ in range(10):
             try:
-                req = urllib.request.Request(f"http://{self.host}:{self.port}/json/new", method="PUT")
+                req = urllib.request.Request(
+                    f"http://{self.host}:{self.port}/json/new", method="PUT"
+                )
                 with urllib.request.urlopen(req, timeout=2) as response:
-                    target = json.loads(response.read().decode('utf-8'))
-                    ws_url = target.get('webSocketDebuggerUrl')
-                    self.target_id = target.get('id')
+                    target = json.loads(response.read().decode("utf-8"))
+                    ws_url = target.get("webSocketDebuggerUrl")
+                    self.target_id = target.get("id")
                     if ws_url:
                         break
             except Exception:
                 await asyncio.sleep(0.5)
-                
+
         if not ws_url:
             raise RuntimeError(f"Failed to create new tab target on port {self.port}")
-            
+
         await self.connect(ws_url)
 
     async def connect(self, ws_url: str):
@@ -307,23 +355,23 @@ class CDPSession:
         self.session = aiohttp.ClientSession()
         self.ws = await self.session.ws_connect(ws_url)
         self._closing = False
-        
+
         # Start receiver loop
         self._receive_task = asyncio.create_task(self._receiver_loop())
-        
+
         # Enable essential domains
         await self.call("Page.enable")
         await self.call("DOM.enable")
         await self.call("Runtime.enable")
         await self.call("Network.enable")
         await self.call("Emulation.setFocusEmulationEnabled", enabled=True)
-        
+
         # Anti-detect: Override User-Agent to remove "HeadlessChrome"
         user_agent = await self.evaluate_js("navigator.userAgent")
         if user_agent and "HeadlessChrome" in user_agent:
             clean_ua = user_agent.replace("HeadlessChrome", "Chrome")
             await self.call("Network.setUserAgentOverride", userAgent=clean_ua)
-            
+
         # Anti-detect: Inject Stealth Script
         stealth_js = """
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -338,14 +386,14 @@ class CDPSession:
         };
         """
         await self.call("Page.addScriptToEvaluateOnNewDocument", source=stealth_js)
-        
+
     async def _receiver_loop(self):
         """Listen for WebSocket messages."""
         try:
             async for msg in self.ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
-                    
+
                     if "id" in data:
                         req_id = data["id"]
                         if req_id in self._pending_requests:
@@ -358,20 +406,20 @@ class CDPSession:
                     elif "method" in data:
                         method = data["method"]
                         params = data.get("params", {})
-                        
+
                         # Intercept network events
                         if method == "Network.requestWillBeSent":
                             self.network_requests.append(params)
                         elif method == "Network.responseReceived":
                             self.network_responses.append(params)
-                            
+
                         # Resolve any futures waiting for this event
                         if method in self._event_handlers:
                             for fut in self._event_handlers[method]:
                                 if not fut.done():
                                     fut.set_result(params)
                             self._event_handlers[method].clear()
-                            
+
                         if method in self._event_queues:
                             for q in self._event_queues[method]:
                                 q.put_nowait(params)
@@ -383,20 +431,16 @@ class CDPSession:
         """Call a CDP method and wait for its result."""
         if not self.ws:
             raise RuntimeError("CDPSession is not connected")
-            
+
         self.id_counter += 1
         req_id = self.id_counter
-        
+
         fut = asyncio.get_running_loop().create_future()
         self._pending_requests[req_id] = fut
-        
-        payload = {
-            "id": req_id,
-            "method": method,
-            "params": params
-        }
+
+        payload = {"id": req_id, "method": method, "params": params}
         await self.ws.send_json(payload)
-        
+
         try:
             return await asyncio.wait_for(fut, timeout=30.0)
         except asyncio.TimeoutError:
@@ -410,19 +454,19 @@ class CDPSession:
         if method not in self._event_handlers:
             self._event_handlers[method] = []
         self._event_handlers[method].append(fut)
-        
+
         try:
             return await asyncio.wait_for(fut, timeout=timeout)
         except asyncio.TimeoutError:
             self._event_handlers[method].remove(fut)
             raise TimeoutError(f"Timeout waiting for event {method}")
- 
+
     def add_event_handler(self, method: str, queue: asyncio.Queue):
         """Add a persistent event listener that pushes events to an asyncio.Queue."""
         if method not in self._event_queues:
             self._event_queues[method] = []
         self._event_queues[method].append(queue)
-        
+
     def remove_event_handler(self, method: str, queue: asyncio.Queue):
         """Remove a persistent event listener."""
         if method in self._event_queues and queue in self._event_queues[method]:
@@ -430,7 +474,9 @@ class CDPSession:
 
     async def evaluate_js(self, expression: str) -> Any:
         """Execute JavaScript and return the value."""
-        res = await self.call("Runtime.evaluate", expression=expression, returnByValue=True)
+        res = await self.call(
+            "Runtime.evaluate", expression=expression, returnByValue=True
+        )
         return res.get("result", {}).get("value")
 
     async def get_cookies(self) -> dict:
@@ -457,7 +503,7 @@ class CDPSession:
                 "secure": cookie.get("secure"),
                 "httpOnly": cookie.get("httpOnly"),
                 "sameSite": cookie.get("sameSite"),
-                "expires": cookie.get("expires")
+                "expires": cookie.get("expires"),
             }
             params = {k: v for k, v in params.items() if v is not None}
             if "domain" not in params and "url" not in params:
@@ -474,15 +520,17 @@ class CDPSession:
         if "Page.loadEventFired" not in self._event_handlers:
             self._event_handlers["Page.loadEventFired"] = []
         self._event_handlers["Page.loadEventFired"].append(fut)
-        
+
         await self.call("Page.navigate", url=url)
-        
+
         try:
             await asyncio.wait_for(fut, timeout=30.0)
         except asyncio.TimeoutError:
             if fut in self._event_handlers.get("Page.loadEventFired", []):
                 self._event_handlers["Page.loadEventFired"].remove(fut)
-            logger.warning(f"Timeout waiting for Page.loadEventFired when navigating to {url}")
+            logger.warning(
+                f"Timeout waiting for Page.loadEventFired when navigating to {url}"
+            )
 
     async def mouse_move(self, x: int, y: int):
         """Simulate a mouse movement to the given coordinates."""
@@ -492,9 +540,23 @@ class CDPSession:
         """Simulate a realistic mouse click at the given coordinates."""
         await self.mouse_move(x, y)
         await asyncio.sleep(0.02)
-        await self.call("Input.dispatchMouseEvent", type="mousePressed", button="left", clickCount=1, x=x, y=y)
+        await self.call(
+            "Input.dispatchMouseEvent",
+            type="mousePressed",
+            button="left",
+            clickCount=1,
+            x=x,
+            y=y,
+        )
         await asyncio.sleep(delay)
-        await self.call("Input.dispatchMouseEvent", type="mouseReleased", button="left", clickCount=1, x=x, y=y)
+        await self.call(
+            "Input.dispatchMouseEvent",
+            type="mouseReleased",
+            button="left",
+            clickCount=1,
+            x=x,
+            y=y,
+        )
 
     async def click_turnstile_checkbox(self) -> bool:
         """Find the Cloudflare Turnstile iframe on the page and click its center."""
@@ -521,11 +583,11 @@ class CDPSession:
         """
         try:
             rect = await self.evaluate_js(js_code)
-            if rect and isinstance(rect, dict) and rect.get('width', 0) > 0:
+            if rect and isinstance(rect, dict) and rect.get("width", 0) > 0:
                 # Center of the Turnstile checkbox (usually left aligned in the iframe)
-                center_x = int(rect['x'] + rect['width'] / 4)
-                center_y = int(rect['y'] + rect['height'] / 2)
-                
+                center_x = int(rect["x"] + rect["width"] / 4)
+                center_y = int(rect["y"] + rect["height"] / 2)
+
                 await self.click(center_x, center_y)
                 return True
         except Exception as e:
@@ -535,35 +597,36 @@ class CDPSession:
     async def bypass_turnstile(self):
         """Execute a sequence of anti-detect actions to bypass Cloudflare Turnstile."""
         import random
+
         # 1. Force the tab to be active
         if self.target_id:
             try:
                 await self.call("Target.activateTarget", targetId=self.target_id)
             except Exception:
                 pass
-                
+
         # 2. Simulate realistic mouse movements
         start_x, start_y = random.randint(10, 50), random.randint(10, 50)
         end_x, end_y = random.randint(300, 600), random.randint(200, 500)
-        
+
         steps = 5
         for i in range(steps):
             x = start_x + (end_x - start_x) * (i / steps) + random.randint(-5, 5)
             y = start_y + (end_y - start_y) * (i / steps) + random.randint(-5, 5)
             await self.mouse_move(int(x), int(y))
             await asyncio.sleep(random.uniform(0.05, 0.1))
-            
+
         # 3. Try to click the specific Cloudflare Turnstile checkbox
         clicked_cf = await self.click_turnstile_checkbox()
-        
+
         # 4. If Cloudflare iframe not found, click randomly to gain focus
         if not clicked_cf:
             await self.click(end_x, end_y)
-            
+
         # 5. Scroll down slightly
         await self.evaluate_js(f"window.scrollBy(0, {random.randint(100, 300)})")
         await asyncio.sleep(0.2)
-        
+
         # 6. Temporarily disable Network and Runtime interception to hide debugger overhead
         try:
             await self.call("Network.disable")
@@ -576,29 +639,30 @@ class CDPSession:
     async def close(self):
         """Close WebSocket session and close the specific target tab."""
         self._closing = True
-        
+
         if self._receive_task:
             self._receive_task.cancel()
-            
+
         if self.ws:
             try:
                 await self.ws.close()
             except Exception:
                 pass
             self.ws = None
-            
+
         if self.session:
             await self.session.close()
             self.session = None
-            
+
         if self.target_id and self.port:
             try:
-                urllib.request.urlopen(f"http://{self.host}:{self.port}/json/close/{self.target_id}", timeout=2)
+                urllib.request.urlopen(
+                    f"http://{self.host}:{self.port}/json/close/{self.target_id}",
+                    timeout=2,
+                )
             except Exception:
                 pass
             self.target_id = None
-
-
 
 
 class SyncCDPSession:
@@ -626,22 +690,30 @@ class SyncCDPSession:
         result = await asyncio.get_event_loop().run_in_executor(None, run_sync)
     """
 
-    def __init__(self, port: Optional[int] = None, host: Optional[str] = None, user_data_dir: Optional[str] = None, headless: bool = False):
+    def __init__(
+        self,
+        port: Optional[int] = None,
+        host: Optional[str] = None,
+        user_data_dir: Optional[str] = None,
+        headless: bool = False,
+    ):
         if port is None:
             port = BrowserConfig.port
         if host is None:
             host = BrowserConfig.host
         if host is None:
-            host = '127.0.0.1'
+            host = "127.0.0.1"
         self.port = port
         self.host = host
         self.headless = headless
-        self.user_data_dir = user_data_dir  # Ignored if using shared pool, but kept for compatibility
+        self.user_data_dir = (
+            user_data_dir  # Ignored if using shared pool, but kept for compatibility
+        )
         self.process = None
         self.ws = None
         self.target_id = None
         self.id_counter = 0
-        
+
         # Network event loggers
         self.network_requests: List[dict] = []
         self.network_responses: List[dict] = []
@@ -650,24 +722,26 @@ class SyncCDPSession:
         """Launch/get shared Chrome and connect via CDP targeting a new tab."""
         if self.port is None:
             self.port = get_shared_browser(self.host, self.port, self.headless)
-        
+
         # Create a new tab target
         ws_url = None
         for _ in range(10):
             try:
-                req = urllib.request.Request(f"http://{self.host}:{self.port}/json/new", method="PUT")
+                req = urllib.request.Request(
+                    f"http://{self.host}:{self.port}/json/new", method="PUT"
+                )
                 with urllib.request.urlopen(req, timeout=2) as response:
-                    target = json.loads(response.read().decode('utf-8'))
-                    ws_url = target.get('webSocketDebuggerUrl')
-                    self.target_id = target.get('id')
+                    target = json.loads(response.read().decode("utf-8"))
+                    ws_url = target.get("webSocketDebuggerUrl")
+                    self.target_id = target.get("id")
                     if ws_url:
                         break
             except Exception:
                 time.sleep(0.5)
-                
+
         if not ws_url:
             raise RuntimeError(f"Failed to create new tab target on port {self.port}")
-            
+
         self._connect(ws_url)
 
     def _connect(self, ws_url: str):
@@ -675,7 +749,9 @@ class SyncCDPSession:
         try:
             from websocket import create_connection
         except ImportError:
-            raise ImportError('Install "websocket-client" package: pip install websocket-client')
+            raise ImportError(
+                'Install "websocket-client" package: pip install websocket-client'
+            )
 
         self.ws = create_connection(ws_url)
         self.ws.settimeout(60)  # Prevent infinite hang if Chrome crashes mid-call
@@ -699,7 +775,9 @@ class SyncCDPSession:
             if "id" in response:
                 if response.get("id") == self.id_counter:
                     if "error" in response:
-                        raise RuntimeError(f"CDP error in {method}: {response['error']}")
+                        raise RuntimeError(
+                            f"CDP error in {method}: {response['error']}"
+                        )
                     return response.get("result", {})
             else:
                 # Event
@@ -739,7 +817,7 @@ class SyncCDPSession:
                 "secure": cookie.get("secure"),
                 "httpOnly": cookie.get("httpOnly"),
                 "sameSite": cookie.get("sameSite"),
-                "expires": cookie.get("expires")
+                "expires": cookie.get("expires"),
             }
             params = {k: v for k, v in params.items() if v is not None}
             if "domain" not in params and "url" not in params:
@@ -759,12 +837,22 @@ class SyncCDPSession:
         is present. This significantly speeds up Turnstile token generation.
         Call this once after navigate(), before polling for the token.
         """
-        self.call("Input.dispatchMouseEvent",
-                  type="mousePressed", x=x, y=y,
-                  button="left", clickCount=1)
-        self.call("Input.dispatchMouseEvent",
-                  type="mouseReleased", x=x, y=y,
-                  button="left", clickCount=1)
+        self.call(
+            "Input.dispatchMouseEvent",
+            type="mousePressed",
+            x=x,
+            y=y,
+            button="left",
+            clickCount=1,
+        )
+        self.call(
+            "Input.dispatchMouseEvent",
+            type="mouseReleased",
+            x=x,
+            y=y,
+            button="left",
+            clickCount=1,
+        )
 
     def close(self):
         """Close WebSocket session and close the specific target tab."""
@@ -777,8 +865,10 @@ class SyncCDPSession:
 
         if self.target_id and self.port:
             try:
-                urllib.request.urlopen(f"http://{self.host}:{self.port}/json/close/{self.target_id}", timeout=2)
+                urllib.request.urlopen(
+                    f"http://{self.host}:{self.port}/json/close/{self.target_id}",
+                    timeout=2,
+                )
             except Exception:
                 pass
             self.target_id = None
-

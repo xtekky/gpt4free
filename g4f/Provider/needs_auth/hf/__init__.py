@@ -4,6 +4,7 @@ from ...template.OpenaiTemplate import OpenaiTemplate
 from .HuggingFaceMedia import HuggingFaceMedia
 from .HuggingChat import HuggingChat
 
+
 class HuggingFace(OpenaiTemplate):
     url = "https://huggingface.co"
     base_url = "https://router.huggingface.co/v1"

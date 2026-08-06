@@ -1,4 +1,3 @@
-
 import sys, re
 from pathlib import Path
 from os import path
@@ -7,16 +6,20 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 # Enable logging
 import g4f
+
 g4f.debug.logging = True
 
 # Read auth files
 from g4f.cookies import read_cookie_files
+
 read_cookie_files()
+
 
 def read_code(text):
     if match := re.search(r"```(python|py|)\n(?P<code>[\S\s]+?)\n```", text):
         return match.group("code")
     return text
+
 
 def input_command():
     print("Enter/Paste the cURL command. Ctrl-D or Ctrl-Z ( windows ) to save it.")
@@ -28,6 +31,7 @@ def input_command():
             break
         contents.append(line)
     return "\n".join(contents)
+
 
 name = input("Name: ")
 provider_path = f"g4f/Provider/{name}.py"

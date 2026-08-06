@@ -8,6 +8,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .bing.create_images import create_images, create_session
 from ..helper import format_media_prompt
 
+
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer in Bing"
     url = "https://www.bing.com/images/create"
@@ -16,7 +17,9 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = ["dall-e-3"]
     models = image_models
 
-    def __init__(self, cookies: Cookies = None, proxy: str = None, api_key: str = None) -> None:
+    def __init__(
+        self, cookies: Cookies = None, proxy: str = None, api_key: str = None
+    ) -> None:
         if api_key is not None:
             if cookies is None:
                 cookies = {}
@@ -33,7 +36,7 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str = None,
         cookies: Cookies = None,
         proxy: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         session = BingCreateImages(cookies, proxy, api_key)
         yield await session.generate(format_media_prompt(messages, prompt))
@@ -53,4 +56,8 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingAuthError('Missing "_U" cookie')
         async with create_session(cookies, self.proxy) as session:
             images = await create_images(session, prompt)
-            return ImageResponse(images, prompt, {"preview": "{image}?w=200&h=200"} if len(images) > 1 else {})
+            return ImageResponse(
+                images,
+                prompt,
+                {"preview": "{image}?w=200&h=200"} if len(images) > 1 else {},
+            )

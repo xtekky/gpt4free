@@ -18,7 +18,15 @@ from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
 from ..Provider import PollinationsImage
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
-from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel, ClientResponse
+from .stubs import (
+    ChatCompletion,
+    ChatCompletionChunk,
+    Image,
+    ImagesResponse,
+    UsageModel,
+    ToolCallModel,
+    ClientResponse,
+)
 from .models import ClientModels
 from .types import IterResponse, Client as BaseClient
 from .factory import AbstractClientFactory, create_custom_provider
@@ -26,17 +34,23 @@ from .service import convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose
 from .. import debug
 
-ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
-AsyncChatCompletionResponseType = AsyncIterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
+ChatCompletionResponseType = Iterator[
+    Union[ChatCompletion, ChatCompletionChunk, BaseConversation]
+]
+AsyncChatCompletionResponseType = AsyncIterator[
+    Union[ChatCompletion, ChatCompletionChunk, BaseConversation]
+]
 
 try:
-    anext # Python 3.8+
+    anext  # Python 3.8+
 except NameError:
+
     async def anext(aiter):
         try:
             return await aiter.__anext__()
         except StopAsyncIteration:
             raise StopIteration
+
 
 def add_chunk(content, chunk):
     if content == "" and isinstance(chunk, (MediaResponse, AudioResponse)):
@@ -45,7 +59,8 @@ def add_chunk(content, chunk):
         content = str(content) + str(chunk)
     return content
 
-def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
+
+def resolve_media(kwargs: dict, image=None, image_name: str = None) -> None:
     if image is not None:
         kwargs["media"] = [(image, getattr(image, "name", image_name))]
     elif "images" in kwargs:
@@ -58,10 +73,12 @@ def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
         if not isinstance(media, (list, tuple)):
             kwargs["media"][idx] = (media, getattr(media, "name", None))
 
+
 def get_name(provider: Union[ProviderType, str]) -> str:
     if isinstance(provider, str):
         return provider
     return getattr(provider, "__name__", type(provider).__name__)
+
 
 # Synchronous iter_response function
 def iter_response(
@@ -70,7 +87,7 @@ def iter_response(
     response_format: Optional[dict] = None,
     max_tokens: Optional[int] = None,
     stop: Optional[list[str]] = None,
-    provider_info: Optional[ProviderInfo] = None
+    provider_info: Optional[ProviderInfo] = None,
 ) -> ChatCompletionResponseType:
     content = ""
     reasoning = []
@@ -79,11 +96,11 @@ def iter_response(
     usage = None
     provider_info: ProviderInfo = None
     conversation: JsonConversation = None
-    completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
+    completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
     headers = None
 
-    if hasattr(response, '__aiter__'):
+    if hasattr(response, "__aiter__"):
         response = to_sync_generator(response)
 
     for chunk in response:
@@ -125,7 +142,9 @@ def iter_response(
             finish_reason = "stop"
 
         if stream:
-            chunk = ChatCompletionChunk.model_construct(chunk, None, completion_id, int(time.time()))
+            chunk = ChatCompletionChunk.model_construct(
+                chunk, None, completion_id, int(time.time())
+            )
             if provider_info is not None:
                 chunk.provider = provider_info.name
                 chunk.model = provider_info.model
@@ -141,7 +160,11 @@ def iter_response(
     else:
         usage = UsageModel.model_construct(**usage.get_dict())
 
-    finish_reason = "tool_calls" if tool_calls else ("stop" if finish_reason is None else finish_reason)
+    finish_reason = (
+        "tool_calls"
+        if tool_calls
+        else ("stop" if finish_reason is None else finish_reason)
+    )
 
     if stream:
         chat_completion = ChatCompletionChunk.model_construct(
@@ -152,12 +175,23 @@ def iter_response(
             if response_format["type"] == "json_object":
                 content = filter_json(content)
         chat_completion = ChatCompletion.model_construct(
-            content, finish_reason, completion_id, int(time.time()), usage=usage,
-            **(filter_none(
-                tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
-            ) if tool_calls is not None else {}),
+            content,
+            finish_reason,
+            completion_id,
+            int(time.time()),
+            usage=usage,
+            **(
+                filter_none(
+                    tool_calls=[
+                        ToolCallModel.model_construct(**tool_call)
+                        for tool_call in tool_calls
+                    ]
+                )
+                if tool_calls is not None
+                else {}
+            ),
             conversation=None if conversation is None else conversation.get_dict(),
-            reasoning=reasoning if reasoning else None
+            reasoning=reasoning if reasoning else None,
         )
     if provider_info is not None:
         chat_completion.provider = provider_info.name
@@ -166,18 +200,19 @@ def iter_response(
         chat_completion._headers = headers
     yield chat_completion
 
+
 async def async_iter_response(
     response: AsyncIterator[Union[str, ResponseType]],
     stream: bool,
     response_format: Optional[dict] = None,
     max_tokens: Optional[int] = None,
     stop: Optional[list[str]] = None,
-    provider_info: Optional[ProviderInfo] = None
+    provider_info: Optional[ProviderInfo] = None,
 ) -> AsyncChatCompletionResponseType:
     content = ""
     reasoning = []
     finish_reason = None
-    completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
+    completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
     tool_calls = None
     usage = None
@@ -207,7 +242,9 @@ async def async_iter_response(
             elif isinstance(chunk, HeadersResponse):
                 headers = chunk
                 continue
-            elif isinstance(chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)):
+            elif isinstance(
+                chunk, (HiddenResponse, Exception, JsonRequest, JsonResponse)
+            ):
                 continue
             elif not chunk:
                 continue
@@ -224,7 +261,9 @@ async def async_iter_response(
                 finish_reason = "stop"
 
             if stream:
-                chunk = ChatCompletionChunk.model_construct(chunk, None, completion_id, int(time.time()))
+                chunk = ChatCompletionChunk.model_construct(
+                    chunk, None, completion_id, int(time.time())
+                )
                 if provider_info is not None:
                     chunk.provider = provider_info.name
                     chunk.model = provider_info.model
@@ -235,7 +274,11 @@ async def async_iter_response(
             if finish_reason is not None:
                 break
 
-        finish_reason = "tool_calls" if tool_calls else ("stop" if finish_reason is None else finish_reason)
+        finish_reason = (
+            "tool_calls"
+            if tool_calls
+            else ("stop" if finish_reason is None else finish_reason)
+        )
 
         if usage is None:
             usage = UsageModel.model_construct(completion_tokens=idx, total_tokens=idx)
@@ -244,19 +287,35 @@ async def async_iter_response(
 
         if stream:
             chat_completion = ChatCompletionChunk.model_construct(
-                None, finish_reason, completion_id, int(time.time()), usage=usage, conversation=conversation
+                None,
+                finish_reason,
+                completion_id,
+                int(time.time()),
+                usage=usage,
+                conversation=conversation,
             )
         else:
             if response_format is not None and "type" in response_format:
                 if response_format["type"] == "json_object":
                     content = filter_json(content)
             chat_completion = ChatCompletion.model_construct(
-                content, finish_reason, completion_id, int(time.time()), usage=usage,
-                **(filter_none(
-                    tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
-                ) if tool_calls else {}),
+                content,
+                finish_reason,
+                completion_id,
+                int(time.time()),
+                usage=usage,
+                **(
+                    filter_none(
+                        tool_calls=[
+                            ToolCallModel.model_construct(**tool_call)
+                            for tool_call in tool_calls
+                        ]
+                    )
+                    if tool_calls
+                    else {}
+                ),
                 conversation=conversation,
-                reasoning=reasoning if reasoning else None
+                reasoning=reasoning if reasoning else None,
             )
         if headers is not None:
             chat_completion._headers = headers
@@ -267,22 +326,26 @@ async def async_iter_response(
     finally:
         await safe_aclose(response)
 
+
 class Client(BaseClient):
     def __init__(
         self,
         provider: Optional[ProviderType] = None,
         media_provider: Optional[ProviderType] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         if self.base_url and provider is None:
-            provider = create_custom_provider(base_url=self.base_url, api_key=self.api_key)
+            provider = create_custom_provider(
+                base_url=self.base_url, api_key=self.api_key
+            )
         self.chat: Chat = Chat(self, provider)
         if media_provider is None:
             media_provider = kwargs.get("image_provider", provider)
         self.models: ClientModels = ClientModels(self, provider, media_provider)
         self.images: Images = Images(self, media_provider)
         self.media: Images = self.images
+
 
 class Completions:
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
@@ -303,7 +366,7 @@ class Completions:
         stop: Optional[Union[list[str], str]] = None,
         ignore_stream: Optional[bool] = False,
         raw: Optional[bool] = False,
-        **kwargs
+        **kwargs,
     ) -> ChatCompletion:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
@@ -314,6 +377,7 @@ class Completions:
             provider = self.provider
             if provider is None:
                 from ..providers.any_provider import AnyProvider
+
                 provider = AnyProvider
         if isinstance(provider, str):
             provider = convert_to_provider(provider)
@@ -331,17 +395,20 @@ class Completions:
                 max_tokens=max_tokens,
                 stop=stop,
                 api_key=self.client.api_key,
-                base_url=self.client.base_url
+                base_url=self.client.base_url,
             ),
-            **kwargs
+            **kwargs,
         )
 
         provider_info = ProviderInfo(**provider.get_dict(), model=model)
 
         def fallback(response):
-            return iter_response(response, stream, response_format, max_tokens, stop, provider_info)
+            return iter_response(
+                response, stream, response_format, max_tokens, stop, provider_info
+            )
 
         if raw:
+
             def raw_response(response):
                 chunks = []
                 started = False
@@ -354,6 +421,7 @@ class Completions:
                 if not started:
                     for chunk in fallback(chunks):
                         yield chunk
+
             if stream:
                 return raw_response(response)
             return next(raw_response(response))
@@ -361,19 +429,16 @@ class Completions:
             return fallback(response)
         return next(fallback(response))
 
-    def stream(
-        self,
-        messages: Messages,
-        model: str = "",
-        **kwargs
-    ) -> IterResponse:
+    def stream(self, messages: Messages, model: str = "", **kwargs) -> IterResponse:
         return self.create(messages, model, stream=True, **kwargs)
+
 
 class Chat:
     completions: Completions
 
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
         self.completions = Completions(client, provider)
+
 
 class Images:
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
@@ -387,14 +452,23 @@ class Images:
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
         proxy: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ImagesResponse:
         """
         Synchronous generate method that runs the async_generate method in an event loop.
         """
-        return asyncio.run(self.async_generate(prompt, model, provider, response_format, proxy, **kwargs))
+        return asyncio.run(
+            self.async_generate(
+                prompt, model, provider, response_format, proxy, **kwargs
+            )
+        )
 
-    async def get_provider_handler(self, model: Optional[str], provider: Optional[ProviderType], default: ProviderType) -> ProviderType:
+    async def get_provider_handler(
+        self,
+        model: Optional[str],
+        provider: Optional[ProviderType],
+        default: ProviderType,
+    ) -> ProviderType:
         if provider is None:
             provider_handler = self.provider
             if provider_handler is None:
@@ -413,9 +487,11 @@ class Images:
         response_format: Optional[str] = None,
         proxy: Optional[str] = None,
         api_key: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ImagesResponse:
-        provider_handler = await self.get_provider_handler(model, provider, PollinationsImage)
+        provider_handler = await self.get_provider_handler(
+            model, provider, PollinationsImage
+        )
         provider_name = get_name(provider_handler)
         if proxy is None:
             proxy = self.client.proxy
@@ -426,7 +502,15 @@ class Images:
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.get_providers():
                 try:
-                    response = await self._generate_image_response(provider, get_name(provider), model, prompt, proxy=proxy, api_key=api_key, **kwargs)
+                    response = await self._generate_image_response(
+                        provider,
+                        get_name(provider),
+                        model,
+                        prompt,
+                        proxy=proxy,
+                        api_key=api_key,
+                        **kwargs,
+                    )
                     if response is not None:
                         provider_name = get_name(provider)
                         break
@@ -434,7 +518,15 @@ class Images:
                     error = e
                     debug.error(f"{get_name(provider)}:", e)
         else:
-            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
+            response = await self._generate_image_response(
+                provider_handler,
+                provider_name,
+                model,
+                prompt,
+                proxy=proxy,
+                api_key=api_key,
+                **kwargs,
+            )
         if response is None:
             if error is not None:
                 raise error
@@ -445,7 +537,7 @@ class Images:
             provider_name,
             kwargs.get("download_media", True),
             response_format,
-            proxy
+            proxy,
         )
 
     async def _generate_image_response(
@@ -456,7 +548,7 @@ class Images:
         prompt: str,
         prompt_prefix: str = "Generate a image: ",
         api_key: str = None,
-        **kwargs
+        **kwargs,
     ) -> MediaResponse:
         messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
         items: list[MediaResponse] = []
@@ -464,28 +556,24 @@ class Images:
             api_key = api_key.get(provider_handler.get_parent())
         if hasattr(provider_handler, "create_async_generator"):
             async for item in provider_handler.create_async_generator(
-                model,
-                messages,
-                stream=True,
-                prompt=prompt,
-                api_key=api_key,
-                **kwargs
+                model, messages, stream=True, prompt=prompt, api_key=api_key, **kwargs
             ):
-                if isinstance(item, (MediaResponse, AudioResponse)) and not isinstance(item, HiddenResponse):
+                if isinstance(item, (MediaResponse, AudioResponse)) and not isinstance(
+                    item, HiddenResponse
+                ):
                     items.append(item)
         elif hasattr(provider_handler, "create_completion"):
             for item in provider_handler.create_completion(
-                model,
-                messages,
-                True,
-                prompt=prompt,
-                api_key=api_key,
-                **kwargs
+                model, messages, True, prompt=prompt, api_key=api_key, **kwargs
             ):
-                if isinstance(item, (MediaResponse, AudioResponse)) and not isinstance(item, HiddenResponse):
+                if isinstance(item, (MediaResponse, AudioResponse)) and not isinstance(
+                    item, HiddenResponse
+                ):
                     items.append(item)
         else:
-            raise ValueError(f"Provider {provider_name} does not support image generation")
+            raise ValueError(
+                f"Provider {provider_name} does not support image generation"
+            )
         urls = []
         for item in items:
             if isinstance(item, AudioResponse):
@@ -507,17 +595,19 @@ class Images:
         model: str = None,
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ImagesResponse:
-        return asyncio.run(self.async_create_variation(
-           image=image,
-           image_name=image_name,
-           prompt=prompt,
-           model=model,
-           provider=provider,
-           response_format=response_format,
-           **kwargs
-        ))
+        return asyncio.run(
+            self.async_create_variation(
+                image=image,
+                image_name=image_name,
+                prompt=prompt,
+                model=model,
+                provider=provider,
+                response_format=response_format,
+                **kwargs,
+            )
+        )
 
     async def async_create_variation(
         self,
@@ -529,10 +619,13 @@ class Images:
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
         proxy: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ImagesResponse:
         from ..Provider import OpenaiAccount
-        provider_handler = await self.get_provider_handler(model, provider, OpenaiAccount)
+
+        provider_handler = await self.get_provider_handler(
+            model, provider, OpenaiAccount
+        )
         provider_name = get_name(provider_handler)
         if proxy is None:
             proxy = self.client.proxy
@@ -542,7 +635,9 @@ class Images:
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.get_providers():
                 try:
-                    response = await self._generate_image_response(provider, get_name(provider), model, prompt, **kwargs)
+                    response = await self._generate_image_response(
+                        provider, get_name(provider), model, prompt, **kwargs
+                    )
                     if response is not None:
                         provider_name = get_name(provider)
                         break
@@ -550,7 +645,9 @@ class Images:
                     error = e
                     debug.error(f"{get_name(provider)}:", e)
         else:
-            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
+            response = await self._generate_image_response(
+                provider_handler, provider_name, model, prompt, **kwargs
+            )
         if response is None:
             if error is not None:
                 raise error
@@ -561,7 +658,7 @@ class Images:
             provider_name,
             kwargs.get("download_media", True),
             response_format,
-            proxy
+            proxy,
         )
 
     async def _process_image_response(
@@ -571,45 +668,66 @@ class Images:
         provider: str,
         download_media: bool,
         response_format: Optional[str] = None,
-        proxy: str = None
+        proxy: str = None,
     ) -> ImagesResponse:
         if response_format == "url":
             # Return original URLs without saving locally
-            images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+            images = [
+                Image.model_construct(url=image, revised_prompt=response.alt)
+                for image in response.get_list()
+            ]
         elif response_format == "b64_json":
             # Convert URLs directly to base64 without saving
             async def get_b64_from_url(url: str) -> Image:
                 if url.startswith("/media/"):
-                    with open(os.path.join(get_media_dir(), os.path.basename(url)), "rb") as f:
+                    with open(
+                        os.path.join(get_media_dir(), os.path.basename(url)), "rb"
+                    ) as f:
                         b64_data = base64.b64encode(f.read()).decode()
-                        return Image.model_construct(b64_json=b64_data, revised_prompt=response.alt)
-                async with aiohttp.ClientSession(cookies=response.get("cookies")) as session:
+                        return Image.model_construct(
+                            b64_json=b64_data, revised_prompt=response.alt
+                        )
+                async with aiohttp.ClientSession(
+                    cookies=response.get("cookies")
+                ) as session:
                     async with session.get(url, proxy=proxy) as resp:
                         if resp.status == 200:
                             b64_data = base64.b64encode(await resp.read()).decode()
-                            return Image.model_construct(b64_json=b64_data, revised_prompt=response.alt)
+                            return Image.model_construct(
+                                b64_json=b64_data, revised_prompt=response.alt
+                            )
                 return Image.model_construct(url=url, revised_prompt=response.alt)
-            images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
+
+            images = await asyncio.gather(
+                *[get_b64_from_url(image) for image in response.get_list()]
+            )
         else:
             # Save locally for None (default) case
             images = response.get_list()
             if download_media or response.get("cookies") or response.get("headers"):
-                images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
-            images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]
+                images = await copy_media(
+                    response.get_list(),
+                    response.get("cookies"),
+                    response.get("headers"),
+                    proxy,
+                    response.alt,
+                )
+            images = [
+                Image.model_construct(url=image, revised_prompt=response.alt)
+                for image in images
+            ]
 
         return ImagesResponse.model_construct(
-            created=int(time.time()),
-            data=images,
-            model=model,
-            provider=provider
+            created=int(time.time()), data=images, model=model, provider=provider
         )
+
 
 class AsyncClient(BaseClient):
     def __init__(
         self,
         provider: Optional[ProviderType] = None,
         media_provider: Optional[ProviderType] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.chat: AsyncChat = AsyncChat(self, provider)
@@ -619,11 +737,13 @@ class AsyncClient(BaseClient):
         self.images: AsyncImages = AsyncImages(self, media_provider)
         self.media: AsyncImages = self.images
 
+
 class AsyncChat:
     completions: AsyncCompletions
 
     def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):
         self.completions = AsyncCompletions(client, provider)
+
 
 class AsyncCompletions:
     def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):
@@ -644,7 +764,7 @@ class AsyncCompletions:
         stop: Optional[Union[list[str], str]] = None,
         ignore_stream: Optional[bool] = False,
         raw: Optional[bool] = False,
-        **kwargs
+        **kwargs,
     ) -> Awaitable[ChatCompletion]:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
@@ -655,13 +775,14 @@ class AsyncCompletions:
             provider = self.provider
             if provider is None:
                 from ..providers.any_provider import AnyProvider
+
                 provider = AnyProvider
         if isinstance(provider, str):
             provider = convert_to_provider(provider)
         stop = [stop] if isinstance(stop, str) else stop
         if ignore_stream:
             kwargs["ignore_stream"] = True
-            
+
         response = async_iter_run_tools(
             provider,
             model=model,
@@ -672,16 +793,19 @@ class AsyncCompletions:
                 max_tokens=max_tokens,
                 stop=stop,
                 api_key=self.client.api_key,
-                base_url=self.client.base_url
+                base_url=self.client.base_url,
             ),
-            **kwargs
+            **kwargs,
         )
 
         def fallback(response):
             provider_info = ProviderInfo(**provider.get_dict(), model=model)
-            return async_iter_response(response, stream, response_format, max_tokens, stop, provider_info)
+            return async_iter_response(
+                response, stream, response_format, max_tokens, stop, provider_info
+            )
 
         if raw:
+
             async def raw_response(response):
                 chunks = []
                 started = False
@@ -694,6 +818,7 @@ class AsyncCompletions:
                 if not started:
                     for chunk in fallback(chunks):
                         yield chunk
+
             if stream:
                 return raw_response(response)
             return anext(raw_response(response))
@@ -702,12 +827,10 @@ class AsyncCompletions:
         return anext(fallback(response))
 
     def stream(
-        self,
-        messages: Messages,
-        model: str = "",
-        **kwargs
+        self, messages: Messages, model: str = "", **kwargs
     ) -> AsyncIterator[ChatCompletionChunk]:
         return self.create(messages, model, stream=True, **kwargs)
+
 
 class AsyncImages(Images):
     def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):
@@ -720,9 +843,11 @@ class AsyncImages(Images):
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ImagesResponse:
-        return await self.async_generate(prompt, model, provider, response_format, **kwargs)
+        return await self.async_generate(
+            prompt, model, provider, response_format, **kwargs
+        )
 
     async def create_variation(
         self,
@@ -730,36 +855,40 @@ class AsyncImages(Images):
         model: str = None,
         provider: ProviderType = None,
         response_format: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> ImagesResponse:
         return await self.async_create_variation(
-           image=image, model=model, provider=provider, response_format=response_format, **kwargs
+            image=image,
+            model=model,
+            provider=provider,
+            response_format=response_format,
+            **kwargs,
         )
 
 
 class ClientFactory(AbstractClientFactory):
     """
     Factory class for creating Client and AsyncClient instances with various provider configurations.
-    
+
     Supports:
     - Named providers (e.g., "PollinationsAI", "DeepInfra")
     - Custom providers with custom API base URLs
     - Live providers (dynamically loaded providers)
-    
+
     Example usage:
         # Create client with a named provider
         client = ClientFactory.create_client("PollinationsAI")
-                
+
         # Create client with custom provider
         client = ClientFactory.create_client(
             base_url="https://api.example.com/v1",
             api_key="your-api-key"
         )
-        
+
         # Create async client
         async_client = ClientFactory.create_async_client("PollinationsAI")
     """
-    
+
     @classmethod
     def create_client(
         cls,
@@ -768,11 +897,11 @@ class ClientFactory(AbstractClientFactory):
         base_url: str = None,
         api_key: str = None,
         proxies: Union[dict, str] = None,
-        **kwargs
+        **kwargs,
     ) -> "Client":
         """
         Create a synchronous Client instance.
-        
+
         Args:
             provider: Provider name(s), class(es), or None for default
             media_provider: Provider for media/image generation
@@ -780,14 +909,14 @@ class ClientFactory(AbstractClientFactory):
             api_key: API key for authentication
             proxies: Proxy configuration
             **kwargs: Additional arguments passed to Client
-            
+
         Returns:
             Configured Client instance
-            
+
         Example:
             # Named provider
             client = ClientFactory.create_client("PollinationsAI")
-                        
+
             # Custom provider
             client = ClientFactory.create_client(
                 base_url="https://api.openai.com/v1",
@@ -800,9 +929,9 @@ class ClientFactory(AbstractClientFactory):
             api_key=api_key,
             base_url=base_url,
             proxies=proxies,
-            **kwargs
+            **kwargs,
         )
-    
+
     @classmethod
     def create_async_client(
         cls,
@@ -811,11 +940,11 @@ class ClientFactory(AbstractClientFactory):
         base_url: str = None,
         api_key: str = None,
         proxies: Union[dict, str] = None,
-        **kwargs
+        **kwargs,
     ) -> "AsyncClient":
         """
         Create an asynchronous AsyncClient instance.
-        
+
         Args:
             provider: Provider name(s), class(es), or None for default
             media_provider: Provider for media/image generation
@@ -823,10 +952,10 @@ class ClientFactory(AbstractClientFactory):
             api_key: API key for authentication
             proxies: Proxy configuration
             **kwargs: Additional arguments passed to AsyncClient
-            
+
         Returns:
             Configured AsyncClient instance
-            
+
         Example:
             # Named provider
             client = ClientFactory.create_async_client("PollinationsAI")
@@ -843,5 +972,5 @@ class ClientFactory(AbstractClientFactory):
             api_key=api_key,
             base_url=base_url,
             proxies=proxies,
-            **kwargs
+            **kwargs,
         )

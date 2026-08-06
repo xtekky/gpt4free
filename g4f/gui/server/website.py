@@ -12,38 +12,47 @@ from ...errors import VersionNotFoundError
 from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, GITHUB_URL
 from ... import version
 
-def redirect_home():
-    return redirect('/chat/')
 
-def render(filename = "home", download_url: str = GITHUB_URL):
+def redirect_home():
+    return redirect("/chat/")
+
+
+def render(filename="home", download_url: str = GITHUB_URL):
     if download_url == GITHUB_URL:
-        filename += ("" if "." in filename else ".html")
+        filename += "" if "." in filename else ".html"
     html = None
     is_temp = False
     if os.path.exists(DIST_DIR) and not request.args.get("debug"):
         base_dir = os.path.abspath(os.path.dirname(DIST_DIR))
         path = os.path.abspath(os.path.join(base_dir, filename))
         if not path.startswith(base_dir + os.sep) and path != base_dir:
-            return redirect('/')
+            return redirect("/")
         if os.path.exists(path):
-            if path.endswith('.html'):
+            if path.endswith(".html"):
                 try:
                     latest_version = version.utils.latest_version
                 except VersionNotFoundError:
                     latest_version = version.utils.current_version
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, "r", encoding="utf-8") as f:
                     html = f.read()
                 return html.replace("{{ v }}", str(latest_version))
-            return send_from_directory(os.path.dirname(path), os.path.basename(path), max_age=31536000)
+            return send_from_directory(
+                os.path.dirname(path), os.path.basename(path), max_age=31536000
+            )
     try:
         latest_version = version.utils.latest_version
     except VersionNotFoundError:
         latest_version = version.utils.current_version
-    today = datetime.today().strftime('%Y-%m-%d')
+    today = datetime.today().strftime("%Y-%m-%d")
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
     if not request.args.get("g4f_session"):
-        latest_version = str(latest_version) + quote(unquote(request.query_string.decode()))
-    cache_file = os.path.join(cache_dir, f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}")
+        latest_version = str(latest_version) + quote(
+            unquote(request.query_string.decode())
+        )
+    cache_file = os.path.join(
+        cache_dir,
+        f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}",
+    )
     if os.path.isfile(cache_file + ".js"):
         cache_file += ".js"
     if not os.path.exists(cache_file):
@@ -78,121 +87,96 @@ def render(filename = "home", download_url: str = GITHUB_URL):
                         return send_from_directory(found[0], found[1], max_age=31536000)
                     else:
                         raise
-            if not cache_file.endswith(".js") and response.headers.get("Content-Type", "").startswith("application/javascript"):
+            if not cache_file.endswith(".js") and response.headers.get(
+                "Content-Type", ""
+            ).startswith("application/javascript"):
                 cache_file += ".js"
             if filename.endswith(".html"):
                 html = response.text
-                dist_url = "/dist/" if os.path.exists(DIST_DIR) else f"{STATIC_URL}dist/"
+                dist_url = (
+                    "/dist/" if os.path.exists(DIST_DIR) else f"{STATIC_URL}dist/"
+                )
                 html = html.replace("'../dist/", f"'{dist_url}")
                 html = html.replace("'/dist/", f"'{dist_url}")
                 html = html.replace("'dist/", f"'{dist_url}")
                 html = html.replace('<base href="/">', f'<base href="/sillytavern/">')
         if html is None:
-            with open(cache_file, 'wb') as f:
+            with open(cache_file, "wb") as f:
                 f.write(response.content)
         else:
             html = html.replace("{{ v }}", latest_version)
             if is_temp:
                 return html
-            with open(cache_file, 'w', encoding='utf-8') as f:
+            with open(cache_file, "w", encoding="utf-8") as f:
                 f.write(html)
-    return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file), max_age=31536000)
+    return send_from_directory(
+        os.path.abspath(cache_dir), os.path.basename(cache_file), max_age=31536000
+    )
+
 
 class Website:
     def __init__(self, app) -> None:
         self.app = app
         self.routes = {
-            '/': {
-                'function': self._index,
-                'methods': ['GET', 'POST']
+            "/": {"function": self._index, "methods": ["GET", "POST"]},
+            "/chat/": {"function": self._chat, "methods": ["GET", "POST"]},
+            "/<filename>.html": {"function": self._index, "methods": ["GET", "POST"]},
+            "/chat/<filename>": {"function": self._chat, "methods": ["GET", "POST"]},
+            "/private/": {"function": self._private, "methods": ["GET", "POST"]},
+            "/private/<path:filename>": {
+                "function": self._private,
+                "methods": ["GET", "POST"],
             },
-            '/chat/': {
-                'function': self._chat,
-                'methods': ['GET', 'POST']
+            "/media/": {"function": redirect_home, "methods": ["GET", "POST"]},
+            "/dist/<path:name>": {"function": self._dist, "methods": ["GET"]},
+            "/playground/": {"function": self._playground, "methods": ["GET"]},
+            "/playground/<path:filename>": {
+                "function": self._playground,
+                "methods": ["GET"],
             },
-            '/<filename>.html': {
-                'function': self._index,
-                'methods': ['GET', 'POST']
+            "/sillytavern/": {"function": self._sillytavern, "methods": ["GET"]},
+            "/sillytavern/<path:filename>": {
+                "function": self._sillytavern,
+                "methods": ["GET"],
             },
-            '/chat/<filename>': {
-                'function': self._chat,
-                'methods': ['GET', 'POST']
-            },
-            '/private/': {
-                'function': self._private,
-                'methods': ['GET', 'POST']
-            },
-            '/private/<path:filename>': {
-                'function': self._private,
-                'methods': ['GET', 'POST']
-            },
-            '/media/': {
-                'function': redirect_home,
-                'methods': ['GET', 'POST']
-            },
-            '/dist/<path:name>': {
-                'function': self._dist,
-                'methods': ['GET']
-            },
-            '/playground/': {
-                'function': self._playground,
-                'methods': ['GET']
-            },
-            '/playground/<path:filename>': {
-                'function': self._playground,
-                'methods': ['GET']
-            },
-            '/sillytavern/': {
-                'function': self._sillytavern,
-                'methods': ['GET']
-            },
-            '/sillytavern/<path:filename>': {
-                'function': self._sillytavern,
-                'methods': ['GET']
-            },
-            '/apps/': {
-                'function': self._apps,
-                'methods': ['GET']
-            },
-            '/apps/<path:filename>': {
-                'function': self._apps,
-                'methods': ['GET']
-            },
-            '/stats/': {
-                'function': self._stats,
-                'methods': ['GET']
-            },
+            "/apps/": {"function": self._apps, "methods": ["GET"]},
+            "/apps/<path:filename>": {"function": self._apps, "methods": ["GET"]},
+            "/stats/": {"function": self._stats, "methods": ["GET"]},
         }
-        @app.route('/lib.js', methods=['GET'])
+
+        @app.route("/lib.js", methods=["GET"])
         def lib_js():
             return self._sillytavern("lib.js")
-        @app.route('/script.js', methods=['GET'])
+
+        @app.route("/script.js", methods=["GET"])
         def script_js():
             return self._sillytavern("script.js")
-        @app.route('/lib/<path:filename>', methods=['GET'])
+
+        @app.route("/lib/<path:filename>", methods=["GET"])
         def lib_files(filename):
             return self._sillytavern(f"lib/{filename}")
-        @app.route('/scripts/<path:filename>', methods=['GET'])
+
+        @app.route("/scripts/<path:filename>", methods=["GET"])
         def script_files(filename):
             return self._sillytavern(f"scripts/{filename}")
 
-    def _index(self, filename = "home"):
+    def _index(self, filename="home"):
         return render(filename)
 
     def _stats(self):
         return render("stats")
 
-    def _chat(self, filename = ""):
+    def _chat(self, filename=""):
         filename = f"chat/{filename}" if filename else "chat/index"
         return render(filename)
 
-    def _private(self, filename = ""):
+    def _private(self, filename=""):
         filename = f"private/{filename}" if filename else "private/index"
         return render(filename)
 
     def _dist(self, name: str):
         return render(f"dist/{name}")
-    
+
     def _apps(self, filename: str = "index.html"):
         return render(f"apps/{filename}")
 
@@ -201,15 +185,21 @@ class Website:
         return render(f"public/{filename}", SILLYTAVERN_URL)
 
     def _playground(self, filename: str = "index.html"):
-        PLAYGROUND_URL = "https://raw.githubusercontent.com/gpt4free/playground/refs/heads/main/"
+        PLAYGROUND_URL = (
+            "https://raw.githubusercontent.com/gpt4free/playground/refs/heads/main/"
+        )
         if not filename or filename.endswith("/"):
             filename = "index.html"
-        filename += ("" if "." in filename else ".html")
+        filename += "" if "." in filename else ".html"
         # Serve from local ./playground directory if present
         local_dir = os.path.abspath("./playground")
         local_path = os.path.normpath(os.path.join(local_dir, filename))
         if local_path.startswith(local_dir + os.sep) and os.path.isfile(local_path):
-            return send_from_directory(os.path.dirname(local_path), os.path.basename(local_path), max_age=31536000)
+            return send_from_directory(
+                os.path.dirname(local_path),
+                os.path.basename(local_path),
+                max_age=31536000,
+            )
         # Use cache dir
         cache_dir = os.path.join(get_cookies_dir(), ".playground_cache")
         safe_path = os.path.normpath(os.path.join(cache_dir, filename))
@@ -217,7 +207,11 @@ class Website:
             return redirect("/playground/")
         # Serve from cache if present
         if os.path.isfile(safe_path):
-            return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path), max_age=31536000)
+            return send_from_directory(
+                os.path.dirname(safe_path),
+                os.path.basename(safe_path),
+                max_age=31536000,
+            )
         # Download and cache from GitHub
         os.makedirs(os.path.dirname(safe_path), exist_ok=True)
         try:
@@ -225,17 +219,23 @@ class Website:
             response.raise_for_status()
         except requests.exceptions.SSLError:
             try:
-                response = requests.get(f"{PLAYGROUND_URL}{filename}", timeout=10, verify=False)
+                response = requests.get(
+                    f"{PLAYGROUND_URL}{filename}", timeout=10, verify=False
+                )
                 response.raise_for_status()
             except requests.RequestException:
                 pass
         except requests.RequestException:
             pass
-            
-        if 'response' in locals() and response.status_code == 200:
-            with open(safe_path, 'wb') as f:
+
+        if "response" in locals() and response.status_code == 200:
+            with open(safe_path, "wb") as f:
                 f.write(response.content)
-            return send_from_directory(os.path.dirname(safe_path), os.path.basename(safe_path), max_age=31536000)
+            return send_from_directory(
+                os.path.dirname(safe_path),
+                os.path.basename(safe_path),
+                max_age=31536000,
+            )
         # SPA fallback: serve index.html for unknown sub-paths
         index_path = os.path.join(cache_dir, "index.html")
         if os.path.isfile(index_path):

@@ -14,11 +14,13 @@ from urllib.parse import quote
 try:
     from curl_cffi.requests import AsyncSession
     from curl_cffi import CurlWsFlag, CurlMime
+
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
 try:
     import zendriver as nodriver
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -38,11 +40,13 @@ from ..cookies import get_cookies
 from pathlib import Path
 from .. import debug
 
+
 class Conversation(JsonConversation):
     conversation_id: str
 
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
+
 
 def extract_bucket_items(messages: Messages) -> list[dict]:
     """Extract bucket items from messages content."""
@@ -50,18 +54,25 @@ def extract_bucket_items(messages: Messages) -> list[dict]:
     for message in messages:
         if isinstance(message, dict) and isinstance(message.get("content"), list):
             for content_item in message["content"]:
-                if isinstance(content_item, dict) and "bucket_id" in content_item and "name" not in content_item:
+                if (
+                    isinstance(content_item, dict)
+                    and "bucket_id" in content_item
+                    and "name" not in content_item
+                ):
                     bucket_items.append(content_item)
         if message.get("role") == "assistant":
             bucket_items = []
     return bucket_items
 
+
 def random_hex(length):
-    return ''.join(random.choices('0123456789ABCDEF', k=length))
+    return "".join(random.choices("0123456789ABCDEF", k=length))
+
 
 def random_base64(length):
-    chars = string.ascii_letters + string.digits + '+/='
-    return ''.join(random.choices(chars, k=length))
+    chars = string.ascii_letters + string.digits + "+/="
+    return "".join(random.choices(chars, k=length))
+
 
 def get_fake_cookie():
     return {
@@ -71,19 +82,20 @@ def get_fake_cookie():
         "MUIDB": random_hex(32),
         "_EDGE_S": f"F=1&SID={random_hex(32)}",
         "_EDGE_V": "1",
-        "ak_bmsc": f"{random_hex(32)}~{'0'*48}~{urllib.parse.quote(random_base64(300))}"
+        "ak_bmsc": f"{random_hex(32)}~{'0'*48}~{urllib.parse.quote(random_base64(300))}",
     }
+
 
 class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
     url = "https://copilot.microsoft.com"
     cookie_domain = ".microsoft.com"
     anon_cookie_name = "__Host-copilot-anon"
-    
+
     working = True
     use_nodriver = has_nodriver
     active_by_default = True
-    
+
     default_model = "Copilot"
     models = [default_model, "Think Deeper", "Smart (GPT-5)", "Study"]
     model_aliases = {
@@ -98,9 +110,13 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     conversation_url = f"{url}/c/api/conversations"
 
     @classmethod
-    async def on_auth_async(cls, cookies: dict = None, proxy: str = None, **kwargs) -> AsyncIterator:
+    async def on_auth_async(
+        cls, cookies: dict = None, proxy: str = None, **kwargs
+    ) -> AsyncIterator:
         if cookies is None:
-            cookies = get_fake_cookie() or get_cookies(cls.cookie_domain, False, cache_result=False)
+            cookies = get_fake_cookie() or get_cookies(
+                cls.cookie_domain, False, cache_result=False
+            )
         access_token = None
         useridentitytype = None
         if cls.needs_auth or cls.anon_cookie_name not in cookies:
@@ -110,13 +126,19 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 debug.log(f"Copilot: {h}")
                 if has_nodriver:
                     yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                    access_token, useridentitytype, cookies = await get_access_token_and_cookies(cls.url, proxy, cls.needs_auth)
+                    (
+                        access_token,
+                        useridentitytype,
+                        cookies,
+                    ) = await get_access_token_and_cookies(
+                        cls.url, proxy, cls.needs_auth
+                    )
                 else:
                     raise h
         yield AuthResult(
             access_token=access_token,
             useridentitytype=useridentitytype,
-            cookies=cookies
+            cookies=cookies,
         )
 
     @classmethod
@@ -131,17 +153,26 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         media: MediaListType = None,
         conversation: BaseConversation = None,
         return_conversation: bool = True,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         if not has_curl_cffi:
-            raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
+            raise MissingRequirementsError(
+                'Install or update "curl_cffi" package | pip install -U curl_cffi'
+            )
         model = cls.get_model(model)
         websocket_url = cls.websocket_url + f"&clientSessionId={uuid.uuid4()}"
         headers = DEFAULT_HEADERS.copy()
         headers["origin"] = cls.url
         headers["referer"] = cls.url + "/"
         if getattr(auth_result, "access_token", None):
-            websocket_url = f"{websocket_url}&accessToken={quote(auth_result.access_token)}" + (f"&X-UserIdentityType={quote(auth_result.useridentitytype)}" if getattr(auth_result, "useridentitytype", None) else "")
+            websocket_url = (
+                f"{websocket_url}&accessToken={quote(auth_result.access_token)}"
+                + (
+                    f"&X-UserIdentityType={quote(auth_result.useridentitytype)}"
+                    if getattr(auth_result, "useridentitytype", None)
+                    else ""
+                )
+            )
             headers["authorization"] = f"Bearer {auth_result.access_token}"
 
         cookies = getattr(auth_result, "cookies", None)
@@ -159,7 +190,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             proxy=proxy,
             impersonate="chrome",
             headers=headers,
-            cookies=cookies
+            cookies=cookies,
         ) as session:
             if conversation is None:
                 # har_file = os.path.join(os.path.dirname(__file__), "copilot", "copilot.microsoft.com.har")
@@ -186,26 +217,42 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                     "teenSupportEnabled": True,
                     "correctPersonalizationSetting": True,
                     "performUserMerge": True,
-                    "deferredDataUseCapable": True
+                    "deferredDataUseCapable": True,
                 }
                 response = await session.post(
                     "https://copilot.microsoft.com/c/api/start",
                     headers={
                         "content-type": "application/json",
-                        **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}),
-                        **(headers or {})
+                        **(
+                            {"x-useridentitytype": auth_result.useridentitytype}
+                            if getattr(auth_result, "useridentitytype", None)
+                            else {}
+                        ),
+                        **(headers or {}),
                     },
-                    json=data
+                    json=data,
                 )
                 if response.status_code == 401:
                     raise MissingAuthError("Status 401: Invalid session")
                 response.raise_for_status()
-                debug.log(f"Copilot: Update cookies: [{', '.join(key for key in response.cookies)}]")
-                auth_result.cookies.update({key: value for key, value in response.cookies.items()})
-                if not getattr(auth_result, "access_token", None) and not cls.needs_auth and cls.anon_cookie_name not in auth_result.cookies:
+                debug.log(
+                    f"Copilot: Update cookies: [{', '.join(key for key in response.cookies)}]"
+                )
+                auth_result.cookies.update(
+                    {key: value for key, value in response.cookies.items()}
+                )
+                if (
+                    not getattr(auth_result, "access_token", None)
+                    and not cls.needs_auth
+                    and cls.anon_cookie_name not in auth_result.cookies
+                ):
                     raise MissingAuthError(f"Missing cookie: {cls.anon_cookie_name}")
-                conversation = Conversation(response.json().get("currentConversationId"))
-                debug.log(f"Copilot: Created conversation: {conversation.conversation_id}")
+                conversation = Conversation(
+                    response.json().get("currentConversationId")
+                )
+                debug.log(
+                    f"Copilot: Created conversation: {conversation.conversation_id}"
+                )
             else:
                 debug.log(f"Copilot: Use conversation: {conversation.conversation_id}")
 
@@ -233,13 +280,17 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                             headers={
                                 "content-type": is_accepted_format(data),
                                 "content-length": str(len(data)),
-                                **({"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {})
+                                **(
+                                    {"x-useridentitytype": auth_result.useridentitytype}
+                                    if getattr(auth_result, "useridentitytype", None)
+                                    else {}
+                                ),
                             },
-                            data=data
+                            data=data,
                         )
                         response.raise_for_status()
                         media = response.json().get("url")
-                    uploaded_attachments.append({"type":"image", "url": media})
+                    uploaded_attachments.append({"type": "image", "url": media})
 
                 # Upload bucket files
                 bucket_items = extract_bucket_items(messages)
@@ -250,20 +301,35 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                         for text_chunk in read_bucket(bucket_path):
                             if text_chunk.strip():
                                 # Upload plain text as a text file
-                                text_data = text_chunk.encode('utf-8')
+                                text_data = text_chunk.encode("utf-8")
                                 data = CurlMime()
-                                data.addpart("file", filename=f"bucket_{item['bucket_id']}.txt", content_type="text/plain", data=text_data)
+                                data.addpart(
+                                    "file",
+                                    filename=f"bucket_{item['bucket_id']}.txt",
+                                    content_type="text/plain",
+                                    data=text_data,
+                                )
                                 response = await session.post(
                                     "https://copilot.microsoft.com/c/api/attachments",
                                     multipart=data,
-                                    headers={"x-useridentitytype": auth_result.useridentitytype} if getattr(auth_result, "useridentitytype", None) else {}
+                                    headers={
+                                        "x-useridentitytype": auth_result.useridentitytype
+                                    }
+                                    if getattr(auth_result, "useridentitytype", None)
+                                    else {},
                                 )
                                 response.raise_for_status()
                                 data = response.json()
-                                uploaded_attachments.append({"type": "document", "attachmentId": data.get("id")})
-                                debug.log(f"Copilot: Uploaded bucket text content: {item['bucket_id']}")
+                                uploaded_attachments.append(
+                                    {"type": "document", "attachmentId": data.get("id")}
+                                )
+                                debug.log(
+                                    f"Copilot: Uploaded bucket text content: {item['bucket_id']}"
+                                )
                             else:
-                                debug.log(f"Copilot: No text content found in bucket: {item['bucket_id']}")
+                                debug.log(
+                                    f"Copilot: No text content found in bucket: {item['bucket_id']}"
+                                )
                     except Exception as e:
                         debug.log(f"Copilot: Failed to upload bucket item: {item}")
                         debug.error(e)
@@ -278,15 +344,23 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 mode = "smart"
             else:
                 mode = "chat"
-            await wss.send(json.dumps({
-                "event": "send",
-                "conversationId": conversation.conversation_id,
-                "content": [*uploaded_attachments, {
-                    "type": "text",
-                    "text": prompt,
-                }],
-                "mode": mode,
-            }).encode(), CurlWsFlag.TEXT)
+            await wss.send(
+                json.dumps(
+                    {
+                        "event": "send",
+                        "conversationId": conversation.conversation_id,
+                        "content": [
+                            *uploaded_attachments,
+                            {
+                                "type": "text",
+                                "text": prompt,
+                            },
+                        ],
+                        "mode": mode,
+                    }
+                ).encode(),
+                CurlWsFlag.TEXT,
+            )
 
             done = False
             msg = None
@@ -295,7 +369,9 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             sources = {}
             while not wss.closed:
                 try:
-                    msg_txt, _ = await asyncio.wait_for(wss.recv(), 1 if done else timeout)
+                    msg_txt, _ = await asyncio.wait_for(
+                        wss.recv(), 1 if done else timeout
+                    )
                     msg = json.loads(msg_txt)
                 except Exception:
                     break
@@ -305,7 +381,11 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 elif msg.get("event") == "generatingImage":
                     image_prompt = msg.get("prompt")
                 elif msg.get("event") == "imageGenerated":
-                    yield ImageResponse(msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")})
+                    yield ImageResponse(
+                        msg.get("url"),
+                        image_prompt,
+                        {"preview": msg.get("thumbnailUrl")},
+                    )
                 elif msg.get("event") == "done":
                     yield FinishReason("stop")
                     done = True
@@ -318,15 +398,26 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                     yield TitleGeneration(msg.get("title"))
                 elif msg.get("event") == "citation":
                     sources[msg.get("url")] = msg
-                    yield SourceLink(list(sources.keys()).index(msg.get("url")), msg.get("url"))
+                    yield SourceLink(
+                        list(sources.keys()).index(msg.get("url")), msg.get("url")
+                    )
                 elif msg.get("event") == "partialImageGenerated":
-                    mime_type = is_accepted_format(base64.b64decode(msg.get("content")[:12]))
-                    yield ImagePreview(f"data:{mime_type};base64,{msg.get('content')}", image_prompt)
+                    mime_type = is_accepted_format(
+                        base64.b64decode(msg.get("content")[:12])
+                    )
+                    yield ImagePreview(
+                        f"data:{mime_type};base64,{msg.get('content')}", image_prompt
+                    )
                 elif msg.get("event") == "chainOfThought":
                     yield Reasoning(msg.get("text"))
                 elif msg.get("event") == "error":
                     raise RuntimeError(f"Error: {msg}")
-                elif msg.get("event") not in ["received", "startMessage", "partCompleted", "connected"]:
+                elif msg.get("event") not in [
+                    "received",
+                    "startMessage",
+                    "partCompleted",
+                    "connected",
+                ]:
                     debug.log(f"Copilot Message: {msg_txt[:100]}...")
             if not done:
                 raise MissingAuthError(f"Invalid response: {last_msg}")
@@ -337,7 +428,10 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             if not wss.closed:
                 await wss.close()
 
-async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: bool = False):
+
+async def get_access_token_and_cookies(
+    url: str, proxy: str = None, needs_auth: bool = False
+):
     browser, stop_browser = await get_nodriver(proxy=proxy)
     try:
         page = await browser.get(url)
@@ -346,7 +440,8 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
         while access_token is None:
             for _ in range(2):
                 await asyncio.sleep(3)
-                access_token = await page.evaluate("""
+                access_token = await page.evaluate(
+                    """
                     (() => {
                         for (var i = 0; i < localStorage.length; i++) {
                             try {
@@ -360,15 +455,26 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
                             } catch(e) {}
                         }
                     })()
-                """)
+                """
+                )
                 if access_token is None:
                     await asyncio.sleep(1)
                     continue
                 if isinstance(access_token, list):
                     access_token, useridentitytype = access_token
-                access_token = access_token.get("value") if isinstance(access_token, dict) else access_token
-                useridentitytype = useridentitytype.get("value") if isinstance(useridentitytype, dict) else None
-                debug.log(f"Got access token: {access_token[:10]}..., useridentitytype: {useridentitytype}")
+                access_token = (
+                    access_token.get("value")
+                    if isinstance(access_token, dict)
+                    else access_token
+                )
+                useridentitytype = (
+                    useridentitytype.get("value")
+                    if isinstance(useridentitytype, dict)
+                    else None
+                )
+                debug.log(
+                    f"Got access token: {access_token[:10]}..., useridentitytype: {useridentitytype}"
+                )
                 break
             if not needs_auth:
                 debug.log("No access token found, but authentication not required.")
@@ -383,14 +489,14 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
                 await textarea.send_keys("Hello")
                 await asyncio.sleep(1)
                 try:
-                    button = await page.select("[data-testid=\"submit-button\"]")
+                    button = await page.select('[data-testid="submit-button"]')
                 except TimeoutError:
                     button = None
                 if button:
                     debug.log("Clicking submit button to generate anon cookie.")
                     await button.click()
                     try:
-                        turnstile = await page.select('#cf-turnstile')
+                        turnstile = await page.select("#cf-turnstile")
                     except TimeoutError:
                         turnstile = None
                     if turnstile:
@@ -400,7 +506,10 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
         cookies = {}
         while not access_token and Copilot.anon_cookie_name not in cookies:
             await asyncio.sleep(2)
-            cookies = {c.name: c.value for c in await page.send(nodriver.cdp.network.get_cookies([url]))}
+            cookies = {
+                c.name: c.value
+                for c in await page.send(nodriver.cdp.network.get_cookies([url]))
+            }
             if not needs_auth and Copilot.anon_cookie_name in cookies:
                 break
             elif needs_auth and next(filter(lambda x: "auth0" in x, cookies), None):
@@ -410,37 +519,44 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, needs_auth: 
     finally:
         await stop_browser()
 
+
 def readHAR(url: str):
     api_key = None
     useridentitytype = None
     cookies = None
     for path in get_har_files():
-        with open(path, 'rb') as file:
+        with open(path, "rb") as file:
             try:
                 harFile = json.loads(file.read())
             except json.JSONDecodeError:
                 # Error: not a HAR file!
                 continue
-            for v in harFile['log']['entries']:
-                if v['request']['url'].startswith(url):
+            for v in harFile["log"]["entries"]:
+                if v["request"]["url"].startswith(url):
                     v_headers = get_headers(v)
                     if "authorization" in v_headers:
                         api_key = v_headers["authorization"].split(maxsplit=1).pop()
                     if "x-useridentitytype" in v_headers:
                         useridentitytype = v_headers["x-useridentitytype"]
-                    if v['request']['cookies']:
-                        cookies = {c['name']: c['value'] for c in v['request']['cookies']}
+                    if v["request"]["cookies"]:
+                        cookies = {
+                            c["name"]: c["value"] for c in v["request"]["cookies"]
+                        }
     if not cookies:
         raise NoValidHarFileError("No session found in .har files")
 
     return api_key, useridentitytype, cookies
 
+
 if has_nodriver:
-    async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
+
+    async def click_trunstile(
+        page: nodriver.Tab, element='document.getElementById("cf-turnstile")'
+    ):
         for _ in range(3):
             size = None
             for idx in range(15):
-                size = await page.js_dumps(f'{element}?.getBoundingClientRect()||{{}}')
+                size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
                 debug.log(f"Found size: {size.get('x'), size.get('y')}")
                 if "x" not in size:
                     break

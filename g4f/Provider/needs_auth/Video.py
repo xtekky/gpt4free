@@ -22,11 +22,14 @@ FLIM_HEADERS = {
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
 }
 
+
 class RequestConfig:
     urls: dict[str, list[str]] = {}
 
     @classmethod
-    async def get_response(cls, prompt: str, search: bool = False) -> Optional[VideoResponse]:
+    async def get_response(
+        cls, prompt: str, search: bool = False
+    ) -> Optional[VideoResponse]:
         if prompt in cls.urls and cls.urls[prompt]:
             unique_list = list(set(cls.urls[prompt]))[:10]
             return VideoResponse(unique_list, prompt)
@@ -41,7 +44,9 @@ class RequestConfig:
         try:
             url = TRANSLATE_URL.format(prompt=quote(prompt, safe=""))
             async with ClientSession() as session:
-                async with session.get(url, timeout=ClientTimeout(total=15)) as response:
+                async with session.get(
+                    url, timeout=ClientTimeout(total=15)
+                ) as response:
                     if not response.ok:
                         debug.error(f"Translate prompt failed: {response.status}")
                         return prompt
@@ -55,27 +60,54 @@ class RequestConfig:
     async def search_flim(cls, prompt: str) -> list[str]:
         payload = {
             "search": {
-                "saved_images": False, "full_text": prompt,
-                "similar_picture_id": "", "movie_id": "", "dop": "", "director": "",
-                "brand": "", "agency": "", "production_company": "", "actor": "",
-                "creator": "", "artist": "", "collection_id": "", "board_id": "",
+                "saved_images": False,
+                "full_text": prompt,
+                "similar_picture_id": "",
+                "movie_id": "",
+                "dop": "",
+                "director": "",
+                "brand": "",
+                "agency": "",
+                "production_company": "",
+                "actor": "",
+                "creator": "",
+                "artist": "",
+                "collection_id": "",
+                "board_id": "",
                 "filters": {
-                    "genres": [], "colors": [], "number_of_persons": [], "years": [],
-                    "shot_types": [], "movie_types": [], "aspect_ratio": [],
-                    "safety_content": [], "has_video_cuts": True, "camera_motions": []
+                    "genres": [],
+                    "colors": [],
+                    "number_of_persons": [],
+                    "years": [],
+                    "shot_types": [],
+                    "movie_types": [],
+                    "aspect_ratio": [],
+                    "safety_content": [],
+                    "has_video_cuts": True,
+                    "camera_motions": [],
                 },
                 "negative_filters": {
-                    "aspect_ratio": [], "genres": ["ANIMATION"], "movie_types": [],
-                    "colors": [], "shot_types": [], "number_of_persons": [],
-                    "years": [], "safety_content": ["nudity", "violence"]
-                }
+                    "aspect_ratio": [],
+                    "genres": ["ANIMATION"],
+                    "movie_types": [],
+                    "colors": [],
+                    "shot_types": [],
+                    "number_of_persons": [],
+                    "years": [],
+                    "safety_content": ["nudity", "violence"],
+                },
             },
-            "page": 0, "sort_by": "", "order_by": "", "number_per_pages": 100
+            "page": 0,
+            "sort_by": "",
+            "order_by": "",
+            "number_per_pages": 100,
         }
         urls = []
         try:
             async with ClientSession(headers=FLIM_HEADERS) as session:
-                async with session.post(FLIM_SEARCH_URL, json=payload, timeout=ClientTimeout(total=15)) as response:
+                async with session.post(
+                    FLIM_SEARCH_URL, json=payload, timeout=ClientTimeout(total=15)
+                ) as response:
                     if not response.ok:
                         debug.error(f"Flim search failed: {response.status}")
                         return urls
@@ -89,6 +121,7 @@ class RequestConfig:
         except Exception as e:
             debug.error(f"Error fetching flim video URLs:", e)
         return urls[:10]
+
 
 class Video(AsyncGeneratorProvider, ProviderModelMixin):
     urls = {
@@ -105,18 +138,21 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        prompt: str = None,
-        **kwargs
+        cls, model: str, messages: Messages, prompt: str = None, **kwargs
     ) -> AsyncResult:
         if not model:
             model = cls.default_model
         if model not in cls.video_models:
-            raise ValueError(f"Model '{model}' is not supported by {cls.__name__}. Supported models: {cls.models}")
+            raise ValueError(
+                f"Model '{model}' is not supported by {cls.__name__}. Supported models: {cls.models}"
+            )
         yield ProviderInfo(**cls.get_dict(), model=model)
-        prompt = format_media_prompt(messages, prompt).encode()[:100].decode("utf-8", "ignore").strip()
+        prompt = (
+            format_media_prompt(messages, prompt)
+            .encode()[:100]
+            .decode("utf-8", "ignore")
+            .strip()
+        )
         if not prompt:
             raise ValueError("Prompt cannot be empty.")
         prompt = await RequestConfig.translate_prompt(prompt)

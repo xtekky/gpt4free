@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(current_dir, 'README.md'), "r", encoding="utf-8") as f:
+with open(os.path.join(current_dir, "README.md"), "r", encoding="utf-8") as f:
     long_description = f.read()
 
 long_description = long_description.replace("[!NOTE]", "")
@@ -18,20 +18,20 @@ INSTALL_REQUIRE = [
 ]
 
 EXTRA_REQUIRE = {
-    'all': [
+    "all": [
         "curl_cffi>=0.6.2",
         "certifi",
-        "browser_cookie3", # get_cookies
-        "ddgs",            # web_search
+        "browser_cookie3",  # get_cookies
+        "ddgs",  # web_search
         "beautifulsoup4",  # web_search and bing.create_images
         "platformdirs",
-        "aiohttp_socks",           # proxy
-        "pillow",                  # image
-        "cairosvg",                # svg image
+        "aiohttp_socks",  # proxy
+        "pillow",  # image
+        "cairosvg",  # svg image
         "werkzeug",
-        "flask[async]",            # gui
-        "fastapi",                 # api
-        "uvicorn",                 # api
+        "flask[async]",  # gui
+        "fastapi",  # api
+        "uvicorn",  # api
         "zendriver",
         "python-multipart",
         "a2wsgi",
@@ -46,18 +46,18 @@ EXTRA_REQUIRE = {
         "websocket-client",
         "pystray",
     ],
-    'slim': [
+    "slim": [
         "curl_cffi>=0.6.2",
         "certifi",
         "browser_cookie3",
-        "ddgs",           # web_search
-        "beautifulsoup4", # web_search and bing.create_images
-        "aiohttp_socks",           # proxy
-        "pillow",                  # image
+        "ddgs",  # web_search
+        "beautifulsoup4",  # web_search and bing.create_images
+        "aiohttp_socks",  # proxy
+        "pillow",  # image
         "werkzeug",
-        "flask[async]",            # gui
-        "fastapi",                 # api
-        "uvicorn",                 # api
+        "flask[async]",  # gui
+        "fastapi",  # api
+        "uvicorn",  # api
         "zendriver",
         "python-multipart",
         "a2wsgi",
@@ -80,25 +80,19 @@ EXTRA_REQUIRE = {
         "plyer",
         "cryptography",
     ],
-    "api": [
-        "loguru", "fastapi",
-        "uvicorn",
-        "python-multipart",
-        "a2wsgi",
-        "PyYAML"
-    ],
+    "api": ["loguru", "fastapi", "uvicorn", "python-multipart", "a2wsgi", "PyYAML"],
     "gui": [
-        "werkzeug", "flask[async]",
-        "beautifulsoup4", "pillow",
+        "werkzeug",
+        "flask[async]",
+        "beautifulsoup4",
+        "pillow",
     ],
     "search": [
         "beautifulsoup4",
         "pillow",
         "ddgs",
     ],
-    "local": [
-        "gpt4all"
-    ],
+    "local": ["gpt4all"],
     "files": [
         "beautifulsoup4",
         "markitdown[all]",
@@ -111,36 +105,34 @@ EXTRA_REQUIRE = {
 }
 
 DESCRIPTION = (
-    'The official gpt4free repository | various collection of powerful language models'
+    "The official gpt4free repository | various collection of powerful language models"
 )
 
 # Setting up
 setup(
-    name='g4f',
+    name="g4f",
     version=os.environ.get("G4F_VERSION"),
-    author='Tekky',
-    author_email='<support@g4f.ai>',
+    author="Tekky",
+    author_email="<support@g4f.ai>",
     description=DESCRIPTION,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    package_data={
-        'g4f': []
-    },
+    package_data={"g4f": []},
     include_package_data=True,
     install_requires=INSTALL_REQUIRE,
     extras_require=EXTRA_REQUIRE,
     entry_points={
-        'console_scripts': [
-            'g4f=g4f.cli:main',
-            'g4f-mcp=g4f.mcp.server:main',
-            'g4f-tray=g4f.tray:_tray_main',
+        "console_scripts": [
+            "g4f=g4f.cli:main",
+            "g4f-mcp=g4f.mcp.server:main",
+            "g4f-tray=g4f.tray:_tray_main",
         ],
     },
-    url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
+    url="https://github.com/xtekky/gpt4free",  # Link to your GitHub repository
     project_urls={
-        'Source Code': 'https://github.com/xtekky/gpt4free',  # GitHub link
-        'Bug Tracker': 'https://github.com/xtekky/gpt4free/issues',  # Link to issue tracker
+        "Source Code": "https://github.com/xtekky/gpt4free",  # GitHub link
+        "Bug Tracker": "https://github.com/xtekky/gpt4free/issues",  # Link to issue tracker
     },
     keywords=[
         "gpt4free",
@@ -186,14 +178,14 @@ setup(
         "engineering",
         "chatbot",
         "ai",
-        "integration"
+        "integration",
     ],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3',
-        'Operating System :: Unix',
-        'Operating System :: MacOS :: MacOS X',
-        'Operating System :: Microsoft :: Windows',
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python :: 3",
+        "Operating System :: Unix",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
     ],
 )

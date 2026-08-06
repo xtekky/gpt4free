@@ -8,6 +8,7 @@ from typing import AsyncIterator
 try:
     import zendriver as nodriver
     from zendriver import cdp
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -21,11 +22,13 @@ from ..image import is_accepted_format
 from .helper import get_last_user_message
 from .. import debug
 
+
 class Conversation(JsonConversation):
     conversation_id: str
 
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
+
 
 def extract_bucket_items(messages: Messages) -> list[dict]:
     """Extract bucket items from messages content."""
@@ -33,22 +36,27 @@ def extract_bucket_items(messages: Messages) -> list[dict]:
     for message in messages:
         if isinstance(message, dict) and isinstance(message.get("content"), list):
             for content_item in message["content"]:
-                if isinstance(content_item, dict) and "bucket_id" in content_item and "name" not in content_item:
+                if (
+                    isinstance(content_item, dict)
+                    and "bucket_id" in content_item
+                    and "name" not in content_item
+                ):
                     bucket_items.append(content_item)
         if message.get("role") == "assistant":
             bucket_items = []
     return bucket_items
 
+
 class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
     parent = "Copilot"
     label = "Microsoft Copilot (Session)"
     url = "https://copilot.microsoft.com"
-    
+
     working = has_nodriver
     use_nodriver = has_nodriver
     active_by_default = True
     use_stream_timeout = False
-    
+
     default_model = "Copilot"
     models = [default_model, "Think Deeper", "Smart (GPT-5)", "Study"]
     model_aliases = {
@@ -75,7 +83,7 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
         prompt: str = None,
         media: MediaListType = None,
         conversation: BaseConversation = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         async with get_nodriver_session(proxy=proxy) as session:
             if prompt is None:
@@ -88,25 +96,24 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
             page = await session.get(url)
             await page.send(cdp.network.enable())
             queue = asyncio.Queue()
+
             def handle_ws_message(event):
                 if hasattr(event, "response") and event.response.payload_data:
                     queue.put_nowait((event.request_id, event.response.payload_data))
-            page.add_handler(
-                cdp.network.WebSocketFrameReceived,
-                handle_ws_message
-            )
+
+            page.add_handler(cdp.network.WebSocketFrameReceived, handle_ws_message)
             textarea = await page.select("textarea")
             if textarea is not None:
                 await textarea.send_keys(prompt)
                 await asyncio.sleep(1)
                 try:
-                    button = await page.select("[data-testid=\"submit-button\"]")
+                    button = await page.select('[data-testid="submit-button"]')
                 except TimeoutError:
                     button = None
                 if button:
                     await button.click()
                     try:
-                        turnstile = await page.select('#cf-turnstile')
+                        turnstile = await page.select("#cf-turnstile")
                     except TimeoutError:
                         turnstile = None
                     if turnstile:
@@ -170,7 +177,9 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
         sources = {}
         while not done:
             try:
-                request_id, msg_txt = await asyncio.wait_for(queue.get(), 1 if done else timeout)
+                request_id, msg_txt = await asyncio.wait_for(
+                    queue.get(), 1 if done else timeout
+                )
                 msg = json.loads(msg_txt)
             except Exception:
                 break
@@ -182,7 +191,9 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
             elif msg.get("event") == "generatingImage":
                 image_prompt = msg.get("prompt")
             elif msg.get("event") == "imageGenerated":
-                yield ImageResponse(msg.get("url"), image_prompt, {{"preview": msg.get("thumbnailUrl")}})
+                yield ImageResponse(
+                    msg.get("url"), image_prompt, {{"preview": msg.get("thumbnailUrl")}}
+                )
             elif msg.get("event") == "done":
                 yield FinishReason("stop")
                 done = True
@@ -195,27 +206,42 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
                 yield TitleGeneration(msg.get("title"))
             elif msg.get("event") == "citation":
                 sources[msg.get("url")] = msg
-                yield SourceLink(list(sources.keys()).index(msg.get("url")), msg.get("url"))
+                yield SourceLink(
+                    list(sources.keys()).index(msg.get("url")), msg.get("url")
+                )
             elif msg.get("event") == "partialImageGenerated":
-                mime_type = is_accepted_format(base64.b64decode(msg.get("content")[:12]))
-                yield ImagePreview(f"data:{mime_type};base64,{msg.get('content')}", image_prompt)
+                mime_type = is_accepted_format(
+                    base64.b64decode(msg.get("content")[:12])
+                )
+                yield ImagePreview(
+                    f"data:{mime_type};base64,{msg.get('content')}", image_prompt
+                )
             elif msg.get("event") == "chainOfThought":
                 yield Reasoning(msg.get("text"))
             elif msg.get("event") == "error":
                 raise RuntimeError(f"Error: {msg}")
-            elif msg.get("event") not in ["received", "startMessage", "partCompleted", "connected"]:
+            elif msg.get("event") not in [
+                "received",
+                "startMessage",
+                "partCompleted",
+                "connected",
+            ]:
                 debug.log(f"Copilot Message: {msg_txt[:100]}...")
         if not done:
             raise MissingAuthError(f"Invalid response: {last_msg}")
         if sources:
             yield Sources(sources.values())
 
+
 if has_nodriver:
-    async def click_trunstile(page: nodriver.Tab, element='document.getElementById("cf-turnstile")'):
+
+    async def click_trunstile(
+        page: nodriver.Tab, element='document.getElementById("cf-turnstile")'
+    ):
         for _ in range(3):
             size = None
             for idx in range(15):
-                size = await page.js_dumps(f'{element}?.getBoundingClientRect()||{{}}')
+                size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
                 debug.log(f"Found size: {size.get('x'), size.get('y')}")
                 if "x" not in size:
                     break

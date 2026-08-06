@@ -4,6 +4,7 @@ import os
 
 try:
     from gtts import gTTS as gTTS_Service
+
     has_gtts = True
 except ImportError:
     has_gtts = False
@@ -34,7 +35,10 @@ locals = {
     "es-ES": ["Spanish (Spain)", "es", "es"],
     "es-US": ["Spanish (United States)", "es", "us"],
 }
-models = {locale[0]: {"lang": locale[1], "tld": locale[2]} for locale in locals.values()}
+models = {
+    locale[0]: {"lang": locale[1], "tld": locale[2]} for locale in locals.values()
+}
+
 
 class gTTS(AsyncGeneratorProvider, ProviderModelMixin):
     label = "gTTS (Google Text-to-Speech)"
@@ -55,7 +59,7 @@ class gTTS(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         prompt: str = None,
         audio: dict = {},
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         prompt = get_last_message(messages, prompt)
         if not prompt:
@@ -66,7 +70,9 @@ class gTTS(AsyncGeneratorProvider, ProviderModelMixin):
         ensure_media_dir()
 
         if "language" in audio:
-            model = locals[audio["language"]][0] if audio["language"] in locals else model
+            model = (
+                locals[audio["language"]][0] if audio["language"] in locals else model
+            )
 
         gTTS_Service(
             prompt,
@@ -74,8 +80,8 @@ class gTTS(AsyncGeneratorProvider, ProviderModelMixin):
                 "lang": audio.get("language", cls.default_language),
                 "tld": audio.get("tld", cls.default_tld),
                 "slow": audio.get("slow", False),
-                **models.get(model, {})
-            }
+                **models.get(model, {}),
+            },
         ).save(target_path)
 
         yield AudioResponse(f"/media/{filename}", audio=audio, text=prompt)

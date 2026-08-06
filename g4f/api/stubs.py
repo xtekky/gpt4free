@@ -43,7 +43,9 @@ class RequestConfig(BaseModel):
             ]
         ],
     )
-    reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = None
+    reasoning_effort: Optional[
+        Literal["none", "low", "medium", "high", "x-high"]
+    ] = None
     logit_bias: Optional[dict] = None
     audio: Optional[dict] = None
     response_format: Optional[dict] = None
@@ -79,10 +81,9 @@ class ResponsesConfig(RequestConfig):
 
 class MessagesConfig(BaseModel):
     """Anthropic Messages API request body."""
+
     model: str = Field(default="")
-    messages: Messages = Field(
-        examples=[[{"role": "user", "content": "Hello"}]]
-    )
+    messages: Messages = Field(examples=[[{"role": "user", "content": "Hello"}]])
     system: Optional[Union[str, list]] = None
     max_tokens: int = 4096
     stream: bool = False
@@ -105,7 +106,9 @@ class MessagesConfig(BaseModel):
     media: Optional[list[tuple[str, str]]] = None
     web_search: Optional[Union[str, bool]] = None
     response_format: Optional[dict] = None
-    reasoning_effort: Optional[Literal["none", "low", "medium", "high", "x-high"]] = None
+    reasoning_effort: Optional[
+        Literal["none", "low", "medium", "high", "x-high"]
+    ] = None
     raw: bool = False
     extra_body: Optional[dict] = None
     tool_emulation: Optional[bool] = None

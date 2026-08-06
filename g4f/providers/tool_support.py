@@ -72,7 +72,9 @@ def _stringify_tool_calls(tool_calls: list) -> str:
             args_str = args
         else:
             try:
-                args_str = json.dumps(args if isinstance(args, dict) else {}, ensure_ascii=True)
+                args_str = json.dumps(
+                    args if isinstance(args, dict) else {}, ensure_ascii=True
+                )
             except Exception:
                 args_str = "{}"
         call_id = tc.get("id", "")
@@ -129,7 +131,7 @@ def _extract_balanced_json(s: str, start: int) -> tuple[str, int]:
             elif ch == close_ch:
                 depth -= 1
                 if depth == 0:
-                    return s[start:i + 1], i + 1
+                    return s[start : i + 1], i + 1
         i += 1
     # Unbalanced — return everything from start as a best effort.
     return s[start:].strip(), len(s)
@@ -163,11 +165,13 @@ def _parse_stringified_tool_calls(text: str) -> list[dict]:
                 arguments = args_str
         else:
             arguments = {}
-        calls.append({
-            "name": name,
-            "id": call_id or "",
-            "arguments": arguments,
-        })
+        calls.append(
+            {
+                "name": name,
+                "id": call_id or "",
+                "arguments": arguments,
+            }
+        )
     return calls
 
 
@@ -257,7 +261,12 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
         if not isinstance(msg, dict):
             # Flush any pending system text before non-dict entries.
             if pending_system:
-                processed.append({"role": "user", "content": "[System]\n" + "\n".join(pending_system)})
+                processed.append(
+                    {
+                        "role": "user",
+                        "content": "[System]\n" + "\n".join(pending_system),
+                    }
+                )
                 pending_system = []
             processed.append(msg)
             continue
@@ -288,7 +297,12 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
             new_msg["content"] = "\n\n".join(text_parts) if text_parts else rendered
             # Flush any pending system text before this assistant message.
             if pending_system:
-                processed.append({"role": "user", "content": "[System]\n" + "\n".join(pending_system)})
+                processed.append(
+                    {
+                        "role": "user",
+                        "content": "[System]\n" + "\n".join(pending_system),
+                    }
+                )
                 pending_system = []
             processed.append(new_msg)
         elif role == "tool":
@@ -302,20 +316,29 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
             new_msg = dict(msg)
             if pending_system:
                 existing = _extract_text(new_msg.get("content"))
-                new_msg["content"] = "[System]\n" + "\n".join(pending_system) + (
-                    ("\n\n" + existing) if existing else ""
+                new_msg["content"] = (
+                    "[System]\n"
+                    + "\n".join(pending_system)
+                    + (("\n\n" + existing) if existing else "")
                 )
                 pending_system = []
             processed.append(new_msg)
         else:
             # Flush any pending system text before unhandled roles.
             if pending_system:
-                processed.append({"role": "user", "content": "[System]\n" + "\n".join(pending_system)})
+                processed.append(
+                    {
+                        "role": "user",
+                        "content": "[System]\n" + "\n".join(pending_system),
+                    }
+                )
                 pending_system = []
             processed.append(msg)
     # Flush any trailing system text as a user message.
     if pending_system:
-        processed.append({"role": "user", "content": "[System]\n" + "\n".join(pending_system)})
+        processed.append(
+            {"role": "user", "content": "[System]\n" + "\n".join(pending_system)}
+        )
     return processed
 
 
@@ -393,9 +416,15 @@ class ToolSupportProvider(AsyncGeneratorProvider):
                             "You MUST call at least one tool. Respond with the JSON tool-call object only."
                         )
                     elif tool_choice == "none":
-                        lines.append("Do not call any tools. Respond with plain text only.")
+                        lines.append(
+                            "Do not call any tools. Respond with plain text only."
+                        )
                     elif isinstance(tool_choice, dict):
-                        fn = tool_choice.get("function") if tool_choice.get("type") == "function" else None
+                        fn = (
+                            tool_choice.get("function")
+                            if tool_choice.get("type") == "function"
+                            else None
+                        )
                         if isinstance(fn, dict) and fn.get("name"):
                             lines.append(f"You must call the tool `{fn['name']}`.")
                     else:
@@ -505,7 +534,11 @@ class ToolSupportProvider(AsyncGeneratorProvider):
                     idx = -1
                     for c in stringified:
                         name = c.get("name")
-                        if not isinstance(name, str) or not name or name not in tool_names:
+                        if (
+                            not isinstance(name, str)
+                            or not name
+                            or name not in tool_names
+                        ):
                             continue
                         args = c.get("arguments")
                         if isinstance(args, str):

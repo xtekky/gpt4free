@@ -279,15 +279,11 @@ class GeminiHelpersTest(unittest.TestCase):
         )
 
     def test_xsrf_response_is_retryable(self):
-        error = ResponseStatusError(
-            'Response 400: [["er",null,{"reason":"xsrf"}]]'
-        )
+        error = ResponseStatusError('Response 400: [["er",null,{"reason":"xsrf"}]]')
 
         self.assertTrue(_is_xsrf_error(error, 400))
         self.assertFalse(_is_xsrf_error(error, 401))
-        self.assertFalse(
-            _is_xsrf_error(ResponseStatusError("Response 400"), 400)
-        )
+        self.assertFalse(_is_xsrf_error(ResponseStatusError("Response 400"), 400))
 
     def test_extract_reasoning_from_dedicated_field(self):
         candidate = [None] * 38
@@ -313,9 +309,7 @@ class GeminiHelpersTest(unittest.TestCase):
             ProbeGemini.validate_model_access("gemini-3.1-pro")
         ProbeGemini.validate_model_access("gemini-3.6-flash")
         ProbeGemini.validate_model_access("gemini-3.5-flash")
-        ProbeGemini.validate_model_access(
-            "gemini-3.1-pro", allow_model_fallback=True
-        )
+        ProbeGemini.validate_model_access("gemini-3.1-pro", allow_model_fallback=True)
 
     def test_dynamic_headers_only_for_available_pro(self):
         _, registry = build_account_response(ACCOUNT_STATUS_AVAILABLE)
@@ -329,9 +323,7 @@ class GeminiHelpersTest(unittest.TestCase):
         )
         self.assertEqual(pro_header[4], "9d8ca3786ebdfbea")
         self.assertEqual(ProbeGemini.get_model_headers("gemini-3.5-flash"), {})
-        self.assertEqual(
-            ProbeGemini.get_model_headers("gemini-3.5-flash-thinking"), {}
-        )
+        self.assertEqual(ProbeGemini.get_model_headers("gemini-3.5-flash-thinking"), {})
 
 
 class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):

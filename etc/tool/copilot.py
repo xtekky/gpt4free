@@ -15,10 +15,11 @@ from github.PullRequest import PullRequest
 g4f.debug.logging = True
 g4f.debug.version_check = False
 
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY')
-G4F_PROVIDER = os.getenv('G4F_PROVIDER')
-G4F_MODEL = os.getenv('G4F_MODEL', '')
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")
+G4F_PROVIDER = os.getenv("G4F_PROVIDER")
+G4F_MODEL = os.getenv("G4F_MODEL", "")
+
 
 def get_pr_details(github: Github) -> PullRequest:
     """
@@ -30,9 +31,9 @@ def get_pr_details(github: Github) -> PullRequest:
     Returns:
         PullRequest: An object representing the pull request.
     """
-    if not os.path.isfile('./pr_number'):
+    if not os.path.isfile("./pr_number"):
         return
-    with open('./pr_number', 'r') as file:
+    with open("./pr_number", "r") as file:
         pr_number = file.read().strip()
     if not pr_number:
         return
@@ -41,6 +42,7 @@ def get_pr_details(github: Github) -> PullRequest:
     pull = repo.get_pull(int(pr_number))
 
     return pull
+
 
 def get_diff(diff_url: str) -> str:
     """
@@ -55,6 +57,7 @@ def get_diff(diff_url: str) -> str:
     response = requests.get(diff_url)
     response.raise_for_status()
     return response.text
+
 
 def read_json(text: str) -> dict:
     """
@@ -76,6 +79,7 @@ def read_json(text: str) -> dict:
     except json.JSONDecodeError:
         raise RuntimeError(f"Invalid JSON: {text}")
 
+
 def read_text(text: str) -> str:
     """
     Extracts text from a markdown code block.
@@ -92,6 +96,7 @@ def read_text(text: str) -> str:
     else:
         raise RuntimeError(f"Invalid markdown: {text}")
 
+
 def get_ai_response(prompt: str, as_json: bool = True) -> Union[dict, str]:
     """
     Gets a response from g4f API based on the prompt.
@@ -105,13 +110,14 @@ def get_ai_response(prompt: str, as_json: bool = True) -> Union[dict, str]:
     """
     response = g4f.ChatCompletion.create(
         G4F_MODEL,
-        [{'role': 'user', 'content': prompt}],
+        [{"role": "user", "content": prompt}],
         G4F_PROVIDER,
-        ignore_stream_and_auth=True
+        ignore_stream_and_auth=True,
     )
     return read_json(response) if as_json else read_text(response)
 
-def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
+
+def analyze_code(pull: PullRequest, diff: str) -> list[dict]:
     """
     Analyzes the code changes in the pull request.
 
@@ -127,29 +133,30 @@ def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
     current_file_path = None
     offset_line = 0
 
-    for line in diff.split('\n'):
-        if line.startswith('+++ b/'):
+    for line in diff.split("\n"):
+        if line.startswith("+++ b/"):
             current_file_path = line[6:]
             changed_lines = []
-        elif line.startswith('@@'):
-            match = re.search(r'\+([0-9]+?),', line)
+        elif line.startswith("@@"):
+            match = re.search(r"\+([0-9]+?),", line)
             if match:
                 offset_line = int(match.group(1))
         elif current_file_path:
-            if (line.startswith('\\') or line.startswith('diff')) and changed_lines:
+            if (line.startswith("\\") or line.startswith("diff")) and changed_lines:
                 prompt = create_analyze_prompt(changed_lines, pull, current_file_path)
                 response = get_ai_response(prompt)
-                for review in response.get('reviews', []):
-                    review['path'] = current_file_path
+                for review in response.get("reviews", []):
+                    review["path"] = current_file_path
                     comments.append(review)
                 current_file_path = None
-            elif line.startswith('-'):
+            elif line.startswith("-"):
                 changed_lines.append(line)
             else:
                 changed_lines.append(f"{offset_line}:{line}")
                 offset_line += 1
 
     return comments
+
 
 def create_analyze_prompt(changed_lines: list[str], pull: PullRequest, file_path: str):
     """
@@ -187,6 +194,7 @@ Each line is prefixed by its number. Code to review:
 ```
 """
 
+
 def create_review_prompt(pull: PullRequest, diff: str):
     """
     Creates a prompt to create a review comment.
@@ -216,6 +224,7 @@ Diff:
 {diff}
 ```
 """
+
 
 def main():
     try:
@@ -250,6 +259,7 @@ def main():
     except Exception as e:
         print(f"Error posting review: {e}")
         exit(1)
+
 
 if __name__ == "__main__":
     main()

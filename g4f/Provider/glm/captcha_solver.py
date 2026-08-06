@@ -29,6 +29,7 @@ from ... import debug
 try:
     import zendriver as nodriver
     from zendriver import cdp
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -47,7 +48,7 @@ CAPTCHA_CONFIG = {
 # exactly like the TS reference (NOT loaded from alicdn via <script src>).
 _BUNDLED_SDK_PATH = Path(__file__).parent / "AliyunCaptcha.js.txt"
 
-TOKEN_TTL_S = 45           # captcha_verify_param is cached for 45 seconds
+TOKEN_TTL_S = 45  # captcha_verify_param is cached for 45 seconds
 SOLVE_RETRIES = 3
 SOLVE_TIMEOUT_MS = 40_000  # hard cap for a single solve attempt
 SDK_LOAD_TIMEOUT_MS = 20_000
@@ -164,26 +165,34 @@ async def _intercept_and_fulfill(page, page_url: str, html: str) -> None:
     This is the CDP equivalent of Playwright's ``page.route()`` used by the
     TS reference.
     """
-    await page.send(cdp.fetch.enable(
-        patterns=[cdp.fetch.RequestPattern(
-            request_stage=cdp.fetch.RequestStage.REQUEST,
-        )],
-    ))
+    await page.send(
+        cdp.fetch.enable(
+            patterns=[
+                cdp.fetch.RequestPattern(
+                    request_stage=cdp.fetch.RequestStage.REQUEST,
+                )
+            ],
+        )
+    )
 
     async def on_request_paused(event: cdp.fetch.RequestPaused, page=None):
         request = event.request
         url = request.url
         # Only fulfil the top-level document navigation to chat.z.ai.
-        is_document = (url == page_url or url == page_url.rstrip("/"))
+        is_document = url == page_url or url == page_url.rstrip("/")
         if is_document and event.resource_type == cdp.network.ResourceType.DOCUMENT:
-            await page.send(cdp.fetch.fulfill_request(
-                request_id=event.request_id,
-                response_code=200,
-                response_headers=[
-                    cdp.fetch.HeaderEntry(name="Content-Type", value="text/html; charset=utf-8"),
-                ],
-                body=base64.b64encode(html.encode("utf-8")).decode("ascii"),
-            ))
+            await page.send(
+                cdp.fetch.fulfill_request(
+                    request_id=event.request_id,
+                    response_code=200,
+                    response_headers=[
+                        cdp.fetch.HeaderEntry(
+                            name="Content-Type", value="text/html; charset=utf-8"
+                        ),
+                    ],
+                    body=base64.b64encode(html.encode("utf-8")).decode("ascii"),
+                )
+            )
         else:
             await page.send(cdp.fetch.continue_request(request_id=event.request_id))
 

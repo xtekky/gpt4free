@@ -19,6 +19,7 @@ from ..helper import filter_none, format_media_prompt
 from ..Pollinations import Pollinations
 from ... import debug
 
+
 class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
     label = "PollinationsAudio"
     parent = Pollinations.__name__
@@ -33,29 +34,75 @@ class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
     simple_audio_endpoint = "https://gen.pollinations.ai/audio/{}"
     public_key = "".join(["pk", "_", "pqjxQN7C", "oSJUShHF"])
     available_voices = [
-        "alloy", "echo", "fable", "onyx", "nova", "shimmer", "ash", "ballad", "coral", "sage", "verse",
-        "rachel", "domi", "bella", "elli", "charlotte", "dorothy", "sarah", "emily", "lily", "matilda",
-        "adam", "antoni", "arnold", "josh", "sam", "daniel", "charlie", "james", "fin", "callum", "liam",
-        "george", "brian", "bill"
+        "alloy",
+        "echo",
+        "fable",
+        "onyx",
+        "nova",
+        "shimmer",
+        "ash",
+        "ballad",
+        "coral",
+        "sage",
+        "verse",
+        "rachel",
+        "domi",
+        "bella",
+        "elli",
+        "charlotte",
+        "dorothy",
+        "sarah",
+        "emily",
+        "lily",
+        "matilda",
+        "adam",
+        "antoni",
+        "arnold",
+        "josh",
+        "sam",
+        "daniel",
+        "charlie",
+        "james",
+        "fin",
+        "callum",
+        "liam",
+        "george",
+        "brian",
+        "bill",
     ]
     documented_audio_models = [
-        "openai-audio", "elevenlabs", "elevenmusic", "whisper", "whisper-large-v3", "whisper-1",
-        "scribe", "acestep", "qwen-tts", "qwen-tts-instruct"
+        "openai-audio",
+        "elevenlabs",
+        "elevenmusic",
+        "whisper",
+        "whisper-large-v3",
+        "whisper-1",
+        "scribe",
+        "acestep",
+        "qwen-tts",
+        "qwen-tts-instruct",
     ]
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             try:
-                response = requests.get(cls.models_endpoint, timeout=kwargs.get("timeout", 15))
+                response = requests.get(
+                    cls.models_endpoint, timeout=kwargs.get("timeout", 15)
+                )
                 response.raise_for_status()
                 models = response.json()
-                cls.models = {data.get("name"): {"id": data.get("name"), **data} for data in models}
+                cls.models = {
+                    data.get("name"): {"id": data.get("name"), **data}
+                    for data in models
+                }
             except Exception as e:
                 debug.error(e)
-                cls.models = {model: {"id": model} for model in cls.documented_audio_models}
+                cls.models = {
+                    model: {"id": model} for model in cls.documented_audio_models
+                }
         return cls.models
-    
+
     @classmethod
     def _get_audio_voices(cls) -> list[str]:
         for model in cls.get_models().values():
@@ -66,9 +113,10 @@ class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_grouped_models(cls) -> list[dict[str, list[str]]]:
         return [
-            {"group": model.get("id"), "models": model.get("voices")} if model.get("voices") else model
-            for model in
-            cls.get_models().values()
+            {"group": model.get("id"), "models": model.get("voices")}
+            if model.get("voices")
+            else model
+            for model in cls.get_models().values()
         ]
 
     @classmethod
@@ -82,17 +130,26 @@ class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         audio: dict = None,
         stream: bool = False,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
-        api_key = api_key or kwargs.get("api_key") or AuthManager.load_api_key(cls) or cls.public_key
+        api_key = (
+            api_key
+            or kwargs.get("api_key")
+            or AuthManager.load_api_key(cls)
+            or cls.public_key
+        )
         audio = {} if audio is None else dict(audio)
         if model in cls._get_audio_voices() and audio.get("voice") is None:
             audio["voice"] = model
             model = cls.default_model
 
         # Any audio media input is treated as a transcription request.
-        media = list(merge_media(media, messages)) if model != cls.default_model else media
-        if media and any(is_data_an_audio(media_data, filename) for media_data, filename in media):
+        media = (
+            list(merge_media(media, messages)) if model != cls.default_model else media
+        )
+        if media and any(
+            is_data_an_audio(media_data, filename) for media_data, filename in media
+        ):
             async for chunk in cls._create_transcription(
                 media=media,
                 api_key=api_key,
@@ -135,28 +192,44 @@ class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
             voice=voice,
             response_format=response_format,
             speed=audio.get("speed") if "speed" in audio else kwargs.get("speed"),
-            duration=audio.get("duration") if "duration" in audio else kwargs.get("duration"),
-            instrumental=audio.get("instrumental") if "instrumental" in audio else kwargs.get("instrumental"),
+            duration=audio.get("duration")
+            if "duration" in audio
+            else kwargs.get("duration"),
+            instrumental=audio.get("instrumental")
+            if "instrumental" in audio
+            else kwargs.get("instrumental"),
             seed=audio.get("seed") if "seed" in audio else kwargs.get("seed"),
             style=audio.get("style") if "style" in audio else kwargs.get("style"),
-            instruct=audio.get("instruct") if "instruct" in audio else kwargs.get("instruct"),
+            instruct=audio.get("instruct")
+            if "instruct" in audio
+            else kwargs.get("instruct"),
         )
 
         if not kwargs.get("download_media", True) and api_key.startswith("pk_"):
             encoded_text = quote(text[:4096])
-            query = "&".join(f"{key}={quote(str(value))}" for key, value in payload.items() if key not in {"input"} and value is not None)
+            query = "&".join(
+                f"{key}={quote(str(value))}"
+                for key, value in payload.items()
+                if key not in {"input"} and value is not None
+            )
             if query:
                 query = f"{query}&key={quote(api_key)}"
             else:
                 query = f"key={quote(api_key)}"
-            yield AudioResponse(f"{cls.simple_audio_endpoint.format(encoded_text)}?{query}", text, headers=headers)
+            yield AudioResponse(
+                f"{cls.simple_audio_endpoint.format(encoded_text)}?{query}",
+                text,
+                headers=headers,
+            )
             return
 
         headers = {
             **DEFAULT_HEADERS,
             "authorization": f"Bearer {api_key}",
         }
-        async with ClientSession(headers=headers, connector=get_connector(proxy=proxy)) as session:
+        async with ClientSession(
+            headers=headers, connector=get_connector(proxy=proxy)
+        ) as session:
             async with session.post(cls.speech_api_endpoint, json=payload) as response:
                 await raise_for_status(response)
                 async for chunk in save_response_media(response, text, [model, voice]):
@@ -177,7 +250,12 @@ class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
             raise ValueError("No valid audio data found for transcription")
 
         form = FormData()
-        form.add_field("file", file_bytes, filename=filename or "audio.wav", content_type="application/octet-stream")
+        form.add_field(
+            "file",
+            file_bytes,
+            filename=filename or "audio.wav",
+            content_type="application/octet-stream",
+        )
 
         transcription_model = model
         if transcription_model in (None, "openai-audio"):
@@ -193,8 +271,12 @@ class PollinationsAudio(AsyncGeneratorProvider, ProviderModelMixin):
             form.add_field(key, str(value))
 
         headers = {"authorization": f"Bearer {api_key}"}
-        async with ClientSession(headers=headers, connector=get_connector(proxy=proxy)) as session:
-            async with session.post(cls.transcription_api_endpoint, data=form) as response:
+        async with ClientSession(
+            headers=headers, connector=get_connector(proxy=proxy)
+        ) as session:
+            async with session.post(
+                cls.transcription_api_endpoint, data=form
+            ) as response:
                 await raise_for_status(response)
                 content_type = response.headers.get("content-type", "")
                 if "application/json" in content_type:

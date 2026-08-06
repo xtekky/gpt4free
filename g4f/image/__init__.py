@@ -22,6 +22,7 @@ except ImportError:
 
 try:
     from PIL import Image, ImageOps
+
     has_requirements = True
 except ImportError:
     has_requirements = False
@@ -44,7 +45,7 @@ EXTENSIONS_MAP: dict[str, str] = {
     "opus": "audio/opus",
     "ogg": "audio/ogg",
     "m4a": "audio/m4a",
-     # Video
+    # Video
     "mkv": "video/x-matroska",
     "webm": "video/webm",
     "mp4": "video/mp4",
@@ -57,6 +58,7 @@ EXTENSIONS_MAP: dict[str, str] = {
 
 MEDIA_TYPE_MAP: dict[str, str] = {value: key for key, value in EXTENSIONS_MAP.items()}
 MEDIA_TYPE_MAP["audio/webm"] = "webm"
+
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image.Image:
     """
@@ -96,11 +98,13 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image.Image:
 
     return image
 
+
 def get_extension(filename: str) -> Optional[str]:
-    if '.' in filename:
-        ext = os.path.splitext(filename)[1].lower().lstrip('.')
+    if "." in filename:
+        ext = os.path.splitext(filename)[1].lower().lstrip(".")
         return ext if ext in EXTENSIONS_MAP else None
     return None
+
 
 def is_allowed_extension(filename: str) -> Optional[str]:
     """
@@ -150,12 +154,20 @@ def is_safe_url(url: str) -> bool:
 
         for addr_info in addr_infos:
             addr = ipaddress.ip_address(addr_info[4][0])
-            if (addr.is_private or addr.is_loopback or addr.is_link_local
-                    or addr.is_reserved or addr.is_multicast or addr.is_unspecified):
+            if (
+                addr.is_private
+                or addr.is_loopback
+                or addr.is_link_local
+                or addr.is_reserved
+                or addr.is_multicast
+                or addr.is_unspecified
+            ):
                 return False
     except Exception:
         return False
     return True
+
+
 def is_data_an_media(data, filename: str = None) -> str:
     content_type = is_data_an_audio(data, filename)
     if content_type is not None:
@@ -169,6 +181,7 @@ def is_data_an_media(data, filename: str = None) -> str:
             return EXTENSIONS_MAP[extension]
         return "binary/octet-stream"
     return is_data_uri_an_image(data)
+
 
 def is_valid_media(data: ImageType = None, filename: str = None) -> str:
     if is_valid_audio(data, filename):
@@ -185,6 +198,7 @@ def is_valid_media(data: ImageType = None, filename: str = None) -> str:
         return is_accepted_format(data)
     return is_data_uri_an_image(data)
 
+
 def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
     if filename:
         extension = get_extension(filename)
@@ -193,9 +207,10 @@ def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
             if media_type.startswith("audio/"):
                 return media_type
     if isinstance(data_uri, str):
-        audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
+        audio_format = re.match(r"^data:(audio/\w+);base64,", data_uri)
         if audio_format:
             return audio_format.group(1)
+
 
 def is_valid_audio(data_uri: str = None, filename: str = None) -> bool:
     mimetype = is_data_an_audio(data_uri, filename)
@@ -204,6 +219,7 @@ def is_valid_audio(data_uri: str = None, filename: str = None) -> bool:
     if MEDIA_TYPE_MAP.get(mimetype) not in ("wav", "mp3"):
         return False
     return True
+
 
 def is_data_uri_an_image(data_uri: str) -> bool:
     """
@@ -218,14 +234,15 @@ def is_data_uri_an_image(data_uri: str) -> bool:
     if data_uri.startswith("https:") or data_uri.startswith("http:"):
         return True
     # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
-    if not re.match(r'data:image/(\w+);base64,', data_uri):
+    if not re.match(r"data:image/(\w+);base64,", data_uri):
         raise ValueError(f"Invalid data URI image. {data_uri[:10]}...")
     # Extract the image format from the data URI
-    image_format = re.match(r'data:image/(\w+);base64,', data_uri).group(1).lower()
+    image_format = re.match(r"data:image/(\w+);base64,", data_uri).group(1).lower()
     # Check if the image format is one of the allowed formats (jpg, jpeg, png, gif)
     if image_format not in EXTENSIONS_MAP and image_format != "svg+xml":
         raise ValueError("Invalid image format (from mime file type).")
     return True
+
 
 def is_accepted_format(binary_data: bytes) -> str:
     """
@@ -237,21 +254,20 @@ def is_accepted_format(binary_data: bytes) -> str:
     Raises:
         ValueError: If the image format is not allowed.
     """
-    if binary_data.startswith(b'\xFF\xD8\xFF'):
+    if binary_data.startswith(b"\xFF\xD8\xFF"):
         return "image/jpeg"
-    elif binary_data.startswith(b'\x89PNG\r\n\x1a\n'):
+    elif binary_data.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
-    elif binary_data.startswith(b'GIF87a') or binary_data.startswith(b'GIF89a'):
+    elif binary_data.startswith(b"GIF87a") or binary_data.startswith(b"GIF89a"):
         return "image/gif"
-    elif binary_data.startswith(b'\x89JFIF') or binary_data.startswith(b'JFIF\x00'):
+    elif binary_data.startswith(b"\x89JFIF") or binary_data.startswith(b"JFIF\x00"):
         return "image/jpeg"
-    elif binary_data.startswith(b'\xFF\xD8'):
+    elif binary_data.startswith(b"\xFF\xD8"):
         return "image/jpeg"
-    elif binary_data.startswith(b'RIFF') and binary_data[8:12] == b'WEBP':
+    elif binary_data.startswith(b"RIFF") and binary_data[8:12] == b"WEBP":
         return "image/webp"
     else:
         raise ValueError("Invalid image format (from magic code).")
-
 
 
 def detect_file_type(binary_data: bytes) -> tuple[str, str] | None:
@@ -301,7 +317,7 @@ def detect_file_type(binary_data: bytes) -> tuple[str, str] | None:
         return ".pdf", "application/pdf"
     elif binary_data.startswith(b"PK\x03\x04"):
         return ".zip", "application/zip-based"
-          # could be docx/xlsx/pptx/jar/apk/odt
+        # could be docx/xlsx/pptx/jar/apk/odt
     elif binary_data.startswith(b"\xd0\xcf\x11\xe0"):
         return ".doc", "application/vnd.ms-office"
     elif binary_data.startswith(b"{\\rtf"):
@@ -323,12 +339,11 @@ def detect_file_type(binary_data: bytes) -> tuple[str, str] | None:
     elif binary_data.startswith(b"\x7fELF"):
         return ".elf", "application/x-elf"
     elif binary_data.startswith(b"\xca\xfe\xba\xbe") or binary_data.startswith(
-            b"\xca\xfe\xd0\x0d"
+        b"\xca\xfe\xd0\x0d"
     ):
         return ".class", "application/java-vm"
     elif (
-            binary_data.startswith(b"\x50\x4b\x03\x04")
-            and b"META-INF" in binary_data[:200]
+        binary_data.startswith(b"\x50\x4b\x03\x04") and b"META-INF" in binary_data[:200]
     ):
         return ".jar", "application/java-archive"
 
@@ -386,7 +401,10 @@ def extract_data_uri(data_uri: str) -> bytes:
     data = base64.b64decode(data)
     return data
 
-def process_image(image: Image.Image, new_width: int = 400, new_height: int = 400, save: str = None) -> Image.Image:
+
+def process_image(
+    image: Image.Image, new_width: int = 400, new_height: int = 400, save: str = None
+) -> Image.Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
     Preserves transparency for PNG output.
@@ -403,7 +421,7 @@ def process_image(image: Image.Image, new_width: int = 400, new_height: int = 40
     # Remove transparency
     if image.mode == "RGBA":
         image.load()
-        white = Image.new('RGB', image.size, (255, 255, 255))
+        white = Image.new("RGB", image.size, (255, 255, 255))
         white.paste(image, mask=image.split()[-1])
         image = white
     # Convert to RGB for jpg format
@@ -415,6 +433,7 @@ def process_image(image: Image.Image, new_width: int = 400, new_height: int = 40
         image.save(save, exif=b"")
         return image_size
     return image
+
 
 def to_bytes(image: ImageType) -> bytes:
     """
@@ -445,16 +464,23 @@ def to_bytes(image: ImageType) -> bytes:
             else:
                 if not is_safe_url(image):
                     raise ValueError("Invalid or unsafe image url")
-                resp = requests.get(image, headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
-                })
+                resp = requests.get(
+                    image,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+                    },
+                )
                 if resp.ok and is_accepted_format(resp.content):
                     return resp.content
-                raise ValueError("Invalid image url. Expected bytes, str, or PIL Image.")
+                raise ValueError(
+                    "Invalid image url. Expected bytes, str, or PIL Image."
+                )
         elif os.path.exists(image):
             return Path(image).read_bytes()
         else:
-            raise ValueError(f"Invalid image format or file not found. Expected bytes, str, or PIL Image. Got: {image[:100]}")
+            raise ValueError(
+                f"Invalid image format or file not found. Expected bytes, str, or PIL Image. Got: {image[:100]}"
+            )
     elif isinstance(image, Image.Image):
         bytes_io = BytesIO()
         image.save(bytes_io, image.format)
@@ -471,12 +497,14 @@ def to_bytes(image: ImageType) -> bytes:
             pass
         return image.read()
 
+
 def to_data_uri(image: ImageType, filename: str = None) -> str:
     if not isinstance(image, str):
         data = to_bytes(image)
         data_base64 = base64.b64encode(data).decode()
         return f"data:{is_data_an_media(data, filename)};base64,{data_base64}"
     return image
+
 
 def to_input_audio(audio: ImageType, filename: str = None) -> str:
     if not isinstance(audio, str):
@@ -486,59 +514,51 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
                 raise ValueError("Invalid input audio")
             return {
                 "data": base64.b64encode(to_bytes(audio)).decode(),
-                "format": format
+                "format": format,
             }
         raise ValueError("Invalid input audio")
-    audio = re.match(r'^data:audio/(\w+);base64,(.+?)', audio)
+    audio = re.match(r"^data:audio/(\w+);base64,(.+?)", audio)
     if audio:
-        return {
-            "data": audio.group(2),
-            "format": audio.group(1).replace("mpeg", "mp3")
-        }
+        return {"data": audio.group(2), "format": audio.group(1).replace("mpeg", "mp3")}
     raise ValueError("Invalid input audio")
+
 
 def use_aspect_ratio(extra_body: dict, aspect_ratio: str) -> Image:
     extra_body = {key: value for key, value in extra_body.items() if value is not None}
     if extra_body.get("width") is None or extra_body.get("height") is None:
         width, height = get_width_height(
-            aspect_ratio,
-            extra_body.get("width"),
-            extra_body.get("height")
+            aspect_ratio, extra_body.get("width"), extra_body.get("height")
         )
-        extra_body = {
-            "width": width,
-            "height": height,
-            **extra_body
-        }
+        extra_body = {"width": width, "height": height, **extra_body}
     return {key: value for key, value in extra_body.items() if value is not None}
 
+
 def get_width_height(
-    aspect_ratio: str,
-    width: Optional[int] = None,
-    height: Optional[int] = None
+    aspect_ratio: str, width: Optional[int] = None, height: Optional[int] = None
 ) -> tuple[int, int]:
     """
     Returns (width, height) for common aspect ratios.
     """
     ratio_map = {
-        "1:1":   (1024, 1024),
-        "16:9":  (1024, 576),
-        "9:16":  (576,  1024),
-        "4:3":   (1024, 768),
-        "3:4":   (768,  1024),
-        "3:2":   (1024, 682),
-        "2:3":   (682,  1024),
-        "21:9":  (1024, 440),
-        "9:21":  (440,  1024),
-        "4:5":   (832,  1040),
-        "5:4":   (1040, 832),
-        "2:1":   (1024, 512),
-        "1:2":   (512,  1024),
+        "1:1": (1024, 1024),
+        "16:9": (1024, 576),
+        "9:16": (576, 1024),
+        "4:3": (1024, 768),
+        "3:4": (768, 1024),
+        "3:2": (1024, 682),
+        "2:3": (682, 1024),
+        "21:9": (1024, 440),
+        "9:21": (440, 1024),
+        "4:5": (832, 1040),
+        "5:4": (1040, 832),
+        "2:1": (1024, 512),
+        "1:2": (512, 1024),
     }
     if aspect_ratio in ratio_map:
         default_w, default_h = ratio_map[aspect_ratio]
         return width or default_w, height or default_h
     return width, height
+
 
 class ImageRequest:
     def __init__(self, options: dict = None):

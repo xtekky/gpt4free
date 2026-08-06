@@ -17,6 +17,7 @@ from typing import (
     Optional,
     TYPE_CHECKING,
 )
+
 try:
     from typing_extensions import TypedDict
 except ImportError:
@@ -25,8 +26,10 @@ except ImportError:
 if TYPE_CHECKING:
     from PIL.Image import Image as PILImage
 else:
+
     class PILImage:  # minimal placeholder to avoid runtime import errors
         pass
+
 
 # Response chunk type from providers
 from .providers.response import ResponseType
@@ -46,28 +49,33 @@ AsyncResult = AsyncIterator[Union[str, ResponseType]]
 #   {"role": "user" | "assistant" | "system" | "tool", "content": str | [ContentPart, ...]}
 # where content parts can be text or (optionally) structured pieces like images.
 
+
 class ContentPart(TypedDict, total=False):
-    type: str           # e.g., "text", "image_url", etc.
-    text: str           # present when type == "text"
+    type: str  # e.g., "text", "image_url", etc.
+    text: str  # present when type == "text"
     image_url: Dict[str, str]  # present when type == "image_url"
     input_audio: Dict[str, str]  # present when type == "input_audio"
     bucket_id: str
     name: str
 
+
 class ToolCallFunction(TypedDict, total=False):
     name: str
-    arguments: str      # JSON-encoded arguments string
+    arguments: str  # JSON-encoded arguments string
+
 
 class ToolCall(TypedDict, total=False):
     id: str
-    type: str           # e.g., "function"
+    type: str  # e.g., "function"
     function: ToolCallFunction
+
 
 class Message(TypedDict, total=False):
     role: str
     content: Optional[Union[str, List[ContentPart]]]
     tool_calls: Optional[List[ToolCall]]
-    tool_call_id: str   # present on "tool" role messages
+    tool_call_id: str  # present on "tool" role messages
+
 
 Messages = List[Message]
 

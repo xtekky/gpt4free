@@ -132,7 +132,9 @@ def _iter_google_json(content: str):
             yield parsed
 
 
-def _compute_model_capacity(tier_flags: list, capability_flags: list) -> tuple[int, int]:
+def _compute_model_capacity(
+    tier_flags: list, capability_flags: list
+) -> tuple[int, int]:
     if 21 in tier_flags:
         return 1, 13
     if 22 in tier_flags:
@@ -159,7 +161,9 @@ def _model_family(model_id: str, display_name: str, description: str) -> str | N
     return None
 
 
-def build_model_headers(model_id: str, capacity: int, capacity_field: int) -> dict[str, str]:
+def build_model_headers(
+    model_id: str, capacity: int, capacity_field: int
+) -> dict[str, str]:
     header = [1, None, None, None, model_id, None, None, 0, [4], None, None]
     if capacity_field == 13:
         header.extend([None, capacity])
@@ -189,7 +193,9 @@ def parse_account_models(content: str) -> tuple[int | None, dict[str, dict]]:
             tier_flags = get_nested_value(body, [16], [])
             capability_flags = get_nested_value(body, [17], [])
             tier_flags = tier_flags if isinstance(tier_flags, list) else []
-            capability_flags = capability_flags if isinstance(capability_flags, list) else []
+            capability_flags = (
+                capability_flags if isinstance(capability_flags, list) else []
+            )
             capacity, capacity_field = _compute_model_capacity(
                 tier_flags, capability_flags
             )
@@ -216,9 +222,7 @@ def parse_account_models(content: str) -> tuple[int | None, dict[str, dict]]:
                     "capacity": capacity,
                     "capacity_field": capacity_field,
                     "available": available,
-                    "headers": build_model_headers(
-                        model_id, capacity, capacity_field
-                    ),
+                    "headers": build_model_headers(model_id, capacity, capacity_field),
                 }
     if registry and status_code is None:
         status_code = ACCOUNT_STATUS_AVAILABLE

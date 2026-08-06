@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ..template import OpenaiTemplate
 
+
 class Custom(OpenaiTemplate):
     label = "Custom Provider"
     working = True
@@ -11,7 +12,9 @@ class Custom(OpenaiTemplate):
     sort_models = False
 
     @classmethod
-    def get_models(cls, api_key: str = None, base_url: str = None, **kwargs) -> list[str]:
+    def get_models(
+        cls, api_key: str = None, base_url: str = None, **kwargs
+    ) -> list[str]:
         if cls.models:
             return cls.models
         try:
@@ -22,6 +25,7 @@ class Custom(OpenaiTemplate):
             if base_url is None:
                 return []
             raise e
+
 
 class Feature(Custom):
     label = "Feature Provider"

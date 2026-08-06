@@ -9,6 +9,7 @@ from ..typing import AsyncResult, Messages
 from .helper import format_prompt
 from ..providers.response import SourceLink, Sources
 
+
 class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Copilot App"
     url = "https://play.google.com/store/apps/details?id=com.microsoft.copilot"
@@ -19,31 +20,27 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
     models = ["smart", "reasoning", "chat", "study", "search"]
     model_aliases = {
         "copilot": default_model,
-        "gpt-4": "chat", 
+        "gpt-4": "chat",
         "gpt-4o": "chat",
         "o1": "reasoning",
         "o1-preview": "reasoning",
         "o3-mini": "reasoning",
-        "gpt-5": "smart"
+        "gpt-5": "smart",
     }
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        **kwargs
+        cls, model: str, messages: Messages, proxy: str = None, **kwargs
     ) -> AsyncResult:
         prompt = format_prompt(messages)
-        
+
         headers = {
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
             "Content-Type": "application/json",
             "Host": "copilot.microsoft.com",
             "User-Agent": "CopilotNative/30.0.440505001-prod (Android 14; Google; Pixel 8 Pro)",
-            "X-Search-UILang": "en-US"
+            "X-Search-UILang": "en-US",
         }
 
         start_payload = {
@@ -51,34 +48,41 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
             "startNewConversation": True,
             "teenSupportEnabled": True,
             "correctPersonalizationSetting": True,
-            "deferredDataUseCapable": True
+            "deferredDataUseCapable": True,
         }
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "https://copilot.microsoft.com/c/api/start", 
-                headers=headers, 
+                "https://copilot.microsoft.com/c/api/start",
+                headers=headers,
                 json=start_payload,
-                proxy=proxy
+                proxy=proxy,
             ) as resp:
                 if resp.status != 200:
-                    raise RuntimeError(f"Failed to start conversation: {await resp.text()}")
-                
+                    raise RuntimeError(
+                        f"Failed to start conversation: {await resp.text()}"
+                    )
+
                 start_data = await resp.json()
                 conversation_id = start_data.get("currentConversationId")
 
             client_session_id = str(uuid.uuid4())
             ws_url = f"wss://copilot.microsoft.com/c/api/chat?api-version=2&clientSessionId={client_session_id}"
-            
+
             async with session.ws_connect(ws_url, headers=headers, proxy=proxy) as ws:
                 async for msg in ws:
                     if msg.type == aiohttp.WSMsgType.TEXT:
                         data = json.loads(msg.data)
                         if data.get("event") == "connected":
                             break
-                
+
                 model_lower = model.lower()
-                if "reasoning" in model_lower or "think" in model_lower or "o1" in model_lower or "o3" in model_lower:
+                if (
+                    "reasoning" in model_lower
+                    or "think" in model_lower
+                    or "o1" in model_lower
+                    or "o3" in model_lower
+                ):
                     mode = "reasoning"
                 elif "smart" in model_lower or "gpt-5" in model_lower:
                     mode = "smart"
@@ -88,15 +92,15 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
                     mode = "search"
                 else:
                     mode = "smart"
-                
+
                 send_payload = {
                     "event": "send",
                     "content": [{"type": "text", "text": prompt}],
                     "conversationId": conversation_id,
-                    "mode": mode
+                    "mode": mode,
                 }
                 await ws.send_json(send_payload)
-                
+
                 sources = {}
                 async for msg in ws:
                     if msg.type == aiohttp.WSMsgType.TEXT:
@@ -106,7 +110,10 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
                             yield data.get("text", "")
                         elif event == "citation":
                             sources[data.get("url")] = data
-                            yield SourceLink(list(sources.keys()).index(data.get("url")), data.get("url"))
+                            yield SourceLink(
+                                list(sources.keys()).index(data.get("url")),
+                                data.get("url"),
+                            )
                         elif event == "done":
                             if sources:
                                 yield Sources(sources.values())

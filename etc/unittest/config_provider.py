@@ -22,7 +22,7 @@ from g4f.providers.config_provider import (
     RouterConfig,
     ConfigModelProvider,
     evaluate_condition,
-    has_yaml
+    has_yaml,
 )
 
 
@@ -30,8 +30,8 @@ from g4f.providers.config_provider import (
 # QuotaCache tests
 # ---------------------------------------------------------------------------
 
-class TestQuotaCache(unittest.TestCase):
 
+class TestQuotaCache(unittest.TestCase):
     def setUp(self):
         QuotaCache.clear()
 
@@ -70,8 +70,8 @@ class TestQuotaCache(unittest.TestCase):
 # ErrorCounter tests
 # ---------------------------------------------------------------------------
 
-class TestErrorCounter(unittest.TestCase):
 
+class TestErrorCounter(unittest.TestCase):
     def setUp(self):
         ErrorCounter.clear()
 
@@ -109,8 +109,8 @@ class TestErrorCounter(unittest.TestCase):
 # evaluate_condition tests
 # ---------------------------------------------------------------------------
 
-class TestEvaluateCondition(unittest.TestCase):
 
+class TestEvaluateCondition(unittest.TestCase):
     # --- simple comparisons (PollinationsAI-style quota) ---
 
     def test_balance_gt_true(self):
@@ -179,55 +179,39 @@ class TestEvaluateCondition(unittest.TestCase):
 
     def test_quota_balance_pollinations(self):
         """PollinationsAI: quota.balance shorthand."""
-        self.assertTrue(
-            evaluate_condition("quota.balance > 0", {"balance": 10.0}, 0)
-        )
+        self.assertTrue(evaluate_condition("quota.balance > 0", {"balance": 10.0}, 0))
 
     def test_quota_balance_pollinations_false(self):
-        self.assertFalse(
-            evaluate_condition("quota.balance > 0", {"balance": 0.0}, 0)
-        )
+        self.assertFalse(evaluate_condition("quota.balance > 0", {"balance": 0.0}, 0))
 
     def test_quota_nested_yupp(self):
         """Yupp: quota.credits.remaining > 0."""
         quota = {"credits": {"remaining": 500, "total": 5000}}
-        self.assertTrue(
-            evaluate_condition("quota.credits.remaining > 0", quota, 0)
-        )
+        self.assertTrue(evaluate_condition("quota.credits.remaining > 0", quota, 0))
 
     def test_quota_nested_yupp_false(self):
         quota = {"credits": {"remaining": 0, "total": 5000}}
-        self.assertFalse(
-            evaluate_condition("quota.credits.remaining > 0", quota, 0)
-        )
+        self.assertFalse(evaluate_condition("quota.credits.remaining > 0", quota, 0))
 
     def test_quota_missing_key_resolves_zero(self):
         """Missing quota key should resolve to 0.0 (not raise)."""
-        self.assertFalse(
-            evaluate_condition("quota.nonexistent > 0", {}, 0)
-        )
+        self.assertFalse(evaluate_condition("quota.nonexistent > 0", {}, 0))
 
     def test_quota_missing_nested_key_resolves_zero(self):
-        self.assertFalse(
-            evaluate_condition("quota.credits.remaining > 0", {}, 0)
-        )
+        self.assertFalse(evaluate_condition("quota.credits.remaining > 0", {}, 0))
 
     def test_quota_combined_condition(self):
         """quota.credits.remaining > 0 or error_count < 3."""
         quota = {"credits": {"remaining": 0, "total": 5000}}
         self.assertTrue(
-            evaluate_condition("quota.credits.remaining > 0 or error_count < 3", quota, 2)
+            evaluate_condition(
+                "quota.credits.remaining > 0 or error_count < 3", quota, 2
+            )
         )
 
     def test_quota_dashed_key(self):
         """Dot notation must handle hyphenated keys like gemini-3-flash-preview."""
-        quota = {
-            "models": {
-                "gemini-3-flash-preview": {
-                    "remaining": 1
-                }
-            }
-        }
+        quota = {"models": {"gemini-3-flash-preview": {"remaining": 1}}}
         self.assertTrue(
             evaluate_condition(
                 "quota.models.gemini-3-flash-preview.remaining > 0 or error_count < 3",
@@ -277,17 +261,15 @@ class TestEvaluateCondition(unittest.TestCase):
     def test_quota_unknown_sub_key_resolves_zero(self):
         """Accessing a missing sub-key of quota returns 0.0, not an error."""
         quota = {"balance": 5.0}
-        self.assertFalse(
-            evaluate_condition("quota.missing_field > 100", quota, 0)
-        )
+        self.assertFalse(evaluate_condition("quota.missing_field > 100", quota, 0))
 
 
 # ---------------------------------------------------------------------------
 # RouterConfig tests
 # ---------------------------------------------------------------------------
 
-class TestRouterConfig(unittest.TestCase):
 
+class TestRouterConfig(unittest.TestCase):
     def setUp(self):
         if not has_yaml:
             self.skipTest('"yaml" not installed')
@@ -295,6 +277,7 @@ class TestRouterConfig(unittest.TestCase):
 
     def test_load_valid_yaml(self):
         import tempfile, os
+
         cfg = """
 models:
   - name: "test-model"
@@ -316,7 +299,9 @@ models:
             self.assertEqual(len(route.providers), 1)
             self.assertEqual(route.providers[0].provider, "PollinationsAI")
             self.assertEqual(route.providers[0].model, "openai-large")
-            self.assertEqual(route.providers[0].condition, "balance > 0 or error_count < 3")
+            self.assertEqual(
+                route.providers[0].condition, "balance > 0 or error_count < 3"
+            )
         finally:
             os.unlink(path)
 
@@ -327,6 +312,7 @@ models:
 
     def test_load_empty_yaml(self):
         import tempfile, os
+
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".yaml", delete=False, encoding="utf-8"
         ) as f:
@@ -340,6 +326,7 @@ models:
 
     def test_load_invalid_yaml(self):
         import tempfile, os
+
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".yaml", delete=False, encoding="utf-8"
         ) as f:
@@ -361,6 +348,7 @@ models:
 
     def test_provider_default_model_uses_route_name(self):
         import tempfile, os
+
         cfg = """
 models:
   - name: "my-model"
@@ -386,8 +374,8 @@ models:
 # ConfigModelProvider tests (synchronous helpers)
 # ---------------------------------------------------------------------------
 
-class TestConfigModelProvider(unittest.IsolatedAsyncioTestCase):
 
+class TestConfigModelProvider(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         QuotaCache.clear()
         ErrorCounter.clear()

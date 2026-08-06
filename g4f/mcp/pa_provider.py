@@ -69,9 +69,11 @@ import builtins as _builtins
 from pathlib import Path
 from typing import Any, Dict, FrozenSet, List, Optional, Type
 from .. import debug
+
 # ---------------------------------------------------------------------------
 # Workspace directory
 # ---------------------------------------------------------------------------
+
 
 def get_workspace_dir() -> Path:
     """Return the workspace directory ``~/.g4f/workspace``, creating it if needed."""
@@ -79,50 +81,100 @@ def get_workspace_dir() -> Path:
     workspace.mkdir(parents=True, exist_ok=True)
     return workspace
 
+
 def is_hidden_file(path: str) -> bool:
     """Return True if *path* is a hidden file (starts with a dot)."""
     return any(part.startswith(".") for part in str(path).replace("\\", "/").split("/"))
+
 
 # ---------------------------------------------------------------------------
 # Whitelisted modules
 # ---------------------------------------------------------------------------
 
 #: Modules that are allowed inside the safe execution sandbox.
-SAFE_MODULES: FrozenSet[str] = frozenset({
-    "__future__", "concurrent", "warnings", "urllib3", "urllib3.exceptions", "uuid", "secrets",
-    # Math / numeric
-    "math", "cmath", "decimal", "fractions", "statistics", "random", "numbers",
-    # String / text
-    "string", "re", "textwrap", "unicodedata", "difflib", "fnmatch",
-    # Data structures
-    "json", "csv", "collections", "heapq", "bisect", "array", "queue",
-    # Functional
-    "itertools", "functools", "operator",
-    # Type system
-    "typing", "types", "abc", "dataclasses", "enum",
-    # Time / date
-    "datetime", "time", "calendar",
-    # I/O
-    "io", "pathlib",
-    # Async
-    "asyncio",
-    # Encoding / hashing
-    "base64", "hashlib", "hmac", "binascii", "codecs", "struct",
-    # URL / HTTP
-    "urllib", "urllib.parse", "http", "http.client",
-    # Compression
-    "gzip", "zlib",
-    # Misc safe stdlib
-    "copy", "pprint", "reprlib", "warnings", "contextlib",
-    # Third-party HTTP (used by providers)
-    "aiohttp", "requests",
-    # gpt4free itself
-    "g4f",
-    # wasmtime
-    "wasmtime",
-    # Restricted os shim (only urandom and safe read-only attrs exposed)
-    "os",
-})
+SAFE_MODULES: FrozenSet[str] = frozenset(
+    {
+        "__future__",
+        "concurrent",
+        "warnings",
+        "urllib3",
+        "urllib3.exceptions",
+        "uuid",
+        "secrets",
+        # Math / numeric
+        "math",
+        "cmath",
+        "decimal",
+        "fractions",
+        "statistics",
+        "random",
+        "numbers",
+        # String / text
+        "string",
+        "re",
+        "textwrap",
+        "unicodedata",
+        "difflib",
+        "fnmatch",
+        # Data structures
+        "json",
+        "csv",
+        "collections",
+        "heapq",
+        "bisect",
+        "array",
+        "queue",
+        # Functional
+        "itertools",
+        "functools",
+        "operator",
+        # Type system
+        "typing",
+        "types",
+        "abc",
+        "dataclasses",
+        "enum",
+        # Time / date
+        "datetime",
+        "time",
+        "calendar",
+        # I/O
+        "io",
+        "pathlib",
+        # Async
+        "asyncio",
+        # Encoding / hashing
+        "base64",
+        "hashlib",
+        "hmac",
+        "binascii",
+        "codecs",
+        "struct",
+        # URL / HTTP
+        "urllib",
+        "urllib.parse",
+        "http",
+        "http.client",
+        # Compression
+        "gzip",
+        "zlib",
+        # Misc safe stdlib
+        "copy",
+        "pprint",
+        "reprlib",
+        "warnings",
+        "contextlib",
+        # Third-party HTTP (used by providers)
+        "aiohttp",
+        "requests",
+        # gpt4free itself
+        "g4f",
+        # wasmtime
+        "wasmtime",
+        # Restricted os shim (only urandom and safe read-only attrs exposed)
+        "os",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +198,7 @@ MAX_OUTPUT_BYTES: int = 65_536  # 64 KiB
 # ---------------------------------------------------------------------------
 # Sandbox helpers
 # ---------------------------------------------------------------------------
+
 
 class _LimitedStringIO(io.StringIO):
     """StringIO that stops accepting writes once *max_bytes* of UTF-8 content
@@ -327,15 +380,23 @@ def _load_workspace_module(
 # Restricted os shim
 # ---------------------------------------------------------------------------
 
+
 def _make_restricted_os() -> types.ModuleType:
     """Return a restricted ``os`` module that only exposes safe, read-only
     attributes (``urandom``, ``name``, ``sep``, ``linesep``, ``altsep``,
     ``pathsep``).  All filesystem, process, and environment operations are
     absent.
     """
-    _SAFE_OS_ATTRS = frozenset({
-        "urandom", "name", "sep", "linesep", "altsep", "pathsep",
-    })
+    _SAFE_OS_ATTRS = frozenset(
+        {
+            "urandom",
+            "name",
+            "sep",
+            "linesep",
+            "altsep",
+            "pathsep",
+        }
+    )
     shim = types.ModuleType("os")
     for attr in _SAFE_OS_ATTRS:
         if hasattr(_os, attr):
@@ -350,31 +411,35 @@ def _make_restricted_import(allowed: FrozenSet[str]):
 
     # Sensitive g4f submodules that must never be accessible inside a sandbox,
     # regardless of the top-level module being in *allowed*.
-    _BLOCKED_SUBMODULES: FrozenSet[str] = frozenset({
-        # API-key / credential management
-        "g4f.tools.auth",
-        "g4f.tools.run_tools",
-        # App config (holds g4f_api_key, disable_custom_api_key, …)
-        "g4f.config",
-        # Cookie / session storage
-        "g4f.cookies",
-        # Internals that expose auth helpers transitively
-        "g4f.providers.retry_provider",
-        "g4f.providers.config_provider",
-        # Block the entire Provider package; only specific safe submodules are
-        # explicitly permitted via _ALLOWED_G4F_SUBPATHS below.
-        "g4f.Provider",
-        "g4f.config"
-    })
+    _BLOCKED_SUBMODULES: FrozenSet[str] = frozenset(
+        {
+            # API-key / credential management
+            "g4f.tools.auth",
+            "g4f.tools.run_tools",
+            # App config (holds g4f_api_key, disable_custom_api_key, …)
+            "g4f.config",
+            # Cookie / session storage
+            "g4f.cookies",
+            # Internals that expose auth helpers transitively
+            "g4f.providers.retry_provider",
+            "g4f.providers.config_provider",
+            # Block the entire Provider package; only specific safe submodules are
+            # explicitly permitted via _ALLOWED_G4F_SUBPATHS below.
+            "g4f.Provider",
+            "g4f.config",
+        }
+    )
 
     # Explicit allowlist for g4f sub-paths that would otherwise be blocked.
     # Checked *before* the blocklist so these entries take priority.
-    _ALLOWED_G4F_SUBPATHS: FrozenSet[str] = frozenset({
-        "g4f.Provider.helper",
-        "g4f.Provider.base_provider",
-        "g4f.Provider.template",
-        "g4f.typing",
-    })
+    _ALLOWED_G4F_SUBPATHS: FrozenSet[str] = frozenset(
+        {
+            "g4f.Provider.helper",
+            "g4f.Provider.base_provider",
+            "g4f.Provider.template",
+            "g4f.typing",
+        }
+    )
 
     def _restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
         if level > 0:
@@ -399,7 +464,9 @@ def _make_restricted_import(allowed: FrozenSet[str]):
         if base not in allowed:
             # Before rejecting, check if it's a workspace module (sibling .py file).
             workspace = get_workspace_dir()
-            ws_module = _load_workspace_module(base, workspace, globals, fromlist, level)
+            ws_module = _load_workspace_module(
+                base, workspace, globals, fromlist, level
+            )
             if ws_module is not None:
                 # Handle submodule imports (e.g. "pkg.sub")
                 if name != base:
@@ -451,11 +518,11 @@ def _make_safe_globals(
     workspace = get_workspace_dir()
 
     # Build a reduced copy of the real built-ins
-    _blocked = frozenset({"exec", "eval", "compile", "input", "breakpoint", "__import__"})
+    _blocked = frozenset(
+        {"exec", "eval", "compile", "input", "breakpoint", "__import__"}
+    )
     safe_builtins: Dict[str, Any] = {
-        k: getattr(_builtins, k)
-        for k in dir(_builtins)
-        if k not in _blocked
+        k: getattr(_builtins, k) for k in dir(_builtins) if k not in _blocked
     }
 
     # Provide a workspace-scoped open()
@@ -502,6 +569,7 @@ def _make_safe_globals(
 # Execution result
 # ---------------------------------------------------------------------------
 
+
 class SafeExecutionResult:
     """Holds the outcome of a sandboxed code execution."""
 
@@ -542,6 +610,7 @@ class SafeExecutionResult:
 # Safe executor
 # ---------------------------------------------------------------------------
 
+
 def execute_safe_code(
     code: str,
     extra_globals: Optional[Dict[str, Any]] = None,
@@ -576,7 +645,9 @@ def execute_safe_code(
     stdout_buf = _LimitedStringIO(MAX_OUTPUT_BYTES)
     stderr_buf = _LimitedStringIO(MAX_OUTPUT_BYTES)
 
-    safe_globals = _make_safe_globals(allowed_modules, stdout_buf=stdout_buf, stderr_buf=stderr_buf)
+    safe_globals = _make_safe_globals(
+        allowed_modules, stdout_buf=stdout_buf, stderr_buf=stderr_buf
+    )
     if file_path is not None:
         safe_globals["__file__"] = str(Path(file_path).resolve())
     if extra_globals:
@@ -650,6 +721,7 @@ def execute_safe_code(
 # .pa.py provider loader
 # ---------------------------------------------------------------------------
 
+
 def load_pa_provider(file_path: "str | Path") -> Optional[Type]:
     """Load a ``.pa.py`` file and return the provider class it defines.
 
@@ -719,6 +791,7 @@ def list_pa_providers(directory: "Optional[str | Path]" = None) -> List[Path]:
 # PA Provider Registry
 # ---------------------------------------------------------------------------
 
+
 class PaProviderRegistry:
     """Singleton registry for PA providers loaded from the workspace.
 
@@ -785,15 +858,17 @@ class PaProviderRegistry:
                 debug.log(f"Loaded PA provider: {provider_id} ({relative_path})")
                 if is_hidden_file(relative_path):
                     relative_path = None
-                entries.append((
-                    provider_id,
-                    getattr(cls, "label", cls.__name__),
-                    models_list,
-                    bool(getattr(cls, "working", True)),
-                    getattr(cls, "url", None),
-                    cls,
-                    relative_path
-                ))
+                entries.append(
+                    (
+                        provider_id,
+                        getattr(cls, "label", cls.__name__),
+                        models_list,
+                        bool(getattr(cls, "working", True)),
+                        getattr(cls, "url", None),
+                        cls,
+                        relative_path,
+                    )
+                )
             except Exception as e:
                 debug.error(f"Failed to load PA provider from {pa_path}:", e)
                 pass
@@ -811,7 +886,7 @@ class PaProviderRegistry:
                 "models": e[2],
                 "working": e[3],
                 "url": e[4],
-                "path": e[6]
+                "path": e[6],
             }
             for e in self._entries
         ]
@@ -836,7 +911,7 @@ class PaProviderRegistry:
                     "models": e[2],
                     "working": e[3],
                     "url": e[4],
-                    "path": e[6]
+                    "path": e[6],
                 }
         return None
 

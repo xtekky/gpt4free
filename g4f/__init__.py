@@ -26,15 +26,17 @@ logger.setLevel(logging.ERROR)
 
 class ChatCompletion:
     @staticmethod
-    def _prepare_request(model: Union[Model, str],
-                         messages: Messages,
-                         provider: Union[ProviderType, str, None],
-                         stream: bool,
-                         image: ImageType,
-                         image_name: Optional[str],
-                         ignore_working: bool,
-                         ignore_stream: bool,
-                         **kwargs):
+    def _prepare_request(
+        model: Union[Model, str],
+        messages: Messages,
+        provider: Union[ProviderType, str, None],
+        stream: bool,
+        image: ImageType,
+        image_name: Optional[str],
+        ignore_working: bool,
+        ignore_stream: bool,
+        **kwargs,
+    ):
         """Shared pre-processing for sync/async create methods."""
         if image is not None:
             kwargs["media"] = [(image, image_name)]
@@ -42,7 +44,9 @@ class ChatCompletion:
             kwargs["media"] = kwargs.pop("images")
 
         model, provider = get_model_and_provider(
-            model, provider, stream,
+            model,
+            provider,
+            stream,
             ignore_working,
             ignore_stream,
             has_images="media" in kwargs,
@@ -58,36 +62,54 @@ class ChatCompletion:
         return model, provider, kwargs
 
     @staticmethod
-    def create(model: Union[Model, str],
-               messages: Messages,
-               provider: Union[ProviderType, str, None] = None,
-               stream: bool = False,
-               image: ImageType = None,
-               image_name: Optional[str] = None,
-               ignore_working: bool = False,
-               ignore_stream: bool = False,
-               **kwargs) -> Union[CreateResult, str]:
+    def create(
+        model: Union[Model, str],
+        messages: Messages,
+        provider: Union[ProviderType, str, None] = None,
+        stream: bool = False,
+        image: ImageType = None,
+        image_name: Optional[str] = None,
+        ignore_working: bool = False,
+        ignore_stream: bool = False,
+        **kwargs,
+    ) -> Union[CreateResult, str]:
         model, provider, kwargs = ChatCompletion._prepare_request(
-            model, messages, provider, stream, image, image_name,
-            ignore_working, ignore_stream, **kwargs
+            model,
+            messages,
+            provider,
+            stream,
+            image,
+            image_name,
+            ignore_working,
+            ignore_stream,
+            **kwargs,
         )
         method = get_provider_method(provider)
         result = method(model, messages, stream=stream, **kwargs)
         return result if stream or ignore_stream else concat_chunks(result)
 
     @staticmethod
-    def create_async(model: Union[Model, str],
-                     messages: Messages,
-                     provider: Union[ProviderType, str, None] = None,
-                     stream: bool = False,
-                     image: ImageType = None,
-                     image_name: Optional[str] = None,
-                     ignore_working: bool = False,
-                     ignore_stream: bool = False,
-                     **kwargs) -> Union[AsyncResult, Coroutine[str]]:
+    def create_async(
+        model: Union[Model, str],
+        messages: Messages,
+        provider: Union[ProviderType, str, None] = None,
+        stream: bool = False,
+        image: ImageType = None,
+        image_name: Optional[str] = None,
+        ignore_working: bool = False,
+        ignore_stream: bool = False,
+        **kwargs,
+    ) -> Union[AsyncResult, Coroutine[str]]:
         model, provider, kwargs = ChatCompletion._prepare_request(
-            model, messages, provider, stream, image, image_name,
-            ignore_working, ignore_stream, **kwargs
+            model,
+            messages,
+            provider,
+            stream,
+            image,
+            image_name,
+            ignore_working,
+            ignore_stream,
+            **kwargs,
         )
         method = get_async_provider_method(provider)
         result = method(model, messages, stream=stream, **kwargs)

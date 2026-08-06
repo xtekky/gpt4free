@@ -7,15 +7,23 @@ from typing import Optional, List
 
 try:
     from platformdirs import user_config_dir
+
     has_platformdirs = True
 except ImportError:
     has_platformdirs = False
 
 try:
     from browser_cookie3 import (
-        chrome, chromium, opera, opera_gx,
-        brave, edge, vivaldi, firefox,
-        _LinuxPasswordManager, BrowserCookieError
+        chrome,
+        chromium,
+        opera,
+        opera_gx,
+        brave,
+        edge,
+        vivaldi,
+        firefox,
+        _LinuxPasswordManager,
+        BrowserCookieError,
     )
 
     def g4f(domain_name: str) -> list:
@@ -26,12 +34,20 @@ try:
             return []
         user_data_dir = user_config_dir("g4f")
         cookie_file = os.path.join(user_data_dir, "Default", "Cookies")
-        return [] if not os.path.exists(cookie_file) else chrome(cookie_file, domain_name)
+        return (
+            [] if not os.path.exists(cookie_file) else chrome(cookie_file, domain_name)
+        )
 
     BROWSERS = [
-        g4f, firefox,
-        chrome, chromium, opera, opera_gx,
-        brave, edge, vivaldi,
+        g4f,
+        firefox,
+        chrome,
+        chromium,
+        opera,
+        opera_gx,
+        brave,
+        edge,
+        vivaldi,
     ]
     has_browser_cookie3 = True
 except ImportError:
@@ -43,12 +59,17 @@ from .errors import MissingRequirementsError
 from .config import AppConfig, COOKIES_DIR, CUSTOM_COOKIES_DIR
 from . import debug
 
+
 class HeadersConfig:
     headers: Dict[str, Dict[str, str]] = {}
 
+
 class CookiesConfig:
     cookies: Dict[str, Cookies] = {}
-    cookies_dir: str = CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else str(COOKIES_DIR)
+    cookies_dir: str = (
+        CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else str(COOKIES_DIR)
+    )
+
 
 class BrowserConfig:
     port: int = None
@@ -56,21 +77,26 @@ class BrowserConfig:
     impersonate: str = "chrome"
     executable_path: str = None
     connection_timeout: float = 0.25
-    
+
     @staticmethod
     async def stop_browser():
         return None
-    
+
     @classmethod
     def load_from_env(cls):
         cls.port = os.environ.get("G4F_BROWSER_PORT", cls.port)
         cls.host = os.environ.get("G4F_BROWSER_HOST", cls.host)
-        cls.executable_path = os.environ.get("G4F_BROWSER_EXECUTABLE_PATH", cls.executable_path)
-        cls.connection_timeout = float(os.environ.get("G4F_BROWSER_CONNECTION_TIMEOUT", cls.connection_timeout))
+        cls.executable_path = os.environ.get(
+            "G4F_BROWSER_EXECUTABLE_PATH", cls.executable_path
+        )
+        cls.connection_timeout = float(
+            os.environ.get("G4F_BROWSER_CONNECTION_TIMEOUT", cls.connection_timeout)
+        )
         if cls.port:
             cls.port = int(cls.port)
             debug.log(f"Using browser: {cls.host}:{cls.port}")
         cls.impersonate = os.environ.get("G4F_BROWSER_IMPERSONATE", cls.impersonate)
+
 
 COOKIE_DOMAINS = (
     ".bing.com",
@@ -86,10 +112,13 @@ COOKIE_DOMAINS = (
     "yupp.ai",
     "chat.deepseek.com",
     ".perplexity.ai",
-    "ollama.com"
+    "ollama.com",
 )
 
-if has_browser_cookie3 and os.environ.get("DBUS_SESSION_BUS_ADDRESS", "/dev/null") == "/dev/null":
+if (
+    has_browser_cookie3
+    and os.environ.get("DBUS_SESSION_BUS_ADDRESS", "/dev/null") == "/dev/null"
+):
     _LinuxPasswordManager.get_password = lambda a, b: b"secret"
 
 
@@ -98,13 +127,19 @@ def get_headers(domain_name: str) -> Dict[str, str]:
     return HeadersConfig.headers.get(domain_name, {})
 
 
-def get_cookies(domain_name: str, raise_requirements_error: bool = True,
-                single_browser: Optional[str] = None, cache_result: bool = True) -> Dict[str, str]:
+def get_cookies(
+    domain_name: str,
+    raise_requirements_error: bool = True,
+    single_browser: Optional[str] = None,
+    cache_result: bool = True,
+) -> Dict[str, str]:
     """Load cookies for a given domain from all supported browsers."""
     if single_browser != "all" and domain_name in CookiesConfig.cookies:
         return CookiesConfig.cookies[domain_name]
 
-    cookies = load_cookies_from_browsers(domain_name, raise_requirements_error, single_browser)
+    cookies = load_cookies_from_browsers(
+        domain_name, raise_requirements_error, single_browser
+    )
     if single_browser != "all" and cache_result:
         if len(cookies) > 0:
             CookiesConfig.cookies[domain_name] = cookies
@@ -120,9 +155,11 @@ def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
         CookiesConfig.cookies.pop(domain_name, None)
 
 
-def load_cookies_from_browsers(domain_name: str,
-                               raise_requirements_error: bool = True,
-                               single_browser: Optional[str] = None) -> Cookies:
+def load_cookies_from_browsers(
+    domain_name: str,
+    raise_requirements_error: bool = True,
+    single_browser: Optional[str] = None,
+) -> Cookies:
     """Helper to load cookies from all supported browsers."""
     if not has_browser_cookie3:
         if raise_requirements_error:
@@ -133,17 +170,23 @@ def load_cookies_from_browsers(domain_name: str,
     all_cookies = {}
     for cookie_fn in BROWSERS:
         if domain_name in CookiesConfig.cookies:
-            all_cookies[cookie_fn.__name__] = {"config": CookiesConfig.cookies.get(domain_name, {})}
+            all_cookies[cookie_fn.__name__] = {
+                "config": CookiesConfig.cookies.get(domain_name, {})
+            }
         else:
             all_cookies[cookie_fn.__name__] = {}
         try:
             cookie_jar = cookie_fn(domain_name=domain_name)
             for cookie in cookie_jar:
-                if cookie.name not in cookies and (not cookie.expires or cookie.expires > time.time()):
+                if cookie.name not in cookies and (
+                    not cookie.expires or cookie.expires > time.time()
+                ):
                     cookies[cookie.name] = cookie.value
                     all_cookies[cookie_fn.__name__][cookie.name] = cookie.value
             if len(all_cookies[cookie_fn.__name__]) > 0:
-                debug.log(f"Total cookies loaded for {domain_name} from {cookie_fn.__name__}: {len(all_cookies[cookie_fn.__name__])}")
+                debug.log(
+                    f"Total cookies loaded for {domain_name} from {cookie_fn.__name__}: {len(all_cookies[cookie_fn.__name__])}"
+                )
             if single_browser is True and cookie_jar:
                 break
         except BrowserCookieError:
@@ -152,7 +195,9 @@ def load_cookies_from_browsers(domain_name: str,
             debug.error("Cookie loading interrupted by user.")
             break
         except Exception as e:
-            debug.error(f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {type(e).__name__}: {e}")
+            debug.error(
+                f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {type(e).__name__}: {e}"
+            )
     if single_browser == "all":
         return all_cookies
     return cookies
@@ -168,7 +213,9 @@ def get_cookies_dir() -> str:
 
 def _get_domain(entry: dict) -> Optional[str]:
     headers = entry["request"].get("headers", [])
-    host_values = [h["value"] for h in headers if h["name"].lower() in ("host", ":authority")]
+    host_values = [
+        h["value"] for h in headers if h["name"].lower() in ("host", ":authority")
+    ]
     if not host_values:
         return None
     host = host_values.pop()
@@ -176,7 +223,12 @@ def _get_domain(entry: dict) -> Optional[str]:
 
 
 def _get_headers(entry) -> dict:
-    return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
+    return {
+        h["name"].lower(): h["value"]
+        for h in entry["request"]["headers"]
+        if h["name"].lower() not in ["content-length", "cookie"]
+        and not h["name"].startswith(":")
+    }
 
 
 def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
@@ -190,8 +242,13 @@ def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
         for entry in har_file.get("log", {}).get("entries", []):
             domain = _get_domain(entry)
             if domain:
-                HeadersConfig.headers[domain] = {**HeadersConfig.headers.get(domain, {}), **_get_headers(entry)}
-                v_cookies = {c["name"]: c["value"] for c in entry["request"].get("cookies", [])}
+                HeadersConfig.headers[domain] = {
+                    **HeadersConfig.headers.get(domain, {}),
+                    **_get_headers(entry),
+                }
+                v_cookies = {
+                    c["name"]: c["value"] for c in entry["request"].get("cookies", [])
+                }
                 if v_cookies:
                     cookies_by_domain[domain] = v_cookies
     except (json.JSONDecodeError, FileNotFoundError):
@@ -216,7 +273,9 @@ def _parse_json_cookie_file(path: str) -> Dict[str, Dict[str, str]]:
     return cookies_by_domain
 
 
-def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[List[str]] = None) -> None:
+def read_cookie_files(
+    dir_path: Optional[str] = None, domains_filter: Optional[List[str]] = None
+) -> None:
     """
     Load cookies from .har and .json files in a directory.
     """
@@ -228,6 +287,7 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
     # Optionally load environment variables
     try:
         from dotenv import load_dotenv
+
         env_path = os.path.join(dir_path, ".env")
         load_dotenv(env_path, override=True)
         debug.log(f"Loaded env vars from {env_path}: {os.path.exists(env_path)}")
@@ -236,7 +296,7 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
 
     AppConfig.load_from_env()
     BrowserConfig.load_from_env()
-    
+
     if os.path.exists(os.path.join(dir_path, ".browser_is_open")):
         os.remove(os.path.join(dir_path, ".browser_is_open"))
 
@@ -267,8 +327,11 @@ def read_cookie_files(dir_path: Optional[str] = None, domains_filter: Optional[L
     # Load custom model routing config (config.yaml)
     try:
         from .providers.config_provider import RouterConfig
+
         config_path = os.path.join(dir_path, "config.yaml")
         RouterConfig.load(config_path)
     except Exception as e:
         config_path = os.path.join(dir_path, "config.yaml")
-        debug.error(f"config.yaml: Failed to load routing config from {config_path}:", e)
+        debug.error(
+            f"config.yaml: Failed to load routing config from {config_path}:", e
+        )

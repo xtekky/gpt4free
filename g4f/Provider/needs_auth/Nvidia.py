@@ -3,6 +3,7 @@ from __future__ import annotations
 from ..template import OpenaiTemplate
 from ...config import DEFAULT_MODEL
 
+
 class Nvidia(OpenaiTemplate):
     label = "Nvidia"
     base_url = "https://integrate.api.nvidia.com/v1"

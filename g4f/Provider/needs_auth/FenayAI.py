@@ -3,6 +3,7 @@ from __future__ import annotations
 from ..template import OpenaiTemplate
 from ...config import DEFAULT_MODEL
 
+
 class FenayAI(OpenaiTemplate):
     url = "https://fenayai.com"
     login_url = "https://fenayai.com/dashboard"
@@ -14,4 +15,4 @@ class FenayAI(OpenaiTemplate):
 
     @classmethod
     def get_model(cls, model: str, **kwargs) -> str:
-        return super().get_model(model.split("/")[-1], **kwargs)   
+        return super().get_model(model.split("/")[-1], **kwargs)

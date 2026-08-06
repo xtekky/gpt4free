@@ -11,6 +11,7 @@ from ...tools.run_tools import AuthManager
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ... import debug
 
+
 class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cohere API"
     url = "https://cohere.com"
@@ -23,7 +24,7 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+
     default_model = "command-r-plus"
 
     @classmethod
@@ -32,11 +33,21 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
             if not api_key:
                 api_key = AuthManager.load_api_key(cls)
             url = "https://api.cohere.com/v1/models?page_size=500&endpoint=chat"
-            models = requests.get(url, headers={"Authorization": f"Bearer {api_key}" }).json().get("models", [])
+            models = (
+                requests.get(url, headers={"Authorization": f"Bearer {api_key}"})
+                .json()
+                .get("models", [])
+            )
             if models:
                 cls.live += 1
-            cls.models = [model.get("name") for model in models if "chat" in model.get("endpoints")]
-            cls.vision_models = {model.get("name") for model in models if model.get("supports_vision")}
+            cls.models = [
+                model.get("name")
+                for model in models
+                if "chat" in model.get("endpoints")
+            ]
+            cls.vision_models = {
+                model.get("name") for model in models if model.get("supports_vision")
+            }
         return cls.models
 
     @classmethod
@@ -55,7 +66,7 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         headers: dict = None,
         impersonate: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         if api_key is None:
             raise MissingAuthError('Add a "api_key"')
@@ -78,7 +89,7 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
             )
             async with session.post(cls.api_endpoint, json=data) as response:
                 await raise_for_status(response)
-                
+
                 if not stream:
                     data = await response.json()
                     cls.raise_error(data)
@@ -94,15 +105,18 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
                         yield Usage(
                             prompt_tokens=tokens.get("input_tokens"),
                             completion_tokens=tokens.get("output_tokens"),
-                            total_tokens=tokens.get("input_tokens", 0) + tokens.get("output_tokens", 0),
-                            billed_units=data.get("usage", {}).get("billed_units")
+                            total_tokens=tokens.get("input_tokens", 0)
+                            + tokens.get("output_tokens", 0),
+                            billed_units=data.get("usage", {}).get("billed_units"),
                         )
                 else:
                     async for data in sse_stream(response):
                         cls.raise_error(data)
                         if "type" in data:
                             if data["type"] == "content-delta":
-                                yield data.get("delta", {}).get("message", {}).get("content", {}).get("text")
+                                yield data.get("delta", {}).get("message", {}).get(
+                                    "content", {}
+                                ).get("text")
                             elif data["type"] == "message-end":
                                 delta = data.get("delta", {})
                                 if "finish_reason" in delta:
@@ -115,20 +129,22 @@ class Cohere(AsyncGeneratorProvider, ProviderModelMixin):
                                     yield Usage(
                                         prompt_tokens=tokens.get("input_tokens"),
                                         completion_tokens=tokens.get("output_tokens"),
-                                        total_tokens=tokens.get("input_tokens", 0) + tokens.get("output_tokens", 0),
-                                        billed_units=delta.get("usage", {}).get("billed_units")
+                                        total_tokens=tokens.get("input_tokens", 0)
+                                        + tokens.get("output_tokens", 0),
+                                        billed_units=delta.get("usage", {}).get(
+                                            "billed_units"
+                                        ),
                                     )
 
     @classmethod
-    def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
+    def get_headers(
+        cls, stream: bool, api_key: str = None, headers: dict = None
+    ) -> dict:
         return {
             "Accept": "text/event-stream" if stream else "application/json",
             "Content-Type": "application/json",
-            **(
-                {"Authorization": f"Bearer {api_key}"}
-                if api_key is not None else {}
-            ),
-            **({} if headers is None else headers)
+            **({"Authorization": f"Bearer {api_key}"} if api_key is not None else {}),
+            **({} if headers is None else headers),
         }
 
     @classmethod

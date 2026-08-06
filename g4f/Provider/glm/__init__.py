@@ -50,7 +50,15 @@ GLM_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
 )
 
-WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+WEEKDAYS = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+]
 
 
 class _CaptchaRequired(Exception):
@@ -143,8 +151,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     # ── Headers (spoofing.ts: buildGlmHeaders) ──────────────────────────────
 
     @classmethod
-    def _build_headers(cls, token: str, body_str: str, request_id: str,
-                       timestamp: str, user_id: str) -> dict:
+    def _build_headers(
+        cls, token: str, body_str: str, request_id: str, timestamp: str, user_id: str
+    ) -> dict:
         """Build the full set of headers for a GLM API call.
 
         Matches the browser's request headers exactly (spoofing.ts).
@@ -200,7 +209,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             file_mtime = cache_file_path.stat().st_mtime
             if time.time() - file_mtime < 5 * 60:
                 try:
-                    with open(cache_file_path, 'r') as f:
+                    with open(cache_file_path, "r") as f:
                         return json.load(f)
                 except (json.JSONDecodeError, IOError):
                     try:
@@ -212,7 +221,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     @classmethod
     def save_auth_to_cache(cls, data):
         cache_file_path = cls.get_cache_file()
-        with cache_file_path.open('w') as f:
+        with cache_file_path.open("w") as f:
             json.dump(data, f)
 
     # ── Models ──────────────────────────────────────────────────────────────
@@ -220,19 +229,25 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     @classmethod
     def get_models(cls, **kwargs) -> list:
         if not cls.models:
-            response = requests.get(f"{cls.url}/api/v1/auths/", timeout=kwargs.get("timeout", 15))
+            response = requests.get(
+                f"{cls.url}/api/v1/auths/", timeout=kwargs.get("timeout", 15)
+            )
             auth_data = response.json()
             cls.api_key = auth_data.get("token")
             cls.auth_user_id = str(auth_data.get("id", ""))
-            cls.auth_user_name = auth_data.get("name") or auth_data.get("nickname") or "User"
+            cls.auth_user_name = (
+                auth_data.get("name") or auth_data.get("nickname") or "User"
+            )
             response = requests.get(
                 f"{cls.url}/api/models",
                 headers={"Authorization": f"Bearer {cls.api_key}"},
-                timeout=kwargs.get("timeout", 15)
+                timeout=kwargs.get("timeout", 15),
             )
             items = response.json().get("data", [])
             cls.model_aliases = {
-                item.get("name", "").replace("\u4efb\u52a1\u4e13\u7528", "ChatGLM"): item.get("id")
+                item.get("name", "").replace(
+                    "\u4efb\u52a1\u4e13\u7528", "ChatGLM"
+                ): item.get("id")
                 for item in items
             }
             cls.models = list(cls.model_aliases.keys())
@@ -246,6 +261,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         Returns dict with id, name, email, or raises ProviderException.
         """
+
         async def _fetch():
             async with session.get(
                 f"{GLM_BASE_URL}/api/v1/auths/",
@@ -255,7 +271,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 },
             ) as response:
                 if response.status >= 400:
-                    raise ProviderException(f"Cannot validate GLM account (status {response.status})")
+                    raise ProviderException(
+                        f"Cannot validate GLM account (status {response.status})"
+                    )
                 data = await response.json()
                 user = data.get("user") or data
                 if not user or not user.get("id"):
@@ -265,8 +283,10 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     "name": user.get("name") or user.get("nickname") or "User",
                     "email": user.get("email", ""),
                 }
+
         # Run in the async context — this is called from create_async_generator
         import asyncio
+
         return asyncio.get_event_loop().run_until_complete(_fetch())
 
     @classmethod
@@ -305,7 +325,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             },
         ) as response:
             if response.status >= 400:
-                raise ProviderException(f"Cannot create GLM chat session (status {response.status})")
+                raise ProviderException(
+                    f"Cannot create GLM chat session (status {response.status})"
+                )
             chat_data = await response.json()
             return chat_data.get("id") or chat_data.get("chat", {}).get("id") or chat_id
 
@@ -330,7 +352,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         reasoning_effort: str = None,
         web_search: bool = False,
         conversation: JsonConversation = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         cls.get_models()
         try:
@@ -338,20 +360,27 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         except ModelNotFoundError:
             pass
         if conversation is None:
-            conversation = JsonConversation(chat_id=None, message_id=None, parent_id=None, completion_id=None)
+            conversation = JsonConversation(
+                chat_id=None, message_id=None, parent_id=None, completion_id=None
+            )
 
         if not cls.api_key:
-            raise ProviderException("Failed to obtain API key from Z.ai authentication endpoint")
+            raise ProviderException(
+                "Failed to obtain API key from Z.ai authentication endpoint"
+            )
 
         conversation.parent_id = conversation.completion_id
         conversation.completion_id = str(uuid.uuid4())
         conversation.message_id = str(uuid.uuid4())
 
         # signature_prompt: first 500 chars of all message contents joined (pipeline.ts)
-        signature_prompt = "\n".join(
-            m.get("content", "") if isinstance(m.get("content"), str) else ""
-            for m in [messages[-1]]
-        )[:500] or ""
+        signature_prompt = (
+            "\n".join(
+                m.get("content", "") if isinstance(m.get("content"), str) else ""
+                for m in [messages[-1]]
+            )[:500]
+            or ""
+        )
 
         # Determine model-specific features (pipeline.ts)
         is_glm5 = "glm-5" in model
@@ -388,7 +417,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         user = auth_data.get("user") or auth_data
                         if user and user.get("id"):
                             user_id = str(user["id"])
-                            user_name = user.get("name") or user.get("nickname") or "User"
+                            user_name = (
+                                user.get("name") or user.get("nickname") or "User"
+                            )
                             cls.auth_user_id = user_id
                             cls.auth_user_name = user_name
             except Exception:
@@ -396,7 +427,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
             # 2. Create chat session (session.ts: getOrCreateChatSession)
             if conversation.chat_id is None:
-                conversation.chat_id = await cls._get_or_create_chat_session(session, model)
+                conversation.chat_id = await cls._get_or_create_chat_session(
+                    session, model
+                )
 
             yield conversation
 
@@ -433,7 +466,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             # 5. Retry loop for captcha errors (pipeline.ts + handler.ts)
             max_captcha_retries = 2
             for attempt in range(max_captcha_retries + 1):
-                body_str = json.dumps(data, separators=(',', ':'))
+                body_str = json.dumps(data, separators=(",", ":"))
                 headers = cls._build_headers(
                     cls.api_key, body_str, request_id, timestamp, user_id
                 )
@@ -448,7 +481,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         body = await response.text()
                         if "FRONTEND_CAPTCHA" in body or "captcha" in body.lower():
                             invalidate_captcha_token()
-                            data["captcha_verify_param"] = await cls._get_captcha_verify_param()
+                            data[
+                                "captcha_verify_param"
+                            ] = await cls._get_captcha_verify_param()
                             continue
                         await raise_for_status(response)
 
@@ -463,7 +498,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         if attempt >= max_captcha_retries:
                             raise
                         invalidate_captcha_token()
-                        data["captcha_verify_param"] = await cls._get_captcha_verify_param()
+                        data[
+                            "captcha_verify_param"
+                        ] = await cls._get_captcha_verify_param()
                         continue
 
     # ── SSE stream parser (stream.ts: parseGlmSseLine) ──────────────────────

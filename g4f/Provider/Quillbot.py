@@ -7,6 +7,7 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.helper import format_prompt
 
+
 class Quillbot(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://quillbot.com/ai-chat"
     api_endpoint = "https://quillbot.com/api/ai-chat/chat/conversation/{}"
@@ -16,7 +17,7 @@ class Quillbot(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "quillbot"
     models = ["quillbot", "quillbot-search"]
-    
+
     model_aliases = {
         "quillbot": "quillbot",
         "quillbot-search": "quillbot-search",
@@ -24,15 +25,11 @@ class Quillbot(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        **kwargs
+        cls, model: str, messages: Messages, proxy: str = None, **kwargs
     ) -> AsyncGenerator:
         conversation_id = str(uuid.uuid4())
         api_url = cls.api_endpoint.format(conversation_id)
-        
+
         headers = {
             "accept": "text/event-stream",
             "accept-language": "en-US,en;q=0.9",
@@ -50,7 +47,7 @@ class Quillbot(AsyncGeneratorProvider, ProviderModelMixin):
             "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
             "useridtoken": "empty-token",
-            "webapp-version": "42.61.1"
+            "webapp-version": "42.61.1",
         }
 
         # Format messages into a single prompt string since this is what the API expects for a single conversation request
@@ -62,9 +59,9 @@ class Quillbot(AsyncGeneratorProvider, ProviderModelMixin):
                 "editorContext": "",
                 "selectionContext": "",
                 "userDialect": "en-us",
-                "apiVersion": 2
+                "apiVersion": 2,
             },
-            "origin": {"name": "ai-chat.chat", "url": "https://quillbot.com"}
+            "origin": {"name": "ai-chat.chat", "url": "https://quillbot.com"},
         }
 
         # Add tools if web search model is selected or explicitly requested via kwargs
@@ -72,14 +69,16 @@ class Quillbot(AsyncGeneratorProvider, ProviderModelMixin):
             payload["tools"] = {"web_search_builtin": {}}
 
         async with ClientSession() as session:
-            async with session.post(api_url, headers=headers, json=payload, proxy=proxy) as response:
+            async with session.post(
+                api_url, headers=headers, json=payload, proxy=proxy
+            ) as response:
                 response.raise_for_status()
-                
+
                 async for line in response.content:
-                    line = line.decode('utf-8').strip()
+                    line = line.decode("utf-8").strip()
                     if not line:
                         continue
-                        
+
                     try:
                         data = json.loads(line)
                         if data.get("type") == "content" and "content" in data:

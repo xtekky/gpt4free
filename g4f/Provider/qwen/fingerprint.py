@@ -94,6 +94,7 @@ LANGUAGE_PRESETS = {
 # HELPERS
 # =========================
 
+
 def generate_device_id() -> str:
     """Generate a 20-character hex device ID"""
     return "".join(random.choice("0123456789abcdef") for _ in range(20))
@@ -107,6 +108,7 @@ def generate_hash() -> int:
 # =========================
 # CORE LOGIC
 # =========================
+
 
 def generate_fingerprint(options: Dict[str, Any] = None) -> str:
     if options is None:

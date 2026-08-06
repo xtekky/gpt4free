@@ -13,6 +13,7 @@ from ..helper import format_media_prompt
 from .utils import get_zerogpu_token
 from .raise_for_status import raise_for_status
 
+
 class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin):
     label = "BlackForestLabs Flux-1-Kontext-Dev"
     url = "https://black-forest-labs-flux-1-kontext-dev.hf.space"
@@ -26,7 +27,13 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
     models = image_models
 
     @classmethod
-    def run(cls, method: str, session: StreamSession, conversation: JsonConversation, data: list = None):
+    def run(
+        cls,
+        method: str,
+        session: StreamSession,
+        conversation: JsonConversation,
+        data: list = None,
+    ):
         headers = {
             # Different accept header based on GET or POST
             "accept": "application/json" if method == "post" else "text/event-stream",
@@ -40,21 +47,27 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
 
         if method == "post":
             # POST request to enqueue the job
-            return session.post(f"{cls.url}/gradio_api/queue/join?__theme=system", **{
-                "headers": filtered_headers,
-                "json": {
-                    "data": data,
-                    "event_data": None,
-                    "fn_index": 2,
-                    "trigger_id": 7,      # Using trigger_id=7 per your example fetch
-                    "session_hash": conversation.session_hash
-                }
-            })
+            return session.post(
+                f"{cls.url}/gradio_api/queue/join?__theme=system",
+                **{
+                    "headers": filtered_headers,
+                    "json": {
+                        "data": data,
+                        "event_data": None,
+                        "fn_index": 2,
+                        "trigger_id": 7,  # Using trigger_id=7 per your example fetch
+                        "session_hash": conversation.session_hash,
+                    },
+                },
+            )
 
         # GET request to receive the event stream result
-        return session.get(f"{cls.url}/gradio_api/queue/data?session_hash={conversation.session_hash}", **{
-            "headers": filtered_headers,
-        })
+        return session.get(
+            f"{cls.url}/gradio_api/queue/data?session_hash={conversation.session_hash}",
+            **{
+                "headers": filtered_headers,
+            },
+        )
 
     @classmethod
     async def create_async_generator(
@@ -71,7 +84,7 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
         cookies: dict = None,
         api_key: str = None,
         zerogpu_uuid: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         # Create a conversation/session data container holding tokens and session hash
         conversation = JsonConversation(
@@ -89,19 +102,24 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
                     media[i] = (to_bytes(media[i][0]), media[i][1])
                 for image, image_name in media:
                     data.add_field(f"files", image, filename=image_name)
-                async with session.post(f"{cls.url}/gradio_api/upload", params={"upload_id": conversation.session_hash}, data=data) as response:
+                async with session.post(
+                    f"{cls.url}/gradio_api/upload",
+                    params={"upload_id": conversation.session_hash},
+                    data=data,
+                ) as response:
                     await raise_for_status(response)
                     image_files = await response.json()
-                media = [{
-                    "path": image_file,
-                    "url": f"{cls.url}/gradio_api/file={image_file}",
-                    "orig_name": media[i][1],
-                    "size": len(media[i][0]),
-                    "mime_type": is_accepted_format(media[i][0]),
-                    "meta": {
-                        "_type": "gradio.FileData"
+                media = [
+                    {
+                        "path": image_file,
+                        "url": f"{cls.url}/gradio_api/file={image_file}",
+                        "orig_name": media[i][1],
+                        "size": len(media[i][0]),
+                        "mime_type": is_accepted_format(media[i][0]),
+                        "meta": {"_type": "gradio.FileData"},
                     }
-                } for i, image_file in enumerate(image_files)]
+                    for i, image_file in enumerate(image_files)
+                ]
             if not media:
                 raise ValueError("No media files provided for image generation.")
 
@@ -112,7 +130,7 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
             data = [
                 media.pop(),
                 prompt,
-                seed,                 
+                seed,
                 randomize_seed,
                 guidance_scale,
                 num_inference_steps,
@@ -120,9 +138,10 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
 
             # Fetch token if it's missing (calls a helper function to obtain a token)
             if conversation.zerogpu_token is None:
-                conversation.zerogpu_uuid, conversation.zerogpu_token = await get_zerogpu_token(
-                    cls.space, session, conversation, cookies
-                )
+                (
+                    conversation.zerogpu_uuid,
+                    conversation.zerogpu_token,
+                ) = await get_zerogpu_token(cls.space, session, conversation, cookies)
 
             # POST the prompt and data to start generation job in the queue
             async with cls.run("post", session, conversation, data) as response:
@@ -139,7 +158,10 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
                     elif chunk.get("msg") == "progress":
                         progress_data = chunk.get("progress_data", [])
                         progress_data = progress_data[0] if progress_data else {}
-                        yield Reasoning(label="Processing image", status=f"{progress_data.get('index', 0)}/{progress_data.get('length', 0)}")
+                        yield Reasoning(
+                            label="Processing image",
+                            status=f"{progress_data.get('index', 0)}/{progress_data.get('length', 0)}",
+                        )
                     elif chunk.get("msg") == "process_completed":
                         url = chunk.get("output", {}).get("data", [{}])[0].get("url")
                         yield ImageResponse(url, prompt)

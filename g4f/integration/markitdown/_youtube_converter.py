@@ -22,15 +22,25 @@ _YOUTUBE_PATTERNS = [
     # youtu.be/{video_id}
     re.compile(r"^https?://(?:www\.)?youtu\.be/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
     # youtube.com/watch?v={video_id}
-    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/watch(?:[?&#].*)?(?:[?&]v=)(?P<id>[A-Za-z0-9_-]{6,})(?:[&#].*)?$"),
+    re.compile(
+        r"^https?://(?:www\.|m\.|music\.)?youtube\.com/watch(?:[?&#].*)?(?:[?&]v=)(?P<id>[A-Za-z0-9_-]{6,})(?:[&#].*)?$"
+    ),
     # youtube.com/embed/{video_id}
-    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/embed/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    re.compile(
+        r"^https?://(?:www\.|m\.|music\.)?youtube\.com/embed/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"
+    ),
     # youtube.com/shorts/{video_id}
-    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/shorts/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    re.compile(
+        r"^https?://(?:www\.|m\.|music\.)?youtube\.com/shorts/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"
+    ),
     # youtube.com/live/{video_id}
-    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/live/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    re.compile(
+        r"^https?://(?:www\.|m\.|music\.)?youtube\.com/live/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"
+    ),
     # youtube.com/v/{video_id}
-    re.compile(r"^https?://(?:www\.|m\.|music\.)?youtube\.com/v/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"),
+    re.compile(
+        r"^https?://(?:www\.|m\.|music\.)?youtube\.com/v/(?P<id>[A-Za-z0-9_-]{6,})(?:[?&#].*)?$"
+    ),
 ]
 
 
@@ -70,6 +80,7 @@ def _extract_youtube_video_id(url: str) -> Optional[str]:
 def _is_youtube_url(url: str) -> bool:
     """Return True if the URL points to a YouTube video page we can transcribe."""
     return _extract_youtube_video_id(url) is not None
+
 
 # Optional YouTube transcription support
 try:
@@ -112,7 +123,6 @@ class YouTubeConverter(DocumentConverter):
         url = stream_info.url or ""
         mimetype = (stream_info.mimetype or "").lower()
         extension = (stream_info.extension or "").lower()
-
 
         if not _is_youtube_url(url):
             # Not a YouTube URL
@@ -244,7 +254,9 @@ class YouTubeConverter(DocumentConverter):
                                 .translate(youtube_transcript_languages[0])
                                 .fetch()
                             )
-                            transcript_text = " ".join([part.text for part in transcript])
+                            transcript_text = " ".join(
+                                [part.text for part in transcript]
+                            )
                 if transcript_text:
                     webpage_text += f"\n### Transcript\n{transcript_text}\n"
             except Exception as e:

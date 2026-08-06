@@ -7,17 +7,29 @@ from aiohttp import ClientSession, FormData
 
 from ....typing import AsyncResult, Messages
 from ...base_provider import AsyncAuthedProvider, ProviderModelMixin, format_prompt
-from ..mini_max.crypt import CallbackResults, get_browser_callback, generate_yy_header, get_body_to_yy
+from ..mini_max.crypt import (
+    CallbackResults,
+    get_browser_callback,
+    generate_yy_header,
+    get_body_to_yy,
+)
 from ....requests import get_args_from_nodriver, raise_for_status
-from ....providers.response import AuthResult, JsonConversation, RequestLogin, TitleGeneration
+from ....providers.response import (
+    AuthResult,
+    JsonConversation,
+    RequestLogin,
+    TitleGeneration,
+)
 from ...helper import get_last_user_message
 from .... import debug
+
 
 class Conversation(JsonConversation):
     def __init__(self, token: str, chatID: str, characterID: str = 1):
         self.token = token
         self.chatID = chatID
         self.characterID = characterID
+
 
 class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
     label = "Hailuo AI"
@@ -38,9 +50,9 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
             **await get_args_from_nodriver(
                 cls.url,
                 proxy=proxy,
-                callback=await get_browser_callback(callback_results)
+                callback=await get_browser_callback(callback_results),
             ),
-            **callback_results.get_dict()
+            **callback_results.get_dict(),
         )
 
     @classmethod
@@ -51,7 +63,7 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
         auth_result: AuthResult,
         return_conversation: bool = True,
         conversation: Conversation = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         args = auth_result.get_dict().copy()
         args.pop("impersonate")
@@ -63,10 +75,16 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
             if conversation is not None and conversation.token != token:
                 conversation = None
             form_data = {
-                "characterID": 1 if conversation is None else getattr(conversation, "characterID", 1),
-                "msgContent": format_prompt(messages) if conversation is None else get_last_user_message(messages),
-                "chatID": 0 if conversation is None else getattr(conversation, "chatID", 0),
-                "searchMode": 0
+                "characterID": 1
+                if conversation is None
+                else getattr(conversation, "characterID", 1),
+                "msgContent": format_prompt(messages)
+                if conversation is None
+                else get_last_user_message(messages),
+                "chatID": 0
+                if conversation is None
+                else getattr(conversation, "chatID", 0),
+                "searchMode": 0,
             }
             data = FormData(default_to_multipart=True)
             for name, value in form_data.items():
@@ -74,9 +92,13 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
                 data.add_field(name, str(value))
             headers = {
                 "token": token,
-                "yy": generate_yy_header(auth_result.path_and_query, get_body_to_yy(form_data), timestamp)
+                "yy": generate_yy_header(
+                    auth_result.path_and_query, get_body_to_yy(form_data), timestamp
+                ),
             }
-            async with session.post(f"{cls.url}{path_and_query}", data=data, headers=headers) as response:
+            async with session.post(
+                f"{cls.url}{path_and_query}", data=data, headers=headers
+            ) as response:
                 await raise_for_status(response)
                 event = None
                 yield_content_len = 0

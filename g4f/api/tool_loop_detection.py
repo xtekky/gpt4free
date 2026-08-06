@@ -27,9 +27,9 @@ from ..typing import Messages
 
 
 # Thresholds (tunable via env vars if needed in the future).
-MAX_REPEATS_PER_QUERY = 2          # same call allowed at most twice
-EMPTY_RESULT_LOOP_THRESHOLD = 3    # 3+ empty results for same call => loop
-GLOBAL_TOOL_CALL_LIMIT = 100       # hard cap on total tool calls in one request
+MAX_REPEATS_PER_QUERY = 2  # same call allowed at most twice
+EMPTY_RESULT_LOOP_THRESHOLD = 3  # 3+ empty results for same call => loop
+GLOBAL_TOOL_CALL_LIMIT = 100  # hard cap on total tool calls in one request
 
 # Substrings that indicate an empty / failed tool result.
 EMPTY_RESULT_MARKERS = (
@@ -46,8 +46,14 @@ EMPTY_RESULT_MARKERS = (
 class ToolLoopError(Exception):
     """Raised when a repetitive tool-call loop is detected in ``messages``."""
 
-    def __init__(self, message: str, *, function_name: str = None,
-                 arguments: Any = None, repeats: int = 0):
+    def __init__(
+        self,
+        message: str,
+        *,
+        function_name: str = None,
+        arguments: Any = None,
+        repeats: int = 0,
+    ):
         super().__init__(message)
         self.function_name = function_name
         self.arguments = arguments
@@ -99,7 +105,8 @@ def _is_empty_result(content: Any) -> bool:
     if isinstance(content, list):
         # Content parts: join any text parts.
         text = " ".join(
-            part.get("text", "") for part in content
+            part.get("text", "")
+            for part in content
             if isinstance(part, dict) and part.get("type") == "text"
         )
         return _is_empty_result(text)

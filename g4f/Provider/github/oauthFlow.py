@@ -8,13 +8,13 @@ from .githubOAuth2 import GithubOAuth2Client, GITHUB_COPILOT_SCOPE
 async def launch_browser_for_oauth(client_id: str = None):
     """
     Perform GitHub OAuth device flow for authentication.
-    
+
     This function:
     1. Requests a device code from GitHub
     2. Opens a browser for the user to authenticate
     3. Polls for the access token
     4. Saves the credentials
-    
+
     Args:
         client_id: Optional custom client ID (defaults to Copilot VS Code extension)
     """
@@ -23,9 +23,11 @@ async def launch_browser_for_oauth(client_id: str = None):
 
     # Request device code
     print("Requesting device authorization from GitHub...")
-    device_auth = await client.requestDeviceAuthorization({
-        "scope": GITHUB_COPILOT_SCOPE,
-    })
+    device_auth = await client.requestDeviceAuthorization(
+        {
+            "scope": GITHUB_COPILOT_SCOPE,
+        }
+    )
 
     # Check device auth success
     if not isinstance(device_auth, dict) or "device_code" not in device_auth:
@@ -34,15 +36,17 @@ async def launch_browser_for_oauth(client_id: str = None):
 
     # Show user instructions
     user_code = device_auth.get("user_code")
-    verification_uri = device_auth.get("verification_uri", "https://github.com/login/device")
-    
+    verification_uri = device_auth.get(
+        "verification_uri", "https://github.com/login/device"
+    )
+
     print("\n" + "=" * 60)
     print("GitHub Copilot Authorization")
     print("=" * 60)
     print(f"\nPlease visit: {verification_uri}")
     print(f"Enter code: {user_code}")
     print("=" * 60 + "\n")
-    
+
     # Attempt to automatically open the URL
     try:
         webbrowser.open(verification_uri)
@@ -64,9 +68,11 @@ async def launch_browser_for_oauth(client_id: str = None):
             return None
 
         # Poll for token
-        token_response = await client.pollDeviceToken({
-            "device_code": device_code,
-        })
+        token_response = await client.pollDeviceToken(
+            {
+                "device_code": device_code,
+            }
+        )
 
         if isinstance(token_response, dict):
             if token_response.get("status") == "pending":
@@ -78,19 +84,22 @@ async def launch_browser_for_oauth(client_id: str = None):
             elif "access_token" in token_response:
                 # Success
                 print("\n\n✓ Authorization successful!")
-                
+
                 # Save credentials
                 credentials = {
                     "access_token": token_response["access_token"],
                     "token_type": token_response.get("token_type", "bearer"),
                     "scope": token_response.get("scope", ""),
                     # GitHub tokens don't expire, but we can set a far future date
-                    "expiry_date": int(time.time() * 1000) + (365 * 24 * 60 * 60 * 1000),  # 1 year
+                    "expiry_date": int(time.time() * 1000)
+                    + (365 * 24 * 60 * 60 * 1000),  # 1 year
                 }
-                
+
                 await client.sharedManager.saveCredentialsToFile(credentials)
-                print(f"Credentials saved to: {client.sharedManager.getCredentialFilePath()}")
-                
+                print(
+                    f"Credentials saved to: {client.sharedManager.getCredentialFilePath()}"
+                )
+
                 return credentials
             else:
                 print(f"\nError during polling: {token_response}")

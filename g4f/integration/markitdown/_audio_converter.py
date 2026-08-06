@@ -23,6 +23,7 @@ ACCEPTED_FILE_EXTENSIONS = [
     ".webm",
 ]
 
+
 class AudioConverter(DocumentConverter):
     """
     Converts audio files to markdown via extraction of metadata (if `exiftool` is installed), and speech transcription (if `speech_recognition` is installed).
@@ -89,7 +90,10 @@ class AudioConverter(DocumentConverter):
             or stream_info.mimetype == "video/mp4"
         ):
             audio_format = "mp4"
-        elif stream_info.extension == ".webm" or stream_info.mimetype in ("audio/webm", "video/webm"):
+        elif stream_info.extension == ".webm" or stream_info.mimetype in (
+            "audio/webm",
+            "video/webm",
+        ):
             audio_format = "webm"
         else:
             audio_format = None
@@ -97,7 +101,11 @@ class AudioConverter(DocumentConverter):
         # Transcribe
         if audio_format:
             try:
-                md_content = transcribe_audio(file_stream, audio_format=audio_format, language=recognition_language)
+                md_content = transcribe_audio(
+                    file_stream,
+                    audio_format=audio_format,
+                    language=recognition_language,
+                )
             except MissingDependencyException:
                 pass
 

@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import json
-from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector, FormData
+from aiohttp import (
+    ClientSession,
+    ClientResponse,
+    ClientTimeout,
+    BaseConnector,
+    FormData,
+)
 from typing import AsyncIterator, Any, Optional
 
 from .defaults import DEFAULT_HEADERS, has_brotli
 from ..errors import MissingRequirementsError
+
 
 class StreamResponse(ClientResponse):
     async def iter_lines(self) -> AsyncIterator[bytes]:
@@ -31,6 +38,7 @@ class StreamResponse(ClientResponse):
                 except json.JSONDecodeError:
                     continue
 
+
 class StreamSession:
     def __init__(
         self,
@@ -39,18 +47,15 @@ class StreamSession:
         connector: BaseConnector = None,
         proxy: str = None,
         proxies=None,
-        impersonate = None,
-        **kwargs
+        impersonate=None,
+        **kwargs,
     ):
         if proxies is None:
             proxies = {}
         if headers is None:
             headers = {}
         if impersonate:
-            headers = {
-                **DEFAULT_HEADERS,
-                **headers
-            }
+            headers = {**DEFAULT_HEADERS, **headers}
         if not has_brotli and "br" in headers.get("accept-encoding", ""):
             headers["accept-encoding"] = "gzip, deflate"
         connect = None
@@ -65,7 +70,7 @@ class StreamSession:
             timeout=timeout,
             response_class=StreamResponse,
             connector=get_connector(connector, proxy),
-            headers=headers
+            headers=headers,
         )
 
     async def __aenter__(self) -> ClientSession:
@@ -74,14 +79,20 @@ class StreamSession:
     async def __aexit__(self, *args, **kwargs) -> None:
         await self.inner.close()
 
-def get_connector(connector: BaseConnector = None, proxy: str = None, rdns: bool = False) -> Optional[BaseConnector]:
+
+def get_connector(
+    connector: BaseConnector = None, proxy: str = None, rdns: bool = False
+) -> Optional[BaseConnector]:
     if proxy and not connector:
         try:
             from aiohttp_socks import ProxyConnector
+
             if proxy.startswith("socks5h://"):
                 proxy = proxy.replace("socks5h://", "socks5://")
                 rdns = True
             connector = ProxyConnector.from_url(proxy, rdns=rdns)
         except ImportError:
-            raise MissingRequirementsError('Install "aiohttp_socks" package for proxy support')
+            raise MissingRequirementsError(
+                'Install "aiohttp_socks" package for proxy support'
+            )
     return connector

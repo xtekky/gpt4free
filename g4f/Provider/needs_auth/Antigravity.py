@@ -43,11 +43,27 @@ from ... import debug
 
 # JSON Schema keywords not supported by the Gemini API
 _UNSUPPORTED_SCHEMA_KEYS = {
-    "patternProperties", "$schema", "$id", "$defs", "definitions",
-    "if", "then", "else", "not", "allOf", "anyOf", "oneOf",
-    "default", "examples", "readOnly", "writeOnly",
-    "contentEncoding", "contentMediaType", "additionalProperties",
-    "enumDescriptions", "$comment"
+    "patternProperties",
+    "$schema",
+    "$id",
+    "$defs",
+    "definitions",
+    "if",
+    "then",
+    "else",
+    "not",
+    "allOf",
+    "anyOf",
+    "oneOf",
+    "default",
+    "examples",
+    "readOnly",
+    "writeOnly",
+    "contentEncoding",
+    "contentMediaType",
+    "additionalProperties",
+    "enumDescriptions",
+    "$comment",
 }
 
 
@@ -89,7 +105,7 @@ OAUTH_CALLBACK_PATH = "/oauthcallback"
 def generate_pkce_pair() -> Tuple[str, str]:
     """
     Generate a PKCE (Proof Key for Code Exchange) verifier and challenge pair.
-    
+
     Returns:
         Tuple of (verifier, challenge) where:
         - verifier: Random 43-128 character string
@@ -97,34 +113,34 @@ def generate_pkce_pair() -> Tuple[str, str]:
     """
     # Generate a random verifier (43-128 characters)
     verifier = secrets.token_urlsafe(32)
-    
+
     # Create SHA256 hash of verifier
-    digest = hashlib.sha256(verifier.encode('ascii')).digest()
-    
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+
     # Base64URL encode (no padding)
-    challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
-    
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
     return verifier, challenge
 
 
 def encode_oauth_state(verifier: str, project_id: str = "") -> str:
     """Encode OAuth state parameter with PKCE verifier and project ID."""
     payload = {"verifier": verifier, "projectId": project_id}
-    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip('=')
+    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
 
 
 def decode_oauth_state(state: str) -> Dict[str, str]:
     """Decode OAuth state parameter back to verifier and project ID."""
     # Add padding if needed
-    padded = state + '=' * (4 - len(state) % 4) if len(state) % 4 else state
+    padded = state + "=" * (4 - len(state) % 4) if len(state) % 4 else state
     # Convert URL-safe base64 to standard
-    normalized = padded.replace('-', '+').replace('_', '/')
+    normalized = padded.replace("-", "+").replace("_", "/")
     try:
-        decoded = base64.b64decode(normalized).decode('utf-8')
+        decoded = base64.b64decode(normalized).decode("utf-8")
         parsed = json.loads(decoded)
         return {
             "verifier": parsed.get("verifier", ""),
-            "projectId": parsed.get("projectId", "")
+            "projectId": parsed.get("projectId", ""),
         }
     except Exception:
         return {"verifier": "", "projectId": ""}
@@ -132,27 +148,27 @@ def decode_oauth_state(state: str) -> Dict[str, str]:
 
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OAuth callback."""
-    
+
     callback_result: Optional[Dict[str, str]] = None
     callback_error: Optional[str] = None
-    
+
     def log_message(self, format, *args):
         """Suppress default logging."""
         pass
-    
+
     def do_GET(self):
         """Handle GET request for OAuth callback."""
         parsed = urlparse(self.path)
-        
+
         if parsed.path != OAUTH_CALLBACK_PATH:
             self.send_error(404, "Not Found")
             return
-        
+
         params = parse_qs(parsed.query)
         code = params.get("code", [None])[0]
         state = params.get("state", [None])[0]
         error = params.get("error", [None])[0]
-        
+
         if error:
             OAuthCallbackHandler.callback_error = error
             self._send_error_response(error)
@@ -162,7 +178,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         else:
             OAuthCallbackHandler.callback_error = "Missing code or state parameter"
             self._send_error_response("Missing parameters")
-    
+
     def _send_success_response(self):
         """Send success HTML response."""
         html = """<!DOCTYPE html>
@@ -195,7 +211,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", len(html.encode()))
         self.end_headers()
         self.wfile.write(html.encode())
-    
+
     def _send_error_response(self, error: str):
         """Send error HTML response."""
         html = f"""<!DOCTYPE html>
@@ -230,14 +246,14 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
 class OAuthCallbackServer:
     """Local HTTP server to capture OAuth callback."""
-    
+
     def __init__(self, port: int = OAUTH_CALLBACK_PORT, timeout: float = 300.0):
         self.port = port
         self.timeout = timeout
         self.server: Optional[HTTPServer] = None
         self._thread: Optional[threading.Thread] = None
         self._stop_flag = False
-    
+
     def start(self) -> bool:
         """Start the callback server. Returns True if successful."""
         try:
@@ -245,24 +261,27 @@ class OAuthCallbackServer:
             OAuthCallbackHandler.callback_result = None
             OAuthCallbackHandler.callback_error = None
             self._stop_flag = False
-            
+
             self.server = HTTPServer(("localhost", self.port), OAuthCallbackHandler)
             self.server.timeout = 0.5  # Short timeout for responsive shutdown
-            
+
             self._thread = threading.Thread(target=self._serve, daemon=True)
             self._thread.start()
             return True
         except OSError as e:
             debug.log(f"Failed to start OAuth callback server: {e}")
             return False
-    
+
     def _serve(self):
         """Serve requests until shutdown or result received."""
         start_time = time.time()
         while not self._stop_flag and self.server:
             if time.time() - start_time > self.timeout:
                 break
-            if OAuthCallbackHandler.callback_result or OAuthCallbackHandler.callback_error:
+            if (
+                OAuthCallbackHandler.callback_result
+                or OAuthCallbackHandler.callback_error
+            ):
                 # Give browser time to receive response
                 time.sleep(0.3)
                 break
@@ -270,27 +289,30 @@ class OAuthCallbackServer:
                 self.server.handle_request()
             except Exception:
                 break
-    
+
     def wait_for_callback(self) -> Optional[Dict[str, str]]:
         """Wait for OAuth callback and return result."""
         # Poll for result instead of blocking on thread join
         start_time = time.time()
         while time.time() - start_time < self.timeout:
-            if OAuthCallbackHandler.callback_result or OAuthCallbackHandler.callback_error:
+            if (
+                OAuthCallbackHandler.callback_result
+                or OAuthCallbackHandler.callback_error
+            ):
                 break
             time.sleep(0.1)
-        
+
         # Signal thread to stop
         self._stop_flag = True
-        
+
         if self._thread:
             self._thread.join(timeout=2.0)
-        
+
         if OAuthCallbackHandler.callback_error:
             raise RuntimeError(f"OAuth error: {OAuthCallbackHandler.callback_error}")
-        
+
         return OAuthCallbackHandler.callback_result
-    
+
     def stop(self):
         """Stop the callback server."""
         self._stop_flag = True
@@ -334,15 +356,18 @@ ANTIGRAVITY_AUTH_HEADERS = {
 class AntigravityAuthManager(AuthFileMixin):
     """
     Handles OAuth2 authentication for Google's Antigravity API.
-    
+
     Uses Antigravity-specific OAuth credentials and supports endpoint fallback.
     Manages token caching, refresh, and API calls with automatic retry on 401.
     """
+
     parent = "Antigravity"
 
     OAUTH_REFRESH_URL = "https://oauth2.googleapis.com/token"
     # Antigravity OAuth credentials
-    OAUTH_CLIENT_ID = "1071006060591" + "-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+    OAUTH_CLIENT_ID = (
+        "1071006060591" + "-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+    )
     OAUTH_CLIENT_SECRET = "GOC" + "SPX-K58FWR486LdLJ1mLB8sXC4z6qDAf"
     TOKEN_BUFFER_TIME = 5 * 60  # seconds, 5 minutes
     KV_TOKEN_KEY = "antigravity_oauth_token_cache"
@@ -374,7 +399,7 @@ class AntigravityAuthManager(AuthFileMixin):
         path = AntigravityAuthManager.get_cache_file()
         if not path.exists():
             path = get_antigravity_oauth_creds_path()
-        
+
         if path.exists():
             try:
                 with path.open("r") as f:
@@ -424,7 +449,9 @@ class AntigravityAuthManager(AuthFileMixin):
         }
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(self.OAUTH_REFRESH_URL, data=data, headers=headers) as resp:
+            async with session.post(
+                self.OAUTH_REFRESH_URL, data=data, headers=headers
+            ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise RuntimeError(f"Token refresh failed: {text}")
@@ -480,15 +507,15 @@ class AntigravityAuthManager(AuthFileMixin):
         return self._project_id
 
     async def call_endpoint(
-        self, 
-        method: str, 
-        body: Dict[str, Any], 
+        self,
+        method: str,
+        body: Dict[str, Any],
         is_retry: bool = False,
-        use_auth_headers: bool = False
+        use_auth_headers: bool = False,
     ) -> Any:
         """
         Call Antigravity API endpoint with JSON body and endpoint fallback.
-        
+
         Tries each base URL in order until one succeeds.
         Automatically retries once on 401 Unauthorized by refreshing auth.
         """
@@ -512,24 +539,35 @@ class AntigravityAuthManager(AuthFileMixin):
             url = f"{base_url}:{method}"
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(url, headers=headers, json=body, timeout=30) as resp:
+                    async with session.post(
+                        url, headers=headers, json=body, timeout=30
+                    ) as resp:
                         if resp.status == 401 and not is_retry:
                             # Token likely expired, clear and retry once
                             await self.clear_token_cache()
                             await self.initialize_auth()
-                            return await self.call_endpoint(method, body, is_retry=True, use_auth_headers=use_auth_headers)
+                            return await self.call_endpoint(
+                                method,
+                                body,
+                                is_retry=True,
+                                use_auth_headers=use_auth_headers,
+                            )
                         elif resp.ok:
                             self._working_base_url = base_url  # Cache working URL
                             return await resp.json()
                         else:
                             last_error = f"HTTP {resp.status}: {await resp.text()}"
-                            debug.log(f"Antigravity endpoint {base_url} returned {resp.status}")
+                            debug.log(
+                                f"Antigravity endpoint {base_url} returned {resp.status}"
+                            )
             except Exception as e:
                 last_error = str(e)
                 debug.log(f"Antigravity endpoint {base_url} failed: {e}")
                 continue
 
-        raise RuntimeError(f"All Antigravity endpoints failed. Last error: {last_error}")
+        raise RuntimeError(
+            f"All Antigravity endpoints failed. Last error: {last_error}"
+        )
 
     def get_working_base_url(self) -> str:
         """Get the cached working base URL or default to first in list."""
@@ -539,13 +577,13 @@ class AntigravityAuthManager(AuthFileMixin):
     def build_authorization_url(cls, project_id: str = "") -> Tuple[str, str, str]:
         """
         Build OAuth authorization URL with PKCE.
-        
+
         Returns:
             Tuple of (authorization_url, verifier, state)
         """
         verifier, challenge = generate_pkce_pair()
         state = encode_oauth_state(verifier, project_id)
-        
+
         params = {
             "client_id": cls.OAUTH_CLIENT_ID,
             "response_type": "code",
@@ -557,7 +595,7 @@ class AntigravityAuthManager(AuthFileMixin):
             "access_type": "offline",
             "prompt": "consent",
         }
-        
+
         url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
         return url, verifier, state
 
@@ -569,23 +607,23 @@ class AntigravityAuthManager(AuthFileMixin):
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for access and refresh tokens.
-        
+
         Args:
             code: Authorization code from OAuth callback
             state: State parameter containing PKCE verifier
-            
+
         Returns:
             Dict containing tokens and user info
         """
         decoded_state = decode_oauth_state(state)
         verifier = decoded_state.get("verifier", "")
         project_id = decoded_state.get("projectId", "")
-        
+
         if not verifier:
             raise RuntimeError("Missing PKCE verifier in state parameter")
-        
+
         start_time = time.time()
-        
+
         # Exchange code for tokens
         async with aiohttp.ClientSession() as session:
             token_data = {
@@ -596,45 +634,47 @@ class AntigravityAuthManager(AuthFileMixin):
                 "redirect_uri": ANTIGRAVITY_REDIRECT_URI,
                 "code_verifier": verifier,
             }
-            
+
             async with session.post(
                 "https://oauth2.googleapis.com/token",
                 data=token_data,
                 headers={
                     "Content-Type": "application/x-www-form-urlencoded",
                     "User-Agent": "google-api-nodejs-client/10.3.0",
-                }
+                },
             ) as resp:
                 if not resp.ok:
                     error_text = await resp.text()
                     raise RuntimeError(f"Token exchange failed: {error_text}")
-                
+
                 token_response = await resp.json()
-            
+
             access_token = token_response.get("access_token")
             refresh_token = token_response.get("refresh_token")
             expires_in = token_response.get("expires_in", 3600)
-            
+
             if not access_token or not refresh_token:
                 raise RuntimeError("Missing tokens in response")
-            
+
             # Get user info
             email = None
             async with session.get(
                 "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
-                headers={"Authorization": f"Bearer {access_token}"}
+                headers={"Authorization": f"Bearer {access_token}"},
             ) as resp:
                 if resp.ok:
                     user_info = await resp.json()
                     email = user_info.get("email")
-            
+
             # Discover project ID if not provided
             effective_project_id = project_id
             if not effective_project_id:
-                effective_project_id = await cls._fetch_project_id(session, access_token)
-        
+                effective_project_id = await cls._fetch_project_id(
+                    session, access_token
+                )
+
         expires_at = int((start_time + expires_in) * 1000)  # milliseconds
-        
+
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -644,14 +684,16 @@ class AntigravityAuthManager(AuthFileMixin):
         }
 
     @classmethod
-    async def _fetch_project_id(cls, session: aiohttp.ClientSession, access_token: str) -> str:
+    async def _fetch_project_id(
+        cls, session: aiohttp.ClientSession, access_token: str
+    ) -> str:
         """Fetch project ID from Antigravity API."""
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
             **ANTIGRAVITY_AUTH_HEADERS,
         }
-        
+
         load_request = {
             "metadata": {
                 "ideType": "IDE_UNSPECIFIED",
@@ -659,13 +701,15 @@ class AntigravityAuthManager(AuthFileMixin):
                 "pluginType": "GEMINI",
             }
         }
-        
+
         # Try endpoints in order with short timeout
         timeout = aiohttp.ClientTimeout(total=10)
         for base_url in BASE_URLS:
             try:
                 url = f"{base_url}:loadCodeAssist"
-                async with session.post(url, headers=headers, json=load_request, timeout=timeout) as resp:
+                async with session.post(
+                    url, headers=headers, json=load_request, timeout=timeout
+                ) as resp:
                     if resp.ok:
                         data = await resp.json()
                         project = data.get("cloudaicompanionProject")
@@ -691,7 +735,9 @@ class AntigravityAuthManager(AuthFileMixin):
             onboard_request_body = {"tierId": tier_id, "metadata": {}}
             if configured_project:
                 # include requested project id in metadata
-                onboard_request_body["metadata"]["cloudaicompanionProject"] = configured_project
+                onboard_request_body["metadata"][
+                    "cloudaicompanionProject"
+                ] = configured_project
 
             # Try onboarding across endpoints with retries
             for base_url in BASE_URLS:
@@ -703,12 +749,21 @@ class AntigravityAuthManager(AuthFileMixin):
                             "Content-Type": "application/json",
                             **ANTIGRAVITY_HEADERS,
                         }
-                        async with session.post(url, headers=onboard_headers, json=onboard_request_body, timeout=timeout) as resp:
+                        async with session.post(
+                            url,
+                            headers=onboard_headers,
+                            json=onboard_request_body,
+                            timeout=timeout,
+                        ) as resp:
                             if not resp.ok:
                                 text = await resp.text()
                                 if resp.status == 403:
-                                    raise MissingAuthError("Account not eligible for Antigravity Code Assist.")
-                                print(f"Onboarding attempt {attempt+1} at {base_url} failed with status {resp.status}")
+                                    raise MissingAuthError(
+                                        "Account not eligible for Antigravity Code Assist."
+                                    )
+                                print(
+                                    f"Onboarding attempt {attempt+1} at {base_url} failed with status {resp.status}"
+                                )
                                 print(text)
                                 # Stop attempts on this endpoint and try next base_url
                                 break
@@ -730,7 +785,9 @@ class AntigravityAuthManager(AuthFileMixin):
                     except MissingAuthError:
                         raise
                     except Exception as e:
-                        debug.log(f"Failed to onboard managed project at {base_url}: {e}")
+                        debug.log(
+                            f"Failed to onboard managed project at {base_url}: {e}"
+                        )
                         break
 
                     await asyncio.sleep(delay_seconds)
@@ -746,33 +803,33 @@ class AntigravityAuthManager(AuthFileMixin):
     ) -> Dict[str, Any]:
         """
         Perform interactive OAuth login flow.
-        
+
         This opens a browser for Google OAuth and captures the callback locally.
-        
+
         Args:
             project_id: Optional GCP project ID
             no_browser: If True, don't auto-open browser (print URL instead)
             timeout: Timeout in seconds for OAuth callback
-            
+
         Returns:
             Dict containing tokens and user info
         """
         # Build authorization URL
         auth_url, verifier, state = cls.build_authorization_url(project_id)
-        
+
         print("\n" + "=" * 60)
         print("Antigravity OAuth Login")
         print("=" * 60)
-        
+
         # Try to start local callback server
         callback_server = OAuthCallbackServer(timeout=timeout)
         server_started = callback_server.start()
-        
+
         if server_started and not no_browser:
             print(f"\nOpening browser for authentication...")
             print(f"If browser doesn't open, visit this URL:\n")
             print(f"{auth_url}\n")
-            
+
             # Try to open browser
             try:
                 webbrowser.open(auth_url)
@@ -781,52 +838,60 @@ class AntigravityAuthManager(AuthFileMixin):
                 print("Please open the URL above manually.\n")
         else:
             if not server_started:
-                print(f"\nCould not start local callback server on port {OAUTH_CALLBACK_PORT}.")
+                print(
+                    f"\nCould not start local callback server on port {OAUTH_CALLBACK_PORT}."
+                )
                 print("You may need to close any application using that port.\n")
-            
+
             print(f"\nPlease open this URL in your browser:\n")
             print(f"{auth_url}\n")
-        
+
         if server_started:
             print("Waiting for authentication callback...")
-            
+
             try:
                 callback_result = callback_server.wait_for_callback()
-                
+
                 if not callback_result:
                     raise RuntimeError("OAuth callback timed out")
-                
+
                 code = callback_result.get("code")
                 callback_state = callback_result.get("state")
-                
+
                 if not code:
                     raise RuntimeError("No authorization code received")
-                
+
                 print("\n✓ Authorization code received. Exchanging for tokens...")
-                
+
                 # Exchange code for tokens
-                tokens = await cls.exchange_code_for_tokens(code, callback_state or state)
-                
+                tokens = await cls.exchange_code_for_tokens(
+                    code, callback_state or state
+                )
+
                 print(f"✓ Authentication successful!")
                 if tokens.get("email"):
                     print(f"  Logged in as: {tokens['email']}")
                 if tokens.get("project_id"):
                     print(f"  Project ID: {tokens['project_id']}")
-                
+
                 return tokens
-                
+
             finally:
                 callback_server.stop()
         else:
             # Manual flow - ask user to paste the redirect URL or code
-            print("\nAfter completing authentication, you'll be redirected to a localhost URL.")
-            print("Copy and paste the full redirect URL or just the authorization code below:\n")
-            
+            print(
+                "\nAfter completing authentication, you'll be redirected to a localhost URL."
+            )
+            print(
+                "Copy and paste the full redirect URL or just the authorization code below:\n"
+            )
+
             user_input = input("Paste redirect URL or code: ").strip()
-            
+
             if not user_input:
                 raise RuntimeError("No input provided")
-            
+
             # Parse the input
             if user_input.startswith("http"):
                 parsed = urlparse(user_input)
@@ -837,17 +902,17 @@ class AntigravityAuthManager(AuthFileMixin):
                 # Assume it's just the code
                 code = user_input
                 callback_state = state
-            
+
             if not code:
                 raise RuntimeError("Could not extract authorization code")
-            
+
             print("\nExchanging code for tokens...")
             tokens = await cls.exchange_code_for_tokens(code, callback_state)
-            
+
             print(f"✓ Authentication successful!")
             if tokens.get("email"):
                 print(f"  Logged in as: {tokens['email']}")
-            
+
             return tokens
 
     @classmethod
@@ -859,17 +924,19 @@ class AntigravityAuthManager(AuthFileMixin):
     ) -> "AntigravityAuthManager":
         """
         Perform interactive login and save credentials to file.
-        
+
         Args:
             project_id: Optional GCP project ID
             no_browser: If True, don't auto-open browser
             credentials_path: Path to save credentials (default: g4f cache or ~/.antigravity/oauth_creds.json)
-            
+
         Returns:
             AntigravityAuthManager instance with loaded credentials
         """
-        tokens = await cls.interactive_login(project_id=project_id, no_browser=no_browser)
-        
+        tokens = await cls.interactive_login(
+            project_id=project_id, no_browser=no_browser
+        )
+
         # Prepare credentials for saving
         creds = {
             "access_token": tokens["access_token"],
@@ -880,42 +947,43 @@ class AntigravityAuthManager(AuthFileMixin):
             "client_id": cls.OAUTH_CLIENT_ID,
             "client_secret": cls.OAUTH_CLIENT_SECRET,
         }
-        
+
         # Save credentials - use provided path, or g4f cache file, or default path
         if credentials_path:
             path = credentials_path
         else:
             # Prefer g4f cache location (checked first by initialize_auth)
             path = cls.get_cache_file()
-        
+
         path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with path.open("w") as f:
             json.dump(creds, f, indent=2)
-        
+
         # Set restrictive permissions on Unix
         try:
             path.chmod(0o600)
         except Exception:
             pass
-        
+
         print(f"\n✓ Credentials saved to: {path}")
         print("=" * 60 + "\n")
-        
+
         # Create and return auth manager
         auth_manager = cls(env=os.environ)
         auth_manager._access_token = tokens["access_token"]
         auth_manager._expiry = tokens["expiry_date"] / 1000
-        
+
         return auth_manager
 
 
 class AntigravityProvider:
     """
     Internal provider class for Antigravity API communication.
-    
+
     Handles message formatting, project discovery, and streaming content generation.
     """
+
     url = "https://cloud.google.com/code-assist"
 
     def __init__(self, env: dict, auth_manager: AntigravityAuthManager):
@@ -928,11 +996,11 @@ class AntigravityProvider:
         # Check environment variable first
         if self.env.get("ANTIGRAVITY_PROJECT_ID"):
             return self.env["ANTIGRAVITY_PROJECT_ID"]
-        
+
         # Check cached project ID
         if self._project_id:
             return self._project_id
-        
+
         # Check auth manager's cached project ID (from credentials file)
         auth_project_id = self.auth_manager.get_project_id()
         if auth_project_id:
@@ -943,12 +1011,13 @@ class AntigravityProvider:
         try:
             access_token = self.auth_manager.get_access_token()
             if not access_token:
-                raise RuntimeError("No valid access token available for project discovery")
-            
+                raise RuntimeError(
+                    "No valid access token available for project discovery"
+                )
+
             async with aiohttp.ClientSession() as session:
                 project = await self.auth_manager._fetch_project_id(
-                    session=session,
-                    access_token=access_token
+                    session=session, access_token=access_token
                 )
             if project:
                 self._project_id = project
@@ -964,9 +1033,10 @@ class AntigravityProvider:
                 "Could not discover project ID. Ensure authentication or set ANTIGRAVITY_PROJECT_ID."
             )
 
-
     @staticmethod
-    def _messages_to_gemini_format(messages: list, media: MediaListType) -> List[Dict[str, Any]]:
+    def _messages_to_gemini_format(
+        messages: list, media: MediaListType
+    ) -> List[Dict[str, Any]]:
         format_messages = []
         for msg in messages:
             # Convert a ChatMessage dict to GeminiFormattedMessage dict
@@ -989,11 +1059,18 @@ class AntigravityProvider:
                         },
                     }
                 }
-                if (format_messages and format_messages[-1]["role"] == "user"
-                        and any("functionResponse" in p for p in format_messages[-1]["parts"])):
+                if (
+                    format_messages
+                    and format_messages[-1]["role"] == "user"
+                    and any(
+                        "functionResponse" in p for p in format_messages[-1]["parts"]
+                    )
+                ):
                     format_messages[-1]["parts"].append(func_response_part)
                 else:
-                    format_messages.append({"role": "user", "parts": [func_response_part]})
+                    format_messages.append(
+                        {"role": "user", "parts": [func_response_part]}
+                    )
                 continue
 
             # Handle assistant messages with tool calls
@@ -1009,8 +1086,16 @@ class AntigravityProvider:
                             "args": json.loads(tool_call["function"]["arguments"]),
                         }
                         # Restore thought_signature for Gemini thinking models when available
-                        thought_sig = tool_call.get("extra_content", {}).get("google", {}).get("thought_signature", "skip_thought_signature_validator")
-                        parts.append({"functionCall": func_call, "thoughtSignature": thought_sig})
+                        thought_sig = (
+                            tool_call.get("extra_content", {})
+                            .get("google", {})
+                            .get(
+                                "thought_signature", "skip_thought_signature_validator"
+                            )
+                        )
+                        parts.append(
+                            {"functionCall": func_call, "thoughtSignature": thought_sig}
+                        )
 
             # Handle string content
             elif isinstance(msg["content"], str):
@@ -1031,7 +1116,9 @@ class AntigravityProvider:
                             # Inline base64 data image
                             prefix, b64data = image_url.split(",", 1)
                             mime_type = prefix.split(":")[1].split(";")[0]
-                            parts.append({"inlineData": {"mimeType": mime_type, "data": b64data}})
+                            parts.append(
+                                {"inlineData": {"mimeType": mime_type, "data": b64data}}
+                            )
                         else:
                             parts.append(
                                 {
@@ -1065,12 +1152,14 @@ class AntigravityProvider:
                     )
                 else:
                     media_data = to_bytes(media_data)
-                    format_messages[-1]["parts"].append({
-                        "inlineData": {
-                            "mimeType": is_data_an_media(media_data, filename),
-                            "data": base64.b64encode(media_data).decode()
+                    format_messages[-1]["parts"].append(
+                        {
+                            "inlineData": {
+                                "mimeType": is_data_an_media(media_data, filename),
+                                "data": base64.b64encode(media_data).decode(),
+                            }
                         }
-                    })
+                    )
         return format_messages
 
     async def stream_content(
@@ -1090,13 +1179,13 @@ class AntigravityProvider:
         frequency_penalty: Optional[float] = None,
         seed: Optional[int] = None,
         response_format: Optional[Dict[str, Any]] = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncGenerator:
         """Stream content generation from Antigravity API."""
         # Convert user-facing model name to internal API name
         if model in Antigravity.model_aliases:
             model = Antigravity.model_aliases[model]
-        
+
         await self.auth_manager.initialize_auth()
 
         project_id = await self.discover_project_id()
@@ -1104,7 +1193,7 @@ class AntigravityProvider:
         # Convert messages to Gemini format
         contents = self._messages_to_gemini_format(
             [m for m in messages if m["role"] not in ["developer", "system"]],
-            media=kwargs.get("media", None)
+            media=kwargs.get("media", None),
         )
         system_prompt = get_system_prompt(messages)
         request_data = {}
@@ -1118,11 +1207,13 @@ class AntigravityProvider:
             for tool in tools:
                 if tool.get("type") == "function" and "function" in tool:
                     func = tool["function"]
-                    function_declarations.append({
-                        "name": func.get("name"),
-                        "description": func.get("description", ""),
-                        "parameters": _sanitize_schema(func.get("parameters", {}))
-                    })
+                    function_declarations.append(
+                        {
+                            "name": func.get("name"),
+                            "description": func.get("description", ""),
+                            "parameters": _sanitize_schema(func.get("parameters", {})),
+                        }
+                    )
             if function_declarations:
                 gemini_tools = [{"functionDeclarations": function_declarations}]
 
@@ -1145,7 +1236,7 @@ class AntigravityProvider:
         if thinking_budget:
             generation_config["thinkingConfig"] = {
                 "thinkingBudget": thinking_budget,
-                "includeThoughts": True
+                "includeThoughts": True,
             }
 
         # Compose request body with required Antigravity fields
@@ -1159,7 +1250,7 @@ class AntigravityProvider:
                 "contents": contents,
                 "generationConfig": generation_config,
                 "tools": gemini_tools,
-                **request_data
+                **request_data,
             },
         }
 
@@ -1168,8 +1259,12 @@ class AntigravityProvider:
             mode = tool_choice.upper()
             function_calling_config = {"mode": mode}
             if mode == "ANY":
-                function_calling_config["allowedFunctionNames"] = [fd["name"] for fd in function_declarations]
-            req_body["request"]["toolConfig"] = {"functionCallingConfig": function_calling_config}
+                function_calling_config["allowedFunctionNames"] = [
+                    fd["name"] for fd in function_declarations
+                ]
+            req_body["request"]["toolConfig"] = {
+                "functionCallingConfig": function_calling_config
+            }
 
         # Remove None values recursively
         def clean_none(d):
@@ -1192,7 +1287,9 @@ class AntigravityProvider:
         url = f"{base_url}:streamGenerateContent?alt=sse"
 
         # Streaming SSE parsing helper
-        async def parse_sse_stream(stream: aiohttp.StreamReader) -> AsyncGenerator[Dict[str, Any], None]:
+        async def parse_sse_stream(
+            stream: aiohttp.StreamReader,
+        ) -> AsyncGenerator[Dict[str, Any], None]:
             """Parse SSE stream yielding parsed JSON objects."""
             buffer = ""
             object_buffer = ""
@@ -1226,12 +1323,23 @@ class AntigravityProvider:
         timeout = ClientTimeout(total=None)  # No total timeout
         connector = get_connector(None, proxy)
 
-        async with ClientSession(headers=headers, timeout=timeout, connector=connector) as session:
+        async with ClientSession(
+            headers=headers, timeout=timeout, connector=connector
+        ) as session:
             async with session.post(url, json=req_body) as resp:
                 if not resp.ok:
                     if resp.status == 503:
                         try:
-                            retry_delay = int(max([float(d.get("retryDelay", 0)) for d in (await resp.json(content_type=None)).get("error", {}).get("details", [])]))
+                            retry_delay = int(
+                                max(
+                                    [
+                                        float(d.get("retryDelay", 0))
+                                        for d in (await resp.json(content_type=None))
+                                        .get("error", {})
+                                        .get("details", [])
+                                    ]
+                                )
+                            )
                         except ValueError:
                             retry_delay = 30  # Default retry delay if not specified
                         debug.log(f"Received 503 error, retrying after {retry_delay}")
@@ -1239,7 +1347,9 @@ class AntigravityProvider:
                             await asyncio.sleep(retry_delay)
                             resp = await session.post(url, json=req_body)
                             if not resp.ok:
-                                debug.error(f"Retry after 503 failed with status {resp.status}")
+                                debug.error(
+                                    f"Retry after 503 failed with status {resp.status}"
+                                )
                 await raise_for_status(resp)
 
                 usage_metadata = {}
@@ -1248,7 +1358,9 @@ class AntigravityProvider:
                 async for json_data in parse_sse_stream(resp.content):
                     # Process JSON data according to Gemini API structure
                     candidates = json_data.get("response", {}).get("candidates", [])
-                    usage_metadata = json_data.get("response", {}).get("usageMetadata", usage_metadata)
+                    usage_metadata = json_data.get("response", {}).get(
+                        "usageMetadata", usage_metadata
+                    )
 
                     if not candidates:
                         continue
@@ -1274,7 +1386,9 @@ class AntigravityProvider:
 
                         # Inline media data
                         elif "inlineData" in part:
-                            async for media in save_response_media(part["inlineData"], format_media_prompt(messages)):
+                            async for media in save_response_media(
+                                part["inlineData"], format_media_prompt(messages)
+                            ):
                                 yield media
 
                         # File data (e.g. external image)
@@ -1288,12 +1402,14 @@ class AntigravityProvider:
                             tc = part["functionCall"]
                             tool_call_obj = {
                                 "index": tool_calls_index,
-                                "id": tc.get("id", f"call_{i}_{tc.get('name', 'unknown')}"),
+                                "id": tc.get(
+                                    "id", f"call_{i}_{tc.get('name', 'unknown')}"
+                                ),
                                 "type": "function",
                                 "function": {
                                     "name": tc.get("name"),
-                                    "arguments": json.dumps(tc.get("args", {}))
-                                }
+                                    "arguments": json.dumps(tc.get("args", {})),
+                                },
                             }
                             # Preserve thought_signature for thinking models (Gemini 2.5+)
                             if "thoughtSignature" in part:
@@ -1314,15 +1430,16 @@ class AntigravityProvider:
 class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Antigravity Provider for gpt4free.
-    
+
     Provides access to Google's Antigravity API (Code Assist) supporting:
     - Gemini 2.5 Pro/Flash with extended thinking
     - Gemini 3 Pro/Flash (preview)
     - Claude Sonnet 4.5 / Opus 4.5 via Antigravity proxy
-    
+
     Requires OAuth2 credentials. Set ANTIGRAVITY_SERVICE_ACCOUNT environment
     variable or create credentials at ~/.antigravity/oauth_creds.json
     """
+
     label = "Google Antigravity"
     login_url = "https://cloud.google.com/code-assist"
     url = "https://antigravity.google"
@@ -1365,14 +1482,14 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.models = asyncio.run(cls._fetch_models())
             except Exception as e:
                 debug.log(f"Failed to fetch dynamic models: {e}")
-        
+
         # Update live status
         if cls.live == 0:
             if cls.auth_manager is None:
                 cls.auth_manager = AntigravityAuthManager(env=os.environ)
             if cls.auth_manager.get_access_token() is not None:
                 cls.live += 1
-        
+
         return cls.models if cls.models else cls.fallback_models
 
     @classmethod
@@ -1386,11 +1503,15 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         try:
             response = await cls.auth_manager.call_endpoint(
                 method="fetchAvailableModels",
-                body={"project": cls.auth_manager.get_project_id()}
+                body={"project": cls.auth_manager.get_project_id()},
             )
 
             # Extract model names from the response
-            models = [key for key, value in response.get("models", {}).items() if not value.get("isInternal", False) and not key.startswith("tab_")]
+            models = [
+                key
+                for key, value in response.get("models", {}).items()
+                if not value.get("isInternal", False) and not key.startswith("tab_")
+            ]
             if not isinstance(models, list):
                 raise ValueError("Invalid response format: 'models' should be a list")
 
@@ -1415,7 +1536,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 
         return await cls.auth_manager.call_endpoint(
             method="fetchAvailableModels",
-            body={"project": cls.auth_manager.get_project_id()}
+            body={"project": cls.auth_manager.get_project_id()},
         )
 
     @classmethod
@@ -1426,7 +1547,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = False,
         media: MediaListType = None,
         tools: Optional[list] = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         """Create an async generator for streaming responses."""
         if cls.auth_manager is None:
@@ -1445,7 +1566,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
             stream=stream,
             media=media,
             tools=tools,
-            **kwargs
+            **kwargs,
         ):
             yield chunk
 
@@ -1458,17 +1579,17 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> "AntigravityAuthManager":
         """
         Perform interactive OAuth login and save credentials.
-        
+
         This is the main entry point for authenticating with Antigravity.
-        
+
         Args:
             project_id: Optional GCP project ID
             no_browser: If True, don't auto-open browser
             credentials_path: Path to save credentials
-            
+
         Returns:
             AntigravityAuthManager with active credentials
-            
+
         Example:
             >>> import asyncio
             >>> from g4f.Provider.needs_auth import Antigravity
@@ -1489,16 +1610,16 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             return True
-        
+
         # Check default path (~/.antigravity/oauth_creds.json)
         default_path = get_antigravity_oauth_creds_path()
         if default_path.exists():
             return True
-        
+
         # Check environment variable
         if "ANTIGRAVITY_SERVICE_ACCOUNT" in os.environ:
             return True
-        
+
         return False
 
     @classmethod
@@ -1508,12 +1629,12 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             return cache_path
-        
+
         # Check default path
         default_path = get_antigravity_oauth_creds_path()
         if default_path.exists():
             return default_path
-        
+
         # Return cache path as the preferred location for new credentials
         return cache_path
 
@@ -1521,7 +1642,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 async def main(args: Optional[List[str]] = None):
     """CLI entry point for Antigravity authentication."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(
         description="Antigravity OAuth Authentication for gpt4free",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1532,32 +1653,34 @@ Examples:
   %(prog)s login --project-id ID    # Login with specific project
   %(prog)s status                   # Check authentication status
   %(prog)s logout                   # Remove saved credentials
-"""
+""",
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Commands")
-    
+
     # Login command
     login_parser = subparsers.add_parser("login", help="Authenticate with Google")
     login_parser.add_argument(
-        "--project-id", "-p",
+        "--project-id",
+        "-p",
         default="",
-        help="Google Cloud project ID (optional, auto-discovered if not set)"
+        help="Google Cloud project ID (optional, auto-discovered if not set)",
     )
     login_parser.add_argument(
-        "--no-browser", "-n",
+        "--no-browser",
+        "-n",
         action="store_true",
-        help="Don't auto-open browser, print URL instead"
+        help="Don't auto-open browser, print URL instead",
     )
-    
+
     # Status command
     subparsers.add_parser("status", help="Check authentication status")
-    
+
     # Logout command
     subparsers.add_parser("logout", help="Remove saved credentials")
-    
+
     args = parser.parse_args(args)
-    
+
     if args.command == "login":
         try:
             await Antigravity.login(
@@ -1570,28 +1693,30 @@ Examples:
         except Exception as e:
             print(f"\n❌ Login failed: {e}")
             sys.exit(1)
-    
+
     elif args.command == "status":
         print("\nAntigravity Authentication Status")
         print("=" * 40)
-        
+
         if Antigravity.has_credentials():
             creds_path = Antigravity.get_credentials_path()
             print(f"✓ Credentials found at: {creds_path}")
-            
+
             # Try to read and display some info
             try:
                 with creds_path.open() as f:
                     creds = json.load(f)
-                
+
                 if creds.get("email"):
                     print(f"  Email: {creds['email']}")
                 if creds.get("project_id"):
                     print(f"  Project: {creds['project_id']}")
-                
+
                 expiry = creds.get("expiry_date")
                 if expiry:
-                    expiry_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(expiry / 1000))
+                    expiry_time = time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(expiry / 1000)
+                    )
                     if expiry / 1000 > time.time():
                         print(f"  Token expires: {expiry_time}")
                     else:
@@ -1601,36 +1726,36 @@ Examples:
         else:
             print("✗ No credentials found")
             print(f"\nRun 'antigravity login' to authenticate.")
-        
+
         print()
-    
+
     elif args.command == "logout":
         print("\nAntigravity Logout")
         print("=" * 40)
-        
+
         removed = False
-        
+
         # Remove cache file
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             cache_path.unlink()
             print(f"✓ Removed: {cache_path}")
             removed = True
-        
+
         # Remove default credentials file
         default_path = get_antigravity_oauth_creds_path()
         if default_path.exists():
             default_path.unlink()
             print(f"✓ Removed: {default_path}")
             removed = True
-        
+
         if removed:
             print("\n✓ Credentials removed successfully.")
         else:
             print("No credentials found to remove.")
-        
+
         print()
-    
+
     else:
         parser.print_help()
 

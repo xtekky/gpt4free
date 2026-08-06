@@ -5,7 +5,7 @@ import asyncio
 sys.path.append(str(Path(__file__).parent.parent))
 
 import g4f
-from  testing.log_time import log_time, log_time_async, log_time_yield
+from testing.log_time import log_time, log_time_async, log_time_yield
 
 
 _providers = [
@@ -14,7 +14,7 @@ _providers = [
     g4f.Provider.HuggingChat,
     g4f.Provider.OpenAssistant,
     g4f.Provider.Bing,
-    g4f.Provider.Bard
+    g4f.Provider.Bard,
 ]
 
 _instruct = "Hello, are you GPT 4?."
@@ -42,9 +42,9 @@ for response in log_time_yield(
     model=g4f.models.default,
     messages=[{"role": "user", "content": _instruct}],
     provider=g4f.Provider.Bing,
-    #cookies=g4f.get_cookies(".huggingface.co"),
+    # cookies=g4f.get_cookies(".huggingface.co"),
     stream=True,
-    auth=True
+    auth=True,
 ):
     print(response, end="", flush=True)
 print()
@@ -54,7 +54,7 @@ print()
 async def run_async():
     responses = [
         log_time_async(
-            provider.create_async, 
+            provider.create_async,
             model=None,
             messages=[{"role": "user", "content": _instruct}],
         )
@@ -63,6 +63,8 @@ async def run_async():
     responses = await asyncio.gather(*responses)
     for idx, provider in enumerate(_providers):
         print(f"{provider.__name__}:", responses[idx])
+
+
 print("Async Total:", asyncio.run(log_time_async(run_async)))
 print()
 
@@ -77,6 +79,8 @@ def run_stream():
         ):
             print(response, end="", flush=True)
         print()
+
+
 print("Stream Total:", log_time(run_stream))
 print()
 
@@ -88,9 +92,11 @@ def create_no_stream():
             provider.create_completion,
             model=None,
             messages=[{"role": "user", "content": _instruct}],
-            stream=False
+            stream=False,
         ):
             print(response, end="")
         print()
+
+
 print("No Stream Total:", log_time(create_no_stream))
 print()

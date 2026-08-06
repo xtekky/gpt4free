@@ -64,7 +64,7 @@ REPLACE_VSC = (
     "- **Parallelization:** Call independent tools in parallel. Run terminal "
     "commands sequentially (never in parallel).\n"
     "- **Transparency:** Never mention tool names to the user (e.g., say "
-    "\"I'll run the command\" not \"I'll use run_in_terminal\").\n"
+    '"I\'ll run the command" not "I\'ll use run_in_terminal").\n'
     "- **Best practices:** Use absolute paths/URIs. Use `grep_search` for file "
     "overviews. Use browser tools for front-end UI validation. Only use "
     "currently available tools.\n"
@@ -153,30 +153,33 @@ REMOVE_TOOLS = {
 # ── Tool description replacements ───────────────────────────────────────────
 # Each entry: (compiled regex, replacement, reason)
 
+
 def _compile(pattern: str, flags: int = re.IGNORECASE) -> re.Pattern:
     return re.compile(pattern, flags)
 
 
 REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
     # ── Remove excessive ALL-CAPS emphasis ──
-    (_compile(r"\bIMPORTANT:\s*"), "", "Remove ALL-CAPS emphasis that adds noise without value"),
+    (
+        _compile(r"\bIMPORTANT:\s*"),
+        "",
+        "Remove ALL-CAPS emphasis that adds noise without value",
+    ),
     (_compile(r"\bCRITICAL:?\s*"), "", "Remove ALL-CAPS emphasis"),
     (_compile(r"\bWARNING:\s*"), "Note: ", "Soften ALL-CAPS warnings to notes"),
     (_compile(r"\bNEVER\b"), "Do not", "Soften absolute language"),
     (_compile(r"\bMUST\b"), "should", "Soften absolute language"),
-
     # ── Remove redundant "When NOT to use" boilerplate ──
     (
         _compile(
-            r'When NOT to use this tool: creating single files or small code snippets; '
-            r'adding individual files to existing projects; making modifications to existing '
+            r"When NOT to use this tool: creating single files or small code snippets; "
+            r"adding individual files to existing projects; making modifications to existing "
             r'codebases; user asks to "create a file" or "add a component"; simple code '
-            r'examples or demonstrations; debugging'
+            r"examples or demonstrations; debugging"
         ),
         "",
         "Remove generic boilerplate 'When NOT to use' section",
     ),
-
     # ── Trim overly long run_in_terminal description ──
     (
         _compile(
@@ -266,27 +269,47 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Condense interactive input guidance",
     ),
     (
-        _compile(r"Send exactly one answer per prompt using send_to_terminal\. Never send multiple answers in a single send\."),
+        _compile(
+            r"Send exactly one answer per prompt using send_to_terminal\. Never send multiple answers in a single send\."
+        ),
         "Send one answer per prompt.",
         "Condense send guidance",
     ),
     (
-        _compile(r"After each send, call get_terminal_output to read the next prompt before sending the next answer\."),
+        _compile(
+            r"After each send, call get_terminal_output to read the next prompt before sending the next answer\."
+        ),
         "After sending, call get_terminal_output to read the next prompt.",
         "Condense output reading guidance",
     ),
-    (_compile(r"Continue one prompt at a time until the command finishes\."), "", "Remove obvious restatement"),
-    (_compile(r"Use \[\[ \]\] for conditional tests instead of \[ \]"), "Use [[ ]] for conditionals", "Simplify"),
-    (_compile(r"Prefer \$\(\) over backticks for command substitution"), "Prefer $() over backticks", "Simplify"),
-    (_compile(r"Use which or command -v to verify command availability"), "Use `which` to verify command availability.", "Add backtick formatting"),
-
+    (
+        _compile(r"Continue one prompt at a time until the command finishes\."),
+        "",
+        "Remove obvious restatement",
+    ),
+    (
+        _compile(r"Use \[\[ \]\] for conditional tests instead of \[ \]"),
+        "Use [[ ]] for conditionals",
+        "Simplify",
+    ),
+    (
+        _compile(r"Prefer \$\(\) over backticks for command substitution"),
+        "Prefer $() over backticks",
+        "Simplify",
+    ),
+    (
+        _compile(r"Use which or command -v to verify command availability"),
+        "Use `which` to verify command availability.",
+        "Add backtick formatting",
+    ),
     # ── Fix insert_edit_into_file verbose example ──
     (
-        _compile(r"The system is very smart and can understand how to apply your edits to the notebooks\.\n"),
+        _compile(
+            r"The system is very smart and can understand how to apply your edits to the notebooks\.\n"
+        ),
         "Provide minimal hints — the system applies edits intelligently.",
         "Condense boilerplate",
     ),
-
     # ── Fix replace_string_in_file verbose warnings ──
     (
         _compile(
@@ -300,7 +323,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "oldString must uniquely identify one location. Include 3+ lines of surrounding context.",
         "Condense critical warning",
     ),
-
     # ── Fix manage_todo_list verbose CRITICAL workflow ──
     (
         _compile(
@@ -312,14 +334,14 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Workflow: write todos → mark one as in-progress → complete it → mark completed → repeat.",
         "Condense verbose workflow steps",
     ),
-
     # ── Fix open_browser_page verbose note ──
     (
-        _compile(r'May prompt the user to share a page if there is a similar one already open, unless "forceNew" is true\.'),
+        _compile(
+            r'May prompt the user to share a page if there is a similar one already open, unless "forceNew" is true\.'
+        ),
         "Set forceNew=true to force a new page; otherwise reuses existing pages.",
         "Condense",
     ),
-
     # ── Fix runSubagent verbose preamble ──
     (
         _compile(
@@ -332,7 +354,9 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Condense verbose preamble",
     ),
     (
-        _compile(r"Agents do not run async or in the background, you will wait for the agent's result\."),
+        _compile(
+            r"Agents do not run async or in the background, you will wait for the agent's result\."
+        ),
         "Agents run synchronously — wait for results.",
         "Condense",
     ),
@@ -356,7 +380,11 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Agents are stateless. Provide a detailed, self-contained prompt specifying what to return.",
         "Condense statelessness explanation",
     ),
-    (_compile(r"The agent's outputs should generally be trusted\n"), "", "Remove unnecessary trust statement"),
+    (
+        _compile(r"The agent's outputs should generally be trusted\n"),
+        "",
+        "Remove unnecessary trust statement",
+    ),
     (
         _compile(
             r"Clearly tell the agent whether you expect it to write code or just to do research "
@@ -366,18 +394,20 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Condense",
     ),
     (
-        _compile(r"- If the user asks for a certain agent, you MUST provide that EXACT agent name \(case-sensitive\) to invoke that specific agent\."),
+        _compile(
+            r"- If the user asks for a certain agent, you MUST provide that EXACT agent name \(case-sensitive\) to invoke that specific agent\."
+        ),
         "Use exact agent names (case-sensitive) when specified.",
         "Condense",
     ),
-
     # ── Fix vscode_askQuestions verbose parameter docs ──
     (
-        _compile(r"Users can always provide a freeform text answer alongside options unless you set allowFreeformInput to false\."),
+        _compile(
+            r"Users can always provide a freeform text answer alongside options unless you set allowFreeformInput to false\."
+        ),
         "",
         "Remove — already documented in parameter schema",
     ),
-
     # ── Fix configure_python_environment verbose ALL-CAPS ──
     (
         _compile(
@@ -388,7 +418,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Call this before any other Python tool or command.",
         "Condense ALL-CAPS emphasis",
     ),
-
     # ── Fix get_terminal_output verbose preamble ──
     (
         _compile(
@@ -402,7 +431,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Get output from a backgrounded/timed-out terminal. Don't call after successful sync commands. For pending commands, wait for auto-notification.",
         "Condense verbose preamble",
     ),
-
     # ── Fix memory tool verbose preamble ──
     (
         _compile(
@@ -413,26 +441,25 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Check existing files in /memories/ before creating new ones.",
         "Condense",
     ),
-
     # ── Fix create_new_workspace verbose When NOT to use ──
     (
         _compile(
-            r'When NOT to use this tool:\n- Creating single files or small code snippets\n- '
-            r'Adding individual files to existing projects\n- Making modifications to existing '
+            r"When NOT to use this tool:\n- Creating single files or small code snippets\n- "
+            r"Adding individual files to existing projects\n- Making modifications to existing "
             r'codebases\n- User asks to "create a file" or "add a component"\n- Simple code '
-            r'examples or demonstrations\n- Debugging or fixing existing code'
+            r"examples or demonstrations\n- Debugging or fixing existing code"
         ),
         "",
         "Remove generic 'When NOT to use' boilerplate",
     ),
-
     # ── Remove standalone "Do NOT" lines that restate earlier rules ──
     (
-        _compile(r"Do NOT tell the user to check the terminal panel — all command output is already included in the tool result\."),
+        _compile(
+            r"Do NOT tell the user to check the terminal panel — all command output is already included in the tool result\."
+        ),
         "",
         "Redundant with sync output explanation",
     ),
-
     # ── Fix create_file description ──
     (
         _compile(
@@ -443,7 +470,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Create a new file. Directories are auto-created. Do not use for editing existing files.",
         "Condense verbose description",
     ),
-
     # ── Fix read_file description ──
     (
         _compile(
@@ -455,7 +481,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Specify 1-indexed line ranges. Prefer larger reads over many small ones. For binary files, ranges are byte offsets.",
         "Condense",
     ),
-
     # ── Fix grep_search verbose preamble ──
     (
         _compile(
@@ -475,7 +500,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Fast text/regex search across workspace files. Use regex alternation (e.g. 'word1|word2') for broad searches. Use includePattern to scope to specific files. Set includeIgnoredFiles=true to search node_modules/build outputs (slower).",
         "Condense verbose preamble",
     ),
-
     # ── Fix file_search verbose examples ──
     (
         _compile(
@@ -492,7 +516,6 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
         "Find files by glob pattern (e.g. '**/*.ts', 'src/**'). Returns matching paths only.",
         "Condense verbose examples",
     ),
-
     # ── Fix session_store_sql verbose preamble ──
     (
         _compile(
@@ -618,6 +641,7 @@ def optimize_tools(tools: List[dict]) -> Tuple[List[dict], int, Dict[str, str]]:
 def _dump_tools(tools: List[dict]) -> str:
     """Stable serialization for length comparison."""
     import json
+
     return json.dumps(tools, ensure_ascii=False, sort_keys=True)
 
 
@@ -625,6 +649,7 @@ def _dump_tools(tools: List[dict]) -> str:
 # These run *before* the request reaches any provider so the saved tokens are
 # detected centrally in ``run_tools`` rather than being silently dropped by
 # each provider's own message-cleaning logic.
+
 
 def _msg_bytes(msg: Any) -> int:
     """Approximate byte size of a single message's content."""
@@ -809,8 +834,7 @@ def break_tool_loop(messages: Messages, max_repeats: int = _MAX_TOOL_REPEATS) ->
 
     # Only act when a signature repeats enough times.
     looped_sigs = {
-        sig for sig, indices in sig_groups.items()
-        if len(indices) >= max_repeats
+        sig for sig, indices in sig_groups.items() if len(indices) >= max_repeats
     }
     if not looped_sigs:
         return 0
@@ -838,9 +862,7 @@ def break_tool_loop(messages: Messages, max_repeats: int = _MAX_TOOL_REPEATS) ->
     saved_bytes = sum(_msg_bytes(messages[i]) for i in indices_to_remove)
 
     # Build the new message list without the removed indices.
-    new_messages = [
-        msg for i, msg in enumerate(messages) if i not in indices_to_remove
-    ]
+    new_messages = [msg for i, msg in enumerate(messages) if i not in indices_to_remove]
 
     # Inject a guidance message after the first looped assistant's results.
     for sig in looped_sigs:
@@ -890,9 +912,7 @@ def strip_reasoning_echo(messages: Messages) -> int:
         return 0
 
     _THINK = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
-    _REASONING_TAG = re.compile(
-        r"<reasoning[\s\S]*?</reasoning>", re.IGNORECASE
-    )
+    _REASONING_TAG = re.compile(r"<reasoning[\s\S]*?</reasoning>", re.IGNORECASE)
 
     seen_think = False
     seen_reasoning = False
@@ -955,7 +975,8 @@ def _truncate_tool_results(messages: Messages) -> int:
     # Count tool-role messages from the end so we can apply the stricter cap
     # to older ones.
     tool_indices = [
-        i for i, m in enumerate(messages)
+        i
+        for i, m in enumerate(messages)
         if isinstance(m, dict) and m.get("role") in ("tool", "function")
     ]
     # Reverse so index 0 = newest, 1 = second newest, etc.
@@ -1006,6 +1027,7 @@ def _truncate_tool_results(messages: Messages) -> int:
 
 # ── Strip redundant tool_call fields ─────────────────────────────────────────
 
+
 def _strip_redundant_tool_fields(messages: Messages) -> int:
     """Remove fields from assistant messages that the provider doesn't need.
 
@@ -1022,6 +1044,7 @@ def _strip_redundant_tool_fields(messages: Messages) -> int:
         return 0
 
     import json
+
     saved_bytes = 0
 
     # Find assistant messages with tool_calls that are followed by a tool result.
@@ -1044,11 +1067,15 @@ def _strip_redundant_tool_fields(messages: Messages) -> int:
                 # Next assistant turn — stop looking.
                 break
         if has_result:
-            before = len(json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+            before = len(
+                json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace")
+            )
             msg.pop("tool_calls", None)
             # Also drop the now-orphaned function_call if present.
             msg.pop("function_call", None)
-            after = len(json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace"))
+            after = len(
+                json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace")
+            )
             saved_bytes += max(0, before - after)
 
     return max(0, saved_bytes)
@@ -1086,12 +1113,15 @@ def _collapse_message_whitespace(messages: Messages) -> int:
                         new = _WS_RE.sub("\n", text)
                         new = _BLANK_RUN_RE.sub("\n\n", new)
                         if new != text:
-                            saved_bytes += original - len(new.encode("utf-8", errors="replace"))
+                            saved_bytes += original - len(
+                                new.encode("utf-8", errors="replace")
+                            )
                             part["text"] = new
     return max(0, saved_bytes)
 
 
 # ── Drop stale context (old user turns beyond a threshold) ───────────────────
+
 
 def _trim_old_turns(messages: Messages) -> int:
     """Drop the oldest non-system messages when the conversation is very long.
@@ -1121,9 +1151,11 @@ def _trim_old_turns(messages: Messages) -> int:
     messages[:] = system_msgs + kept
     return max(0, saved_bytes)
 
+
 # ──────────────────────────────────────────────────────────────────────
 # New optimizers
 # ──────────────────────────────────────────────────────────────────────
+
 
 def _set_content(msg: dict, content: Any) -> None:
     """Set content on a message dict, handling both str and list forms."""
@@ -1158,6 +1190,7 @@ def truncate_tool_results(messages: Messages) -> int:
         saved += len(b) - len(new_content.encode("utf-8", errors="replace"))
         _set_content(msg, new_content)
     return max(0, saved)
+
 
 def _drop_empty_trailing_messages(messages: Messages) -> int:
     """Drop trailing messages with empty content (no value for the next turn).
@@ -1211,19 +1244,25 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
     echo_saved = strip_reasoning_echo(messages)
     if echo_saved:
         saved_bytes += echo_saved
-        logs["reasoning_echo"] = f"stripped repeated reasoning blocks (-{echo_saved} bytes)"
+        logs[
+            "reasoning_echo"
+        ] = f"stripped repeated reasoning blocks (-{echo_saved} bytes)"
 
     # ── Tool result truncation ──
     tool_trunc_saved = _truncate_tool_results(messages)
     if tool_trunc_saved:
         saved_bytes += tool_trunc_saved
-        logs["tool_trunc"] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
+        logs[
+            "tool_trunc"
+        ] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
 
     # ── Strip redundant tool_call fields ──
     tool_field_saved = _strip_redundant_tool_fields(messages)
     if tool_field_saved:
         saved_bytes += tool_field_saved
-        logs["tool_fields"] = f"stripped redundant tool_call fields (-{tool_field_saved} bytes)"
+        logs[
+            "tool_fields"
+        ] = f"stripped redundant tool_call fields (-{tool_field_saved} bytes)"
 
     # ── Collapse whitespace ──
     ws_saved = _collapse_message_whitespace(messages)
@@ -1249,7 +1288,7 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         # the changes.
         tools[:] = filtered
         saved_bytes += tool_saved
-        #logs.update(tool_logs)
+        # logs.update(tool_logs)
         logs["tools"] = f"optimized tools (-{tool_saved} bytes)"
 
     # Report overall savings as a percentage of the baseline.
@@ -1257,8 +1296,7 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         pct = (saved_bytes / baseline_bytes) * 100
         saved_tokens = _bytes_to_tokens(saved_bytes)
         logs["summary"] = (
-            f"saved {saved_tokens} tokens / {baseline_bytes} baseline "
-            f"({pct:.1f}%)"
+            f"saved {saved_tokens} tokens / {baseline_bytes} baseline " f"({pct:.1f}%)"
         )
 
     return _bytes_to_tokens(saved_bytes), logs

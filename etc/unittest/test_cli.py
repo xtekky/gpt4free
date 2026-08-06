@@ -27,14 +27,17 @@ class TestCLI(unittest.TestCase):
         orig_run = cli_mod.run_api
         orig_set = cookies_mod.set_cookies_dir
         try:
-            cli_mod.run_api = lambda **kwargs: called.setdefault('ran', True)
-            cookies_mod.set_cookies_dir = lambda d: called.setdefault('dir', d)
+            cli_mod.run_api = lambda **kwargs: called.setdefault("ran", True)
+            cookies_mod.set_cookies_dir = lambda d: called.setdefault("dir", d)
 
             run_api_args(args)
 
-            self.assertTrue(called.get('ran'), "run_api should have been called")
-            self.assertEqual(called.get('dir'), tmpdir,
-                             "cookies directory should be passed to set_cookies_dir")
+            self.assertTrue(called.get("ran"), "run_api should have been called")
+            self.assertEqual(
+                called.get("dir"),
+                tmpdir,
+                "cookies directory should be passed to set_cookies_dir",
+            )
         finally:
             cli_mod.run_api = orig_run
             cookies_mod.set_cookies_dir = orig_set

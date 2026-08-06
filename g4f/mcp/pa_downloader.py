@@ -62,12 +62,15 @@ AUTO_DOWNLOAD_INTERVAL: float = 6 * 60 * 60  # 6 hours
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_proxy() -> Optional[str]:
     """Return the configured proxy URL, if any."""
     return os.environ.get("G4F_PROXY") or os.environ.get("HTTPS_PROXY") or None
 
 
-def _github_request(url: str, timeout: float, accept: str = "application/json") -> bytes:
+def _github_request(
+    url: str, timeout: float, accept: str = "application/json"
+) -> bytes:
     """Perform an HTTP GET against *url* and return the raw body bytes.
 
     Raises:
@@ -117,7 +120,11 @@ def _download_raw(repo: str, ref: str, name: str, timeout: float) -> bytes:
 
 def _workspace_target(directory: Optional[str] = None) -> Path:
     """Resolve the target workspace directory, creating it if needed."""
-    target = Path(directory).expanduser() if directory else (get_workspace_dir() / "pa-providers")
+    target = (
+        Path(directory).expanduser()
+        if directory
+        else (get_workspace_dir() / "pa-providers")
+    )
     target.mkdir(parents=True, exist_ok=True)
     return target
 
@@ -125,6 +132,7 @@ def _workspace_target(directory: Optional[str] = None) -> Path:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def run_pa_download(
     repo: str = DEFAULT_REPO,
@@ -239,6 +247,7 @@ def run_pa_remove(filename: str, directory: Optional[str] = None) -> bool:
 # ---------------------------------------------------------------------------
 # Startup auto-download
 # ---------------------------------------------------------------------------
+
 
 def _should_auto_download(workspace: Path) -> bool:
     """Return ``True`` if an automatic download should run now."""

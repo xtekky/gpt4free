@@ -21,11 +21,23 @@ except ImportError:
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_sync_generator
-from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo, HeadersResponse, JsonConversation
+from ..providers.response import (
+    Reasoning,
+    FinishReason,
+    Sources,
+    Usage,
+    ProviderInfo,
+    HeadersResponse,
+    JsonConversation,
+)
 from .optimize_request import optimize_request
 from .token_optimizer import optimize_messages
 from ..providers.types import ProviderType
-from ..providers.base_provider import get_async_provider_method, get_provider_method, wait_for
+from ..providers.base_provider import (
+    get_async_provider_method,
+    get_provider_method,
+    wait_for,
+)
 from ..cookies import get_cookies_dir
 from ..config import AppConfig
 from .web_search import do_search, get_search_message
@@ -47,7 +59,7 @@ from .. import debug
 
 _conversation_cache: dict[str, dict] = {}
 _CACHE_MAX_SIZE = 128
-_CACHE_TTL = 3600 * 12 # 1h * 12 = 12h
+_CACHE_TTL = 3600 * 12  # 1h * 12 = 12h
 
 
 def _messages_cache_key(messages: Messages, model: str) -> Optional[str]:
@@ -80,7 +92,9 @@ def _messages_cache_key(messages: Messages, model: str) -> Optional[str]:
         if i in exclude:
             continue
         try:
-            parts.append(json.dumps(msg, sort_keys=True, ensure_ascii=True, default=str))
+            parts.append(
+                json.dumps(msg, sort_keys=True, ensure_ascii=True, default=str)
+            )
         except Exception:
             return None
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
@@ -109,6 +123,7 @@ def _cache_put(key: Optional[str], conversation: JsonConversation) -> None:
             _conversation_cache.pop(k, None)
     _conversation_cache[key] = {"conversation": conversation, "time": time.time()}
 
+
 # Constants
 BUCKET_INSTRUCTIONS = """
 Instruction: Make sure to add the sources of cites using [[domain]](Url) notation after the reference. Example: [[a-z0-9.]](http://example.com)
@@ -118,8 +133,14 @@ TOOL_NAMES = {
     "SEARCH": "search_tool",
 }
 
+
 def is_provider_api_key(api_key: str) -> bool:
-    return isinstance(api_key, str) and api_key and not api_key.startswith("g4f_") and not api_key.startswith("gfs_")
+    return (
+        isinstance(api_key, str)
+        and api_key
+        and not api_key.startswith("g4f_")
+        and not api_key.startswith("gfs_")
+    )
 
 
 def provider_supports_native_tools(provider: ProviderType) -> bool:
@@ -342,7 +363,11 @@ async def async_iter_run_tools(
         messages, sources = await perform_web_search(messages, web_search)
 
     # Get API key
-    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key or not is_provider_api_key(kwargs.get("api_key")):
+    if (
+        not kwargs.get("api_key")
+        or AppConfig.disable_custom_api_key
+        or not is_provider_api_key(kwargs.get("api_key"))
+    ):
         api_key = AuthManager.load_api_key(provider) or kwargs.get("api_key")
         if api_key:
             kwargs["api_key"] = api_key
@@ -366,7 +391,11 @@ async def async_iter_run_tools(
     # Generate response
     method = get_async_provider_method(provider)
     response = method(model=model, messages=messages, **kwargs)
-    timeout = kwargs.get("stream_timeout") if provider.use_stream_timeout else kwargs.get("timeout")
+    timeout = (
+        kwargs.get("stream_timeout")
+        if provider.use_stream_timeout
+        else kwargs.get("timeout")
+    )
     response = wait_for(response, timeout=timeout) if stream else response
 
     try:
@@ -413,19 +442,43 @@ async def async_iter_run_tools(
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
             prompt_tokens += saved_tokens
-            saved_percent = round(saved_tokens / prompt_tokens * 100) if prompt_tokens > 0 and saved_tokens > 0 else 0
-            debug.log(f"Saved tokens:", (f"{int(saved_tokens/1000)}k" if saved_tokens >= 1000 else str(saved_tokens)) + f"/{prompt_tokens} tokens ({saved_percent}%)")
-        cached_tokens = usage_dict.get("prompt_tokens_details", usage_dict).get("cached_tokens", 0)
+            saved_percent = (
+                round(saved_tokens / prompt_tokens * 100)
+                if prompt_tokens > 0 and saved_tokens > 0
+                else 0
+            )
+            debug.log(
+                f"Saved tokens:",
+                (
+                    f"{int(saved_tokens/1000)}k"
+                    if saved_tokens >= 1000
+                    else str(saved_tokens)
+                )
+                + f"/{prompt_tokens} tokens ({saved_percent}%)",
+            )
+        cached_tokens = usage_dict.get("prompt_tokens_details", usage_dict).get(
+            "cached_tokens", 0
+        )
         if cached_tokens > 0:
-            debug.log(f"Cached tokens:", (f"{int(cached_tokens/1000)}k" if cached_tokens >= 1000 else str(cached_tokens)) + f"/{prompt_tokens} tokens ({round(cached_tokens / prompt_tokens * 100)}%)")
+            debug.log(
+                f"Cached tokens:",
+                (
+                    f"{int(cached_tokens/1000)}k"
+                    if cached_tokens >= 1000
+                    else str(cached_tokens)
+                )
+                + f"/{prompt_tokens} tokens ({round(cached_tokens / prompt_tokens * 100)}%)",
+            )
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)
         if has_aiofile:
             async with async_open(usage_file, "a") as f:
+
                 async def write_usage():
                     await f.write(f"{json.dumps(usage)}\n")
+
                 asyncio.create_task(write_usage())
         else:
             with usage_file.open("a") as f:
@@ -523,7 +576,11 @@ def iter_run_tools(
             debug.error(f"Couldn't do web search:", e)
 
     # Get API key if needed
-    if not kwargs.get("api_key") or AppConfig.disable_custom_api_key or not is_provider_api_key(kwargs.get("api_key")):
+    if (
+        not kwargs.get("api_key")
+        or AppConfig.disable_custom_api_key
+        or not is_provider_api_key(kwargs.get("api_key"))
+    ):
         api_key = AuthManager.load_api_key(provider) or kwargs.get("api_key")
         if api_key:
             kwargs["api_key"] = api_key
@@ -610,8 +667,14 @@ def iter_run_tools(
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
             prompt_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
-            saved_percent = round(saved_tokens / prompt_tokens * 100) if prompt_tokens > 0 and saved_tokens > 0 else 0
-            debug.log(f"Token savings: {saved_tokens}/{prompt_tokens} tokens ({saved_percent}%)")
+            saved_percent = (
+                round(saved_tokens / prompt_tokens * 100)
+                if prompt_tokens > 0 and saved_tokens > 0
+                else 0
+            )
+            debug.log(
+                f"Token savings: {saved_tokens}/{prompt_tokens} tokens ({saved_percent}%)"
+            )
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"

@@ -2,6 +2,7 @@ import random
 import time
 from typing import Any, Callable, Dict, List, Optional, Union
 from g4f import debug
+
 # Import fingerprint generator (from the Python-converted fingerprint module)
 # Make sure you have fingerprint.py in the same folder.
 from g4f.Provider.qwen.fingerprint import generate_fingerprint  # noqa: F401
@@ -9,22 +10,27 @@ from g4f.Provider.qwen.fingerprint import generate_fingerprint  # noqa: F401
 
 # ==================== Config ====================
 
-CUSTOM_BASE64_CHARS = "DGi0YA7BemWnQjCl4_bR3f8SKIF9tUz/xhr2oEOgPpac=61ZqwTudLkM5vHyNXsVJ"
+CUSTOM_BASE64_CHARS = (
+    "DGi0YA7BemWnQjCl4_bR3f8SKIF9tUz/xhr2oEOgPpac=61ZqwTudLkM5vHyNXsVJ"
+)
 
 # Hash field positions (need random regeneration)
 HASH_FIELDS: Dict[int, str] = {
     16: "split",  # plugin hash: "count|hash" (replace only hash part)
-    17: "full",   # canvas hash
-    18: "full",   # UA hash 1
-    31: "full",   # UA hash 2
-    34: "full",   # URL hash
-    36: "full",   # doc attribute hash (10-100)
+    17: "full",  # canvas hash
+    18: "full",  # UA hash 1
+    31: "full",  # UA hash 2
+    34: "full",  # URL hash
+    36: "full",  # doc attribute hash (10-100)
 }
 
 
 # ==================== LZW Compression (JS-faithful port) ====================
 
-def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]) -> str:
+
+def lzw_compress(
+    data: Optional[str], bits: int, char_func: Callable[[int], str]
+) -> str:
     if data is None:
         return ""
 
@@ -60,7 +66,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
                 if ord(w[0]) < 256:
                     # write num_bits zeros
                     for _ in range(num_bits):
-                        value = (value << 1)
+                        value = value << 1
                         if position == bits - 1:
                             position = 0
                             result.append(char_func(value))
@@ -104,7 +110,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
 
                 enlarge_in -= 1
                 if enlarge_in == 0:
-                    enlarge_in = 2 ** num_bits
+                    enlarge_in = 2**num_bits
                     num_bits += 1
 
                 del dict_to_create[w]
@@ -123,7 +129,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
 
             enlarge_in -= 1
             if enlarge_in == 0:
-                enlarge_in = 2 ** num_bits
+                enlarge_in = 2**num_bits
                 num_bits += 1
 
             dictionary[wc] = dict_size
@@ -135,7 +141,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
         if w in dict_to_create:
             if ord(w[0]) < 256:
                 for _ in range(num_bits):
-                    value = (value << 1)
+                    value = value << 1
                     if position == bits - 1:
                         position = 0
                         result.append(char_func(value))
@@ -178,7 +184,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
 
             enlarge_in -= 1
             if enlarge_in == 0:
-                enlarge_in = 2 ** num_bits
+                enlarge_in = 2**num_bits
                 num_bits += 1
             del dict_to_create[w]
         else:
@@ -195,7 +201,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
 
         enlarge_in -= 1
         if enlarge_in == 0:
-            enlarge_in = 2 ** num_bits
+            enlarge_in = 2**num_bits
             num_bits += 1
 
     # end-of-stream marker (2)
@@ -212,7 +218,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
 
     # pad to complete a char
     while True:
-        value = (value << 1)
+        value = value << 1
         if position == bits - 1:
             result.append(char_func(value))
             break
@@ -223,6 +229,7 @@ def lzw_compress(data: Optional[str], bits: int, char_func: Callable[[int], str]
 
 # ==================== Encoding ====================
 
+
 def custom_encode(data: Optional[str], url_safe: bool) -> str:
     if data is None:
         return ""
@@ -230,9 +237,7 @@ def custom_encode(data: Optional[str], url_safe: bool) -> str:
     base64_chars = CUSTOM_BASE64_CHARS
 
     compressed = lzw_compress(
-        data,
-        6,
-        lambda index: base64_chars[index]  # index should be 0..63
+        data, 6, lambda index: base64_chars[index]  # index should be 0..63
     )
 
     if not url_safe:
@@ -250,6 +255,7 @@ def custom_encode(data: Optional[str], url_safe: bool) -> str:
 
 # ==================== Helpers ====================
 
+
 def random_hash() -> int:
     return random.randint(0, 0xFFFFFFFF)
 
@@ -259,6 +265,7 @@ def generate_device_id() -> str:
 
 
 # ==================== Data parse/process ====================
+
 
 def parse_real_data(real_data: str) -> List[str]:
     return real_data.split("^")
@@ -290,11 +297,13 @@ def process_fields(fields: List[str]) -> List[Union[str, int]]:
 
     return processed
 
+
 # ==================== Cookie generation ====================
+
 
 def generate_cookies(
     real_data: Optional[str] = None,
-    fingerprint_options: Optional[Dict[str, Any]] = None
+    fingerprint_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     if fingerprint_options is None:
         fingerprint_options = {}
@@ -309,16 +318,31 @@ def generate_cookies(
     ssxmod_itna = "1-" + custom_encode(ssxmod_itna_data, True)
 
     # ssxmod_itna2 (18 fields)
-    ssxmod_itna2_data = "^".join(map(str, [
-        processed_fields[0],    # device id
-        processed_fields[1],    # sdk version
-        processed_fields[23],   # mode (P/M)
-        0, "", 0, "", "", 0,    # event-related (empty in P mode)
-        0, 0,
-        processed_fields[32],   # constant (11)
-        processed_fields[33],   # current timestamp
-        0, 0, 0, 0, 0
-    ]))
+    ssxmod_itna2_data = "^".join(
+        map(
+            str,
+            [
+                processed_fields[0],  # device id
+                processed_fields[1],  # sdk version
+                processed_fields[23],  # mode (P/M)
+                0,
+                "",
+                0,
+                "",
+                "",
+                0,  # event-related (empty in P mode)
+                0,
+                0,
+                processed_fields[32],  # constant (11)
+                processed_fields[33],  # current timestamp
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+        )
+    )
     ssxmod_itna2 = "1-" + custom_encode(ssxmod_itna2_data, True)
 
     return {
@@ -329,13 +353,15 @@ def generate_cookies(
         "rawData2": ssxmod_itna2_data,
     }
 
+
 def generate_batch(
     count: int = 10,
     real_data: Optional[str] = None,
-    fingerprint_options: Optional[Dict[str, Any]] = None
+    fingerprint_options: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
-    return [generate_cookies(real_data, fingerprint_options or {}) for _ in range(count)]
-
+    return [
+        generate_cookies(real_data, fingerprint_options or {}) for _ in range(count)
+    ]
 
 
 # ssxmod_manager.py
@@ -351,7 +377,6 @@ Generates and periodically refreshes ssxmod_itna and ssxmod_itna2 cookies.
 
 import asyncio
 from typing import Any, Dict, Optional
-
 
 
 # Global cookie store
@@ -398,7 +423,9 @@ async def _refresh_loop() -> None:
 
         while not _stop_event.is_set():
             try:
-                await asyncio.wait_for(_stop_event.wait(), timeout=REFRESH_INTERVAL_SECONDS)
+                await asyncio.wait_for(
+                    _stop_event.wait(), timeout=REFRESH_INTERVAL_SECONDS
+                )
             except asyncio.TimeoutError:
                 # timeout => refresh
                 await refresh_cookies()

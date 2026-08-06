@@ -24,14 +24,16 @@ def get_pypi_version(package_name: str) -> str:
     """
     try:
         import requests
+
         response = requests.get(
-            f"https://pypi.org/pypi/{package_name}/json",
-            timeout=REQUEST_TIMEOUT
+            f"https://pypi.org/pypi/{package_name}/json", timeout=REQUEST_TIMEOUT
         )
         response.raise_for_status()
         return response.json()["info"]["version"]
     except Exception as e:
-        raise VersionNotFoundError(f"Failed to get PyPI version for '{package_name}'") from e
+        raise VersionNotFoundError(
+            f"Failed to get PyPI version for '{package_name}'"
+        ) from e
 
 
 @lru_cache(maxsize=1)
@@ -44,26 +46,29 @@ def get_github_version(repo: str) -> str:
     """
     try:
         import requests
+
         response = requests.get(
             f"https://api.github.com/repos/{repo}/releases/latest",
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         data = response.json()
         if "tag_name" not in data:
-            raise VersionNotFoundError(f"No tag_name found in latest GitHub release for '{repo}'")
+            raise VersionNotFoundError(
+                f"No tag_name found in latest GitHub release for '{repo}'"
+            )
         return data["tag_name"]
     except Exception as e:
-        raise VersionNotFoundError(f"Failed to get GitHub release version for '{repo}'") from e
+        raise VersionNotFoundError(
+            f"Failed to get GitHub release version for '{repo}'"
+        ) from e
 
 
 def get_git_version() -> str | None:
     """Return latest Git tag if available, else None."""
     try:
         return check_output(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            text=True,
-            stderr=PIPE
+            ["git", "describe", "--tags", "--abbrev=0"], text=True, stderr=PIPE
         ).strip()
     except (CalledProcessError, FileNotFoundError):
         return None
@@ -87,7 +92,11 @@ class VersionUtils:
             return debug.version
 
         try:
-            from importlib.metadata import version as get_package_version, PackageNotFoundError
+            from importlib.metadata import (
+                version as get_package_version,
+                PackageNotFoundError,
+            )
+
             return get_package_version(PACKAGE_NAME)
         except ImportError:
             pass
@@ -112,7 +121,11 @@ class VersionUtils:
         """
         try:
             try:
-                from importlib.metadata import version as get_package_version, PackageNotFoundError
+                from importlib.metadata import (
+                    version as get_package_version,
+                    PackageNotFoundError,
+                )
+
                 get_package_version(PACKAGE_NAME)
             except (ImportError, PackageNotFoundError):
                 return get_github_version(GITHUB_REPOSITORY)

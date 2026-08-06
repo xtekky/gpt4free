@@ -11,6 +11,7 @@ from ...image.copy_images import save_response_media
 from ..template import OpenaiTemplate
 from ..helper import format_media_prompt
 
+
 class Azure(OpenaiTemplate):
     label = "Azure ☁️"
     url = "https://ai.azure.com"
@@ -22,15 +23,10 @@ class Azure(OpenaiTemplate):
     audio_models = ["gpt-4o-mini-audio-preview"]
     vision_models = ["gpt-4.1", "o4-mini", "model-router", "flux.1-kontext-pro"]
     image_models = ["flux-1.1-pro", "flux.1-kontext-pro"]
-    model_aliases = {
-        "flux-kontext": "flux.1-kontext-pro"
-    }
+    model_aliases = {"flux-kontext": "flux.1-kontext-pro"}
     model_extra_body = {
         "gpt-4o-mini-audio-preview": {
-            "audio": {
-                "voice": "alloy",
-                "format": "mp3"
-            },
+            "audio": {"voice": "alloy", "format": "mp3"},
             "modalities": ["text", "audio"],
         }
     }
@@ -50,7 +46,9 @@ class Azure(OpenaiTemplate):
             try:
                 routes = json.loads(routes)
             except json.JSONDecodeError:
-                raise ValueError(f"Invalid AZURE_ROUTES environment variable format: {routes}")
+                raise ValueError(
+                    f"Invalid AZURE_ROUTES environment variable format: {routes}"
+                )
             cls.routes = routes
         if cls.routes:
             if cls.live == 0 and cls.api_keys:
@@ -67,7 +65,7 @@ class Azure(OpenaiTemplate):
         media: MediaListType = None,
         api_key: str = None,
         api_endpoint: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         if not model:
             model = os.environ.get("AZURE_DEFAULT_MODEL", cls.default_model)
@@ -84,10 +82,16 @@ class Azure(OpenaiTemplate):
         if cls.api_keys:
             api_key = cls.api_keys.get(model, cls.api_keys.get("default"))
             if not api_key:
-                raise ValueError(f"API key is required for Azure provider. Ask for API key in the {cls.login_url} Discord server.")
+                raise ValueError(
+                    f"API key is required for Azure provider. Ask for API key in the {cls.login_url} Discord server."
+                )
         if api_endpoint and "/images/" in api_endpoint:
             prompt = format_media_prompt(messages, kwargs.get("prompt"))
-            width, height = get_width_height(kwargs.get("aspect_ratio", "1:1"), kwargs.get("width"), kwargs.get("height"))
+            width, height = get_width_height(
+                kwargs.get("aspect_ratio", "1:1"),
+                kwargs.get("width"),
+                kwargs.get("height"),
+            )
             output_format = kwargs.get("output_format", "png")
             form = None
             data = None
@@ -112,17 +116,20 @@ class Azure(OpenaiTemplate):
                     "height": height,
                     "output_format": output_format,
                 }
-            async with StreamSession(proxy=kwargs.get("proxy"), headers={
-                "Authorization": f"Bearer {api_key}",
-                "x-ms-model-mesh-model-name": model,
-            }) as session:
+            async with StreamSession(
+                proxy=kwargs.get("proxy"),
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "x-ms-model-mesh-model-name": model,
+                },
+            ) as session:
                 async with session.post(api_endpoint, data=form, json=data) as response:
                     data = await response.json()
                     await raise_for_status(response, data)
                     async for chunk in save_response_media(
                         data["data"][0]["b64_json"],
                         prompt,
-                        content_type=f"image/{output_format.replace('jpg', 'jpeg')}"
+                        content_type=f"image/{output_format.replace('jpg', 'jpeg')}",
                     ):
                         yield chunk
             return
@@ -140,9 +147,11 @@ class Azure(OpenaiTemplate):
                 media=media,
                 api_key=api_key,
                 api_endpoint=api_endpoint,
-                **kwargs
+                **kwargs,
             ):
                 yield chunk
         except MissingAuthError as e:
             cls.failed[model + api_key] = cls.failed.get(model + api_key, 0) + 1
-            raise MissingAuthError(f"{e}. Ask for help in the {cls.login_url} Discord server.") from e
+            raise MissingAuthError(
+                f"{e}. Ask for help in the {cls.login_url} Discord server."
+            ) from e

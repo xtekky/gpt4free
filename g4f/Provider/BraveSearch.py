@@ -8,8 +8,12 @@ from urllib.parse import urlencode, quote
 from ..typing import AsyncResult, Messages, ImageType
 from ..requests import StreamSession, raise_for_status
 from ..providers.response import (
-    ProviderInfo, JsonConversation, Sources,
-    SuggestedFollowups, Usage, Reasoning
+    ProviderInfo,
+    JsonConversation,
+    Sources,
+    SuggestedFollowups,
+    Usage,
+    Reasoning,
 )
 from ..image import to_bytes
 from ..tools.media import merge_media
@@ -30,6 +34,7 @@ DEEP_RESEARCH_TIMEOUT = 600
 
 class Conversation(JsonConversation):
     """Manages session state for Brave Search Ask."""
+
     conversation_id: str = None
     symmetric_key: str = None
     nonce: str = None
@@ -38,19 +43,19 @@ class Conversation(JsonConversation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.symmetric_key is None:
-            self.symmetric_key = base64.urlsafe_b64encode(
-                os.urandom(32)
-            ).decode().rstrip("=")
+            self.symmetric_key = (
+                base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
+            )
 
 
 class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Free provider for Brave Search's Ask AI feature.
-    
+
     Uses the Brave Search Ask endpoint (search.brave.com/ask) which provides
-    AI-powered answers augmented with web search results. No authentication 
+    AI-powered answers augmented with web search results. No authentication
     required.
-    
+
     Models:
     - brave: Standard Ask Brave (fast, single-pass answer)
     - brave-deep-research: Deep Research mode (multi-iteration web crawling,
@@ -76,9 +81,9 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def _parse_sveltekit_tap_data(cls, raw_json: dict) -> dict:
         """
-        Parse SvelteKit __data.json format to extract nonce and sig 
+        Parse SvelteKit __data.json format to extract nonce and sig
         from the tap (Ask) page node.
-        
+
         SvelteKit data format uses indexed arrays where:
         - node_data[0] is a schema dict mapping field names to indices
         - remaining elements are values referenced by those indices
@@ -123,7 +128,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def _process_research_event(cls, event: dict):
         """
-        Process a Deep Research 'research' event and return 
+        Process a Deep Research 'research' event and return
         a Reasoning object for status display, or None.
         """
         inner = event.get("event", {})
@@ -135,16 +140,14 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
         if research_event == "queries":
             queries = inner.get("queries", [])
             return Reasoning(
-                status=f"Researching: {', '.join(queries[:3])}",
-                label="Deep Research"
+                status=f"Researching: {', '.join(queries[:3])}", label="Deep Research"
             )
 
         elif research_event == "analyzing":
             query = inner.get("query", "")
             urls = inner.get("urls", 0)
             return Reasoning(
-                status=f"Analyzing {urls} sources for: {query}",
-                label="Deep Research"
+                status=f"Analyzing {urls} sources for: {query}", label="Deep Research"
             )
 
         elif research_event == "thinking":
@@ -153,7 +156,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
             urls = inner.get("urls_analyzed", 0)
             return Reasoning(
                 status=f"Processing {chunks} chunks from {urls} sources: {query}",
-                label="Deep Research"
+                label="Deep Research",
             )
 
         elif research_event == "progress":
@@ -163,8 +166,8 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
             elapsed = inner.get("elasped_seconds", 0)
             return Reasoning(
                 status=f"Iteration {iterations}: {queries} queries, "
-                       f"{urls} URLs analyzed ({elapsed:.0f}s)",
-                label="Deep Research"
+                f"{urls} URLs analyzed ({elapsed:.0f}s)",
+                label="Deep Research",
             )
 
         elif research_event == "blindspots":
@@ -172,13 +175,13 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
             if spots:
                 return Reasoning(
                     status=f"Identified gaps: {', '.join(spots[:3])}",
-                    label="Deep Research"
+                    label="Deep Research",
                 )
 
         elif research_event == "answer" and inner.get("final"):
             return Reasoning(
                 status="Research complete, generating final answer",
-                label="Deep Research"
+                label="Deep Research",
             )
 
         return None
@@ -193,7 +196,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
         media: MediaListType = None,
         conversation: Conversation = None,
         prompt: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         model = cls.get_model(model)
         is_deep = cls._is_deep_research(model)
@@ -204,9 +207,17 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
                 if message["role"] == "user":
                     prompt = message["content"]
                     if isinstance(prompt, list):
-                        prompt = "\n".join(
-                            [item.get("text", "") for item in prompt if isinstance(item, dict)]
-                        ) if prompt else ""
+                        prompt = (
+                            "\n".join(
+                                [
+                                    item.get("text", "")
+                                    for item in prompt
+                                    if isinstance(item, dict)
+                                ]
+                            )
+                            if prompt
+                            else ""
+                        )
                     break
 
         if not prompt:
@@ -222,7 +233,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
             "cache-control": "no-cache",
             "pragma": "no-cache",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+            "(KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
         }
 
         # Deep Research needs a much longer timeout
@@ -250,9 +261,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
                 data_params["enable_research"] = "true"
 
             async with session.get(
-                DATA_ENDPOINT,
-                params=data_params,
-                headers={"referer": referer}
+                DATA_ENDPOINT, params=data_params, headers={"referer": referer}
             ) as response:
                 await raise_for_status(response)
                 data_json = await response.json()
@@ -293,7 +302,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
                 params=new_params,
                 headers={
                     "referer": f"{BRAVE_ASK_URL}?q={quote(prompt)}&source=newThread"
-                }
+                },
             ) as response:
                 await raise_for_status(response)
                 new_data = await response.json()
@@ -338,7 +347,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
                     ),
                 }
             }
-            
+
             async with session.get(stream_url, **request_kwargs) as response:
                 await raise_for_status(response)
 
@@ -375,7 +384,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
                         elif event_type == "research_start":
                             yield Reasoning(
                                 status="Starting deep research...",
-                                label="Deep Research"
+                                label="Deep Research",
                             )
 
                         elif event_type == "research":
@@ -385,18 +394,19 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
 
                         elif event_type == "research_end":
                             yield Reasoning(
-                                status="Research phase complete",
-                                label="Deep Research"
+                                status="Research phase complete", label="Deep Research"
                             )
 
                         elif event_type == "augment_with_inline_citation":
                             url = event.get("url")
                             title = event.get("title")
                             if url:
-                                sources.append({
-                                    "url": url,
-                                    "title": title or url,
-                                })
+                                sources.append(
+                                    {
+                                        "url": url,
+                                        "title": title or url,
+                                    }
+                                )
 
                         elif event_type == "followups":
                             followups = event.get("followups", [])

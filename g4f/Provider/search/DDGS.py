@@ -13,6 +13,7 @@ import asyncio
 try:
     from ddgs import DDGS as DDGSClient
     from bs4 import BeautifulSoup
+
     has_requirements = True
 except ImportError:
     has_requirements = False
@@ -24,14 +25,25 @@ from ...errors import MissingRequirementsError
 from ...providers.base_provider import AsyncGeneratorProvider
 from ..helper import format_media_prompt
 
-def scrape_text(html: str, max_words: Optional[int] = None, add_source: bool = True, count_images: int = 2) -> Iterator[str]:
+
+def scrape_text(
+    html: str,
+    max_words: Optional[int] = None,
+    add_source: bool = True,
+    count_images: int = 2,
+) -> Iterator[str]:
     """
     Parses the provided HTML and yields text fragments.
     """
     soup = BeautifulSoup(html, "html.parser")
     for selector in [
-        "main", ".main-content-wrapper", ".main-content", ".emt-container-inner",
-        ".content-wrapper", "#content", "#mainContent",
+        "main",
+        ".main-content-wrapper",
+        ".main-content",
+        ".emt-container-inner",
+        ".content-wrapper",
+        "#content",
+        "#mainContent",
     ]:
         selected = soup.select_one(selector)
         if selected:
@@ -46,8 +58,10 @@ def scrape_text(html: str, max_words: Optional[int] = None, add_source: bool = T
     image_selector = "img[alt][src^=http]:not([alt='']):not(.avatar):not([width])"
     image_link_selector = f"a:has({image_selector})"
     seen_texts = []
-    
-    for element in soup.select(f"h1, h2, h3, h4, h5, h6, p, pre, table:not(:has(p)), ul:not(:has(p)), {image_link_selector}"):
+
+    for element in soup.select(
+        f"h1, h2, h3, h4, h5, h6, p, pre, table:not(:has(p)), ul:not(:has(p)), {image_link_selector}"
+    ):
         if count_images > 0:
             image = element.select_one(image_selector)
             if image:
@@ -80,7 +94,14 @@ def scrape_text(html: str, max_words: Optional[int] = None, add_source: bool = T
             domain = urlparse(link).netloc
             yield f"\nSource: [{domain}]({link})"
 
-async def fetch_and_scrape(session: ClientSession, url: str, max_words: Optional[int] = None, add_source: bool = False, proxy: str = None) -> str:
+
+async def fetch_and_scrape(
+    session: ClientSession,
+    url: str,
+    max_words: Optional[int] = None,
+    add_source: bool = False,
+    proxy: str = None,
+) -> str:
     """
     Fetches a URL and returns the scraped text, using caching to avoid redundant downloads.
     """
@@ -88,7 +109,10 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: Optional
         cache_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
         cache_dir.mkdir(parents=True, exist_ok=True)
         md5_hash = hashlib.md5(url.encode(errors="ignore")).hexdigest()
-        cache_file = cache_dir / f"{quote_plus(url.split('?')[0].split('//')[1].replace('/', ' ')[:48])}.{date.today()}.{md5_hash[:16]}.cache"
+        cache_file = (
+            cache_dir
+            / f"{quote_plus(url.split('?')[0].split('//')[1].replace('/', ' ')[:48])}.{date.today()}.{md5_hash[:16]}.cache"
+        )
         if cache_file.exists():
             return cache_file.read_text()
 
@@ -103,10 +127,12 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: Optional
         return ""
     return ""
 
+
 class SearchResults(JsonMixin):
     """
     Represents a collection of search result entries along with the count of used words.
     """
+
     def __init__(self, results: List[SearchResultEntry], used_words: int):
         self.results = results
         self.used_words = used_words
@@ -114,8 +140,7 @@ class SearchResults(JsonMixin):
     @classmethod
     def from_dict(cls, data: dict) -> SearchResults:
         return cls(
-            [SearchResultEntry(**item) for item in data["results"]],
-            data["used_words"]
+            [SearchResultEntry(**item) for item in data["results"]], data["used_words"]
         )
 
     def __iter__(self) -> Iterator[SearchResultEntry]:
@@ -130,7 +155,7 @@ class SearchResults(JsonMixin):
                 "",
                 result.text if result.text else result.snippet,
                 "",
-                f"> **Source:** [[{idx}]]({result.url})"
+                f"> **Source:** [[{idx}]]({result.url})",
             ]
             output.append("\n".join(parts))
         return "\n\n\n\n".join(output)
@@ -139,18 +164,22 @@ class SearchResults(JsonMixin):
         return len(self.results)
 
     def get_sources(self) -> Sources:
-        return Sources([{"url": result.url, "title": result.title} for result in self.results])
+        return Sources(
+            [{"url": result.url, "title": result.title} for result in self.results]
+        )
 
     def get_dict(self) -> dict:
         return {
             "results": [result.get_dict() for result in self.results],
-            "used_words": self.used_words
+            "used_words": self.used_words,
         }
+
 
 class SearchResultEntry(JsonMixin):
     """
     Represents a single search result entry.
     """
+
     def __init__(self, title: str, url: str, snippet: str, text: Optional[str] = None):
         self.title = title
         self.url = url
@@ -159,6 +188,7 @@ class SearchResultEntry(JsonMixin):
 
     def set_text(self, text: str) -> None:
         self.text = text
+
 
 class DDGS(AsyncGeneratorProvider):
     working = has_requirements
@@ -176,10 +206,12 @@ class DDGS(AsyncGeneratorProvider):
         max_results: int = 5,
         max_words: int = 2500,
         add_text: bool = True,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         if not has_requirements:
-            raise MissingRequirementsError('Install "ddgs" and "beautifulsoup4" | pip install -U g4f[search]')
+            raise MissingRequirementsError(
+                'Install "ddgs" and "beautifulsoup4" | pip install -U g4f[search]'
+            )
 
         prompt = format_media_prompt(messages, prompt)
         results: List[SearchResultEntry] = []
@@ -196,17 +228,27 @@ class DDGS(AsyncGeneratorProvider):
             ):
                 if ".google." in result["href"]:
                     continue
-                results.append(SearchResultEntry(
-                    title=result["title"],
-                    url=result["href"],
-                    snippet=result["body"]
-                ))
+                results.append(
+                    SearchResultEntry(
+                        title=result["title"],
+                        url=result["href"],
+                        snippet=result["body"],
+                    )
+                )
 
         if add_text:
             tasks = []
             async with ClientSession(timeout=ClientTimeout(timeout)) as session:
                 for entry in results:
-                    tasks.append(fetch_and_scrape(session, entry.url, int(max_words / (max_results - 1)), False, proxy=proxy))
+                    tasks.append(
+                        fetch_and_scrape(
+                            session,
+                            entry.url,
+                            int(max_words / (max_results - 1)),
+                            False,
+                            proxy=proxy,
+                        )
+                    )
                 texts = await asyncio.gather(*tasks)
 
         formatted_results: List[SearchResultEntry] = []

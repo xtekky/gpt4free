@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ..template import OpenaiTemplate
 
+
 class OpenaiAPI(OpenaiTemplate):
     label = "OpenAI API"
     url = "https://platform.openai.com"

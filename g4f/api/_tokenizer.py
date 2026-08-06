@@ -5,5 +5,5 @@
 #     encoding   = tiktoken.encoding_for_model(model)
 #     encoded    = encoding.encode(text)
 #     num_tokens = len(encoded)
-    
+
 #     return num_tokens, encoded

@@ -1,5 +1,6 @@
 try:
     import brotli
+
     has_brotli = True
 except ImportError:
     has_brotli = False
@@ -11,7 +12,7 @@ DEFAULT_HEADERS = {
     "referer": "",
     "sec-ch-ua": '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
     "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-ua-platform": '"Windows"',
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",

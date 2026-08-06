@@ -62,6 +62,7 @@ from typing import Optional, Dict, List, Tuple
 
 try:
     import yaml
+
     has_yaml = True
 except ImportError:
     has_yaml = False
@@ -76,6 +77,7 @@ from ..tools.auth import AuthManager
 # ---------------------------------------------------------------------------
 # Quota cache
 # ---------------------------------------------------------------------------
+
 
 class QuotaCache:
     """Thread-safe in-memory cache for provider quota results.
@@ -128,6 +130,7 @@ class QuotaCache:
 # Error counter
 # ---------------------------------------------------------------------------
 
+
 class ErrorCounter:
     """Rolling-window error counter for providers.
 
@@ -174,8 +177,8 @@ class ErrorCounter:
 # ---------------------------------------------------------------------------
 
 _OPS: Dict[str, "Callable"] = {
-    ">":  operator.gt,
-    "<":  operator.lt,
+    ">": operator.gt,
+    "<": operator.lt,
     ">=": operator.ge,
     "<=": operator.le,
     "==": operator.eq,
@@ -184,13 +187,13 @@ _OPS: Dict[str, "Callable"] = {
 
 # Tokenizer for simple condition expressions
 _TOKEN_RE = re.compile(
-    r"(?P<float>-?\d+\.\d+)"       # float literal
-    r"|(?P<int>-?\d+)"              # integer literal
-    r"|(?P<op>>=|<=|==|!=|>|<)"    # comparison operator
-    r"|(?P<kw>and|or|not)"         # logical keywords
+    r"(?P<float>-?\d+\.\d+)"  # float literal
+    r"|(?P<int>-?\d+)"  # integer literal
+    r"|(?P<op>>=|<=|==|!=|>|<)"  # comparison operator
+    r"|(?P<kw>and|or|not)"  # logical keywords
     r"|(?P<id>[a-zA-Z_][a-zA-Z0-9_.-]*)"  # identifier (supports dashed keys)
-    r"|(?P<lp>\()"                  # left paren
-    r"|(?P<rp>\))"                  # right paren
+    r"|(?P<lp>\()"  # left paren
+    r"|(?P<rp>\))"  # right paren
 )
 
 
@@ -202,7 +205,9 @@ def _tokenize(expr: str) -> List[Tuple[str, str]]:
     return tokens
 
 
-def _parse_expr(tokens: List[Tuple[str, str]], pos: int, variables: Dict[str, float]) -> Tuple[bool, int]:
+def _parse_expr(
+    tokens: List[Tuple[str, str]], pos: int, variables: Dict[str, float]
+) -> Tuple[bool, int]:
     """Recursive-descent parser for ``and``/``or``/``not``/comparisons."""
     return _parse_or(tokens, pos, variables)
 
@@ -336,6 +341,7 @@ def evaluate_condition(
 # Config data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ProviderRouteConfig:
     """A single provider entry inside a model route."""
@@ -364,6 +370,7 @@ class ModelRouteConfig:
 # ---------------------------------------------------------------------------
 # Global router state
 # ---------------------------------------------------------------------------
+
 
 class RouterConfig:
     """Singleton holding the active routing configuration."""
@@ -433,6 +440,7 @@ class RouterConfig:
 # ---------------------------------------------------------------------------
 # Config-based provider
 # ---------------------------------------------------------------------------
+
 
 def _resolve_provider(provider_name: str):
     """Resolve a provider name string to a provider class."""
@@ -545,7 +553,11 @@ class ConfigModelProvider(AsyncGeneratorProvider):
             )
 
             extra_body = kwargs.copy()
-            current_api_key = api_key.get(provider.get_parent()) if isinstance(api_key, dict) else api_key
+            current_api_key = (
+                api_key.get(provider.get_parent())
+                if isinstance(api_key, dict)
+                else api_key
+            )
             if not current_api_key or AppConfig.disable_custom_api_key:
                 current_api_key = AuthManager.load_api_key(provider)
             if current_api_key:
@@ -571,6 +583,7 @@ class ConfigModelProvider(AsyncGeneratorProvider):
             except Exception as e:
                 # On rate-limit errors invalidate the quota cache
                 from ..errors import RateLimitError
+
                 if isinstance(e, RateLimitError) or "429" in str(e):
                     debug.log(
                         f"config.yaml: Rate-limited by {provider_name}, "

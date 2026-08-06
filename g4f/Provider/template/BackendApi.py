@@ -9,6 +9,7 @@ from ...providers.base_provider import AsyncGeneratorProvider, ProviderModelMixi
 from ...providers.response import RawResponse
 from ... import debug
 
+
 class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
     ssl = None
     headers = {}
@@ -20,7 +21,7 @@ class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         media: MediaListType = None,
         api_key: str = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         debug.log(f"{cls.__name__}: {api_key}")
         if media is not None:
@@ -29,12 +30,16 @@ class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
         async with StreamSession(
             headers={"Accept": "text/event-stream", **cls.headers},
         ) as session:
-            async with session.post(f"{cls.url}/backend-api/v2/conversation", json={
-                "model": model,
-                "messages": messages,
-                "media": media,
-                "api_key": api_key,
-                **kwargs
-            }, ssl=cls.ssl) as response:
+            async with session.post(
+                f"{cls.url}/backend-api/v2/conversation",
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "media": media,
+                    "api_key": api_key,
+                    **kwargs,
+                },
+                ssl=cls.ssl,
+            ) as response:
                 async for line in response.iter_lines():
                     yield RawResponse(**json.loads(line))

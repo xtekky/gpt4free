@@ -12,21 +12,24 @@ SCOPES = "openid profile email model.completion"
 # Local redirect URL for redirect-based flow (if used)
 REDIRECT_URI = "http://localhost:8080/callback"
 
+
 async def launch_browser_for_oauth():
     # Generate PKCE parameters
     pkce_pair = generatePKCEPair()
-    code_verifier = pkce_pair['code_verifier']
-    code_challenge = pkce_pair['code_challenge']
+    code_verifier = pkce_pair["code_verifier"]
+    code_challenge = pkce_pair["code_challenge"]
 
     # Initialize OAuth client
     client = QwenOAuth2Client()
 
     # Request device code
-    device_auth = await client.requestDeviceAuthorization({
-        "scope": SCOPES,
-        "code_challenge": code_challenge,
-        "code_challenge_method": "S256",
-    })
+    device_auth = await client.requestDeviceAuthorization(
+        {
+            "scope": SCOPES,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        }
+    )
 
     # Check device auth success
     if not isinstance(device_auth, dict) or "device_code" not in device_auth:
@@ -35,9 +38,13 @@ async def launch_browser_for_oauth():
 
     # Show user instructions
     print("Please visit the following URL to authorize:")
-    print(device_auth.get("verification_uri_complete") or device_auth["verification_uri"])
+    print(
+        device_auth.get("verification_uri_complete") or device_auth["verification_uri"]
+    )
     # Attempt to automatically open the URL
-    url_to_open = device_auth.get("verification_uri_complete") or device_auth["verification_uri"]
+    url_to_open = (
+        device_auth.get("verification_uri_complete") or device_auth["verification_uri"]
+    )
     try:
         webbrowser.open(url_to_open)
     except Exception:
@@ -56,10 +63,12 @@ async def launch_browser_for_oauth():
             break
 
         # Poll for token
-        token_response = await client.pollDeviceToken({
-            "device_code": device_code,
-            "code_verifier": code_verifier,
-        })
+        token_response = await client.pollDeviceToken(
+            {
+                "device_code": device_code,
+                "code_verifier": code_verifier,
+            }
+        )
 
         if isinstance(token_response, dict):
             if "status" in token_response and token_response["status"] == "pending":
@@ -76,10 +85,13 @@ async def launch_browser_for_oauth():
                     "token_type": token_response["token_type"],
                     "refresh_token": token_response.get("refresh_token"),
                     "resource_url": token_response.get("resource_url"),
-                    "expiry_date": int(time.time() * 1000) + token_response.get("expires_in", 0) * 1000,
+                    "expiry_date": int(time.time() * 1000)
+                    + token_response.get("expires_in", 0) * 1000,
                 }
                 await client.sharedManager.saveCredentialsToFile(credentials)
-                print(f"Credentials saved to: {client.sharedManager.getCredentialFilePath()}")
+                print(
+                    f"Credentials saved to: {client.sharedManager.getCredentialFilePath()}"
+                )
                 return
             else:
                 print(f"\nError during polling: {token_response}")
@@ -88,9 +100,11 @@ async def launch_browser_for_oauth():
             print(f"\nUnexpected response: {token_response}")
             break
 
+
 # Run the entire process
 async def main():
     await launch_browser_for_oauth()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

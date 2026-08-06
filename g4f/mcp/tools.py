@@ -41,20 +41,20 @@ class MCPTool(ABC):
     def description(self) -> str:
         """Tool description"""
         pass
-    
+
     @property
     @abstractmethod
     def input_schema(self) -> Dict[str, Any]:
         """JSON schema for tool input parameters"""
         pass
-    
+
     @abstractmethod
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the tool with given arguments
-        
+
         Args:
             arguments: Tool input arguments matching the input_schema
-            
+
         Returns:
             Dict containing either results or an error key with error message
         """
@@ -63,11 +63,11 @@ class MCPTool(ABC):
 
 class WebSearchTool(MCPTool):
     """Web search tool using gpt4free's search capabilities"""
-    
+
     @property
     def description(self) -> str:
         return "Search the web for information using DuckDuckGo. Returns search results with titles, URLs, and snippets."
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -75,67 +75,58 @@ class WebSearchTool(MCPTool):
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The search query to execute"
+                    "description": "The search query to execute",
                 },
                 "max_results": {
                     "type": "integer",
                     "description": "Maximum number of results to return (default: 5)",
-                    "default": 5
+                    "default": 5,
                 },
                 "region": {
                     "type": "string",
-                    "description": "Search region (default: en-us)"
-                }
+                    "description": "Search region (default: en-us)",
+                },
             },
-            "required": ["query"]
+            "required": ["query"],
         }
-    
+
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute web search
-        
+
         Returns:
             Dict[str, Any]: Search results or error message
         """
         from ..Provider.search.CachedSearch import CachedSearch
-        
+
         query = arguments.get("query", "")
         max_results = arguments.get("max_results", 5)
         region = arguments.get("region", "en-us")
-        
+
         if not query:
-            return {
-                "error": "Query parameter is required"
-            }
-        
+            return {"error": "Query parameter is required"}
+
         try:
             # Perform search - query parameter is used for search execution
             # and prompt parameter holds the content to be searched
-            search_results = await anext(CachedSearch.create_async_generator(
-                "",
-                [],
-                prompt=query,
-                max_results=max_results,
-                region=region
-            ))
-            
-            return {
-                "query": query,
-                **search_results.get_dict()
-            }
-        
+            search_results = await anext(
+                CachedSearch.create_async_generator(
+                    "", [], prompt=query, max_results=max_results, region=region
+                )
+            )
+
+            return {"query": query, **search_results.get_dict()}
+
         except Exception as e:
-            return {
-                "error": f"Search failed: {str(e)}"
-            }
+            return {"error": f"Search failed: {str(e)}"}
 
 
 class ImageGenerationTool(MCPTool):
     """Image generation tool using gpt4free's image generation capabilities"""
-    
+
     @property
     def description(self) -> str:
         return "Generate images from text prompts using AI image generation providers. Returns a URL to the generated image."
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -143,93 +134,80 @@ class ImageGenerationTool(MCPTool):
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "The text prompt describing the image to generate"
+                    "description": "The text prompt describing the image to generate",
                 },
                 "model": {
                     "type": "string",
                     "description": "The image generation model to use (default: flux)",
-                    "default": "flux"
+                    "default": "flux",
                 },
                 "width": {
                     "type": "integer",
                     "description": "Image width in pixels (default: 1024)",
-                    "default": 1024
+                    "default": 1024,
                 },
                 "height": {
                     "type": "integer",
                     "description": "Image height in pixels (default: 1024)",
-                    "default": 1024
-                }
+                    "default": 1024,
+                },
             },
-            "required": ["prompt"]
+            "required": ["prompt"],
         }
-    
+
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute image generation
-        
+
         Returns:
             Dict[str, Any]: Generated image data or error message
         """
         from ..client import AsyncClient
-        
+
         prompt = arguments.get("prompt", "")
         model = arguments.get("model", "flux")
         width = arguments.get("width", 1024)
         height = arguments.get("height", 1024)
-        
+
         if not prompt:
-            return {
-                "error": "Prompt parameter is required"
-            }
-        
+            return {"error": "Prompt parameter is required"}
+
         try:
             # Generate image using gpt4free client
             client = AsyncClient()
-            
+
             response = await client.images.generate(
-                model=model,
-                prompt=prompt,
-                width=width,
-                height=height
+                model=model, prompt=prompt, width=width, height=height
             )
-            
+
             # Get the image data with proper validation
             if not response:
-                return {
-                    "error": "Image generation failed: No response from provider"
-                }
-            
-            if not hasattr(response, 'data') or not response.data:
-                return {
-                    "error": "Image generation failed: No image data in response"
-                }
-            
+                return {"error": "Image generation failed: No response from provider"}
+
+            if not hasattr(response, "data") or not response.data:
+                return {"error": "Image generation failed: No image data in response"}
+
             if len(response.data) == 0:
-                return {
-                    "error": "Image generation failed: Empty image data array"
-                }
-            
+                return {"error": "Image generation failed: Empty image data array"}
+
             image_data = response.data[0]
-            
+
             # Check if image_data has url attribute
-            if not hasattr(image_data, 'url'):
-                return {
-                    "error": "Image generation failed: No URL in image data"
-                }
-            
+            if not hasattr(image_data, "url"):
+                return {"error": "Image generation failed: No URL in image data"}
+
             image_url = image_data.url
 
             template = 'Display the image using this template: <a href="{image}" data-width="{width}" data-height="{height}"><img src="{image}" alt="{prompt}"></a>'
-            
+
             # Return result based on URL type
-            if image_url.startswith('data:'):
+            if image_url.startswith("data:"):
                 return {
                     "prompt": prompt,
                     "model": model,
                     "width": width,
                     "height": height,
                     "image": image_url,
-                    "template": template
+                    "template": template,
                 }
             else:
                 if arguments.get("origin") and image_url.startswith("/media/"):
@@ -240,21 +218,20 @@ class ImageGenerationTool(MCPTool):
                     "width": width,
                     "height": height,
                     "image_url": image_url,
-                    "template": template
+                    "template": template,
                 }
-        
+
         except Exception as e:
-            return {
-                "error": f"Image generation failed: {str(e)}"
-            }
+            return {"error": f"Image generation failed: {str(e)}"}
+
 
 class MarkItDownTool(MCPTool):
     """MarkItDown tool for converting URLs to markdown format"""
-    
+
     @property
     def description(self) -> str:
         return "Convert a URL to markdown format using MarkItDown. Supports HTTP/HTTPS URLs and returns formatted markdown content."
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -262,79 +239,70 @@ class MarkItDownTool(MCPTool):
             "properties": {
                 "url": {
                     "type": "string",
-                    "description": "The URL to convert to markdown format (must be HTTP/HTTPS)"
+                    "description": "The URL to convert to markdown format (must be HTTP/HTTPS)",
                 },
                 "max_content_length": {
                     "type": "integer",
                     "description": "Maximum content length for processing (default: 10000)",
-                    "default": 10000
-                }
+                    "default": 10000,
+                },
             },
-            "required": ["url"]
+            "required": ["url"],
         }
-    
+
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute MarkItDown conversion
-        
+
         Returns:
             Dict[str, Any]: Markdown content or error message
         """
         try:
             from ..integration.markitdown import MarkItDown
         except ImportError as e:
-            return {
-                "error": f"MarkItDown is not installed: {str(e)}"
-            }
-        
+            return {"error": f"MarkItDown is not installed: {str(e)}"}
+
         url = arguments.get("url", "")
         max_content_length = arguments.get("max_content_length", 10000)
-        
+
         if not url:
-            return {
-                "error": "URL parameter is required"
-            }
-        
+            return {"error": "URL parameter is required"}
+
         # Validate URL format
         if not url.startswith(("http://", "https://")):
-            return {
-                "error": "URL must start with http:// or https://"
-            }
-        
+            return {"error": "URL must start with http:// or https://"}
+
         try:
             # Initialize MarkItDown
             md = MarkItDown()
-            
+
             # Convert URL to markdown
             result = md.convert_url(url)
-            
+
             if not result:
-                return {
-                    "error": "Failed to convert URL to markdown"
-                }
-            
+                return {"error": "Failed to convert URL to markdown"}
+
             # Truncate if content exceeds max length
             if len(result) > max_content_length:
                 result = result[:max_content_length] + "\n\n[Content truncated...]"
-            
+
             return {
                 "url": url,
                 "markdown_content": result,
                 "content_length": len(result),
-                "truncated": len(result) > max_content_length
+                "truncated": len(result) > max_content_length,
             }
-        
+
         except Exception as e:
-            return {
-                "error": f"MarkItDown conversion failed: {str(e)}"
-            }
+            return {"error": f"MarkItDown conversion failed: {str(e)}"}
+
 
 class TextToAudioTool(MCPTool):
     """TextToAudio tool for generating audio from text prompts using Pollinations AI"""
-    
+
     @property
     def description(self) -> str:
         return "Generate an audio URL from a text prompt using Pollinations AI text-to-speech service. Returns a direct URL to the generated audio file."
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -342,50 +310,46 @@ class TextToAudioTool(MCPTool):
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "The text prompt to the audio model (example: 'Read this: Hello, world!')"
+                    "description": "The text prompt to the audio model (example: 'Read this: Hello, world!')",
                 },
                 "voice": {
                     "type": "string",
                     "description": "Voice option for text-to-speech (default: 'alloy')",
-                    "default": "alloy"
+                    "default": "alloy",
                 },
                 "url_encode": {
                     "type": "boolean",
                     "description": "Whether to URL-encode the prompt text (default: True)",
-                    "default": True
-                }
+                    "default": True,
+                },
             },
-            "required": ["prompt"]
+            "required": ["prompt"],
         }
-    
+
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Execute text-to-speech conversion
-        
+
         Returns:
             Dict[str, Any]: Audio URL or error message
         """
         prompt = arguments.get("prompt", "")
         voice = arguments.get("voice", "alloy")
         url_encode = arguments.get("url_encode", True)
-        
+
         if not prompt:
-            return {
-                "error": "Prompt parameter is required"
-            }
-        
+            return {"error": "Prompt parameter is required"}
+
         # Validate prompt length (reasonable limit for text-to-speech)
         if len(prompt) > 10000:
-            return {
-                "error": "Prompt is too long (max 10000 characters)"
-            }
-        
+            return {"error": "Prompt is too long (max 10000 characters)"}
+
         try:
             # Prepare the prompt for URL
             if url_encode:
                 encoded_prompt = urllib.parse.quote(prompt)
             else:
                 encoded_prompt = prompt.replace(" ", "%20")  # Basic space encoding
-            
+
             # Construct the Pollinations AI text-to-speech URL
             audio_url = f"/backend-api/v2/synthesize/Gemini?text={encoded_prompt}"
 
@@ -395,19 +359,19 @@ class TextToAudioTool(MCPTool):
                     async with session.get(audio_url, max_redirects=0) as resp:
                         audio_url = str(resp.url)
 
-            template = 'Play the audio using this template: <audio controls src="{audio_url}">'
-            
+            template = (
+                'Play the audio using this template: <audio controls src="{audio_url}">'
+            )
+
             return {
                 "prompt": prompt,
                 "voice": voice,
                 "audio_url": audio_url,
-                "template": template
+                "template": template,
             }
-        
+
         except Exception as e:
-            return {
-                "error": f"Text-to-speech URL generation failed: {str(e)}"
-            }
+            return {"error": f"Text-to-speech URL generation failed: {str(e)}"}
 
 
 class PythonExecuteTool(MCPTool):
@@ -465,7 +429,12 @@ class PythonExecuteTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import execute_safe_code, SAFE_MODULES, MAX_EXEC_TIMEOUT, MAX_RECURSION_DEPTH
+        from .pa_provider import (
+            execute_safe_code,
+            SAFE_MODULES,
+            MAX_EXEC_TIMEOUT,
+            MAX_RECURSION_DEPTH,
+        )
 
         code = arguments.get("code", "")
         if not code:
@@ -649,7 +618,9 @@ class FileListTool(MCPTool):
             if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if self.safe_mode and target == workspace:
-                return {"error": "Listing the workspace root directory is not allowed in safe mode"}
+                return {
+                    "error": "Listing the workspace root directory is not allowed in safe mode"
+                }
             if not target.exists():
                 return {"error": f"Directory not found: {rel_path or '/'}"}
             if not target.is_dir():
@@ -726,11 +697,14 @@ class FileDeleteTool(MCPTool):
             if not target.exists():
                 return {"error": f"File not found: {rel_path}"}
             if not target.is_file():
-                return {"error": f"Path is not a file (directories cannot be deleted): {rel_path}"}
+                return {
+                    "error": f"Path is not a file (directories cannot be deleted): {rel_path}"
+                }
             target.unlink()
             return {"path": rel_path, "deleted": True}
         except Exception as exc:
             return {"error": f"Delete failed: {exc}"}
+
 
 class CreateDirectoryTool(MCPTool):
     """Create a directory (and all parents) inside the ``~/.g4f/workspace`` directory."""
@@ -819,10 +793,16 @@ class CreateFileTool(MCPTool):
             if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
             if target.exists():
-                return {"error": f"File already exists: {rel_path}. Use FileWriteTool to overwrite."}
+                return {
+                    "error": f"File already exists: {rel_path}. Use FileWriteTool to overwrite."
+                }
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content, encoding="utf-8")
-            result: Dict[str, Any] = {"filePath": rel_path, "created": True, "size": len(content)}
+            result: Dict[str, Any] = {
+                "filePath": rel_path,
+                "created": True,
+                "size": len(content),
+            }
             origin = arguments.get("origin")
             if origin:
                 result["url"] = f"{origin}/pa/files/{rel_path}"
@@ -955,11 +935,13 @@ class FetchWebpageTool(MCPTool):
                         max_words=max_words,
                         add_metadata=True,
                     )
-                    results.append({
-                        "url": url,
-                        "content": content or "",
-                        "word_count": len((content or "").split()),
-                    })
+                    results.append(
+                        {
+                            "url": url,
+                            "content": content or "",
+                            "word_count": len((content or "").split()),
+                        }
+                    )
                 except Exception as exc:
                     results.append({"url": url, "error": str(exc)})
 
@@ -1014,7 +996,9 @@ class FileSearchGlobTool(MCPTool):
                 rel_str = rel.as_posix()
                 if is_hidden_file(rel_str):
                     continue
-                if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(entry.name, pattern):
+                if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(
+                    entry.name, pattern
+                ):
                     matches.append(rel_str)
                 if len(matches) >= max_results:
                     break
@@ -1093,7 +1077,9 @@ class GrepSearchTool(MCPTool):
                 if include_pattern and not fnmatch.fnmatch(rel_str, include_pattern):
                     continue
                 try:
-                    lines = entry.read_text(encoding="utf-8", errors="ignore").splitlines()
+                    lines = entry.read_text(
+                        encoding="utf-8", errors="ignore"
+                    ).splitlines()
                 except Exception:
                     continue
                 for lineno, line in enumerate(lines, 1):
@@ -1102,11 +1088,13 @@ class GrepSearchTool(MCPTool):
                     else:
                         hit = pattern.lower() in line.lower()
                     if hit:
-                        matches.append({
-                            "path": rel_str,
-                            "line": lineno,
-                            "text": line,
-                        })
+                        matches.append(
+                            {
+                                "path": rel_str,
+                                "line": lineno,
+                                "text": line,
+                            }
+                        )
                     if len(matches) >= max_results:
                         break
                 if len(matches) >= max_results:
@@ -1158,11 +1146,16 @@ class GithubRepoTool(MCPTool):
 
         try:
             search_url = f"https://api.github.com/search/code?q={urllib.parse.quote(query)}+repo:{urllib.parse.quote(repo)}"
-            headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+            headers = {
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
             async with ClientSession() as session:
                 async with session.get(search_url, headers=headers) as resp:
                     if resp.status == 403:
-                        return {"error": "GitHub API rate limit exceeded. Try again later."}
+                        return {
+                            "error": "GitHub API rate limit exceeded. Try again later."
+                        }
                     if resp.status != 200:
                         return {"error": f"GitHub API error: HTTP {resp.status}"}
                     data = await resp.json()
@@ -1170,12 +1163,19 @@ class GithubRepoTool(MCPTool):
             items = data.get("items", [])[:10]
             results = []
             for item in items:
-                results.append({
-                    "path": item.get("path"),
-                    "url": item.get("html_url"),
-                    "repository": item.get("repository", {}).get("full_name"),
-                })
-            return {"repo": repo, "query": query, "results": results, "count": len(results)}
+                results.append(
+                    {
+                        "path": item.get("path"),
+                        "url": item.get("html_url"),
+                        "repository": item.get("repository", {}).get("full_name"),
+                    }
+                )
+            return {
+                "repo": repo,
+                "query": query,
+                "results": results,
+                "count": len(results),
+            }
         except Exception as exc:
             return {"error": f"GitHub repo search failed: {exc}"}
 
@@ -1236,11 +1236,16 @@ class GithubTextSearchTool(MCPTool):
                 f"?q={urllib.parse.quote(query)}+{urllib.parse.quote(qualifier)}"
                 f"&per_page={min(max_results, 100)}"
             )
-            headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+            headers = {
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
             async with ClientSession() as session:
                 async with session.get(search_url, headers=headers) as resp:
                     if resp.status == 403:
-                        return {"error": "GitHub API rate limit exceeded. Try again later."}
+                        return {
+                            "error": "GitHub API rate limit exceeded. Try again later."
+                        }
                     if resp.status != 200:
                         return {"error": f"GitHub API error: HTTP {resp.status}"}
                     data = await resp.json()
@@ -1248,13 +1253,20 @@ class GithubTextSearchTool(MCPTool):
             items = data.get("items", [])[:max_results]
             results = []
             for item in items:
-                results.append({
-                    "path": item.get("path"),
-                    "url": item.get("html_url"),
-                    "repository": item.get("repository", {}).get("full_name"),
-                    "name": item.get("name"),
-                })
-            return {"scope": scope, "query": query, "results": results, "count": len(results)}
+                results.append(
+                    {
+                        "path": item.get("path"),
+                        "url": item.get("html_url"),
+                        "repository": item.get("repository", {}).get("full_name"),
+                        "name": item.get("name"),
+                    }
+                )
+            return {
+                "scope": scope,
+                "query": query,
+                "results": results,
+                "count": len(results),
+            }
         except Exception as exc:
             return {"error": f"GitHub text search failed: {exc}"}
 
@@ -1277,21 +1289,21 @@ class ApplyPatchTool(MCPTool):
             "properties": {
                 "target_path": {
                     "type": "string",
-                    "description": "Path to the target file or directory to patch"
+                    "description": "Path to the target file or directory to patch",
                 },
                 "patch_content": {
                     "type": "string",
-                    "description": "The unified diff patch content to apply"
+                    "description": "The unified diff patch content to apply",
                 },
                 "strip": {
                     "type": "integer",
                     "description": "Number of leading path components to strip from file paths in the patch (default: 1)",
-                    "default": 1
+                    "default": 1,
                 },
                 "backup": {
                     "type": "boolean",
                     "description": "Whether to create backup files before patching (default: false)",
-                    "default": False
+                    "default": False,
                 },
                 "dry_run": {
                     "type": "boolean",
@@ -1299,7 +1311,7 @@ class ApplyPatchTool(MCPTool):
                         "If true, perform a dry run without making changes (default: false). "
                         "The output will indicate whether the patch would apply cleanly."
                     ),
-                    "default": False
+                    "default": False,
                 },
             },
             "required": ["target_path", "patch_content"],
@@ -1387,7 +1399,11 @@ class TokenOptimizerTool(MCPTool):
         tools = arguments.get("tools")
         # Copy so we don't mutate the caller's input across the MCP boundary.
         messages_copy = [dict(m) if isinstance(m, dict) else m for m in messages]
-        tools_copy = [dict(t) if isinstance(t, dict) else t for t in tools] if isinstance(tools, list) else None
+        tools_copy = (
+            [dict(t) if isinstance(t, dict) else t for t in tools]
+            if isinstance(tools, list)
+            else None
+        )
 
         try:
             saved_tokens, logs = optimize_messages(messages_copy, tools_copy)

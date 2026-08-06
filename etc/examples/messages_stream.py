@@ -1,15 +1,16 @@
 import asyncio
 from g4f.client import AsyncClient
 
+
 async def main():
     client = AsyncClient()
-    
+
     stream = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": "Say hello there!"}],
         stream=True,
     )
-    
+
     accumulated_text = ""
     try:
         async for chunk in stream:
@@ -21,5 +22,6 @@ async def main():
         print(f"\nError occurred: {e}")
     finally:
         print("\n\nFinal accumulated text:", accumulated_text)
+
 
 asyncio.run(main())

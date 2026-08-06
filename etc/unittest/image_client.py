@@ -9,36 +9,54 @@ from .mocks import (
     YieldImageResponseProviderMock,
     MissingAuthProviderMock,
     AsyncRaiseExceptionProviderMock,
-    YieldNoneProviderMock
+    YieldNoneProviderMock,
 )
 
-DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
+DEFAULT_MESSAGES = [{"role": "user", "content": "Hello"}]
+
 
 class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
-
     async def test_skip_provider(self):
-        client = AsyncClient(image_provider=IterListProvider([MissingAuthProviderMock, YieldImageResponseProviderMock], False))
+        client = AsyncClient(
+            image_provider=IterListProvider(
+                [MissingAuthProviderMock, YieldImageResponseProviderMock], False
+            )
+        )
         response = await client.images.generate("Hello", "", response_format="orginal")
         self.assertIsInstance(response, ImagesResponse)
         self.assertEqual("Hello", response.data[0].url)
 
     async def test_only_one_result(self):
-        client = AsyncClient(image_provider=IterListProvider([YieldImageResponseProviderMock, YieldImageResponseProviderMock], False))
+        client = AsyncClient(
+            image_provider=IterListProvider(
+                [YieldImageResponseProviderMock, YieldImageResponseProviderMock], False
+            )
+        )
         response = await client.images.generate("Hello", "", response_format="orginal")
         self.assertIsInstance(response, ImagesResponse)
         self.assertEqual("Hello", response.data[0].url)
 
     async def test_skip_none(self):
-        client = AsyncClient(image_provider=IterListProvider([YieldNoneProviderMock, YieldImageResponseProviderMock], False))
+        client = AsyncClient(
+            image_provider=IterListProvider(
+                [YieldNoneProviderMock, YieldImageResponseProviderMock], False
+            )
+        )
         response = await client.images.generate("Hello", "", response_format="orginal")
         self.assertIsInstance(response, ImagesResponse)
         self.assertEqual("Hello", response.data[0].url)
 
     def test_raise_exception(self):
         async def run_exception():
-            client = AsyncClient(image_provider=IterListProvider([YieldNoneProviderMock, AsyncRaiseExceptionProviderMock], False))
+            client = AsyncClient(
+                image_provider=IterListProvider(
+                    [YieldNoneProviderMock, AsyncRaiseExceptionProviderMock], False
+                )
+            )
             await client.images.generate("Hello", "")
+
         self.assertRaises(RuntimeError, asyncio.run, run_exception())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

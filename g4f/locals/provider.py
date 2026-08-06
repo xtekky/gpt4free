@@ -8,6 +8,7 @@ from ..typing import Messages
 
 MODEL_LIST: dict[str, dict] = None
 
+
 def find_model_dir(model_file: str) -> str:
     local_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(os.path.dirname(local_dir))
@@ -29,9 +30,12 @@ def find_model_dir(model_file: str) -> str:
 
     return new_model_dir
 
+
 class LocalProvider:
     @staticmethod
-    def create_completion(model: str, messages: Messages, stream: bool = False, **kwargs):
+    def create_completion(
+        model: str, messages: Messages, stream: bool = False, **kwargs
+    ):
         global MODEL_LIST
         if MODEL_LIST is None:
             MODEL_LIST = get_models()
@@ -49,29 +53,38 @@ class LocalProvider:
             else:
                 raise ValueError(f'Model "{model_file}" not found.')
 
-        model = GPT4All(model_name=model_file,
-                        #n_threads=8,
-                        verbose=False,
-                        allow_download=False,
-                        model_path=model_dir)
+        model = GPT4All(
+            model_name=model_file,
+            # n_threads=8,
+            verbose=False,
+            allow_download=False,
+            model_path=model_dir,
+        )
 
-        system_message = "\n".join(message["content"] for message in messages if message["role"] == "system")
+        system_message = "\n".join(
+            message["content"] for message in messages if message["role"] == "system"
+        )
         if system_message:
             system_message = "A chat between a curious user and an artificial intelligence assistant."
 
         prompt_template = "USER: {0}\nASSISTANT: "
-        conversation    = "\n" . join(
-            f"{message['role'].upper()}: {message['content']}"
-            for message in messages
-            if message["role"] != "system"
-        ) + "\nASSISTANT: "
+        conversation = (
+            "\n".join(
+                f"{message['role'].upper()}: {message['content']}"
+                for message in messages
+                if message["role"] != "system"
+            )
+            + "\nASSISTANT: "
+        )
 
         def should_not_stop(token_id: int, token: str):
             return "USER" not in token
 
         with model.chat_session(system_message, prompt_template):
             if stream:
-                for token in model.generate(conversation, streaming=True, callback=should_not_stop):
+                for token in model.generate(
+                    conversation, streaming=True, callback=should_not_stop
+                ):
                     yield token
             else:
                 yield model.generate(conversation, callback=should_not_stop)

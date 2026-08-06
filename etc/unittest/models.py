@@ -7,6 +7,7 @@ from g4f.models import __models__
 from g4f.providers.base_provider import BaseProvider, ProviderModelMixin
 from g4f.errors import MissingRequirementsError, MissingAuthError
 
+
 class TestProviderHasModel(unittest.TestCase):
     cache: dict = {}
 
@@ -24,8 +25,11 @@ class TestProviderHasModel(unittest.TestCase):
                     continue
                 if issubclass(provider, ProviderModelMixin):
                     try:
-                        provider.get_models(timeout=5) # Update models
-                        if provider.model_aliases and model.name in provider.model_aliases:
+                        provider.get_models(timeout=5)  # Update models
+                        if (
+                            provider.model_aliases
+                            and model.name in provider.model_aliases
+                        ):
                             model_name = provider.model_aliases[model.name]
                         else:
                             model_name = model.get_long_name()
@@ -53,4 +57,6 @@ class TestProviderHasModel(unittest.TestCase):
                         continue
                 if provider is None:
                     continue
-                self.assertTrue(provider.working, f"{provider.__name__} in {model.name}")
+                self.assertTrue(
+                    provider.working, f"{provider.__name__} in {model.name}"
+                )

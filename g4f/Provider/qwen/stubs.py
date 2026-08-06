@@ -1,10 +1,13 @@
 from typing import Dict, Optional, Union
 
+
 class ErrorDataDict(Dict):
     pass
 
+
 class QwenCredentials(Dict):
     pass
+
 
 class IQwenOAuth2Client:
     def setCredentials(self, credentials: QwenCredentials):
@@ -16,7 +19,9 @@ class IQwenOAuth2Client:
     async def getAccessToken(self) -> Dict[str, Optional[str]]:
         raise NotImplementedError
 
-    async def requestDeviceAuthorization(self, options: dict) -> Union[Dict, ErrorDataDict]:
+    async def requestDeviceAuthorization(
+        self, options: dict
+    ) -> Union[Dict, ErrorDataDict]:
         raise NotImplementedError
 
     async def pollDeviceToken(self, options: dict) -> Union[Dict, ErrorDataDict]:

@@ -5,14 +5,20 @@ import json
 from ..image.copy_images import secure_filename
 from ..cookies import get_cookies_dir
 
-class FileStorage():
+
+class FileStorage:
     def __init__(self, storage_dir: str = None):
         if storage_dir is None:
             storage_dir = os.path.join(get_cookies_dir(), ".models")
         self.storage_dir = storage_dir
 
     def get_file(self, key: str) -> str:
-        return os.path.join(self.storage_dir, *[secure_filename(part) for part in key.split("/")]) + ".json"
+        return (
+            os.path.join(
+                self.storage_dir, *[secure_filename(part) for part in key.split("/")]
+            )
+            + ".json"
+        )
 
     def set(self, key: str, value: str):
         file = self.get_file(key)

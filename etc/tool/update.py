@@ -10,10 +10,10 @@ if __name__ == "__main__":
     call(command, stderr=STDOUT)
     command = ["git", "reset", "--hard"]
     call(command, stderr=STDOUT)
-    command = ["git" ,"pull", "origin", "main"]
+    command = ["git", "pull", "origin", "main"]
     call(command, stderr=STDOUT)
     current_version = version.get_git_version()
     with open("g4f/debug.py", "a") as f:
         f.write(f"\nversion: str = '{current_version}'\n")
-    #command = ["pip", "install", "-U", "-r" , "requirements-slim.txt"]
-    #call(command, stderr=STDOUT)
+    # command = ["pip", "install", "-U", "-r" , "requirements-slim.txt"]
+    # call(command, stderr=STDOUT)

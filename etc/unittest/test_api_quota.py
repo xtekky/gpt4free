@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 import g4f.api
 from g4f import Provider
 
+
 class TestApiQuota(unittest.TestCase):
     def setUp(self):
         # create fresh FastAPI app instance for each test

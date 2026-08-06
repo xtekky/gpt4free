@@ -6,6 +6,7 @@ import uuid
 
 try:
     import zendriver as nodriver
+
     has_nodriver = True
 except ImportError:
     has_nodriver = False
@@ -19,6 +20,7 @@ from ...providers.response import ImagePreview, ImageResponse
 from ...cookies import get_cookies
 from ...errors import MissingRequirementsError, ResponseError
 from ... import debug
+
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
     label = "You.com"
@@ -49,7 +51,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         "command-r-plus",
         "dolphin-2.5",
         default_vision_model,
-        *image_models
+        *image_models,
     ]
     _cookies = None
     _cookies_used = 0
@@ -88,23 +90,24 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 browser, stop_browser = await get_nodriver(proxy=proxy)
                 try:
                     page = await browser.get(cls.url)
-                    await page.wait_for('[data-testid="user-profile-button"]', timeout=900)
+                    await page.wait_for(
+                        '[data-testid="user-profile-button"]', timeout=900
+                    )
                     cookies = {}
-                    for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
+                    for c in await page.send(
+                        nodriver.cdp.network.get_cookies([cls.url])
+                    ):
                         cookies[c.name] = c.value
                     await page.close()
                 finally:
                     await stop_browser()
         async with StreamSession(
-            proxy=proxy,
-            impersonate="chrome",
-            timeout=(30, timeout)
+            proxy=proxy, impersonate="chrome", timeout=(30, timeout)
         ) as session:
             upload = ""
             if image is not None:
                 upload_file = await cls.upload_file(
-                    session, cookies,
-                    to_bytes(image), image_name
+                    session, cookies, to_bytes(image), image_name
                 )
                 upload = json.dumps([upload_file])
             headers = {
@@ -128,19 +131,21 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 f"{cls.url}/api/streamingSearch",
                 params=data,
                 headers=headers,
-                cookies=cookies
+                cookies=cookies,
             ) as response:
                 await raise_for_status(response)
                 async for line in response.iter_lines():
-                    if line.startswith(b'event: '):
+                    if line.startswith(b"event: "):
                         event = line[7:].decode()
-                    elif line.startswith(b'data: '):
+                    elif line.startswith(b"data: "):
                         if event == "error":
                             raise ResponseError(line[6:])
                         if event in ["youChatUpdate", "youChatToken"]:
                             data = json.loads(line[6:])
                         if event == "youChatToken" and event in data and data[event]:
-                            if data[event].startswith("#### You\'ve hit your free quota for the Model Agent. For more usage of the Model Agent, learn more at:"):
+                            if data[event].startswith(
+                                "#### You've hit your free quota for the Model Agent. For more usage of the Model Agent, learn more at:"
+                            ):
                                 continue
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data and data["t"]:
@@ -148,16 +153,22 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                                 match = re.search(r"!\[(.+?)\]\((.+?)\)", data["t"])
                                 if match:
                                     if match.group(1) == "fig":
-                                        yield ImagePreview(match.group(2), messages[-1]["content"])
+                                        yield ImagePreview(
+                                            match.group(2), messages[-1]["content"]
+                                        )
                                     else:
-                                        yield ImageResponse(match.group(2), match.group(1))
+                                        yield ImageResponse(
+                                            match.group(2), match.group(1)
+                                        )
                                 else:
                                     yield data["t"]
                             else:
                                 yield data["t"]
 
     @classmethod
-    async def upload_file(cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:
+    async def upload_file(
+        cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None
+    ) -> dict:
         async with client.get(
             f"{cls.url}/api/get_nonce",
             cookies=cookies,
@@ -166,15 +177,17 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             upload_nonce = await response.text()
         data = FormData()
         content_type = is_accepted_format(file)
-        filename = f"image.{MEDIA_TYPE_MAP[content_type]}" if filename is None else filename
-        data.add_field('file', file, content_type=content_type, filename=filename)
+        filename = (
+            f"image.{MEDIA_TYPE_MAP[content_type]}" if filename is None else filename
+        )
+        data.add_field("file", file, content_type=content_type, filename=filename)
         async with client.post(
             f"{cls.url}/api/upload",
             data=data,
             headers={
                 "X-Upload-Nonce": upload_nonce,
             },
-            cookies=cookies
+            cookies=cookies,
         ) as response:
             await raise_for_status(response)
             result = await response.json()

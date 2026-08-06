@@ -1,4 +1,3 @@
-
 import sys, re
 from pathlib import Path
 from os import path
@@ -7,10 +6,12 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import g4f
 
+
 def read_code(text):
     if match := re.search(r"```(python|py|)\n(?P<code>[\S\s]+?)\n```", text):
         return match.group("code")
-    
+
+
 path = input("Path: ")
 
 with open(path, "r") as file:
@@ -33,7 +34,7 @@ for chunk in g4f.ChatCompletion.create(
     model=g4f.models.default,
     messages=[{"role": "user", "content": prompt}],
     timeout=300,
-    stream=True
+    stream=True,
 ):
     response.append(chunk)
     print(chunk, end="", flush=True)

@@ -49,8 +49,10 @@ def llm_caption(
     # Call the OpenAI API
     response = client.chat.completions.create(model=model, messages=messages)
     if asyncio.iscoroutine(response):
+
         async def read_content(response):
             response = await response
             return response.choices[0].message.content
+
         return read_content(response)
     return response.choices[0].message.content

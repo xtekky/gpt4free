@@ -6,10 +6,11 @@ from ...typing import AsyncResult, Messages, MediaListType
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
+from .BlackForestLabs_Flux1Dev import BlackForestLabs_Flux1Dev
 from .BlackForestLabs_Flux1KontextDev import BlackForestLabs_Flux1KontextDev
-from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
-from .StabilityAI_SD35Large          import StabilityAI_SD35Large
+from .CohereForAI_C4AI_Command import CohereForAI_C4AI_Command
+from .StabilityAI_SD35Large import StabilityAI_SD35Large
+
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
@@ -42,7 +43,11 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
             cls.model_aliases = {}
             for provider in cls.providers:
                 models.extend(provider.get_models(**kwargs))
-                models.extend([] if provider.model_aliases is None else provider.model_aliases.keys())
+                models.extend(
+                    []
+                    if provider.model_aliases is None
+                    else provider.model_aliases.keys()
+                )
                 image_models.extend(provider.image_models)
                 vision_models.extend(provider.vision_models)
                 if provider.model_aliases is not None:
@@ -64,12 +69,19 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         random.shuffle(cls.providers)
         for provider in cls.providers:
             if model in provider.model_aliases or model in provider.get_models():
-                alias = provider.model_aliases[model] if model in provider.model_aliases else model
-                async for chunk in provider.create_async_generator(alias, messages, media=media, **kwargs):
+                alias = (
+                    provider.model_aliases[model]
+                    if model in provider.model_aliases
+                    else model
+                )
+                async for chunk in provider.create_async_generator(
+                    alias, messages, media=media, **kwargs
+                ):
                     is_started = True
                     yield chunk
             if is_started:
                 return
+
 
 for provider in HuggingSpace.providers:
     provider.parent = HuggingSpace.__name__

@@ -18,11 +18,12 @@ Using the provided web search results, to write a comprehensive reply to the use
 Make sure to add the sources of cites using [[Number]](Url) notation after the reference. Example: [[0]](http://google.com)
 """
 
+
 async def do_search(
     prompt: str,
     query: Optional[str] = None,
     instructions: str = DEFAULT_INSTRUCTIONS,
-    **kwargs
+    **kwargs,
 ) -> tuple[str, Optional[Sources]]:
     if not prompt or not isinstance(prompt, str):
         return
@@ -36,12 +37,9 @@ async def do_search(
     if query is None:
         query = prompt.strip().splitlines()[0]
 
-    search_results = await anext(CachedSearch.create_async_generator(
-        "",
-        [],
-        prompt=query,
-        **kwargs
-    ))
+    search_results = await anext(
+        CachedSearch.create_async_generator("", [], prompt=query, **kwargs)
+    )
 
     if instructions:
         new_prompt = f"{search_results}\n\nInstruction: {instructions}\n\nUser request:\n{prompt}"
@@ -49,11 +47,16 @@ async def do_search(
         new_prompt = f"{search_results}\n\n{prompt}"
 
     debug.log(f"Web search: '{query.strip()[:50]}...'")
-    debug.log(f"with {len(search_results.results)} Results {search_results.used_words} Words")
+    debug.log(
+        f"with {len(search_results.results)} Results {search_results.used_words} Words"
+    )
 
     return new_prompt.strip(), search_results.get_sources()
 
-def get_search_message(prompt: str, raise_search_exceptions: bool = False, **kwargs) -> str:
+
+def get_search_message(
+    prompt: str, raise_search_exceptions: bool = False, **kwargs
+) -> str:
     """
     Synchronously obtains the search message by wrapping the async search call.
     """

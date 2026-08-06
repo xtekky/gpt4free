@@ -20,11 +20,12 @@ It is important to use a only a img tag with a prompt.
 <img data-prompt=\"image caption\">
 """
 
+
 class CreateImagesProvider(BaseProvider):
     """
     Provider class for creating images based on text prompts.
 
-    This provider handles image creation requests embedded within message content, 
+    This provider handles image creation requests embedded within message content,
     using provided image creation functions.
 
     Attributes:
@@ -45,7 +46,7 @@ class CreateImagesProvider(BaseProvider):
         create_images: callable,
         create_async: callable,
         system_message: str = system_message,
-        include_placeholder: bool = True
+        include_placeholder: bool = True,
     ) -> None:
         """
         Initializes the CreateImagesProvider.
@@ -68,11 +69,7 @@ class CreateImagesProvider(BaseProvider):
         self.supports_stream = provider.supports_stream
 
     def create_completion(
-        self,
-        model: str,
-        messages: Messages,
-        stream: bool = False,
-        **kwargs
+        self, model: str, messages: Messages, stream: bool = False, **kwargs
     ) -> CreateResult:
         """
         Creates a completion result, processing any image creation prompts found within the messages.
@@ -87,7 +84,7 @@ class CreateImagesProvider(BaseProvider):
             CreateResult: Yields chunks of the processed messages, including image data if applicable.
 
         Note:
-            This method processes messages to detect image creation prompts. When such a prompt is found, 
+            This method processes messages to detect image creation prompts. When such a prompt is found,
             it calls the synchronous image creation function and includes the resulting image in the output.
         """
         messages.insert(0, {"role": "system", "content": self.system_message})
@@ -117,12 +114,7 @@ class CreateImagesProvider(BaseProvider):
             else:
                 yield chunk
 
-    async def create_async(
-        self,
-        model: str,
-        messages: Messages,
-        **kwargs
-    ) -> str:
+    async def create_async(self, model: str, messages: Messages, **kwargs) -> str:
         """
         Asynchronously creates a response, processing any image creation prompts found within the messages.
 
@@ -135,7 +127,7 @@ class CreateImagesProvider(BaseProvider):
             str: The processed response string, including asynchronously generated image data if applicable.
 
         Note:
-            This method processes messages to detect image creation prompts. When such a prompt is found, 
+            This method processes messages to detect image creation prompts. When such a prompt is found,
             it calls the asynchronous image creation function and includes the resulting image in the output.
         """
         messages.insert(0, {"role": "system", "content": self.system_message})

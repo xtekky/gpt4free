@@ -25,7 +25,9 @@ class TokenError:
 
 
 class TokenManagerError(Exception):
-    def __init__(self, type_: str, message: str, original_error: Optional[Exception] = None):
+    def __init__(
+        self, type_: str, message: str, original_error: Optional[Exception] = None
+    ):
         super().__init__(message)
         self.type = type_
         self.original_error = original_error
@@ -95,10 +97,14 @@ class SharedTokenManager(AuthFileMixin):
                 self.memory_cache["credentials"] = credentials
         except FileNotFoundError as e:
             self.memory_cache["credentials"] = None
-            raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, "Credentials file not found", e) from e
+            raise TokenManagerError(
+                TokenError.FILE_ACCESS_ERROR, "Credentials file not found", e
+            ) from e
         except json.JSONDecodeError as e:
             self.memory_cache["credentials"] = None
-            raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, "Invalid JSON format", e) from e
+            raise TokenManagerError(
+                TokenError.FILE_ACCESS_ERROR, "Invalid JSON format", e
+            ) from e
         except Exception as e:
             self.memory_cache["credentials"] = None
             raise TokenManagerError(TokenError.FILE_ACCESS_ERROR, str(e), e) from e
@@ -138,14 +144,16 @@ class SharedTokenManager(AuthFileMixin):
             # Try to reload credentials from file
             try:
                 self.reloadCredentialsFromFile()
-                if self.memory_cache["credentials"] and self.isTokenValid(self.memory_cache["credentials"]):
+                if self.memory_cache["credentials"] and self.isTokenValid(
+                    self.memory_cache["credentials"]
+                ):
                     return self.memory_cache["credentials"]
             except TokenManagerError:
                 pass
 
             raise TokenManagerError(
                 TokenError.FILE_ACCESS_ERROR,
-                "No valid credentials found. Please run login first."
+                "No valid credentials found. Please run login first.",
             )
         except Exception as e:
             if isinstance(e, TokenManagerError):
@@ -156,11 +164,11 @@ class SharedTokenManager(AuthFileMixin):
         """Save credentials to the credential file."""
         file_path = self.getCredentialFilePath()
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(file_path, "w") as f:
             json.dump(credentials, f, indent=2)
-        
+
         self.memory_cache["credentials"] = credentials
         self.memory_cache["file_mod_time"] = int(time.time() * 1000)
-        
+
         debug.log(f"Credentials saved to {file_path}")

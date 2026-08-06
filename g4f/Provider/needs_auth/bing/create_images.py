@@ -9,6 +9,7 @@ from typing import List, Dict
 
 try:
     from bs4 import BeautifulSoup
+
     has_requirements = True
 except ImportError:
     has_requirements = False
@@ -23,14 +24,17 @@ ERRORS = [
     "this prompt is being reviewed",
     "this prompt has been blocked",
     "we're working hard to offer image creator in more languages",
-    "we can't create your images right now"
+    "we can't create your images right now",
 ]
 BAD_IMAGES = [
     "https://r.bing.com/rp/in-2zU3AJUdkgFe7ZKv19yPBHVs.png",
     "https://r.bing.com/rp/TX9QuO3WzcCJz1uaaSwQAz39Kb0.jpg",
 ]
 
-def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseConnector = None) -> ClientSession:
+
+def create_session(
+    cookies: Dict[str, str], proxy: str = None, connector: BaseConnector = None
+) -> ClientSession:
     """
     Creates a new client session with specified cookies and headers.
 
@@ -49,7 +53,7 @@ def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseCo
         "referrer": "https://www.bing.com/images/create/",
         "origin": "https://www.bing.com",
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.54",
-        "sec-ch-ua": "\"Microsoft Edge\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
+        "sec-ch-ua": '"Microsoft Edge";v="111", "Not(A:Brand";v="8", "Chromium";v="111"',
         "sec-ch-ua-mobile": "?0",
         "sec-fetch-dest": "document",
         "sec-fetch-mode": "navigate",
@@ -61,7 +65,10 @@ def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseCo
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     return ClientSession(headers=headers, connector=get_connector(connector, proxy))
 
-async def create_images(session: ClientSession, prompt: str, timeout: int = TIMEOUT_IMAGE_CREATION) -> List[str]:
+
+async def create_images(
+    session: ClientSession, prompt: str, timeout: int = TIMEOUT_IMAGE_CREATION
+) -> List[str]:
     """
     Creates images based on a given prompt using Bing's service.
 
@@ -82,17 +89,23 @@ async def create_images(session: ClientSession, prompt: str, timeout: int = TIME
     url_encoded_prompt = quote(prompt)
     payload = f"q={url_encoded_prompt}&rt=4&FORM=GENCRE"
     url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=4&FORM=GENCRE"
-    async with session.post(url, allow_redirects=False, data=payload, timeout=timeout) as response:
+    async with session.post(
+        url, allow_redirects=False, data=payload, timeout=timeout
+    ) as response:
         response.raise_for_status()
         text = (await response.text()).lower()
         if "0 coins available" in text:
-            raise RateLimitError("No coins left. Log in with a different account or wait a while")
+            raise RateLimitError(
+                "No coins left. Log in with a different account or wait a while"
+            )
         for error in ERRORS:
             if error in text:
                 raise RuntimeError(f"Create images failed: {error}")
     if response.status != 302:
         url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=3&FORM=GENCRE"
-        async with session.post(url, allow_redirects=False, timeout=timeout) as response:
+        async with session.post(
+            url, allow_redirects=False, timeout=timeout
+        ) as response:
             if response.status != 302:
                 raise RuntimeError(f"Create images failed. Code: {response.status}")
 
@@ -102,7 +115,9 @@ async def create_images(session: ClientSession, prompt: str, timeout: int = TIME
     async with session.get(redirect_url) as response:
         response.raise_for_status()
 
-    polling_url = f"{BING_URL}/images/create/async/results/{request_id}?q={url_encoded_prompt}"
+    polling_url = (
+        f"{BING_URL}/images/create/async/results/{request_id}?q={url_encoded_prompt}"
+    )
     start_time = time.time()
     while True:
         if time.time() - start_time > timeout:
@@ -125,6 +140,7 @@ async def create_images(session: ClientSession, prompt: str, timeout: int = TIME
     elif error:
         raise RuntimeError(error)
     return read_images(text)
+
 
 def read_images(html_content: str) -> List[str]:
     """

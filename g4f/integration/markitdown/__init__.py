@@ -16,6 +16,7 @@ from ._audio_converter import AudioConverter
 from ._image_converter import ImageConverter
 from ._youtube_converter import YouTubeConverter
 
+
 class MarkItDown(BaseMarkItDown):
     """(In preview) An extremely simple text-based document reader, suitable for LLM use.
     This reader will convert common file-types or webpages to Markdown."""
@@ -108,7 +109,10 @@ class MarkItDown(BaseMarkItDown):
                     if isinstance(res.text_content, str):
                         # Normalize the content
                         res.text_content = "\n".join(
-                            [line.rstrip() for line in re.split(r"\r?\n", res.text_content)]
+                            [
+                                line.rstrip()
+                                for line in re.split(r"\r?\n", res.text_content)
+                            ]
                         )
                         res.text_content = re.sub(r"\n{3,}", "\n\n", res.text_content)
                     return res
@@ -191,8 +195,12 @@ class MarkItDown(BaseMarkItDown):
             raise ValueError("url must not be None")
 
         # Already raw -- nothing to do
-        if url.startswith(("https://raw.githubusercontent.com/",
-                           "https://gist.githubusercontent.com/")):
+        if url.startswith(
+            (
+                "https://raw.githubusercontent.com/",
+                "https://gist.githubusercontent.com/",
+            )
+        ):
             return url
 
         # Gist URLs
@@ -210,8 +218,7 @@ class MarkItDown(BaseMarkItDown):
             url,
         )
         if m:
-            owner, repo, ref, path = (m.group(1), m.group(2),
-                                      m.group(3), m.group(4))
+            owner, repo, ref, path = (m.group(1), m.group(2), m.group(3), m.group(4))
             # Strip a trailing slash if any
             path = path.rstrip("/")
             return f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"

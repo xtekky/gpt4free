@@ -8,44 +8,48 @@ from .Provider import ProviderType, IterListProvider
 
 class ModelRegistry:
     """Simplified registry for automatic model discovery"""
-    _models: Dict[str, 'Model'] = {}
+
+    _models: Dict[str, "Model"] = {}
     _aliases: Dict[str, str] = {}
-    
+
     @classmethod
-    def register(cls, model: 'Model', aliases: List[str] = None):
+    def register(cls, model: "Model", aliases: List[str] = None):
         """Register a model and optional aliases"""
         if model.name:
             cls._models[model.name] = model
             if aliases:
                 for alias in aliases:
                     cls._aliases[alias] = model.name
-    
+
     @classmethod
-    def get(cls, name: str) -> Optional['Model']:
+    def get(cls, name: str) -> Optional["Model"]:
         """Get model by name or alias"""
         if name in cls._models:
             return cls._models[name]
         if name in cls._aliases:
             return cls._models[cls._aliases[name]]
         return None
-    
+
     @classmethod
-    def all_models(cls) -> Dict[str, 'Model']:
+    def all_models(cls) -> Dict[str, "Model"]:
         """Get all registered models"""
         return cls._models.copy()
-    
+
     @classmethod
     def clear(cls):
         """Clear registry (for testing)"""
         cls._models.clear()
         cls._aliases.clear()
-    
+
     @classmethod
     def list_models_by_provider(cls, provider_name: str) -> List[str]:
         """List all models that use specific provider"""
-        return [name for name, model in cls._models.items() 
-                if provider_name in str(model.best_provider)]
-    
+        return [
+            name
+            for name, model in cls._models.items()
+            if provider_name in str(model.best_provider)
+        ]
+
     @classmethod
     def validate_all_models(cls) -> Dict[str, List[str]]:
         """Validate all models and return issues"""
@@ -62,6 +66,7 @@ class ModelRegistry:
                 issues[name] = model_issues
         return issues
 
+
 @dataclass(unsafe_hash=True)
 class Model:
     """
@@ -72,6 +77,7 @@ class Model:
         base_provider (str): Default provider for the model.
         best_provider (ProviderType): The preferred provider for the model, typically with retry logic.
     """
+
     name: str
     base_provider: str
     best_provider: ProviderType = None
@@ -91,573 +97,473 @@ class Model:
         """Returns a list of all model names."""
         return list(ModelRegistry.all_models().keys())
 
+
 class ImageModel(Model):
     pass
 
+
 class AudioModel(Model):
     pass
-    
+
+
 class VideoModel(Model):
     pass
-    
+
+
 class VisionModel(Model):
     pass
 
+
 ### Default ###
 default = Model(
-    name = "",
-    base_provider = "",
-    best_provider = IterListProvider([
-        "CopilotApp",
-        "Ollama",
-        "DeepInfra",
-        "OperaAria",
-        "GLM",
-        "Pollinations",
-        "Qwen",
-        "Together",
-        "TeachAnything",
-        "OpenaiChat",
-    ])
+    name="",
+    base_provider="",
+    best_provider=IterListProvider(
+        [
+            "CopilotApp",
+            "Ollama",
+            "DeepInfra",
+            "OperaAria",
+            "GLM",
+            "Pollinations",
+            "Qwen",
+            "Together",
+            "TeachAnything",
+            "OpenaiChat",
+        ]
+    ),
 )
 
 default_vision = VisionModel(
-    name = "",
-    base_provider = "",
-    best_provider = IterListProvider([
-        "DeepInfra",
-        "Pollinations",
-        "OperaAria",
-        "Together",
-        "HuggingSpace",
-        "GeminiPro",
-        "Ollama",
-        "OpenaiAccount",
-        "Gemini",
-    ], shuffle=False)
+    name="",
+    base_provider="",
+    best_provider=IterListProvider(
+        [
+            "DeepInfra",
+            "Pollinations",
+            "OperaAria",
+            "Together",
+            "HuggingSpace",
+            "GeminiPro",
+            "Ollama",
+            "OpenaiAccount",
+            "Gemini",
+        ],
+        shuffle=False,
+    ),
 )
 
 # gpt-4
 gpt_4 = Model(
-    name          = 'gpt-4',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["CopilotApp", "Yqcloud", "OpenaiChat"])
+    name="gpt-4",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["CopilotApp", "Yqcloud", "OpenaiChat"]),
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
-    name          = 'gpt-4o',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["CopilotApp", "OpenaiChat"])
+    name="gpt-4o",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["CopilotApp", "OpenaiChat"]),
 )
 
 gpt_4o_mini = Model(
-    name          = 'gpt-4o-mini',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiChat", "Surfsense"])
+    name="gpt-4o-mini",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["OpenaiChat", "Surfsense"]),
 )
 
 
 gpt_4o_mini_tts = AudioModel(
-    name          = 'gpt-4o-mini-tts',
-    base_provider = 'OpenAI',
-    best_provider = "OpenAIFM"
+    name="gpt-4o-mini-tts", base_provider="OpenAI", best_provider="OpenAIFM"
 )
 
 # o1
 o1 = Model(
-    name          = 'o1',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiAccount"])
+    name="o1", base_provider="OpenAI", best_provider=IterListProvider(["OpenaiAccount"])
 )
 
-o1_mini = Model(
-    name          = 'o1-mini',
-    base_provider = 'OpenAI',
-    best_provider = "OpenaiAccount"
-)
+o1_mini = Model(name="o1-mini", base_provider="OpenAI", best_provider="OpenaiAccount")
 
 # o3
-o3_mini = Model(
-    name          = 'o3-mini',
-    base_provider = 'OpenAI',
-    best_provider = "OpenaiChat"
-)
+o3_mini = Model(name="o3-mini", base_provider="OpenAI", best_provider="OpenaiChat")
 
 o3_mini_high = Model(
-    name          = 'o3-mini-high',
-    base_provider = 'OpenAI',
-    best_provider = "OpenaiAccount"
+    name="o3-mini-high", base_provider="OpenAI", best_provider="OpenaiAccount"
 )
 
 # o4
 o4_mini = Model(
-    name          = 'o4-mini',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiChat", "Surfsense"])
+    name="o4-mini",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["OpenaiChat", "Surfsense"]),
 )
 
 o4_mini_high = Model(
-    name          = 'o4-mini-high',
-    base_provider = 'OpenAI',
-    best_provider = "OpenaiChat"
+    name="o4-mini-high", base_provider="OpenAI", best_provider="OpenaiChat"
 )
 
 # gpt-4.1
 gpt_4_1 = Model(
-    name          = 'gpt-4.1',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiChat"])
+    name="gpt-4.1",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["OpenaiChat"]),
 )
 
 gpt_4_1_mini = Model(
-    name          = 'gpt-4.1-mini',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiChat"])
+    name="gpt-4.1-mini",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["OpenaiChat"]),
 )
 
 gpt_4_1_nano = Model(
-    name          = 'gpt-4.1-nano',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["Pollinations"])
+    name="gpt-4.1-nano",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["Pollinations"]),
 )
 
-gpt_4_5 = Model(
-    name          = 'gpt-4.5',
-    base_provider = 'OpenAI',
-    best_provider = "OpenaiChat"
-)
+gpt_4_5 = Model(name="gpt-4.5", base_provider="OpenAI", best_provider="OpenaiChat")
 
 gpt_oss_120b = Model(
-    name          = 'gpt-oss-120b',
-    long_name     = 'openai/gpt-oss-120b',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["Together", "OpenRouter", "Groq"])
+    name="gpt-oss-120b",
+    long_name="openai/gpt-oss-120b",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["Together", "OpenRouter", "Groq"]),
 )
 
 # dall-e
 dall_e_3 = ImageModel(
-    name = 'dall-e-3',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["OpenaiAccount", "MicrosoftDesigner", "BingCreateImages"])
+    name="dall-e-3",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(
+        ["OpenaiAccount", "MicrosoftDesigner", "BingCreateImages"]
+    ),
 )
 
 gpt_image = ImageModel(
-    name = 'gpt-image',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider(["PollinationsImage"])
+    name="gpt-image",
+    base_provider="OpenAI",
+    best_provider=IterListProvider(["PollinationsImage"]),
 )
 
 ### Meta ###
-meta = Model(
-    name          = "meta-ai",
-    base_provider = "Meta",
-    best_provider = "MetaAI"
-)
+meta = Model(name="meta-ai", base_provider="Meta", best_provider="MetaAI")
 
 # llama 2
-llama_2_7b = Model(
-    name          = "llama-2-7b",
-    base_provider = "Meta Llama",
-    best_provider = None
-)
+llama_2_7b = Model(name="llama-2-7b", base_provider="Meta Llama", best_provider=None)
 
 llama_2_70b = Model(
-    name          = "llama-2-70b",
-    base_provider = "Meta Llama",
-    best_provider = "Together"
+    name="llama-2-70b", base_provider="Meta Llama", best_provider="Together"
 )
 
 # llama-3
 llama_3_8b = Model(
-    name          = "llama-3-8b",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together"])
+    name="llama-3-8b",
+    base_provider="Meta Llama",
+    best_provider=IterListProvider(["Together"]),
 )
 
 llama_3_70b = Model(
-    name          = "llama-3-70b",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together"])
+    name="llama-3-70b",
+    base_provider="Meta Llama",
+    best_provider=IterListProvider(["Together"]),
 )
 
 # llama-3.1
 llama_3_1_8b = Model(
-    name          = "llama-3.1-8b",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together"])
+    name="llama-3.1-8b",
+    base_provider="Meta Llama",
+    best_provider=IterListProvider(["Together"]),
 )
 
 llama_3_1_70b = Model(
-    name          = "llama-3.1-70b",
-    base_provider = "Meta Llama",
-    best_provider = "Together"
+    name="llama-3.1-70b", base_provider="Meta Llama", best_provider="Together"
 )
 
 llama_3_1_405b = Model(
-    name          = "llama-3.1-405b",
-    base_provider = "Meta Llama",
-    best_provider = "Together"
+    name="llama-3.1-405b", base_provider="Meta Llama", best_provider="Together"
 )
 
 # llama-3.2
 llama_3_2_1b = Model(
-    name          = "llama-3.2-1b",
-    base_provider = "Meta Llama",
-    best_provider = None
+    name="llama-3.2-1b", base_provider="Meta Llama", best_provider=None
 )
 
 llama_3_2_3b = Model(
-    name          = "llama-3.2-3b",
-    base_provider = "Meta Llama",
-    best_provider = "Together"
+    name="llama-3.2-3b", base_provider="Meta Llama", best_provider="Together"
 )
 
 llama_3_2_11b = VisionModel(
-    name          = "llama-3.2-11b",
-    base_provider = "Meta Llama",
-    best_provider = None
+    name="llama-3.2-11b", base_provider="Meta Llama", best_provider=None
 )
 
 llama_3_2_90b = Model(
-    name          = "llama-3.2-90b",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together"])
+    name="llama-3.2-90b",
+    base_provider="Meta Llama",
+    best_provider=IterListProvider(["Together"]),
 )
 
 # llama-3.3
 llama_3_3_70b = Model(
-    name          = "llama-3.3-70b",
-    base_provider = "Meta Llama",
-    best_provider = None
+    name="llama-3.3-70b", base_provider="Meta Llama", best_provider=None
 )
 
 # llama-4
 llama_4_scout = Model(
-    name          = "llama-4-scout",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Pollinations", "Together"])
+    name="llama-4-scout",
+    base_provider="Meta Llama",
+    best_provider=IterListProvider(["Pollinations", "Together"]),
 )
 
 llama_4_maverick = Model(
-    name          = "llama-4-maverick",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider(["Together"])
+    name="llama-4-maverick",
+    base_provider="Meta Llama",
+    best_provider=IterListProvider(["Together"]),
 )
 
 ### MistralAI ###
 mistral_7b = Model(
-    name          = "mistral-7b",
-    base_provider = "Mistral AI",
-    best_provider = "Together"
+    name="mistral-7b", base_provider="Mistral AI", best_provider="Together"
 )
 
 mixtral_8x7b = Model(
-    name          = "mixtral-8x7b",
-    base_provider = "Mistral AI",
-    best_provider = "Together"
+    name="mixtral-8x7b", base_provider="Mistral AI", best_provider="Together"
 )
 
 mistral_nemo = Model(
-    name          = "mistral-nemo",
-    base_provider = "Mistral AI",
-    best_provider = None
+    name="mistral-nemo", base_provider="Mistral AI", best_provider=None
 )
 
 mistral_small_24b = Model(
-    name          = "mistral-small-24b",
-    base_provider = "Mistral AI",
-    best_provider = "Together"
+    name="mistral-small-24b", base_provider="Mistral AI", best_provider="Together"
 )
 
 mistral_small_3_1_24b = Model(
-    name          = "mistral-small-3.1-24b",
-    base_provider = "Mistral AI",
-    best_provider = IterListProvider(["Pollinations"])
+    name="mistral-small-3.1-24b",
+    base_provider="Mistral AI",
+    best_provider=IterListProvider(["Pollinations"]),
 )
 
 ### NousResearch ###
 # hermes-2
 hermes_2_dpo = Model(
-    name          = "hermes-2-dpo",
-    base_provider = "NousResearch",
-    best_provider = "Together"
+    name="hermes-2-dpo", base_provider="NousResearch", best_provider="Together"
 )
 
 # phi-3.5
-phi_3_5_mini = Model(
-    name          = "phi-3.5-mini",
-    base_provider = "Microsoft",
-    best_provider = None
-)
+phi_3_5_mini = Model(name="phi-3.5-mini", base_provider="Microsoft", best_provider=None)
 
 ### Google DeepMind ###
 
 gemini_2_5_flash = Model(
-    name          = 'gemini-2.5-flash',
-    base_provider = 'Google',
-    best_provider = IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"])
+    name="gemini-2.5-flash",
+    base_provider="Google",
+    best_provider=IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"]),
 )
 
 gemini_2_5_pro = Model(
-    name          = 'gemini-2.5-pro',
-    base_provider = 'Google',
-    best_provider = IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"])
+    name="gemini-2.5-pro",
+    base_provider="Google",
+    best_provider=IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"]),
 )
 
 gemini_3_pro_preview = Model(
-    name          = 'gemini-3-pro-preview',
-    base_provider = 'Google',
-    best_provider = "GeminiCLI"
+    name="gemini-3-pro-preview", base_provider="Google", best_provider="GeminiCLI"
 )
 
 gemini_3_1_pro = Model(
-    name          = 'gemini-3.1-pro',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.1-pro", base_provider="Google", best_provider="Gemini"
 )
 
 gemini_3_1_flash_lite = Model(
-    name          = 'gemini-3.1-flash-lite',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.1-flash-lite", base_provider="Google", best_provider="Gemini"
 )
 
 gemini_3_6_flash = Model(
-    name          = 'gemini-3.6-flash',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.6-flash", base_provider="Google", best_provider="Gemini"
 )
 
 gemini_3_5_flash_lite = Model(
-    name          = 'gemini-3.5-flash-lite',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.5-flash-lite", base_provider="Google", best_provider="Gemini"
 )
 
 gemini_3_5_flash = Model(
-    name          = 'gemini-3.5-flash',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.5-flash", base_provider="Google", best_provider="Gemini"
 )
 
 gemini_3_5_flash_thinking = Model(
-    name          = 'gemini-3.5-flash-thinking',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.5-flash-thinking", base_provider="Google", best_provider="Gemini"
 )
 
-gemini = Model(
-    name          = 'gemini-auto',
-    base_provider = 'Google',
-    best_provider = "Gemini"
-)
+gemini = Model(name="gemini-auto", base_provider="Google", best_provider="Gemini")
 
 gemini_3_5_flash_thinking_lite = Model(
-    name          = 'gemini-3.5-flash-thinking-lite',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-3.5-flash-thinking-lite",
+    base_provider="Google",
+    best_provider="Gemini",
 )
 
 gemini_flash_lite = Model(
-    name          = 'gemini-flash-lite',
-    base_provider = 'Google',
-    best_provider = "Gemini"
+    name="gemini-flash-lite", base_provider="Google", best_provider="Gemini"
 )
 
 ### CohereForAI ###
-command_r = Model(
-    name = 'command-r',
-    base_provider = 'CohereForAI',
-    best_provider = None
-)
+command_r = Model(name="command-r", base_provider="CohereForAI", best_provider=None)
 
 command_r_plus = Model(
-    name = 'command-r-plus',
-    base_provider = 'CohereForAI',
-    best_provider = None
+    name="command-r-plus", base_provider="CohereForAI", best_provider=None
 )
 
 command_r7b = Model(
-    name = 'command-r7b',
-    base_provider = 'CohereForAI',
-    best_provider = "HuggingSpace"
+    name="command-r7b", base_provider="CohereForAI", best_provider="HuggingSpace"
 )
 
 command_a = Model(
-    name = 'command-a',
-    base_provider = 'CohereForAI',
-    best_provider = "HuggingSpace"
+    name="command-a", base_provider="CohereForAI", best_provider="HuggingSpace"
 )
 
 ### "Qwen" ###
 qwen_2_5_coder_32b = Model(
-    name = 'qwen-2.5-coder-32b',
-    base_provider = 'Qwen',
-    best_provider = IterListProvider(["Together", "HuggingChat"])
+    name="qwen-2.5-coder-32b",
+    base_provider="Qwen",
+    best_provider=IterListProvider(["Together", "HuggingChat"]),
 )
 
 qwen_2_5_vl_72b = Model(
-    name = 'qwen-2.5-vl-72b',
-    base_provider = 'Qwen',
-    best_provider = "Together"
+    name="qwen-2.5-vl-72b", base_provider="Qwen", best_provider="Together"
 )
 
 qwen_3_235b = Model(
-    name = 'qwen-3-235b',
-    base_provider = 'Qwen',
-    best_provider = IterListProvider(["Together"])
+    name="qwen-3-235b",
+    base_provider="Qwen",
+    best_provider=IterListProvider(["Together"]),
 )
 
 qwen_3_32b = Model(
-    name = 'qwen-3-32b',
-    base_provider = 'Qwen',
-    best_provider = IterListProvider(["Together"])
+    name="qwen-3-32b",
+    base_provider="Qwen",
+    best_provider=IterListProvider(["Together"]),
 )
 
 
 ### qwq/qvq ###
 qwq_32b = Model(
-    name = 'qwq-32b',
-    base_provider = 'Qwen',
-    best_provider = IterListProvider(["Together", "HuggingChat"])
+    name="qwq-32b",
+    base_provider="Qwen",
+    best_provider=IterListProvider(["Together", "HuggingChat"]),
 )
 
 ### "DeepSeek" ###
 # deepseek-v3
 deepseek_v3 = Model(
-    name = 'deepseek-v3',
-    base_provider = 'DeepSeek',
-    best_provider = IterListProvider(["Together"])
+    name="deepseek-v3",
+    base_provider="DeepSeek",
+    best_provider=IterListProvider(["Together"]),
 )
 
 # deepseek-r1
 deepseek_r1 = Model(
-    name = 'deepseek-r1',
-    base_provider = 'DeepSeek',
-    best_provider = IterListProvider(["Pollinations", "Together"])
+    name="deepseek-r1",
+    base_provider="DeepSeek",
+    best_provider=IterListProvider(["Pollinations", "Together"]),
 )
 
 
 deepseek_r1_distill_llama_70b = Model(
-    name = 'deepseek-r1-distill-llama-70b',
-    base_provider = 'DeepSeek',
-    best_provider = IterListProvider(["Together"])
+    name="deepseek-r1-distill-llama-70b",
+    base_provider="DeepSeek",
+    best_provider=IterListProvider(["Together"]),
 )
 
 deepseek_r1_distill_qwen_1_5b = Model(
-    name = 'deepseek-r1-distill-qwen-1.5b',
-    base_provider = 'DeepSeek',
-    best_provider = "Together"
+    name="deepseek-r1-distill-qwen-1.5b",
+    base_provider="DeepSeek",
+    best_provider="Together",
 )
 
 deepseek_r1_distill_qwen_14b = Model(
-    name = 'deepseek-r1-distill-qwen-14b',
-    base_provider = 'DeepSeek',
-    best_provider = "Together"
+    name="deepseek-r1-distill-qwen-14b",
+    base_provider="DeepSeek",
+    best_provider="Together",
 )
 
 
 ### x.ai ###
-grok_2 = Model(
-    name = 'grok-2',
-    base_provider = 'x.ai',
-    best_provider = "Grok"
-)
+grok_2 = Model(name="grok-2", base_provider="x.ai", best_provider="Grok")
 
-grok_3 = Model(
-    name = 'grok-3',
-    base_provider = 'x.ai',
-    best_provider = "Grok"
-)
+grok_3 = Model(name="grok-3", base_provider="x.ai", best_provider="Grok")
 
-grok_3_r1 = Model(
-    name = 'grok-3-r1',
-    base_provider = 'x.ai',
-    best_provider = "Grok"
-)
+grok_3_r1 = Model(name="grok-3-r1", base_provider="x.ai", best_provider="Grok")
 
 kimi = Model(
-    name = 'kimi-k2',
-    base_provider = 'kimi.com',
-    best_provider = IterListProvider(["Groq"]),
-    long_name = "moonshotai/Kimi-K2-Instruct"
+    name="kimi-k2",
+    base_provider="kimi.com",
+    best_provider=IterListProvider(["Groq"]),
+    long_name="moonshotai/Kimi-K2-Instruct",
 )
 
-### "Perplexity" AI ### 
-sonar = Model(
-    name = 'sonar',
-    base_provider = 'Perplexity AI',
-    best_provider = "PuterJS"
-)
+### "Perplexity" AI ###
+sonar = Model(name="sonar", base_provider="Perplexity AI", best_provider="PuterJS")
 
 sonar_pro = Model(
-    name = 'sonar-pro',
-    base_provider = 'Perplexity AI',
-    best_provider = "PuterJS"
+    name="sonar-pro", base_provider="Perplexity AI", best_provider="PuterJS"
 )
 
 sonar_reasoning = Model(
-    name = 'sonar-reasoning',
-    base_provider = 'Perplexity AI',
-    best_provider = "PuterJS"
+    name="sonar-reasoning", base_provider="Perplexity AI", best_provider="PuterJS"
 )
 
 sonar_reasoning_pro = Model(
-    name = 'sonar-reasoning-pro',
-    base_provider = 'Perplexity AI',
-    best_provider = "PuterJS"
+    name="sonar-reasoning-pro", base_provider="Perplexity AI", best_provider="PuterJS"
 )
 
 r1_1776 = Model(
-    name = 'r1-1776',
-    base_provider = 'Perplexity AI',
-    best_provider = IterListProvider(["Together", "PuterJS", "Perplexity"])
+    name="r1-1776",
+    base_provider="Perplexity AI",
+    best_provider=IterListProvider(["Together", "PuterJS", "Perplexity"]),
 )
 
-### "Nvidia" ### 
+### "Nvidia" ###
 nemotron_70b = Model(
-    name = 'nemotron-70b',
-    base_provider = 'Nvidia',
-    best_provider = IterListProvider(["Together", "HuggingChat"])
+    name="nemotron-70b",
+    base_provider="Nvidia",
+    best_provider=IterListProvider(["Together", "HuggingChat"]),
 )
 
 ### Opera ###
-aria = Model(
-    name = "aria",
-    base_provider = "Opera",
-    best_provider = "OperaAria"
-)
+aria = Model(name="aria", base_provider="Opera", best_provider="OperaAria")
 
-### Stability AI ### 
+### Stability AI ###
 sdxl_turbo = ImageModel(
-    name = 'sdxl-turbo',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider(["HuggingFaceMedia", "PollinationsImage"])
+    name="sdxl-turbo",
+    base_provider="Stability AI",
+    best_provider=IterListProvider(["HuggingFaceMedia", "PollinationsImage"]),
 )
 
 sd_3_5_large = ImageModel(
-    name = 'sd-3.5-large',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider(["HuggingFaceMedia", "HuggingSpace"])
+    name="sd-3.5-large",
+    base_provider="Stability AI",
+    best_provider=IterListProvider(["HuggingFaceMedia", "HuggingSpace"]),
 )
 
 ### Black Forest Labs ###
 flux = ImageModel(
-    name = 'flux',
-    base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["HuggingFaceMedia", "PollinationsImage", "Together", "HuggingSpace"])
+    name="flux",
+    base_provider="Black Forest Labs",
+    best_provider=IterListProvider(
+        ["HuggingFaceMedia", "PollinationsImage", "Together", "HuggingSpace"]
+    ),
 )
 
 flux_pro = ImageModel(
-    name = 'flux-pro',
-    base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["PollinationsImage", "Together"])
+    name="flux-pro",
+    base_provider="Black Forest Labs",
+    best_provider=IterListProvider(["PollinationsImage", "Together"]),
 )
 flux_kontext_max = ImageModel(
-    name = 'flux-kontext',
-    base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider(["Pollinations", "Together"])
+    name="flux-kontext",
+    base_provider="Black Forest Labs",
+    best_provider=IterListProvider(["Pollinations", "Together"]),
 )
 
 
@@ -666,19 +572,19 @@ class ModelUtils:
     Utility class for mapping string identifiers to Model instances.
     Now uses automatic discovery instead of manual mapping.
     """
-    
+
     convert: Dict[str, Model] = {}
-    
+
     @classmethod
     def refresh(cls):
         """Refresh the model registry and update convert"""
         cls.convert = ModelRegistry.all_models()
-    
+
     @classmethod
     def get_model(cls, name: str) -> Optional[Model]:
         """Get model by name or alias"""
         return ModelRegistry.get(name)
-    
+
     @classmethod
     def register_alias(cls, alias: str, model_name: str):
         """Register an alias for a model"""
@@ -688,16 +594,18 @@ class ModelUtils:
 # Fill the convert dictionary
 ModelUtils.convert = ModelRegistry.all_models()
 
+
 # Create a list of all models and their providers
 def _get_best_providers(model: Model) -> List:
     """Get list of working providers for a model"""
     if model.best_provider is None:
         return []
-    
+
     if isinstance(model.best_provider, IterListProvider):
         return model.best_provider.providers
 
     return [model.best_provider]
+
 
 # Generate __models__ using the auto-discovered models
 __models__ = {

@@ -19,16 +19,18 @@ user_select_image = partial(
 
 from .api import Api
 
-class JsApi(Api):
 
-    def get_conversation(self, options: dict, message_id: str = None, scroll: bool = None) -> Iterator:
+class JsApi(Api):
+    def get_conversation(
+        self, options: dict, message_id: str = None, scroll: bool = None
+    ) -> Iterator:
         window = webview.windows[0]
         if hasattr(self, "image") and self.image is not None:
             options["image"] = open(self.image, "rb")
         for message in self._create_response_stream(
             self._prepare_conversation_kwargs(options),
             options.get("conversation_id"),
-            options.get('provider')
+            options.get("provider"),
         ):
             if window.evaluate_js(
                 f"""
@@ -42,15 +44,14 @@ class JsApi(Api):
                     }, {
                         'true' if scroll else 'false'
                     }); is_stopped();
-                """):
+                """
+            ):
                 break
         self.image = None
         self.set_selected(None)
 
     def choose_image(self):
-        user_select_image(
-            on_selection=self.on_image_selection
-        )
+        user_select_image(on_selection=self.on_image_selection)
 
     def take_picture(self):
         filename = os.path.join(app_storage_path(), f"chat-{uuid4()}.png")

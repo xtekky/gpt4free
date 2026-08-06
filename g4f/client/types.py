@@ -11,16 +11,17 @@ Proxies = Union[dict, str]
 IterResponse = Iterator[Union[ChatCompletion, ChatCompletionChunk]]
 AsyncIterResponse = AsyncIterator[Union[ChatCompletion, ChatCompletionChunk]]
 
-class Client():
+
+class Client:
     def __init__(
         self,
         api_key: str = None,
         proxies: Proxies = None,
         base_url: str = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.api_key: str = api_key
-        self.proxies = proxies 
+        self.proxies = proxies
         self.proxy: str = self.get_proxy()
         self.base_url: str = base_url
 

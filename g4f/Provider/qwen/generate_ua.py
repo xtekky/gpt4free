@@ -45,6 +45,7 @@ DEFAULT_TEMPLATE: Dict[str, Any] = {
 # BX-UA GENERATOR
 # =========================
 
+
 class BXUAGenerator:
     def __init__(self):
         self.version = "231"
@@ -66,7 +67,9 @@ class BXUAGenerator:
         encrypted = cipher.encrypt(padded_data)
         return encrypted
 
-    def _create_payload(self, fingerprint: str, timestamp: Optional[int] = None) -> Dict[str, Any]:
+    def _create_payload(
+        self, fingerprint: str, timestamp: Optional[int] = None
+    ) -> Dict[str, Any]:
         """Create the payload structure to be encrypted"""
         if timestamp is None:
             timestamp = int(time.time() * 1000)
@@ -98,7 +101,9 @@ class BXUAGenerator:
 
         return payload
 
-    def generate(self, fingerprint: str, options: Optional[Dict[str, Any]] = None) -> str:
+    def generate(
+        self, fingerprint: str, options: Optional[Dict[str, Any]] = None
+    ) -> str:
         """
         Generate bx-ua header value
 
@@ -120,7 +125,7 @@ class BXUAGenerator:
         payload = self._create_payload(fingerprint, timestamp)
 
         # Convert to JSON
-        payload_json = json.dumps(payload, separators=(',', ':'))
+        payload_json = json.dumps(payload, separators=(",", ":"))
 
         # Generate key and IV
         seed = options.get("seed", fingerprint)
@@ -135,7 +140,9 @@ class BXUAGenerator:
         # Return in format: version!base64_encoded_data
         return f"{self.version}!{encrypted_b64}"
 
-    def batch_generate(self, fingerprints: List[str], options: Optional[Dict[str, Any]] = None) -> List[str]:
+    def batch_generate(
+        self, fingerprints: List[str], options: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
         """Generate multiple bx-ua values"""
         return [self.generate(fp, options) for fp in fingerprints]
 
@@ -143,6 +150,7 @@ class BXUAGenerator:
 # =========================
 # FINGERPRINT GENERATOR (From your code)
 # =========================
+
 
 def generate_device_id() -> str:
     """Generate a 20-character hex device ID"""
@@ -239,6 +247,7 @@ def generate_fingerprint(options: Dict[str, Any] = None) -> str:
 # USAGE EXAMPLE
 # =========================
 
+
 def example_usage():
     """Example of how to generate bx-ua headers"""
 
@@ -246,23 +255,28 @@ def example_usage():
     fp_gen = BXUAGenerator()
 
     # Generate a fingerprint
-    fingerprint = generate_fingerprint({
-        "deviceId": "84985177a19a010dea49",
-        "custom": {
-            "language": "zh-CN",
-            "platform": "MacIntel",
+    fingerprint = generate_fingerprint(
+        {
+            "deviceId": "84985177a19a010dea49",
+            "custom": {
+                "language": "zh-CN",
+                "platform": "MacIntel",
+            },
         }
-    })
+    )
 
     print("Generated Fingerprint:")
     print(fingerprint[:100] + "...")
     print()
 
     # Generate bx-ua header
-    bx_ua = fp_gen.generate(fingerprint, {
-        "timestamp": int(time.time() * 1000),
-        "seed": "consistent_seed_for_deterministic_output"
-    })
+    bx_ua = fp_gen.generate(
+        fingerprint,
+        {
+            "timestamp": int(time.time() * 1000),
+            "seed": "consistent_seed_for_deterministic_output",
+        },
+    )
     print(bx_ua)
     print("Generated bx-ua header:")
     print(bx_ua[:100] + "...")
@@ -296,14 +310,11 @@ def batch_example():
 
     # Generate multiple fingerprints
     fingerprints = [
-        generate_fingerprint({"deviceId": generate_device_id()})
-        for _ in range(3)
+        generate_fingerprint({"deviceId": generate_device_id()}) for _ in range(3)
     ]
 
     # Generate bx-ua for each
-    bx_ua_values = fp_gen.batch_generate(fingerprints, {
-        "seed": "batch_seed"
-    })
+    bx_ua_values = fp_gen.batch_generate(fingerprints, {"seed": "batch_seed"})
 
     print("Batch Generation Results:")
     for i, (fp, bx_ua) in enumerate(zip(fingerprints, bx_ua_values)):
@@ -343,6 +354,6 @@ if __name__ == "__main__":
     print('    "Accept-Encoding": "gzip, deflate, br",')
     print('    "Connection": "keep-alive",')
     print("}")
-    print('')
+    print("")
     print('response = requests.get("https://example.com/api", headers=headers)')
     print("```")

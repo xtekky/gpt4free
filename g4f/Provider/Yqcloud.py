@@ -8,6 +8,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 from ..providers.response import FinishReason, JsonConversation
 
+
 class Conversation(JsonConversation):
     userId: str = None
     message_history: Messages = []
@@ -16,15 +17,16 @@ class Conversation(JsonConversation):
         self.model = model
         self.userId = f"#/chat/{int(time.time() * 1000)}"
 
+
 class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chat9.yqcloud.top"
     api_endpoint = "https://api.binjie.fun/api/generateStream"
-    
+
     working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+
     default_model = "gpt-4"
     models = [default_model]
 
@@ -37,8 +39,8 @@ class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         conversation: Conversation = None,
         return_conversation: bool = True,
-        **kwargs
-    ) -> AsyncResult:      
+        **kwargs,
+    ) -> AsyncResult:
         model = cls.get_model(model)
         headers = {
             "accept": "application/json, text/plain, */*",
@@ -46,9 +48,9 @@ class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
             "content-type": "application/json",
             "origin": f"{cls.url}",
             "referer": f"{cls.url}/",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         }
-        
+
         if conversation is None:
             conversation = Conversation(model)
             conversation.message_history = messages
@@ -61,7 +63,7 @@ class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
         if current_messages and current_messages[0]["role"] == "system":
             system_message = current_messages[0]["content"]
             current_messages = current_messages[1:]
-        
+
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(current_messages)
             data = {
@@ -70,10 +72,12 @@ class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
                 "network": True,
                 "system": system_message,
                 "withoutContext": False,
-                "stream": stream
+                "stream": stream,
             }
-            
-            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
+
+            async with session.post(
+                cls.api_endpoint, json=data, proxy=proxy
+            ) as response:
                 await raise_for_status(response)
                 full_message = ""
                 async for chunk in response.content:
@@ -83,7 +87,9 @@ class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
                         full_message += message
 
                 if return_conversation:
-                    conversation.message_history.append({"role": "assistant", "content": full_message})
+                    conversation.message_history.append(
+                        {"role": "assistant", "content": full_message}
+                    )
                     yield conversation
-                
+
                 yield FinishReason("stop")

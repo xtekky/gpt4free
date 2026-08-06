@@ -12,22 +12,29 @@ from ...typing import Messages, AsyncResult
 from ...errors import MissingAuthError
 from ..template import OpenaiTemplate
 from ...providers.asyncio import get_running_loop
-from .copilotTokenProvider import CopilotTokenProvider, EDITOR_VERSION, EDITOR_PLUGIN_VERSION, USER_AGENT, API_VERSION
+from .copilotTokenProvider import (
+    CopilotTokenProvider,
+    EDITOR_VERSION,
+    EDITOR_PLUGIN_VERSION,
+    USER_AGENT,
+    API_VERSION,
+)
 from .sharedTokenManager import TokenManagerError, SharedTokenManager
 from .githubOAuth2 import GithubOAuth2Client, GITHUB_COPILOT_SCOPE
 from .oauthFlow import launch_browser_for_oauth
 
+
 class GithubCopilot(OpenaiTemplate):
     """
     GitHub Copilot provider with OAuth authentication.
-    
+
     This provider uses GitHub OAuth device flow for authentication,
     allowing users to authenticate via browser without sharing credentials.
-    
+
     Usage:
         1. Run `g4f auth github-copilot` to authenticate
         2. Use the provider normally after authentication
-        
+
     Example:
         >>> from g4f.client import Client
         >>> from g4f.Provider.github import GithubCopilot
@@ -37,24 +44,23 @@ class GithubCopilot(OpenaiTemplate):
         ...     messages=[{"role": "user", "content": "Hello!"}]
         ... )
     """
-    
+
     label = "GitHub Copilot (OAuth) 🔐"
     url = "https://github.com/copilot"
     login_url = "https://github.com/login"
     working = True
     needs_auth = True
     active_by_default = True
-    
+
     default_model = "gpt-4.1"
     base_url = "https://api.githubcopilot.com"
-    
+
     fallback_models = [
         # GPT-5 Series
         "gpt-5",
         "gpt-5-mini",
         "gpt-5.1",
         "gpt-5.2",
-        
         # GPT-5 Codex (optimized for code)
         "gpt-5-codex",
         "gpt-5.1-codex",
@@ -62,7 +68,6 @@ class GithubCopilot(OpenaiTemplate):
         "gpt-5.1-codex-max",
         "gpt-5.2-codex",
         "gpt-5.3-codex",
-        
         # GPT-4 Series
         "gpt-4.1",
         "gpt-4.1-2025-04-14",
@@ -76,7 +81,6 @@ class GithubCopilot(OpenaiTemplate):
         "gpt-4-0613",
         "gpt-4-0125-preview",
         "gpt-4-o-preview",
-        
         # Claude 4 Series
         "claude-opus-4.6",
         "claude-opus-4.6-fast",
@@ -84,24 +88,20 @@ class GithubCopilot(OpenaiTemplate):
         "claude-sonnet-4.5",
         "claude-sonnet-4",
         "claude-haiku-4.5",
-        
         # Gemini Series
         "gemini-3-pro-preview",
         "gemini-3-flash-preview",
         "gemini-2.5-pro",
-        
         # Grok
         "grok-code-fast-1",
-        
         # Legacy GPT-3.5
         "gpt-3.5-turbo",
         "gpt-3.5-turbo-0613",
-        
         # Embeddings
         "text-embedding-3-small",
         "text-embedding-ada-002",
     ]
-    
+
     _token_provider: Optional[CopilotTokenProvider] = None
 
     @classmethod
@@ -117,11 +117,11 @@ class GithubCopilot(OpenaiTemplate):
         messages: Messages,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncResult:
         """
         Create an async generator for chat completions.
-        
+
         If api_key is provided, it will be used directly.
         Otherwise, OAuth credentials will be used.
         """
@@ -145,19 +145,24 @@ class GithubCopilot(OpenaiTemplate):
                         "Please run 'g4f auth github-copilot' to authenticate."
                     ) from e
                 raise
-        
+
         # Use parent class for actual API calls
         async for chunk in super().create_async_generator(
             model,
             messages,
             api_key=api_key,
             base_url=base_url or cls.base_url,
-            **kwargs
+            **kwargs,
         ):
             yield chunk
 
     @classmethod
-    def get_models(cls, api_key: Optional[str] = None, base_url: Optional[str] = None, timeout: Optional[int] = None):
+    def get_models(
+        cls,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        timeout: Optional[int] = None,
+    ):
         # If no API key provided, use OAuth token
         if not api_key:
             try:
@@ -177,12 +182,21 @@ class GithubCopilot(OpenaiTemplate):
         response = super().get_models(api_key, base_url, timeout)
         if isinstance(response, dict):
             for key in list(response.keys()):
-                if key.startswith("accounts/") or key.startswith("text-embedding-") or key in ("minimax-m2.5", "goldeneye-free-auto"):
+                if (
+                    key.startswith("accounts/")
+                    or key.startswith("text-embedding-")
+                    or key in ("minimax-m2.5", "goldeneye-free-auto")
+                ):
                     del response[key]
         return response
 
     @classmethod
-    def get_headers(cls, stream: bool, api_key: str | None = None, headers: dict[str, str] | None = None) -> dict[str, str]:
+    def get_headers(
+        cls,
+        stream: bool,
+        api_key: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         headers_result = super().get_headers(stream, api_key or "", headers or {})
         # Add required Copilot headers
         copilot_headers: dict[str, str] = {
@@ -200,13 +214,13 @@ class GithubCopilot(OpenaiTemplate):
     async def login(cls, credentials_path: Optional[Path] = None) -> SharedTokenManager:
         """
         Perform interactive OAuth login and save credentials.
-        
+
         Args:
             credentials_path: Path to save credentials (default: g4f cache)
-            
+
         Returns:
             SharedTokenManager with active credentials
-            
+
         Example:
             >>> import asyncio
             >>> from g4f.Provider.github import GithubCopilot
@@ -215,21 +229,25 @@ class GithubCopilot(OpenaiTemplate):
         print("\n" + "=" * 60)
         print("GitHub Copilot OAuth Login")
         print("=" * 60)
-        
+
         await launch_browser_for_oauth()
-        
+
         shared_manager = SharedTokenManager.getInstance()
         print("=" * 60 + "\n")
-        
+
         return shared_manager
 
     @classmethod
     async def oauth_start(cls):
         """Initiate Copilot device code flow and return code/url to client."""
         client = GithubOAuth2Client()
-        device_auth = await client.requestDeviceAuthorization({"scope": GITHUB_COPILOT_SCOPE})
+        device_auth = await client.requestDeviceAuthorization(
+            {"scope": GITHUB_COPILOT_SCOPE}
+        )
 
-        verification_uri = device_auth.get("verification_uri", "https://github.com/login/device")
+        verification_uri = device_auth.get(
+            "verification_uri", "https://github.com/login/device"
+        )
         user_code = device_auth.get("user_code")
         device_code = device_auth.get("device_code")
 
@@ -264,7 +282,11 @@ class GithubCopilot(OpenaiTemplate):
             await client.sharedManager.saveCredentialsToFile(credentials)
             return {"status": "success", "message": "GitHub Copilot OAuth successful"}
 
-        return {"status": "error", "message": "Unexpected token response", "detail": token_response}
+        return {
+            "status": "error",
+            "message": "Unexpected token response",
+            "detail": token_response,
+        }
 
     @classmethod
     def has_credentials(cls) -> bool:
@@ -301,7 +323,7 @@ class GithubCopilot(OpenaiTemplate):
                 "GitHub Copilot OAuth not configured. "
                 "Please run 'g4f auth github-copilot' to authenticate."
             )
-        
+
         github_token = github_creds["access_token"]
         url = f"https://api.github.com/copilot_internal/user"
         headers = {
@@ -317,14 +339,17 @@ class GithubCopilot(OpenaiTemplate):
             async with session.get(url, headers=headers) as resp:
                 if resp.status != 200:
                     text = await resp.text()
-                    raise RuntimeError(f"Failed to fetch Copilot usage: {resp.status} {text}")
+                    raise RuntimeError(
+                        f"Failed to fetch Copilot usage: {resp.status} {text}"
+                    )
                 usage = await resp.json()
         return usage
+
 
 async def main(args: Optional[list[str]] = None):
     """CLI entry point for GitHub Copilot OAuth authentication."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(
         description="GitHub Copilot OAuth Authentication for gpt4free",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -333,22 +358,22 @@ Examples:
   %(prog)s login                    # Interactive device code login
   %(prog)s status                   # Check authentication status
   %(prog)s logout                   # Remove saved credentials
-"""
+""",
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Commands")
-    
+
     # Login command
     subparsers.add_parser("login", help="Authenticate with GitHub Copilot")
-    
+
     # Status command
     subparsers.add_parser("status", help="Check authentication status")
-    
+
     # Logout command
     subparsers.add_parser("logout", help="Remove saved credentials")
-    
+
     args = parser.parse_args(args)
-    
+
     if args.command == "login":
         try:
             await GithubCopilot.login()
@@ -358,27 +383,29 @@ Examples:
         except Exception as e:
             print(f"\n❌ Login failed: {e}")
             sys.exit(1)
-    
+
     elif args.command == "status":
         print("\nGitHub Copilot OAuth Status")
         print("=" * 40)
-        
+
         if GithubCopilot.has_credentials():
             creds_path = GithubCopilot.get_credentials_path()
             print(f"✓ Credentials found at: {creds_path}")
-            
+
             try:
                 with creds_path.open() as f:
                     creds = json.load(f)
-                
+
                 expiry = creds.get("expiry_date")
                 if expiry:
-                    expiry_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(expiry / 1000))
+                    expiry_time = time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(expiry / 1000)
+                    )
                     if expiry / 1000 > time.time():
                         print(f"  Token expires: {expiry_time}")
                     else:
                         print(f"  Token expired: {expiry_time}")
-                
+
                 if creds.get("scope"):
                     print(f"  Scope: {creds['scope']}")
             except Exception as e:
@@ -386,37 +413,37 @@ Examples:
         else:
             print("✗ No credentials found")
             print(f"\nRun 'g4f auth github-copilot' to authenticate.")
-        
+
         print()
-    
+
     elif args.command == "logout":
         print("\nGitHub Copilot OAuth Logout")
         print("=" * 40)
-        
+
         removed = False
-        
+
         shared_manager = SharedTokenManager.getInstance()
         path = shared_manager.getCredentialFilePath()
-        
+
         if path.exists():
             path.unlink()
             print(f"✓ Removed: {path}")
             removed = True
-        
+
         # Also try the default location
         default_path = Path.home() / ".github-copilot" / "oauth_creds.json"
         if default_path.exists() and default_path != path:
             default_path.unlink()
             print(f"✓ Removed: {default_path}")
             removed = True
-        
+
         if removed:
             print("\n✓ Credentials removed successfully.")
         else:
             print("No credentials found to remove.")
-        
+
         print()
-    
+
     else:
         parser.print_help()
 

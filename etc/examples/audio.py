@@ -3,6 +3,7 @@ from g4f.client import AsyncClient
 import g4f.Provider
 import g4f.models
 
+
 async def main():
     client = AsyncClient(provider=g4f.Provider.PollinationsAI)
 
@@ -10,7 +11,7 @@ async def main():
     response = await client.chat.completions.create(
         model="openai-audio",
         messages=[{"role": "user", "content": "Say good day to the world"}],
-        audio={ "voice": "alloy", "format": "mp3" },
+        audio={"voice": "alloy", "format": "mp3"},
     )
     response.choices[0].message.save("alloy.mp3")
 
@@ -23,6 +24,7 @@ async def main():
             modalities=["text"],
         )
         print(response.choices[0].message.content)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

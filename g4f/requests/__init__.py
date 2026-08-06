@@ -33,10 +33,12 @@ try:
     from zendriver.cdp.network import CookieParam
     from zendriver.core.config import find_executable
     from zendriver import Browser, Tab, util
+
     has_nodriver = True
 except ImportError:
     from typing import Type as Browser
     from typing import Type as Tab
+
     has_nodriver = False
 try:
     from platformdirs import user_config_dir
@@ -46,6 +48,7 @@ except ImportError:
     has_platformdirs = False
 try:
     from .cdp import CDPSession
+
     has_cdp = True
 except ImportError:
     has_cdp = False
@@ -58,9 +61,12 @@ from ..cookies import BrowserConfig, get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
 if not has_curl_cffi:
+
     class Session:
         def __init__(self, **kwargs):
-            raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
+            raise MissingRequirementsError(
+                'Install "curl_cffi" package | pip install -U curl_cffi'
+            )
 
 
 async def get_args_from_webview(url: str) -> dict:
@@ -79,7 +85,7 @@ async def get_args_from_webview(url: str) -> dict:
         **WEBVIEW_HAEDERS,
         "User-Agent": window.evaluate_js("this.navigator.userAgent"),
         "Accept-Language": window.evaluate_js("this.navigator.language"),
-        "Referer": window.real_url
+        "Referer": window.real_url,
     }
     cookies = [list(*cookie.items()) for cookie in window.get_cookies()]
     cookies = {name: cookie.value for name, cookie in cookies}
@@ -87,16 +93,20 @@ async def get_args_from_webview(url: str) -> dict:
     return {"headers": headers, "cookies": cookies}
 
 
-def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
-    return [CookieParam.from_json({
-        "name": key,
-        "value": value,
-        "url": url,
-        "domain": domain
-    }) for key, value in cookies.items()]
+def get_cookie_params_from_dict(
+    cookies: Cookies, url: str = None, domain: str = None
+) -> list[CookieParam]:
+    return [
+        CookieParam.from_json(
+            {"name": key, "value": value, "url": url, "domain": domain}
+        )
+        for key, value in cookies.items()
+    ]
 
 
-async def clear_cookies_for_url(browser: Browser, url: str, ignore_cookies: list[str] = None):
+async def clear_cookies_for_url(
+    browser: Browser, url: str, ignore_cookies: list[str] = None
+):
     host = urlparse(url).hostname
     if not host:
         raise ValueError(f"Bad url: {url}")
@@ -104,7 +114,9 @@ async def clear_cookies_for_url(browser: Browser, url: str, ignore_cookies: list
     if ignore_cookies is None:
         ignore_cookies = []
     tab = browser.main_tab  # any open tab is fine
-    cookies = await browser.cookies.get_all()  # returns CDP cookies :contentReference[oaicite:2]{index=2}
+    cookies = (
+        await browser.cookies.get_all()
+    )  # returns CDP cookies :contentReference[oaicite:2]{index=2}
     for c in cookies:
         dom = (c.domain or "").lstrip(".")
         if dom and (host == dom or host.endswith("." + dom)):
@@ -119,6 +131,7 @@ async def clear_cookies_for_url(browser: Browser, url: str, ignore_cookies: list
                 )
             )
 
+
 async def get_args_from_nodriver(
     url: str,
     proxy: str = None,
@@ -129,15 +142,22 @@ async def get_args_from_nodriver(
     browser: Browser = None,
     user_data_dir: str = "nodriver",
     browser_args: list = None,
-    clear_cookies_except:list[str]=None,
+    clear_cookies_except: list[str] = None,
 ) -> dict:
     if clear_cookies_except is None:
         clear_cookies_except = []
     if browser is None:
-        browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout, user_data_dir=user_data_dir, browser_args=browser_args)
+        browser, stop_browser = await get_nodriver(
+            proxy=proxy,
+            timeout=timeout,
+            user_data_dir=user_data_dir,
+            browser_args=browser_args,
+        )
     else:
+
         async def stop_browser():
             pass
+
     try:
         if clear_cookies_except:
             debug.log(f"Clear Cookies for url: {url}")
@@ -148,16 +168,22 @@ async def get_args_from_nodriver(
             cookies = {}
         else:
             domain = urlparse(url).netloc
-            await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
+            await browser.cookies.set_all(
+                get_cookie_params_from_dict(cookies, url=url, domain=domain)
+            )
         page = await browser.get(url)
-        user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
+        user_agent = await page.evaluate(
+            "window.navigator.userAgent", return_by_value=True
+        )
         while not await page.evaluate("!!document.querySelector('body:not(.no-js)')"):
             await asyncio.sleep(1)
         if wait_for is not None:
             await page.wait_for(wait_for, timeout=timeout)
         if callback is not None:
             await callback(page)
-        for c in await asyncio.wait_for(page.send(nodriver.cdp.network.get_cookies([url])), timeout=timeout):
+        for c in await asyncio.wait_for(
+            page.send(nodriver.cdp.network.get_cookies([url])), timeout=timeout
+        ):
             cookies[c.name] = c.value
         await stop_browser()
         return {
@@ -180,31 +206,35 @@ async def get_args_from_cdp(
     proxy: str = None,
     timeout: int = 120,
     user_data_dir: str = "cdp",
-    headless: bool = True
+    headless: bool = True,
 ) -> dict:
     """Use the lightweight CDP client to get auth cookies and user-agent."""
     if not has_cdp:
-        raise MissingRequirementsError('Missing CDP requirements')
-        
+        raise MissingRequirementsError("Missing CDP requirements")
+
     debug.log(f"Open CDP session with url: {url}")
     session = CDPSession(user_data_dir=user_data_dir, headless=headless)
     await session.start()
-    
+
     try:
         await session.navigate(url)
-        
+
         # Wait for Cloudflare/protection to pass
         for _ in range(timeout):
             title = await session.evaluate_js("document.title") or ""
             content = await session.evaluate_js("document.body.innerText") or ""
-            
-            if "Just a moment" not in title and "Attention Required" not in title and "cf-browser-verification" not in content:
+
+            if (
+                "Just a moment" not in title
+                and "Attention Required" not in title
+                and "cf-browser-verification" not in content
+            ):
                 break
             await asyncio.sleep(1)
-            
+
         cookies = await session.get_cookies()
         user_agent = await session.get_user_agent()
-        
+
         return {
             "impersonate": "chrome",
             "cookies": cookies,
@@ -240,12 +270,17 @@ async def get_nodriver(
     user_data_dir="nodriver",
     timeout: int = 300,
     browser_executable_path: str = None,
-    **kwargs
+    **kwargs,
 ) -> tuple[Browser, Callable]:
     if not has_nodriver:
         raise MissingRequirementsError(
-            'Install "zendriver" and "platformdirs" package | pip install -U zendriver platformdirs')
-    user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if user_data_dir and has_platformdirs else None
+            'Install "zendriver" and "platformdirs" package | pip install -U zendriver platformdirs'
+        )
+    user_data_dir = (
+        user_config_dir(f"g4f-{user_data_dir}")
+        if user_data_dir and has_platformdirs
+        else None
+    )
     if browser_executable_path is None:
         browser_executable_path = BrowserConfig.executable_path
     if browser_executable_path is None:
@@ -253,10 +288,14 @@ async def get_nodriver(
             browser_executable_path = find_executable()
         except FileNotFoundError:
             # Default to Edge if Chrome is not available.
-            browser_executable_path = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+            browser_executable_path = (
+                "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+            )
             if not os.path.exists(browser_executable_path):
                 # Default to Chromium on Linux systems.
-                browser_executable_path = "/data/data/com.termux/files/usr/bin/chromium-browser"
+                browser_executable_path = (
+                    "/data/data/com.termux/files/usr/bin/chromium-browser"
+                )
                 if not os.path.exists(browser_executable_path):
                     browser_executable_path = None
     debug.log(f"Browser executable path: {browser_executable_path}")
@@ -269,7 +308,9 @@ async def get_nodriver(
             opend_at = float(lock_file.read_text())
             time_open = time.time() - opend_at
             if timeout * 2 > time_open:
-                debug.log(f"Nodriver: Browser is already in use since {time_open} secs.")
+                debug.log(
+                    f"Nodriver: Browser is already in use since {time_open} secs."
+                )
                 debug.log("Lock file:", lock_file)
                 for idx in range(timeout):
                     if lock_file.exists():
@@ -278,9 +319,13 @@ async def get_nodriver(
                         break
                     if idx == timeout - 1:
                         debug.log("Timeout reached, nodriver is still in use.")
-                        raise TimeoutError("Nodriver is already in use, please try again later.")
+                        raise TimeoutError(
+                            "Nodriver is already in use, please try again later."
+                        )
             else:
-                debug.log(f"Nodriver: Browser was opened {time_open} secs ago, closing it.")
+                debug.log(
+                    f"Nodriver: Browser was opened {time_open} secs ago, closing it."
+                )
                 await BrowserConfig.stop_browser()
                 lock_file.unlink(missing_ok=True)
         lock_file.write_text(str(time.time()))
@@ -292,12 +337,14 @@ async def get_nodriver(
             browser_executable_path = "/bin/google-chrome"
         browser = await nodriver.start(
             user_data_dir=user_data_dir,
-            browser_args=[*browser_args, f"--proxy-server={proxy}"] if proxy else browser_args,
+            browser_args=[*browser_args, f"--proxy-server={proxy}"]
+            if proxy
+            else browser_args,
             browser_executable_path=browser_executable_path,
             port=BrowserConfig.port,
             host=BrowserConfig.host,
             connection_timeout=BrowserConfig.connection_timeout,
-            **kwargs
+            **kwargs,
         )
     except FileNotFoundError as e:
         raise MissingRequirementsError(e)

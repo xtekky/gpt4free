@@ -28,43 +28,46 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     Creates and returns the argument parser used for:
         g4f api ...
     """
-    api_parser = ArgumentParser(description="Run the API and GUI", exit_on_error=exit_on_error)
+    api_parser = ArgumentParser(
+        description="Run the API and GUI", exit_on_error=exit_on_error
+    )
 
     api_parser.add_argument(
         "--bind",
         default=None,
-        help=f"The bind address (default: 0.0.0.0:{DEFAULT_PORT})."
+        help=f"The bind address (default: 0.0.0.0:{DEFAULT_PORT}).",
     )
     api_parser.add_argument(
-        "--port", "-p",
+        "--port",
+        "-p",
         default=None,
-        help=f"Port for the API server (default: {DEFAULT_PORT})."
+        help=f"Port for the API server (default: {DEFAULT_PORT}).",
     )
     api_parser.add_argument(
-        "--debug", "-d",
-        action="store_true",
-        help="Enable verbose logging."
+        "--debug", "-d", action="store_true", help="Enable verbose logging."
     )
 
     # Deprecated GUI flag but kept for compatibility
     api_parser.add_argument(
-        "--gui", "-g",
+        "--gui",
+        "-g",
         default=None,
         action="store_true",
-        help="(deprecated) Use --no-gui instead."
+        help="(deprecated) Use --no-gui instead.",
     )
 
     api_parser.add_argument(
-        "--no-gui", "-ng",
+        "--no-gui",
+        "-ng",
         default=False,
         action="store_true",
-        help="Run API without the GUI."
+        help="Run API without the GUI.",
     )
 
     api_parser.add_argument(
         "--model",
         default=None,
-        help="Default model for chat completion (incompatible with reload/workers)."
+        help="Default model for chat completion (incompatible with reload/workers).",
     )
 
     # Providers for chat completion
@@ -72,67 +75,55 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
         "--provider",
         type=str,
         default=None,
-        help="Default provider for chat completion."
+        help="Default provider for chat completion.",
     )
 
     api_parser.add_argument(
         "--media-provider",
         type=str,
         default=None,
-        help="Default provider for image generation."
+        help="Default provider for image generation.",
+    )
+
+    api_parser.add_argument("--proxy", default=None, help="Default HTTP proxy.")
+
+    api_parser.add_argument(
+        "--workers", type=int, default=None, help="Number of worker processes."
     )
 
     api_parser.add_argument(
-        "--proxy",
-        default=None,
-        help="Default HTTP proxy."
-    )
-
-    api_parser.add_argument(
-        "--workers",
-        type=int,
-        default=None,
-        help="Number of worker processes."
-    )
-
-    api_parser.add_argument(
-        "--disable-colors",
-        action="store_true",
-        help="Disable colorized output."
+        "--disable-colors", action="store_true", help="Disable colorized output."
     )
 
     api_parser.add_argument(
         "--ignore-cookie-files",
         action="store_true",
-        help="Do not read .har or cookie files."
+        help="Do not read .har or cookie files.",
     )
 
     api_parser.add_argument(
         "--cookies-dir",
         type=str,
         default=None,
-        help="Custom directory for cookies/HAR files (overrides default)."
+        help="Custom directory for cookies/HAR files (overrides default).",
     )
 
     api_parser.add_argument(
-        "--g4f-api-key",
-        type=str,
-        default=None,
-        help="Authentication key for your API."
+        "--g4f-api-key", type=str, default=None, help="Authentication key for your API."
     )
 
     api_parser.add_argument(
         "--ignored-providers",
         nargs="+",
         default=[],
-        help="Providers to ignore during request processing."
+        help="Providers to ignore during request processing.",
     )
 
     api_parser.add_argument(
         "--cookie-browsers",
         nargs="+",
         default=[],
-        help="Browsers to fetch cookies from."
+        help="Browsers to fetch cookies from.",
     )
 
     api_parser.add_argument("--reload", action="store_true", help="Enable hot reload.")
@@ -142,33 +133,44 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
         "--timeout",
         type=int,
         default=DEFAULT_TIMEOUT,
-        help="Default request timeout in seconds."
+        help="Default request timeout in seconds.",
     )
 
     api_parser.add_argument(
         "--stream-timeout",
         type=int,
         default=DEFAULT_STREAM_TIMEOUT,
-        help="Default streaming timeout in seconds."
+        help="Default streaming timeout in seconds.",
     )
 
-    api_parser.add_argument("--ssl-keyfile", type=str, default=None, help="SSL key file.")
-    api_parser.add_argument("--ssl-certfile", type=str, default=None, help="SSL cert file.")
-    api_parser.add_argument("--log-config", type=str, default=None, help="Path to log config.")
-    api_parser.add_argument("--access-log", action="store_true", default=True, help="Enable access logging.")
-    api_parser.add_argument("--no-access-log", dest="access_log", action="store_false", help="Disable access logging.")
+    api_parser.add_argument(
+        "--ssl-keyfile", type=str, default=None, help="SSL key file."
+    )
+    api_parser.add_argument(
+        "--ssl-certfile", type=str, default=None, help="SSL cert file."
+    )
+    api_parser.add_argument(
+        "--log-config", type=str, default=None, help="Path to log config."
+    )
+    api_parser.add_argument(
+        "--access-log", action="store_true", default=True, help="Enable access logging."
+    )
+    api_parser.add_argument(
+        "--no-access-log",
+        dest="access_log",
+        action="store_false",
+        help="Disable access logging.",
+    )
 
     api_parser.add_argument(
-        "--browser-port",
-        type=int,
-        help="Port for browser automation tool."
+        "--browser-port", type=int, help="Port for browser automation tool."
     )
 
     api_parser.add_argument(
         "--browser-host",
         type=str,
         default="127.0.0.1",
-        help="Host for browser automation tool."
+        help="Host for browser automation tool.",
     )
 
     api_parser.add_argument(
@@ -218,7 +220,7 @@ def run_api_args(args):
         gui=not args.no_gui,
         demo=args.demo,
         timeout=args.timeout,
-        stream_timeout=args.stream_timeout
+        stream_timeout=args.stream_timeout,
     )
 
     # Browser automation config
@@ -228,7 +230,9 @@ def run_api_args(args):
 
     # Custom cookie browsers
     if args.cookie_browsers:
-        cookies.BROWSERS = [b for b in cookies.BROWSERS if b.__name__ in args.cookie_browsers]
+        cookies.BROWSERS = [
+            b for b in cookies.BROWSERS if b.__name__ in args.cookie_browsers
+        ]
 
     # Allow overriding the cookies directory from CLI
     if getattr(args, "cookies_dir", None):
@@ -244,6 +248,7 @@ def run_api_args(args):
     if not getattr(args, "disable_pa_auto_download", False):
         try:
             from ..mcp.pa_downloader import auto_download_pa_providers
+
             auto_download_pa_providers()
         except Exception as e:
             # Auto-download is best-effort; never block server startup.
@@ -272,13 +277,24 @@ def get_mcp_parser(exit_on_error: bool = True) -> ArgumentParser:
     Parser for:
         g4f mcp ...
     """
-    mcp_parser = ArgumentParser(description="Run the MCP (Model Context Protocol) server", exit_on_error=exit_on_error)
-    mcp_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
-    mcp_parser.add_argument("--http", action="store_true", help="Use HTTP instead of stdio.")
+    mcp_parser = ArgumentParser(
+        description="Run the MCP (Model Context Protocol) server",
+        exit_on_error=exit_on_error,
+    )
+    mcp_parser.add_argument(
+        "--debug", "-d", action="store_true", help="Enable verbose logging."
+    )
+    mcp_parser.add_argument(
+        "--http", action="store_true", help="Use HTTP instead of stdio."
+    )
     mcp_parser.add_argument("--host", default="0.0.0.0", help="HTTP server host.")
     mcp_parser.add_argument("--port", type=int, default=8765, help="HTTP server port.")
     mcp_parser.add_argument("--origin", type=str, default=None, help="CORS origin.")
-    mcp_parser.add_argument("--safe", action="store_true", help="Enable safe mode: module allowlist cannot be overridden and workspace root cannot be listed.")
+    mcp_parser.add_argument(
+        "--safe",
+        action="store_true",
+        help="Enable safe mode: module allowlist cannot be overridden and workspace root cannot be listed.",
+    )
     return mcp_parser
 
 
@@ -287,6 +303,7 @@ def run_mcp_args(args):
     Runs the MCP server with the chosen transport method.
     """
     from ..mcp.server import main as mcp_main
+
     mcp_main(
         http=args.http,
         host=args.host,
@@ -295,10 +312,23 @@ def run_mcp_args(args):
         safe=args.safe,
     )
 
+
 def get_auth_parser(exit_on_error: bool = True) -> ArgumentParser:
-    auth_parser = ArgumentParser(description="Manage authentication for providers", exit_on_error=exit_on_error)
-    auth_parser.add_argument("provider", choices=["gemini-cli", "antigravity", "qwencode", "github-copilot"], help="The provider to authenticate with")
-    auth_parser.add_argument("action", nargs="?", choices=["status", "login", "logout"], default="login", help="Action to perform (default: login)")
+    auth_parser = ArgumentParser(
+        description="Manage authentication for providers", exit_on_error=exit_on_error
+    )
+    auth_parser.add_argument(
+        "provider",
+        choices=["gemini-cli", "antigravity", "qwencode", "github-copilot"],
+        help="The provider to authenticate with",
+    )
+    auth_parser.add_argument(
+        "action",
+        nargs="?",
+        choices=["status", "login", "logout"],
+        default="login",
+        help="Action to perform (default: login)",
+    )
     return auth_parser
 
 
@@ -315,7 +345,8 @@ def get_tray_parser(exit_on_error: bool = True) -> ArgumentParser:
         exit_on_error=exit_on_error,
     )
     tray_parser.add_argument(
-        "--port", "-p",
+        "--port",
+        "-p",
         type=int,
         default=DEFAULT_PORT,
         help=f"Port for the API server (default: {DEFAULT_PORT}).",
@@ -326,7 +357,8 @@ def get_tray_parser(exit_on_error: bool = True) -> ArgumentParser:
         help="Bind host for the API server (default: 0.0.0.0).",
     )
     tray_parser.add_argument(
-        "--debug", "-d",
+        "--debug",
+        "-d",
         action="store_true",
         help="Enable verbose logging.",
     )
@@ -343,6 +375,7 @@ def run_tray_args(args):
     Launches the system tray icon using the parsed CLI arguments.
     """
     from ..tray import run_tray
+
     run_tray(
         port=args.port,
         host=args.host,
@@ -367,32 +400,40 @@ def get_pa_parser(exit_on_error: bool = True) -> ArgumentParser:
         "action",
         choices=["download", "list", "remove", "update"],
         help="download: fetch *.pa.py files from gpt4free/pa-providers into the workspace; "
-             "list: show installed PA providers; "
-             "remove: delete a PA provider by filename; "
-             "update: re-download all installed PA providers.",
+        "list: show installed PA providers; "
+        "remove: delete a PA provider by filename; "
+        "update: re-download all installed PA providers.",
     )
     pa_parser.add_argument(
-        "--repo", default="gpt4free/pa-providers",
+        "--repo",
+        default="gpt4free/pa-providers",
         help="GitHub repository to download from (default: gpt4free/pa-providers).",
     )
     pa_parser.add_argument(
-        "--branch", default="main",
+        "--branch",
+        default="main",
         help="Branch to download from (default: main).",
     )
     pa_parser.add_argument(
-        "--file", "-f", default=None,
+        "--file",
+        "-f",
+        default=None,
         help="Download only this file (e.g. koala.pa.py). For 'remove', the filename to delete.",
     )
     pa_parser.add_argument(
-        "--all", action="store_true",
+        "--all",
+        action="store_true",
         help="Download all *.pa.py files even if they already exist (overwrite).",
     )
     pa_parser.add_argument(
-        "--dir", default=None,
+        "--dir",
+        default=None,
         help="Target directory (default: ~/.g4f/workspace).",
     )
     pa_parser.add_argument(
-        "--timeout", type=float, default=30.0,
+        "--timeout",
+        type=float,
+        default=30.0,
         help="Per-request timeout in seconds for GitHub API calls (default: 30).",
     )
     return pa_parser
@@ -403,6 +444,7 @@ def run_pa_args(args):
     Runs the PA provider management action.
     """
     from ..mcp.pa_downloader import run_pa_download, run_pa_list, run_pa_remove
+
     if args.action == "download":
         run_pa_download(
             repo=args.repo,
@@ -435,17 +477,30 @@ def main():
     Main entry function exposed via CLI (e.g. g4f).
     Handles selecting: api / gui / client / mcp
     """
-    parser = argparse.ArgumentParser(description="Run gpt4free", exit_on_error=False, add_help=False)
-    parser.add_argument("--install-autocomplete", action="store_true", help="Install Bash autocompletion for g4f CLI.")
+    parser = argparse.ArgumentParser(
+        description="Run gpt4free", exit_on_error=False, add_help=False
+    )
+    parser.add_argument(
+        "--install-autocomplete",
+        action="store_true",
+        help="Install Bash autocompletion for g4f CLI.",
+    )
     args, remaining = parser.parse_known_args()
     if args.install_autocomplete:
         generate_autocomplete()
         return
-    
 
-    mode_parser = ArgumentParser(description="Select mode to run g4f in.", exit_on_error=False, add_help=False)
-    mode_parser.add_argument("mode", nargs="?", choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa"], default="api", help="Mode to run g4f in (default: api).")
-    
+    mode_parser = ArgumentParser(
+        description="Select mode to run g4f in.", exit_on_error=False, add_help=False
+    )
+    mode_parser.add_argument(
+        "mode",
+        nargs="?",
+        choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa"],
+        default="api",
+        help="Mode to run g4f in (default: api).",
+    )
+
     try:
         try:
             args, remaining = mode_parser.parse_known_args(remaining)
@@ -479,11 +534,13 @@ def main():
             run_api_args(args)
         elif args.mode == "gui":
             from ..gui.run import gui_parser, run_gui_args
+
             parser = gui_parser()
             args = parser.parse_args(remaining)
             run_gui_args(args)
         elif args.mode == "client":
             from .client import get_parser, run_client_args
+
             parser = get_parser()
             args = parser.parse_args(remaining)
             run_client_args(args)
@@ -503,16 +560,17 @@ def main():
             # No mode provided
             raise argparse.ArgumentError(
                 None,
-                "No valid mode specified. Use 'api', 'gui', 'client', 'mcp', or 'auth'."
+                "No valid mode specified. Use 'api', 'gui', 'client', 'mcp', or 'auth'.",
             )
 
     except argparse.ArgumentError:
         # Try client mode
         from .client import get_parser, run_client_args
+
         run_client_args(
-            get_parser(exit_on_error=False).parse_args(),
-            exit_on_error=False
+            get_parser(exit_on_error=False).parse_args(), exit_on_error=False
         )
+
 
 def generate_autocomplete():
     # Top-level commands and their subcommands/options
@@ -520,7 +578,35 @@ def generate_autocomplete():
     auth_providers = ["gemini-cli", "antigravity", "qwencode", "github-copilot"]
     auth_subcommands = ["status", "login"]
     # Options for each command
-    api_args = ["--bind", "--port", "--debug", "--gui", "--no-gui", "--model", "--provider", "--media-provider", "--proxy", "--workers", "--disable-colors", "--ignore-cookie-files", "--cookies-dir", "--g4f-api-key", "--ignored-providers", "--cookie-browsers", "--reload", "--demo", "--timeout", "--stream-timeout", "--ssl-keyfile", "--ssl-certfile", "--log-config", "--access-log", "--no-access-log", "--browser-port", "--browser-host"]
+    api_args = [
+        "--bind",
+        "--port",
+        "--debug",
+        "--gui",
+        "--no-gui",
+        "--model",
+        "--provider",
+        "--media-provider",
+        "--proxy",
+        "--workers",
+        "--disable-colors",
+        "--ignore-cookie-files",
+        "--cookies-dir",
+        "--g4f-api-key",
+        "--ignored-providers",
+        "--cookie-browsers",
+        "--reload",
+        "--demo",
+        "--timeout",
+        "--stream-timeout",
+        "--ssl-keyfile",
+        "--ssl-certfile",
+        "--log-config",
+        "--access-log",
+        "--no-access-log",
+        "--browser-port",
+        "--browser-host",
+    ]
     gui_args = ["--debug"]
     client_args = ["--debug"]
     mcp_args = ["--debug", "--http", "--host", "--port", "--origin", "--safe"]
@@ -554,21 +640,27 @@ complete -F _g4f_completions g4f
     completion_file = os.path.expanduser("~/.g4f_bash_completion")
     with open(completion_file, "w") as f:
         f.write(bash_completion_script)
-    print(f"Bash completion script written to {completion_file}. Source it in your .bashrc or .bash_profile.")
+    print(
+        f"Bash completion script written to {completion_file}. Source it in your .bashrc or .bash_profile."
+    )
 
 
 def handle_auth(provider, action, remaining):
     if provider == "gemini-cli":
         from ..Provider.needs_auth.GeminiCLI import cli_main as gemini_cli_main
+
         sys.exit(gemini_cli_main([action] + remaining))
     elif provider == "antigravity":
         from ..Provider.needs_auth.Antigravity import cli_main as antigravity_cli_main
+
         sys.exit(antigravity_cli_main([action] + remaining))
     elif provider == "qwencode":
         from ..Provider.qwen.QwenCode import cli_main as qwen_cli_main
+
         sys.exit(qwen_cli_main([action] + remaining))
     elif provider == "github-copilot":
         from ..Provider.github.GithubCopilot import cli_main as github_cli_main
+
         sys.exit(github_cli_main([action] + remaining))
     else:
         print(f"Provider {provider} not supported yet.")

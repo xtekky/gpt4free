@@ -46,7 +46,10 @@ def isSlowDown(response: Union[Dict, ErrorDataDict]) -> bool:
 
 
 def isErrorResponse(response: Union[Dict, ErrorDataDict]) -> bool:
-    return "error" in response and response.get("error") not in ["authorization_pending", "slow_down"]
+    return "error" in response and response.get("error") not in [
+        "authorization_pending",
+        "slow_down",
+    ]
 
 
 class GithubOAuth2Client(IGithubOAuth2Client):
@@ -67,17 +70,18 @@ class GithubOAuth2Client(IGithubOAuth2Client):
             return {"token": credentials.get("access_token")}
         except Exception:
             # fallback to internal credentials if valid
-            if (
-                self.credentials.get("access_token")
-                and self.isTokenValid(self.credentials)
+            if self.credentials.get("access_token") and self.isTokenValid(
+                self.credentials
             ):
                 return {"token": self.credentials["access_token"]}
             return {"token": None}
 
-    async def requestDeviceAuthorization(self, options: dict) -> Union[Dict, ErrorDataDict]:
+    async def requestDeviceAuthorization(
+        self, options: dict
+    ) -> Union[Dict, ErrorDataDict]:
         """
         Request device authorization from GitHub.
-        
+
         Returns:
             dict with device_code, user_code, verification_uri, expires_in, interval
         """
@@ -85,7 +89,7 @@ class GithubOAuth2Client(IGithubOAuth2Client):
             "client_id": self.client_id,
             "scope": options.get("scope", GITHUB_COPILOT_SCOPE),
         }
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 GITHUB_DEVICE_CODE_ENDPOINT,
@@ -93,27 +97,29 @@ class GithubOAuth2Client(IGithubOAuth2Client):
                     "Content-Type": "application/x-www-form-urlencoded",
                     "Accept": "application/json",
                 },
-                data=object_to_urlencoded(body_data)
+                data=object_to_urlencoded(body_data),
             ) as resp:
                 resp_json = await resp.json()
-                
+
                 if resp.status != 200:
-                    raise Exception(f"Device authorization failed {resp.status}: {resp_json}")
-                    
+                    raise Exception(
+                        f"Device authorization failed {resp.status}: {resp_json}"
+                    )
+
                 if not isDeviceAuthorizationSuccess(resp_json):
                     raise Exception(
                         f"Device authorization error: {resp_json.get('error')} - {resp_json.get('error_description')}"
                     )
-                    
+
                 return resp_json
 
     async def pollDeviceToken(self, options: dict) -> Union[Dict, ErrorDataDict]:
         """
         Poll for device token from GitHub.
-        
+
         Args:
             options: dict with device_code
-            
+
         Returns:
             dict with access_token, token_type, scope or status=pending
         """
@@ -122,7 +128,7 @@ class GithubOAuth2Client(IGithubOAuth2Client):
             "client_id": self.client_id,
             "device_code": options["device_code"],
         }
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 GITHUB_TOKEN_ENDPOINT,
@@ -130,10 +136,10 @@ class GithubOAuth2Client(IGithubOAuth2Client):
                     "Content-Type": "application/x-www-form-urlencoded",
                     "Accept": "application/json",
                 },
-                data=object_to_urlencoded(body_data)
+                data=object_to_urlencoded(body_data),
             ) as resp:
                 resp_json = await resp.json()
-                
+
                 # Check for OAuth RFC 8628 responses
                 if "error" in resp_json:
                     if resp_json["error"] == "authorization_pending":
@@ -144,8 +150,10 @@ class GithubOAuth2Client(IGithubOAuth2Client):
                         raise Exception("Device code expired. Please try again.")
                     if resp_json["error"] == "access_denied":
                         raise Exception("Authorization was denied by the user.")
-                    raise Exception(f"Token poll failed: {resp_json.get('error')} - {resp_json.get('error_description')}")
-                
+                    raise Exception(
+                        f"Token poll failed: {resp_json.get('error')} - {resp_json.get('error_description')}"
+                    )
+
                 return resp_json
 
     def isTokenValid(self, credentials: GithubCredentials) -> bool:

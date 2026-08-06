@@ -50,6 +50,7 @@ def _make_icon():
     # --- attempt SVG rendering via cairosvg ---
     try:
         import cairosvg
+
         png_bytes = cairosvg.svg2png(
             bytestring=_G4F_SVG.encode(),
             output_width=16,
@@ -81,7 +82,12 @@ def _make_icon():
     bbox = draw.textbbox((0, 0), text, font=font)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
-    draw.text(((size - text_w) // 2, (size - text_h) // 2), text, fill=(248, 249, 250, 255), font=font)
+    draw.text(
+        ((size - text_w) // 2, (size - text_h) // 2),
+        text,
+        fill=(248, 249, 250, 255),
+        font=font,
+    )
 
     return img
 
@@ -192,6 +198,7 @@ def run_tray(
         # Fallback: 1×1 transparent image (pystray still works, icon may be blank)
         try:
             from PIL import Image
+
             icon_image = Image.new("RGBA", (1, 1))
         except ImportError:
             raise ImportError(
@@ -226,7 +233,8 @@ def _tray_main():
         prog="g4f-tray",
     )
     parser.add_argument(
-        "--port", "-p",
+        "--port",
+        "-p",
         type=int,
         default=DEFAULT_PORT,
         help=f"Port for the API server (default: {DEFAULT_PORT}).",
@@ -237,7 +245,8 @@ def _tray_main():
         help="Bind host for the API server (default: 0.0.0.0).",
     )
     parser.add_argument(
-        "--debug", "-d",
+        "--debug",
+        "-d",
         action="store_true",
         help="Enable verbose logging.",
     )
