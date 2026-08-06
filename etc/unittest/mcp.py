@@ -305,7 +305,7 @@ class TestSafeCodeExecution(unittest.TestCase):
         self.assertIn("ZeroDivisionError", r.error)
 
     def test_blocked_os_import(self):
-        r = execute_safe_code("import os")
+        r = execute_safe_code("from os import system")
         self.assertFalse(r.success)
 
     def test_blocked_sys_import(self):
