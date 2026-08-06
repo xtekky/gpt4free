@@ -414,10 +414,10 @@ async def async_iter_run_tools(
             usage_dict["saved_tokens"] = saved_tokens
             prompt_tokens += saved_tokens
             saved_percent = round(saved_tokens / prompt_tokens * 100) if prompt_tokens > 0 and saved_tokens > 0 else 0
-            debug.log(f"Token savings:", (f"{int(saved_tokens/1000)}k" if saved_tokens >= 1000 else str(saved_tokens)) + f"/{prompt_tokens} tokens ({saved_percent}%)")
+            debug.log(f"Saved tokens:", (f"{int(saved_tokens/1000)}k" if saved_tokens >= 1000 else str(saved_tokens)) + f"/{prompt_tokens} tokens ({saved_percent}%)")
         cached_tokens = usage_dict.get("prompt_tokens_details", usage_dict).get("cached_tokens", 0)
         if cached_tokens > 0:
-            debug.log(f"Cached tokens:", (f"{int(cached_tokens/1000)}k" if cached_tokens >= 1000 else str(cached_tokens)) + f"/{usage_dict.get('prompt_tokens', 0)} tokens ({round(cached_tokens / usage_dict.get('prompt_tokens', 1) * 100)}%)")
+            debug.log(f"Cached tokens:", (f"{int(cached_tokens/1000)}k" if cached_tokens >= 1000 else str(cached_tokens)) + f"/{prompt_tokens} tokens ({round(cached_tokens / prompt_tokens * 100)}%)")
         usage = usage_dict
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"

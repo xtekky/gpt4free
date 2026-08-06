@@ -14,12 +14,10 @@ model_map = {
     "GLM": "",
     "Pollinations": "",
     "TeachAnything": "",
-    "WeWordle": ""
   },
   "gpt-4": {
     "CopilotApp": "chat",
     "Yqcloud": "gpt-4",
-    "WeWordle": "gpt-4",
     "OpenaiChat": "gpt-4",
     "Airforce": "gpt-4",
     "Copilot": "Copilot",
@@ -38,7 +36,6 @@ model_map = {
     "GithubCopilot": "gpt-4o",
     "OpenRouter": "openai/gpt-4o-2024-05-13",
     "Puter": "openrouter:openai/gpt-4o-2024-11-20",
-    "WeWordle": "gpt-4o"
   },
   "gpt-4o-mini": {
     "OpenaiChat": "gpt-4o-mini",
@@ -46,7 +43,6 @@ model_map = {
     "GithubCopilot": "gpt-4o-mini",
     "OpenRouter": "openai/gpt-4o-mini-2024-07-18",
     "Puter": "openrouter:openai/gpt-4o-mini-2024-07-18",
-    "WeWordle": "gpt-4o-mini"
   },
   "gpt-4o-mini-tts": {
     "OpenAIFM": "coral",
@@ -422,7 +418,6 @@ model_map = {
       "openrouter:deepseek/deepseek-r1:free",
       "openrouter:deepseek/deepseek-r1"
     ],
-    "WeWordle": "v3"
   },
   "deepseek-r1-distill-llama-70b": {
     "Together": "deepseek-r1-distill-llama-70b",
@@ -1171,7 +1166,6 @@ model_map = {
     "HuggingChat": "deepseek-ai/DeepSeek-V3",
     "PhindAi": "deepseek",
     "Pollinations": "deepseek",
-    "WeWordle": "v3"
   },
   "glm-4.5": {
     "HuggingFace": "zai-org/GLM-4.5",

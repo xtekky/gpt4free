@@ -116,7 +116,6 @@ default = Model(
         "Pollinations",
         "Qwen",
         "Together",
-        "WeWordle",
         "TeachAnything",
         "OpenaiChat",
     ])
@@ -142,7 +141,7 @@ default_vision = VisionModel(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider(["CopilotApp", "Yqcloud", "WeWordle", "OpenaiChat"])
+    best_provider = IterListProvider(["CopilotApp", "Yqcloud", "OpenaiChat"])
 )
 
 # gpt-4o

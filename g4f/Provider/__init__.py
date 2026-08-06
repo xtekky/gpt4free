@@ -158,10 +158,6 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.ThebApi import ThebApi; return ThebApi
     elif name == "Together":
         from g4f.Provider.needs_auth.Together import Together; return Together
-    elif name == "Video":
-        from g4f.Provider.needs_auth.Video import Video; return Video
-    elif name == "WeWordle":
-        from g4f.Provider.WeWordle import WeWordle; return WeWordle
     elif name == "WhiteRabbitNeo":
         from g4f.Provider.needs_auth.WhiteRabbitNeo import WhiteRabbitNeo; return WhiteRabbitNeo
     elif name == "You":
@@ -254,8 +250,6 @@ _provider_names = [
     "TeachAnything",
     "ThebApi",
     "Together",
-    "Video",
-    "WeWordle",
     "WhiteRabbitNeo",
     "You",
     "YouTube",
