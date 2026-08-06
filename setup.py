@@ -42,7 +42,6 @@ EXTRA_REQUIRE = {
         "wasmtime",
         "numpy",
         "PyYAML",
-        "prompt_optimizer",
         "websocket-client",
         "pystray",
     ],
