@@ -1257,12 +1257,12 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         ] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
 
     # ── Strip redundant tool_call fields ──
-    tool_field_saved = _strip_redundant_tool_fields(messages)
-    if tool_field_saved:
-        saved_bytes += tool_field_saved
-        logs[
-            "tool_fields"
-        ] = f"stripped redundant tool_call fields (-{tool_field_saved} bytes)"
+    # tool_field_saved = _strip_redundant_tool_fields(messages)
+    # if tool_field_saved:
+    #     saved_bytes += tool_field_saved
+    #     logs[
+    #         "tool_fields"
+    #     ] = f"stripped redundant tool_call fields (-{tool_field_saved} bytes)"
 
     # ── Collapse whitespace ──
     ws_saved = _collapse_message_whitespace(messages)
