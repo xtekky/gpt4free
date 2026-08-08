@@ -5,8 +5,7 @@ from requests.exceptions import RequestException
 from g4f.Provider import __getattr__
 from g4f.models import __models__
 from g4f.providers.base_provider import BaseProvider, ProviderModelMixin
-from g4f.errors import MissingRequirementsError, MissingAuthError
-
+from g4f.errors import MissingRequirementsError, MissingAuthError, PaymentRequiredError
 
 class TestProviderHasModel(unittest.TestCase):
     cache: dict = {}
@@ -41,7 +40,7 @@ class TestProviderHasModel(unittest.TestCase):
         if provider.__name__ not in self.cache:
             try:
                 self.cache[provider.__name__] = list(provider.get_models())
-            except (MissingRequirementsError, MissingAuthError):
+            except (MissingRequirementsError, PaymentRequiredError, MissingAuthError):
                 return
         if self.cache[provider.__name__]:
             if not provider.model_aliases or model not in provider.model_aliases:
