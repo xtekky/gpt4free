@@ -56,6 +56,7 @@ from ...providers.response import (
     HiddenResponse,
     JsonResponse,
 )
+from ...providers.cache import FileStorage
 from ...client.helper import filter_markdown
 from ...tools.files import (
     supports_filename,
@@ -85,9 +86,11 @@ from ...image.copy_images import (
 )
 from ...client.service import get_model_and_provider
 from ...client.factory import AbstractClientFactory
+from ...version import utils as version_utils
 from .api import Api
 
 logger = logging.getLogger(__name__)
+storage = FileStorage()
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -178,122 +181,22 @@ class Backend_Api(Api):
                     }
                 )
 
-        @app.route("/pa/backend-api/v2/conversation", methods=["POST"])
-        async def pa_backend_conversation():
-            """GUI-compatible streaming conversation endpoint for PA providers.
-
-            Accepts the same JSON body as ``/backend-api/v2/conversation`` and
-            streams Server-Sent Events in the same format used by the gpt4free
-            web interface (``{"type": "content", "content": "..."}`` etc.).
-
-            The ``provider`` field should contain the opaque PA provider ID
-            returned by ``GET /pa/providers``.  When omitted the first available
-            PA provider is used.
-            """
-            from g4f.mcp.pa_provider import get_pa_registry
-
-            if app.demo and has_crypto:
-                secret = request.headers.get(
-                    "x-secret", request.headers.get("x_secret")
-                )
-                if not secret or not validate_secret(secret):
-                    return (
-                        jsonify({"error": {"message": "Invalid or missing secret"}}),
-                        403,
-                    )
-
-            try:
-                body = {**request.json}
-            except Exception:
-                return jsonify({"error": {"message": "Invalid JSON body"}}), 422
-
-            registry = get_pa_registry()
-            pid = body.get("provider")
-            if pid:
-                provider_cls = registry.get_provider_class(pid)
-                if provider_cls is None:
-                    return (
-                        jsonify(
-                            {"error": {"message": f"PA provider '{pid}' not found"}}
-                        ),
-                        404,
-                    )
-            else:
-                listing = registry.list_providers()
-                if not listing:
-                    return (
-                        jsonify(
-                            {"error": {"message": "No PA providers found in workspace"}}
-                        ),
-                        404,
-                    )
-                provider_cls = registry.get_provider_class(listing[0]["id"])
-
-            provider_label = getattr(provider_cls, "label", provider_cls.__name__)
-            messages = body.get("messages") or []
-            model = (
-                body.get("model") or getattr(provider_cls, "default_model", "") or ""
-            )
-
-            def gen_backend_stream():
-                yield (
-                    "data: "
-                    + json.dumps(
-                        {
-                            "type": "provider",
-                            "provider": {
-                                "name": pid,
-                                "label": provider_label,
-                                "model": model,
-                            },
-                        }
-                    )
-                    + "\n\n"
-                )
+        @app.route("/pa/providers", methods=["GET"])
+        async def pa_providers():
+            saved = storage.get(f"{version_utils.current_version}/{int(time.time()/8600)}/pa_providers")
+            async def fetch_providers():
                 try:
-                    provider = provider_cls()
-                    provider.__name__ = provider_cls.__name__
-                    response = self.client.chat.completions.create(
-                        messages=messages,
-                        model=model,
-                        provider=provider,
-                        stream=True,
-                    )
-                    for chunk in response:
-                        if chunk.choices[0].delta.content:
-                            yield f"data: {json.dumps({'type': 'content', 'content': str(chunk.choices[0].delta.content)})}\n\n"
-                except GeneratorExit:
-                    pass
+                    from g4f.mcp.pa_provider import get_pa_registry
+
+                    registry = get_pa_registry()
+                    listing = registry.list_providers()
+                    storage.set(f"{version_utils.current_version}/{int(time.time()/8600)}/pa_providers", listing)
+                    return jsonify(listing)
                 except Exception as e:
                     logger.exception(e)
-                    yield (
-                        "data: "
-                        + json.dumps(
-                            {"type": "error", "error": f"{type(e).__name__}: {e}"}
-                        )
-                        + "\n\n"
-                    )
-                yield (
-                    "data: " + json.dumps({"type": "finish", "finish": "stop"}) + "\n\n"
-                )
-
-            return self.app.response_class(
-                safe_iter_generator(gen_backend_stream()), mimetype="text/event-stream"
-            )
-
-        @app.route("/pa/providers", methods=["GET"])
-        def pa_providers():
-            try:
-                from g4f.mcp.pa_provider import get_pa_registry
-
-                registry = get_pa_registry()
-                listing = registry.list_providers()
-                return jsonify(listing)
-            except ImportError:
-                return jsonify([])
-            except Exception as e:
-                logger.exception(e)
-                return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+            task = asyncio.create_task(fetch_providers())
+            return jsonify(saved) if saved is not None else await task
 
         @app.route("/backend-api/v2/models", methods=["GET"])
         @lru_cache(maxsize=1)

@@ -26,12 +26,13 @@ from ...providers.helper import format_media_prompt
 from ...providers.response import *
 from ...providers.any_model_map import model_map
 from ...providers.any_provider import AnyProvider
-from ...client.service import get_model_and_provider
+from ...providers.cache import FileStorage
+from ...version import utils as version_utils
 from ... import Provider
-from ... import version, models
 from ... import debug
 
 logger = logging.getLogger(__name__)
+storage = FileStorage()
 
 
 class Api:
@@ -109,6 +110,9 @@ class Api:
 
     @staticmethod
     def get_providers() -> dict[str, str]:
+        saved = storage.get(f"{version_utils.current_version}/providers")
+        if saved is not None:
+            return saved
         def safe_get_models(provider: ProviderModelMixin):
             if not isinstance(provider, ProviderModelMixin):
                 return True
@@ -118,7 +122,7 @@ class Api:
                 logger.exception(e)
                 return True
 
-        return [
+        result = [
             {
                 "name": provider.__name__,
                 "label": getattr(provider, "label", provider.__name__),
@@ -140,8 +144,14 @@ class Api:
             for provider in Provider.__providers__
             if provider.working and safe_get_models(provider)
         ]
+        storage.set(f"{version_utils.current_version}/providers", result)
+        return result
 
     def get_all_models(self) -> dict[str, list]:
+        storage_key = f"{version_utils.current_version}/all_models"
+        saved = storage.get(storage_key)
+        if saved is not None:
+            return saved
         with self.models_lock:
 
             def safe_get_provider_models(provider) -> tuple[str, list[str]]:
@@ -168,6 +178,7 @@ class Api:
                     name, models = future.result()
                     results[name] = models
 
+            storage.set(storage_key, results)
             return results
 
     @staticmethod
@@ -175,14 +186,14 @@ class Api:
         current_version = None
         latest_version = None
         try:
-            current_version = version.utils.current_version
+            current_version = version_utils.current_version
             try:
                 if request.args.get("cache"):
-                    latest_version = version.utils.latest_version_cached
+                    latest_version = version_utils.latest_version_cached
             except RuntimeError:
                 pass
             if latest_version is None:
-                latest_version = version.utils.latest_version
+                latest_version = version_utils.latest_version
         except VersionNotFoundError:
             pass
         return {

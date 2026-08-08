@@ -1070,9 +1070,9 @@ def _strip_redundant_tool_fields(messages: Messages) -> int:
             before = len(
                 json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace")
             )
-            msg.pop("tool_calls", None)
+            # msg.pop("tool_calls", None)
             # Also drop the now-orphaned function_call if present.
-            msg.pop("function_call", None)
+            # msg.pop("function_call", None)
             after = len(
                 json.dumps(msg, ensure_ascii=False).encode("utf-8", errors="replace")
             )

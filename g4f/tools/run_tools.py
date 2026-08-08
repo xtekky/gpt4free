@@ -309,7 +309,7 @@ async def async_iter_run_tools(
     # This is applied for all providers and the saved tokens are tracked.
     tools_ref = kwargs.get("tools")
     saved_tokens, _optimize_logs = optimize_request(messages, tools_ref)
-
+    
     # Optional token-optimizer plugin: compress the prompt messages before
     # they reach the provider. Only active when the `token_optimizer` package
     # is installed in the environment.
@@ -317,6 +317,16 @@ async def async_iter_run_tools(
     if to_saved:
         saved_tokens += to_saved
         debug.log(f"Token Optimizer plugin: saved ~{to_saved} tokens")
+
+    # Kimi K3 tool messages need a resolvable tool name
+    for message in messages:
+        if isinstance(message, dict) and message.get("role") == "tool":
+            message["name"] = message.get("name", message.get("tool_call_id").split(":")[0])
+
+    # The `reasoning_content` in the thinking mode must be passed back to the API.
+    for message in messages:
+        if isinstance(message, dict) and message.get("role") == "assistant" and message.get("tool_calls"):
+            message["reasoning_content"] = message.get("reasoning_content", "")
 
     tool_emulation = kwargs.pop("tool_emulation", None)
     if tool_emulation is None:

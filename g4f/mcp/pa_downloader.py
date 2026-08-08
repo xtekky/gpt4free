@@ -188,12 +188,15 @@ def run_pa_download(
         except OSError as e:
             debug.error(f"pa-providers: failed to write {name}:", e)
 
+    print(f"pa-providers: downloaded {len(written)} file(s) from {repo}@{ref}")
     if written:
         # Touch the auto-download marker so the startup path does not re-download
         # immediately after an explicit `g4f pa download`.
         try:
-            (target / AUTO_DOWNLOAD_MARKER).touch()
-        except OSError:
+            with open(target / AUTO_DOWNLOAD_MARKER, "w") as f:
+                f.write(f"{time.time()}")
+        except OSError as e:
+            print(f"pa-providers: failed to touch auto-download marker: {e}")
             pass
 
     return written
@@ -255,7 +258,9 @@ def _should_auto_download(workspace: Path) -> bool:
     if not marker.exists():
         return True
     try:
-        age = time.time() - marker.stat().st_mtime
+        with open(marker, "r") as f:
+            timestamp = float(f.read().strip())
+        age = time.time() - timestamp
     except OSError:
         return True
     return age >= AUTO_DOWNLOAD_INTERVAL
