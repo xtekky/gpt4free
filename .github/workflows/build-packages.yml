@@ -61,11 +61,27 @@ jobs:
         run: |
           python -m twine check dist/*
           ls -la dist/
-      - name: Upload PyPI artifacts
+      - name: Upload PyPI package artifact (combined)
         uses: actions/upload-artifact@v4
         with:
           name: pypi-package
           path: dist/
+      - name: Upload PyPI build artifacts (individual)
+        run: |
+          for f in dist/*; do
+            echo "Uploading $f"
+          done
+        shell: bash
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-wheel
+          path: dist/*.whl
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-sdist
+          path: dist/*.tar.gz
 
   # Executables (built with g4f-go, no Nuitka)
   # Cross-compiles the Go launcher on ubuntu-latest for every OS/arch.
@@ -101,11 +117,60 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: ./build-all.sh
-      - name: Upload g4f-go executables
+      - name: Upload g4f-go executables (combined)
         uses: actions/upload-artifact@v4
         with:
           name: g4f-go
           path: g4f-go/dist/*
+      - name: Upload g4f-go executables (individual per platform)
+        run: |
+          for zip in g4f-go/dist/*.zip; do
+            base="$(basename "$zip" .zip)"
+            echo "Uploading $zip as artifact g4f-go-${base}"
+          done
+        shell: bash
+      - name: Upload g4f-go windows-amd64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-windows-amd64
+          path: g4f-go/dist/g4f-go-*-windows-amd64.zip
+          if-no-files-found: error
+      - name: Upload g4f-go windows-386
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-windows-386
+          path: g4f-go/dist/g4f-go-*-windows-386.zip
+          if-no-files-found: error
+      - name: Upload g4f-go linux-amd64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-linux-amd64
+          path: g4f-go/dist/g4f-go-*-linux-amd64.zip
+          if-no-files-found: error
+      - name: Upload g4f-go linux-arm64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-linux-arm64
+          path: g4f-go/dist/g4f-go-*-linux-arm64.zip
+          if-no-files-found: error
+      - name: Upload g4f-go darwin-arm64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-darwin-arm64
+          path: g4f-go/dist/g4f-go-*-darwin-arm64.zip
+          if-no-files-found: error
+      - name: Upload g4f-go darwin-amd64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-darwin-amd64
+          path: g4f-go/dist/g4f-go-*-darwin-amd64.zip
+          if-no-files-found: error
+      - name: Upload g4f-go freebsd-amd64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-freebsd-amd64
+          path: g4f-go/dist/g4f-go-*-freebsd-amd64.zip
+          if-no-files-found: error
 
   # Docker Images
   build-docker:
@@ -183,14 +248,31 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Download all artifacts
+      - name: Download PyPI artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./artifacts
-      - name: Display artifact structure
+          name: pypi-package
+          path: ./release/pypi
+      - name: Download g4f-go artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: g4f-go
+          path: ./release/g4f-go
+      - name: Download individual g4f-go platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release/g4f-go/individual
+          pattern: g4f-go-*
+          merge-multiple: true
+      - name: Flatten all release assets
         run: |
-          echo "Downloaded artifacts:"
-          find ./artifacts -type f -name "*" | sort
+          mkdir -p ./release/flat
+          find ./release -type f | sort
+          cp -v ./release/pypi/* ./release/flat/ 2>/dev/null || true
+          cp -v ./release/g4f-go/dist/*.zip ./release/flat/ 2>/dev/null || true
+          cp -v ./release/g4f-go/individual/* ./release/flat/ 2>/dev/null || true
+          echo "--- Final release assets ---"
+          find ./release/flat -type f | sort
       - name: Create Release with Assets
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
         with:
@@ -223,9 +305,7 @@ jobs:
             🔗 [https://github.com/gpt4free/g4f.exe](https://github.com/gpt4free/g4f.exe) 🚀
           draft: false
           prerelease: false
-          files: |
-            ./artifacts/pypi-package/*
-            ./artifacts/g4f-go/dist/*
+          files: ./release/flat/*
           token: ${{ secrets.GITHUB_TOKEN }}
 
   # Publish to PyPI (only for releases)
