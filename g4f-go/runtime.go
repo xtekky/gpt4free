@@ -27,7 +27,6 @@ const embedEmptyPlaceholder = "EMPTY_PYTHON_RUNTIME"
 // path. The binary itself stays completely portable — nothing is written next
 // to the executable.
 func ensureRuntime() (string, error) {
-	start := time.Now()
 	binDir := installDir()
 
 	// First run: extract and install g4f into the embedded Python.
