@@ -74,17 +74,6 @@ jobs:
   build-g4f-go:
     runs-on: ubuntu-latest
     needs: prepare
-    strategy:
-      matrix:
-        include:
-          - platform: windows
-            os-arg: windows
-          - platform: linux
-            os-arg: linux
-          - platform: darwin
-            os-arg: darwin
-          - platform: freebsd
-            os-arg: bsd
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -102,20 +91,20 @@ jobs:
           pip install requests aiohttp brotli pycryptodome nest-asyncio2
           sudo apt-get update
           sudo apt-get install -y rsync zip
-      - name: Fetch & merge Python runtimes
+      - name: Fetch & merge Python runtimes (all platforms)
         working-directory: g4f-go
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
-        run: ./fetch-python.sh ${{ matrix.os-arg }}
-      - name: Cross-compile g4f-go launchers
+        run: ./fetch-python.sh
+      - name: Cross-compile g4f-go launchers (all platforms)
         working-directory: g4f-go
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
-        run: ./build-all.sh ${{ matrix.os-arg }}
+        run: ./build-all.sh
       - name: Upload g4f-go executables
         uses: actions/upload-artifact@v4
         with:
-          name: g4f-go-${{ matrix.platform }}
+          name: g4f-go
           path: g4f-go/dist/*
 
   # Docker Images
@@ -236,10 +225,7 @@ jobs:
           prerelease: false
           files: |
             ./artifacts/pypi-package/*
-            ./artifacts/g4f-go-windows/dist/*
-            ./artifacts/g4f-go-linux/dist/*
-            ./artifacts/g4f-go-darwin/dist/*
-            ./artifacts/g4f-go-freebsd/dist/*
+            ./artifacts/g4f-go/dist/*
           token: ${{ secrets.GITHUB_TOKEN }}
 
   # Publish to PyPI (only for releases)
