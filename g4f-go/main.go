@@ -4,15 +4,20 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
-	"syscall"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
-// main handles the `g4f-go <command>` interface. Anything unknown is forwarded
-// to the embedded g4f CLI (so `g4f-go client "hello"` just works).
+// Constants usually defined at build time or in a separate file
+const (
+	Version   = "1.0.0"
+	PythonVer = "3.10"
+)
+
 func printHelp() {
 	fmt.Printf(`g4f-go %s - gpt4free with embedded Python %s
 
@@ -30,114 +35,149 @@ Environment:
 `, Version, PythonVer)
 }
 
-func main() int {
+func main() {
+	// We use a helper function so we can use "return" for exit codes
+	os.Exit(run())
+}
+
+func run() int {
 	binDir := installDir()
-	args := normalizeArgs(os.Args)
+	// os.Args[0] is the program name, we want the actual arguments
+	args := normalizeArgs(os.Args[1:])
+
 	if len(args) == 0 {
 		printHelp()
 		return 0
 	}
 
-	py, err := ensureRuntime()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "g4f-go:", err)
-		os.Exit(1)
-	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
+	// 1. Handle non-python commands first
 	switch args[0] {
 	case "help", "--help", "-h":
-		return main(ctx, binDir, py, nil)
+		printHelp()
+		return 0
 	case "--version", "-v":
 		fmt.Printf("g4f-go %s (embedded CPython %s)\n", Version, PythonVer)
 		return 0
-	case "status":
-		exe := pythonExecutable(binDir)
-		stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
-		fmt.Printf("binary dir: %s\n", binDir)
-		fmt.Printf("python:     %s\n", exe)
-		if _, err := os.Stat(exe); err == nil {
-			fmt.Println("runtime:    extracted")
-		} else {
-			fmt.Println("runtime:    not extracted (will extract on first run)")
-		}
-		if _, err := os.Stat(stamp); err == nil {
-			fmt.Println("g4f:        installed")
-		} else {
-			fmt.Println("g4f:        not installed (will install on first run)")
-		}
-		code, err := runPython(ctx, py, []string{"--version"})
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
-		}
-		return code
-	case "install", "uninstall":
-		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "usage: g4f-go install g4f")
-			return 2
-		}
-		code, err := runPython(ctx, py, []string{
-			"-m", "pip", args...
-		})
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
-		}
-		return code
-	case "bootstrap":
-		// Refresh the embedded package installation (e.g. after updating g4f-go).
-		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", "g4f[slim]"}, pipEnv(binDir)...)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
-		}
-		return code
+	}
+
+	// 2. Prepare Python Runtime
+	py, err := ensureRuntime()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "g4f-go runtime error:", err)
+		return 1
 	}
 
 	if os.Getenv("G4F_PYTHON_ONLY") == "1" {
 		fmt.Println(py)
 		return 0
 	}
-	
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// 3. Handle management commands
+	switch args[0] {
+	case "status":
+		return handleStatus(ctx, binDir, py)
+	case "install", "uninstall":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "usage: g4f-go install <package>")
+			return 2
+		}
+		code, err := runPython(ctx, py, append([]string{"-m", "pip"}, args...))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
+		return code
+	case "bootstrap":
+		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", "g4f[slim]"}, pipEnv(binDir)...)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
+		return code
+	}
+
+	// 4. Auto-install G4F if missing before running commands
 	exe := pythonExecutable(binDir)
-	start := time.Now()
-	if err := installG4F(binDir, exe, start); err != nil {
+	if err := installG4F(binDir, exe, time.Now()); err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 		return 1
 	}
 
-	// Default: forward everything to the g4f module.
+	// 5. Default: forward everything to the g4f module
 	code, err := runPython(ctx, py, append([]string{"-m", "g4f"}, args...))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		fmt.Fprintln(os.Stderr, "g4f-go execution error:", err)
 		return 1
 	}
 	return code
 }
 
-// normalizeArgs cleans leading `g4f-go` repeats (typos like `g4f-go g4f-go ...`).
+// --- Helper Functions (Stubs/Implementations) ---
+
 func normalizeArgs(args []string) []string {
-	for len(args) > 0 && args[0] == "g4f-go" {
-		args = args[1:]
+	if len(args) > 0 && args[0] == "g4f-go" {
+		return normalizeArgs(args[1:])
 	}
-	// A leading binary-name echo (e.g. argv[0]) is stripped by callers.
 	return args
 }
 
-// hasSubcommand reports whether args start with a known g4f-go subcommand.
-func hasSubcommand(args []string) bool {
-	if len(args) == 0 {
-		return true
+func installDir() string {
+	configDir, _ := os.UserConfigDir()
+	return filepath.Join(configDir, "g4f-go")
+}
+
+func pythonExecutable(binDir string) string {
+	// Adjust for Windows if necessary
+	return filepath.Join(binDir, "python")
+}
+
+func ensureRuntime() (string, error) {
+	dir := installDir()
+	pyPath := pythonExecutable(dir)
+	// Logic to extract embedded python would go here
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.MkdirAll(dir, 0755)
 	}
-	switch args[0] {
-	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap":
-		return true
+	return pyPath, nil
+}
+
+func runPython(ctx context.Context, pyPath string, args []string, env ...string) (int, error) {
+	cmd := exec.CommandContext(ctx, pyPath, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Env = append(os.Environ(), env...)
+
+	err := cmd.Run()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return exitError.ExitCode(), nil
+		}
+		return 1, err
 	}
-	if strings.HasPrefix(args[0], "-") {
-		return true
+	return 0, nil
+}
+
+func installG4F(binDir, pyExe string, start time.Time) error {
+	stamp := filepath.Join(binDir, ".g4f_installed")
+	if _, err := os.Stat(stamp); err == nil {
+		return nil // Already installed
 	}
-	return false
+	// Logic to install g4f via pip
+	os.WriteFile(stamp, []byte(start.String()), 0644)
+	return nil
+}
+
+func pipEnv(binDir string) []string {
+	return []string{fmt.Sprintf("PYTHONPATH=%s", binDir)}
+}
+
+func handleStatus(ctx context.Context, binDir, py string) int {
+	exe := pythonExecutable(binDir)
+	fmt.Printf("binary dir: %s\n", binDir)
+	fmt.Printf("python:     %s\n", exe)
+	
+	code, _ := runPython(ctx, py, []string{"--version"})
+	return code
 }
