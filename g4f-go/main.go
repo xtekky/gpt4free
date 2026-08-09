@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	// Meta commands must work even without an embedded runtime.
- module := "g4f"
+	module := "g4f"
+	
 	switch {
 	case len(os.Args) == 1:
 		printHelp()
@@ -21,11 +21,10 @@ func main() {
 	case os.Args[1] == "help" || os.Args[1] == "--help" || os.Args[1] == "-h":
 		printHelp()
 		os.Exit(0)
- case os.Args[1] == "install" || os.Args[1] == "uninstall":
-		module := "pip"
+	case os.Args[1] == "install" || os.Args[1] == "uninstall":
+		module = "pip" // Fixed: Assign to the existing variable, don't redeclare
 	}
 
-	// Make sure the embedded Python runtime is extracted to ~/.g4f/python-embed.
 	py, err := ensureRuntime()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
@@ -35,7 +34,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// Forward all arguments to g4f's own CLI entry point.
+	// Runs: python -m [module] [args...]
 	code, err := runPython(ctx, py, append([]string{"-m", module}, os.Args[1:]...))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
