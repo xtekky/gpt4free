@@ -84,9 +84,7 @@ func runMain() int {
 			fmt.Fprintln(os.Stderr, "usage: g4f-go install g4f")
 			return 2
 		}
-		code, err := runPython(ctx, py, []string{
-			"-m", "pip", args...
-		})
+		code, err := runPython(ctx, py, append([]string{"-m", "pip"}, args...))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
 			return 1
