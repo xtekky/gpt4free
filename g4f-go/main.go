@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // main handles the `g4f-go <command>` interface. Anything unknown is forwarded
@@ -29,7 +30,9 @@ Environment:
 `, Version, PythonVer)
 }
 
-func main(ctx context.Context, binDir, py string, args []string) int {
+func main() int {
+	binDir := installDir()
+	args := normalizeArgs(os.Args)
 	if len(args) == 0 {
 		printHelp()
 		return 0
@@ -86,7 +89,7 @@ func main(ctx context.Context, binDir, py string, args []string) int {
 		return code
 	case "bootstrap":
 		// Refresh the embedded package installation (e.g. after updating g4f-go).
-		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", "g4f"}, pipEnv(binDir)...)
+		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", "g4f[slim]"}, pipEnv(binDir)...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
 			return 1
@@ -97,6 +100,13 @@ func main(ctx context.Context, binDir, py string, args []string) int {
 	if os.Getenv("G4F_PYTHON_ONLY") == "1" {
 		fmt.Println(py)
 		return 0
+	}
+	
+	exe := pythonExecutable(binDir)
+	start := time.Now()
+	if err := installG4F(binDir, exe, start); err != nil {
+		fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		return 1
 	}
 
 	// Default: forward everything to the g4f module.

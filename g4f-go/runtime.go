@@ -47,9 +47,6 @@ func ensureRuntime() (string, error) {
 		if _, err := os.Stat(stamp); err == nil {
 			return exe, nil // already installed
 		}
-		if err := installG4F(binDir, exe, start); err != nil {
-			return "", err
-		}
 		return exe, nil
 	}
 
@@ -64,9 +61,6 @@ func ensureRuntime() (string, error) {
 	exe = pythonExecutable(binDir)
 	if _, err := os.Stat(exe); err != nil {
 		return "", fmt.Errorf("python runtime extracted but %s is missing", exe)
-	}
-	if err := installG4F(binDir, exe, start); err != nil {
-		return "", err
 	}
 	return exe, nil
 }
