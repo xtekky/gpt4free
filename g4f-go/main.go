@@ -36,7 +36,7 @@ func main() {
 
 func runMain() int {
 	binDir := installDir()
-	args := normalizeArgs(os.Args)
+	args := os.Args[1:]
 	if len(args) == 0 {
 		printHelp()
 		return 0
