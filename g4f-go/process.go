@@ -13,11 +13,13 @@ import (
 )
 
 // pythonLauncher is the shell wrapper that sets PYTHONHOME etc. and execs the
-// embedded python. Written next to the binary during extraction.
+// downloaded python. Written next to the binary after the runtime is ready.
+// Note: it must never exec itself ($DIR/python is the wrapper); the real
+// interpreter always lives at $DIR/python-home/bin/python on unix.
 const pythonLauncher = `#!/bin/sh
-# g4f-go launcher for the embedded CPython runtime.
+# g4f-go launcher for the downloaded CPython runtime.
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-if [ -x "$DIR/python" ]; then PY="$DIR/python"; else PY="$DIR/python-home/bin/python"; fi
+PY="$DIR/python-home/bin/python"
 export PYTHONHOME="$DIR/python-home"
 export PYTHONNOUSERSITE=1
 export PYTHONDONTWRITEBYTECODE=1
@@ -122,36 +124,47 @@ func extractZip(r io.ReaderAt, size int64, dest string) error {
 	return nil
 }
 
-// pythonExecutable returns the launcher (unix) or python.exe (windows) path.
+// pythonExecutable returns the python binary (or launcher) path for a
+// downloaded runtime, or an error when no interpreter is present yet.
 //
-// The embedded archive is laid out as <name>/python-home/<exe>, so after
-// extraction the interpreter lives at binDir/python-home/python.exe on
-// windows and binDir/python-home/bin/python on unix. We prefer that location
-// and fall back to the legacy binDir/python(.exe) layout produced by older
-// archives, mirroring the shell launcher's logic.
-func pythonExecutable(binDir string) string {
+// pbs installs land in binDir/python-home/ with bin/python (unix) or
+// python.exe (windows). The android build overrides this with a C runner
+// that dlopens libpython (see runtime_android.go). Note that binDir/python
+// is the *shell wrapper* (never a real interpreter), so it is not a valid
+// fallback here.
+func pythonExecutable(binDir string) (string, error) {
+	if exe, err := androidPythonExecutable(binDir); exe != "" || err != nil {
+		return exe, err
+	}
 	home := filepath.Join(binDir, "python-home")
+	var candidates []string
 	if runtime.GOOS == "windows" {
-		return filepath.Join(home, "python.exe")
+		candidates = []string{filepath.Join(home, "python.exe")}
+	} else {
+		candidates = []string{filepath.Join(home, "bin", "python")}
 	}
-	exe := filepath.Join(home, "bin", "python")
-	if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {
-		return exe
+	for _, exe := range candidates {
+		if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {
+			return exe, nil
+		}
 	}
-	return filepath.Join(binDir, "python")
+	return "", fmt.Errorf("no python executable found (runtime not downloaded?)")
 }
 
-// pythonHome returns the extracted interpreter root.
+// pythonHome returns the downloaded interpreter root.
 func pythonHome(binDir string) string {
+	if h := androidPythonHome(binDir); h != "" {
+		return h
+	}
 	return filepath.Join(binDir, "python-home")
 }
 
-// writeLauncher installs the unix shell wrapper after extraction.
+// writeLauncher installs the unix shell wrapper after the runtime is ready.
 func writeLauncher(binDir string) error {
 	if runtime.GOOS == "windows" {
 		return nil
 	}
-	path := pythonExecutable(binDir)
+	path := filepath.Join(binDir, "python")
 	if err := os.WriteFile(path, []byte(pythonLauncher), 0o755); err != nil {
 		return err
 	}

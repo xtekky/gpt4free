@@ -22,52 +22,14 @@ const embedEmptyPlaceholder = "EMPTY_PYTHON_RUNTIME"
 // The variable is declared in the build-tagged files runtime_<os>.go.
 // The placeholder file lets `go build` succeed before fetch-python.sh runs.
 
-// ensureRuntime extracts the embedded CPython + g4f runtime to
-// ~/.g4f/python-embed if it is missing, then returns the python interpreter
-// path. The binary itself stays completely portable — nothing is written next
-// to the executable.
-func ensureRuntime() (string, error) {
-	binDir := installDir()
-
-	// First run: extract and install g4f into the embedded Python.
-	stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
-	if !hasEmbeddedZip() {
-		// No real runtime baked in — distinguish "not built yet" from a real error.
-		markerPath := "embed/" + runtime.GOOS + "/" + embedEmptyPlaceholder
-		marker, err := fs.ReadFile(embedRuntimeArchive, markerPath)
-		if err == nil && strings.TrimSpace(string(marker)) == "EMPTY_PYTHON_RUNTIME" {
-			return "", fmt.Errorf("the Python runtime is not embedded in this build. Build a release with build.sh or run fetch-python.sh first")
-		}
-		return "", fmt.Errorf("no embedded runtime archive for this platform (run fetch-python.sh and rebuild)")
-	}
-
-	exe := pythonExecutable(binDir)
-	if _, err := os.Stat(exe); err == nil {
-		if _, err := os.Stat(stamp); err == nil {
-			return exe, nil // already installed
-		}
-		return exe, nil
-	}
-
-	// Extract the embedded archive next to the binary.
-	if err := extractEmbedded(binDir); err != nil {
-		return "", err
-	}
-	// Write the unix launcher (windows uses python.exe from the archive).
-	if err := writeLauncher(binDir); err != nil {
-		return "", err
-	}
-	exe = pythonExecutable(binDir)
-	if _, err := os.Stat(exe); err != nil {
-		return "", fmt.Errorf("python runtime extracted but %s is missing", exe)
-	}
-	return exe, nil
-}
-
 // installDir is the fixed user-level runtime location: ~/.g4f/python-embed.
 // This keeps the executable fully relocatable and shares one runtime across
-// all g4f-go binaries/versions on the machine.
+// all g4f-go binaries/versions on the machine. On Android it is overridden
+// to the app's own writable directory (see runtime_android.go).
 func installDir() string {
+	if d := androidInstallDir(); d != "" {
+		return d
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "."
@@ -146,11 +108,15 @@ func extractEmbedded(binDir string) error {
 	return nil
 }
 
-// installG4F installs the g4f Python package into the embedded interpreter and
-// writes the .installed stamp. Uses the bundled pip via site-packages so no
-// network access is required after the release archive was built.
+// installG4F installs the g4f Python package into the downloaded runtime and
+// writes the .installed stamp. Uses the bundled pip (ensurepip wheels in
+// pbs installs, bootstrapped via `python -m ensurepip`) so no network access
+// is required after the runtime was downloaded.
 func installG4F(binDir, exe string, start time.Time) error {
-	fmt.Printf("Installing gpt4free into the embedded Python runtime...\n")
+	fmt.Printf("Installing gpt4free into the Python runtime...\n")
+	if err := ensurePip(binDir, exe); err != nil {
+		return err
+	}
 	code, err := runPython(noSignalCtx(), exe, []string{
 		"-m", "pip", "install",
 		"--no-input", "g4f[slim]",
@@ -169,12 +135,26 @@ func installG4F(binDir, exe string, start time.Time) error {
 	return nil
 }
 
-// pipEnv restricts pip to the embedded runtime so the first run never touches
-// the network. A future `g4f-go install g4f --upgrade` can relax this.
+// ensurePip makes `python -m pip` available in the downloaded runtime.
+// pbs installs ship ensurepip but no standalone pip; bootstrap once.
+func ensurePip(binDir, exe string) error {
+	code, err := runPython(noSignalCtx(), exe, []string{"-c", "import pip"}, pipEnv(binDir)...)
+	if err == nil && code == 0 {
+		return nil
+	}
+	fmt.Println("  bootstrapping pip (ensurepip)...")
+	code, err = runPython(noSignalCtx(), exe, []string{"-m", "ensurepip", "--upgrade"}, pipEnv(binDir)...)
+	if err != nil || code != 0 {
+		return fmt.Errorf("ensurepip failed (exit %d): %w", code, err)
+	}
+	return nil
+}
+
+// pipEnv restricts pip to the downloaded runtime so installs never touch the
+// host Python. pbs installs are a full layout: lib/pythonX.Y/site-packages
+// (unix) or Lib/site-packages (windows) inside the interpreter home.
 func pipEnv(binDir string) []string {
 	home := pythonHome(binDir)
-	// pbs installs are a full layout: lib/pythonX.Y/site-packages (unix) or
-	// Lib/site-packages (windows) inside the interpreter home.
 	lib := filepath.Join(home, "Lib", "site-packages")
 	if runtime.GOOS != "windows" {
 		lib = filepath.Join(home, "lib", "python3.14", "site-packages")

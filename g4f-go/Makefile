@@ -2,7 +2,7 @@
 
 all: fetch build
 
-# Download & merge the CPython embeddable runtimes (needs curl/unzip/zip/python3)
+# Fetch the runtime manifest (validates URLs; runtimes download at first run)
 fetch:
 	./fetch-python.sh
 
@@ -12,7 +12,6 @@ build:
 
 clean:
 	rm -rf dist
-	find embed -name '*.zip' -delete
 
 vet:
 	go vet ./...

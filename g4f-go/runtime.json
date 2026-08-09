@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "python": "3.14.7",
+  "pbs_tag": "20260805",
+  "comment": "Runtime archives are downloaded at first run (never embedded in the binary). pbs = python-build-standalone (astral-sh), pyorg = python.org. SHA256 listed as empty must be filled after downloading (curl ... | sha256sum) and re-pinned.",
+  "platforms": {
+    "android": {
+      "kind": "android",
+      "arch": "any",
+      "url": "https://www.python.org/ftp/python/3.14.7/python-3.14.7-aarch64-linux-android.tar.gz",
+      "size": 22670000,
+      "sha256": ""
+    },
+    "linux-x64": {
+      "kind": "pbs",
+      "arch": "amd64",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260805/cpython-3.14.7+20260805-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "size": 0,
+      "sha256": ""
+    },
+    "linux-arm64": {
+      "kind": "pbs",
+      "arch": "arm64",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260805/cpython-3.14.7+20260805-aarch64-unknown-linux-gnu-install_only.tar.gz",
+      "size": 0,
+      "sha256": ""
+    },
+    "windows-amd64": {
+      "kind": "pbs",
+      "arch": "amd64",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260805/cpython-3.14.7+20260805-x86_64-pc-windows-msvc-install_only.tar.gz",
+      "size": 0,
+      "sha256": ""
+    },
+    "darwin-x64": {
+      "kind": "pbs",
+      "arch": "amd64",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260805/cpython-3.14.7+20260805-x86_64-apple-darwin-install_only.tar.gz",
+      "size": 0,
+      "sha256": ""
+    },
+    "darwin-arm64": {
+      "kind": "pbs",
+      "arch": "arm64",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260805/cpython-3.14.7+20260805-aarch64-apple-darwin-install_only.tar.gz",
+      "size": 0,
+      "sha256": ""
+    }
+  }
+}

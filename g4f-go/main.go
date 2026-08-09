@@ -5,29 +5,29 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
-// main handles the `g4f-go <command>` interface. Anything unknown is forwarded
-// to the embedded g4f CLI (so `g4f-go client "hello"` just works).
+// printHelp shows the g4f-go usage.
 func printHelp() {
-	fmt.Printf(`g4f-go %s - gpt4free with embedded Python %s
+	fmt.Printf(`g4f-go %s - gpt4free with a downloaded CPython %s runtime
 
 Usage:
   g4f-go <g4f args...>        run gpt4free (e.g. g4f-go client "hello")
   g4f-go api --port 8080      start the OpenAI-compatible API server
   g4f-go gui                  launch the web GUI
-  g4f-go install g4f         (re)install the g4f package into the embedded runtime
-  g4f-go status               show runtime status
+  g4f-go status               show runtime download/install status
+  g4f-go install g4f         (re)install the g4f package (network)
+  g4f-go bootstrap            refresh the g4f package installation
+  g4f-go --version            print version
   g4f-go help                 show this help
-  g4f-go --version            show version
 
-Environment:
-  G4F_PYTHON_ONLY=1           print the embedded python path and exit (for wrappers)
-`, Version, PythonVer)
+The CPython runtime downloads on first run (with progress feedback) into
+%s. Set G4F_PYTHON_ONLY=1 to print the interpreter path and exit.
+`, Version, PythonVer, installDir())
 }
 
 func main() {
@@ -56,19 +56,21 @@ func runMain() int {
 		printHelp()
 		return 0
 	case "--version", "-v":
-		fmt.Printf("g4f-go %s (embedded CPython %s)\n", Version, PythonVer)
+		fmt.Printf("g4f-go %s (CPython %s)\n", Version, PythonVer)
 		return 0
+	}
+
+	switch args[0] {
 	case "status":
-		exe := pythonExecutable(binDir)
 		stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
 		fmt.Printf("binary dir: %s\n", binDir)
-		fmt.Printf("python:     %s\n", exe)
-		if _, err := os.Stat(exe); err == nil {
-			fmt.Println("runtime:    extracted")
+		fmt.Printf("python:     %s\n", py)
+		if _, serr := os.Stat(py); serr == nil {
+			fmt.Println("runtime:    downloaded & extracted")
 		} else {
-			fmt.Println("runtime:    not extracted (will extract on first run)")
+			fmt.Println("runtime:    not downloaded yet (will download on first run)")
 		}
-		if _, err := os.Stat(stamp); err == nil {
+		if _, serr := os.Stat(stamp); serr == nil {
 			fmt.Println("g4f:        installed")
 		} else {
 			fmt.Println("g4f:        not installed (will install on first run)")
@@ -76,18 +78,15 @@ func runMain() int {
 		code, err := runPython(ctx, py, []string{"--version"})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
 		}
 		return code
 	case "install", "uninstall":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "usage: g4f-go install g4f")
-			return 2
 		}
 		code, err := runPython(ctx, py, append([]string{"-m", "pip"}, args...))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
 		}
 		return code
 	case "bootstrap":
@@ -95,7 +94,6 @@ func runMain() int {
 		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", "g4f[slim]"}, pipEnv(binDir)...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
 		}
 		return code
 	}
@@ -105,18 +103,20 @@ func runMain() int {
 		return 0
 	}
 
-	exe := pythonExecutable(binDir)
+	exe, err := pythonExecutable(binDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		return 1
+	}
 	start := time.Now()
 	if err := installG4F(binDir, exe, start); err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
-		return 1
 	}
 
 	// Default: forward everything to the g4f module.
 	code, err := runPython(ctx, py, append([]string{"-m", "g4f"}, args...))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
-		return 1
 	}
 	return code
 }

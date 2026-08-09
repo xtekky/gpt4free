@@ -173,6 +173,7 @@ class DeepInfra(OpenaiTemplate):
     url = "https://deepinfra.com"
     login_url = "https://deepinfra.com/dash/api_keys"
     base_url = "https://api.deepinfra.com/v1/openai"
+    backup_url = "https://api.deepinfra.com/v1/openai"
 
     working = True
     active_by_default = True
@@ -210,7 +211,7 @@ class DeepInfra(OpenaiTemplate):
     async def create_async_generator(
         cls, model, messages, api_key=None, headers=None, **kwargs
     ):
-        if not api_key:
+        if not api_key or not cls.is_provider_api_key(api_key):
             # Generate a Turnstile token for each request (required without an API key)
             token = await get_turnstile_token_async(model)
             if token:
@@ -231,9 +232,11 @@ class DeepInfra(OpenaiTemplate):
     def get_headers(
         cls, stream: bool, api_key: str = None, headers: dict = None
     ) -> dict:
-        headers = super().get_headers(stream, api_key, headers)
-        if not api_key:
-            headers["X-Deepinfra-Source"] = "web-page"
+        if not api_key or not cls.is_provider_api_key(api_key):
+            if headers is None:
+                headers = {}
+            headers["X-DeepInfra-Source"] = "web-page"
             headers["Origin"] = "https://deepinfra.com"
             headers["Referer"] = "https://deepinfra.com/"
-        return headers
+            api_key = None
+        return super().get_headers(stream, api_key, headers)
