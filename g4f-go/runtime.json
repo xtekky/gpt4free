@@ -8,7 +8,7 @@
       "kind": "android",
       "arch": "any",
       "url": "https://www.python.org/ftp/python/3.14.7/python-3.14.7-aarch64-linux-android.tar.gz",
-      "size": 22670000,
+      "size": 22477276,
       "sha256": ""
     },
     "linux-x64": {
