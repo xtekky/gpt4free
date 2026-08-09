@@ -1149,6 +1149,7 @@ class GithubRepoTool(MCPTool):
             headers = {
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
+                "Authorization": f"Bearer {self.github_token}" if self.github_token else "",
             }
             async with ClientSession() as session:
                 async with session.get(search_url, headers=headers) as resp:
@@ -1239,6 +1240,7 @@ class GithubTextSearchTool(MCPTool):
             headers = {
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
+                "Authorization": f"Bearer {self.github_token}" if self.github_token else "",
             }
             async with ClientSession() as session:
                 async with session.get(search_url, headers=headers) as resp:

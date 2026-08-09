@@ -74,7 +74,7 @@ class MCPServer:
     allowing AI assistants to utilize web search, scraping, and image generation.
     """
 
-    def __init__(self, safe_mode: bool = False):
+    def __init__(self, safe_mode: bool = False, github_token: Optional[str] = None):
         """Initialize MCP server with available tools
 
         Args:
@@ -83,6 +83,7 @@ class MCPServer:
                 listing the workspace root directory is blocked.
         """
         self.safe_mode = safe_mode
+        self.github_token = github_token
         self.tools = {
             "web_search": WebSearchTool(),
             "image_generation": ImageGenerationTool(),
@@ -98,8 +99,8 @@ class MCPServer:
             "fetch_webpage": FetchWebpageTool(),
             "file_search_glob": FileSearchGlobTool(),
             "grep_search": GrepSearchTool(),
-            "github_repo": GithubRepoTool(),
-            "github_text_search": GithubTextSearchTool(),
+            "github_repo": GithubRepoTool(False, self.github_token),
+            "github_text_search": GithubTextSearchTool(False, self.github_token),
         }
         self.server_info = {
             "name": "gpt4free-mcp-server",
@@ -560,7 +561,7 @@ def main(
         safe: If True, start in safe mode — callers cannot override the module
             allowlist for Python execution and workspace root listing is blocked.
     """
-    server = MCPServer(safe_mode=safe)
+    server = MCPServer(safe_mode=safe, github_token=os.environ.get("GITHUB_TOKEN"))
     if http:
         asyncio.run(server.run_http(host, port, origin))
     else:

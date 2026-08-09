@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -371,10 +372,38 @@ func copySymlinkTarget(target, linkname string) error {
 	return os.WriteFile(target, data, 0o755)
 }
 
+func IsTermuxSystem() bool {
+	// Check for Termux specific environment variable or directory
+	if os.Getenv("TERMUX_VERSION") != "" {
+		return true
+	}
+	_, err := os.Stat("/data/data/com.termux/files/usr")
+	return !os.IsNotExist(err)
+}
+
 // ensureRuntime is the top-level entry point. It downloads (if needed) and
 // extracts the platform runtime into binDir, then returns the python
 // executable/launcher path.
 func ensureRuntime() (string, error) {
+	isTermux := IsTermuxSystem()
+	if isTermux {
+		// Check if key compilers/tools are installed
+		if !commandExists("clang") || !commandExists("make") {
+			fmt.Println("Missing required tools. Installing...")
+
+			packages := []string{"clang", "make", "libxml2", "libxslt", "libjpeg-turbo", "libpng"}
+			args := append([]string{"install", "-y"}, packages...)
+
+			cmd := exec.Command("pkg", args...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Run(); err != nil {
+				fmt.Printf("Error during package installation: %v\n", err)
+			}
+		}
+	}
+		
 	binDir := installDir()
 	exe, err := pythonExecutable(binDir)
 	if err == nil {
@@ -412,6 +441,12 @@ func ensureRuntime() (string, error) {
 	}
 
 	return finalizeRuntime(binDir)
+}
+
+// Check if a command/binary exists in PATH
+func commandExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
 }
 
 // finalizeRuntime does platform-specific finishing (launcher setup) and
