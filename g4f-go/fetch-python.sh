@@ -24,6 +24,14 @@ PBS_BASE="https://github.com/astral-sh/python-build-standalone/releases/download
 PYORG_BASE="https://www.python.org/ftp/python/${PYVER}"
 G4F_SRC="${G4F_SRC:-$HERE/..}"                  # gpt4free repository root
 G4F_VERSION="${G4F_VERSION:-$(cd "$G4F_SRC" && python3 -c 'import sys;sys.path.insert(0,"g4f");from version import __version__;print(__version__)' 2>/dev/null || echo 0.4.x)}"
+
+# Minimum versions for deps that have ancient pure-python releases on PyPI.
+# `pip download --platform <x>` considers py3-none-any wheels valid for any
+# target, so an old/misbehaving resolver can pick e.g. aiohttp 0.13.1 (2015,
+# predates async/await) which crashes the embedded CPython 3.14. Pinning
+# floors here keeps the offline wheel set sane.
+WHEEL_FLOORS="aiohttp>=3.8"
+
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -99,12 +107,17 @@ do_platform() {
   esac
   mkdir -p "$dir/wheels"
   if [ -n "$tag" ]; then
+    # Windows pip can't read process-substitution FDs from its subprocess, so
+    # write the version floors to a real file once per platform.
+    local floors="$dir/wheels.floors"
+    printf '%s\n' "$WHEEL_FLOORS" > "$floors"
     # Full dependency resolution (no --no-deps) so the runtime's offline
     # `pip install g4f` finds every transitive wheel it needs.
     # brotli is optional in g4f and has no cp314 wheel for win_arm64;
     # fall back to fetching everything else if a single dep is unavailable.
     if ! python3 -m pip download \
         -r "$G4F_SRC/requirements-min.txt" \
+        --constraint "$floors" \
         --only-binary=:all: \
         --python-version "$PYVER" --implementation cp --abi "cp$(echo "$PYVER" | tr -d '.')" \
         --platform "$tag" \
@@ -113,6 +126,7 @@ do_platform() {
       grep -v '^brotli$' "$G4F_SRC/requirements-min.txt" > "$dir/req-nobrotli.txt"
       python3 -m pip download \
           -r "$dir/req-nobrotli.txt" \
+          --constraint "$floors" \
           --only-binary=:all: \
           --python-version "$PYVER" --implementation cp --abi "cp$(echo "$PYVER" | tr -d '.')" \
           --platform "$tag" \
@@ -120,6 +134,30 @@ do_platform() {
         echo "  WARNING: wheel download for $name failed; runtime will need network on first run" >&2
       }
     fi
+    # Belt-and-braces: drop any wheel whose Requires-Python metadata excludes
+    # our interpreter. The --constraint above prevents this at resolve time;
+    # this catches stale wheels (e.g. copied in from wheels-cache) and covers
+    # ancient pure-python releases like aiohttp 0.13.1.
+    python3 - "$dir/wheels" "$PYVER" <<'PY' || true
+import glob, os, sys, zipfile
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
+want_v = Version(sys.argv[2])
+for whl in glob.glob(os.path.join(sys.argv[1], "*.whl")):
+    try:
+        with zipfile.ZipFile(whl) as z:
+            meta = next((n for n in z.namelist() if n.endswith(".dist-info/METADATA")), None)
+            if not meta:
+                continue
+            txt = z.read(meta).decode("utf-8", "replace")
+        rp = next((l.split(":", 1)[1].strip() for l in txt.splitlines()
+                   if l.lower().startswith("requires-python:")), None)
+        if rp and not SpecifierSet(rp).contains(want_v):
+            print(f"  removing {os.path.basename(whl)} (Requires-Python {rp} excludes {sys.argv[2]})")
+            os.remove(whl)
+    except Exception as e:
+        print(f"  skip check {os.path.basename(whl)}: {e}")
+PY
   fi
 
   # 3) Merge g4f package + wheels so the interpreter is self-contained.

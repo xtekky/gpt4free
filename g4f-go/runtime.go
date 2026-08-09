@@ -180,13 +180,15 @@ func installG4F(binDir, exe string, start time.Time) error {
 // pipEnv restricts pip to the embedded runtime so the first run never touches
 // the network. A future `g4f-go install g4f --upgrade` can relax this.
 func pipEnv(binDir string) []string {
-	p := pythonExecutable(binDir)
-	lib := filepath.Join(binDir, "Lib", "site-packages")
-	if strings.Contains(p, "bin/python") {
-		lib = filepath.Join(binDir, "lib", "python3.14", "site-packages")
+	home := pythonHome(binDir)
+	// pbs installs are a full layout: lib/pythonX.Y/site-packages (unix) or
+	// Lib/site-packages (windows) inside the interpreter home.
+	lib := filepath.Join(home, "Lib", "site-packages")
+	if runtime.GOOS != "windows" {
+		lib = filepath.Join(home, "lib", "python3.14", "site-packages")
 	}
 	return []string{
-		"PYTHONHOME=" + pythonHome(binDir),
+		"PYTHONHOME=" + home,
 		"PYTHONNOUSERSITE=1",
 		"PYTHONDONTWRITEBYTECODE=1",
 		"PYTHONUTF8=1",

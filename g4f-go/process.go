@@ -123,9 +123,24 @@ func extractZip(r io.ReaderAt, size int64, dest string) error {
 }
 
 // pythonExecutable returns the launcher (unix) or python.exe (windows) path.
+//
+// The embedded archive is laid out as <name>/python-home/<exe>, so after
+// extraction the interpreter lives at binDir/python-home/python.exe on
+// windows and binDir/python-home/bin/python on unix. We prefer that location
+// and fall back to the legacy binDir/python(.exe) layout produced by older
+// archives, mirroring the shell launcher's logic.
 func pythonExecutable(binDir string) string {
+	home := filepath.Join(binDir, "python-home")
 	if runtime.GOOS == "windows" {
+		exe := filepath.Join(home, "python.exe")
+		if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {
+			return exe
+		}
 		return filepath.Join(binDir, "python.exe")
+	}
+	exe := filepath.Join(home, "bin", "python")
+	if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {
+		return exe
 	}
 	return filepath.Join(binDir, "python")
 }

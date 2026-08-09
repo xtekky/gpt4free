@@ -67,7 +67,7 @@ import traceback
 import types
 import builtins as _builtins
 from pathlib import Path
-from typing import Any, Dict, FrozenSet, List, Optional, Type
+from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Type
 from .. import debug
 
 # ---------------------------------------------------------------------------
@@ -748,7 +748,7 @@ def load_pa_provider(file_path: "str | Path") -> Optional[Type]:
         raise ValueError(f"File must have .pa.py extension: {file_path}")
 
     code = file_path.read_text(encoding="utf-8")
-    result = execute_safe_code(code, file_path=file_path)
+    result = execute_safe_code(code, file_path=file_path, timeout=0.1, max_depth=100)
 
     if not result.success:
         raise RuntimeError(
@@ -770,7 +770,7 @@ def load_pa_provider(file_path: "str | Path") -> Optional[Type]:
     return None
 
 
-def list_pa_providers(directory: "Optional[str | Path]" = None) -> List[Path]:
+def list_pa_providers(directory: "Optional[str | Path]" = None) -> Tuple[Path, List[Path]]:
     """Return all ``.pa.py`` files found (recursively) in *directory*.
 
     Args:
@@ -830,9 +830,38 @@ class PaProviderRegistry:
         if _time_module.monotonic() - self._loaded_at >= self.TTL:
             self.refresh()
 
+    def _ensure_index(self) -> None:
+        if not self._entries:
+            self.index()
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+
+    def index(self) -> None:
+        """Re-scan the workspace and reload all ``.pa.py`` providers."""
+        entries: List[tuple] = []
+        directory, pa_paths = list_pa_providers()
+        for pa_path in pa_paths:
+            try:
+                relative_path = pa_path.relative_to(directory).as_posix()
+                provider_id = self._make_id(pa_path)
+                entries.append(
+                    (
+                        provider_id,
+                        None,
+                        None,
+                        True,
+                        None,
+                        None,
+                        relative_path,
+                    )
+                )
+            except Exception as e:
+                debug.error(f"Failed to load PA provider from {pa_path}:", e)
+                pass
+        self._entries = entries
+
 
     def refresh(self) -> None:
         """Re-scan the workspace and reload all ``.pa.py`` providers."""
@@ -893,9 +922,11 @@ class PaProviderRegistry:
 
     def get_provider_class(self, provider_id: str) -> Optional[Type]:
         """Return the provider class for *provider_id*, or ``None``."""
-        self._ensure_fresh()
+        self._ensure_index()
         for e in self._entries:
             if e[0] == provider_id:
+                if e[5] is None:
+                    return load_pa_provider(get_workspace_dir() / e[6])
                 return e[5]
         return None
 

@@ -111,6 +111,70 @@ REPLACE_VSC = (
     "- **Skills:** Use `read_file` to load detailed skill instructions when a "
     "task matches a skill's domain (e.g., use `project-setup-info-local` for "
     "scaffolding new projects from scratch, not for adding individual files)."
+    """
+# ADHD Mode: Escaping the Textbook Answer
+
+The first three answers to any problem are obvious, safe, and forgettable. The interesting answers live past number three, in the "awkward middle." This skill forces the model there using parallel divergent ideation. 
+
+## Pre-flight Gate (Cost Check)
+This process costs ~10 parallel Agent calls (5-10x normal). Run this gate first.
+1. **Explicit Invocation:** If invoked via `/adhd` or explicit user request, **skip to Phase 1**.
+2. **Self-Judge:** Abort and answer directly unless ALL three are true:
+   - **Open-ended:** Multiple viable answers exist (no canonical answer).
+   - **High-stakes:** Architecture, public APIs, fuzzy bugs (not a 11pm side-project).
+   - **Open phrasing:** User didn't use words like "quick," "standard," "just," or "textbook."
+*(If aborted, append: "Run `/adhd <your problem>` for wider exploration.")*
+
+## The Loop
+Strict separation is required; the critic must not strangle the generator.
+
+### Phase 1 — Diverge (No Critic)
+1. Pick 5 cognitive frames from the table below. Bias toward `code`/`design` for technical problems; always include 1 `wild`.
+2. Spawn 5 **parallel, isolated** Agent/Task calls (one per frame). *Critical invariant: Do NOT serialize or share context between branches.*
+3. **Agent Instruction:**
+   > DIVERGENT MODE: Generate 6 short, distinct ideas under this frame. The first 3 obvious answers are banned. No evaluation, ranking, or hedging. Push into the awkward middle. Output JSON array only: `[{"text": "...", "rationale": "..."}]`
+
+### Phase 2 — Focus (Critic On)
+1. **Score:** Rate ideas 0-10 on Novelty (0.35 weight), Viability (0.40), Fit (0.25). Flag traps (hidden costs, false economies) with a one-line reason.
+2. **Cluster:** Group into 3-6 clusters by underlying angle (e.g., "cache-shaped plays").
+3. **Deepen Top 3:** Spawn 1 Agent call per top idea (excluding traps). **Agent Instruction:**
+   > FOCUS MODE: Sketch how this works (4-8 sentences). Name the load-bearing risk. Name the first concrete coding step. Generate 3-5 child ideas (variations/unlocks). Output JSON only.
+
+## Cognitive Frames (Pick 5 per run)
+| Frame | Vantage Prompt | Tags |
+|---|---|---|
+| **Hardware engineer** | Think in latency, memory layout, physical constraints. What does bus topology/cache/timing tell you? | code, wild |
+| **Regulator** | Audit for compliance/failure modes. What must be provable, traceable, or refusable here? | design, general |
+| **10-year-old** | Naive but unencumbered. Ignore convention. | general, wild |
+| **Hostile competitor** | Exploit, fail, or sabotage the obvious solution. Then invert into ideas. | code, design |
+| **Biology** | Transplant a mechanism from biology (immune systems, cell signaling). Force-fit it. | code, wild |
+| **Logistics** | Steal from logistics: queues, batching, JIT, hub-and-spoke. Apply literally. | code, design |
+| **Game design** | What are the loops, rewards, friction, speedrun tricks? Treat the user as a player. | design, general |
+| **Markets** | Treat as a market. Buyers, sellers, auction, clearing house—what do they look like here? | design, wild |
+| **Inversion** | Brainstorm how to guarantee NOT X. Then negate each answer back. | code, design, general |
+| **Extreme: $0, 1hr** | Crudest version that still does the load-bearing thing? | code, general |
+| **Extreme: ∞ budget, 10yrs** | Maximalist version? | design, wild |
+| **Remove assumption** | Name the thing everyone treats as fixed. Imagine it is gone. What is possible? | code, design, wild |
+| **Speedrunner** | Find glitches, skips, out-of-bounds tricks. What is the abusive-but-legal path? | code, wild |
+| **Ant colony** | No central planner. Many dumb agents, local rules. How does this solve itself emergently? | code, wild |
+| **3am on-call** | You are woken at 3am when this breaks. What design prevents the page? | code, design |
+
+## Output Shape
+1. **Brief:** 1-2 lines confirming the problem/reframe.
+2. **Wide Set:** Full pool grouped by cluster (labeled by angle). Short phrases with score chips `[N7 V8 F9]`.
+3. **Converge:** 2-4 idea shortlist with rationale. Mark non-obvious viable picks with ★. List traps separately with 1-line reasons.
+4. **Focus:** The 3 deepened branches (sketch, risk, first step, child ideas).
+5. **Provocation:** 1 wildcard question opening a new direction.
+
+## Anti-patterns & Calibration
+- **No fake divergence:** 10 variations of one assumption isn't breadth; it's decoration.
+- **No weird-for-weird's-sake:** Always converge with a real opinion. "You decide" is a cop-out.
+- **Strict Isolation:** Simulating parallel branches in one context just creates a wider single thought. Use separate Agent contexts.
+- **Structure over prose:** Cluster, label, and score. Walls of text are useless.
+- **Calibrate:** Scale ideas to stakes (3x4 for quick tasks, 5x8 for strategy). Stop diverging when candidates repeat shapes.
+
+*(Note: Use companion CLI `npm install -g adhd-agent` for batch/outside-Claude runs).*
+"""
 )
 
 
