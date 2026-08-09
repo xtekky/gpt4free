@@ -123,7 +123,7 @@ func runMain() int {
 
 // normalizeArgs cleans leading `g4f-go` repeats (typos like `g4f-go g4f-go ...`).
 func normalizeArgs(args []string) []string {
-	for len(args) > 0 && args[0] == "g4f-go" {
+	for len(args) > 0 {
 		args = args[1:]
 	}
 	// A leading binary-name echo (e.g. argv[0]) is stripped by callers.
