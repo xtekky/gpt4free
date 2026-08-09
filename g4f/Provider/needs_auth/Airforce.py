@@ -11,7 +11,6 @@ class Airforce(OpenaiTemplate):
     login_url = "https://panel.api.airforce/dashboard"
     base_url = "https://api.airforce/v1"
     working = True
-    needs_auth = True
     active_by_default = True
     use_image_size = True
     default_model = "gpt-4o-mini"

@@ -14,7 +14,7 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Copilot App"
     url = "https://play.google.com/store/apps/details?id=com.microsoft.copilot"
     working = True
-    supports_stream = True
+    active_by_default = True
 
     default_model = "smart"
     models = ["smart", "reasoning", "chat", "study", "search"]
@@ -26,7 +26,12 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
         "o1-preview": "reasoning",
         "o3-mini": "reasoning",
         "gpt-5": "smart",
+        "gpt-4o-mini": "chat",
     }
+
+    @classmethod
+    async def get_quota(cls, **kwargs) -> int:
+        return {"live": cls.live}
 
     @classmethod
     async def create_async_generator(
@@ -50,73 +55,77 @@ class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
             "correctPersonalizationSetting": True,
             "deferredDataUseCapable": True,
         }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://copilot.microsoft.com/c/api/start",
+                    headers=headers,
+                    json=start_payload,
+                    proxy=proxy,
+                ) as resp:
+                    if resp.status != 200:
+                        raise RuntimeError(
+                            f"Failed to start conversation: {await resp.text()}"
+                        )
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://copilot.microsoft.com/c/api/start",
-                headers=headers,
-                json=start_payload,
-                proxy=proxy,
-            ) as resp:
-                if resp.status != 200:
-                    raise RuntimeError(
-                        f"Failed to start conversation: {await resp.text()}"
-                    )
+                    start_data = await resp.json()
+                    conversation_id = start_data.get("currentConversationId")
 
-                start_data = await resp.json()
-                conversation_id = start_data.get("currentConversationId")
+                client_session_id = str(uuid.uuid4())
+                ws_url = f"wss://copilot.microsoft.com/c/api/chat?api-version=2&clientSessionId={client_session_id}"
 
-            client_session_id = str(uuid.uuid4())
-            ws_url = f"wss://copilot.microsoft.com/c/api/chat?api-version=2&clientSessionId={client_session_id}"
+                async with session.ws_connect(ws_url, headers=headers, proxy=proxy) as ws:
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            data = json.loads(msg.data)
+                            if data.get("event") == "connected":
+                                break
 
-            async with session.ws_connect(ws_url, headers=headers, proxy=proxy) as ws:
-                async for msg in ws:
-                    if msg.type == aiohttp.WSMsgType.TEXT:
-                        data = json.loads(msg.data)
-                        if data.get("event") == "connected":
-                            break
+                    model_lower = model.lower()
+                    if (
+                        "reasoning" in model_lower
+                        or "think" in model_lower
+                        or "o1" in model_lower
+                        or "o3" in model_lower
+                    ):
+                        mode = "reasoning"
+                    elif "smart" in model_lower or "gpt-5" in model_lower:
+                        mode = "smart"
+                    elif "study" in model_lower:
+                        mode = "study"
+                    elif "search" in model_lower:
+                        mode = "search"
+                    else:
+                        mode = "smart"
 
-                model_lower = model.lower()
-                if (
-                    "reasoning" in model_lower
-                    or "think" in model_lower
-                    or "o1" in model_lower
-                    or "o3" in model_lower
-                ):
-                    mode = "reasoning"
-                elif "smart" in model_lower or "gpt-5" in model_lower:
-                    mode = "smart"
-                elif "study" in model_lower:
-                    mode = "study"
-                elif "search" in model_lower:
-                    mode = "search"
-                else:
-                    mode = "smart"
+                    send_payload = {
+                        "event": "send",
+                        "content": [{"type": "text", "text": prompt}],
+                        "conversationId": conversation_id,
+                        "mode": mode,
+                    }
+                    await ws.send_json(send_payload)
 
-                send_payload = {
-                    "event": "send",
-                    "content": [{"type": "text", "text": prompt}],
-                    "conversationId": conversation_id,
-                    "mode": mode,
-                }
-                await ws.send_json(send_payload)
-
-                sources = {}
-                async for msg in ws:
-                    if msg.type == aiohttp.WSMsgType.TEXT:
-                        data = json.loads(msg.data)
-                        event = data.get("event")
-                        if event == "appendText":
-                            yield data.get("text", "")
-                        elif event == "citation":
-                            sources[data.get("url")] = data
-                            yield SourceLink(
-                                list(sources.keys()).index(data.get("url")),
-                                data.get("url"),
-                            )
-                        elif event == "done":
-                            if sources:
-                                yield Sources(sources.values())
-                            break
-                    elif msg.type == aiohttp.WSMsgType.ERROR:
-                        raise RuntimeError(f"WebSocket Error: {ws.exception()}")
+                    sources = {}
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            data = json.loads(msg.data)
+                            event = data.get("event")
+                            if event == "appendText":
+                                yield data.get("text", "")
+                            elif event == "citation":
+                                sources[data.get("url")] = data
+                                yield SourceLink(
+                                    list(sources.keys()).index(data.get("url")),
+                                    data.get("url"),
+                                )
+                            elif event == "done":
+                                if sources:
+                                    yield Sources(sources.values())
+                                cls.live += 1
+                                break
+                        elif msg.type == aiohttp.WSMsgType.ERROR:
+                            raise RuntimeError(f"WebSocket Error: {ws.exception()}")
+        except Exception as e:
+            cls.live -= 1
+            raise RuntimeError(f"Error during CopilotApp interaction: {e}") from e
