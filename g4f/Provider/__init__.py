@@ -117,6 +117,12 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.FenayAI import FenayAI
 
         return FenayAI
+    elif name == "G4FSpace":
+        from ..client.factory import AbstractClientFactory
+        _loaded_providers[name] = AbstractClientFactory.create_provider(
+            None, "default"
+        )
+        return _loaded_providers[name]
     elif name == "GLM":
         from g4f.Provider.glm import GLM
 

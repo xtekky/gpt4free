@@ -132,11 +132,7 @@ func extractZip(r io.ReaderAt, size int64, dest string) error {
 func pythonExecutable(binDir string) string {
 	home := filepath.Join(binDir, "python-home")
 	if runtime.GOOS == "windows" {
-		exe := filepath.Join(home, "python.exe")
-		if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {
-			return exe
-		}
-		return filepath.Join(binDir, "python.exe")
+		return filepath.Join(home, "python.exe")
 	}
 	exe := filepath.Join(home, "bin", "python")
 	if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {

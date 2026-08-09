@@ -160,8 +160,8 @@ func installG4F(binDir, exe string, start time.Time) error {
 	fmt.Printf("Installing gpt4free into the embedded Python runtime...\n")
 	code, err := runPython(noSignalCtx(), exe, []string{
 		"-m", "pip", "install",
-		"--no-input", "--no-index", "--find-links", "wheels",
-		"--no-cache-dir", "g4f",
+		"--no-input",
+		"--no-cache-dir", "g4f[slim]",
 	}, pipEnv(binDir)...)
 	if err != nil || code != 0 {
 		return fmt.Errorf("pip install g4f failed (exit %d): %w", code, err)
@@ -192,8 +192,6 @@ func pipEnv(binDir string) []string {
 		"PYTHONNOUSERSITE=1",
 		"PYTHONDONTWRITEBYTECODE=1",
 		"PYTHONUTF8=1",
-		"PIP_NO_INDEX=1",
-		"PIP_FIND_LINKS=" + filepath.Join(binDir, "wheels"),
 		"PYTHONPATH=" + lib,
 	}
 }

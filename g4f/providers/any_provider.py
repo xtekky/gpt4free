@@ -4,11 +4,9 @@ import os
 import re
 import json
 from ..typing import AsyncResult, Messages, MediaListType, Union
-from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
-from ..client.factory import AbstractClientFactory
 from ..Provider import __getattr__
 from .base_provider import (
     AsyncGeneratorProvider,
@@ -525,9 +523,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
 
         if len(providers) == 0:
-            provider: AsyncGeneratorProvider = AbstractClientFactory.create_provider(
-                None, "default"
-            )
+            provider: AsyncGeneratorProvider = __getattr__("G4FSpace")
             async for chunk in provider.create_async_generator(
                 model, messages, stream=stream, media=media, api_key=api_key, **kwargs
             ):
