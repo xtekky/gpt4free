@@ -259,7 +259,7 @@ def _should_auto_download(workspace: Path) -> bool:
         return True
     try:
         with open(marker, "r") as f:
-            timestamp = float(f.read().strip())
+            timestamp = float(f.read().strip() or "0")
         age = time.time() - timestamp
     except OSError:
         return True

@@ -40,7 +40,7 @@ class Api:
 
     @staticmethod
     def get_provider_models(
-        provider: str, api_key: str = None, base_url: str = None, ignored: list = None
+        provider: str, api_key: "str | None" = None, base_url: "str | None" = None, ignored: "list | None" = None
     ):
         def get_model_data(
             provider: ProviderModelMixin, model: str, default: bool = False
