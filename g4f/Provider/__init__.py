@@ -235,6 +235,10 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.OpenRouter import OpenRouter
 
         return OpenRouter
+    elif name == "OrcaRouter":
+        from g4f.Provider.needs_auth.OrcaRouter import OrcaRouter
+
+        return OrcaRouter
     elif name == "OpenaiAPI":
         from g4f.Provider.needs_auth.OpenaiAPI import OpenaiAPI
 
@@ -406,6 +410,7 @@ _provider_names = [
     "OpenAIFM",
     "OpenRouter",
     "OpenRouterFree",
+    "OrcaRouter",
     "OpenaiAPI",
     "OpenaiAccount",
     "OpenaiChat",
