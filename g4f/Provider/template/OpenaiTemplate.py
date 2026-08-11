@@ -336,7 +336,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         return {
             "Accept": "text/event-stream" if stream else "application/json",
             "Content-Type": "application/json",
-            # **({"Authorization": f"Bearer {api_key}"} if api_key else {}),
+            **({"Authorization": f"Bearer {api_key}"} if api_key else {}),
             **({} if headers is None else headers),
         }
 
