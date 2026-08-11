@@ -26,7 +26,7 @@ from aiohttp import ClientSession
 class MCPTool(ABC):
     """Base class for MCP tools"""
 
-    def __init__(self, safe_mode: bool = False) -> None:
+    def __init__(self, safe_mode: bool = False, github_token: Optional[str] = None):
         """Initialize tool with optional safe mode.
 
         Args:
@@ -35,6 +35,7 @@ class MCPTool(ABC):
                 sensitive listing operations are blocked.
         """
         self.safe_mode = safe_mode
+        self.github_token = github_token
 
     @property
     @abstractmethod
