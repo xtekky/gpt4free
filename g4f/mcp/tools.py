@@ -632,9 +632,9 @@ class FileListTool(MCPTool):
             iterator = target.rglob("*") if recursive else target.iterdir()
             for entry in sorted(iterator):
                 try:
-                    if is_hidden_file(entry):
-                        continue
                     rel = str(entry.relative_to(workspace))
+                    if is_hidden_file(rel):
+                        continue
                     info: Dict[str, Any] = {
                         "path": rel,
                         "type": "file" if entry.is_file() else "directory",

@@ -91,8 +91,21 @@ def _github_request(
     return urlopen(req, **kwargs).read()
 
 
+def _is_pa_file(name: str) -> bool:
+    """Return ``True`` for PA provider / helper files.
+
+    Accepted: ``*.py``, ``*.wasm``, plus browser scripts named ``pa-*.js``
+    or ``*.pa.js``.
+    """
+    if name.endswith(".py") or name.endswith(".wasm"):
+        return True
+    if name.endswith(".js"):
+        return name.startswith("pa-") or name.endswith(".pa.js")
+    return False
+
+
 def _list_repo_files(repo: str, ref: str, timeout: float) -> List[str]:
-    """Return the list of ``*.pa.py`` paths in the root of *repo* at *ref*.
+    """Return the list of PA provider paths in the root of *repo* at *ref*.
 
     Uses the GitHub contents API.  Subdirectories are not recursed — the
     pa-providers repo is flat by convention.
@@ -107,7 +120,7 @@ def _list_repo_files(repo: str, ref: str, timeout: float) -> List[str]:
         if not isinstance(entry, dict):
             continue
         name = entry.get("name", "")
-        if (name.endswith(".py") or name.endswith(".wasm")) and entry.get("type") == "file":
+        if _is_pa_file(name) and entry.get("type") == "file":
             files.append(name)
     return files
 
@@ -170,7 +183,7 @@ def run_pa_download(
         return written
 
     for name in names:
-        if not name.endswith(".py") and not name.endswith(".wasm"):
+        if not _is_pa_file(name):
             continue
         dest = target / name
         if dest.exists() and not force:
@@ -184,7 +197,7 @@ def run_pa_download(
         try:
             dest.write_bytes(content)
             written.append(dest)
-            print(f"pa-providers: downloaded {name} -> {dest}")
+            print(f"pa-providers: downloaded {name} ({len(content)} bytes)")
         except OSError as e:
             debug.error(f"pa-providers: failed to write {name}:", e)
 

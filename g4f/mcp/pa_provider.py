@@ -84,7 +84,7 @@ def get_workspace_dir() -> Path:
 
 def is_hidden_file(path: str) -> bool:
     """Return True if *path* is a hidden file (starts with a dot)."""
-    return any(part.startswith(".") for part in str(path).replace("\\", "/").split("/"))
+    return any(part.startswith(".") or part.startswith("__") for part in str(path).replace("\\", "/").split("/"))
 
 
 # ---------------------------------------------------------------------------

@@ -485,11 +485,13 @@ async def async_iter_run_tools(
         usage_dir.mkdir(parents=True, exist_ok=True)
         if has_aiofile:
             async with async_open(usage_file, "a") as f:
+                try:
+                    async def write_usage():
+                        await f.write(f"{json.dumps(usage)}\n")
 
-                async def write_usage():
-                    await f.write(f"{json.dumps(usage)}\n")
-
-                asyncio.create_task(write_usage())
+                    asyncio.create_task(write_usage())
+                except Exception as e:
+                    debug.log(f"Failed to write usage asynchronously: {e}")
         else:
             with usage_file.open("a") as f:
                 json.dump(usage, f)

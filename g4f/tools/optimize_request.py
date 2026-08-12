@@ -1248,13 +1248,13 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
             "reasoning_echo"
         ] = f"stripped repeated reasoning blocks (-{echo_saved} bytes)"
 
-    # ── Tool result truncation ──
-    tool_trunc_saved = _truncate_tool_results(messages)
-    if tool_trunc_saved:
-        saved_bytes += tool_trunc_saved
-        logs[
-            "tool_trunc"
-        ] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
+    # # ── Tool result truncation ──
+    # tool_trunc_saved = _truncate_tool_results(messages)
+    # if tool_trunc_saved:
+    #     saved_bytes += tool_trunc_saved
+    #     logs[
+    #         "tool_trunc"
+    #     ] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
 
     # ── Strip redundant tool_call fields ──
     # tool_field_saved = _strip_redundant_tool_fields(messages)
