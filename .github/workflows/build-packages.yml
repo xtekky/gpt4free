@@ -159,12 +159,6 @@ jobs:
           name: g4f-go-darwin-amd64
           path: g4f-go/dist/g4f-go-*-darwin-amd64.zip
           if-no-files-found: error
-      - name: Upload g4f-go freebsd-amd64
-        uses: actions/upload-artifact@v4
-        with:
-          name: g4f-go-freebsd-amd64
-          path: g4f-go/dist/g4f-go-*-freebsd-amd64.zip
-          if-no-files-found: error
 
   # Docker Images
   build-docker:
