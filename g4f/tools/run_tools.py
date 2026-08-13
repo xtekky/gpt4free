@@ -483,19 +483,13 @@ async def async_iter_run_tools(
         usage_dir = Path(get_cookies_dir()) / ".usage"
         usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
         usage_dir.mkdir(parents=True, exist_ok=True)
-        if has_aiofile:
-            async with async_open(usage_file, "a") as f:
-                try:
-                    async def write_usage():
-                        await f.write(f"{json.dumps(usage)}\n")
-
-                    asyncio.create_task(write_usage())
-                except Exception as e:
-                    debug.log(f"Failed to write usage asynchronously: {e}")
-        else:
+        try:
             with usage_file.open("a") as f:
                 json.dump(usage, f)
-                f.write("\n")
+                f.write(f"{json.dumps(usage)}\n")
+        except Exception as e:
+            debug.log(f"Failed to write usage: {e}")
+    
         if completion_tokens > 0:
             provider.live += 1
     except Exception:

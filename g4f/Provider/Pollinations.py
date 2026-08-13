@@ -32,7 +32,7 @@ from ..tools.run_tools import AuthManager
 from ..cookies import get_cookies_dir
 from ..tools.files import secure_filename
 from ..config import AppConfig
-from .template.OpenaiTemplate import read_response
+from .template.OpenaiTemplate import OpenaiTemplate, read_response
 from .. import debug
 
 
@@ -40,10 +40,9 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations 🌸"
     url = "https://pollinations.ai"
     login_url = "https://enter.pollinations.ai"
+    backup_url = "https://g4f.space/api/pollinations"
     active_by_default = True
     working = True
-    supports_system_message = True
-    supports_message_history = True
 
     # API endpoints
     text_api_endpoint = "https://text.pollinations.ai/openai"
@@ -318,8 +317,10 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                         has_audio = True
                         break
             model = "openai-audio" if has_audio else cls.default_model
-        if not api_key:
-            api_key = AuthManager.load_api_key(cls)
+        if AppConfig.disable_custom_api_key:
+            api_key = None
+        if not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_"):
+            api_key = AuthManager.load_api_key(cls) or api_key
         if cls.get_models(api_key=api_key, timeout=kwargs.get("timeout", 15)):
             if model in cls.model_aliases:
                 model = cls.model_aliases[model]

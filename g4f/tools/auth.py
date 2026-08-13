@@ -12,7 +12,6 @@ class AuthManager:
 
     aliases = {
         "GeminiPro": "Gemini",
-        "PollinationsAI": "Pollinations",
         "OpenaiAPI": "Openai",
         "PuterJS": "Puter",
     }
