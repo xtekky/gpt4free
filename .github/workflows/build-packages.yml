@@ -135,12 +135,6 @@ jobs:
           name: g4f-go-windows-amd64
           path: g4f-go/dist/g4f-go-*-windows-amd64.zip
           if-no-files-found: error
-      - name: Upload g4f-go windows-386
-        uses: actions/upload-artifact@v4
-        with:
-          name: g4f-go-windows-386
-          path: g4f-go/dist/g4f-go-*-windows-386.zip
-          if-no-files-found: error
       - name: Upload g4f-go linux-amd64
         uses: actions/upload-artifact@v4
         with:
