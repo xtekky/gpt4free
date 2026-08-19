@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import inspect
 import os
 import re
 import json
@@ -180,6 +182,8 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 continue
             try:
                 new_models = provider.get_models()
+                if inspect.isawaitable(new_models):
+                    new_models = asyncio.run(new_models)
             except Exception as e:
                 debug.error(
                     f"Error getting models for provider {provider.__name__}:", e
@@ -493,7 +497,10 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 if provider is None or not provider.working:
                     continue
                 try:
-                    if model in provider.get_models():
+                    provider_models = provider.get_models()
+                    if inspect.isawaitable(provider_models):
+                        provider_models = asyncio.run(provider_models)
+                    if model in provider_models:
                         providers.append(provider)
                     elif (
                         provider.model_aliases is not None

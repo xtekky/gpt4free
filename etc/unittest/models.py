@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 import unittest
 from typing import Type
 from requests.exceptions import RequestException
@@ -24,7 +26,9 @@ class TestProviderHasModel(unittest.TestCase):
                     continue
                 if issubclass(provider, ProviderModelMixin):
                     try:
-                        provider.get_models(timeout=5)  # Update models
+                        result = provider.get_models(timeout=5)  # Update models
+                        if inspect.isawaitable(result):
+                            result = asyncio.run(result)
                         if (
                             provider.model_aliases
                             and model.name in provider.model_aliases
@@ -39,7 +43,10 @@ class TestProviderHasModel(unittest.TestCase):
     def provider_has_model(self, provider: Type[BaseProvider], model: str):
         if provider.__name__ not in self.cache:
             try:
-                self.cache[provider.__name__] = list(provider.get_models())
+                provider_models = provider.get_models()
+                if inspect.isawaitable(provider_models):
+                    provider_models = asyncio.run(provider_models)
+                self.cache[provider.__name__] = list(provider_models)
             except (MissingRequirementsError, PaymentRequiredError, MissingAuthError):
                 return
         if self.cache[provider.__name__]:

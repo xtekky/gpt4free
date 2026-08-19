@@ -149,6 +149,7 @@ MODEL_ALIASES = {
     "gemini-3.5-flash-thinking-lite": "gemini-3.5-flash-lite",
     "gemini-3.5-flash-lite-thinking": "gemini-3.5-flash-lite",
     "gemini-flash-lite": "gemini-3.5-flash-lite",
+    **{key: key for key in models.keys()},
 }
 EXPANDED_MODEL_ALIASES = {
     "gemini-2.0-flash-thinking",
