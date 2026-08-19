@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import asyncio
@@ -39,7 +40,7 @@ class Api:
     models_lock = threading.Lock()
 
     @staticmethod
-    def get_provider_models(
+    async def get_provider_models(
         provider: str, api_key: "str | None" = None, base_url: "str | None" = None, ignored: "list | None" = None
     ):
         def get_model_data(
@@ -80,6 +81,8 @@ class Api:
                     models = method(ignored=ignored)
                 else:
                     models = method()
+                if inspect.isawaitable(models):
+                    models = await models
                 if has_grouped_models:
                     return [
                         {
@@ -113,15 +116,6 @@ class Api:
         saved = storage.get(f"{version_utils.current_version}/providers")
         if saved is not None:
             return saved
-        def safe_get_models(provider: ProviderModelMixin):
-            if not isinstance(provider, ProviderModelMixin):
-                return True
-            try:
-                return provider.get_models()
-            except Exception as e:
-                logger.exception(e)
-                return True
-
         result = [
             {
                 "name": provider.__name__,
@@ -142,7 +136,7 @@ class Api:
                 "login": hasattr(provider, "login"),
             }
             for provider in Provider.__providers__
-            if provider.working and safe_get_models(provider)
+            if provider.working
         ]
         storage.set(f"{version_utils.current_version}/providers", result)
         return result
@@ -156,7 +150,10 @@ class Api:
 
             def safe_get_provider_models(provider) -> tuple[str, list[str]]:
                 try:
-                    return provider.__name__, list(provider.get_models(timeout=10))
+                    models = provider.get_models(timeout=10)
+                    if inspect.isawaitable(models):
+                        models = asyncio.run(models)
+                    return provider.__name__, list(models)
                 except MissingAuthError as e:
                     return provider.__name__, []
                 except Exception as e:

@@ -204,9 +204,9 @@ class Backend_Api(Api):
             return jsonify(self.get_all_models())
 
         @app.route("/backend-api/v2/models/<provider>", methods=["GET"])
-        def jsonify_provider_models(**kwargs):
+        async def jsonify_provider_models(**kwargs):
             try:
-                response = self.get_provider_models(**kwargs)
+                response = await self.get_provider_models(**kwargs)
                 if response is None:
                     return jsonify({"error": {"message": "Provider not found"}}), 404
             except MissingAuthError as e:

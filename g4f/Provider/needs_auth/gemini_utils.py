@@ -202,9 +202,11 @@ def parse_account_models(content: str) -> tuple[int | None, dict[str, dict]]:
             for model_data in models_list:
                 if not isinstance(model_data, list):
                     continue
+                label = get_nested_value(model_data, [-1], "")
                 model_id = get_nested_value(model_data, [0], "")
                 display_name = get_nested_value(model_data, [1], "")
                 description = get_nested_value(model_data, [2], "")
+                mode = get_nested_value(model_data, [17], "")
                 if not isinstance(model_id, str) or not model_id:
                     continue
                 family = _model_family(model_id, display_name, description)
@@ -215,7 +217,9 @@ def parse_account_models(content: str) -> tuple[int | None, dict[str, dict]]:
                 if status_code == ACCOUNT_STATUS_UNAUTHENTICATED:
                     available = family == "flash"
                 registry[model_id] = {
-                    "model_id": model_id,
+                    "id": model_id,
+                    "label": label,
+                    "mode": mode,
                     "family": family,
                     "display_name": display_name,
                     "description": description,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 import json
 import asyncio
@@ -791,6 +792,8 @@ class Api:
                 models = provider.get_models(api_key=credentials.credentials)
             else:
                 models = provider.get_models()
+            if inspect.isawaitable(models):
+                models = await models
             return {
                 "object": "list",
                 "data": [
@@ -1433,21 +1436,12 @@ class Api:
             except ProviderNotFoundError as e:
                 return ErrorResponse.from_message(str(e), 404)
 
-            def safe_get_models(provider: ProviderType) -> list[str]:
-                try:
-                    return (
-                        provider.get_models() if hasattr(provider, "get_models") else []
-                    )
-                except Exception:
-                    return []
-
             return {
                 "id": provider.__name__,
                 "object": "provider",
                 "created": 0,
                 "url": provider.url,
                 "label": getattr(provider, "label", None),
-                "models": safe_get_models(provider),
                 "image_models": getattr(provider, "image_models", []) or [],
                 "vision_models": [
                     model

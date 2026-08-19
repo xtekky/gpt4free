@@ -33,6 +33,7 @@ from ...providers.response import (
     RequestLogin,
     TitleGeneration,
     YouTubeResponse,
+    ProviderInfo,
 )
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
@@ -420,7 +421,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         session: ClientSession,
         cookies: Cookies,
-        auth_user: int | str = None,
+        auth_user: int | str | None = None,
     ) -> None:
         prefix = _account_prefix(auth_user)
         params = {
@@ -462,6 +463,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_model_headers(cls, model: str) -> dict[str, str]:
+        if model in cls._account_models:
+            return cls._account_models[model].get("headers", {})
         family = MODEL_FAMILIES.get(model)
         # Request field 79 selects the model. Pro additionally needs the
         # account-specific model header or Google silently routes it to Flash.
@@ -478,6 +481,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         allow_model_fallback: bool = False,
     ) -> None:
+        if model in cls._account_models:
+            return
         model = MODEL_ALIASES.get(model, model)
         if allow_model_fallback or cls._account_status is None:
             return
@@ -516,13 +521,54 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         return cls._snlm0e
 
     @classmethod
+    async def get_models(
+        cls,
+        proxy: str | None = None,
+        cookies: Cookies | None = None,
+        connector: BaseConnector | None = None,
+        auth_user: int | str | None = None,
+        **kwargs,
+    ) -> dict[str, dict]:
+        if cookies is not None:
+            cls._cookies = cookies
+        elif cls._cookies is None:
+            cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+        request_cookies = dict(cls._cookies or {})
+        base_connector = get_connector(connector, proxy)
+
+        async with ClientSession(
+            headers=REQUEST_HEADERS,
+            connector=base_connector,
+            **RESPONSE_HEADER_LIMITS,
+        ) as session:
+            metadata_expired = (
+                time.time() - cls._metadata_fetched_at >= METADATA_CACHE_SECONDS
+            )
+            if not cls._metadata_fetched_at or metadata_expired:
+                try:
+                    await cls.fetch_snlm0e(session, request_cookies, auth_user)
+                except (ClientError, MissingAuthError, ResponseError) as error:
+                    cls._metadata_fetched_at = time.time()
+                    debug.log(f"Gemini metadata discovery failed: {error}")
+            models_expired = (
+                time.time() - cls._account_models_fetched_at >= MODEL_CACHE_SECONDS
+            )
+            if not cls._account_models_fetched_at or models_expired:
+                try:
+                    await cls.fetch_account_models(session, request_cookies, auth_user)
+                except (ClientError, ResponseError, ValueError) as error:
+                    cls._account_models_fetched_at = time.time()
+                    debug.log(f"Gemini model discovery failed: {error}")
+        return {key: value for key, value in cls._account_models.items() if value.get("available")}
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        proxy: str = None,
-        cookies: Cookies = None,
-        connector: BaseConnector = None,
+        proxy: str | None = None,
+        cookies: Cookies | None = None,
+        connector: BaseConnector | None = None,
         media: MediaListType = None,
         return_conversation: bool = True,
         conversation: Conversation = None,
@@ -559,7 +605,6 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 "high": 1,
                 "xhigh": 0,
             }.get(kwargs.get("reasoning_effort"))
-        model, expanded_thinking = _resolve_model(model, think_override)
         if cookies is not None:
             cls._cookies = cookies
         elif cls._cookies is None:
@@ -619,6 +664,15 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 except (ClientError, ResponseError, ValueError) as error:
                     cls._account_models_fetched_at = time.time()
                     debug.log(f"Gemini model discovery failed: {error}")
+            if model not in cls._account_models:
+                model, expanded_thinking = _resolve_model(model, think_override)
+            else:
+                yield ProviderInfo(**cls.get_dict(), model=cls._account_models[model]["label"])
+                expanded_thinking = (
+                    model in EXPANDED_MODEL_ALIASES
+                    if think_override is None
+                    else think_override <= 2
+                )
             cls.validate_model_access(
                 model,
                 allow_model_fallback=bool(kwargs.get("allow_model_fallback", False)),
@@ -978,7 +1032,9 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 async for chunk in iter_base64_decode(iter_base64_response):
                     yield chunk
 
+    @classmethod
     def build_request(
+        cls,
         prompt: str,
         language: str,
         model: str,
@@ -1026,7 +1082,10 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         request[59] = request_uuid or str(uuid.uuid4())
         request[61] = []
         request[68] = 2
-        request[79] = models[model]["mode"]
+        if model in cls._account_models:
+            request[79] = cls._account_models[model]["mode"]
+        else:
+            request[79] = models[model]["mode"]
         request[80] = 2 if expanded_thinking else 1
         request[91] = 0
         # Gemini Web marks the first turn with 1 and follow-up turns with 0.

@@ -12,6 +12,8 @@ Features:
   feeds the results back, and produces a final answer.
 - Streaming responses edited in-place for a "typing" effect
 - Configurable model and provider via environment variables
+- Auto-translation: messages in designated channels are translated to English
+- Honeypot: slash commands are silently blocked in designated channels
 """
 
 from __future__ import annotations
@@ -83,7 +85,27 @@ histories: Dict[int, Deque[dict]] = defaultdict(lambda: deque(maxlen=MAX_HISTORY
 intents = discord.Intents.default()
 intents.message_content = True  # required to read user messages
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ---------------------------------------------------------------------------
+# Honeypot: silently ignore slash commands in designated channels
+# ---------------------------------------------------------------------------
+class HoneypotTree(app_commands.CommandTree):
+    """Custom command tree that blocks slash commands in honeypot channels."""
+
+    async def interaction_check(
+        self, interaction: discord.Interaction, /
+    ) -> bool:
+        if HONEYPOT_CHANNELS and interaction.channel_id in HONEYPOT_CHANNELS:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    "🚫 Commands are not allowed in this channel.",
+                    ephemeral=True,
+                )
+            return False
+        return True
+
+
+bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=HoneypotTree)
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +120,37 @@ _image_channels_env = os.getenv("G4F_IMAGE_CHANNELS", "")
 IMAGE_CHANNELS = {
     int(x.strip())
     for x in _image_channels_env.split(",")
+    if x.strip().isdigit()
+}
+
+# ---------------------------------------------------------------------------
+# Auto-translation channels
+# ---------------------------------------------------------------------------
+# If enabled, the bot listens to messages in the given channel(s) and
+# auto-translates them to English, posting the translation as a reply.
+#
+# Env vars:
+# - G4F_TRANSLATE_CHANNELS: comma-separated channel ids (required to enable)
+_translate_channels_env = os.getenv("G4F_TRANSLATE_CHANNELS", "")
+TRANSLATE_CHANNELS = {
+    int(x.strip())
+    for x in _translate_channels_env.split(",")
+    if x.strip().isdigit()
+}
+
+# ---------------------------------------------------------------------------
+# Honeypot channels
+# ---------------------------------------------------------------------------
+# Slash commands are silently ignored in these channels.  Useful for
+# channels where you don't want bot command spam (e.g. announcement or
+# honeypot/trap channels).
+#
+# Env vars:
+# - G4F_HONEYPOT_CHANNELS: comma-separated channel ids
+_honeypot_channels_env = os.getenv("G4F_HONEYPOT_CHANNELS", "")
+HONEYPOT_CHANNELS = {
+    int(x.strip())
+    for x in _honeypot_channels_env.split(",")
     if x.strip().isdigit()
 }
 
@@ -557,10 +610,26 @@ async def on_message(message: discord.Message):
     # Let slash commands etc. work as usual.
     await bot.process_commands(message)
 
-    if not IMAGE_CHANNELS:
+    if message.author.bot:
         return
 
-    if message.author.bot:
+    # --- Auto-translation to English ---
+    if TRANSLATE_CHANNELS and message.channel.id in TRANSLATE_CHANNELS:
+        content = message.content.strip()
+        if content:
+            try:
+                translation = await _translate_to_english(content)
+                if translation and translation != content:
+                    await message.reply(
+                        f"🌐 **English:** {_truncate(translation, 1850)}",
+                        mention_author=False,
+                    )
+            except Exception as e:
+                log.exception("Auto translation failed")
+        return  # don't fall through to image generation in translate channels
+
+    # --- Auto image generation ---
+    if not IMAGE_CHANNELS:
         return
 
     if message.channel.id not in IMAGE_CHANNELS:
@@ -618,6 +687,31 @@ async def _finalize_response(
         await interaction.edit_original_response(content=_truncate(combined, 1900))
     else:
         await interaction.edit_original_response(content=_truncate(reply))
+
+
+# ---------------------------------------------------------------------------
+# Translation
+# ---------------------------------------------------------------------------
+TRANSLATE_SYSTEM_PROMPT = (
+    "You are a translation engine. Translate the user's message into English. "
+    "Output ONLY the translation — no explanations, no notes, no quotes. "
+    "If the text is already in English, output it unchanged."
+)
+
+
+async def _translate_to_english(text: str) -> str:
+    """Translate *text* to English via g4f and return the translation."""
+    messages = [
+        {"role": "system", "content": TRANSLATE_SYSTEM_PROMPT},
+        {"role": "user", "content": text},
+    ]
+    response = await client.chat.completions.create(
+        model=MODEL,
+        messages=messages,
+        stream=False,
+        proxy=PROXY,
+    )
+    return (response.choices[0].message.content or "").strip()
 
 
 # ---------------------------------------------------------------------------
