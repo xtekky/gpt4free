@@ -881,6 +881,79 @@ class FileWriteTool(MCPTool):
             return {"error": f"Write failed: {exc}"}
 
 
+class ReplaceStringInFileTool(MCPTool):
+    """Replace an exact string in a file inside the ``~/.g4f/workspace`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Replace an exact string in a file inside the ~/.g4f/workspace directory. "
+            "Provide the relative file path, the exact old string, and the new string. "
+            "Only the first occurrence is replaced. Returns whether a replacement was made."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "filePath": {
+                    "type": "string",
+                    "description": "Relative path to the file inside the workspace",
+                },
+                "oldString": {
+                    "type": "string",
+                    "description": "The exact text to replace. Must uniquely identify one location.",
+                },
+                "newString": {
+                    "type": "string",
+                    "description": "The text to replace oldString with.",
+                },
+            },
+            "required": ["filePath", "oldString", "newString"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        rel_path = arguments.get("filePath", "")
+        old_string = arguments.get("oldString")
+        new_string = arguments.get("newString")
+
+        if not rel_path:
+            return {"error": "filePath parameter is required"}
+        if old_string is None:
+            return {"error": "oldString parameter is required"}
+        if new_string is None:
+            return {"error": "newString parameter is required"}
+
+        workspace = get_workspace_dir().resolve()
+        try:
+            target = (workspace / rel_path).resolve()
+            if not str(target).startswith(str(workspace)):
+                return {"error": "Access outside the workspace is not allowed"}
+            if not target.exists():
+                return {"error": f"File not found: {rel_path}"}
+            if not target.is_file():
+                return {"error": f"Path is not a file: {rel_path}"}
+
+            content = target.read_text(encoding="utf-8")
+            if old_string not in content:
+                return {
+                    "error": "oldString not found in file. Include more surrounding context to uniquely identify the location."
+                }
+
+            new_content = content.replace(old_string, new_string, 1)
+            target.write_text(new_content, encoding="utf-8")
+            return {
+                "filePath": rel_path,
+                "replaced": True,
+                "size": len(new_content),
+            }
+        except Exception as exc:
+            return {"error": f"Replace failed: {exc}"}
+
+
 class FetchWebpageTool(MCPTool):
     """Fetch and return the main content from one or more web pages."""
 
