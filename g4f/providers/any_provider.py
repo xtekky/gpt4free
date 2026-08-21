@@ -499,7 +499,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 try:
                     provider_models = provider.get_models()
                     if inspect.isawaitable(provider_models):
-                        provider_models = asyncio.run(provider_models)
+                        provider_models = await provider_models
                     if model in provider_models:
                         providers.append(provider)
                     elif (
