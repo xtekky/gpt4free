@@ -562,7 +562,7 @@ class Api:
             """Return ``True`` when *path* must present a G4F API key."""
             return (
                 path.startswith("/v1/")
-                or (path.startswith("/api/") and path != "/api/logs")
+                or (path.startswith("/api/"))
                 or (path.startswith("/pa/") and not demo)
                 or (demo and path in ["/backend-api/v2/upload_cookies"])
             )
@@ -572,9 +572,7 @@ class Api:
             user = None
             if (
                 request.method != "OPTIONS"
-                and AppConfig.g4f_api_key is not None
-                or AppConfig.demo
-            ):
+                and AppConfig.g4f_api_key is not None            ):
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
@@ -583,11 +581,6 @@ class Api:
                     )
                 if user_g4f_api_key:
                     user_g4f_api_key = user_g4f_api_key.split()
-                country = request.headers.get("Cf-Ipcountry", "")
-                if AppConfig.demo and user is None:
-                    ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
-                    user = request.headers.get("x-user", ip)
-                    user = f"{country}:{user}" if country else user
                 if (
                     AppConfig.g4f_api_key is None
                     or not user_g4f_api_key
@@ -640,34 +633,19 @@ class Api:
                         )
                 elif user is None:
                     user = "admin"
-                path = request.url.path
-                if _requires_api_key(path, AppConfig.demo):
-                    if request.method != "OPTIONS" and not path.endswith("/models"):
-                        if not user_g4f_api_key:
-                            return ErrorResponse.from_message(
-                                "G4F API key required", HTTP_401_UNAUTHORIZED
-                            )
-                        if AppConfig.g4f_api_key is None and user is None:
-                            return ErrorResponse.from_message(
-                                "Invalid G4F API key", HTTP_403_FORBIDDEN
-                            )
-                elif (
-                    not path.startswith("/images/")
-                    and not path.startswith("/media/")
-                ):
-                    if user_g4f_api_key:
+                if user_g4f_api_key:
+                    if user is None:
+                        return ErrorResponse.from_message(
+                            "Invalid G4F API key", HTTP_403_FORBIDDEN
+                        )
+                    try:
+                        new_user = await self.get_username(request)
                         if user is None:
-                            return ErrorResponse.from_message(
-                                "Invalid G4F API key", HTTP_403_FORBIDDEN
-                            )
-                        try:
-                            new_user = await self.get_username(request)
-                            if user is None:
-                                user = new_user
-                        except HTTPException as e:
-                            return ErrorResponse.from_message(
-                                e.detail, e.status_code, e.headers
-                            )
+                            user = new_user
+                    except HTTPException as e:
+                        return ErrorResponse.from_message(
+                            e.detail, e.status_code, e.headers
+                        )
                 request = update_headers(request, user)
             response = await call_next(request)
             return response
