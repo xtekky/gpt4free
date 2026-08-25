@@ -514,13 +514,9 @@ class ErrorResponse(Response):
 
 
 def update_headers(
-    request: Request, new_api_key: str = None, user: str = None
+    request: Request, user: str = None
 ) -> Request:
     new_headers = request.headers.mutablecopy()
-    if new_api_key:
-        new_headers["authorization"] = f"Bearer {new_api_key}"
-    else:
-        del new_headers["authorization"]
     if user:
         new_headers["x-user"] = user
     request.scope["headers"] = new_headers.raw
@@ -579,14 +575,12 @@ class Api:
                 and AppConfig.g4f_api_key is not None
                 or AppConfig.demo
             ):
-                update_authorization = False
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
                     user_g4f_api_key = getattr(
                         await self.security(request), "credentials", None
                     )
-                    update_authorization = True
                 if user_g4f_api_key:
                     user_g4f_api_key = user_g4f_api_key.split()
                 country = request.headers.get("Cf-Ipcountry", "")
@@ -657,9 +651,8 @@ class Api:
                             return ErrorResponse.from_message(
                                 "Invalid G4F API key", HTTP_403_FORBIDDEN
                             )
-                elif path == "/logs" or (
-                    not AppConfig.demo
-                    and not path.startswith("/images/")
+                elif (
+                    not path.startswith("/images/")
                     and not path.startswith("/media/")
                 ):
                     if user_g4f_api_key:
@@ -667,12 +660,6 @@ class Api:
                             return ErrorResponse.from_message(
                                 "Invalid G4F API key", HTTP_403_FORBIDDEN
                             )
-                    elif (
-                        path.startswith("/backend-api/")
-                        or path.startswith("/chat/")
-                        or path.startswith("/playground/")
-                        or path in ["/logs"]
-                    ):
                         try:
                             new_user = await self.get_username(request)
                             if user is None:
@@ -681,13 +668,7 @@ class Api:
                             return ErrorResponse.from_message(
                                 e.detail, e.status_code, e.headers
                             )
-                if user_g4f_api_key and update_authorization:
-                    new_api_key = user_g4f_api_key.pop()
-                    if secrets.compare_digest(AppConfig.g4f_api_key, new_api_key):
-                        new_api_key = None
-                else:
-                    new_api_key = None
-                request = update_headers(request, new_api_key, user)
+                request = update_headers(request, user)
             response = await call_next(request)
             return response
 
