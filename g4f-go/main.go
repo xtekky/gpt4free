@@ -17,6 +17,7 @@ func printHelp() {
 
 Usage:
   g4f-go <g4f args...>        run gpt4free (e.g. g4f-go client "hello")
+  g4f-go script.py [args...]  run a .py file with the bundled Python
   g4f-go api --port 8080      start the OpenAI-compatible API server
   g4f-go gui                  launch the web GUI
   g4f-go status               show runtime download/install status
@@ -101,6 +102,20 @@ func runMain() int {
 	if os.Getenv("G4F_PYTHON_ONLY") == "1" {
 		fmt.Println(py)
 		return 0
+	}
+
+	// If the first argument is a .py file, run it directly with the bundled
+	// Python interpreter (forwarding any remaining args to the script).
+	if strings.HasSuffix(args[0], ".py") {
+		if _, serr := os.Stat(args[0]); serr != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", serr)
+			return 1
+		}
+		code, err := runPython(ctx, py, args)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
+		return code
 	}
 
 	exe, err := pythonExecutable(binDir)
