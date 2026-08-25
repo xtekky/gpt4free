@@ -13,7 +13,7 @@ class Airforce(OpenaiTemplate):
     working = True
     active_by_default = True
     use_image_size = True
-    default_model = "gpt-4o-mini"
+    default_model = "unmoderated-gpt"
 
     @classmethod
     async def create_async_generator(

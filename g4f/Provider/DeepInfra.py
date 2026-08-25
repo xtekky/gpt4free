@@ -16,7 +16,7 @@ def _get_turnstile_token_sync(model: str) -> str:
     """
     import time
 
-    for attempt in range(3):
+    for attempt in range(1):
         session = SyncCDPSession(headless=False)
         session.start_chrome()
 

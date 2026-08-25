@@ -381,27 +381,52 @@ func IsTermuxSystem() bool {
 	return !os.IsNotExist(err)
 }
 
+// ensureTermuxRuntime installs python and build dependencies via Termux's
+// package manager and returns the system python path. No CPython download is
+// needed — Termux provides a native python package.
+func ensureTermuxRuntime() (string, error) {
+	// Packages required for g4f and native extensions.
+	required := []string{"python", "clang", "make", "libxml2", "libxslt", "libjpeg-turbo", "libpng"}
+	var missing []string
+	for _, pkg := range required {
+		if !termuxPackageInstalled(pkg) {
+			missing = append(missing, pkg)
+		}
+	}
+	if len(missing) > 0 {
+		fmt.Printf("Installing Termux packages: %s\n", strings.Join(missing, ", "))
+		args := append([]string{"install", "-y"}, missing...)
+		cmd := exec.Command("pkg", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return "", fmt.Errorf("pkg install failed: %w", err)
+		}
+	}
+
+	py, err := exec.LookPath("python3")
+	if err != nil {
+		py, err = exec.LookPath("python")
+	}
+	if err != nil {
+		return "", fmt.Errorf("python not found in Termux PATH (run 'pkg install python')")
+	}
+	return py, nil
+}
+
+// termuxPackageInstalled checks if a Termux package is already installed
+// using dpkg.
+func termuxPackageInstalled(pkg string) bool {
+	cmd := exec.Command("dpkg", "-s", pkg)
+	return cmd.Run() == nil
+}
+
 // ensureRuntime is the top-level entry point. It downloads (if needed) and
 // extracts the platform runtime into binDir, then returns the python
 // executable/launcher path.
 func ensureRuntime() (string, error) {
-	isTermux := IsTermuxSystem()
-	if isTermux {
-		// Check if key compilers/tools are installed
-		if !commandExists("clang") || !commandExists("make") {
-			fmt.Println("Missing required tools. Installing...")
-
-			packages := []string{"clang", "make", "libxml2", "libxslt", "libjpeg-turbo", "libpng"}
-			args := append([]string{"install", "-y"}, packages...)
-
-			cmd := exec.Command("pkg", args...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			if err := cmd.Run(); err != nil {
-				fmt.Printf("Error during package installation: %v\n", err)
-			}
-		}
+	if IsTermuxSystem() {
+		return ensureTermuxRuntime()
 	}
 		
 	binDir := installDir()

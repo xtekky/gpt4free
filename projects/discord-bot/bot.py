@@ -32,6 +32,7 @@ from g4f.providers.any_provider import AnyProvider
 from g4f.client import ClientFactory
 
 from mcp_tools import MCPToolManager, ALL_AVAILABLE_TOOLS, SAFE_DEFAULT_TOOLS
+from live_feed import LiveFeed
 
 load_dotenv()
 
@@ -51,6 +52,22 @@ SYSTEM_PROMPT = os.getenv(
 MAX_HISTORY = int(os.getenv("G4F_MAX_HISTORY", "12"))  # messages per user
 PROXY = os.getenv("G4F_PROXY")  # optional, e.g. "socks5://127.0.0.1:1080"
 MAX_TOOL_LOOPS = int(os.getenv("G4F_MAX_TOOL_LOOPS", "4"))  # safety cap
+
+# ---------------------------------------------------------------------------
+# Live feed configuration
+# ---------------------------------------------------------------------------
+# When set, the bot posts a live activity feed to this Discord channel:
+# image thumbnails, tool calls, file edits, heavy token usage, server
+# errors, new g4f.dev users, and periodic summaries.
+LIVE_FEED_CHANNEL = int(os.getenv("G4F_LIVE_FEED_CHANNEL", "0") or "0")
+API_BASE = os.getenv("G4F_API_BASE", "http://localhost:8080")
+PUBLIC_BASE = os.getenv("G4F_PUBLIC_BASE", API_BASE)
+PUBLIC_API_KEY = os.getenv("G4F_PUBLIC_API_KEY", "")
+MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://auth.g4f.dev")
+FEED_POLL_INTERVAL = int(os.getenv("G4F_FEED_POLL_INTERVAL", "15"))
+HEAVY_TOKEN_THRESHOLD = int(os.getenv("G4F_HEAVY_TOKEN_THRESHOLD", "10000"))
+FEED_SUMMARY_INTERVAL = int(os.getenv("G4F_FEED_SUMMARY_INTERVAL", "3600"))
+FEED_MAX_POSTS_PER_CYCLE = int(os.getenv("G4F_FEED_MAX_POSTS_PER_CYCLE", "5"))
 
 # Simple validation for runtime model names.
 ALLOWED_MODEL_CHARS = set(
@@ -740,6 +757,28 @@ async def on_ready():
         log.info("Synced %d slash commands", len(synced))
     except Exception:
         log.exception("Failed to sync slash commands")
+
+    # Load the live feed cog if a channel was configured.
+    if LIVE_FEED_CHANNEL:
+        existing = bot.get_cog("LiveFeed")
+        if existing is None:
+            await bot.add_cog(
+                LiveFeed(
+                    bot=bot,
+                    channel_id=LIVE_FEED_CHANNEL,
+                    api_base=API_BASE,
+                    public_base=PUBLIC_BASE,
+                    api_key=PUBLIC_API_KEY,
+                    members_base=MEMBERS_BASE or None,
+                    poll_interval=FEED_POLL_INTERVAL,
+                    heavy_token_threshold=HEAVY_TOKEN_THRESHOLD,
+                    summary_interval=FEED_SUMMARY_INTERVAL,
+                    max_posts_per_cycle=FEED_MAX_POSTS_PER_CYCLE,
+                )
+            )
+            log.info("Live feed cog loaded → channel %s", LIVE_FEED_CHANNEL)
+        else:
+            log.info("Live feed cog already loaded")
 
 
 def main():

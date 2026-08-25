@@ -40,7 +40,6 @@ async def raise_for_status_async(
 ):
     if response.ok:
         return
-    is_html = False
     if message is None:
         content_type = response.headers.get("content-type", "")
         if content_type.startswith("application/json"):
@@ -58,13 +57,13 @@ async def raise_for_status_async(
             except json.JSONDecodeError:
                 message = await response.text()
         else:
-            message = (await response.text()).strip()
-            is_html = content_type.startswith(
+            message = await response.text()
+        if content_type.startswith(
                 "text/html"
-            ) or message.lower().startswith("<!DOCTYPE".lower())
-    if message is None or is_html:
-        if response.status == 520:
-            message = "Unknown error (Cloudflare)"
+            ) or message.strip().lower().startswith("<!DOCTYPE".lower()):
+            message = "HTML content"
+    if response.status == 520:
+        message = "Unknown error (Cloudflare)"
     if response.status in (429, 402):
         raise RateLimitError(f"Response {response.status}: {message}")
     if response.status == 401:
@@ -81,7 +80,7 @@ async def raise_for_status_async(
         raise MissingAuthError(f"Response {response.status}: Invalid API key")
     else:
         raise ResponseStatusError(
-            f"Response {response.status}: {'HTML content' if is_html else message}"
+            f"Response {response.status}: {message}"
         )
 
 
@@ -93,15 +92,14 @@ def raise_for_status(
         return raise_for_status_async(response, message)
     if response.ok:
         return
-    is_html = False
-    if message is None:
-        is_html = response.headers.get("content-type", "").startswith(
+    if response.headers.get("content-type", "").startswith(
             "text/html"
-        ) or response.text.startswith("<!DOCTYPE")
+        ) or response.text.strip().lower().startswith("<!DOCTYPE".lower()):
+        message = "HTML content"
+    elif message is None:
         message = response.text
-    if message is None or is_html:
-        if response.status_code == 520:
-            message = "Unknown error (Cloudflare)"
+    if response.status_code == 520:
+        message = "Unknown error (Cloudflare)"
     if response.status_code in (429, 402):
         raise RateLimitError(f"Response {response.status_code}: {message}")
     if response.status_code == 401:
@@ -118,5 +116,5 @@ def raise_for_status(
         raise MissingAuthError(f"Response {response.status_code}: Invalid API key")
     else:
         raise ResponseStatusError(
-            f"Response {response.status_code}: {'HTML content' if is_html else message}"
+            f"Response {response.status_code}: {message}"
         )

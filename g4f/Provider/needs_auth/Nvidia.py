@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from ..template import OpenaiTemplate
-from ...config import DEFAULT_MODEL
 
 
 class Nvidia(OpenaiTemplate):
@@ -12,5 +11,5 @@ class Nvidia(OpenaiTemplate):
     url = "https://build.nvidia.com"
     working = True
     active_by_default = True
-    default_model = DEFAULT_MODEL
+    default_model = "nvidia/nemotron-3.5-lightning-30b-a3b"
     add_user = False

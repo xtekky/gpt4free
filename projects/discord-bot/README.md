@@ -12,6 +12,7 @@ A Discord bot powered by [gpt4free (g4f)](https://github.com/xtekky/gpt4free) th
 - 🛠️ **MCP tool-calling** — the AI can autonomously call tools (web search, web scraping, image generation, text-to-audio, and more) via g4f's built-in MCP server. The bot executes the tool, feeds the result back, and loops until the AI has a final answer.
 - ⚡ **Streaming responses** — edits the message in-place for a live "typing" effect
 - 🔒 Per-user history isolation with configurable length
+- 📡 **Live activity feed** — an optional channel that mirrors g4f activity in real time: image thumbnails, tool calls, file edits, heavy token usage, server errors, new g4f.dev users, and periodic summaries.
 
 ## Setup
 
@@ -134,11 +135,65 @@ See all available providers with:
 g4f --help
 ```
 
+## Live activity feed
+
+The bot can mirror g4f activity into a dedicated Discord channel in real time. Enable it by setting `G4F_LIVE_FEED_CHANNEL` to a channel ID in your `.env`.
+
+### What gets posted
+
+| Event | Trigger | Example |
+|---|---|---|
+| 🖼️ Image Generated | Any `/v1/images/generate` or `/v1/media/generate` request | Embed with the thumbnail + full-size link |
+| 🔧 Tool Calls | A chat completion whose response includes `tool_calls` | Lists tool names, model, prompt snippet |
+| 📝 File Edit | A tool call to `apply_patch`, `file_write`, or `file_delete` | Highlighted separately from other tools |
+| ⚡ Heavy Token Usage | A completion using ≥ `G4F_HEAVY_TOKEN_THRESHOLD` tokens | Shows prompt/completion/total token counts |
+| 🚨 Server Error | Any request returning a `5xx` status | Path, status, duration |
+| 👋 New g4f.dev User | A new user appears in `/members/api/recent-users` | Username, provider, tier, avatar |
+| 📊 Activity Summary | Every `G4F_FEED_SUMMARY_INTERVAL` seconds | Rolling counts + top models/providers |
+
+### How it works
+
+The `LiveFeed` cog (in `live_feed.py`) polls two sources on a configurable interval (default 15 s):
+
+1. **`{G4F_API_BASE}/api/logs`** — the g4f API server's request log. The cog remembers the last seen log id and only processes new entries. Image URLs pointing at `/media/` or `/images/` are rewritten to `/thumbnail/` (using `G4F_PUBLIC_BASE`) so Discord can fetch compact previews.
+2. **`{G4F_MEMBERS_BASE}/members/api/recent-users`** — a public endpoint on the g4f.dev members worker that returns the most recently created users. The cog tracks seen `provider:username` keys and announces new ones.
+
+To keep the channel readable, at most `G4F_FEED_MAX_POSTS_PER_CYCLE` embeds are posted per poll cycle (additional events are still counted toward the periodic summary).
+
+### Setup
+
+1. Create a dedicated channel in your Discord server (e.g. `#g4f-live`).
+2. Copy its channel ID (right-click → Copy ID, with Developer Mode enabled).
+3. Add to `.env`:
+
+```bash
+G4F_LIVE_FEED_CHANNEL=123456789012345678
+G4F_API_BASE=http://localhost:8080          # where the g4f API runs
+G4F_PUBLIC_BASE=https://your-public-host     # optional, for Discord-accessible image links
+G4F_MEMBERS_BASE=https://g4f.dev            # set empty to disable new-user posts
+```
+
+4. Restart the bot. You should see `Live feed cog loaded → channel ...` in the logs.
+
+### Configuration reference
+
+| Variable | Default | Description |
+|---|---|---|
+| `G4F_LIVE_FEED_CHANNEL` | *(unset)* | Discord channel ID for the feed. Unset = disabled. |
+| `G4F_API_BASE` | `http://localhost:8080` | g4f API base URL (must expose `/api/logs`). |
+| `G4F_PUBLIC_BASE` | = `G4F_API_BASE` | Public base URL for Discord-accessible image/thumbnail links. |
+| `G4F_MEMBERS_BASE` | `https://g4f.dev` | g4f.dev base URL for new-user posts. Empty = disabled. |
+| `G4F_FEED_POLL_INTERVAL` | `15` | Seconds between polls. |
+| `G4F_HEAVY_TOKEN_THRESHOLD` | `10000` | Token count that flags a completion as "heavy". |
+| `G4F_FEED_SUMMARY_INTERVAL` | `3600` | Seconds between activity summaries. |
+| `G4F_FEED_MAX_POSTS_PER_CYCLE` | `5` | Max embeds per poll cycle (anti-spam). |
+
 ## Project structure
 
 ```
 projects/discord-bot/
 ├── bot.py          # Main bot logic (commands, tool-calling loop)
+├── live_feed.py    # Live activity feed cog (image/tool/token/new-user events)
 ├── mcp_tools.py    # MCP tool manager (definitions, execution, display)
 ├── .env.example    # Template environment file
 └── README.md       # This file

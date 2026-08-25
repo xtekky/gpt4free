@@ -108,9 +108,18 @@ func runMain() int {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 		return 1
 	}
-	start := time.Now()
-	if err := installG4F(binDir, exe, start); err != nil {
-		fmt.Fprintln(os.Stderr, "g4f-go:", err)
+	if !g4fIsInstalled(binDir) {
+		// First call: install g4f.
+		start := time.Now()
+		if err := installG4F(binDir, exe, start); err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
+	} else if len(args) > 0 && isUpgradeCommand(args[0]) {
+		// Subsequent call with gui/api/dev: upgrade g4f.
+		start := time.Now()
+		if err := upgradeG4F(binDir, exe, start); err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
 	}
 
 	// Default: forward everything to the g4f module.
@@ -128,6 +137,16 @@ func normalizeArgs(args []string) []string {
 	}
 	// A leading binary-name echo (e.g. argv[0]) is stripped by callers.
 	return args
+}
+
+// isUpgradeCommand reports whether the subcommand should trigger an
+// automatic g4f upgrade (only when g4f is already installed).
+func isUpgradeCommand(arg string) bool {
+	switch arg {
+	case "api", "gui", "dev":
+		return true
+	}
+	return false
 }
 
 // hasSubcommand reports whether args start with a known g4f-go subcommand.

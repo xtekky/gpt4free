@@ -108,6 +108,14 @@ func extractEmbedded(binDir string) error {
 	return nil
 }
 
+// g4fIsInstalled reports whether the g4f Python package is already installed
+// in the downloaded runtime by checking the .installed stamp.
+func g4fIsInstalled(binDir string) bool {
+	stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
+	_, err := os.Stat(stamp)
+	return err == nil
+}
+
 // installG4F installs the g4f Python package into the downloaded runtime and
 // writes the .installed stamp. Uses the bundled pip (ensurepip wheels in
 // pbs installs, bootstrapped via `python -m ensurepip`) so no network access
@@ -132,6 +140,25 @@ func installG4F(binDir, exe string, start time.Time) error {
 		return err
 	}
 	fmt.Printf("gpt4free installed in %.1fs\n", time.Since(start).Seconds())
+	return nil
+}
+
+// upgradeG4F upgrades the g4f Python package in the downloaded runtime.
+// Called on subsequent runs (after the initial install) when the user passes
+// a subcommand that benefits from the latest version (api, gui, dev).
+func upgradeG4F(binDir, exe string, start time.Time) error {
+	fmt.Printf("Upgrading gpt4free...\n")
+	if err := ensurePip(binDir, exe); err != nil {
+		return err
+	}
+	code, err := runPython(noSignalCtx(), exe, []string{
+		"-m", "pip", "install",
+		"--no-input", "--upgrade", "g4f[slim]",
+	}, pipEnv(binDir)...)
+	if err != nil || code != 0 {
+		return fmt.Errorf("pip upgrade g4f failed (exit %d): %w", code, err)
+	}
+	fmt.Printf("gpt4free upgraded in %.1fs\n", time.Since(start).Seconds())
 	return nil
 }
 

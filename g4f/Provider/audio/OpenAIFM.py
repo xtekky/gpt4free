@@ -46,7 +46,7 @@ class OpenAIFM(AsyncGeneratorProvider, ProviderModelMixin):
     models = styles + voices
 
     @classmethod
-    def get_grouped_models(cls):
+    def get_grouped_models(cls, **kwargs):
         return [
             {"group": "Styles", "models": cls.styles},
             {"group": "Voices", "models": cls.voices},

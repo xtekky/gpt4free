@@ -8,13 +8,11 @@ from typing import Optional
 
 from ..template import OpenaiTemplate
 from ...requests import StreamSession, raise_for_status
-from ...providers.response import Usage, Reasoning
 from ...cookies import get_cookies
 from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 from ...config import AppConfig
 from ...errors import MissingAuthError
-from ... import debug
 
 
 class Ollama(OpenaiTemplate):
@@ -27,7 +25,7 @@ class Ollama(OpenaiTemplate):
     active_by_default = True
     local_models: list[str] = []
     model_aliases = {"gpt-oss-120b": "gpt-oss:120b", "gpt-oss-20b": "gpt-oss:20b"}
-    default_model = "nemotron-3-super"
+    default_model = "nemotron-3-nano:30b"
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None) -> Optional[dict]:
