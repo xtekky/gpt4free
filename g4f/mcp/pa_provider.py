@@ -140,7 +140,6 @@ SAFE_MODULES: FrozenSet[str] = frozenset(
         "calendar",
         # I/O
         "io",
-        "pathlib",
         # Async
         "asyncio",
         # Encoding / hashing
@@ -530,7 +529,7 @@ def _make_safe_globals(
         """open() restricted to the workspace directory."""
         path = Path(file)
         if not path.is_absolute():
-            path = workspace / path
+            path = workspace / "pa-providers" / path
         try:
             resolved = path.resolve()
             ws_resolved = workspace.resolve()
