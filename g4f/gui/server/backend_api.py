@@ -356,6 +356,12 @@ class Backend_Api(Api):
                 json_data["user"] = request.headers.get("x-user", "error")
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
+            if "api_key" not in json_data:
+                json_data["api_key"] = request.headers.get("authorization")
+                if json_data["api_key"] and json_data["api_key"].startswith(
+                    "Bearer "
+                ):
+                    json_data["api_key"] = json_data["api_key"][7:]
 
             kwargs = self._prepare_conversation_kwargs(json_data)
             try:

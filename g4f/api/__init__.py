@@ -563,7 +563,8 @@ class Api:
             user = None
             if (
                 request.method != "OPTIONS"
-                and AppConfig.g4f_api_key is not None            ):
+                and AppConfig.g4f_api_key is not None
+            ):
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
