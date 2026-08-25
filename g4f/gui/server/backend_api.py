@@ -648,6 +648,8 @@ class Backend_Api(Api):
                     httponly=True,
                     secure=True,
                 )
+            else:
+                resp.headers["Cache-Control"] = "public, max-age=3600"
             return resp
 
         @app.route("/backend-api/v2/create", methods=["GET"])

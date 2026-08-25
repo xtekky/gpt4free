@@ -122,6 +122,8 @@ def _resolve_provider(name: str) -> ProviderType:
         _loaded_providers[name] = AbstractClientFactory.create_provider(
             None, "default"
         )
+        _loaded_providers[name].__name__ = name
+        _loaded_providers[name].active_by_default = True
         return _loaded_providers[name]
     elif name == "GLM":
         from g4f.Provider.glm import GLM
@@ -219,6 +221,23 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.Nvidia import Nvidia
 
         return Nvidia
+    elif name == "RelayRouter":
+        from ..client.factory import AbstractClientFactory
+        _loaded_providers[name] = AbstractClientFactory.create_provider(
+            None, "custom:srv_mt1wbaxgf9c946af0c58", 
+        )
+        _loaded_providers[name].__name__ = name
+        _loaded_providers[name].active_by_default = True
+        return _loaded_providers[name]
+    elif name == "KiloCode":
+        from ..client.factory import AbstractClientFactory
+        _loaded_providers[name] = AbstractClientFactory.create_provider(
+            None, "https://api.kilo.ai/api/gateway"
+        )
+        _loaded_providers[name].__name__ = name
+        _loaded_providers[name].active_by_default = True
+        _loaded_providers[name].default_model = "kilo-auto/free"
+        return _loaded_providers[name]
     elif name == "Ollama":
         from g4f.Provider.local.Ollama import Ollama
 
@@ -227,14 +246,24 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.audio.OpenAIFM import OpenAIFM
 
         return OpenAIFM
+    elif name == "OpenCode":
+        from ..client.factory import AbstractClientFactory
+        _loaded_providers[name] = AbstractClientFactory.create_provider(
+            None, "https://opencode.ai/zen/v1"
+        )
+        _loaded_providers[name].__name__ = name
+        _loaded_providers[name].active_by_default = True
+        _loaded_providers[name].default_model = "big-pickle"
+        return _loaded_providers[name]
+
     elif name == "OpenRouter":
         from g4f.Provider.needs_auth.OpenRouter import OpenRouter
 
         return OpenRouter
     elif name == "OpenRouterFree":
-        from g4f.Provider.needs_auth.OpenRouter import OpenRouter
+        from g4f.Provider.needs_auth.OpenRouter import OpenRouterFree
 
-        return OpenRouter
+        return OpenRouterFree
     elif name == "OrcaRouter":
         from g4f.Provider.needs_auth.OrcaRouter import OrcaRouter
 
@@ -382,6 +411,7 @@ _provider_names = [
     "EdgeTTS",
     "ElevenLabs",
     "FenayAI",
+    "G4FSpace",
     "GLM",
     "Gemini",
     "GeminiCLI",
@@ -406,8 +436,11 @@ _provider_names = [
     "MicrosoftDesigner",
     "MiniMax",
     "Nvidia",
+    "RelayRouter",
+    "KiloCode",
     "Ollama",
     "OpenAIFM",
+    "OpenCode",
     "OpenRouter",
     "OpenRouterFree",
     "OrcaRouter",
