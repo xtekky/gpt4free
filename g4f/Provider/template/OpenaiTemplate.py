@@ -95,13 +95,16 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 ):
                     from ...tools.run_tools import AuthManager
 
-                    api_key = AuthManager.load_api_key(cls) or api_key
+                    api_key = AuthManager.load_api_key(cls)
                 if base_url is None:
-                    base_url = cls.base_url
-                    if not cls.is_provider_api_key(api_key):
+                    if cls.is_provider_api_key(api_key):
+                        base_url = cls.base_url
+                    else:
                         if cls.backup_url is None:
                             api_key = None
-                        base_url = cls.backup_url
+                            base_url = cls.base_url
+                        else:
+                            base_url = cls.backup_url
                     if base_url is None:
                         raise NotImplementedError(
                             "No base_url or backup_url specified."
@@ -232,9 +235,18 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         ) as session:
             model = cls.get_model(model, api_key=api_key, base_url=base_url)
             if base_url is None:
-                base_url = (
-                    cls.base_url if cls.is_provider_api_key(api_key) else cls.backup_url
-                )
+                if cls.is_provider_api_key(api_key):
+                    base_url = cls.base_url
+                else:
+                    if cls.backup_url is None:
+                        api_key = None
+                        base_url = cls.base_url
+                    else:
+                        base_url = cls.backup_url
+                if base_url is None:
+                    raise NotImplementedError(
+                        "No base_url or backup_url specified."
+                    )
 
             # Proxy for image generation feature
             if model and model in cls.image_models or prompt:
