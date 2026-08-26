@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import base64
-import json
-import os
-import uuid
-from dataclasses import dataclass, field
+import mimetypes
 from datetime import datetime
-from pathlib import Path
-from typing import Any, AsyncIterator, Optional, Literal
+from typing import Any, Optional, Literal
 
 from g4f import debug
 from g4f.cookies import get_cookies, get_headers
@@ -20,21 +15,33 @@ from g4f.providers.response import (
     FinishReason,
     JsonConversation,
     JsonRequest,
-    Reasoning,
 )
 from g4f.requests import StreamSession, raise_for_status, FormData
 from g4f.typing import AsyncResult, Messages, Cookies
-
-# Inline PoW (Proof of Work) implementation for DeepSeek
-# Based on reference implementation in gpt4free/projects/deepseek4free/dsk/pow.py
-
-try:
-    import wasmtime
-    import numpy
-
-    has_wasmtime_and_numpy = True
-except ImportError:
-    has_wasmtime_and_numpy = False
+from .deepseek.pow import (
+    DEEPSEEK_POW_ALGORITHM,
+    WASM_PATH,
+    DeepSeekHash,
+    DeepSeekPOW,
+    has_wasmtime_and_numpy,
+)
+from .deepseek.stream import (
+    DEEPSEEK_FINISH_REASONS,
+    DEEPSEEK_MESSAGE_STATUSES,
+    DEEPSEEK_METADATA_FRAGMENT_TYPES,
+    DEEPSEEK_REASONING_FRAGMENT_TYPES,
+    DEEPSEEK_RESPONSE_FRAGMENT_TYPES,
+    _DeepSeekStreamState,
+    _fragment_kind,
+    _process_fragments,
+    _process_full_message,
+    _process_stream_payload,
+    _record_response_message_id,
+    _record_stream_status,
+    _stream_log_value,
+    _stream_output,
+    iter_deepseek_sse,
+)
 
 try:
     from curl_cffi import CurlHttpVersion
@@ -43,120 +50,9 @@ try:
 except ImportError:
     has_curl_cffi = False
 
-WASM_PATH = os.path.join(os.path.dirname(__file__), "deepseek", "pow_solver.wasm")
-
-
-class DeepSeekHash:
-    """Custom SHA3 hash solver using WebAssembly"""
-
-    def __init__(self):
-        self.instance = None
-        self.memory = None
-        self.store = None
-
-    def init(self, wasm_path: str):
-        if not has_wasmtime_and_numpy:
-            raise ImportError("wasmtime and numpy are required for PoW solving")
-
-        if not Path(wasm_path).exists():
-            raise FileNotFoundError(f"WASM file not found: {wasm_path}")
-
-        engine = wasmtime.Engine()
-
-        with open(wasm_path, "rb") as f:
-            wasm_bytes = f.read()
-
-        module = wasmtime.Module(engine, wasm_bytes)
-
-        self.store = wasmtime.Store(engine)
-        linker = wasmtime.Linker(engine)
-        linker.define_wasi()
-
-        self.instance = linker.instantiate(self.store, module)
-        self.memory = self.instance.exports(self.store)["memory"]
-
-        return self
-
-    def _write_to_memory(self, text: str) -> tuple[int, int]:
-        encoded = text.encode("utf-8")
-        length = len(encoded)
-        ptr = self.instance.exports(self.store)["__wbindgen_export_0"](
-            self.store, length, 1
-        )
-
-        memory_view = self.memory.data_ptr(self.store)
-        for i, byte in enumerate(encoded):
-            memory_view[ptr + i] = byte
-
-        return ptr, length
-
-    def calculate_hash(
-            self, algorithm: str, challenge: str, salt: str, difficulty: int, expire_at: int
-    ) -> int:
-        prefix = f"{salt}_{expire_at}_"
-        retptr = self.instance.exports(self.store)["__wbindgen_add_to_stack_pointer"](
-            self.store, -16
-        )
-
-        try:
-            challenge_ptr, challenge_len = self._write_to_memory(challenge)
-            prefix_ptr, prefix_len = self._write_to_memory(prefix)
-
-            self.instance.exports(self.store)["wasm_solve"](
-                self.store,
-                retptr,
-                challenge_ptr,
-                challenge_len,
-                prefix_ptr,
-                prefix_len,
-                float(difficulty),
-            )
-
-            memory_view = self.memory.data_ptr(self.store)
-            status = int.from_bytes(
-                bytes(memory_view[retptr: retptr + 4]), byteorder="little", signed=True
-            )
-
-            if status == 0:
-                return None
-
-            value_bytes = bytes(memory_view[retptr + 8: retptr + 16])
-            value = numpy.frombuffer(value_bytes, dtype=numpy.float64)[0]
-
-            return int(value)
-
-        finally:
-            self.instance.exports(self.store)["__wbindgen_add_to_stack_pointer"](
-                self.store, 16
-            )
-
-
-class DeepSeekPOW:
-    """Proof of Work solver for DeepSeek challenges"""
-
-    def __init__(self):
-        self.hasher = DeepSeekHash().init(WASM_PATH)
-
-    def solve_challenge(self, config: dict) -> str:
-        """Solves a proof-of-work challenge and returns the encoded response"""
-        answer = self.hasher.calculate_hash(
-            config["algorithm"],
-            config["challenge"],
-            config["salt"],
-            config["difficulty"],
-            config["expire_at"],
-        )
-
-        result = {
-            "algorithm": config["algorithm"],
-            "challenge": config["challenge"],
-            "salt": config["salt"],
-            "answer": answer,
-            "signature": config["signature"],
-            "target_path": config.get("target_path", ""),
-        }
-
-        return base64.b64encode(json.dumps(result).encode()).decode()
+def _solve_pow_challenge(challenge: dict) -> str:
+    """Create the WASM solver and solve entirely outside the event loop."""
+    return DeepSeekPOW().solve_challenge(challenge)
 
 
 # DeepSeek API endpoints
@@ -172,58 +68,27 @@ CHAT_COMPLETION_PATH = "/api/v0/chat/completion"
 FILE_UPLOAD_PATH = "/api/v0/file/upload_file"
 FILE_UPLOAD_ENDPOINT = f"{DEEPSEEK_URL}{FILE_UPLOAD_PATH}"
 FILE_FETCH_ENDPOINT = f"{DEEPSEEK_URL}/api/v0/file/fetch_files"
-
-DEEPSEEK_MESSAGE_STATUSES = {
-    "FINISHED",
+RESUME_MESSAGE_GOT_FULL_MESSAGE_CODE = 22
+DEEPSEEK_FILE_FAILURE_STATUSES = {
+    "FAILED",
+    "ERROR",
     "CONTENT_FILTER",
-    "CONTEXT_LENGTH_EXCEEDED",
-    "INCOMPLETE",
-    "WIP",
-    "TIMEOUT",
+    "CONTENT_TOO_LONG",
+    "CANCELLED",
+    "CONTENT_EMPTY",
+    "_CUSTOM_SYSTEM_ERROR_FAIL",
+    "_CUSTOM_FROM_SHARE",
 }
-DEEPSEEK_FINISH_REASONS = {
-    "FINISHED": "stop",
-    "CONTENT_FILTER": "content_filter",
-    "CONTEXT_LENGTH_EXCEEDED": "length",
-    "INCOMPLETE": "incomplete",
-    "WIP": "wip",
-    "TIMEOUT": "timeout",
-}
-
-DEEPSEEK_RESPONSE_FRAGMENT_TYPES = {"RESPONSE", "TEMPLATE_RESPONSE"}
-DEEPSEEK_REASONING_FRAGMENT_TYPES = {
-    "THINK",
-    "THINKING",
-    "REASONING",
-    "SEARCH",
-    "TOOL_SEARCH",
-    "TOOL_OPEN",
-    "TOOL_FIND",
-}
-DEEPSEEK_METADATA_FRAGMENT_TYPES = {
-    "REQUEST",
-    "FILE",
-    "TIP",
-    "READ_LINK",
-}
-DEEPSEEK_STREAM_OPERATIONS = {"SET", "BATCH", "APPEND"}
 
 CHAT_HEADER_DEFAULTS = {
     "accept": "*/*",
-    "accept-language": "en-US,en;q=0.9",
     "cache-control": "no-cache",
     "content-type": "application/json",
     "origin": DEEPSEEK_URL,
-    "referer": f"{DEEPSEEK_URL}/",
-    "user-agent": (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
-    ),
-    "x-app-version": "20241129.1",
+    "referer": f"{DEEPSEEK_URL}/a/chat/",
     "x-client-bundle-id": "com.deepseek.chat",
     "x-client-locale": "en_US",
     "x-client-platform": "web",
-    "x-client-timezone-offset": "-28800",
     "x-client-version": "2.4.0",
 }
 
@@ -251,6 +116,7 @@ CHAT_HEADER_PASSTHROUGH = {
     "x-client-platform",
     "x-client-timezone-offset",
     "x-client-version",
+    "x-hif-dliq",
     "x-hif-leim",
 }
 
@@ -276,10 +142,41 @@ def _extract_chat_session_id(session_data: Any) -> Optional[str]:
     return biz_data.get("id")
 
 
+def _unwrap_biz_response(
+        payload: Any,
+        context: str,
+        *,
+        allowed_codes: tuple[int, ...] = (),
+) -> tuple[Any, Any, Optional[str]]:
+    """Validate DeepSeek's current business envelope and return its payload."""
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"DeepSeek {context} returned an invalid JSON response")
+
+    response_data = payload.get("data")
+    if isinstance(response_data, dict):
+        code = response_data.get("biz_code", payload.get("code"))
+        message = response_data.get("biz_msg") or payload.get("msg")
+        biz_data = response_data.get("biz_data")
+    else:
+        code = payload.get("code")
+        message = payload.get("msg")
+        biz_data = None
+
+    allowed_code_strings = {str(value) for value in allowed_codes}
+    if code not in (None, 0, "0") and str(code) not in allowed_code_strings:
+        detail = message or "unknown business error"
+        raise RuntimeError(f"DeepSeek {context} failed ({code}): {detail}")
+    return code, biz_data, message
+
+
 def _build_chat_headers(source_headers: Optional[dict], authorization: str) -> dict:
     """Build JSON request headers while retaining current browser-bound values."""
     normalized = _normalized_headers(source_headers)
     headers = dict(CHAT_HEADER_DEFAULTS)
+    timezone_offset = datetime.now().astimezone().utcoffset()
+    headers["x-client-timezone-offset"] = str(
+        -int(timezone_offset.total_seconds()) if timezone_offset else 0
+    )
     headers.update(
         {
             name: normalized[name]
@@ -293,297 +190,6 @@ def _build_chat_headers(source_headers: Optional[dict], authorization: str) -> d
     return headers
 
 
-async def iter_deepseek_sse(response) -> AsyncIterator[tuple[str, Any]]:
-    """Parse DeepSeek SSE frames without losing their ``event`` field."""
-    event_type = "message"
-    data_lines: list[str] = []
-
-    def decode_event() -> Optional[tuple[str, Any]]:
-        if not data_lines:
-            return None
-        raw_data = "\n".join(data_lines)
-        if raw_data.strip() == "[DONE]":
-            return None
-        try:
-            return event_type, json.loads(raw_data)
-        except json.JSONDecodeError as error:
-            raise ValueError(f"Invalid DeepSeek SSE JSON data: {raw_data!r}") from error
-
-    async for raw_line in response.iter_lines():
-        line = (
-            raw_line.decode("utf-8")
-            if isinstance(raw_line, (bytes, bytearray))
-            else str(raw_line)
-        ).rstrip("\r")
-
-        if not line:
-            event = decode_event()
-            if event is not None:
-                yield event
-            event_type = "message"
-            data_lines = []
-            continue
-
-        if line.startswith(":"):
-            continue
-
-        field_name, separator, field_value = line.partition(":")
-        if not separator:
-            continue
-        if field_value.startswith(" "):
-            field_value = field_value[1:]
-        if field_name == "event":
-            event_type = field_value or "message"
-        elif field_name == "data":
-            data_lines.append(field_value)
-
-    event = decode_event()
-    if event is not None:
-        yield event
-
-
-@dataclass
-class _DeepSeekStreamState:
-    message_id: Any = None
-    status: Optional[str] = None
-    closed: bool = False
-    active_kind: Optional[str] = "response"
-    emitted: dict[str, str] = field(
-        default_factory=lambda: {"reasoning": "", "response": ""}
-    )
-
-    def append(self, kind: str, content: str) -> str:
-        self.emitted[kind] += content
-        return content
-
-    def snapshot_delta(self, kind: str, content: str) -> str:
-        """Return only text not already emitted by an earlier stream attempt."""
-        previous = self.emitted[kind]
-        if content.startswith(previous):
-            delta = content[len(previous):]
-            self.emitted[kind] = content
-            return delta
-        if previous.startswith(content):
-            return ""
-
-        max_overlap = min(len(previous), len(content))
-        for overlap in range(max_overlap, 0, -1):
-            if previous.endswith(content[:overlap]):
-                delta = content[overlap:]
-                self.emitted[kind] += delta
-                return delta
-
-        self.emitted[kind] += content
-        return content
-
-
-def _fragment_kind(fragment: dict) -> Optional[str]:
-    fragment_type = str(fragment.get("type", "")).upper()
-    if not fragment_type:
-        # Preserve compatibility with older snapshots that omitted the type.
-        return "response"
-    if fragment_type in DEEPSEEK_RESPONSE_FRAGMENT_TYPES:
-        return "response"
-    if fragment_type in DEEPSEEK_REASONING_FRAGMENT_TYPES:
-        return "reasoning"
-    if fragment_type in DEEPSEEK_METADATA_FRAGMENT_TYPES:
-        return None
-    return None
-
-
-def _stream_output(kind: str, content: str):
-    if not content:
-        return None
-    return Reasoning(content) if kind == "reasoning" else content
-
-
-def _record_response_message_id(
-        state: _DeepSeekStreamState,
-        conversation: JsonConversation,
-        message_id: Any,
-) -> None:
-    if message_id is not None:
-        state.message_id = message_id
-        conversation.parent_message_id = message_id
-
-
-def _record_stream_status(
-        state: _DeepSeekStreamState,
-        path: str,
-        value: Any,
-        *,
-        operation: Optional[str] = None,
-        source: Literal["patch", "snapshot"] = "snapshot",
-) -> bool:
-    if path not in {"response/status", "quasi_status", "response/quasi_status"}:
-        return False
-    status = str(value).upper()
-    if status in DEEPSEEK_MESSAGE_STATUSES:
-        state.status = status
-        if status == "INCOMPLETE":
-            interpretation = "requires_continue"
-        else:
-            interpretation = None
-
-        operation_label = operation if operation is not None else "none"
-        message = (
-            "DeepSeekAuth: Stream status: "
-            f"status={status} source={source} operation={operation_label}"
-        )
-        if interpretation is not None:
-            message += f" interpretation={interpretation}"
-        debug.log(message)
-    return True
-
-
-def _stream_log_value(value: Any) -> str:
-    """Format a small, non-content stream field for diagnostic logging."""
-    if value is None:
-        return "none"
-    if isinstance(value, bool):
-        return str(value).lower()
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, str):
-        sanitized = "".join(
-            character
-            if character.isalnum() or character in {"_", "-", "."}
-            else "_"
-            for character in value[:64]
-        )
-        return sanitized or "empty"
-    return type(value).__name__
-
-
-def _process_fragments(
-        fragments: list,
-        state: _DeepSeekStreamState,
-        *,
-        snapshot: bool,
-) -> list:
-    chunks = []
-    content_by_kind = {"reasoning": "", "response": ""}
-    kind_order = []
-
-    for fragment in fragments:
-        if not isinstance(fragment, dict):
-            continue
-        kind = _fragment_kind(fragment)
-        state.active_kind = kind
-        content = fragment.get("content")
-        if kind is None or not isinstance(content, str):
-            continue
-
-        if snapshot:
-            if kind not in kind_order:
-                kind_order.append(kind)
-            content_by_kind[kind] += content
-            continue
-
-        output = _stream_output(kind, state.append(kind, content))
-        if output is not None:
-            chunks.append(output)
-
-    if snapshot:
-        for kind in kind_order:
-            output = _stream_output(
-                kind,
-                state.snapshot_delta(kind, content_by_kind[kind]),
-            )
-            if output is not None:
-                chunks.append(output)
-
-    return chunks
-
-
-def _process_stream_payload(
-        payload: Any,
-        state: _DeepSeekStreamState,
-        conversation: JsonConversation,
-) -> list:
-    """Apply one DeepSeek message event and return newly visible output chunks."""
-    if not isinstance(payload, dict):
-        return []
-
-    chunks = []
-    _record_response_message_id(
-        state, conversation, payload.get("response_message_id")
-    )
-
-    operation = payload.get("o")
-    value = payload.get("v")
-
-    if operation == "BATCH" and isinstance(value, list):
-        for batch_item in value:
-            chunks.extend(
-                _process_stream_payload(batch_item, state, conversation)
-            )
-        return chunks
-
-    if isinstance(value, dict) and isinstance(value.get("response"), dict):
-        response_obj = value["response"]
-        _record_response_message_id(
-            state, conversation, response_obj.get("message_id")
-        )
-        response_status = response_obj.get("status")
-        if response_status is not None:
-            _record_stream_status(
-                state,
-                "response/status",
-                response_status,
-                source="snapshot",
-            )
-
-        fragments = response_obj.get("fragments", [])
-        if isinstance(fragments, list):
-            chunks.extend(_process_fragments(fragments, state, snapshot=True))
-        return chunks
-
-    path = payload.get("p")
-    if (
-            path == "response/fragments"
-            and operation in {"SET", "APPEND"}
-            and isinstance(value, list)
-    ):
-        chunks.extend(
-            _process_fragments(value, state, snapshot=operation == "SET")
-        )
-        return chunks
-
-    if isinstance(path, str) and "v" in payload:
-        if _record_stream_status(
-                state,
-                path,
-                value,
-                operation=operation,
-                source="patch",
-        ):
-            return chunks
-        if path.endswith("/content") and isinstance(value, str):
-            kind = state.active_kind
-            if kind is None:
-                return chunks
-            content = (
-                state.snapshot_delta(kind, value)
-                if operation == "SET"
-                else state.append(kind, value)
-            )
-            output = _stream_output(kind, content)
-            if output is not None:
-                chunks.append(output)
-        return chunks
-
-    if isinstance(value, str):
-        kind = state.active_kind
-        if kind is None:
-            return chunks
-        output = _stream_output(kind, state.append(kind, value))
-        if output is not None:
-            chunks.append(output)
-
-    return chunks
-
-
 def _build_upload_session_headers(headers: dict) -> dict:
     """Copy shared headers without values that would corrupt a multipart upload."""
     excluded_headers = {"content-type", "x-ds-pow-response"}
@@ -594,15 +200,47 @@ def _build_upload_session_headers(headers: dict) -> dict:
     }
 
 
-def generate_client_stream_id() -> str:
-    """
-    Generate DeepSeek client_stream_id in format: YYYYMMDD-<hex_string>
-    Based on HAR file analysis of DeepSeek web client.
-    """
-    date_str = datetime.now().strftime("%Y%m%d")
-    # Generate a random hex string (16 chars like in HAR)
-    hex_part = uuid.uuid4().hex[:16]
-    return f"{date_str}-{hex_part}"
+def _resolve_upload_metadata(data: bytes, filename: Optional[str]) -> tuple[str, str]:
+    """Resolve a stable filename and MIME type without rejecting text/code files."""
+    if filename:
+        guessed_type, _encoding = mimetypes.guess_type(filename, strict=False)
+        if guessed_type:
+            return filename, guessed_type
+        try:
+            _extension, detected_type = detect_file_type(data)
+        except ValueError:
+            detected_type = "application/octet-stream"
+        return filename, detected_type
+
+    extension, detected_type = detect_file_type(data)
+    return f"file-{len(data)}{extension}", detected_type
+
+
+def _build_completion_payload(
+        conversation: JsonConversation,
+        *,
+        prompt: str,
+        model_type: str,
+        ref_file_ids: list[str],
+        thinking_enabled: bool,
+        search_enabled: bool,
+) -> dict:
+    """Build the current DeepSeek web completion request contract."""
+    chat_session_id = getattr(conversation, "chat_session_id", None)
+    if not chat_session_id:
+        raise ValueError("DeepSeek chat_session_id is required for completion")
+
+    return {
+        "action": None,
+        "chat_session_id": chat_session_id,
+        "parent_message_id": getattr(conversation, "parent_message_id", None),
+        "model_type": model_type,
+        "prompt": prompt,
+        "ref_file_ids": ref_file_ids,
+        "thinking_enabled": thinking_enabled,
+        "search_enabled": search_enabled,
+        "preempt": False,
+    }
 
 
 class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
@@ -643,8 +281,11 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
             await raise_for_status(response)
             pow_data = await response.json()
 
+        _code, biz_data, _message = _unwrap_biz_response(
+            pow_data, "PoW challenge"
+        )
         try:
-            challenge = pow_data["data"]["biz_data"]["challenge"]
+            challenge = biz_data["challenge"]
         except (KeyError, TypeError) as error:
             raise RuntimeError(
                 f"DeepSeek returned an invalid PoW challenge for {target_path}"
@@ -655,13 +296,18 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 "DeepSeek returned a PoW challenge for an unexpected target path: "
                 f"{challenge.get('target_path')!r}"
             )
+        if challenge.get("algorithm") != DEEPSEEK_POW_ALGORITHM:
+            raise RuntimeError(
+                "DeepSeek returned an unsupported PoW algorithm: "
+                f"{challenge.get('algorithm')!r}"
+            )
 
         debug.log(
             "DeepSeekAuth: Challenge: "
             f"algorithm={challenge.get('algorithm')}, "
             f"difficulty={challenge.get('difficulty')}"
         )
-        pow_response = DeepSeekPOW().solve_challenge(challenge)
+        pow_response = await asyncio.to_thread(_solve_pow_challenge, challenge)
         debug.log(f"DeepSeekAuth: PoW challenge solved for {target_path}")
         return pow_response
 
@@ -680,8 +326,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         Returns dict with file info including file_id
         """
         data_bytes = to_bytes(file)
-        extension, file_type = detect_file_type(data_bytes)
-        filename = filename or f"file-{len(data_bytes)}{extension}"
+        filename, file_type = _resolve_upload_metadata(data_bytes, filename)
 
         debug.log(f"DeepSeekAuth: Starting file upload: {filename} ({len(data_bytes)} bytes)")
         debug.log(f"DeepSeekAuth: Upload endpoint: {FILE_UPLOAD_ENDPOINT}")
@@ -714,16 +359,17 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 )
             result = await response.json()
 
+        _code, biz_data, _message = _unwrap_biz_response(result, "file upload")
         response_data = result.get("data") if isinstance(result, dict) else None
-        biz_data = response_data.get("biz_data") if isinstance(response_data, dict) else None
         file_id = biz_data.get("id") if isinstance(biz_data, dict) else None
         if not file_id and isinstance(response_data, dict):
             # Keep compatibility with the older, unnested response shape.
             file_id = response_data.get("id")
 
-        if result.get("code") not in (None, 0) or not file_id:
-            message = result.get("msg") or "missing data.biz_data.id"
-            raise RuntimeError(f"DeepSeek file upload failed: {message}")
+        if not file_id:
+            raise RuntimeError(
+                "DeepSeek file upload failed: missing data.biz_data.id"
+            )
 
         debug.log(f"DeepSeekAuth: File uploaded successfully, file_id: {file_id}")
         return {
@@ -731,6 +377,31 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
             "filename": filename,
             "size": len(data_bytes),
         }
+
+    @classmethod
+    async def upload_files(
+            cls,
+            session: StreamSession,
+            media: list,
+            *,
+            thinking_enabled: bool = False,
+            model_type: str = "default",
+    ) -> list[str]:
+        """Upload and parse every media item, preserving caller order."""
+        file_ids = []
+        for file_bytes, filename in media:
+            upload_result = await cls.upload_file(
+                session,
+                file_bytes,
+                filename,
+                thinking_enabled=thinking_enabled,
+                model_type=model_type,
+            )
+            file_id = upload_result["file_id"]
+            await cls.wait_for_file_parsed(session, file_id)
+            file_ids.append(file_id)
+            debug.log(f"DeepSeekAuth: Using file_id: {file_id}")
+        return file_ids
 
     @classmethod
     async def wait_for_file_parsed(
@@ -753,8 +424,9 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 result = await response.json()
 
-            response_data = result.get("data") if isinstance(result, dict) else None
-            biz_data = response_data.get("biz_data") if isinstance(response_data, dict) else None
+            _code, biz_data, _message = _unwrap_biz_response(
+                result, "file status"
+            )
             files = biz_data.get("files") if isinstance(biz_data, dict) else None
             file_info = files[0] if isinstance(files, list) and files else {}
             status = str(file_info.get("status", "")).upper()
@@ -762,8 +434,8 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
             if status == "SUCCESS":
                 debug.log(f"DeepSeekAuth: File parsing completed, file_id: {file_id}")
                 return
-            if status in {"FAILED", "ERROR"}:
-                error_code = file_info.get("error_code") or "unknown"
+            if status in DEEPSEEK_FILE_FAILURE_STATUSES:
+                error_code = file_info.get("error_code") or status
                 raise RuntimeError(
                     f"DeepSeek file parsing failed for {file_id}: {error_code}"
                 )
@@ -777,111 +449,28 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def delete_chat_session(
             cls, session: StreamSession, chat_session_id: str, headers: dict
-    ):
-        """
-        Delete a chat session from DeepSeek.
+    ) -> bool:
+        """Delete one session with the observed POST contract."""
+        try:
+            async with session.post(
+                    CHAT_SESSION_DELETE_ENDPOINT,
+                    headers=headers,
+                    json={"chat_session_id": chat_session_id},
+            ) as response:
+                await raise_for_status(response)
+                result = await response.json()
+            _unwrap_biz_response(result, "chat session deletion")
+        except Exception as error:
+            debug.error(f"DeepSeekAuth: Chat session deletion failed: {error}")
+            return False
 
-        Tries multiple approaches (DELETE/POST with JSON body/query params) until one succeeds.
-
-        Args:
-            session: StreamSession instance
-            chat_session_id: The session ID to delete
-            headers: Request headers including authorization
-        """
-
-        # Try different deletion approaches - POST with JSON body first (as seen in HAR)
-        deletion_methods = [
-            {
-                "name": "POST with JSON body",
-                "method": "post",
-                "url": CHAT_SESSION_DELETE_ENDPOINT,
-                "use_json_body": True,
-            },
-            {
-                "name": "POST with query params",
-                "method": "post",
-                "url": f"{CHAT_SESSION_DELETE_ENDPOINT}?chat_session_id={chat_session_id}",
-                "use_json_body": False,
-            },
-            {
-                "name": "DELETE with JSON body",
-                "method": "delete",
-                "url": CHAT_SESSION_DELETE_ENDPOINT,
-                "use_json_body": True,
-            },
-            {
-                "name": "DELETE with query params",
-                "method": "delete",
-                "url": f"{CHAT_SESSION_DELETE_ENDPOINT}?chat_session_id={chat_session_id}",
-                "use_json_body": False,
-            },
-        ]
-
-        for method_info in deletion_methods:
-            try:
-                debug.log(f"DeepSeekAuth: Attempting deletion - {method_info['name']}")
-                debug.log(f"DeepSeekAuth:   URL: {method_info['url']}")
-
-                # Prepare request parameters
-                request_params = {}
-                if method_info["use_json_body"]:
-                    request_params["json"] = {"chat_session_id": chat_session_id}
-                    debug.log(
-                        f"DeepSeekAuth:   JSON body: {{'chat_session_id': '{chat_session_id}'}}"
-                    )
-                else:
-                    debug.log(
-                        f"DeepSeekAuth:   Query params: chat_session_id={chat_session_id}"
-                    )
-
-                # Make the request - pass headers to each request
-                if method_info["method"] == "delete":
-                    async with session.delete(
-                            method_info["url"], headers=headers, **request_params
-                    ) as response:
-                        debug.log(f"DeepSeekAuth:   Response status: {response.status}")
-                        debug.log(
-                            f"DeepSeekAuth:   Response headers: {dict(response.headers)}"
-                        )
-                        await raise_for_status(response)
-                        result = await response.json()
-                        debug.log(f"DeepSeekAuth:   Response body: {result}")
-                        debug.log(
-                            f"DeepSeekAuth: Chat session deleted successfully using {method_info['name']}"
-                        )
-                        return  # Success - exit early
-                else:  # POST
-                    async with session.post(
-                            method_info["url"], headers=headers, **request_params
-                    ) as response:
-                        debug.log(f"DeepSeekAuth:   Response status: {response.status}")
-                        debug.log(
-                            f"DeepSeekAuth:   Response headers: {dict(response.headers)}"
-                        )
-                        await raise_for_status(response)
-                        result = await response.json()
-                        debug.log(f"DeepSeekAuth:   Response body: {result}")
-                        debug.log(
-                            f"DeepSeekAuth: Chat session deleted successfully using {method_info['name']}"
-                        )
-                        return  # Success - exit early
-
-            except Exception as e:
-                debug.error(
-                    f"DeepSeekAuth: Failed to delete using {method_info['name']}: {e}"
-                )
-                # Continue to next method
-
-        # All methods failed
-        debug.error(
-            f"DeepSeekAuth: All deletion methods failed for session {chat_session_id}"
-        )
-        # Don't raise - deletion is not critical
+        debug.log("DeepSeekAuth: Chat session deleted successfully")
+        return True
 
     @classmethod
     async def get_quota(cls, **kwargs):
         cookies = get_cookies(cls.cookie_domain, False)
-        headers = get_headers(cls.cookie_domain)
+        headers = _normalized_headers(get_headers(cls.cookie_domain) or {})
         if cookies and headers.get("authorization"):
             return {"success": True}
         raise MissingAuthError("DeepSeekAuth: No authentication found.")
@@ -928,6 +517,21 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 content_type = response.headers.get("content-type", "")
                 if "text/event-stream" not in content_type.lower():
+                    result = await response.json()
+                    code, biz_data, _message = _unwrap_biz_response(
+                        result,
+                        "chat stream",
+                        allowed_codes=(RESUME_MESSAGE_GOT_FULL_MESSAGE_CODE,),
+                    )
+                    if str(code) == str(RESUME_MESSAGE_GOT_FULL_MESSAGE_CODE):
+                        for chunk in _process_full_message(
+                                biz_data, state, conversation
+                        ):
+                            yield chunk
+                        finish_reason = DEEPSEEK_FINISH_REASONS.get(state.status)
+                        if finish_reason is not None:
+                            yield FinishReason(finish_reason)
+                        return
                     raise RuntimeError(
                         "Expected SSE response but got content-type: "
                         f"{content_type or 'unknown'}"
@@ -1135,7 +739,10 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         # Try to get auth from HAR file first
         if cookies is None:
             cookies = get_cookies(cls.cookie_domain, False)
-            source_headers = get_headers(cls.cookie_domain) or {}
+            discovered_headers = get_headers(cls.cookie_domain) or {}
+            # Explicit caller headers override browser/HAR values, including when
+            # their casing differs (normalization happens below).
+            source_headers = {**discovered_headers, **source_headers}
             normalized_source_headers = _normalized_headers(source_headers)
             if cookies and normalized_source_headers.get("authorization"):
                 debug.log(
@@ -1174,8 +781,8 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = get_last_user_message(messages)
 
         # Determine thinking mode
-        if reasoning_effort is not None and reasoning_effort != "none":
-            thinking_enabled = True
+        if reasoning_effort is not None:
+            thinking_enabled = reasoning_effort != "none"
         else:
             thinking_enabled = bool(model) and "deepseek-r1" in model
         model_type = kwargs.get("model_type", "default")  # "default", "expert", "vision"
@@ -1200,6 +807,9 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 async with session.post(CHAT_SESSION_CREATE_ENDPOINT) as response:
                     await raise_for_status(response)
                     session_data = await response.json()
+                    _unwrap_biz_response(
+                        session_data, "chat session creation"
+                    )
                     chat_session_id = _extract_chat_session_id(session_data)
                     if chat_session_id:
                         conversation.chat_session_id = chat_session_id
@@ -1208,10 +818,10 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                         )
                     else:
                         debug.error(
-                            f"DeepSeekAuth: Unexpected session response: {session_data}"
+                            "DeepSeekAuth: Session response did not include an id"
                         )
-                        raise Exception(
-                            f"Failed to parse session response: {session_data}"
+                        raise RuntimeError(
+                            "DeepSeek chat session creation failed: missing session id"
                         )
         else:
             debug.log(
@@ -1224,8 +834,6 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         # Upload file if provided - use HTTP/1.1 to avoid HTTP/2 stream errors
         ref_file_ids = []
         if media is not None and len(media) > 0:
-            # Take first file from media list
-            file_bytes, filename = media[0]
             upload_session_headers = _build_upload_session_headers(headers)
             async with StreamSession(
                     headers=upload_session_headers,
@@ -1236,40 +844,23 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                     if has_curl_cffi
                     else None,  # Force HTTP/1.1 to avoid HTTP/2 stream errors
             ) as session:
-                upload_result = await cls.upload_file(
+                ref_file_ids = await cls.upload_files(
                     session,
-                    file_bytes,
-                    filename,
+                    media,
                     thinking_enabled=thinking_enabled,
                     model_type=model_type,
                 )
-                await cls.wait_for_file_parsed(session, upload_result["file_id"])
-                ref_file_ids.append(upload_result["file_id"])
-                debug.log(f"DeepSeekAuth: Using file_id: {upload_result['file_id']}")
 
         # Build request data
 
-        json_data = {
-            "action": None,
-            "chat_session_id": getattr(
-                conversation, "chat_session_id", str(uuid.uuid4())
-            ),
-            "model_type": model_type,
-            # "parent_message_id":None,
-            # "preempt":False,
-            "prompt": prompt,
-            "ref_file_ids": ref_file_ids,
-            "thinking_enabled": thinking_enabled,
-            "search_enabled": web_search,
-            "client_stream_id": generate_client_stream_id(),
-        }
-
-        # Add parent_message_id if continuing conversation
-        if (
-                hasattr(conversation, "parent_message_id")
-                and conversation.parent_message_id
-        ):
-            json_data["parent_message_id"] = conversation.parent_message_id
+        json_data = _build_completion_payload(
+            conversation,
+            prompt=prompt,
+            model_type=model_type,
+            ref_file_ids=ref_file_ids,
+            thinking_enabled=thinking_enabled,
+            search_enabled=web_search,
+        )
 
         async with StreamSession(
                 headers=headers, cookies=cookies, proxy=proxy, impersonate="chrome"

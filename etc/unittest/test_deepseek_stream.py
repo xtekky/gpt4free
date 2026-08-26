@@ -8,13 +8,20 @@ from unittest.mock import AsyncMock, patch
 from g4f.Provider.needs_auth.DeepSeek import (
     CHAT_COMPLETION_ENDPOINT,
     CHAT_SESSION_CONTINUE_ENDPOINT,
+    CHAT_SESSION_DELETE_ENDPOINT,
     CHAT_SESSION_RESUME_STREAM_ENDPOINT,
     DeepSeek,
     _build_chat_headers,
     _extract_chat_session_id,
     iter_deepseek_sse,
 )
-from g4f.providers.response import FinishReason, JsonConversation, Reasoning
+from g4f.errors import MissingAuthError
+from g4f.providers.response import (
+    FinishReason,
+    JsonConversation,
+    JsonRequest,
+    Reasoning,
+)
 
 
 DEEPSEEK_MODULE = importlib.import_module("g4f.Provider.needs_auth.DeepSeek")
@@ -29,10 +36,17 @@ def sse_event(event: str, payload: dict) -> list[bytes]:
 
 
 class FakeStreamResponse:
-    def __init__(self, lines: list[bytes]):
+    def __init__(
+        self,
+        lines: list[bytes] | None = None,
+        *,
+        payload: dict | None = None,
+        content_type: str = "text/event-stream",
+    ):
         self.status = 200
-        self.headers = {"content-type": "text/event-stream"}
-        self.lines = lines
+        self.headers = {"content-type": content_type}
+        self.lines = lines or []
+        self.payload = payload
 
     async def __aenter__(self):
         return self
@@ -44,6 +58,9 @@ class FakeStreamResponse:
         for line in self.lines:
             yield line
 
+    async def json(self):
+        return self.payload
+
 
 class FakeStreamSession:
     def __init__(self, responses: list[FakeStreamResponse]):
@@ -54,8 +71,209 @@ class FakeStreamSession:
         self.post_calls.append((url, kwargs))
         return next(self.responses)
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, _exc_type, _exc, _traceback):
+        return False
+
 
 class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
+    async def test_explicit_authorization_survives_cookie_lookup(self):
+        with (
+            patch.object(DEEPSEEK_MODULE, "get_cookies", return_value={}),
+            patch.object(DEEPSEEK_MODULE, "get_headers", return_value={}),
+        ):
+            generator = DeepSeek.create_async_generator(
+                "deepseek-v3",
+                [{"role": "user", "content": "hello"}],
+                cookies=None,
+                headers={"Authorization": "Bearer supplied"},
+            )
+            request = await generator.__anext__()
+            await generator.aclose()
+
+        self.assertIsInstance(request, JsonRequest)
+
+    async def test_reasoning_effort_none_disables_r1_thinking(self):
+        generator = DeepSeek.create_async_generator(
+            "deepseek-r1",
+            [{"role": "user", "content": "hello"}],
+            cookies={},
+            headers={"Authorization": "Bearer supplied"},
+            reasoning_effort="none",
+        )
+        request = await generator.__anext__()
+        await generator.aclose()
+
+        self.assertFalse(request.get_dict()["thinking_enabled"])
+
+    async def test_get_quota_reports_missing_auth_when_headers_are_unavailable(self):
+        with (
+            patch.object(DEEPSEEK_MODULE, "get_cookies", return_value={"sid": "x"}),
+            patch.object(DEEPSEEK_MODULE, "get_headers", return_value=None),
+        ):
+            with self.assertRaises(MissingAuthError):
+                await DeepSeek.get_quota()
+
+    async def test_non_sse_resume_code_22_emits_full_message(self):
+        response = FakeStreamResponse(
+            payload={
+                "data": {
+                    "biz_code": 22,
+                    "biz_msg": "resume returned full message",
+                    "biz_data": {
+                        "response": {
+                            "message_id": 7,
+                            "status": "FINISHED",
+                            "fragments": [
+                                {"type": "THINK", "content": "thought"},
+                                {"type": "RESPONSE", "content": "answer"},
+                            ],
+                        }
+                    },
+                }
+            },
+            content_type="application/json",
+        )
+        session = FakeStreamSession([response])
+        conversation = JsonConversation(parent_message_id=None)
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            chunks = [
+                chunk
+                async for chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+                )
+            ]
+
+        self.assertEqual(
+            "".join(str(chunk) for chunk in chunks if isinstance(chunk, Reasoning)),
+            "thought",
+        )
+        self.assertEqual(
+            "".join(chunk for chunk in chunks if isinstance(chunk, str)),
+            "answer",
+        )
+        self.assertEqual(
+            [chunk.reason for chunk in chunks if isinstance(chunk, FinishReason)],
+            ["stop"],
+        )
+        self.assertEqual(conversation.parent_message_id, 7)
+
+    async def test_non_sse_business_error_exposes_biz_message(self):
+        response = FakeStreamResponse(
+            payload={
+                "data": {
+                    "biz_code": 40101,
+                    "biz_msg": "authorization expired",
+                    "biz_data": None,
+                }
+            },
+            content_type="application/json",
+        )
+        session = FakeStreamSession([response])
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            with self.assertRaisesRegex(RuntimeError, "authorization expired"):
+                _ = [
+                    chunk
+                    async for chunk in DeepSeek.iter_chat_stream(
+                        session,
+                        JsonConversation(parent_message_id=None),
+                        {"chat_session_id": "session-1", "prompt": "prompt"},
+                    )
+                ]
+
+    async def test_session_creation_exposes_biz_message(self):
+        session = FakeStreamSession(
+            [
+                FakeStreamResponse(
+                    payload={
+                        "data": {
+                            "biz_code": 50301,
+                            "biz_msg": "session unavailable",
+                            "biz_data": None,
+                        }
+                    },
+                    content_type="application/json",
+                )
+            ]
+        )
+        generator = DeepSeek.create_async_generator(
+            "deepseek-v3",
+            [{"role": "user", "content": "hello"}],
+            cookies={},
+            headers={"Authorization": "Bearer supplied"},
+        )
+
+        await generator.__anext__()
+        with (
+            patch.object(DEEPSEEK_MODULE, "StreamSession", return_value=session),
+            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "session unavailable"):
+                await generator.__anext__()
+
+    async def test_delete_session_uses_one_observed_request(self):
+        session = FakeStreamSession(
+            [
+                FakeStreamResponse(
+                    payload={"data": {"biz_code": 0, "biz_data": {}}},
+                    content_type="application/json",
+                )
+            ]
+        )
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            deleted = await DeepSeek.delete_chat_session(
+                session,
+                "session-1",
+                {"authorization": "Bearer redacted"},
+            )
+
+        self.assertTrue(deleted)
+        self.assertEqual(
+            session.post_calls,
+            [
+                (
+                    CHAT_SESSION_DELETE_ENDPOINT,
+                    {
+                        "headers": {"authorization": "Bearer redacted"},
+                        "json": {"chat_session_id": "session-1"},
+                    },
+                )
+            ],
+        )
+
+    async def test_delete_session_business_error_returns_false_without_retry(self):
+        session = FakeStreamSession(
+            [
+                FakeStreamResponse(
+                    payload={
+                        "data": {
+                            "biz_code": 50001,
+                            "biz_msg": "delete unavailable",
+                            "biz_data": None,
+                        }
+                    },
+                    content_type="application/json",
+                )
+            ]
+        )
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            deleted = await DeepSeek.delete_chat_session(
+                session,
+                "session-1",
+                {"authorization": "Bearer redacted"},
+            )
+
+        self.assertIs(deleted, False)
+        self.assertEqual(len(session.post_calls), 1)
+
     def test_extracts_current_and_legacy_chat_session_ids(self):
         self.assertEqual(
             _extract_chat_session_id(
@@ -645,6 +863,7 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
             {
                 "Authorization": "Bearer redacted",
                 "X-Hif-Leim": "hif-redacted",
+                "X-Hif-Dliq": "dliq-redacted",
                 "X-Client-Version": "2.4.0",
                 "X-Ds-Pow-Response": "stale-pow",
             },
@@ -652,8 +871,52 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(headers["x-hif-leim"], "hif-redacted")
+        self.assertEqual(headers["x-hif-dliq"], "dliq-redacted")
         self.assertEqual(headers["x-client-version"], "2.4.0")
+        self.assertEqual(headers["referer"], "https://chat.deepseek.com/a/chat/")
+        self.assertNotIn("x-app-version", headers)
         self.assertNotIn("x-ds-pow-response", headers)
+
+    def test_completion_payload_matches_current_web_contract(self):
+        conversation = JsonConversation(parent_message_id=None)
+        conversation.chat_session_id = "session-1"
+
+        payload = DEEPSEEK_MODULE._build_completion_payload(
+            conversation,
+            prompt="hello",
+            model_type="default",
+            ref_file_ids=["file-1"],
+            thinking_enabled=True,
+            search_enabled=False,
+        )
+
+        self.assertEqual(
+            payload,
+            {
+                "action": None,
+                "chat_session_id": "session-1",
+                "parent_message_id": None,
+                "model_type": "default",
+                "prompt": "hello",
+                "ref_file_ids": ["file-1"],
+                "thinking_enabled": True,
+                "search_enabled": False,
+                "preempt": False,
+            },
+        )
+
+        conversation.parent_message_id = 9
+        self.assertEqual(
+            DEEPSEEK_MODULE._build_completion_payload(
+                conversation,
+                prompt="follow up",
+                model_type="default",
+                ref_file_ids=[],
+                thinking_enabled=False,
+                search_enabled=True,
+            )["parent_message_id"],
+            9,
+        )
 
 
 if __name__ == "__main__":
