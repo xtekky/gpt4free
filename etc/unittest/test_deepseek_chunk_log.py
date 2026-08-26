@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from g4f.providers.response import JsonResponse, ProviderInfo, Reasoning
-from projects.test.deepseek_chunk_log import (
+from etc.testing.deepseek_chunk_log import (
     ChunkJsonlWriter,
     read_chunk_records,
     store_or_collect_chunk,

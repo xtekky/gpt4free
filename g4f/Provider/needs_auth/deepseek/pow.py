@@ -130,4 +130,3 @@ class DeepSeekPOW:
             "target_path": config.get("target_path", ""),
         }
         return base64.b64encode(json.dumps(result).encode()).decode()
-
