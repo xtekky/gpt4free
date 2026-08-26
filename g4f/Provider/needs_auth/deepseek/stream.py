@@ -100,6 +100,8 @@ class _DeepSeekStreamState:
     status: Optional[str] = None
     closed: bool = False
     active_kind: Optional[str] = "response"
+    fragment_kinds: dict[str, Optional[str]] = field(default_factory=dict)
+    next_fragment_index: int = 0
     emitted: dict[str, str] = field(
         default_factory=lambda: {"reasoning": "", "response": ""}
     )
@@ -144,6 +146,52 @@ def _stream_output(kind: str, content: str):
     if not content:
         return None
     return Reasoning(content) if kind == "reasoning" else content
+
+
+def _record_fragment_kind(
+        state: _DeepSeekStreamState,
+        fragment_index: str,
+        kind: Optional[str],
+        *,
+        append_fragment: bool = False,
+) -> None:
+    state.active_kind = kind
+    debug.log(
+        "DeepSeekAuth: Stream fragment: "
+        f"index={_stream_log_value(fragment_index)} "
+        f"kind={_stream_log_value(kind)} "
+        f"append={_stream_log_value(append_fragment)}"
+    )
+
+    if fragment_index == "-1":
+        state.fragment_kinds["-1"] = kind
+        if append_fragment:
+            state.fragment_kinds[str(state.next_fragment_index)] = kind
+            state.next_fragment_index += 1
+        elif state.next_fragment_index:
+            state.fragment_kinds[str(state.next_fragment_index - 1)] = kind
+        return
+
+    state.fragment_kinds[fragment_index] = kind
+    try:
+        numeric_index = int(fragment_index)
+    except ValueError:
+        return
+    if numeric_index >= state.next_fragment_index:
+        state.next_fragment_index = numeric_index + 1
+    if numeric_index == state.next_fragment_index - 1:
+        state.fragment_kinds["-1"] = kind
+
+
+def _fragment_index_from_path(path: str) -> Optional[str]:
+    path_parts = path.split("/")
+    if (
+            len(path_parts) >= 3
+            and path_parts[0] == "response"
+            and path_parts[1] == "fragments"
+    ):
+        return path_parts[2]
+    return None
 
 
 def _record_response_message_id(
@@ -210,11 +258,16 @@ def _process_fragments(
     content_by_kind = {"reasoning": "", "response": ""}
     kind_order = []
 
+    if snapshot:
+        state.fragment_kinds.clear()
+        state.next_fragment_index = 0
+
     for fragment in fragments:
         if not isinstance(fragment, dict):
             continue
         kind = _fragment_kind(fragment)
-        state.active_kind = kind
+        fragment_index = str(state.next_fragment_index)
+        _record_fragment_kind(state, fragment_index, kind)
         content = fragment.get("content")
         if kind is None or not isinstance(content, str):
             continue
@@ -291,6 +344,36 @@ def _process_stream_payload(
         )
         return chunks
 
+    fragment_index = (
+        _fragment_index_from_path(path)
+        if isinstance(path, str)
+        else None
+    )
+    if (
+            fragment_index is not None
+            and path.count("/") == 2
+            and operation in {"SET", "APPEND"}
+            and isinstance(value, dict)
+    ):
+        kind = _fragment_kind(value)
+        _record_fragment_kind(
+            state,
+            fragment_index,
+            kind,
+            append_fragment=operation == "APPEND",
+        )
+        content = value.get("content")
+        if kind is not None and isinstance(content, str):
+            delta = (
+                state.snapshot_delta(kind, content)
+                if operation == "SET"
+                else state.append(kind, content)
+            )
+            output = _stream_output(kind, delta)
+            if output is not None:
+                chunks.append(output)
+        return chunks
+
     if isinstance(path, str) and "v" in payload:
         if _record_stream_status(
                 state,
@@ -300,8 +383,23 @@ def _process_stream_payload(
                 source="patch",
         ):
             return chunks
+        if (
+                fragment_index is not None
+                and path.endswith("/type")
+                and isinstance(value, str)
+        ):
+            _record_fragment_kind(
+                state,
+                fragment_index,
+                _fragment_kind({"type": value}),
+            )
+            return chunks
         if path.endswith("/content") and isinstance(value, str):
-            kind = state.active_kind
+            kind = (
+                state.fragment_kinds[fragment_index]
+                if fragment_index in state.fragment_kinds
+                else state.active_kind
+            )
             if kind is None:
                 return chunks
             content = (

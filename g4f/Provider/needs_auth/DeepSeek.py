@@ -7,7 +7,7 @@ from typing import Any, Optional, Literal
 
 from g4f import debug
 from g4f.cookies import get_cookies, get_headers
-from g4f.errors import MissingAuthError
+from g4f.errors import MissingAuthError, ResponseError
 from g4f.image import to_bytes, detect_file_type
 from g4f.providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from g4f.providers.helper import get_last_user_message
@@ -504,6 +504,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         state = _DeepSeekStreamState()
         continue_attempts = 0
         resume_attempts = 0
+        empty_response_resume_attempted = False
 
         while True:
             state.closed = False
@@ -528,6 +529,17 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                                 biz_data, state, conversation
                         ):
                             yield chunk
+                        if not state.emitted["response"]:
+                            debug.log(
+                                "DeepSeekAuth: Stream closed: "
+                                f"status={_stream_log_value(state.status)} "
+                                "action=error "
+                                "reason=empty_response_after_resume "
+                                "finish_reason=none"
+                            )
+                            raise ResponseError(
+                                "DeepSeek finished without a response"
+                            )
                         finish_reason = DEEPSEEK_FINISH_REASONS.get(state.status)
                         if finish_reason is not None:
                             yield FinishReason(finish_reason)
@@ -577,6 +589,60 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                     "message_id_present="
                     f"{_stream_log_value(state.message_id is not None)}"
                 )
+                if (
+                        state.status == "FINISHED"
+                        and not state.emitted["response"]
+                ):
+                    can_resume_empty_response = (
+                        state.message_id is not None
+                        and not empty_response_resume_attempted
+                        and (
+                            max_resume_attempts is None
+                            or resume_attempts < max_resume_attempts
+                        )
+                    )
+                    if can_resume_empty_response:
+                        empty_response_resume_attempted = True
+                        resume_attempts += 1
+                        debug.log(
+                            "DeepSeekAuth: Stream closed: "
+                            "status=FINISHED action=resume_stream "
+                            "reason=empty_response finish_reason=none "
+                            f"attempt={resume_attempts} "
+                            f"{close_details}"
+                        )
+                        endpoint = CHAT_SESSION_RESUME_STREAM_ENDPOINT
+                        payload = {
+                            "chat_session_id": chat_session_id,
+                            "message_id": state.message_id,
+                        }
+                        request_headers = None
+                        continue
+
+                    debug.log(
+                        "DeepSeekAuth: Stream closed: "
+                        "status=FINISHED action=error "
+                        "reason=empty_response finish_reason=none "
+                        f"{close_details}"
+                    )
+                    raise ResponseError(
+                        "DeepSeek finished without a response"
+                    )
+                if (
+                        empty_response_resume_attempted
+                        and not state.emitted["response"]
+                        and not should_continue
+                ):
+                    debug.log(
+                        "DeepSeekAuth: Stream closed: "
+                        f"status={_stream_log_value(state.status)} "
+                        "action=error reason=empty_response_after_resume "
+                        "finish_reason=none "
+                        f"{close_details}"
+                    )
+                    raise ResponseError(
+                        "DeepSeek finished without a response"
+                    )
                 if not should_continue:
                     finish_reason = DEEPSEEK_FINISH_REASONS.get(state.status)
                     if state.status == "INCOMPLETE":

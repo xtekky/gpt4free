@@ -15,7 +15,7 @@ from g4f.Provider.needs_auth.DeepSeek import (
     _extract_chat_session_id,
     iter_deepseek_sse,
 )
-from g4f.errors import MissingAuthError
+from g4f.errors import MissingAuthError, ResponseError
 from g4f.providers.response import (
     FinishReason,
     JsonConversation,
@@ -162,6 +162,383 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
             ["stop"],
         )
         self.assertEqual(conversation.parent_message_id, 7)
+
+    async def test_finished_reasoning_only_stream_resumes_full_message_once(self):
+        reasoning_only_response = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments",
+                    "o": "APPEND",
+                    "v": [{"type": "THINK", "content": "thought"}],
+                },
+            )
+            + sse_event(
+                "message",
+                {"p": "response/status", "o": "SET", "v": "FINISHED"},
+            )
+            + sse_event("close", {"auto_resume": False})
+        )
+        full_message_response = FakeStreamResponse(
+            payload={
+                "data": {
+                    "biz_code": 22,
+                    "biz_msg": "resume returned full message",
+                    "biz_data": {
+                        "response": {
+                            "message_id": 4,
+                            "status": "FINISHED",
+                            "fragments": [
+                                {"type": "THINK", "content": "thought"},
+                                {"type": "RESPONSE", "content": "answer"},
+                            ],
+                        }
+                    },
+                }
+            },
+            content_type="application/json",
+        )
+        session = FakeStreamSession(
+            [reasoning_only_response, full_message_response]
+        )
+        conversation = JsonConversation(parent_message_id=None)
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            chunks = [
+                chunk
+                async for chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+                    max_resume_attempts=3,
+                )
+            ]
+
+        self.assertEqual(
+            [url for url, _kwargs in session.post_calls],
+            [CHAT_COMPLETION_ENDPOINT, CHAT_SESSION_RESUME_STREAM_ENDPOINT],
+        )
+        self.assertEqual(
+            session.post_calls[1][1]["json"],
+            {"chat_session_id": "session-1", "message_id": 4},
+        )
+        self.assertEqual(
+            "".join(str(chunk) for chunk in chunks if isinstance(chunk, Reasoning)),
+            "thought",
+        )
+        self.assertEqual(
+            "".join(chunk for chunk in chunks if isinstance(chunk, str)),
+            "answer",
+        )
+        self.assertEqual(
+            [chunk.reason for chunk in chunks if isinstance(chunk, FinishReason)],
+            ["stop"],
+        )
+        self.assertEqual(conversation.parent_message_id, 4)
+
+    async def test_finished_stream_raises_when_resumed_message_has_no_response(self):
+        reasoning_only_response = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments",
+                    "o": "APPEND",
+                    "v": [{"type": "THINK", "content": "thought"}],
+                },
+            )
+            + sse_event(
+                "message",
+                {"p": "response/status", "o": "SET", "v": "FINISHED"},
+            )
+            + sse_event("close", {"auto_resume": False})
+        )
+        full_message_response = FakeStreamResponse(
+            payload={
+                "data": {
+                    "biz_code": 22,
+                    "biz_msg": "resume returned full message",
+                    "biz_data": {
+                        "response": {
+                            "message_id": 4,
+                            "status": "FINISHED",
+                            "fragments": [
+                                {"type": "THINK", "content": "thought"},
+                            ],
+                        }
+                    },
+                }
+            },
+            content_type="application/json",
+        )
+        session = FakeStreamSession(
+            [reasoning_only_response, full_message_response]
+        )
+        conversation = JsonConversation(parent_message_id=None)
+        chunks = []
+
+        with (
+            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
+            self.assertRaisesRegex(
+                ResponseError,
+                "DeepSeek finished without a response",
+            ),
+        ):
+            async for chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+            ):
+                chunks.append(chunk)
+
+        self.assertEqual(
+            [url for url, _kwargs in session.post_calls],
+            [CHAT_COMPLETION_ENDPOINT, CHAT_SESSION_RESUME_STREAM_ENDPOINT],
+        )
+        self.assertEqual(
+            "".join(str(chunk) for chunk in chunks if isinstance(chunk, Reasoning)),
+            "thought",
+        )
+        self.assertEqual(
+            "".join(chunk for chunk in chunks if isinstance(chunk, str)),
+            "",
+        )
+
+    async def test_finished_empty_stream_does_not_resume_when_disabled(self):
+        response = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+            + sse_event(
+                "message",
+                {"p": "response/status", "o": "SET", "v": "FINISHED"},
+            )
+            + sse_event("close", {"auto_resume": False})
+        )
+        session = FakeStreamSession([response])
+        conversation = JsonConversation(parent_message_id=None)
+
+        with (
+            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
+            self.assertRaisesRegex(
+                ResponseError,
+                "DeepSeek finished without a response",
+            ),
+        ):
+            async for _chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+                    max_resume_attempts=0,
+            ):
+                pass
+
+        self.assertEqual(
+            [url for url, _kwargs in session.post_calls],
+            [CHAT_COMPLETION_ENDPOINT],
+        )
+
+    async def test_empty_response_resume_counts_toward_resume_limit(self):
+        reasoning_only_response = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+            + sse_event(
+                "message",
+                {"p": "response/status", "o": "SET", "v": "FINISHED"},
+            )
+            + sse_event("close", {"auto_resume": False})
+        )
+        interrupted_resume = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+        )
+        session = FakeStreamSession(
+            [reasoning_only_response, interrupted_resume]
+        )
+        conversation = JsonConversation(parent_message_id=None)
+
+        with (
+            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "did not close normally after 1 resume attempt",
+            ),
+        ):
+            async for _chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+                    max_resume_attempts=1,
+            ):
+                pass
+
+        self.assertEqual(
+            [url for url, _kwargs in session.post_calls],
+            [CHAT_COMPLETION_ENDPOINT, CHAT_SESSION_RESUME_STREAM_ENDPOINT],
+        )
+
+    async def test_full_message_without_response_always_raises(self):
+        response = FakeStreamResponse(
+            payload={
+                "data": {
+                    "biz_code": 22,
+                    "biz_msg": "resume returned full message",
+                    "biz_data": {
+                        "response": {
+                            "message_id": 4,
+                            "status": "WIP",
+                            "fragments": [
+                                {"type": "THINK", "content": "thought"},
+                            ],
+                        }
+                    },
+                }
+            },
+            content_type="application/json",
+        )
+        session = FakeStreamSession([response])
+        conversation = JsonConversation(parent_message_id=None)
+
+        with (
+            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
+            self.assertRaisesRegex(
+                ResponseError,
+                "DeepSeek finished without a response",
+            ),
+        ):
+            async for _chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+            ):
+                pass
+
+    async def test_indexed_response_fragment_switches_from_reasoning(self):
+        response = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+            + sse_event(
+                "message",
+                {
+                    "v": {
+                        "response": {
+                            "message_id": 4,
+                            "fragments": [
+                                {"type": "THINK", "content": "thought"},
+                            ],
+                        }
+                    }
+                },
+            )
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments/-1",
+                    "o": "APPEND",
+                    "v": {"type": "RESPONSE", "content": ""},
+                },
+            )
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments/-1",
+                    "o": "SET",
+                    "v": {"type": "RESPONSE", "content": "answer"},
+                },
+            )
+            + sse_event(
+                "message",
+                {"p": "response/status", "o": "SET", "v": "FINISHED"},
+            )
+            + sse_event("close", {"auto_resume": False})
+        )
+        session = FakeStreamSession([response])
+        conversation = JsonConversation(parent_message_id=None)
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            chunks = [
+                chunk
+                async for chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+                )
+            ]
+
+        self.assertEqual(len(session.post_calls), 1)
+        self.assertEqual(
+            "".join(str(chunk) for chunk in chunks if isinstance(chunk, Reasoning)),
+            "thought",
+        )
+        self.assertEqual(
+            "".join(chunk for chunk in chunks if isinstance(chunk, str)),
+            "answer",
+        )
+
+    async def test_indexed_content_uses_its_fragment_type(self):
+        response = FakeStreamResponse(
+            sse_event("ready", {"response_message_id": 4})
+            + sse_event(
+                "message",
+                {
+                    "v": {
+                        "response": {
+                            "message_id": 4,
+                            "fragments": [
+                                {"type": "THINK", "content": ""},
+                                {"type": "RESPONSE", "content": ""},
+                            ],
+                        }
+                    }
+                },
+            )
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments/-1/type",
+                    "o": "SET",
+                    "v": "TEMPLATE_RESPONSE",
+                },
+            )
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments/0/content",
+                    "o": "APPEND",
+                    "v": "thought",
+                },
+            )
+            + sse_event(
+                "message",
+                {
+                    "p": "response/fragments/1/content",
+                    "o": "APPEND",
+                    "v": "answer",
+                },
+            )
+            + sse_event(
+                "message",
+                {"p": "response/status", "o": "SET", "v": "FINISHED"},
+            )
+            + sse_event("close", {"auto_resume": False})
+        )
+        session = FakeStreamSession([response])
+        conversation = JsonConversation(parent_message_id=None)
+
+        with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
+            chunks = [
+                chunk
+                async for chunk in DeepSeek.iter_chat_stream(
+                    session,
+                    conversation,
+                    {"chat_session_id": "session-1", "prompt": "prompt"},
+                )
+            ]
+
+        self.assertEqual(
+            "".join(str(chunk) for chunk in chunks if isinstance(chunk, Reasoning)),
+            "thought",
+        )
+        self.assertEqual(
+            "".join(chunk for chunk in chunks if isinstance(chunk, str)),
+            "answer",
+        )
 
     async def test_non_sse_business_error_exposes_biz_message(self):
         response = FakeStreamResponse(
@@ -681,6 +1058,14 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
             with self.subTest(status=status):
                 response = FakeStreamResponse(
                     sse_event("ready", {"response_message_id": 4})
+                    + sse_event(
+                        "message",
+                        {
+                            "p": "response/fragments",
+                            "o": "APPEND",
+                            "v": [{"type": "RESPONSE", "content": "answer"}],
+                        },
+                    )
                     + sse_event(
                         "message",
                         {"p": "response/status", "o": "SET", "v": status},
