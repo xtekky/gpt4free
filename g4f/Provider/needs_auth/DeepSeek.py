@@ -307,7 +307,10 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
             f"algorithm={challenge.get('algorithm')}, "
             f"difficulty={challenge.get('difficulty')}"
         )
-        pow_response = await asyncio.to_thread(_solve_pow_challenge, challenge)
+        loop = asyncio.get_running_loop()
+        pow_response = await loop.run_in_executor(
+            None, _solve_pow_challenge, challenge
+        )
         debug.log(f"DeepSeekAuth: PoW challenge solved for {target_path}")
         return pow_response
 

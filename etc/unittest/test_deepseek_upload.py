@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
@@ -114,19 +115,25 @@ class DeepSeekUploadTest(unittest.IsolatedAsyncioTestCase):
             ]
         )
 
+        result_future = asyncio.get_running_loop().create_future()
+        result_future.set_result("pow-response")
+        run_in_executor = Mock(return_value=result_future)
+        loop = Mock(run_in_executor=run_in_executor)
+
         with patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock):
             with patch.object(
                 DEEPSEEK_MODULE.asyncio,
-                "to_thread",
-                new_callable=AsyncMock,
-                return_value="pow-response",
-            ) as to_thread:
+                "get_running_loop",
+                return_value=loop,
+            ):
                 result = await DeepSeek.create_pow_response(
                     session, FILE_UPLOAD_PATH
                 )
 
         self.assertEqual(result, "pow-response")
-        to_thread.assert_awaited_once()
+        run_in_executor.assert_called_once_with(
+            None, DEEPSEEK_MODULE._solve_pow_challenge, challenge
+        )
 
     def test_pow_rejects_missing_answer(self):
         solver = DeepSeekPOW.__new__(DeepSeekPOW)
