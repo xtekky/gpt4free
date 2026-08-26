@@ -74,8 +74,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 
     @classmethod
     def is_provider_api_key(cls, api_key: str) -> bool:
-        if cls.backup_url is None:
-            return True
         return (
             api_key
             and not api_key.startswith("g4f_")
@@ -101,6 +99,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if base_url is None:
                     base_url = cls.base_url
                     if not cls.is_provider_api_key(api_key):
+                        if cls.backup_url is None:
+                            api_key = None
                         base_url = cls.backup_url
                     if base_url is None:
                         raise NotImplementedError(
