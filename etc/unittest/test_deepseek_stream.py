@@ -80,9 +80,10 @@ class FakeStreamSession:
 
 class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
     async def test_explicit_authorization_survives_cookie_lookup(self):
-        with (
-            patch.object(DEEPSEEK_MODULE, "get_cookies", return_value={}),
-            patch.object(DEEPSEEK_MODULE, "get_headers", return_value={}),
+        with patch.object(
+            DEEPSEEK_MODULE, "get_cookies", return_value={}
+        ), patch.object(
+            DEEPSEEK_MODULE, "get_headers", return_value={}
         ):
             generator = DeepSeek.create_async_generator(
                 "deepseek-v3",
@@ -109,9 +110,10 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(request.get_dict()["thinking_enabled"])
 
     async def test_get_quota_reports_missing_auth_when_headers_are_unavailable(self):
-        with (
-            patch.object(DEEPSEEK_MODULE, "get_cookies", return_value={"sid": "x"}),
-            patch.object(DEEPSEEK_MODULE, "get_headers", return_value=None),
+        with patch.object(
+            DEEPSEEK_MODULE, "get_cookies", return_value={"sid": "x"}
+        ), patch.object(
+            DEEPSEEK_MODULE, "get_headers", return_value=None
         ):
             with self.assertRaises(MissingAuthError):
                 await DeepSeek.get_quota()
@@ -278,12 +280,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         conversation = JsonConversation(parent_message_id=None)
         chunks = []
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            self.assertRaisesRegex(
-                ResponseError,
-                "DeepSeek finished without a response",
-            ),
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), self.assertRaisesRegex(
+            ResponseError,
+            "DeepSeek finished without a response",
         ):
             async for chunk in DeepSeek.iter_chat_stream(
                     session,
@@ -317,12 +318,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         session = FakeStreamSession([response])
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            self.assertRaisesRegex(
-                ResponseError,
-                "DeepSeek finished without a response",
-            ),
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), self.assertRaisesRegex(
+            ResponseError,
+            "DeepSeek finished without a response",
         ):
             async for _chunk in DeepSeek.iter_chat_stream(
                     session,
@@ -354,12 +354,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         )
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            self.assertRaisesRegex(
-                RuntimeError,
-                "did not close normally after 1 resume attempt",
-            ),
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), self.assertRaisesRegex(
+            RuntimeError,
+            "did not close normally after 1 resume attempt",
         ):
             async for _chunk in DeepSeek.iter_chat_stream(
                     session,
@@ -396,12 +395,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         session = FakeStreamSession([response])
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            self.assertRaisesRegex(
-                ResponseError,
-                "DeepSeek finished without a response",
-            ),
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), self.assertRaisesRegex(
+            ResponseError,
+            "DeepSeek finished without a response",
         ):
             async for _chunk in DeepSeek.iter_chat_stream(
                     session,
@@ -587,9 +585,10 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         )
 
         await generator.__anext__()
-        with (
-            patch.object(DEEPSEEK_MODULE, "StreamSession", return_value=session),
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
+        with patch.object(
+            DEEPSEEK_MODULE, "StreamSession", return_value=session
+        ), patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
         ):
             with self.assertRaisesRegex(RuntimeError, "session unavailable"):
                 await generator.__anext__()
@@ -712,10 +711,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         session = FakeStreamSession([first_response, continued_response])
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            patch.object(DEEPSEEK_MODULE.debug, "log") as log,
-        ):
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), patch.object(
+            DEEPSEEK_MODULE.debug, "log"
+        ) as log:
             chunks = [
                 chunk
                 async for chunk in DeepSeek.iter_chat_stream(
@@ -787,10 +787,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         session = FakeStreamSession([incomplete_response, continued_response])
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            patch.object(DEEPSEEK_MODULE.debug, "log") as log,
-        ):
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), patch.object(
+            DEEPSEEK_MODULE.debug, "log"
+        ) as log:
             chunks = [
                 chunk
                 async for chunk in DeepSeek.iter_chat_stream(
@@ -863,10 +864,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         session = FakeStreamSession([incomplete_response, continued_response])
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            patch.object(DEEPSEEK_MODULE.debug, "log") as log,
-        ):
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), patch.object(
+            DEEPSEEK_MODULE.debug, "log"
+        ) as log:
             chunks = [
                 chunk
                 async for chunk in DeepSeek.iter_chat_stream(
@@ -930,10 +932,11 @@ class DeepSeekSSETest(unittest.IsolatedAsyncioTestCase):
         )
         conversation = JsonConversation(parent_message_id=None)
 
-        with (
-            patch.object(DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock),
-            patch.object(DEEPSEEK_MODULE.debug, "log") as log,
-        ):
+        with patch.object(
+            DEEPSEEK_MODULE, "raise_for_status", new_callable=AsyncMock
+        ), patch.object(
+            DEEPSEEK_MODULE.debug, "log"
+        ) as log:
             chunks = [
                 chunk
                 async for chunk in DeepSeek.iter_chat_stream(
