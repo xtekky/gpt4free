@@ -270,7 +270,7 @@ def is_accepted_format(binary_data: bytes) -> str:
         raise ValueError("Invalid image format (from magic code).")
 
 
-def detect_file_type(binary_data: bytes) -> tuple[str, str] | None:
+def detect_file_type(binary_data: bytes) -> tuple[str, str]:
     """
     Detect file type from magic number / header signature.
 
