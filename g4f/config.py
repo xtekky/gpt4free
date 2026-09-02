@@ -29,7 +29,7 @@ def get_config_dir() -> Path:
 
 DEFAULT_PORT = 1337
 DEFAULT_TIMEOUT = 600
-DEFAULT_STREAM_TIMEOUT = 120
+DEFAULT_STREAM_TIMEOUT = 300
 
 PACKAGE_NAME = "g4f"
 CONFIG_DIR = get_config_dir()
@@ -54,10 +54,10 @@ class AppConfig:
     ignored_providers: Optional[list[str]] = None
     g4f_api_key: Optional[str] = None
     ignore_cookie_files: bool = False
-    model: str = None
-    provider: str = None
-    media_provider: str = None
-    proxy: str = None
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    media_provider: Optional[str] = None
+    proxy: Optional[str] = None
     gui: bool = False
     demo: bool = False
     timeout: int = DEFAULT_TIMEOUT

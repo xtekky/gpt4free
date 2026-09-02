@@ -512,6 +512,7 @@ def _make_safe_globals(
     allowed: FrozenSet[str] = SAFE_MODULES,
     stdout_buf: Optional[io.StringIO] = None,
     stderr_buf: Optional[io.StringIO] = None,
+    file_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Return a ``globals`` dict suitable for sandboxed ``exec``."""
     workspace = get_workspace_dir()
@@ -529,7 +530,12 @@ def _make_safe_globals(
         """open() restricted to the workspace directory."""
         path = Path(file)
         if not path.is_absolute():
-            path = workspace / "pa-providers" / path
+            parent = file_path.parent if file_path else workspace
+            while parent != parent.parent:
+                path = parent / path.name
+                if path.exists():
+                    break
+                parent = parent.parent
         try:
             resolved = path.resolve()
             ws_resolved = workspace.resolve()
@@ -645,7 +651,7 @@ def execute_safe_code(
     stderr_buf = _LimitedStringIO(MAX_OUTPUT_BYTES)
 
     safe_globals = _make_safe_globals(
-        allowed_modules, stdout_buf=stdout_buf, stderr_buf=stderr_buf
+        allowed_modules, stdout_buf=stdout_buf, stderr_buf=stderr_buf, file_path=None if file_path is None else Path(file_path)
     )
     if file_path is not None:
         safe_globals["__file__"] = str(Path(file_path).resolve())

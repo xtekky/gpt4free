@@ -58,6 +58,7 @@ class UsageModel(BaseModel):
     prompt_tokens_details: PromptTokenDetails
     completion_tokens_details: CompletionTokenDetails
     cache: Optional[str] = None
+    estimated_cost: Optional[float] = None
 
     @classmethod
     def model_construct(
@@ -67,6 +68,9 @@ class UsageModel(BaseModel):
         total_tokens=0,
         prompt_tokens_details=None,
         completion_tokens_details=None,
+        estimated_cost=None,
+        market_cost=None,
+        pollen_cost=None,
         **kwargs,
     ):
         return super().model_construct(
@@ -81,6 +85,7 @@ class UsageModel(BaseModel):
             completion_tokens_details=CompletionTokenDetails.model_construct(
                 **completion_tokens_details if completion_tokens_details else {}
             ),
+            estimated_cost=estimated_cost or market_cost or pollen_cost,
             **kwargs,
         )
 
