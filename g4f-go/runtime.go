@@ -180,7 +180,16 @@ func ensurePip(binDir, exe string) error {
 // pipEnv restricts pip to the downloaded runtime so installs never touch the
 // host Python. pbs installs are a full layout: lib/pythonX.Y/site-packages
 // (unix) or Lib/site-packages (windows) inside the interpreter home.
+// On Termux we use the system python, so we must NOT override PYTHONHOME
+// (that would break the system interpreter); only set user-site isolation.
 func pipEnv(binDir string) []string {
+	if IsTermuxSystem() {
+		return []string{
+			"PYTHONNOUSERSITE=1",
+			"PYTHONDONTWRITEBYTECODE=1",
+			"PYTHONUTF8=1",
+		}
+	}
 	home := pythonHome(binDir)
 	lib := filepath.Join(home, "Lib", "site-packages")
 	if runtime.GOOS != "windows" {

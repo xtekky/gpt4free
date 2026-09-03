@@ -157,6 +157,10 @@ def _resolve_provider(name: str) -> ProviderType:
         from g4f.Provider.needs_auth.GlhfChat import GlhfChat
 
         return GlhfChat
+    elif name == "GoogleAiMode":
+        from g4f.Provider.needs_auth.GoogleAiMode import GoogleAiMode
+
+        return GoogleAiMode
     elif name == "GoogleSearch":
         from g4f.Provider.search.GoogleSearch import GoogleSearch
 
@@ -424,6 +428,7 @@ _provider_names = [
     "GithubCopilot",
     "GithubCopilotAPI",
     "GlhfChat",
+    "GoogleAiMode",
     "GoogleSearch",
     "Grok",
     "Groq",

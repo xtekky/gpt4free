@@ -448,6 +448,9 @@ async def async_iter_run_tools(
             "label": usage_label,
             **usage.get_dict(),
         }
+        estimated_cost = usage_dict.get("pollen_cost") or usage_dict.get("market_cost") or usage_dict.get("estimated_cost")
+        if estimated_cost is not None:
+            debug.log(f"Model: {usage_model}, Estimated cost: {estimated_cost}")
         prompt_tokens = usage_dict.get("prompt_tokens", 0)
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
@@ -670,6 +673,9 @@ def iter_run_tools(
             "label": usage_label,
             **usage.get_dict(),
         }
+        cost = usage_dict.get("pollen_cost") or usage_dict.get("market_cost") or usage_dict.get("estimated_cost")
+        if cost is not None:
+            debug.log(f"Cost: {cost}")
         if saved_tokens:
             usage_dict["saved_tokens"] = saved_tokens
             prompt_tokens = usage_dict.get("prompt_tokens", 0) + saved_tokens
