@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import base64
 import html
+import json
 from typing import Union, Dict, List, Optional
 from abc import abstractmethod
 from urllib.parse import quote, unquote
@@ -208,7 +209,9 @@ class ObjectMixin:
 class JsonResponse(ResponseType, ObjectMixin):
     def __str__(self) -> str:
         return str(self.get_dict())
-
+    def model_dump_json(self, *args, **kwargs) -> str:
+        """Return a JSON string representation of the object."""
+        return json.dumps(self.get_dict())
 
 class HiddenResponse(ResponseType):
     def __str__(self) -> str:

@@ -127,9 +127,11 @@ default = Model(
             "GLM",
             "Pollinations",
             "Qwen",
-            "Together",
             "TeachAnything",
             "OpenaiChat",
+            "OrcaRouter",
+            "OpenCode",
+            "KiloCode",
         ]
     ),
 )

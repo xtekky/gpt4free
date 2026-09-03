@@ -107,8 +107,15 @@ async def wait_for(response: AsyncIterator, timeout: int = None) -> AsyncIterato
     if timeout is not None:
         while True:
             try:
-                yield await asyncio.wait_for(response.__anext__(), timeout=timeout)
+                async def wait_for_next():
+                    try:
+                        return await response.__anext__()
+                    except TimeoutError as e:
+                        raise TimeoutError(str(e) or "The operation timed out") from e
+                yield await asyncio.wait_for(wait_for_next(), timeout=timeout)
             except TimeoutError as e:
+                if str(e):
+                    raise TimeoutError(str(e)) from e
                 raise TimeoutError(
                     "The operation timed out after {} seconds".format(timeout)
                 ) from e
@@ -365,8 +372,8 @@ class ProviderModelMixin:
 
     @classmethod
     def get_model(cls, model: str, **kwargs) -> str:
-        if not model and cls.default_model is not None:
-            model = cls.default_model
+        if (not model or model == "auto") and cls.default_model is not None:
+            return cls.default_model
         if cls.model_aliases is not None and model in cls.model_aliases:
             alias = cls.model_aliases[model]
             if isinstance(alias, list):
@@ -377,6 +384,14 @@ class ProviderModelMixin:
                 return selected_model
             debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
             return alias
+        for m in cls.get_models(**kwargs):
+            if not model or model == "auto":
+                if m == "auto" or m.endswith("/free"):
+                    cls.default_model = m
+                    return m
+            elif m.lower().endswith(model.lower()):
+                debug.log(f"{cls.__name__}: Using model '{m}'")
+                return m
         return model
 
 

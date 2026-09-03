@@ -187,7 +187,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         model: str,
         messages: Messages,
         proxy: str = None,
-        timeout: int = 120,
         conversation: JsonConversation = None,
         media: MediaListType = None,
         api_key: str = None,
@@ -230,7 +229,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         async with StreamSession(
             proxy=proxy,
             headers=cls.get_headers(stream, api_key, headers),
-            timeout=timeout,
             impersonate=impersonate,
         ) as session:
             model = cls.get_model(model, api_key=api_key, base_url=base_url)

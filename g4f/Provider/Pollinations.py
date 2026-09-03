@@ -43,6 +43,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     backup_url = "https://g4f.space/api/pollinations"
     active_by_default = True
     working = True
+    supports_native_tools = True
 
     # API endpoints
     text_api_endpoint = "https://text.pollinations.ai/openai"

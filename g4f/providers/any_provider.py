@@ -82,7 +82,7 @@ LABELS = {
 class AnyModelProviderMixin(ProviderModelMixin):
     """Mixin to provide model-related methods for providers."""
 
-    default_model = "default"
+    default_model = "auto"
     audio_models = audio_models
     image_models = image_models
     vision_models = vision_models
@@ -302,7 +302,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
         groups = {key: [] for key in LABELS.keys()}
 
         # Always add default first
-        groups["default"].append("default")
+        groups["default"].append("auto")
 
         groups["custom"] = list(RouterConfig.routes.keys())
 
@@ -408,7 +408,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         **kwargs,
     ) -> AsyncResult:
         providers = []
-        if not model or model == cls.default_model:
+        if not model or model == cls.default_model or model == "default":
             model = ""
             has_image = False
             has_audio = False

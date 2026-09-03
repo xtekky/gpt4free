@@ -318,10 +318,12 @@ def _load_workspace_module(
             # Skip .pa.py files — those are providers, not importable modules
             if not candidate.name.endswith(".pa.py"):
                 source_path = candidate
+                pkg_init = candidate.parent / "__init__.py"
                 break
         if source_path is None:
             for candidate in workspace.rglob(f"{name}/__init__.py"):
                 source_path = candidate
+                pkg_init = candidate
                 break
 
     if source_path is None:
@@ -530,12 +532,10 @@ def _make_safe_globals(
         """open() restricted to the workspace directory."""
         path = Path(file)
         if not path.is_absolute():
-            parent = file_path.parent if file_path else workspace
-            while parent != parent.parent:
-                path = parent / path.name
-                if path.exists():
-                    break
-                parent = parent.parent
+            if file_path is None:
+                path = workspace / path
+            else:
+                path = file_path.parent / path.name
         try:
             resolved = path.resolve()
             ws_resolved = workspace.resolve()

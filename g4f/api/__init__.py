@@ -798,7 +798,7 @@ class Api:
         }
 
         @self.app.post("/v1/chat/completions", responses=responses)
-        @self.app.post("/api/{provider:path}/chat/completions", responses=responses)
+        @self.app.post("/{mode}/{provider:path}/chat/completions",  responses=responses)
         @self.app.post(
             "/api/{provider}/{conversation_id}/chat/completions", responses=responses
         )
@@ -807,10 +807,15 @@ class Api:
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] = None,
-            provider: str = None,
-            conversation_id: str = None,
-            x_user: Annotated[str | None, Header()] = None,
+            mode: str | None = None,
+            provider: str | None = None,
+            conversation_id: str | None = None,
+            x_user: Annotated[str | None, Header()] | None = None,
         ):
+            if mode == "raw":
+                config.raw = True
+            elif mode == "custom":
+                provider = f"{mode}:{provider}"
             if provider is not None:
                 config.provider = provider
             if config.provider is None:
@@ -972,9 +977,9 @@ class Api:
             config: ResponsesConfig,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
-            ] = None,
-            provider: str = None,
-            x_user: Annotated[str | None, Header()] = None,
+            ] | None = None,
+            provider: str | None = None,
+            x_user: Annotated[str | None, Header(alias="X-User")] | None = None,
         ):
             if provider is not None:
                 config.provider = provider

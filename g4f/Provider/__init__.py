@@ -265,9 +265,13 @@ def _resolve_provider(name: str) -> ProviderType:
 
         return OpenRouterFree
     elif name == "OrcaRouter":
-        from g4f.Provider.needs_auth.OrcaRouter import OrcaRouter
-
-        return OrcaRouter
+        from ..client.factory import AbstractClientFactory
+        _loaded_providers[name] = AbstractClientFactory.create_provider(
+            None, name.lower()
+        )
+        _loaded_providers[name].__name__ = name
+        _loaded_providers[name].active_by_default = True
+        return _loaded_providers[name]
     elif name == "OpenaiAPI":
         from g4f.Provider.needs_auth.OpenaiAPI import OpenaiAPI
 
