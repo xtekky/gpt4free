@@ -118,23 +118,8 @@ func runMain() int {
 		return code
 	}
 
-	// On Termux we use the system python (no downloaded runtime), so skip
-	// the downloaded-runtime g4f install/upgrade logic that targets
-	// binDir/python-home.
-	if !IsTermuxSystem() {
-		if !g4fIsInstalled(binDir) {
-			// First call: install g4f.
-			start := time.Now()
-			if err := installG4F(binDir, py, start); err != nil {
-				fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			}
-		} else if len(args) > 0 && isUpgradeCommand(args[0]) {
-			// Subsequent call with gui/api/dev: upgrade g4f.
-			start := time.Now()
-			if err := upgradeG4F(binDir, py, start); err != nil {
-				fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			}
-		}
+	if err := ensureG4FPackage(binDir, py, args); err != nil {
+		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 	}
 
 	// Default: forward everything to the g4f module.
@@ -143,6 +128,28 @@ func runMain() int {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 	}
 	return code
+}
+
+// ensureG4FPackage handles first-install and selected auto-upgrade flows for
+// the g4f package inside the prepared runtime.
+func ensureG4FPackage(binDir, py string, args []string) error {
+	// On Termux we use the system python (no downloaded runtime), so skip
+	// the downloaded-runtime g4f install/upgrade logic that targets
+	// binDir/python-home.
+	if IsTermuxSystem() {
+		return nil
+	}
+	if !g4fIsInstalled(binDir) {
+		// First call: install g4f.
+		start := time.Now()
+		return installG4F(binDir, py, start)
+	}
+	if len(args) > 0 && isUpgradeCommand(args[0]) {
+		// Subsequent call with gui/api/dev: upgrade g4f.
+		start := time.Now()
+		return upgradeG4F(binDir, py, start)
+	}
+	return nil
 }
 
 // normalizeArgs cleans leading `g4f-go` repeats (typos like `g4f-go g4f-go ...`).
