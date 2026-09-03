@@ -119,24 +119,19 @@ func runMain() int {
 	}
 
 	// On Termux we use the system python (no downloaded runtime), so skip
-	// the downloaded-runtime executable lookup and g4f install/upgrade
-	// logic that targets binDir/python-home.
+	// the downloaded-runtime g4f install/upgrade logic that targets
+	// binDir/python-home.
 	if !IsTermuxSystem() {
-		exe, err := pythonExecutable(binDir)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "g4f-go:", err)
-			return 1
-		}
 		if !g4fIsInstalled(binDir) {
 			// First call: install g4f.
 			start := time.Now()
-			if err := installG4F(binDir, exe, start); err != nil {
+			if err := installG4F(binDir, py, start); err != nil {
 				fmt.Fprintln(os.Stderr, "g4f-go:", err)
 			}
 		} else if len(args) > 0 && isUpgradeCommand(args[0]) {
 			// Subsequent call with gui/api/dev: upgrade g4f.
 			start := time.Now()
-			if err := upgradeG4F(binDir, exe, start); err != nil {
+			if err := upgradeG4F(binDir, py, start); err != nil {
 				fmt.Fprintln(os.Stderr, "g4f-go:", err)
 			}
 		}
