@@ -62,8 +62,10 @@ MAX_TOOL_LOOPS = int(os.getenv("G4F_MAX_TOOL_LOOPS", "4"))  # safety cap
 LIVE_FEED_CHANNEL = int(os.getenv("G4F_LIVE_FEED_CHANNEL", "0") or "0")
 API_BASE = os.getenv("G4F_API_BASE", "http://localhost:8080")
 PUBLIC_BASE = os.getenv("G4F_PUBLIC_BASE", API_BASE)
-PUBLIC_API_KEY = os.getenv("G4F_PUBLIC_API_KEY", "")
-MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://auth.g4f.dev")
+# Optional API key used to read /api/logs when the g4f API is protected.
+# Prefer G4F_API_KEY; keep G4F_PUBLIC_API_KEY as a backwards-compatible alias.
+FEED_API_KEY = os.getenv("G4F_API_KEY") or os.getenv("G4F_PUBLIC_API_KEY", "")
+MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://g4f.dev")
 FEED_POLL_INTERVAL = int(os.getenv("G4F_FEED_POLL_INTERVAL", "15"))
 HEAVY_TOKEN_THRESHOLD = int(os.getenv("G4F_HEAVY_TOKEN_THRESHOLD", "10000"))
 FEED_SUMMARY_INTERVAL = int(os.getenv("G4F_FEED_SUMMARY_INTERVAL", "3600"))
@@ -768,7 +770,7 @@ async def on_ready():
                     channel_id=LIVE_FEED_CHANNEL,
                     api_base=API_BASE,
                     public_base=PUBLIC_BASE,
-                    api_key=PUBLIC_API_KEY,
+                    api_key=FEED_API_KEY,
                     members_base=MEMBERS_BASE or None,
                     poll_interval=FEED_POLL_INTERVAL,
                     heavy_token_threshold=HEAVY_TOKEN_THRESHOLD,
