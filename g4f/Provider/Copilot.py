@@ -269,7 +269,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
             #     debug.log(f"Copilot: User: {user}")
 
             uploaded_attachments = []
-            if auth_result.access_token:
+            if getattr(auth_result, "access_token", None):
                 # Upload regular media (images)
                 for media, _ in merge_media(media, messages):
                     if not isinstance(media, str):
