@@ -22,5 +22,6 @@ from .test_gemini import *
 from .test_deepseek_chunk_log import *
 from .test_deepseek_stream import *
 from .test_deepseek_upload import *
+from .test_auth_retry import *
 
 unittest.main()

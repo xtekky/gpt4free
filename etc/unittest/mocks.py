@@ -2,8 +2,9 @@ from g4f.providers.base_provider import (
     AbstractProvider,
     AsyncProvider,
     AsyncGeneratorProvider,
+    AsyncAuthedProvider,
 )
-from g4f.providers.response import ImageResponse
+from g4f.providers.response import AuthResult, ImageResponse
 from g4f.errors import MissingAuthError
 
 
@@ -98,3 +99,41 @@ class YieldNoneProviderMock(AsyncGeneratorProvider):
     @classmethod
     async def create_async_generator(cls, model, messages, stream, **kwargs):
         yield None
+
+
+class RetryAuthedProviderMock(AsyncAuthedProvider):
+    """Authed provider that fails once with stale auth, then succeeds.
+
+    Mimics the OpenaiChat behaviour where a cached access token is rejected
+    by the server (MissingAuthError) and has to be re-logged in. The first
+    create_authed call raises; on_auth_async yields a fresh AuthResult and a
+    second create_authed call succeeds.
+    """
+
+    working = True
+    parent = "RetryAuthedProviderMock"
+
+    _api_key = None
+    _headers = None
+    _cookies = None
+    _expires = None
+
+    @classmethod
+    def reset_auth(cls):
+        cls._api_key = None
+        cls._headers = None
+        cls._cookies = None
+        cls._expires = None
+        cls.delete_cache_file()
+
+    @classmethod
+    async def create_authed(cls, model, messages, auth_result, **kwargs):
+        if getattr(auth_result, "api_key", None) != "fresh-token":
+            raise MissingAuthError("Access token is not valid")
+        for message in messages:
+            yield message["content"]
+
+    @classmethod
+    async def on_auth_async(cls, **kwargs):
+        cls._api_key = "fresh-token"
+        yield AuthResult(api_key="fresh-token")
