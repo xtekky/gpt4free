@@ -177,6 +177,19 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 return
 
     @classmethod
+    def reset_auth(cls):
+        # A rejected access token may still look valid by its local expiry
+        # claim, so login_generator would otherwise reuse the stale token,
+        # cookies and headers. Clear all cached auth state to force a fresh
+        # login, matching the manual workaround of deleting the auth file.
+        cls._api_key = None
+        cls._headers = None
+        cls._cookies = None
+        cls._expires = None
+        cls.request_config = RequestConfig()
+        cls.delete_cache_file()
+
+    @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
         async for chunk in cls.login_generator(proxy=proxy):
             yield chunk
