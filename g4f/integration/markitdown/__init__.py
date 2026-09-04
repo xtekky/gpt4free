@@ -16,6 +16,158 @@ from ._audio_converter import AudioConverter
 from ._image_converter import ImageConverter
 from ._youtube_converter import YouTubeConverter
 
+GITHUB_SKIP_LINES = [
+    "[Skip to content](#start-of-content)",
+    "## Navigation Menu",
+    "Appearance settings",
+    "* Platform",
+    "+ AI CODE CREATION",
+    "- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)",
+    "- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)",
+    "- [MCP RegistryIntegrate external tools](https://github.com/mcp)",
+    "+ DEVELOPER WORKFLOWS",
+    "- [ActionsAutomate any workflow](https://github.com/features/actions)",
+    "- [CodespacesInstant dev environments](https://github.com/features/codespaces)",
+    "- [IssuesPlan and track work](https://github.com/features/issues)",
+    "- [Code ReviewManage code changes](https://github.com/features/code-review)",
+    "- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)",
+    "+ APPLICATION SECURITY",
+    "- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)",
+    "- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)",
+    "- [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)",
+    "+ EXPLORE",
+    "- [Why GitHub](https://github.com/why-github)",
+    "- [Documentation](https://docs.github.com)",
+    "- [Blog](https://github.blog)",
+    "- [Changelog](https://github.blog/changelog)",
+    "- [Marketplace](https://github.com/marketplace)",
+    "[View all features](https://github.com/features)",
+    "* Solutions",
+    "+ BY COMPANY SIZE",
+    "- [Enterprises](https://github.com/enterprise)",
+    "- [Small and medium teams](https://github.com/team)",
+    "- [Startups](https://github.com/enterprise/startups)",
+    "- [Nonprofits](https://github.com/solutions/industry/nonprofits)",
+    "+ BY USE CASE",
+    "- [App Modernization](https://github.com/solutions/use-case/app-modernization)",
+    "- [DevSecOps](https://github.com/solutions/use-case/devsecops)",
+    "- [DevOps](https://github.com/solutions/use-case/devops)",
+    "- [CI/CD](https://github.com/solutions/use-case/ci-cd)",
+    "- [View all use cases](https://github.com/solutions/use-case)",
+    "+ BY INDUSTRY",
+    "- [Healthcare](https://github.com/solutions/industry/healthcare)",
+    "- [Financial services](https://github.com/solutions/industry/financial-services)",
+    "- [Manufacturing](https://github.com/solutions/industry/manufacturing)",
+    "- [Government](https://github.com/solutions/industry/government)",
+    "- [View all industries](https://github.com/solutions/industry)",
+    "[View all solutions](https://github.com/solutions)",
+    "* Resources",
+    "+ EXPLORE BY TOPIC",
+    "- [AI](https://github.com/resources/articles?topic=ai)",
+    "- [Software Development](https://github.com/resources/articles?topic=software-development)",
+    "- [DevOps](https://github.com/resources/articles?topic=devops)",
+    "- [Security](https://github.com/resources/articles?topic=security)",
+    "- [View all topics](https://github.com/resources/articles)",
+    "+ EXPLORE BY TYPE",
+    "- [Customer stories](https://github.com/customer-stories)",
+    "- [Events & webinars](https://github.com/resources/events)",
+    "- [Ebooks & reports](https://github.com/resources/whitepapers)",
+    "- [Business insights](https://github.com/solutions/executive-insights)",
+    "- [GitHub Skills](https://skills.github.com)",
+    "+ SUPPORT & SERVICES",
+    "- [Documentation](https://docs.github.com)",
+    "- [Customer support](https://support.github.com)",
+    "- [Community forum](https://github.com/orgs/community/discussions)",
+    "- [Trust center](https://github.com/trust-center)",
+    "- [Partners](https://github.com/partners)",
+    "[View all resources](https://github.com/resources)",
+    "* Open Source",
+    "+ COMMUNITY",
+    "- [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)",
+    "+ PROGRAMS",
+    "- [Security Lab](https://securitylab.github.com)",
+    "- [Maintainer Community](https://maintainers.github.com)",
+    "- [GitHub Stars](https://stars.github.com)",
+    "- [Archive Program](https://archiveprogram.github.com)",
+    "+ REPOSITORIES",
+    "- [Topics](https://github.com/topics)",
+    "- [Trending](https://github.com/trending)",
+    "- [Collections](https://github.com/collections)",
+    "* Enterprise",
+    "+ ENTERPRISE SOLUTIONS",
+    "- [Enterprise platformAI-powered developer platform](https://github.com/enterprise)",
+    "+ AVAILABLE ADD-ONS",
+    "- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)",
+    "- [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)",
+    "- [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)",
+    "* [Pricing](https://github.com/pricing)",
+    "Search`/`",
+    "Appearance settings",
+    "You signed in with another tab or window. Reload to refresh your session.",
+    "You signed out in another tab or window. Reload to refresh your session.",
+    "You switched accounts on another tab or window. Reload to refresh your session.",
+    "Dismiss alert",
+    "{{ message }}",
+    "Public",
+    "* ### Uh oh!"
+    "There was an error while loading. Please reload this page.",
+    "* [Notifications]",
+    "Choose two branches to see what’s changed or to start a new pull request.",
+    "If you need to, you can also  compare across forks",
+    "or",
+    "[learn more about diff comparisons](https://docs.github.com/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-comparing-branches-in-pull-requests#three-dot-and-two-dot-git-diff-comparisons).",
+    "# Open a pull request",
+    "Create a new pull request by comparing changes across two branches. If you need to, you can also  compare across forks",
+    "[Learn more about diff comparisons here](https://docs.github.com/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-comparing-branches-in-pull-requests#three-dot-and-two-dot-git-diff-comparisons).",
+    "Failed to load repositories. Confirm that selected base ref is valid, then try again.",
+    "Loading",
+    "### Uh oh!",
+    "Could not load branches",
+    "Could not load tags",
+    "Nothing to show",
+    "Loading",
+    "[{{ refName }}",
+    "...",
+    "Failed to load repositories. Confirm that selected head ref is valid, then try again.",
+    "### Uh oh!",
+    "There was an error while loading. Please reload this page.",
+    "### This comparison is taking too long to generate.",
+    "Unfortunately it looks like we can’t render this comparison for you right now. It might be too big, or there might be something weird with your repository.",
+    "You can try running this command locally to see the comparison on your machine:",
+    "There was an error while loading. Please reload this page.",
+    "### Footer navigation",
+    "* [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)",
+    "* [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)",
+    "* [Security](https://github.com/security)",
+    "* [Status](https://www.githubstatus.com/)",
+    "* [Community](https://github.community/)",
+    "* [Docs](https://docs.github.com/)",
+    "* [Contact](https://support.github.com?tags=dotcom-footer)",
+    "* Manage cookies",
+    "* Do not share my personal information",
+    "You can’t perform that action at this time.",
+    "* ### Uh oh!",
+    "/",
+    ".",
+    "Retry",
+    "* [FeedbackPreview](https://gh.io/issues-sidebar-feedback)",
+    "* Collapse sidebar",
+    "Search Issues",
+    "Search"
+]
+
+GITHUB_STARTS_WITH = [
+    "[Sign in]",
+    "[Sign up]",
+    "default](",
+    "* [Notifications]",
+    "* [Views]",
+    "* [Projects]",
+    "* [Milestones]",
+    "* [Labels]",
+    "* [Insights]",
+    "[Report repository]"
+]
 
 class MarkItDown(BaseMarkItDown):
     """(In preview) An extremely simple text-based document reader, suitable for LLM use.
@@ -240,4 +392,21 @@ class MarkItDown(BaseMarkItDown):
         if url.startswith("https://github.com/"):
             # Special case for GitHub URLs -- convert to raw content URL
             url = self._convert_github_url_to_raw(url)
-        return super().convert_url(url, stream_info=stream_info, **kwargs)
+        result = super().convert_url(url, stream_info=stream_info, **kwargs)
+        if url.startswith("https://github.com/"):
+            result.text_content = re.sub(r"Additional navigation options[\s\S]+---", "", result.text_content)
+            result.text_content = re.sub(r"\* \[Security and quality[\s\S]+\* Collapse sidebar", "", result.text_content)
+            lines = []
+            empty = 0
+            for l in [l for l in result.text_content.splitlines() if l.strip() not in GITHUB_SKIP_LINES and not l.strip().startswith(tuple(GITHUB_STARTS_WITH))]:
+                striped = l.strip()
+                if striped == "":
+                    empty += 1
+                else:
+                    empty = 0
+                if empty > 2:
+                    continue
+                else:
+                    lines.append(l)
+            result.text_content = "\n".join(lines).strip()
+        return result
