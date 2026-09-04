@@ -169,6 +169,7 @@ To keep the channel readable, at most `G4F_FEED_MAX_POSTS_PER_CYCLE` embeds are 
 ```bash
 G4F_LIVE_FEED_CHANNEL=123456789012345678
 G4F_API_BASE=http://localhost:8080          # where the g4f API runs
+G4F_API_KEY=your-g4f-api-key                # optional; required if /api/logs is protected
 G4F_PUBLIC_BASE=https://your-public-host     # optional, for Discord-accessible image links
 G4F_MEMBERS_BASE=https://g4f.dev            # set empty to disable new-user posts
 ```
@@ -181,6 +182,7 @@ G4F_MEMBERS_BASE=https://g4f.dev            # set empty to disable new-user post
 |---|---|---|
 | `G4F_LIVE_FEED_CHANNEL` | *(unset)* | Discord channel ID for the feed. Unset = disabled. |
 | `G4F_API_BASE` | `http://localhost:8080` | g4f API base URL (must expose `/api/logs`). |
+| `G4F_API_KEY` | *(unset)* | Optional API key used to read `/api/logs` on protected g4f API servers. |
 | `G4F_PUBLIC_BASE` | = `G4F_API_BASE` | Public base URL for Discord-accessible image/thumbnail links. |
 | `G4F_MEMBERS_BASE` | `https://g4f.dev` | g4f.dev base URL for new-user posts. Empty = disabled. |
 | `G4F_FEED_POLL_INTERVAL` | `15` | Seconds between polls. |

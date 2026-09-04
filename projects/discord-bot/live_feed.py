@@ -352,6 +352,7 @@ class LiveFeed(commands.Cog):
         self._providers: Counter = Counter()
         self._last_summary: float = time.time()
 
+        self.poll.change_interval(seconds=max(1, poll_interval))
         self.poll.start()
         log.info(
             "LiveFeed cog started — channel=%s api=%s members=%s interval=%ds",
