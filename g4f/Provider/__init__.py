@@ -62,6 +62,7 @@ class ProviderLoader:
         "Nvidia",
         "RelayRouter",
         "KiloCode",
+        "LLM7",
         "Ollama",
         "OpenAIFM",
         "OpenCode",
