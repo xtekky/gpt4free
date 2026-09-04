@@ -76,6 +76,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     def is_provider_api_key(cls, api_key: str) -> bool:
         return (
             api_key
+            and isinstance(api_key, str)
             and not api_key.startswith("g4f_")
             and not api_key.startswith("gfs_")
         )
@@ -101,10 +102,11 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                         base_url = cls.base_url
                     else:
                         if cls.backup_url is None:
-                            api_key = None
                             base_url = cls.base_url
                         else:
                             base_url = cls.backup_url
+                        if not base_url.startswith(SPACE_URL):
+                            api_key = None
                     if base_url is None:
                         raise NotImplementedError(
                             "No base_url or backup_url specified."
@@ -237,10 +239,11 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     base_url = cls.base_url
                 else:
                     if cls.backup_url is None:
-                        api_key = None
                         base_url = cls.base_url
                     else:
                         base_url = cls.backup_url
+                    if not base_url.startswith(SPACE_URL):
+                        api_key = None
                 if base_url is None:
                     raise NotImplementedError(
                         "No base_url or backup_url specified."

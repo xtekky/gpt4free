@@ -242,6 +242,17 @@ def _resolve_provider(name: str) -> ProviderType:
         _loaded_providers[name].active_by_default = True
         _loaded_providers[name].default_model = "kilo-auto/free"
         return _loaded_providers[name]
+    elif name == "LLM7":
+        from ..client.factory import AbstractClientFactory
+        _loaded_providers[name] = AbstractClientFactory.create_provider(
+            None, "https://api.llm7.io/v1"
+        )
+        _loaded_providers[name].__name__ = name
+        _loaded_providers[name].active_by_default = True
+        _loaded_providers[name].default_model = "default"
+        _loaded_providers[name].models = ["default"]
+        _loaded_providers[name].add_user = False
+        return _loaded_providers[name]
     elif name == "Ollama":
         from g4f.Provider.local.Ollama import Ollama
 

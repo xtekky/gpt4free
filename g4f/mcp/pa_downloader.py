@@ -24,6 +24,7 @@ from __future__ import annotations
 import os
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Optional
 from urllib.request import Request, urlopen
@@ -49,10 +50,15 @@ GITHUB_API = "https://api.github.com"
 #: Per-request timeout (seconds) for GitHub API calls and raw downloads.
 DEFAULT_TIMEOUT: float = 30.0
 
+# Limit concurrent requests while keeping bulk downloads substantially faster.
+DOWNLOAD_WORKERS = 8
+
 #: Marker file written into the workspace after a successful auto-download.
 #: Its mtime is used to decide when the next auto-download is allowed, so we
 #: do not hit GitHub on every single server start.
 AUTO_DOWNLOAD_MARKER = ".pa_auto_downloaded"
+
+DELETED_FILE = ".deleted"
 
 #: Minimum seconds between two automatic downloads.
 AUTO_DOWNLOAD_INTERVAL: float = 6 * 60 * 60  # 6 hours
@@ -97,6 +103,10 @@ def _is_pa_file(name: str) -> bool:
     Accepted: ``*.py``, ``*.wasm``, plus browser scripts named ``pa-*.js``
     or ``*.pa.js``.
     """
+    if name == DELETED_FILE:
+        return True
+    if name.startswith("test_"):
+        return False
     if name.endswith(".py") or name.endswith(".wasm"):
         return True
     if name.endswith(".js"):
@@ -142,6 +152,42 @@ def _workspace_target(directory: Optional[str] = None) -> Path:
     return target
 
 
+def _read_deleted_manifest(target: Path) -> bytes:
+    """Return the local deletion manifest, or empty bytes if absent."""
+    try:
+        return (target / DELETED_FILE).read_bytes()
+    except OSError:
+        return b""
+
+
+def _remove_deleted_files(target: Path, content: bytes) -> None:
+    """Remove files named one-per-line in a deletion manifest."""
+    try:
+        names = content.decode("utf-8").splitlines()
+    except UnicodeDecodeError as e:
+        debug.error("pa-providers: invalid .deleted manifest:", e)
+        return
+
+    root = target.resolve()
+    for name in names:
+        name = name.strip()
+        if not name or name.startswith("#"):
+            continue
+        candidate = (target / name).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            debug.error(f"pa-providers: refusing to delete outside workspace: {name}")
+            continue
+        if candidate == target / DELETED_FILE or not candidate.is_file():
+            continue
+        try:
+            candidate.unlink()
+            print(f"pa-providers: removed deleted file {name}")
+        except OSError as e:
+            debug.error(f"pa-providers: failed to remove deleted file {name}:", e)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -171,6 +217,7 @@ def run_pa_download(
     """
     target = _workspace_target(directory)
     written: List[Path] = []
+    deleted_manifest = _read_deleted_manifest(target)
 
     try:
         if only:
@@ -182,6 +229,7 @@ def run_pa_download(
         debug.error(f"pa-providers: failed to list repository {repo}@{ref}:", e)
         return written
 
+    pending = []
     for name in names:
         if not _is_pa_file(name):
             continue
@@ -189,19 +237,36 @@ def run_pa_download(
         if dest.exists() and not force:
             debug.log(f"pa-providers: skip existing {name}")
             continue
-        try:
-            content = _download_raw(repo, ref, name, timeout)
-        except (URLError, HTTPError, OSError) as e:
-            debug.error(f"pa-providers: failed to download {name}:", e)
-            continue
-        try:
-            dest.write_bytes(content)
-            written.append(dest)
-            print(f"pa-providers: downloaded {name} ({len(content)} bytes)")
-        except OSError as e:
-            debug.error(f"pa-providers: failed to write {name}:", e)
+        pending.append((name, dest))
 
-    print(f"pa-providers: downloaded {len(written)} file(s) from {repo}@{ref}")
+    total_size = 0
+
+    # Network requests run concurrently; handling results in submission order
+    # keeps output and the returned list stable for callers.
+    with ThreadPoolExecutor(max_workers=DOWNLOAD_WORKERS) as executor:
+        downloads = {
+            name: executor.submit(_download_raw, repo, ref, name, timeout)
+            for name, _ in pending
+        }
+        for name, dest in pending:
+            try:
+                content = downloads[name].result()
+            except (URLError, HTTPError, OSError) as e:
+                debug.error(f"pa-providers: failed to download {name}:", e)
+                continue
+            if name == DELETED_FILE:
+                deleted_manifest = content
+                continue
+            try:
+                dest.write_bytes(content)
+                written.append(dest)
+                total_size += len(content)
+            except OSError as e:
+                debug.error(f"pa-providers: failed to write {name}:", e)
+
+    _remove_deleted_files(target, deleted_manifest)
+
+    print(f"pa-providers: downloaded {len(written)} file(s) ({total_size/1e3} kb) from {repo}@{ref}")
     if written:
         # Touch the auto-download marker so the startup path does not re-download
         # immediately after an explicit `g4f pa download`.
