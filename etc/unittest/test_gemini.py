@@ -181,15 +181,27 @@ class GeminiHelpersTest(unittest.TestCase):
                 resolved, _ = _resolve_model(legacy_name)
                 self.assertEqual(resolved, current_name)
 
-    def test_unknown_model_lists_supported_models(self):
-        with self.assertRaises(ValueError) as context:
-            _resolve_model("gemini-3.7-flash")
+    def test_unknown_model_falls_back_to_known_model(self):
+        # New Gemini models ship faster than the hard-coded registry can track
+        # them. Unknown names route to the closest known model of the same
+        # family instead of raising, so the provider no longer returns a 500.
+        self.assertEqual(_resolve_model("gemini-3.7-flash")[0], "gemini-3.6-flash")
+        self.assertEqual(_resolve_model("gemini-3.8-flash")[0], "gemini-3.6-flash")
+        self.assertEqual(_resolve_model("gemini-3.8-pro")[0], "gemini-3.1-pro")
+        self.assertEqual(
+            _resolve_model("gemini-3.9-flash-lite")[0], "gemini-3.5-flash-lite"
+        )
 
-        message = str(context.exception)
-        self.assertIn("Unknown Gemini model: gemini-3.7-flash", message)
-        self.assertIn("Supported models:", message)
-        self.assertIn("gemini-3.6-flash", message)
-        self.assertIn("gemini-3.5-flash-lite", message)
+    def test_unknown_thinking_model_enables_expanded_thinking(self):
+        model, expanded = _resolve_model("gemini-3.8-flash-thinking")
+        self.assertEqual(model, "gemini-3.6-flash")
+        self.assertTrue(expanded)
+
+    def test_invalid_thinking_mode_still_raises(self):
+        with self.assertRaises(ValueError):
+            _resolve_model("gemini-3.6-flash@think=abc")
+        with self.assertRaises(ValueError):
+            _resolve_model("gemini-3.6-flash@think=9")
 
     def test_public_model_registry_exposes_current_models(self):
         self.assertEqual(ModelRegistry.get("gemini-auto").name, "gemini-auto")
