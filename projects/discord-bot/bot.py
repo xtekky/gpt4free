@@ -23,6 +23,7 @@ import logging
 from collections import defaultdict, deque
 from typing import Deque, Dict, List, Optional
 
+import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -30,6 +31,7 @@ from dotenv import load_dotenv
 
 from g4f.providers.any_provider import AnyProvider
 from g4f.client import ClientFactory
+from g4f.Provider import G4FSpace
 
 from mcp_tools import MCPToolManager, ALL_AVAILABLE_TOOLS, SAFE_DEFAULT_TOOLS
 from live_feed import LiveFeed
@@ -65,7 +67,8 @@ PUBLIC_BASE = os.getenv("G4F_PUBLIC_BASE", API_BASE)
 # Optional API key used to read /api/logs when the g4f API is protected.
 # Prefer G4F_API_KEY; keep G4F_PUBLIC_API_KEY as a backwards-compatible alias.
 FEED_API_KEY = os.getenv("G4F_API_KEY") or os.getenv("G4F_PUBLIC_API_KEY", "")
-MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://g4f.dev")
+MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://g4f.space")
+ERRORS_URL = os.getenv("G4F_ERRORS_URL", "https://g4f.space/api/errors")
 FEED_POLL_INTERVAL = int(os.getenv("G4F_FEED_POLL_INTERVAL", "15"))
 HEAVY_TOKEN_THRESHOLD = int(os.getenv("G4F_HEAVY_TOKEN_THRESHOLD", "10000"))
 FEED_SUMMARY_INTERVAL = int(os.getenv("G4F_FEED_SUMMARY_INTERVAL", "3600"))
@@ -90,7 +93,7 @@ log = logging.getLogger("g4f-discord")
 # ---------------------------------------------------------------------------
 # g4f async client + MCP tool manager (shared across requests)
 # ---------------------------------------------------------------------------
-client = ClientFactory.create_async_client(provider="default",
+client = ClientFactory.create_async_client(provider=G4FSpace,
                                            api_key=os.getenv("G4F_API_KEY"),
                                            media_provider=os.getenv("G4F_MEDIA_PROVIDER", AnyProvider))
 mcp = MCPToolManager(enabled_tools=ENABLED_TOOLS)
@@ -624,6 +627,113 @@ async def tools(
             )
 
 
+# ---------------------------------------------------------------------------
+# API errors command & helper
+# ---------------------------------------------------------------------------
+async def _fetch_api_errors(
+    url: str = ERRORS_URL,
+    limit: int = 5,
+    status_filter: Optional[int] = None,
+) -> List[dict]:
+    """Fetch recent API errors from the given errors endpoint."""
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"HTTP {resp.status} from {url}")
+            data = await resp.json()
+
+    entries = (
+        data.get("data", [])
+        if isinstance(data, dict)
+        else (data if isinstance(data, list) else [])
+    )
+    if status_filter is not None:
+        entries = [
+            e
+            for e in entries
+            if isinstance(e, dict) and e.get("status") == status_filter
+        ]
+    return entries[:limit]
+
+
+@bot.tree.command(
+    name="errors",
+    description="Fetch recent API errors from https://g4f.space/api/errors.",
+)
+@app_commands.describe(
+    limit="Number of recent errors to display (1-10, default: 5)",
+    status="Optional HTTP status code filter (e.g. 404, 403, 500)",
+)
+async def errors(
+    interaction: discord.Interaction,
+    limit: Optional[int] = 5,
+    status: Optional[int] = None,
+):
+    await interaction.response.defer(thinking=True)
+    limit_val = max(1, min(int(limit or 5), 10))
+
+    try:
+        err_entries = await _fetch_api_errors(
+            url=ERRORS_URL, limit=limit_val, status_filter=status
+        )
+    except Exception as e:
+        log.exception("Failed to fetch API errors")
+        await interaction.followup.send(f"⚠️ Failed to fetch API errors: {e}")
+        return
+
+    if not err_entries:
+        msg = "No recent API errors found"
+        if status is not None:
+            msg += f" with status `{status}`"
+        msg += f" from `{ERRORS_URL}`."
+        await interaction.followup.send(msg)
+        return
+
+    embeds: List[discord.Embed] = []
+    for entry in err_entries:
+        embed = discord.Embed(
+            title=f"🚨 API Error (#{entry.get('id', '?')})",
+            color=0xDC3545,
+        )
+        method = entry.get("method", "POST")
+        pathname = entry.get("pathname", entry.get("path", "?"))
+        embed.add_field(name="Path", value=f"`{method} {pathname}`", inline=False)
+        embed.add_field(name="Status", value=str(entry.get("status", "?")), inline=True)
+        if entry.get("source"):
+            embed.add_field(name="Source", value=str(entry.get("source")), inline=True)
+
+        msg_str = entry.get("message")
+        if msg_str:
+            embed.add_field(
+                name="Message", value=_truncate(str(msg_str), 512), inline=False
+            )
+
+        if entry.get("request_id"):
+            embed.add_field(
+                name="Request ID", value=f"`{entry.get('request_id')}`", inline=True
+            )
+        if entry.get("timestamp"):
+            embed.add_field(
+                name="Timestamp", value=str(entry.get("timestamp")), inline=True
+            )
+
+        user_id = entry.get("user_id")
+        user_tier = entry.get("user_tier")
+        if user_id or user_tier:
+            embed.add_field(
+                name="User",
+                value=f"ID: `{user_id}` | Tier: `{user_tier}`",
+                inline=False,
+            )
+
+        embeds.append(embed)
+
+    await interaction.followup.send(
+        content=f"**Recent API Errors from `{ERRORS_URL}`** (showing {len(embeds)}):",
+        embeds=embeds,
+    )
+
+
 @bot.event
 async def on_message(message: discord.Message):
     # Let slash commands etc. work as usual.
@@ -772,6 +882,7 @@ async def on_ready():
                     public_base=PUBLIC_BASE,
                     api_key=FEED_API_KEY,
                     members_base=MEMBERS_BASE or None,
+                    errors_url=ERRORS_URL or None,
                     poll_interval=FEED_POLL_INTERVAL,
                     heavy_token_threshold=HEAVY_TOKEN_THRESHOLD,
                     summary_interval=FEED_SUMMARY_INTERVAL,

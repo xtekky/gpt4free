@@ -318,6 +318,7 @@ class LiveFeed(commands.Cog):
         api_key: Optional[str],
         public_base: str,
         members_base: Optional[str],
+        errors_url: Optional[str] = "https://g4f.space/api/errors",
         poll_interval: int = 15,
         heavy_token_threshold: int = 10_000,
         summary_interval: int = 3600,
@@ -329,6 +330,7 @@ class LiveFeed(commands.Cog):
         self.public_base = public_base.rstrip("/")
         self.api_key = api_key
         self.members_base = members_base.rstrip("/") if members_base else None
+        self.errors_url = errors_url.rstrip("/") if errors_url else None
         self.heavy_token_threshold = heavy_token_threshold
         self.max_posts_per_cycle = max_posts_per_cycle
         self._summary_interval = summary_interval
@@ -336,6 +338,8 @@ class LiveFeed(commands.Cog):
         self._last_log_id: int = 0
         self._initialized: bool = False
         self._seen_user_keys: Set[str] = set()
+        self._seen_api_error_ids: Set[int] = set()
+        self._initialized_api_errors: bool = False
         self._session: Optional[aiohttp.ClientSession] = None
 
         # Rolling stats for periodic summary
@@ -396,6 +400,12 @@ class LiveFeed(commands.Cog):
                 await self._poll_new_users()
             except Exception:
                 log.exception("New users poll failed")
+
+        if self.errors_url:
+            try:
+                await self._poll_api_errors()
+            except Exception:
+                log.exception("API errors poll failed")
 
         if time.time() - self._last_summary >= self._summary_interval:
             await self._post_summary()
@@ -479,6 +489,65 @@ class LiveFeed(commands.Cog):
             self._seen_user_keys.add(key)
             self._stats["new_users"] += 1
             await self._post_new_user(user)
+
+    # ------------------------------------------------------------------
+    # API errors polling
+    # ------------------------------------------------------------------
+
+    async def _poll_api_errors(self) -> None:
+        """Poll external API errors endpoint (e.g. https://g4f.space/api/errors)."""
+        if not self.errors_url:
+            return
+        session = self._get_session()
+        try:
+            async with session.get(self.errors_url) as resp:
+                if resp.status != 200:
+                    return
+                data = await resp.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return
+
+        entries = (
+            data.get("data", [])
+            if isinstance(data, dict)
+            else (data if isinstance(data, list) else [])
+        )
+        if not entries:
+            return
+
+        if not self._initialized_api_errors:
+            for e in entries:
+                if isinstance(e, dict) and e.get("id") is not None:
+                    self._seen_api_error_ids.add(e["id"])
+            self._initialized_api_errors = True
+            log.info("LiveFeed initialized API errors with %d entries", len(self._seen_api_error_ids))
+            return
+
+        new_entries = [
+            e
+            for e in entries
+            if isinstance(e, dict)
+            and e.get("id") is not None
+            and e.get("id") not in self._seen_api_error_ids
+        ]
+        if not new_entries:
+            return
+
+        new_entries.sort(key=lambda e: e.get("id", 0))
+
+        posted = 0
+        for entry in new_entries:
+            eid = entry.get("id")
+            if eid is not None:
+                self._seen_api_error_ids.add(eid)
+            self._stats["errors"] += 1
+            if posted >= self.max_posts_per_cycle:
+                continue
+            if await self._post_api_error(entry):
+                posted += 1
+
+        if len(self._seen_api_error_ids) > 2000:
+            self._seen_api_error_ids = set(sorted(self._seen_api_error_ids)[-1000:])
 
     # ------------------------------------------------------------------
     # Entry dispatch
@@ -679,6 +748,50 @@ class LiveFeed(commands.Cog):
         user = entry.get("user")
         if user:
             embed.add_field(name="User", value=user, inline=True)
+
+        await self._send(embed)
+        return True
+
+    async def _post_api_error(self, entry: dict) -> bool:
+        """Post an API error alert from external errors endpoint."""
+        eid = entry.get("id", "?")
+        embed = discord.Embed(
+            title=f"🚨 API Error (#{eid})",
+            color=COLORS["error"],
+        )
+        method = entry.get("method", "POST")
+        pathname = entry.get("pathname", entry.get("path", "?"))
+        embed.add_field(
+            name="Path",
+            value=f"`{method} {pathname}`",
+            inline=False,
+        )
+        embed.add_field(name="Status", value=str(entry.get("status", "?")), inline=True)
+
+        msg = entry.get("message")
+        if msg:
+            embed.add_field(name="Message", value=_truncate(str(msg), 512), inline=False)
+
+        req_id = entry.get("request_id")
+        if req_id:
+            embed.add_field(name="Request ID", value=f"`{req_id}`", inline=True)
+
+        source = entry.get("source")
+        if source:
+            embed.add_field(name="Source", value=str(source), inline=True)
+
+        ts = entry.get("timestamp")
+        if ts:
+            embed.add_field(name="Timestamp", value=str(ts), inline=True)
+
+        user_id = entry.get("user_id")
+        user_tier = entry.get("user_tier")
+        if user_id or user_tier:
+            embed.add_field(
+                name="User",
+                value=f"ID: `{user_id}` | Tier: `{user_tier}`",
+                inline=False,
+            )
 
         await self._send(embed)
         return True
