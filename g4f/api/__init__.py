@@ -263,6 +263,7 @@ function esc(s){return String(s??\'\'). replace(/&/g,\'&amp;\').replace(/</g,\'&
 function fmt(v){if(v==null)return\'(empty)\';if(typeof v===\'object\')return JSON.stringify(v,null,2);return String(v);}
 async function load(){
   try{var r=await fetch(\'/api/logs?limit=500\', { credentials: 'include' });if(!r.ok)return;var d=await r.json();all=d.entries||[];render();}catch(e){}
+  clearTimeout(timer);timer = setTimeout(load,3000);
 }
 function render(){
   var q=document.getElementById(\'q\').value.trim().toLowerCase();
@@ -301,8 +302,8 @@ function closeModal(){document.getElementById(\'ov\').classList.remove(\'active\
 function overlayClick(ev){if(ev.target===document.getElementById(\'ov\'))closeModal();}
 document.addEventListener(\'keydown\',function(e){if(e.key===\'Escape\')closeModal();});
 async function clearLogs(){await fetch(\'/api/logs\',{method:\'DELETE\'});all=[];render();}
-function toggleAuto(){clearInterval(timer);timer=null;if(document.getElementById(\'auto\').checked)timer=setInterval(load,3000);}
-load();timer=setInterval(load,3000);
+function toggleAuto(){clearTimeout(timer);timer=null;if(document.getElementById(\'auto\').checked)timer=setTimeout(load,3000);}
+load();if(document.getElementById(\'auto\').checked)timer=setTimeout(load,3000);
 </script>
 </body></html>"""
 

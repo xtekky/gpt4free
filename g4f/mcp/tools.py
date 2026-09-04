@@ -618,10 +618,6 @@ class FileListTool(MCPTool):
             target = (workspace / rel_path).resolve() if rel_path else workspace
             if not str(target).startswith(str(workspace)):
                 return {"error": "Access outside the workspace is not allowed"}
-            if self.safe_mode and target == workspace:
-                return {
-                    "error": "Listing the workspace root directory is not allowed in safe mode"
-                }
             if not target.exists():
                 return {"error": f"Directory not found: {rel_path or '/'}"}
             if not target.is_dir():
@@ -635,6 +631,9 @@ class FileListTool(MCPTool):
                     rel = str(entry.relative_to(workspace))
                     if is_hidden_file(rel):
                         continue
+                    if self.safe_mode and target == workspace:
+                        if entry.name != "pa-providers" and (not entry.is_file() or entry.suffix.lower() != ".md"):
+                            continue
                     info: Dict[str, Any] = {
                         "path": rel,
                         "type": "file" if entry.is_file() else "directory",

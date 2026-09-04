@@ -352,12 +352,27 @@ class TestSafeMode(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.get("success"))
         self.assertIn("error", result)
 
-    async def test_file_list_safe_mode_blocks_root(self):
-        """In safe mode, listing the workspace root is blocked."""
-        tool = FileListTool(safe_mode=True)
-        result = await tool.execute({})
-        self.assertIn("error", result)
-        self.assertIn("safe mode", result["error"])
+    async def test_file_list_safe_mode_shows_pa_providers_and_markdown(self):
+        """In safe mode, the root exposes pa-providers and Markdown files only."""
+        workspace = get_workspace_dir()
+        providers = workspace / "pa-providers"
+        markdown = workspace / "unittest_safe_mode.md"
+        other = workspace / "unittest_safe_mode.txt"
+        providers.mkdir(exist_ok=True)
+        markdown.write_text("# test")
+        other.write_text("test")
+        try:
+            tool = FileListTool(safe_mode=True)
+            result = await tool.execute({})
+            self.assertNotIn("error", result)
+            self.assertEqual(
+                {entry["path"] for entry in result["entries"]},
+                {"pa-providers", "unittest_safe_mode.md"},
+            )
+        finally:
+            markdown.unlink(missing_ok=True)
+            other.unlink(missing_ok=True)
+            providers.rmdir()
 
     async def test_file_list_safe_mode_allows_subdir(self):
         """In safe mode, listing a subdirectory is still allowed."""
