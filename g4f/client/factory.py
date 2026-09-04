@@ -132,7 +132,7 @@ class AbstractClientFactory:
                 ):
                     api_key = AppConfig.g4f_api_key
                 return create_custom_provider(
-                    base_url=config.get("baseUrl")
+                    base_url=config.get("baseUrl", config.get("backupUrl"))
                     if cls.is_provider_api_key(api_key)
                     or config.get("backupUrl") is None
                     else config.get("backupUrl", config.get("baseUrl")),

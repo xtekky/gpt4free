@@ -1609,6 +1609,59 @@ class Api:
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
 
+
+        @self.app.get("/text/{url:path}", responses={
+            HTTP_200_OK: {"content": {"text/plain": {}}},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        })
+        async def convert_url(
+            request: Request,
+            url: str
+        ):
+            """Convert a URL to Markdown using MarkItDown.
+
+            The full URL (including scheme) is passed in the path, e.g.:
+            GET /markitdown/https://example.com/page
+
+            Query strings are preserved by reading them from the incoming
+            request and re-appending them to the target URL, e.g.:
+            GET /markitdown/https://example.com/page?foo=bar
+            """
+            # FastAPI strips the query string from the {url:path} parameter,
+            # so re-attach it from the incoming request when present.
+            query_string = request.url.query
+            if query_string and "?" not in url:
+                url = f"{url}?{query_string}"
+            elif query_string:
+                # url already contains a '?', append remaining params with '&'
+                url = f"{url}&{query_string}"
+            if not url.startswith(("http://", "https://")):
+                return ErrorResponse.from_message(
+                    f"Invalid URL: {url}. URL must start with http:// or https://",
+                    HTTP_422_UNPROCESSABLE_CONTENT,
+                )
+            try:
+                from g4f.integration.markitdown import MarkItDown
+
+                md = MarkItDown()
+                result = md.convert_url(url)
+                text = result.text_content
+                if asyncio.iscoroutine(text):
+                    text = await text
+                return Response(text, media_type="text/plain")
+            except ImportError as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(
+                    e, None, HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(
+                    e, None, HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
         @self.app.get("/markitdown/{url:path}", responses=responses)
         async def convert_url(
             request: Request,
