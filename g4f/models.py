@@ -132,6 +132,8 @@ default = Model(
             "OrcaRouter",
             "OpenCode",
             "KiloCode",
+            "OpenRouterFree",
+            "GeminiPro",
         ]
     ),
 )

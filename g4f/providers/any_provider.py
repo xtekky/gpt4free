@@ -440,6 +440,10 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 providers = models.default_vision.best_provider.get_providers()
             else:
                 providers = models.default.best_provider.get_providers()
+                if kwargs.get("tools"):
+                    providers = [
+                        p for p in providers if getattr(p, "supports_native_tools", False)
+                    ]
         elif model in RouterConfig.routes:
             async for chunk in ConfigModelProvider(
                 RouterConfig.routes.get(model)
@@ -484,7 +488,6 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     except KeyError:
                         pass
         if not providers:
-
             def _safe_getattr(p):
                 try:
                     return __getattr__(p)
@@ -542,7 +545,7 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"
         )
 
-        async for chunk in RotatedProvider(providers, False).create_async_generator(
+        async for chunk in RotatedProvider(providers, not model).create_async_generator(
             model, messages, stream=stream, media=media, api_key=api_key, **kwargs
         ):
             yield chunk

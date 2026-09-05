@@ -19,10 +19,8 @@ class OpenRouterFree(OpenaiTemplate):
     login_url = "https://openrouter.ai/settings/keys"
     base_url = "https://openrouter.ai/api/v1"
     backup_url = "https://g4f.space/api/openrouter"
-    max_tokens = 8192
     working = True
     active_by_default = True
-    default_model = "openrouter/free"
 
     @classmethod
     def get_models(cls, api_key: str = None, **kwargs):
