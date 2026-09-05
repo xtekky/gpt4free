@@ -46,26 +46,21 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     supports_native_tools = True
 
     # API endpoints
-    text_api_endpoint = "https://text.pollinations.ai/openai"
     image_api_endpoint = "https://image.pollinations.ai/prompt/{}"
     image_models_endpoint = "https://image.pollinations.ai/models"
     gen_image_api_endpoint = "https://gen.pollinations.ai/image/{}"
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
     gen_image_models_endpoint = "https://gen.pollinations.ai/image/models"
-    text_models_endpoint = "https://gen.pollinations.ai/text/models"
     quota_url = "https://g4f.space/api/pollinations/quota"
     worker_api_endpoint = "https://g4f.space/api/pollinations/chat/completions"
     worker_models_endpoint = "https://g4f.space/api/pollinations/models"
 
     # Models configuration
-    default_model = "openai-fast"
-    fallback_model = "deepseek"
-    default_vision_model = default_model
     default_voice = "alloy"
-    text_models = {default_model: {"id": default_model}}
+    text_models = {}
     image_models = {}
     audio_models = {}
-    vision_models = [default_vision_model]
+    vision_models = []
     model_aliases = {
         "gpt-4.1-nano": "openai-fast",
         "llama-4-scout": "llamascout",
@@ -104,42 +99,15 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     def get_models(
         cls, api_key: Optional[str] = None, timeout: Optional[float] = None, **kwargs
     ):
-        def get_alias(model: dict) -> str:
-            if isinstance(model, str):
-                return model
-            alias = model.get("name")
-            if model.get("aliases"):
-                alias = model.get("aliases")[0]
-            elif alias in cls.swap_model_aliases:
-                alias = cls.swap_model_aliases[alias]
-            if alias == "searchgpt":
-                return model.get("name")
-            return (
-                str(alias)
-                .replace("-instruct", "")
-                .replace("qwen-", "qwen")
-                .replace("qwen", "qwen-")
-            )
-
         if not api_key or AppConfig.disable_custom_api_key:
             api_key = AuthManager.load_api_key(cls)
-        if (
-            (not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_"))
-            and cls.balance
-            or cls.balance is None
-            and cls.get_balance(api_key, timeout)
-            and cls.balance > 0
-        ):
-            debug.log(f"Authenticated with Pollinations AI using G4F API.")
-            models_url = cls.worker_models_endpoint
-            image_url = cls.image_models_endpoint
-        elif api_key:
-            debug.log(f"Using Pollinations AI with provided API key.")
+        if (OpenaiTemplate.is_provider_api_key(api_key)):
+            debug.log(f"Using Pollinations with provided API key.")
             models_url = cls.gen_text_api_endpoint
             image_url = cls.gen_image_models_endpoint
         else:
-            debug.log(f"Using Pollinations AI without authentication.")
-            models_url = cls.text_models_endpoint
+            debug.log(f"Authenticated with Pollinations using G4F API.")
+            models_url = cls.worker_models_endpoint
             image_url = cls.image_models_endpoint
 
         if cls.current_models_endpoint != models_url:
@@ -179,7 +147,6 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                         if model.get("name") not in cls.video_models:
                             cls.image_models[model.get("name")] = {
                                 "id": model.get("name"),
-                                "label": get_alias(model),
                                 **model,
                             }
                         if "image" in model.get("input_modalities", []):
@@ -189,13 +156,10 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         cls.image_models[model] = {"id": model}
 
-                text_response = requests.get(cls.text_models_endpoint, timeout=timeout)
-                if not text_response.ok:
-                    text_response = requests.get(
-                        cls.text_models_endpoint, timeout=timeout
-                    )
+                text_response = requests.get(models_url, timeout=timeout)
                 text_response.raise_for_status()
                 models = text_response.json()
+                models = models if isinstance(models, list) else models.get("data", [])
 
                 # Purpose of audio models
                 cls.audio_models = {
@@ -221,12 +185,12 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.live += 1
                 cls.swap_model_aliases = {v: k for k, v in cls.model_aliases.items()}
                 cls.text_models = {
-                    model.get("name"): {
-                        "id": model.get("name"),
-                        "label": get_alias(model),
+                    model.get("id", model.get("name")): {
+                        "id": model.get("id", model.get("name")),
                         **model,
                     }
                     for model in models
+                    if not model.get("image") and not model.get("video")
                 }
                 cls.models = cls.text_models.copy()
                 cls.models.update(cls.image_models)
@@ -318,10 +282,6 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                         has_audio = True
                         break
             model = "openai-audio" if has_audio else cls.default_model
-        if AppConfig.disable_custom_api_key:
-            api_key = None
-        if not api_key or api_key.startswith("g4f_") or api_key.startswith("gfs_"):
-            api_key = AuthManager.load_api_key(cls) or api_key
         if cls.get_models(api_key=api_key, timeout=kwargs.get("timeout", 15)):
             if model in cls.model_aliases:
                 model = cls.model_aliases[model]
@@ -433,11 +393,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
         encoded_prompt = quote_plus(encoded_prompt)[
             : 4096 - len(cls.image_api_endpoint) - len(query) - 8
         ].rstrip("%")
-        if (
-            api_key
-            and not api_key.startswith("g4f_")
-            and not api_key.startswith("gfs_")
-        ):
+        if (OpenaiTemplate.is_provider_api_key(api_key)):
             url = cls.gen_image_api_endpoint
         else:
             url = cls.image_api_endpoint
@@ -579,20 +535,10 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                 seed=None if "tools" in extra_body else seed,
                 **extra_body,
             )
-            if (
-                (
-                    not api_key
-                    or api_key.startswith("g4f_")
-                    or api_key.startswith("gfs_")
-                )
-                and cls.balance
-                and cls.balance > 0
-            ):
-                endpoint = cls.worker_api_endpoint
-            elif api_key:
+            if (OpenaiTemplate.is_provider_api_key(api_key)):
                 endpoint = cls.gen_text_api_endpoint
             else:
-                endpoint = cls.text_api_endpoint
+                endpoint = cls.worker_api_endpoint
             headers = None
             if api_key:
                 headers = {"authorization": f"Bearer {api_key}"}
