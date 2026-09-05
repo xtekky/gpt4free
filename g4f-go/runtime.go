@@ -153,7 +153,7 @@ func upgradeG4F(binDir, exe string, start time.Time) error {
 	}
 	code, err := runPython(noSignalCtx(), exe, []string{
 		"-m", "pip", "install",
-		"--no-input", "--upgrade", "g4f[slim]",
+		"--no-input", "--upgrade", "g4f",
 	}, pipEnv(binDir)...)
 	if err != nil || code != 0 {
 		return fmt.Errorf("pip upgrade g4f failed (exit %d): %w", code, err)

@@ -538,7 +538,7 @@ model_map = {
         "Pollinations": "kimi-code",
         "Puter": "togetherai:moonshotai/kimi-k2.7-code",
     },
-    "nvidia-nemotron-3-ultra-550b-a55b": {
+    "nemotron-3-ultra-550b-a55b": {
         "DeepInfra": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B",
         "HuggingFace": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16",
         "HuggingChat": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16",
@@ -643,7 +643,7 @@ model_map = {
         "Pollinations": "gemma-4-31b",
         "Puter": "togetherai:google/gemma-4-31b-it",
     },
-    "nvidia-nemotron-3-super-120b-a12b": {
+    "nemotron-3-super-120b-a12b": {
         "DeepInfra": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B"
     },
     "glm-5": {
@@ -883,7 +883,7 @@ model_map = {
         "HuggingChat": "Qwen/Qwen2.5-Coder-7B-Instruct",
         "Puter": "openrouter:qwen/qwen2.5-coder-7b-instruct",
     },
-    "nvidia-nemotron-3-ultra-550b-a55b-nvfp4": {
+    "nemotron-3-ultra-550b-a55b-nvfp4": {
         "HuggingFace": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4",
         "HuggingChat": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4",
     },
@@ -1438,7 +1438,7 @@ models_count = {
     "flux-kontext": 2,
     "glm-5.2": 11,
     "kimi-k2.7-code": 11,
-    "nvidia-nemotron-3-ultra-550b-a55b": 3,
+    "nemotron-3-ultra-550b-a55b": 3,
     "deepseek-v4-flash": 10,
     "deepseek-v4-pro": 10,
     "kimi-k2.6": 11,
@@ -1479,7 +1479,7 @@ models_count = {
     "qwen-3-14b": 5,
     "qwen-3-next-80b-a3b": 7,
     "qwen-2.5-coder-7b": 3,
-    "nvidia-nemotron-3-ultra-550b-a55b-nvfp4": 2,
+    "nemotron-3-ultra-550b-a55b-nvfp4": 2,
     "qwen-3.5-35b-a3b": 6,
     "gemma-3-27b-it": 6,
     "gemma-3-12b-it": 6,
@@ -1724,8 +1724,8 @@ model_aliases = {
     "moonshotai/kimi-k2.7-code": "kimi-k2.7-code",
     "kimi-code": "kimi-k2.7-code",
     "togetherai:moonshotai/kimi-k2.7-code": "kimi-k2.7-code",
-    "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B": "nvidia-nemotron-3-ultra-550b-a55b",
-    "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16": "nvidia-nemotron-3-ultra-550b-a55b",
+    "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B": "nemotron-3-ultra-550b-a55b",
+    "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16": "nemotron-3-ultra-550b-a55b",
     "deepseek-ai/DeepSeek-V4-Flash": "deepseek-v4-flash",
     "deepseek-ai/deepseek-v4-flash": "deepseek-v4-flash",
     "deepseek/deepseek-v4-flash": "deepseek-v4-flash",
@@ -1766,7 +1766,7 @@ model_aliases = {
     "google/gemma-4-31b-it:free": "gemma-4-31b-it",
     "gemma-4-31b": "gemma-4-31b-it",
     "togetherai:google/gemma-4-31b-it": "gemma-4-31b-it",
-    "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B": "nvidia-nemotron-3-super-120b-a12b",
+    "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B": "nemotron-3-super-120b-a12b",
     "zai-org/GLM-5": "glm-5",
     "z-ai/glm-5": "glm-5",
     "z-ai:z-ai/glm-5": "glm-5",
@@ -1873,7 +1873,7 @@ model_aliases = {
     "alibaba:qwen/qwen3-next-80b-a3b-instruct": "qwen-3-next-80b-a3b",
     "Qwen/Qwen2.5-Coder-7B-Instruct": "qwen-2.5-coder-7b",
     "openrouter:qwen/qwen2.5-coder-7b-instruct": "qwen-2.5-coder-7b",
-    "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4": "nvidia-nemotron-3-ultra-550b-a55b-nvfp4",
+    "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4": "nemotron-3-ultra-550b-a55b-nvfp4",
     "Qwen/Qwen3.5-35B-A3B": "qwen-3.5-35b-a3b",
     "qwen3.5-35b-a3b": "qwen-3.5-35b-a3b",
     "qwen/qwen3.5-35b-a3b": "qwen-3.5-35b-a3b",

@@ -203,6 +203,10 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.DeepSeek import DeepSeek
 
             return DeepSeek
+        elif name == "Default":
+            from g4f.providers.any_provider import DefaultProvider
+
+            return DefaultProvider
         elif name == "EdgeTTS":
             from g4f.Provider.audio.EdgeTTS import EdgeTTS
 

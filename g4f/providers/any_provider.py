@@ -9,7 +9,8 @@ from ..typing import AsyncResult, Messages, MediaListType, Union
 from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
-from ..Provider import __getattr__
+from ..errors import ModelNotFoundError
+from ..Provider import G4FSpace, __getattr__
 from .base_provider import (
     AsyncGeneratorProvider,
     ProviderModelMixin,
@@ -303,7 +304,6 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         # Always add default first
         groups["default"].append("auto")
-
         groups["custom"] = list(RouterConfig.routes.keys())
 
         for model in unsorted_models:
@@ -312,11 +312,9 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
             added = False
             # Check for models with prefix
-            start = model.split(":")[0]
-            if start in ("Pollinations", "openrouter"):
-                added = True
+            key = model.split("-")[0]
             # Check for Mistral company models specifically
-            elif model.startswith("mistral") and not any(
+            if model.startswith("mistral") and not any(
                 x in model for x in ["dolphin", "nous", "openhermes"]
             ):
                 groups["mistral"].append(model)
@@ -373,6 +371,11 @@ class AnyModelProviderMixin(ProviderModelMixin):
             ) or model in ("auto", "searchgpt"):
                 groups["openai"].append(model)
                 added = True
+            elif key in ["minimax", "kimi", "mimo", "nemotron", "tiny"]:
+                if key not in groups:
+                    groups[key] = []
+                groups[key].append(model)
+                added = True
             # Check for video models
             elif model in cls.video_models:
                 groups["video"].append(model)
@@ -387,13 +390,13 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if not added:
                 groups["other"].append(model)
         return [
-            {"group": LABELS[group], "models": names} for group, names in groups.items()
+            {"group": LABELS.get(group, group.title()), "models": names} for group, names in groups.items()
         ]
 
 
-class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
+class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
     working = True
-    active_by_default = True
+    add_g4f_space = False
     supports_native_tools = True
 
     @classmethod
@@ -530,25 +533,31 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         if not has_api_key:
             providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
 
-        if len(providers) == 0:
-            provider: AsyncGeneratorProvider = __getattr__("G4FSpace")
-            async for chunk in provider.create_async_generator(
+        if len(providers) == 0 and cls.add_g4f_space:
+            async for chunk in G4FSpace.create_async_generator(
                 model, messages, stream=stream, media=media, api_key=api_key, **kwargs
             ):
                 yield chunk
             return
-            # raise ModelNotFoundError(
-            #     f"AnyProvider: Model {model} not found in any provider."
-            # )
+        elif len(providers) == 0:
+            raise ModelNotFoundError(
+                f"{cls.__name__}: Model {model} not found in any provider."
+            )
 
         debug.log(
-            f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"
+            f"{cls.__name__}: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"
         )
 
         async for chunk in RotatedProvider(providers, not model).create_async_generator(
             model, messages, stream=stream, media=media, api_key=api_key, **kwargs
         ):
             yield chunk
+
+
+class AnyProvider(DefaultProvider):
+    working = True
+    active_by_default = True
+    add_g4f_space = True
 
 
 # Clean model names function
@@ -579,4 +588,6 @@ def clean_name(name: str) -> str:
     name = name.replace("gpt-5-2", "gpt-5.2")
     name = name.replace("claude-haiku-4.5", "claude-haiku-4-5")
     name = name.replace("claude-sonnet-4.5", "claude-sonnet-4-5")
+    if name.startswith("nvidia-"):
+        name = name[len("nvidia-"):]
     return name
