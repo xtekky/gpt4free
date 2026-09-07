@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ...cookies import get_cookies
+from ...cookies import get_cookies, get_cookies_async
 from ...providers.response import ImageResponse
 from ...errors import MissingAuthError
 from ...typing import AsyncResult, Messages, Cookies
@@ -51,7 +51,7 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
         Returns:
             str: Markdown formatted string with images.
         """
-        cookies = self.cookies or get_cookies(".bing.com", False)
+        cookies = self.cookies or await get_cookies_async(".bing.com", False)
         if cookies is None or "_U" not in cookies:
             raise MissingAuthError('Missing "_U" cookie')
         async with create_session(cookies, self.proxy) as session:

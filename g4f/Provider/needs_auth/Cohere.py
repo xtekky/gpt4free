@@ -7,7 +7,6 @@ from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status, sse_stream
 from ...providers.response import FinishReason, Usage
 from ...errors import MissingAuthError
-from ...tools.run_tools import AuthManager
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ... import debug
 

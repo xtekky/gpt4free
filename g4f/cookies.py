@@ -141,10 +141,24 @@ def get_cookies(
         domain_name, raise_requirements_error, single_browser
     )
     if single_browser != "all" and cache_result:
-        if len(cookies) > 0:
-            CookiesConfig.cookies[domain_name] = cookies
+        CookiesConfig.cookies[domain_name] = cookies
         return CookiesConfig.cookies.get(domain_name, {})
     return cookies
+
+
+async def get_cookies_async(
+    domain_name: str,
+    raise_requirements_error: bool = True,
+    single_browser: Optional[str] = None,
+    cache_result: bool = True,
+) -> Dict[str, str]:
+    """Async helper to load cookies without blocking the event loop."""
+    if single_browser != "all" and domain_name in CookiesConfig.cookies:
+        return CookiesConfig.cookies[domain_name]
+    from .providers.asyncio import to_thread
+    return await to_thread(
+        get_cookies, domain_name, raise_requirements_error, single_browser, cache_result
+    )
 
 
 def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
@@ -208,7 +222,18 @@ def set_cookies_dir(dir_path: str) -> None:
 
 
 def get_cookies_dir() -> str:
-    return CookiesConfig.cookies_dir
+    path = CookiesConfig.cookies_dir
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path, mode=0o700, exist_ok=True)
+        elif hasattr(os, "chmod") and os.name != "nt":
+            try:
+                os.chmod(path, 0o700)
+            except OSError:
+                pass
+    except OSError:
+        pass
+    return path
 
 
 def _get_domain(entry: dict) -> Optional[str]:

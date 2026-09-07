@@ -98,7 +98,8 @@ ANTIGRAVITY_SCOPES = [
     "https://www.googleapis.com/auth/cclog",
     "https://www.googleapis.com/auth/experimentsandconfigs",
 ]
-OAUTH_CALLBACK_PORT = 51121
+CALLBACK_PORT = 51121
+OAUTH_CALLBACK_PORT = CALLBACK_PORT
 OAUTH_CALLBACK_PATH = "/oauthcallback"
 
 
@@ -247,7 +248,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 class OAuthCallbackServer:
     """Local HTTP server to capture OAuth callback."""
 
-    def __init__(self, port: int = OAUTH_CALLBACK_PORT, timeout: float = 300.0):
+    def __init__(self, port: int = CALLBACK_PORT, timeout: float = 300.0):
         self.port = port
         self.timeout = timeout
         self.server: Optional[HTTPServer] = None
@@ -364,11 +365,14 @@ class AntigravityAuthManager(AuthFileMixin):
     parent = "Antigravity"
 
     OAUTH_REFRESH_URL = "https://oauth2.googleapis.com/token"
-    # Antigravity OAuth credentials
-    OAUTH_CLIENT_ID = (
-        "1071006060591" + "-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+    OAUTH_CLIENT_ID = os.environ.get(
+        "ANTIGRAVITY_CLIENT_ID",
+        os.environ.get("GOOGLE_CLIENT_ID", ""),
     )
-    OAUTH_CLIENT_SECRET = "GOC" + "SPX-K58FWR486LdLJ1mLB8sXC4z6qDAf"
+    OAUTH_CLIENT_SECRET = os.environ.get(
+        "ANTIGRAVITY_CLIENT_SECRET",
+        os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+    )
     TOKEN_BUFFER_TIME = 5 * 60  # seconds, 5 minutes
     KV_TOKEN_KEY = "antigravity_oauth_token_cache"
 
@@ -839,7 +843,7 @@ class AntigravityAuthManager(AuthFileMixin):
         else:
             if not server_started:
                 print(
-                    f"\nCould not start local callback server on port {OAUTH_CALLBACK_PORT}."
+                    f"\nCould not start local callback server on port {CALLBACK_PORT}."
                 )
                 print("You may need to close any application using that port.\n")
 

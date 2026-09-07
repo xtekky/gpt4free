@@ -63,6 +63,11 @@ def create_or_read_keys() -> tuple[RSAPrivateKey, RSAPublicKey]:
     # Write the private key PEM to a file
     with open(private_key_file, "wb") as f:
         f.write(private_key_pem)
+    if hasattr(os, "chmod") and os.name != "nt":
+        try:
+            os.chmod(private_key_file, 0o600)
+        except OSError:
+            pass
 
     # Write the public key PEM to a file
     with open(public_key_file, "wb") as f:

@@ -195,7 +195,7 @@ class Backend_Api(Api):
                     return jsonify(listing)
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                    return jsonify({"error": {"message": "Failed to list providers"}}), 500
             task = asyncio.create_task(fetch_providers())
             return jsonify(saved) if saved is not None else await task
 
@@ -211,10 +211,10 @@ class Backend_Api(Api):
                 if response is None:
                     return jsonify({"error": {"message": "Provider not found"}}), 404
             except MissingAuthError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+                return jsonify({"error": {"message": "Authentication required"}}), 401
             except Exception as e:
                 logger.exception(e)
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                return jsonify({"error": {"message": "Failed to get provider models"}}), 500
             return jsonify(response)
 
         @app.route("/backend-api/v2/providers", methods=["GET"])
@@ -238,7 +238,7 @@ class Backend_Api(Api):
             try:
                 provider_class = AbstractClientFactory.create_provider(None, provider)
             except ProviderNotFoundError as e:
-                return jsonify({"error": {"message": str(e)}}), 404
+                return jsonify({"error": {"message": "Provider not found"}}), 404
 
             if request.method == "GET":
                 data = request.args.to_dict() or {}
@@ -254,7 +254,7 @@ class Backend_Api(Api):
                     return jsonify(result), 200
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": "Authentication start failed"}}), 500
 
             if hasattr(provider_class, "oauth_poll") and action == "poll":
                 device_code = data.get("device_code")
@@ -274,7 +274,7 @@ class Backend_Api(Api):
                     return jsonify(result), 200
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": "OAuth poll failed"}}), 500
 
             # Fallback: provider.login (blocking) for interactive login flows
             if hasattr(provider_class, "login"):
@@ -283,7 +283,7 @@ class Backend_Api(Api):
                     return jsonify({"status": "success"}), 200
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": "Login failed"}}), 500
 
             return (
                 jsonify(
@@ -370,7 +370,7 @@ class Backend_Api(Api):
                     None, kwargs.pop("provider", None)
                 )
             except ProviderNotFoundError as e:
-                return jsonify({"error": {"message": str(e)}}), 404
+                return jsonify({"error": {"message": "Provider not found"}}), 404
             return self.app.response_class(
                 safe_iter_generator(
                     self._create_response_stream(
@@ -402,13 +402,16 @@ class Backend_Api(Api):
             if not _DATE_RE.match(date):
                 return (jsonify({"error": {"message": "Invalid date format"}}), 400)
             try:
-                datetime.date.fromisoformat(date)
+                safe_date = datetime.date.fromisoformat(date).isoformat()
             except ValueError:
                 return (jsonify({"error": {"message": "Invalid date"}}), 400)
-            cache_dir = Path(get_cookies_dir()) / ".usage"
-            cache_file = cache_dir / f"{date}.jsonl"
-            if cache_file.exists():
-                return Response(cache_file.read_text(), mimetype="text/plain")
+            real_dir = os.path.realpath(str(Path(get_cookies_dir()) / ".usage"))
+            target = os.path.realpath(os.path.join(real_dir, f"{safe_date}.jsonl"))
+            if not target.startswith(real_dir + os.sep):
+                return (jsonify({"error": {"message": "Invalid date"}}), 400)
+            target_path = Path(target)
+            if target_path.exists():
+                return Response(target_path.read_text(), mimetype="text/plain")
             else:
                 return (
                     jsonify(
@@ -602,7 +605,7 @@ class Backend_Api(Api):
             try:
                 provider_handler = AbstractClientFactory.create_provider(None, provider)
             except ProviderNotFoundError as e:
-                return jsonify({"error": {"message": str(e)}}), 404
+                return jsonify({"error": {"message": "Provider not found"}}), 404
             if not hasattr(provider_handler, "get_quota"):
                 return (
                     jsonify(
@@ -620,12 +623,12 @@ class Backend_Api(Api):
                 response.headers["cache-control"] = "public, max-age=3600"
                 return response
             except MissingAuthError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+                return jsonify({"error": {"message": "Authentication required"}}), 401
             except NotImplementedError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 501
+                return jsonify({"error": {"message": "Quota check not supported"}}), 501
             except Exception as e:
                 logger.exception(e)
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                return jsonify({"error": {"message": "Failed to retrieve quota"}}), 500
 
         @app.route("/backend-api/v2/log", methods=["POST"])
         def add_log():
@@ -734,10 +737,7 @@ class Backend_Api(Api):
                         + json.dumps(parameters, sort_keys=True).encode()
                     ).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
-                    cache_file = (
-                        cache_dir
-                        / f"{quote_plus(request.args.get('prompt', '').strip()[:20])}.{cache_id}.txt"
-                    )
+                    cache_file = cache_dir / f"{cache_id}.txt"
                     response = None
                     if cache_file.exists():
                         with cache_file.open("r") as f:
@@ -756,21 +756,25 @@ class Backend_Api(Api):
                     response = cast_str(iter_run_tools(provider_handler, **parameters))
                 if isinstance(response, str) and "\n" not in response:
                     if response.startswith("/media/"):
-                        media_dir = get_media_dir()
-                        filename = os.path.basename(response.split("?")[0])
+                        media_dir = os.path.realpath(get_media_dir())
+                        filename = secure_filename(os.path.basename(response.split("?")[0]))
+                        target_file = os.path.realpath(os.path.join(media_dir, filename))
+                        if not target_file.startswith(media_dir + os.sep):
+                            return jsonify({"error": {"message": "Invalid file"}}), 400
                         if not cache_id:
                             try:
                                 return send_from_directory(
-                                    os.path.abspath(media_dir), filename
+                                    media_dir, filename
                                 )
                             finally:
-                                os.remove(os.path.join(media_dir, filename))
+                                if os.path.exists(target_file):
+                                    os.remove(target_file)
                         else:
-                            return redirect(response)
+                            return send_from_directory(media_dir, filename)
                     elif response.startswith("https://") or response.startswith(
                         "http://"
                     ):
-                        return redirect(response)
+                        return Response(response, mimetype="text/plain")
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]
                     response = (
@@ -786,14 +790,14 @@ class Backend_Api(Api):
                     )
                 return Response(response, mimetype="text/plain")
             except (ModelNotFoundError, ProviderNotFoundError) as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 404
+                return jsonify({"error": {"message": "Model or provider not found"}}), 404
             except MissingAuthError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+                return jsonify({"error": {"message": "Authentication required"}}), 401
             except RateLimitError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 429
+                return jsonify({"error": {"message": "Rate limit exceeded"}}), 429
             except Exception as e:
                 logger.exception(e)
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                return jsonify({"error": {"message": "An error occurred during request generation"}}), 500
 
         @app.route("/backend-api/v2/files/<bucket_id>/stream", methods=["GET"])
         def stream_files(bucket_id: str, event_stream=True):
@@ -815,14 +819,16 @@ class Backend_Api(Api):
                     shutil.rmtree(bucket_dir)
                     return jsonify({"message": "Bucket deleted successfully"}), 200
                 except OSError as e:
+                    logger.exception(e)
                     return (
                         jsonify(
-                            {"error": {"message": f"Error deleting bucket: {str(e)}"}}
+                            {"error": {"message": "Error deleting bucket"}}
                         ),
                         500,
                     )
                 except Exception as e:
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    logger.exception(e)
+                    return jsonify({"error": {"message": "Failed to delete bucket"}}), 500
 
             delete_files = request.args.get("delete_files", True)
             refine_chunks_with_spacy = request.args.get(
@@ -923,7 +929,7 @@ class Backend_Api(Api):
             ) as f:
                 for filename in filenames:
                     f.write(f"{filename}\n")
-            return {"bucket_id": bucket_id, "files": filenames, "media": media}
+            return jsonify({"bucket_id": bucket_id, "files": filenames, "media": media})
 
         @app.route("/files/<bucket_id>/<file_type>/<filename>", methods=["GET"])
         def get_media(bucket_id, file_type: str, filename, dirname: str = None):
@@ -939,9 +945,6 @@ class Backend_Api(Api):
             try:
                 return send_from_directory(os.path.abspath(media_dir), filename)
             except NotFound:
-                source_url = get_source_url(request.query_string.decode())
-                if source_url is not None:
-                    return redirect(source_url)
                 raise
 
         self.match_files = {}
@@ -994,15 +997,25 @@ class Backend_Api(Api):
             file = None
             if "file" in request.files:
                 file = request.files["file"]
-                if file.filename == "":
+                if not file.filename:
                     return "No selected file", 400
             if (
                 file
-                and file.filename.endswith(".json")
-                or file.filename.endswith(".har")
+                and (file.filename.endswith(".json") or file.filename.endswith(".har"))
             ):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(get_cookies_dir(), filename))
+                filename = secure_filename(os.path.basename(file.filename))
+                if not filename:
+                    return "Not supported file", 400
+                cookies_dir = os.path.realpath(get_cookies_dir())
+                target_path = os.path.realpath(os.path.join(cookies_dir, filename))
+                if not target_path.startswith(cookies_dir + os.sep):
+                    return "Forbidden file path", 403
+                file.save(target_path)
+                if hasattr(os, "chmod") and os.name != "nt":
+                    try:
+                        os.chmod(target_path, 0o600)
+                    except OSError:
+                        pass
                 return "File saved", 200
             return "Not supported file", 400
 
@@ -1032,7 +1045,7 @@ class Backend_Api(Api):
             share_id = secure_filename(share_id)
             cache_value = self.chat_cache.get(share_id, 0)
             if updated == cache_value:
-                return {"share_id": share_id}
+                return jsonify({"share_id": share_id})
             bucket_dir = get_bucket_dir(share_id)
             os.makedirs(bucket_dir, exist_ok=True)
             with open(
@@ -1040,13 +1053,13 @@ class Backend_Api(Api):
             ) as f:
                 json.dump(chat_data, f)
             self.chat_cache[share_id] = updated
-            return {"share_id": share_id}
+            return jsonify({"share_id": share_id})
 
     def handle_synthesize(self, provider: str):
         try:
             provider_handler = AbstractClientFactory.create_provider(None, provider)
         except ProviderNotFoundError as e:
-            return jsonify({"error": {"message": str(e)}}), 404
+            return jsonify({"error": {"message": "Provider not found"}}), 404
         if not hasattr(provider_handler, "synthesize"):
             return (
                 jsonify({"error": {"message": "Provider doesn't support synthesize"}}),

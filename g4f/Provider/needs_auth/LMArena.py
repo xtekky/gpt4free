@@ -34,7 +34,7 @@ from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
 from ...requests import StreamSession
 from ...cookies import get_cookies_dir
-from ...tools.files import secure_filename
+from ...files import secure_filename
 from ...errors import (
     ModelNotFoundError,
     CloudflareError,
@@ -724,7 +724,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 _need_clear_cookies = True
                 debug.error(error)
                 continue
-            except:
+            except Exception:
                 raise
         if args:
             debug.log("Save args to cache file:", str(cache_file))

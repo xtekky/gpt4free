@@ -16,8 +16,7 @@ from ..providers.response import *
 from ..errors import NoMediaResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
-from ..Provider import PollinationsImage
-from ..tools.run_tools import async_iter_run_tools, iter_run_tools
+
 from .stubs import (
     ChatCompletion,
     ChatCompletionChunk,
@@ -385,6 +384,7 @@ class Completions:
         if ignore_stream:
             kwargs["ignore_stream"] = True
 
+        from ..tools.run_tools import iter_run_tools
         response = iter_run_tools(
             provider,
             model=model,
@@ -783,6 +783,7 @@ class AsyncCompletions:
         if ignore_stream:
             kwargs["ignore_stream"] = True
 
+        from ..tools.run_tools import async_iter_run_tools
         response = async_iter_run_tools(
             provider,
             model=model,

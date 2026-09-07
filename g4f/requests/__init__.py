@@ -59,6 +59,7 @@ from ..errors import MissingRequirementsError
 from ..typing import Cookies
 from ..cookies import BrowserConfig, get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
+from .aiohttp import get_shared_connector, close_shared_connectors
 
 if not has_curl_cffi:
 
@@ -261,6 +262,15 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     return cookies
 
 
+_browser_locks: dict[str, asyncio.Lock] = {}
+
+
+def get_browser_lock(user_data_dir: str) -> asyncio.Lock:
+    if user_data_dir not in _browser_locks:
+        _browser_locks[user_data_dir] = asyncio.Lock()
+    return _browser_locks[user_data_dir]
+
+
 def set_browser_executable_path(browser_executable_path: str):
     BrowserConfig.browser_executable_path = browser_executable_path
 
@@ -299,36 +309,51 @@ async def get_nodriver(
                 if not os.path.exists(browser_executable_path):
                     browser_executable_path = None
     debug.log(f"Browser executable path: {browser_executable_path}")
+
+    browser_lock = get_browser_lock(str(user_data_dir)) if user_data_dir else None
+    if browser_lock is not None:
+        try:
+            await asyncio.wait_for(browser_lock.acquire(), timeout=timeout)
+        except asyncio.TimeoutError:
+            raise TimeoutError("Nodriver is already in use, please try again later.")
+
     lock_file = Path(get_cookies_dir()) / ".browser_is_open"
     if user_data_dir:
         lock_file.parent.mkdir(exist_ok=True)
-        # Implement a short delay (milliseconds) to prevent race conditions.
-        await asyncio.sleep(0.1 * random.randint(0, 50))
         if lock_file.exists():
-            opend_at = float(lock_file.read_text())
-            time_open = time.time() - opend_at
-            if timeout * 2 > time_open:
+            try:
+                opend_at = float(lock_file.read_text().strip())
+                time_open = time.time() - opend_at
+            except (ValueError, OSError):
+                time_open = float("inf")
+
+            if time_open < timeout * 2:
                 debug.log(
-                    f"Nodriver: Browser is already in use since {time_open} secs."
+                    f"Nodriver: Browser is already in use since {time_open:.1f} secs."
                 )
                 debug.log("Lock file:", lock_file)
-                for idx in range(timeout):
+                for idx in range(int(timeout)):
                     if lock_file.exists():
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(0.5)
                     else:
                         break
-                    if idx == timeout - 1:
+                    if idx == int(timeout) - 1:
                         debug.log("Timeout reached, nodriver is still in use.")
+                        if browser_lock and browser_lock.locked():
+                            browser_lock.release()
                         raise TimeoutError(
                             "Nodriver is already in use, please try again later."
                         )
             else:
                 debug.log(
-                    f"Nodriver: Browser was opened {time_open} secs ago, closing it."
+                    f"Nodriver: Stale browser lock detected ({time_open:.1f} secs ago), releasing."
                 )
                 await BrowserConfig.stop_browser()
                 lock_file.unlink(missing_ok=True)
-        lock_file.write_text(str(time.time()))
+        try:
+            lock_file.write_text(str(time.time()))
+        except OSError:
+            pass
         debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
         browser_args = kwargs.pop("browser_args", None) or ["--no-sandbox"]
@@ -346,8 +371,14 @@ async def get_nodriver(
             connection_timeout=BrowserConfig.connection_timeout,
             **kwargs,
         )
-    except FileNotFoundError as e:
-        raise MissingRequirementsError(e)
+    except Exception as e:
+        if user_data_dir:
+            lock_file.unlink(missing_ok=True)
+        if browser_lock and browser_lock.locked():
+            browser_lock.release()
+        if isinstance(e, FileNotFoundError):
+            raise MissingRequirementsError(e)
+        raise
 
     async def on_stop():
         try:
@@ -358,6 +389,8 @@ async def get_nodriver(
         finally:
             if user_data_dir:
                 lock_file.unlink(missing_ok=True)
+            if browser_lock and browser_lock.locked():
+                browser_lock.release()
 
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop

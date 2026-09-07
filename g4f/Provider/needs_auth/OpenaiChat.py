@@ -76,6 +76,26 @@ from ..openai.proofofwork import generate_proof_token
 from ..openai.new import get_requirements_token, get_config
 from ... import debug
 
+_RE_FILE_SERVICE = re.compile(r"file-service://[\w-]+")
+_RE_VIDEO = re.compile(r"video\n(.*?)\nturn[0-9]+")
+_RE_CITATION = re.compile(
+    r"(?:cite\nturn[0-9]+|forecast\nturn[0-9]+|video\n.*?\nturn[0-9]+|i?\n?turn[0-9]+)(search|news|view|image|forecast)(\d+)"
+)
+_RE_PRODUCTS = re.compile(r"products\n(.*)")
+_RE_PRODUCT_ENTITY = re.compile(r'product_entity\n\[".*","(.*)"\]')
+_RE_SEQUENCE = re.compile(r"\ue200(.*?)\ue201", flags=re.DOTALL)
+
+_RE_CONTENT_REF = re.compile(r"^/message/metadata/content_references/(\d+)$")
+_RE_FALLBACK_ITEMS = re.compile(r"^/message/metadata/content_references/\d+/fallback_items$")
+_RE_ITEMS = re.compile(r"^/message/metadata/content_references/\d+/items$")
+_RE_REFS = re.compile(r"^/message/metadata/content_references/(\d+)/refs$")
+_RE_ALT = re.compile(r"^/message/metadata/content_references/(\d+)/alt$")
+_RE_PROMPT_TEXT = re.compile(r"^/message/metadata/content_references/(\d+)/prompt_text$")
+_RE_REFS_IDX = re.compile(r"^/message/metadata/content_references/(\d+)/refs/(\d+)$")
+_RE_IMAGES = re.compile(r"^/message/metadata/content_references/(\d+)/images$")
+_RE_ACCESS_TOKEN = re.compile(r'"accessToken":"(.+?)"')
+_RE_UTM_SOURCE = re.compile(r"[&?]utm_source=.+")
+
 DEFAULT_HEADERS = {
     "accept": "*/*",
     "accept-encoding": "gzip, deflate, br, zstd",
@@ -719,8 +739,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     buffer = ""
                     matches = []
                     async for line in response.iter_lines():
-                        pattern = re.compile(r"file-service://[\w-]+")
-                        for match in pattern.finditer(line.decode(errors="ignore")):
+                        for match in _RE_FILE_SERVICE.finditer(line.decode(errors="ignore")):
                             if match.group(0) in matches:
                                 continue
                             matches.append(match.group(0))
@@ -793,13 +812,12 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                             "thumbnail_url", ""
                                                         ):
                                                             return f"[![{reference.get('title', '')}]({reference['thumbnail_url']})]({reference['url']})"
-                                                        video_match = re.match(
-                                                            r"video\n(.*?)\nturn[0-9]+",
-                                                            match.group(0),
+                                                        video_match = _RE_VIDEO.match(
+                                                            match.group(0)
                                                         )
                                                         if video_match:
                                                             return video_match.group(1)
-                                                    return ""
+                                                        return ""
 
                                                 source_index = sources.get_index(
                                                     {
@@ -860,29 +878,24 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                             is_video_embedding = (
                                                 sequence_content.startswith("video\n")
                                             )
-                                            sequence_content = re.sub(
-                                                r"(?:cite\nturn[0-9]+|forecast\nturn[0-9]+|video\n.*?\nturn[0-9]+|i?\n?turn[0-9]+)(search|news|view|image|forecast)(\d+)",
+                                            sequence_content = _RE_CITATION.sub(
                                                 citation_replacer,
                                                 sequence_content,
                                             )
-                                            sequence_content = re.sub(
-                                                r"products\n(.*)",
+                                            sequence_content = _RE_PRODUCTS.sub(
                                                 products_replacer,
                                                 sequence_content,
                                             )
-                                            sequence_content = re.sub(
-                                                r'product_entity\n\[".*","(.*)"\]',
+                                            sequence_content = _RE_PRODUCT_ENTITY.sub(
                                                 lambda x: x.group(1),
                                                 sequence_content,
                                             )
                                             return sequence_content
 
                                         # process only completed sequences and do not touch start of next not completed sequence
-                                        buffer = re.sub(
-                                            r"\ue200(.*?)\ue201",
+                                        buffer = _RE_SEQUENCE.sub(
                                             sequence_replacer,
                                             buffer,
-                                            flags=re.DOTALL,
                                         )
 
                                         if (
@@ -1179,130 +1192,76 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                 sources.add_source(link)
                             if m.get("o", None) == "append":
                                 references.add_reference(entry)
-                    elif m.get("p") and re.match(
-                        r"^/message/metadata/content_references/\d+$", m.get("p")
-                    ):
-                        if "url" in m.get("v") or "link" in m.get("v"):
-                            sources.add_source(m.get("v"))
-                        for link in m.get("v").get("fallback_items", []) or []:
-                            sources.add_source(link)
-
-                        match = re.match(
-                            r"^/message/metadata/content_references/(\d+)$", m.get("p")
-                        )
-                        if (
-                            match
-                            and m.get("o") == "append"
-                            and isinstance(m.get("v"), dict)
-                        ):
-                            idx = int(match.group(1))
-                            references.merge_reference(idx, m.get("v"))
+                    elif (m_p := m.get("p")) and (ref_match := _RE_CONTENT_REF.match(m_p)):
+                        v = m.get("v")
+                        if isinstance(v, dict):
+                            if "url" in v or "link" in v:
+                                sources.add_source(v)
+                            for link in v.get("fallback_items", []) or []:
+                                sources.add_source(link)
+                            if m.get("o") == "append":
+                                idx = int(ref_match.group(1))
+                                references.merge_reference(idx, v)
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/fallback_items$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and _RE_FALLBACK_ITEMS.match(m_p)
                         and isinstance(m.get("v"), list)
                     ):
                         for link in m.get("v", []) or []:
                             sources.add_source(link)
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/items$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and _RE_ITEMS.match(m_p)
                         and isinstance(m.get("v"), list)
                     ):
                         for link in m.get("v", []) or []:
                             sources.add_source(link)
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/refs$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and (ref_match := _RE_REFS.match(m_p))
                         and isinstance(m.get("v"), list)
                     ):
-                        match = re.match(
-                            r"^/message/metadata/content_references/(\d+)/refs$",
-                            m.get("p"),
+                        idx = int(ref_match.group(1))
+                        references.update_reference(
+                            idx, m.get("o"), "refs", m.get("v")
                         )
-                        if match:
-                            idx = int(match.group(1))
-                            references.update_reference(
-                                idx, m.get("o"), "refs", m.get("v")
-                            )
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/alt$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and (ref_match := _RE_ALT.match(m_p))
                         and isinstance(m.get("v"), list)
                     ):
-                        match = re.match(
-                            r"^/message/metadata/content_references/(\d+)/alt$",
-                            m.get("p"),
+                        idx = int(ref_match.group(1))
+                        references.update_reference(
+                            idx, m.get("o"), "alt", m.get("v")
                         )
-                        if match:
-                            idx = int(match.group(1))
-                            references.update_reference(
-                                idx, m.get("o"), "alt", m.get("v")
-                            )
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/prompt_text$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and (ref_match := _RE_PROMPT_TEXT.match(m_p))
                         and isinstance(m.get("v"), list)
                     ):
-                        match = re.match(
-                            r"^/message/metadata/content_references/(\d+)/prompt_text$",
-                            m.get("p"),
+                        idx = int(ref_match.group(1))
+                        references.update_reference(
+                            idx, m.get("o"), "prompt_text", m.get("v")
                         )
-                        if match:
-                            idx = int(match.group(1))
-                            references.update_reference(
-                                idx, m.get("o"), "prompt_text", m.get("v")
-                            )
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/refs/\d+$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and (ref_match := _RE_REFS_IDX.match(m_p))
                         and isinstance(m.get("v"), dict)
                     ):
-                        match = re.match(
-                            r"^/message/metadata/content_references/(\d+)/refs/(\d+)$",
-                            m.get("p"),
+                        reference_idx = int(ref_match.group(1))
+                        ref_idx = int(ref_match.group(2))
+                        references.update_reference(
+                            reference_idx, m.get("o"), "refs", m.get("v"), ref_idx
                         )
-                        if match:
-                            reference_idx = int(match.group(1))
-                            ref_idx = int(match.group(2))
-                            references.update_reference(
-                                reference_idx, m.get("o"), "refs", m.get("v"), ref_idx
-                            )
                     elif (
-                        m.get("p")
-                        and re.match(
-                            r"^/message/metadata/content_references/\d+/images$",
-                            m.get("p"),
-                        )
+                        (m_p := m.get("p"))
+                        and (ref_match := _RE_IMAGES.match(m_p))
                         and isinstance(m.get("v"), list)
                     ):
-                        match = re.match(
-                            r"^/message/metadata/content_references/(\d+)/images$",
-                            m.get("p"),
+                        idx = int(ref_match.group(1))
+                        references.update_reference(
+                            idx, m.get("o"), "images", m.get("v")
                         )
-                        if match:
-                            idx = int(match.group(1))
-                            references.update_reference(
-                                idx, m.get("o"), "images", m.get("v")
-                            )
                     elif m.get("p") == "/message/metadata/finished_text":
                         fields.is_thinking = False
                         if buffer:
@@ -1487,7 +1446,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if hasattr(body, "value"):
                     body = body.value
                 if body:
-                    match = re.search(r'"accessToken":"(.+?)"', body)
+                    match = _RE_ACCESS_TOKEN.search(body)
                     if match:
                         cls._api_key = match.group(1)
                         break
@@ -1631,7 +1590,7 @@ class OpenAISources(ResponseType):
         if not url:
             return
 
-        url = re.sub(r"[&?]utm_source=.+", "", url)
+        url = _RE_UTM_SOURCE.sub("", url)
         source["url"] = url
 
         ref_info = self.get_ref_info(source)

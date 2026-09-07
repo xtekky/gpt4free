@@ -12,7 +12,6 @@ from ...providers.base_provider import AsyncGeneratorProvider, ProviderModelMixi
 from ...requests.aiohttp import get_connector
 from ...requests.defaults import DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
-from ...tools.run_tools import AuthManager
 from ...image import to_bytes
 from ...tools.media import merge_media
 from ..helper import filter_none, format_media_prompt

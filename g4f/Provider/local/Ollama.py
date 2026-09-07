@@ -9,7 +9,6 @@ from typing import Optional
 from ..template import OpenaiTemplate
 from ...requests import StreamSession, raise_for_status
 from ...cookies import get_cookies
-from ...tools.run_tools import AuthManager
 from ...typing import AsyncResult, Messages
 from ...config import AppConfig
 from ...errors import MissingAuthError

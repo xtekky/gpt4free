@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+import os
 import random
 
 from ..typing import Dict, Type, List, Messages, AsyncResult
@@ -7,14 +9,14 @@ from .types import BaseProvider, BaseRetryProvider, ProviderType
 from .response import ProviderInfo, JsonConversation, is_content
 from .base_provider import get_async_provider_method
 from .. import debug
-from ..tools.run_tools import AuthManager
+from ..tools.auth import AuthManager
 from ..config import AppConfig
 from ..errors import RetryProviderError, RetryNoProviderError
 
 
 def _resolve_model(provider: Type[BaseProvider], model: str) -> str:
     alias = model or getattr(provider, "default_model", None)
-    if getattr(provider, "model_aliases"):
+    if getattr(provider, "model_aliases", None):
         alias = provider.model_aliases.get(model, model)
     if isinstance(alias, list):
         alias = random.choice(alias)
@@ -140,6 +142,43 @@ class RotatedProvider(BaseRetryProvider):
         raise_exceptions(exceptions)
 
 
+class ProviderCircuitBreaker:
+    """Tracks provider failure states to avoid repeatedly querying unavailable providers."""
+    _failures: Dict[str, int] = {}
+    _cooldowns: Dict[str, float] = {}
+    COOLDOWN_SECONDS: float = 60.0
+    MAX_CONSECUTIVE_FAILURES: int = 3
+
+    @classmethod
+    def is_available(cls, provider_name: str) -> bool:
+        if os.environ.get("G4F_DISABLE_CIRCUIT_BREAKER", "").lower() in ("1", "true"):
+            return True
+        if provider_name in cls._cooldowns:
+            if time.time() < cls._cooldowns[provider_name]:
+                return False
+            cls._cooldowns.pop(provider_name, None)
+            cls._failures[provider_name] = cls.MAX_CONSECUTIVE_FAILURES - 1
+        return True
+
+    @classmethod
+    def record_failure(cls, provider_name: str, cooldown: Optional[float] = None):
+        cls._failures[provider_name] = cls._failures.get(provider_name, 0) + 1
+        if cls._failures[provider_name] >= cls.MAX_CONSECUTIVE_FAILURES:
+            cooldown_time = cooldown or cls.COOLDOWN_SECONDS
+            cls._cooldowns[provider_name] = time.time() + cooldown_time
+            debug.log(f"Provider {provider_name} entered cooldown for {cooldown_time}s")
+
+    @classmethod
+    def record_success(cls, provider_name: str):
+        cls._failures.pop(provider_name, None)
+        cls._cooldowns.pop(provider_name, None)
+
+    @classmethod
+    def reset(cls):
+        cls._failures.clear()
+        cls._cooldowns.clear()
+
+
 class IterListProvider(BaseRetryProvider):
     def __init__(
         self, providers: List[Type[BaseProvider]] = [], shuffle: bool = True
@@ -191,8 +230,10 @@ class IterListProvider(BaseRetryProvider):
                         if is_content(chunk):
                             started = True
                 if started:
+                    ProviderCircuitBreaker.record_success(provider.__name__)
                     return
             except Exception as e:
+                ProviderCircuitBreaker.record_failure(provider.__name__)
                 exceptions[provider.__name__] = e
                 debug.error(f"{provider.__name__}:", e)
                 if started:
@@ -215,7 +256,17 @@ class IterListProvider(BaseRetryProvider):
 
         if self.shuffle:
             random.shuffle(resolved_providers)
-        return resolved_providers
+
+        available_providers = []
+        cooling_down_providers = []
+        for p in resolved_providers:
+            p_name = getattr(p, "__name__", str(p))
+            if ProviderCircuitBreaker.is_available(p_name):
+                available_providers.append(p)
+            else:
+                cooling_down_providers.append(p)
+
+        return available_providers + cooling_down_providers
 
 
 class RetryProvider(IterListProvider):

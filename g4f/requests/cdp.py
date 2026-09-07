@@ -257,7 +257,7 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
         import socket
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
+            s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
 
         # Use standard user config directory for profile caching (like other g4f browsers)
@@ -806,7 +806,15 @@ class CDPSession:
         datekey = datetime.date.today().isoformat()
         screenshot_dir = get_screenshot_dir(datekey)
         # Use original URL for filename to distinguish between similar URLs
-        filepath = os.path.join(screenshot_dir, f"{secure_filename(url_without_suffix.replace('https://', '').replace('http://', '').replace('www.', ''))}{'.webp' if n == 1 else f'_{n}.webp'}")
+        base_name = secure_filename(url_without_suffix.replace('https://', '').replace('http://', '').replace('www.', ''))
+        base_name = os.path.basename(base_name)
+        if not base_name:
+            base_name = hashlib.md5(url.encode()).hexdigest()
+        filename = f"{base_name}{'.webp' if n == 1 else f'_{n}.webp'}"
+        real_root = os.path.realpath(screenshot_dir)
+        filepath = os.path.realpath(os.path.join(screenshot_dir, filename))
+        if not filepath.startswith(real_root + os.sep):
+            raise ValueError("Unsafe screenshot path")
         if os.path.exists(filepath):
             debug.log(f"Screenshot already exists: {filepath}")
             return filepath

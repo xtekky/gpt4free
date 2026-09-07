@@ -14,12 +14,31 @@ def filter_markdown(text: str, allowed_types=None, default=None) -> str:
         text (str): A string containing a code block.
 
     Returns:
-        dict: A dictionary parsed from the code block.
+        str: Parsed code block content, or default.
     """
-    match = re.search(r"```(.+)\n(?P<code>[\S\s]+?)(\n```|$)", text)
-    if match:
-        if allowed_types is None or match.group(1) in allowed_types:
-            return match.group("code")
+    if not isinstance(text, str):
+        return default
+    start = text.find("```")
+    if start == -1:
+        return default
+    first_nl = text.find("\n", start + 3)
+    if first_nl == -1:
+        return default
+    tag = text[start + 3 : first_nl].strip("\r\n\t ")
+    match_tag = tag if tag else None
+    end = text.find("\n```", first_nl)
+    if end != -1:
+        code = text[first_nl + 1 : end]
+        if code.endswith("\r"):
+            code = code[:-1]
+    else:
+        code = text[first_nl + 1 :]
+    if (
+        allowed_types is None
+        or match_tag in allowed_types
+        or (not match_tag and ("" in allowed_types or None in allowed_types))
+    ):
+        return code
     return default
 
 

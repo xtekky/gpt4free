@@ -117,7 +117,6 @@ def get_install_path() -> Optional[str]:
 # outputs embedded in assistant messages.
 
 _REPEATED_BLANK = re.compile(r"\n{4,}")
-_TRAILING_WHITESPACE = re.compile(r"[ \t]+\n")
 _LONG_LINE_CAP = 2000  # lines longer than this get head/tail truncated
 
 
@@ -131,7 +130,7 @@ def _compress_content(text: str) -> Tuple[str, int]:
         return text, 0
     try:
         original_len = len(text.encode("utf-8", errors="replace"))
-        out = _TRAILING_WHITESPACE.sub("\n", text)
+        out = "\n".join(line.rstrip(" \t") for line in text.split("\n"))
         out = _REPEATED_BLANK.sub("\n\n\n", out)
 
         # Truncate very long lines (e.g. minified bundles pasted into context)

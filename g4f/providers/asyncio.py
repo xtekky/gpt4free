@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 from asyncio import AbstractEventLoop, runners
 from typing import Optional, Callable, AsyncIterator, Iterator
 
@@ -117,3 +118,12 @@ async def to_async_iterator(iterator) -> AsyncIterator:
     else:
         for item in iterator:
             yield item
+
+
+async def to_thread(func: Callable, /, *args, **kwargs):
+    """Run a synchronous callable in a separate thread (Python 3.8+ compatible)."""
+    if hasattr(asyncio, "to_thread"):
+        return await asyncio.to_thread(func, *args, **kwargs)
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, functools.partial(func, *args, **kwargs))
+

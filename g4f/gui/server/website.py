@@ -4,15 +4,25 @@ import asyncio
 import os
 import inspect
 import requests
+import re
+import time
 from datetime import datetime
 from urllib.parse import quote, unquote
 from flask import send_from_directory, redirect, request
 
-from ...image.copy_images import secure_filename
+from ...files import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
 from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, GITHUB_URL
 from ... import version
+
+_gui_session = requests.Session()
+_CONTENT_PATTERN = re.compile(r"<!-- CONTENT_START -->.*?<!-- CONTENT_END -->", re.DOTALL)
+_providers_cache: list[dict] | None = None
+_providers_cache_time: float = 0.0
+_providers_cards_cache: str | None = None
+_PROVIDERS_TTL: float = 300.0
+_template_cache: dict[str, str] = {}
 
 
 def redirect_home():
@@ -47,14 +57,16 @@ def render(filename="home", download_url: str = GITHUB_URL):
         latest_version = version.utils.current_version
     today = datetime.today().strftime("%Y-%m-%d")
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
-    if not request.args.get("g4f_session"):
-        latest_version = str(latest_version) + quote(
-            unquote(request.query_string.decode())
-        )
-    cache_file = os.path.join(
-        cache_dir,
-        f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}",
-    )
+    qs_suffix = ""
+    if not request.args.get("g4f_session") and request.query_string:
+        qs_suffix = "_" + hashlib.md5(request.query_string).hexdigest()[:8]
+    safe_filename = secure_filename(os.path.basename(filename))
+    safe_prefix = secure_filename(f"{version.utils.current_version}-{latest_version}")
+    cache_file_name = f"{safe_prefix}{qs_suffix}.{safe_filename}"
+    real_cache_dir = os.path.realpath(cache_dir)
+    cache_file = os.path.realpath(os.path.join(cache_dir, cache_file_name))
+    if not cache_file.startswith(real_cache_dir + os.sep):
+        raise ValueError("Invalid cache path")
     if os.path.isfile(cache_file + ".js"):
         cache_file += ".js"
     if not os.path.exists(cache_file):
@@ -64,17 +76,17 @@ def render(filename="home", download_url: str = GITHUB_URL):
             os.makedirs(cache_dir, exist_ok=True)
         if html is None:
             try:
-                response = requests.get(f"{download_url}{filename}")
+                response = _gui_session.get(f"{download_url}{filename}", timeout=10)
                 response.raise_for_status()
             except requests.exceptions.SSLError:
-                response = requests.get(f"{download_url}{filename}", verify=False)
+                response = _gui_session.get(f"{download_url}{filename}", timeout=10, verify=False)
                 response.raise_for_status()
             except requests.RequestException:
                 try:
-                    response = requests.get(f"{DOWNLOAD_URL}{filename}")
+                    response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10)
                     response.raise_for_status()
                 except requests.exceptions.SSLError:
-                    response = requests.get(f"{DOWNLOAD_URL}{filename}", verify=False)
+                    response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10, verify=False)
                     response.raise_for_status()
                 except requests.RequestException:
                     found = None
@@ -171,7 +183,12 @@ class Website:
         return render("stats")
 
     def _get_providers(self):
-        """Load all providers and return a list of dicts with their attributes."""
+        """Load all providers and return a list of dicts with their attributes (cached with 300s TTL)."""
+        global _providers_cache, _providers_cache_time
+        now = time.time()
+        if _providers_cache is not None and (now - _providers_cache_time) < _PROVIDERS_TTL:
+            return _providers_cache
+
         from g4f.Provider import ProviderLoader
 
         providers = []
@@ -204,65 +221,66 @@ class Website:
                 })
             except Exception:
                 pass
+        _providers_cache = providers
+        _providers_cache_time = now
         return providers
 
     def _providers(self):
+        global _providers_cards_cache
         providers = self._get_providers()
 
-        # Build HTML cards
-        cards_html = """
-        <div class="page-header">
-            <h1>Available Providers</h1>
-            <p>Browse the list of AI providers supported by G4F</p>
-        </div>
-
-        <div class="providers-list">
-        """
-        for p in providers:
-            models_html = ""
-            if p["models"]:
-                models_list = ", ".join(p["models"][:5]) if isinstance(p["models"], list) else ""
-                if len(p["models"]) > 5:
-                    models_list += f" (+{len(p['models']) - 5} more)"
-                models_html = f"<div class='provider-details'><strong>Models:</strong> {models_list}</div>"
-            else:
-                models_html = "<div class='provider-details'><em>No specific models</em></div>"
-
-            url_html = f"<div class='provider-url'>{p['url']}</div>" if p["url"] else ""
-            auth_html = "<div class='provider-details'><strong>Auth:</strong> Required</div>" if p["needs_auth"] else ""
-            working_html = "<div class='provider-details'><strong>Status:</strong> Working</div>" if p["working"] else ""
-
-            cards_html += f"""
-            <div class="provider-card" onclick="window.location.href='/providers/{p['name']}'">
-                <div class="provider-name">{p['name']}</div>
-                {url_html}
-                {models_html}
-                {auth_html}
-                {working_html}
-                <div class="provider-actions">
-                    <a href="/providers/{p['name']}" class="btn btn-primary">Details</a>
-                    <a href="{p['url']}" target="_blank" class="btn btn-secondary">Website</a>
-                </div>
-            </div>
-            """
-        cards_html += "\n        </div>"
-
-        # Read the template
         template_path = os.path.join(os.path.dirname(__file__), "providers.html")
-        if os.path.exists(template_path):
-            with open(template_path, "r", encoding="utf-8") as f:
-                html = f.read()
-            # Replace content between markers
-            import re
-            html = re.sub(
-                r"<!-- CONTENT_START -->.*?<!-- CONTENT_END -->",
-                f"<!-- CONTENT_START -->{cards_html}<!-- CONTENT_END -->",
-                html,
-                flags=re.DOTALL,
-            )
-            return html
-        else:
+        if not os.path.exists(template_path):
             return "Providers template not found"
+
+        if template_path not in _template_cache:
+            with open(template_path, "r", encoding="utf-8") as f:
+                _template_cache[template_path] = f.read()
+        html = _template_cache[template_path]
+
+        if _providers_cards_cache is None or (time.time() - _providers_cache_time) >= _PROVIDERS_TTL:
+            # Build HTML cards
+            cards_html = """
+            <div class="page-header">
+                <h1>Available Providers</h1>
+                <p>Browse the list of AI providers supported by G4F</p>
+            </div>
+
+            <div class="providers-list">
+            """
+            for p in providers:
+                models_html = ""
+                if p["models"]:
+                    models_list = ", ".join(p["models"][:5]) if isinstance(p["models"], list) else ""
+                    if len(p["models"]) > 5:
+                        models_list += f" (+{len(p['models']) - 5} more)"
+                    models_html = f"<div class='provider-details'><strong>Models:</strong> {models_list}</div>"
+                else:
+                    models_html = "<div class='provider-details'><em>No specific models</em></div>"
+
+                url_html = f"<div class='provider-url'>{p['url']}</div>" if p["url"] else ""
+                auth_html = "<div class='provider-details'><strong>Auth:</strong> Required</div>" if p["needs_auth"] else ""
+                working_html = "<div class='provider-details'><strong>Status:</strong> Working</div>" if p["working"] else ""
+
+                cards_html += f"""
+                <div class="provider-card" onclick="window.location.href='/providers/{p['name']}'">
+                    <div class="provider-name">{p['name']}</div>
+                    {url_html}
+                    {models_html}
+                    {auth_html}
+                    {working_html}
+                    <div class="provider-actions">
+                        <a href="/providers/{p['name']}" class="btn btn-primary">Details</a>
+                        <a href="{p['url']}" target="_blank" class="btn btn-secondary">Website</a>
+                    </div>
+                </div>
+                """
+            cards_html += "\n        </div>"
+            _providers_cards_cache = cards_html
+        else:
+            cards_html = _providers_cards_cache
+
+        return _CONTENT_PATTERN.sub(f"<!-- CONTENT_START -->{cards_html}<!-- CONTENT_END -->", html)
 
     def _provider_detail(self, name: str = ""):
         from html import escape
@@ -286,15 +304,16 @@ class Website:
 
         # Build models list HTML
         if p["models"]:
-            if callable(p["models"]):
+            models = p["models"]
+            if callable(models):
                 try:
-                    p["models"] = p["models"]()
+                    models = models()
                 except Exception:
-                    p["models"] = []
-                if inspect.isawaitable(p["models"]):
-                    p["models"] = asyncio.run(p["models"])
+                    models = []
+            if inspect.isawaitable(models):
+                models = []
             models_html = "<ul class='model-list'>" + "".join(
-                f"<li>{escape(str(m))}</li>" for m in p["models"]
+                f"<li>{escape(str(m))}</li>" for m in (models if isinstance(models, list) else list(models) if models else [])
             ) + "</ul>"
         else:
             models_html = "<p><em>No specific models listed</em></p>"
@@ -437,24 +456,20 @@ class Website:
 
         # Read the template and inject detail content
         template_path = os.path.join(os.path.dirname(__file__), "providers.html")
-        if os.path.exists(template_path):
-            with open(template_path, "r", encoding="utf-8") as f:
-                html = f.read()
-            # Replace content between markers
-            import re
-            html = re.sub(
-                r"<!-- CONTENT_START -->.*?<!-- CONTENT_END -->",
-                f"<!-- CONTENT_START -->{detail_html}<!-- CONTENT_END -->",
-                html,
-                flags=re.DOTALL,
-            )
-            html = html.replace(
-                "<title>Providers</title>",
-                f"<title>{escape(p['name'])} – Provider Details</title>"
-            )
-            return html
-        else:
+        if not os.path.exists(template_path):
             return "Providers template not found"
+
+        if template_path not in _template_cache:
+            with open(template_path, "r", encoding="utf-8") as f:
+                _template_cache[template_path] = f.read()
+        html = _template_cache[template_path]
+
+        html = _CONTENT_PATTERN.sub(f"<!-- CONTENT_START -->{detail_html}<!-- CONTENT_END -->", html)
+        html = html.replace(
+            "<title>Providers</title>",
+            f"<title>{escape(p['name'])} – Provider Details</title>"
+        )
+        return html
 
     def _chat(self, filename=""):
         filename = f"chat/{filename}" if filename else "chat/index"
@@ -505,11 +520,11 @@ class Website:
         # Download and cache from GitHub
         os.makedirs(os.path.dirname(safe_path), exist_ok=True)
         try:
-            response = requests.get(f"{PLAYGROUND_URL}{filename}", timeout=10)
+            response = _gui_session.get(f"{PLAYGROUND_URL}{filename}", timeout=10)
             response.raise_for_status()
         except requests.exceptions.SSLError:
             try:
-                response = requests.get(
+                response = _gui_session.get(
                     f"{PLAYGROUND_URL}{filename}", timeout=10, verify=False
                 )
                 response.raise_for_status()

@@ -36,6 +36,7 @@ from starlette.status import (
     HTTP_403_FORBIDDEN,
     HTTP_429_TOO_MANY_REQUESTS,
     HTTP_500_INTERNAL_SERVER_ERROR,
+    HTTP_502_BAD_GATEWAY,
 )
 
 try:
@@ -85,7 +86,7 @@ from g4f.client import AsyncClient, ChatCompletion, ImagesResponse
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
-from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image
+from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image, is_safe_url
 from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
 from g4f.errors import (
     ProviderNotFoundError,
@@ -336,10 +337,23 @@ _LOG_SKIP_EXACT = {"/api/logs", "/logs", "/favicon.ico"}
 def create_app():
     app = FastAPI(lifespan=lifespan)
 
+    env_origins = [
+        o.strip()
+        for o in os.environ.get("G4F_CORS_ORIGINS", "").split(",")
+        if o.strip()
+    ]
+    if env_origins:
+        cors_origins = env_origins
+        cors_regex = None
+    else:
+        cors_origins = []
+        cors_regex = r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$"
+
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
+        allow_origin_regex=cors_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -500,7 +514,16 @@ class ErrorResponse(Response):
         config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None,
         status_code: int = HTTP_500_INTERNAL_SERVER_ERROR,
     ):
-        return cls(format_exception(exception, config), status_code)
+        logger.exception(exception)
+        if isinstance(exception, ModelNotFoundError):
+            safe_message = "ModelNotFoundError: Model not found"
+        elif isinstance(exception, ProviderNotFoundError):
+            safe_message = "ProviderNotFoundError: Provider not found"
+        elif isinstance(exception, MissingAuthError):
+            safe_message = "MissingAuthError: Authentication required"
+        else:
+            safe_message = "Request execution failed"
+        return cls(format_exception(safe_message, config), status_code)
 
     @classmethod
     def from_message(
@@ -509,6 +532,8 @@ class ErrorResponse(Response):
         status_code: int = HTTP_500_INTERNAL_SERVER_ERROR,
         headers: dict = None,
     ):
+        if not isinstance(message, str):
+            message = "An error occurred"
         return cls(format_exception(message), status_code, headers=headers)
 
     def render(self, content) -> bytes:
@@ -532,6 +557,8 @@ class Api:
         self.client = AsyncClient()
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
         self.conversations: dict[str, dict[str, BaseConversation]] = {}
+        self._models_cache: dict | None = None
+        self._models_cache_time: float = 0.0
 
     security = HTTPBearer(auto_error=False)
     basic_security = HTTPBasic()
@@ -644,7 +671,11 @@ class Api:
             },
         )
         async def models():
-            return {
+            now = time.time()
+            if self._models_cache is not None and (now - self._models_cache_time) < 300:
+                return self._models_cache
+
+            result = {
                 "object": "list",
                 "data": [
                     {
@@ -672,6 +703,9 @@ class Api:
                     if provider.working
                 ],
             }
+            self._models_cache = result
+            self._models_cache_time = now
+            return result
 
         @self.app.get(
             "/api/{provider:path}/models",
@@ -687,8 +721,8 @@ class Api:
         ):
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             if not hasattr(provider, "get_models"):
                 models = getattr(provider, "models", [])
             elif credentials is not None and credentials.credentials != "secret":
@@ -740,8 +774,8 @@ class Api:
         ):
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             if not hasattr(provider, "get_quota"):
                 return ErrorResponse.from_message(
                     "Provider doesn't support get_quota", HTTP_500_INTERNAL_SERVER_ERROR
@@ -752,13 +786,14 @@ class Api:
                 else:
                     usage = await provider.get_quota()
                 return usage
-            except MissingAuthError as e:
+            except MissingAuthError:
                 return ErrorResponse.from_message(
-                    f"{type(e).__name__}: {e}", HTTP_401_UNAUTHORIZED
+                    "MissingAuthError: Authentication required", HTTP_401_UNAUTHORIZED
                 )
             except Exception as e:
+                logger.exception(e)
                 return ErrorResponse.from_message(
-                    f"{type(e).__name__}: {e}", HTTP_500_INTERNAL_SERVER_ERROR
+                    "Failed to retrieve provider quota", HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
         @self.app.get(
@@ -806,6 +841,7 @@ class Api:
         )
         async def chat_completions(
             config: ChatCompletionsConfig,
+            request: Request = None,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] = None,
@@ -824,8 +860,8 @@ class Api:
                 config.provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, config.provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
                 if config.conversation_id is None:
                     config.conversation_id = conversation_id
@@ -917,6 +953,9 @@ class Api:
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
                     try:
                         async for chunk in response:
+                            if request is not None and await request.is_disconnected():
+                                debug.log("Client disconnected, aborting streaming response.")
+                                return
                             if isinstance(chunk, BaseConversation):
                                 if (
                                     config.conversation_id is not None
@@ -934,9 +973,17 @@ class Api:
                     except RateLimitError as e:
                         debug.error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
+                    finally:
+                        if hasattr(response, "aclose"):
+                            try:
+                                await response.aclose()
+                            except Exception:
+                                pass
                     yield "data: [DONE]\n\n"
 
                 headers = (
@@ -977,6 +1024,7 @@ class Api:
         @self.app.post("/api/{provider:path}/responses", responses=responses)
         async def create_response(
             config: ResponsesConfig,
+            request: Request = None,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] | None = None,
@@ -989,8 +1037,8 @@ class Api:
                 config.provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, config.provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
@@ -1065,6 +1113,9 @@ class Api:
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
                     try:
                         async for chunk in response:
+                            if request is not None and await request.is_disconnected():
+                                debug.log("Client disconnected, aborting responses stream.")
+                                return
                             if isinstance(chunk, BaseConversation):
                                 pass
                             else:
@@ -1074,9 +1125,17 @@ class Api:
                     except RateLimitError as e:
                         debug.error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
+                    finally:
+                        if hasattr(response, "aclose"):
+                            try:
+                                await response.aclose()
+                            except Exception:
+                                pass
                     yield "data: [DONE]\n\n"
 
                 headers = (
@@ -1119,6 +1178,7 @@ class Api:
         @self.app.post("/api/{provider:path}/messages", responses=responses)
         async def create_message(
             config: MessagesConfig,
+            request: Request = None,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] = None,
@@ -1131,8 +1191,8 @@ class Api:
                 config.provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, config.provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
@@ -1209,6 +1269,9 @@ class Api:
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
                     try:
                         async for chunk in response:
+                            if request is not None and await request.is_disconnected():
+                                debug.log("Client disconnected, aborting messages stream.")
+                                return
                             if isinstance(chunk, BaseConversation):
                                 pass
                             else:
@@ -1218,9 +1281,17 @@ class Api:
                     except RateLimitError as e:
                         debug.error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
+                    finally:
+                        if hasattr(response, "aclose"):
+                            try:
+                                await response.aclose()
+                            except Exception:
+                                pass
                     yield "data: [DONE]\n\n"
 
                 headers = (
@@ -1281,8 +1352,8 @@ class Api:
                 provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             if (
                 config.api_key is None
                 and credentials is not None
@@ -1367,8 +1438,8 @@ class Api:
         async def providers_info(provider: str):
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
 
             return {
                 "id": provider.__name__,
@@ -1871,8 +1942,8 @@ class Api:
                 provider = "MarkItDown"
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             kwargs = {"modalities": ["text"]}
             try:
                 response = await self.client.chat.completions.create(
@@ -2036,8 +2107,8 @@ class Api:
                 provider = AppConfig.media_provider
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             try:
                 audio = filter_none(
                     voice=config.voice,
@@ -2145,29 +2216,43 @@ class Api:
                 else:
                     return 0
 
-            target = os.path.join(get_media_dir(), os.path.basename(filename))
+            media_dir = os.path.realpath(get_media_dir())
+            clean_filename = secure_filename(os.path.basename(filename))
+            if not clean_filename:
+                return ErrorResponse.from_message("Invalid file name", HTTP_400_BAD_REQUEST)
+
+            target = os.path.realpath(os.path.join(media_dir, clean_filename))
+            if not target.startswith(media_dir + os.sep):
+                return ErrorResponse.from_message("Access denied", HTTP_403_FORBIDDEN)
+
+            thumbnail_path = None
             if thumbnail and has_pillow:
-                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
-                thumbnail = os.path.join(thumbnail_dir, filename)
+                thumbnail_dir = os.path.realpath(os.path.join(media_dir, "thumbnails"))
+                os.makedirs(thumbnail_dir, exist_ok=True)
+                cand_thumb = os.path.realpath(os.path.join(thumbnail_dir, clean_filename))
+                if cand_thumb.startswith(thumbnail_dir + os.sep):
+                    thumbnail_path = cand_thumb
+
             if not os.path.isfile(target):
-                other_name = os.path.join(
-                    get_media_dir(), os.path.basename(quote_plus(filename))
-                )
-                if os.path.isfile(other_name):
-                    target = other_name
-            ext = os.path.splitext(filename)[1][1:]
+                decoded_name = secure_filename(os.path.basename(unquote_plus(filename)))
+                if decoded_name:
+                    cand_other = os.path.realpath(os.path.join(media_dir, decoded_name))
+                    if cand_other.startswith(media_dir + os.sep) and os.path.isfile(cand_other):
+                        target = cand_other
+
+            ext = os.path.splitext(clean_filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()
             stat_result.st_size = 0
-            stat_result.st_mtime = get_timestamp(filename)
-            if thumbnail and has_pillow and os.path.isfile(thumbnail):
-                stat_result.st_size = os.stat(thumbnail).st_size
+            stat_result.st_mtime = get_timestamp(clean_filename)
+            if thumbnail and has_pillow and thumbnail_path and os.path.isfile(thumbnail_path):
+                stat_result.st_size = os.stat(thumbnail_path).st_size
             elif not thumbnail and os.path.isfile(target):
                 stat_result.st_size = os.stat(target).st_size
             headers = {
                 "cache-control": "public, max-age=31536000",
                 "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
-                "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"',
+                "etag": f'"{hashlib.md5(clean_filename.encode()).hexdigest()}"',
                 **(
                     {
                         "content-length": str(stat_result.st_size),
@@ -2186,7 +2271,7 @@ class Api:
             response = FileResponse(
                 target,
                 headers=headers,
-                filename=filename,
+                filename=clean_filename,
             )
             try:
                 if_none_match = request.headers["if-none-match"]
@@ -2201,35 +2286,38 @@ class Api:
                 if source_url is None:
                     backend_url = os.environ.get("G4F_BACKEND_URL")
                     if backend_url:
-                        source_url = f"{backend_url}/media/{filename}"
+                        source_url = f"{backend_url}/media/{clean_filename}"
                         ssl = False
                 if source_url is not None:
+                    if not is_safe_url(source_url):
+                        return ErrorResponse.from_message("Invalid or unsafe source URL", HTTP_400_BAD_REQUEST)
                     try:
                         await copy_media([source_url], target=target, ssl=ssl)
                         debug.log(f"File copied from {source_url}")
                     except Exception as e:
                         debug.error(f"Download failed:  {source_url}")
                         debug.error(e)
-                        return RedirectResponse(url=source_url)
-            if thumbnail and has_pillow:
+                        return ErrorResponse.from_message("Failed to fetch remote media", HTTP_502_BAD_GATEWAY)
+            if thumbnail and has_pillow and thumbnail_path:
                 try:
-                    if not os.path.isfile(thumbnail):
+                    if not os.path.isfile(thumbnail_path) and os.path.isfile(target):
                         image = Image.open(target)
-                        os.makedirs(thumbnail_dir, exist_ok=True)
-                        process_image(image, save=thumbnail)
-                        debug.log(f"Thumbnail created: {thumbnail}")
+                        process_image(image, save=thumbnail_path)
+                        debug.log(f"Thumbnail created: {thumbnail_path}")
                 except Exception as e:
                     logger.exception(e)
-            if thumbnail and os.path.isfile(thumbnail):
-                result = thumbnail
+            if thumbnail and has_pillow and thumbnail_path and os.path.isfile(thumbnail_path):
+                result = thumbnail_path
             else:
                 result = target
-            if not os.path.isfile(result):
+            if not os.path.isfile(result) or not result.startswith(media_dir + os.sep):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)
 
             async def stream():
                 with open(result, "rb") as file:
                     while True:
+                        if request is not None and await request.is_disconnected():
+                            break
                         chunk = file.read(65536)
                         if not chunk:
                             break
@@ -2282,8 +2370,14 @@ def format_exception(
             model = config.model
     if isinstance(e, str):
         message = e
+    elif isinstance(e, ModelNotFoundError):
+        message = "ModelNotFoundError: Model not found"
+    elif isinstance(e, ProviderNotFoundError):
+        message = "ProviderNotFoundError: Provider not found"
+    elif isinstance(e, MissingAuthError):
+        message = "MissingAuthError: Authentication required"
     else:
-        message = f"{e.__class__.__name__}: {e}"
+        message = "Request execution failed"
     return json.dumps(
         {
             "error": {"message": message},
@@ -2323,11 +2417,17 @@ def run_api(
     else:
         method = "create_app_debug" if debug else "create_app"
 
+    uvicorn_options = {
+        "timeout_keep_alive": 65,
+        "backlog": 2048,
+    }
+    uvicorn_options.update(filter_none(**kwargs))
+
     uvicorn.run(
         f"g4f.api:{method}",
         host=host,
         port=int(port),
         factory=True,
         use_colors=use_colors,
-        **filter_none(**kwargs),
+        **uvicorn_options,
     )

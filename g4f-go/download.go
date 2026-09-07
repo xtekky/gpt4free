@@ -297,6 +297,9 @@ func extractRuntime(binDir, cachePath string) error {
 		if err != nil {
 			return err
 		}
+		if strings.Contains(hdr.Name, "..") {
+			return fmt.Errorf("unsafe path in archive: %s", hdr.Name)
+		}
 		rel := hdr.Name
 		if top != "" {
 			rel = strings.TrimPrefix(rel, top+"/")
@@ -340,6 +343,10 @@ func extractRuntime(binDir, cachePath string) error {
 				return err
 			}
 		case tar.TypeSymlink:
+			// Ensure symlink and its target do not escape the destination directory
+			if !isSafeSymlink(dest, target, hdr.Linkname) {
+				continue
+			}
 			// Symlinks in pbs installs point within the tree; recreate them
 			// (libpython3.so -> libpython3.14.so etc).
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
@@ -359,6 +366,35 @@ func extractRuntime(binDir, cachePath string) error {
 		}
 	}
 	return nil
+}
+
+// isSafeSymlink validates that candidate symlink target does not escape the destination directory
+func isSafeSymlink(dest, target, linkname string) bool {
+	if filepath.IsAbs(linkname) {
+		return false
+	}
+	realDest, err := filepath.EvalSymlinks(filepath.Clean(dest))
+	if err != nil {
+		realDest = filepath.Clean(dest)
+	}
+	realTargetDir, err := filepath.EvalSymlinks(filepath.Dir(target))
+	if err != nil {
+		return false
+	}
+	targetRel, err := filepath.Rel(realDest, realTargetDir)
+	if err != nil || strings.HasPrefix(filepath.Clean(targetRel), "..") {
+		return false
+	}
+	resolvedLink := filepath.Join(realTargetDir, linkname)
+	realLink, err := filepath.EvalSymlinks(resolvedLink)
+	if err != nil {
+		realLink = filepath.Clean(resolvedLink)
+	}
+	linkRel, err := filepath.Rel(realDest, realLink)
+	if err != nil || strings.HasPrefix(filepath.Clean(linkRel), "..") {
+		return false
+	}
+	return true
 }
 
 // copySymlinkTarget attempts to copy a symlink's target for filesystems that

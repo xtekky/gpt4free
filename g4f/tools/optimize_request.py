@@ -22,7 +22,6 @@ _MAX_TOOL_REPEATS = 3  # max times the same tool call may appear before breaking
 _TOOL_RESULT_CAP = 4096  # bytes per tool result
 _OLD_TOOL_RESULT_CAP = 1200  # stricter cap for results older than 2 turns
 
-_WS_RE = re.compile(r"[ \t]+\n")
 _BLANK_RUN_RE = re.compile(r"\n{3,}")
 _MAX_TURNS = 40  # keep at most this many non-system messages
 
@@ -911,8 +910,48 @@ def strip_reasoning_echo(messages: Messages) -> int:
     if not messages:
         return 0
 
-    _THINK = re.compile(r"<think>[\s\S]*?</think>", re.IGNORECASE)
-    _REASONING_TAG = re.compile(r"<reasoning[\s\S]*?</reasoning>", re.IGNORECASE)
+    def _strip_think(text: str) -> str:
+        lower = text.lower()
+        start = lower.find("<think>")
+        if start == -1:
+            return text
+        result = []
+        last_idx = 0
+        while start != -1:
+            end = lower.find("</think>", start + 7)
+            if end == -1:
+                result.append(text[start:])
+                last_idx = len(text)
+                break
+            result.append(text[last_idx:start])
+            last_idx = end + 8
+            start = lower.find("<think>", last_idx)
+        result.append(text[last_idx:])
+        return "".join(result)
+
+    def _strip_reasoning(text: str) -> str:
+        lower = text.lower()
+        start = lower.find("<reasoning")
+        if start == -1:
+            return text
+        result = []
+        last_idx = 0
+        while start != -1:
+            tag_end = lower.find(">", start)
+            if tag_end == -1:
+                result.append(text[start:])
+                last_idx = len(text)
+                break
+            end = lower.find("</reasoning>", tag_end + 1)
+            if end == -1:
+                result.append(text[start:])
+                last_idx = len(text)
+                break
+            result.append(text[last_idx:start])
+            last_idx = end + 12
+            start = lower.find("<reasoning", last_idx)
+        result.append(text[last_idx:])
+        return "".join(result)
 
     seen_think = False
     seen_reasoning = False
@@ -926,18 +965,19 @@ def strip_reasoning_echo(messages: Messages) -> int:
             continue
 
         new_content = content
-        if _THINK.search(new_content):
+        lower_content = new_content.lower()
+        if "<think>" in lower_content and "</think>" in lower_content:
             if seen_think:
                 before = len(new_content.encode("utf-8", errors="replace"))
-                new_content = _THINK.sub("", new_content)
+                new_content = _strip_think(new_content)
                 after = len(new_content.encode("utf-8", errors="replace"))
                 saved_bytes += before - after
             else:
                 seen_think = True
-        if _REASONING_TAG.search(new_content):
+        if "<reasoning" in lower_content and "</reasoning>" in lower_content:
             if seen_reasoning:
                 before = len(new_content.encode("utf-8", errors="replace"))
-                new_content = _REASONING_TAG.sub("", new_content)
+                new_content = _strip_reasoning(new_content)
                 after = len(new_content.encode("utf-8", errors="replace"))
                 saved_bytes += before - after
             else:
@@ -1099,7 +1139,7 @@ def _collapse_message_whitespace(messages: Messages) -> int:
         content = msg.get("content")
         if isinstance(content, str) and len(content) > 64:
             original = len(content.encode("utf-8", errors="replace"))
-            new = _WS_RE.sub("\n", content)
+            new = "\n".join(line.rstrip(" \t") for line in content.split("\n"))
             new = _BLANK_RUN_RE.sub("\n\n", new)
             if new != content:
                 saved_bytes += original - len(new.encode("utf-8", errors="replace"))
@@ -1110,7 +1150,7 @@ def _collapse_message_whitespace(messages: Messages) -> int:
                     text = part.get("text")
                     if isinstance(text, str) and len(text) > 64:
                         original = len(text.encode("utf-8", errors="replace"))
-                        new = _WS_RE.sub("\n", text)
+                        new = "\n".join(line.rstrip(" \t") for line in text.split("\n"))
                         new = _BLANK_RUN_RE.sub("\n\n", new)
                         if new != text:
                             saved_bytes += original - len(

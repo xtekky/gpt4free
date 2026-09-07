@@ -195,50 +195,56 @@ class MCPServer:
 
     async def run(self):
         """Run the MCP server with stdio transport"""
-        # Write server info to stderr for debugging
-        sys.stderr.write(
-            f"Starting {self.server_info['name']} v{self.server_info['version']}\n"
-        )
-        sys.stderr.flush()
+        real_stdout = sys.stdout
+        sys.stdout = sys.stderr
 
-        while True:
-            try:
-                # Read line from stdin
-                line = await asyncio.get_event_loop().run_in_executor(
-                    None, sys.stdin.readline
-                )
+        try:
+            # Write server info to stderr for debugging
+            sys.stderr.write(
+                f"Starting {self.server_info['name']} v{self.server_info['version']}\n"
+            )
+            sys.stderr.flush()
 
-                if not line:
-                    break
+            while True:
+                try:
+                    # Read line from stdin
+                    line = await asyncio.get_event_loop().run_in_executor(
+                        None, sys.stdin.readline
+                    )
 
-                # Parse JSON-RPC request
-                request_data = json.loads(line)
-                request = MCPRequest(
-                    jsonrpc=request_data.get("jsonrpc", "2.0"),
-                    id=request_data.get("id"),
-                    method=request_data.get("method"),
-                    params=request_data.get("params"),
-                )
+                    if not line:
+                        break
 
-                # Handle request
-                response = await self.handle_request(request)
+                    # Parse JSON-RPC request
+                    request_data = json.loads(line)
+                    request = MCPRequest(
+                        jsonrpc=request_data.get("jsonrpc", "2.0"),
+                        id=request_data.get("id"),
+                        method=request_data.get("method"),
+                        params=request_data.get("params"),
+                    )
 
-                # Write response to stdout
-                response_dict = {"jsonrpc": response.jsonrpc, "id": response.id}
-                if response.result is not None:
-                    response_dict["result"] = response.result
-                if response.error is not None:
-                    response_dict["error"] = response.error
+                    # Handle request
+                    response = await self.handle_request(request)
 
-                sys.stdout.write(json.dumps(response_dict) + "\n")
-                sys.stdout.flush()
+                    # Write response to protocol stdout
+                    response_dict = {"jsonrpc": response.jsonrpc, "id": response.id}
+                    if response.result is not None:
+                        response_dict["result"] = response.result
+                    if response.error is not None:
+                        response_dict["error"] = response.error
 
-            except json.JSONDecodeError as e:
-                sys.stderr.write(f"JSON decode error: {e}\n")
-                sys.stderr.flush()
-            except Exception as e:
-                sys.stderr.write(f"Error: {e}\n")
-                sys.stderr.flush()
+                    real_stdout.write(json.dumps(response_dict) + "\n")
+                    real_stdout.flush()
+
+                except json.JSONDecodeError as e:
+                    sys.stderr.write(f"JSON decode error: {e}\n")
+                    sys.stderr.flush()
+                except Exception as e:
+                    sys.stderr.write(f"Error: {e}\n")
+                    sys.stderr.flush()
+        finally:
+            sys.stdout = real_stdout
 
     async def run_http(
         self, host: str = "0.0.0.0", port: int = 8765, origin: Optional[str] = None
@@ -328,15 +334,22 @@ class MCPServer:
                 m = re.match("^[0-9]+", s)
                 return int(m.group(0)) if m else 0
 
-            target = os.path.join(get_media_dir(), os.path.basename(filename))
+            media_dir = os.path.realpath(get_media_dir())
+            clean_name = secure_filename(os.path.basename(filename))
+            if not clean_name:
+                return web.Response(status=404, text="File not found")
+
+            target = os.path.realpath(os.path.join(media_dir, clean_name))
+            if not target.startswith(media_dir + os.sep):
+                return web.Response(status=403, text="Access denied")
 
             # Try URL-decoded filename if not found
             if not os.path.isfile(target):
-                other_name = os.path.join(
-                    get_media_dir(), os.path.basename(unquote_plus(filename))
-                )
-                if os.path.isfile(other_name):
-                    target = other_name
+                decoded_name = secure_filename(os.path.basename(unquote_plus(filename)))
+                if decoded_name:
+                    candidate = os.path.realpath(os.path.join(media_dir, decoded_name))
+                    if candidate.startswith(media_dir + os.sep) and os.path.isfile(candidate):
+                        target = candidate
 
             # Get file extension and mime type
             ext = os.path.splitext(filename)[1][1:].lower()
@@ -352,7 +365,7 @@ class MCPServer:
                         sys.stderr.write(f"File copied from {source_url}\n")
                     except Exception as e:
                         sys.stderr.write(f"Download failed: {source_url} - {e}\n")
-                        raise web.HTTPFound(location=source_url)
+                        return web.Response(status=404, text="File not found")
 
             if not os.path.isfile(target):
                 return web.Response(status=404, text="File not found")
@@ -430,7 +443,7 @@ class MCPServer:
                 )
             except Exception as e:
                 sys.stderr.write(f"Synthesize error: {e}\n")
-                return web.Response(status=500, text=f"Synthesize error: {str(e)}")
+                return web.Response(status=500, text="Synthesize error: An internal error occurred")
 
         _WORKSPACE_SAFE_TYPES: Dict[str, str] = {
             "html": "text/html; charset=utf-8",

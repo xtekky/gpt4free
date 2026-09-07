@@ -1,6 +1,7 @@
 import re
 import sys
 import io
+from urllib.parse import urlsplit
 from typing import List, Union, BinaryIO, Optional, Any
 from markitdown import MarkItDown as BaseMarkItDown
 from markitdown._stream_info import StreamInfo
@@ -356,24 +357,19 @@ class MarkItDown(BaseMarkItDown):
             return url
 
         # Gist URLs
-        m = re.match(
-            r"^https?://gist\.github\.com/([^/]+)/([0-9a-fA-F]+)(?:/.*)?$",
-            url,
-        )
-        if m:
-            user, gist_id = m.group(1), m.group(2)
-            return f"https://gist.githubusercontent.com/{user}/{gist_id}/raw"
+        parsed = urlsplit(url)
+        if parsed.netloc == "gist.github.com":
+            parts = [p for p in parsed.path.split("/") if p]
+            if len(parts) >= 2 and all(c in "0123456789abcdefABCDEF" for c in parts[1]):
+                return f"https://gist.githubusercontent.com/{parts[0]}/{parts[1]}/raw"
 
         # github.com/{owner}/{repo}/blob/{ref}/{path}
-        m = re.match(
-            r"^https?://github\.com/([^/]+)/([^/]+)/(?:blob|raw)/([^/]+)/(.+?)(?:[?#].*)?$",
-            url,
-        )
-        if m:
-            owner, repo, ref, path = (m.group(1), m.group(2), m.group(3), m.group(4))
-            # Strip a trailing slash if any
-            path = path.rstrip("/")
-            return f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"
+        if parsed.netloc == "github.com":
+            parts = [p for p in parsed.path.split("/") if p]
+            if len(parts) >= 5 and parts[2] in ("blob", "raw"):
+                owner, repo, _, ref = parts[:4]
+                path = "/".join(parts[4:]).rstrip("/")
+                return f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"
 
         # Tree (directory) URLs and repo roots: cannot map to a single raw file
         return url

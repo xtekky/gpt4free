@@ -4,7 +4,7 @@ import os
 
 from ...typing import Messages, AsyncResult
 from ...errors import MissingAuthError
-from ...cookies import get_cookies
+from ...cookies import get_cookies, get_cookies_async
 from ..template import OpenaiTemplate
 
 
@@ -29,7 +29,7 @@ class Claude(OpenaiTemplate):
         **kwargs,
     ) -> AsyncResult:
         api_key = os.environ.get("CLAUDE_COOKIE", api_key)
-        cookies = cookies or get_cookies(cls.cookie_domain)
+        cookies = cookies or await get_cookies_async(cls.cookie_domain)
         if not api_key:
             api_key = "; ".join([f"{key}={value}" for key, value in cookies.items()])
         if not api_key:
