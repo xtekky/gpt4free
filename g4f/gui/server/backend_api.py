@@ -994,15 +994,20 @@ class Backend_Api(Api):
             file = None
             if "file" in request.files:
                 file = request.files["file"]
-                if file.filename == "":
+                if not file.filename:
                     return "No selected file", 400
             if (
                 file
-                and file.filename.endswith(".json")
-                or file.filename.endswith(".har")
+                and (file.filename.endswith(".json") or file.filename.endswith(".har"))
             ):
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(get_cookies_dir(), filename))
+                if not filename:
+                    return "Not supported file", 400
+                cookies_dir = os.path.abspath(get_cookies_dir())
+                target_path = os.path.abspath(os.path.join(cookies_dir, filename))
+                if not target_path.startswith(cookies_dir):
+                    return "Forbidden file path", 403
+                file.save(target_path)
                 return "File saved", 200
             return "Not supported file", 400
 
