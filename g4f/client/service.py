@@ -91,6 +91,10 @@ def get_model_and_provider(
         if isinstance(model, str):
             if model in ModelUtils.convert:
                 model = ModelUtils.convert[model]
+            else:
+                dynamic_model = ModelUtils.get_model(model)
+                if dynamic_model is not None:
+                    model = dynamic_model
 
         if not model:
             if has_images:
@@ -111,6 +115,9 @@ def get_model_and_provider(
             raise ValueError(f"Unexpected type: {type(model)}")
     if not provider:
         raise ProviderNotFoundError(f"No provider found for model: {model}")
+
+    if isinstance(provider, str):
+        provider = convert_to_provider(provider)
 
     provider_name = (
         provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
