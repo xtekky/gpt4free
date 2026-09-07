@@ -83,7 +83,13 @@ async def save_response_media(
         raise ValueError("Response must be a dict or have headers")
 
     if isinstance(response, str):
-        response = base64.b64decode(response)
+        if response.startswith("data:"):
+            header, _, b64data = response.partition(",")
+            if ";" in header:
+                mime = header.split(";", 1)[0].replace("data:", "").strip()
+                if mime and not content_type:
+                    content_type = mime
+            response = b64data
 
     extension = MEDIA_TYPE_MAP.get(content_type)
     if extension is None:
@@ -96,7 +102,9 @@ async def save_response_media(
     ensure_media_dir()
 
     with open(target_path, "wb") as f:
-        if isinstance(response, bytes):
+        if isinstance(response, str):
+            f.write(base64.b64decode(response))
+        elif isinstance(response, bytes):
             f.write(response)
         else:
             if hasattr(response, "iter_content"):
