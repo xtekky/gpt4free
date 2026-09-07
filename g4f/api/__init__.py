@@ -36,6 +36,7 @@ from starlette.status import (
     HTTP_403_FORBIDDEN,
     HTTP_429_TOO_MANY_REQUESTS,
     HTTP_500_INTERNAL_SERVER_ERROR,
+    HTTP_502_BAD_GATEWAY,
 )
 
 try:
@@ -85,7 +86,7 @@ from g4f.client import AsyncClient, ChatCompletion, ImagesResponse
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
-from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image
+from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image, is_safe_url
 from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
 from g4f.errors import (
     ProviderNotFoundError,
@@ -2204,13 +2205,15 @@ class Api:
                         source_url = f"{backend_url}/media/{filename}"
                         ssl = False
                 if source_url is not None:
+                    if not is_safe_url(source_url):
+                        return ErrorResponse.from_message("Invalid or unsafe source URL", HTTP_400_BAD_REQUEST)
                     try:
                         await copy_media([source_url], target=target, ssl=ssl)
                         debug.log(f"File copied from {source_url}")
                     except Exception as e:
                         debug.error(f"Download failed:  {source_url}")
                         debug.error(e)
-                        return RedirectResponse(url=source_url)
+                        return ErrorResponse.from_message("Failed to fetch remote media", HTTP_502_BAD_GATEWAY)
             if thumbnail and has_pillow:
                 try:
                     if not os.path.isfile(thumbnail):
