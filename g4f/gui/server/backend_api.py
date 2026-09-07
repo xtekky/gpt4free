@@ -737,13 +737,7 @@ class Backend_Api(Api):
                         + json.dumps(parameters, sort_keys=True).encode()
                     ).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
-                    safe_prompt = secure_filename(request.args.get("prompt", "").strip()[:20])
-                    file_name = f"{safe_prompt}_{cache_id}.txt" if safe_prompt else f"{cache_id}.txt"
-                    real_cache_dir = os.path.realpath(str(cache_dir))
-                    target = os.path.realpath(os.path.join(real_cache_dir, file_name))
-                    if not target.startswith(real_cache_dir + os.sep):
-                        target = os.path.realpath(os.path.join(real_cache_dir, f"{cache_id}.txt"))
-                    cache_file = Path(target)
+                    cache_file = cache_dir / f"{cache_id}.txt"
                     response = None
                     if cache_file.exists():
                         with cache_file.open("r") as f:
@@ -776,17 +770,10 @@ class Backend_Api(Api):
                                 if os.path.exists(target_file):
                                     os.remove(target_file)
                         else:
-                            if response.startswith("/") and not response.startswith("//"):
-                                return redirect(response)
-                            return Response(response, mimetype="text/plain")
+                            return send_from_directory(media_dir, filename)
                     elif response.startswith("https://") or response.startswith(
                         "http://"
                     ):
-                        from urllib.parse import urlparse
-                        target_netloc = urlparse(response).netloc.lower()
-                        allowed_hosts = {request.host.lower()}
-                        if target_netloc in allowed_hosts:
-                            return redirect(response)
                         return Response(response, mimetype="text/plain")
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]

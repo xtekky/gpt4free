@@ -365,11 +365,14 @@ class AntigravityAuthManager(AuthFileMixin):
     parent = "Antigravity"
 
     OAUTH_REFRESH_URL = "https://oauth2.googleapis.com/token"
-    # Antigravity OAuth credentials
-    OAUTH_CLIENT_ID = (
-        "1071006060591" + "-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+    OAUTH_CLIENT_ID = os.environ.get(
+        "ANTIGRAVITY_CLIENT_ID",
+        os.environ.get("GOOGLE_CLIENT_ID", ""),
     )
-    OAUTH_CLIENT_SECRET = "GOC" + "SPX-K58FWR486LdLJ1mLB8sXC4z6qDAf"
+    OAUTH_CLIENT_SECRET = os.environ.get(
+        "ANTIGRAVITY_CLIENT_SECRET",
+        os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+    )
     TOKEN_BUFFER_TIME = 5 * 60  # seconds, 5 minutes
     KV_TOKEN_KEY = "antigravity_oauth_token_cache"
 

@@ -514,7 +514,16 @@ class ErrorResponse(Response):
         config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None,
         status_code: int = HTTP_500_INTERNAL_SERVER_ERROR,
     ):
-        return cls(format_exception(exception, config), status_code)
+        logger.exception(exception)
+        if isinstance(exception, ModelNotFoundError):
+            safe_message = "ModelNotFoundError: Model not found"
+        elif isinstance(exception, ProviderNotFoundError):
+            safe_message = "ProviderNotFoundError: Provider not found"
+        elif isinstance(exception, MissingAuthError):
+            safe_message = "MissingAuthError: Authentication required"
+        else:
+            safe_message = f"{exception.__class__.__name__}: Request failed"
+        return cls(format_exception(safe_message, config), status_code)
 
     @classmethod
     def from_message(
@@ -523,6 +532,8 @@ class ErrorResponse(Response):
         status_code: int = HTTP_500_INTERNAL_SERVER_ERROR,
         headers: dict = None,
     ):
+        if not isinstance(message, str):
+            message = "An error occurred"
         return cls(format_exception(message), status_code, headers=headers)
 
     def render(self, content) -> bytes:
@@ -710,8 +721,8 @@ class Api:
         ):
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             if not hasattr(provider, "get_models"):
                 models = getattr(provider, "models", [])
             elif credentials is not None and credentials.credentials != "secret":
@@ -763,8 +774,8 @@ class Api:
         ):
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             if not hasattr(provider, "get_quota"):
                 return ErrorResponse.from_message(
                     "Provider doesn't support get_quota", HTTP_500_INTERNAL_SERVER_ERROR
@@ -848,8 +859,8 @@ class Api:
                 config.provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, config.provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
                 if config.conversation_id is None:
                     config.conversation_id = conversation_id
@@ -1025,8 +1036,8 @@ class Api:
                 config.provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, config.provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
@@ -1179,8 +1190,8 @@ class Api:
                 config.provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, config.provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
@@ -1340,8 +1351,8 @@ class Api:
                 provider = AppConfig.provider
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             if (
                 config.api_key is None
                 and credentials is not None
@@ -1426,8 +1437,8 @@ class Api:
         async def providers_info(provider: str):
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
 
             return {
                 "id": provider.__name__,
@@ -1930,8 +1941,8 @@ class Api:
                 provider = "MarkItDown"
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             kwargs = {"modalities": ["text"]}
             try:
                 response = await self.client.chat.completions.create(
@@ -2095,8 +2106,8 @@ class Api:
                 provider = AppConfig.media_provider
             try:
                 provider = AbstractClientFactory.create_provider(None, provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_message(str(e), 404)
+            except ProviderNotFoundError:
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
             try:
                 audio = filter_none(
                     voice=config.voice,
@@ -2358,8 +2369,12 @@ def format_exception(
             model = config.model
     if isinstance(e, str):
         message = e
-    elif isinstance(e, (ModelNotFoundError, ProviderNotFoundError, MissingAuthError)):
-        message = f"{e.__class__.__name__}: {e}"
+    elif isinstance(e, ModelNotFoundError):
+        message = "ModelNotFoundError: Model not found"
+    elif isinstance(e, ProviderNotFoundError):
+        message = "ProviderNotFoundError: Provider not found"
+    elif isinstance(e, MissingAuthError):
+        message = "MissingAuthError: Authentication required"
     else:
         message = f"{e.__class__.__name__}: Request failed"
     return json.dumps(
