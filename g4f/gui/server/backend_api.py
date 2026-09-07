@@ -1008,6 +1008,11 @@ class Backend_Api(Api):
                 if not target_path.startswith(cookies_dir):
                     return "Forbidden file path", 403
                 file.save(target_path)
+                if hasattr(os, "chmod") and os.name != "nt":
+                    try:
+                        os.chmod(target_path, 0o600)
+                    except OSError:
+                        pass
                 return "File saved", 200
             return "Not supported file", 400
 

@@ -222,7 +222,18 @@ def set_cookies_dir(dir_path: str) -> None:
 
 
 def get_cookies_dir() -> str:
-    return CookiesConfig.cookies_dir
+    path = CookiesConfig.cookies_dir
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path, mode=0o700, exist_ok=True)
+        elif hasattr(os, "chmod") and os.name != "nt":
+            try:
+                os.chmod(path, 0o700)
+            except OSError:
+                pass
+    except OSError:
+        pass
+    return path
 
 
 def _get_domain(entry: dict) -> Optional[str]:
