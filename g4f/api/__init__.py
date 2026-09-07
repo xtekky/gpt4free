@@ -522,7 +522,7 @@ class ErrorResponse(Response):
         elif isinstance(exception, MissingAuthError):
             safe_message = "MissingAuthError: Authentication required"
         else:
-            safe_message = f"{exception.__class__.__name__}: Request failed"
+            safe_message = "Request execution failed"
         return cls(format_exception(safe_message, config), status_code)
 
     @classmethod
@@ -786,13 +786,14 @@ class Api:
                 else:
                     usage = await provider.get_quota()
                 return usage
-            except MissingAuthError as e:
+            except MissingAuthError:
                 return ErrorResponse.from_message(
-                    f"{type(e).__name__}: {e}", HTTP_401_UNAUTHORIZED
+                    "MissingAuthError: Authentication required", HTTP_401_UNAUTHORIZED
                 )
             except Exception as e:
+                logger.exception(e)
                 return ErrorResponse.from_message(
-                    f"{type(e).__name__}: {e}", HTTP_500_INTERNAL_SERVER_ERROR
+                    "Failed to retrieve provider quota", HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
         @self.app.get(
@@ -2376,7 +2377,7 @@ def format_exception(
     elif isinstance(e, MissingAuthError):
         message = "MissingAuthError: Authentication required"
     else:
-        message = f"{e.__class__.__name__}: Request failed"
+        message = "Request execution failed"
     return json.dumps(
         {
             "error": {"message": message},
