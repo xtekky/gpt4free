@@ -119,7 +119,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
             pass
 
         debug.log("Cloudflare: Starting CDPSession...")
-        session = CDPSession(headless=False)
+        session = CDPSession()
         await session.start()
 
         try:

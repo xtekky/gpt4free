@@ -77,6 +77,7 @@ class BrowserConfig:
     impersonate: str = "chrome"
     executable_path: str = None
     connection_timeout: float = 0.25
+    headless: bool = True
 
     @staticmethod
     async def stop_browser():
@@ -86,6 +87,7 @@ class BrowserConfig:
     def load_from_env(cls):
         cls.port = os.environ.get("G4F_BROWSER_PORT", cls.port)
         cls.host = os.environ.get("G4F_BROWSER_HOST", cls.host)
+        cls.headless = os.environ.get("G4F_BROWSER_HEADLESS", str(cls.headless)).lower() in ("1", "true", "yes")
         cls.executable_path = os.environ.get(
             "G4F_BROWSER_EXECUTABLE_PATH", cls.executable_path
         )

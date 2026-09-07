@@ -148,11 +148,6 @@ class Website:
                 "function": self._playground,
                 "methods": ["GET"],
             },
-            "/sillytavern/": {"function": self._sillytavern, "methods": ["GET"]},
-            "/sillytavern/<path:filename>": {
-                "function": self._sillytavern,
-                "methods": ["GET"],
-            },
             "/apps/": {"function": self._apps, "methods": ["GET"]},
             "/apps/<path:filename>": {"function": self._apps, "methods": ["GET"]},
             "/stats/": {"function": self._stats, "methods": ["GET"]},
@@ -339,12 +334,12 @@ class Website:
         """
 
         # Screenshot / logo section
-        logo_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('playground.ai.', '').replace('https://', '').replace('http://', '').replace('api.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
-        logo_url = f"api.airforce" if logo_url == "airforce" else logo_url
+        logo_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('https://', '').replace('http://', '').replace('api.', '').replace('www.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
+        logo_url = f"api.airforce" if logo_url == "airforce" else logo_url or "g4f.dev"
         create_url = f"/screenshot?url=https://{logo_url}"
         screenshot_html = f"""
         <div class="screenshot-section">
-            <img src="/screenshot/{logo_url}" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
+            <img src="/screenshot/{logo_url}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
                  style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <p class="screenshot-caption">Load screenshot from {escape(p['url'] or 'N/A')}</p>
         </div>
@@ -387,13 +382,14 @@ class Website:
                 if (!previewRemoved && previewImg.parentNode) {{
                     previewImg.parentNode.removeChild(previewImg);
                     previewRemoved = true;
+                    document.querySelector('.screenshot-caption').style.display = 'none';
                 }}
-                n = n + 1;
-                if (n <= 3) {{
-                    setTimeout(() => {{
-                        img.src = createSrc + `_${{n}}.webp`;
-                    }}, 1000);
-                }}
+                // n = n + 1;
+                // if (n <= 3) {{
+                //     setTimeout(() => {{
+                //         img.src = createSrc + `_${{n}}.webp`;
+                //     }}, 1000);
+                // }}
             }};
             img.onerror = () => {{
                 input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';

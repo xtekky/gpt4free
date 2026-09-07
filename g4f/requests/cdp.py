@@ -325,7 +325,7 @@ class CDPSession:
         port: Optional[int] = None,
         host: Optional[str] = None,
         user_data_dir: Optional[str] = None,
-        headless: bool = True,
+        headless: Optional[bool] = None,
     ):
         if port is None:
             port = BrowserConfig.port
@@ -335,7 +335,7 @@ class CDPSession:
             host = "127.0.0.1"
         self.port = port
         self.host = host
-        self.headless = headless
+        self.headless = headless if headless is not None else BrowserConfig.headless
         self.user_data_dir = (
             user_data_dir  # Ignored if using shared pool, but kept for compatibility
         )
@@ -683,12 +683,17 @@ document.head.appendChild(debugEl);
 const params = new URLSearchParams(window.location.search);
 const searchQuery = params.get('q');
 
+// 2b. Insert prompt in Flux HF before clicking on run button
+const textbox = document.querySelector('[data-testid="textbox"]');
+textbox ? textbox.value = searchQuery : null;
+
 // 3. Click any "Accept" button in the main document or nested iframes
 const targetTexts = [
     'Send', 'Accept', 'Accept all', 'Accept All',
     'Accept All Cookies', 'Accept all cookies',
     'Einwilligen', 'Alle akzeptieren',
-    'Zustimmen und weiter', 'Zustimmen'
+    'Zustimmen und weiter', 'Zustimmen',
+    'Run'
 ];
 const acceptBtns = (() => {
     function searchDocument(doc, offsetX = 0, offsetY = 0) {
@@ -822,8 +827,7 @@ document.querySelector('[data-send-label="Send message"],'
 
 // 8. Click the send button on gemini.google.com
 const trigger = (el, etype) => {
-  const event = new Event( etype, { bubbles: true } );
-  el.dispatchEvent( event );
+  el.dispatchEvent( new Event( etype, { bubbles: true } ) );
 };
 setTimeout(() => 
   trigger(document.querySelector(`.send-button`), `click`),
@@ -935,7 +939,7 @@ document.querySelector('[style="width: fit-content;"] [role="button"]')?.click()
         print(url_without_suffix)
         if ("&headless=false" in url_without_suffix or "&sleep=" in url_without_suffix or "&wait=" in url_without_suffix) and n == 3:
             debug.log("Waiting 5 seconds for page to settle due to sleep/wait parameter...")
-            await asyncio.sleep(30)
+            await asyncio.sleep(120)
         await self.wait_for_network_idle(idle_time=5, timeout=15.0)
         result = await self.call("Page.captureScreenshot")
         image_bytes = base64.b64decode(result["data"])
