@@ -195,7 +195,7 @@ class Backend_Api(Api):
                     return jsonify(listing)
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                    return jsonify({"error": {"message": "Failed to list providers"}}), 500
             task = asyncio.create_task(fetch_providers())
             return jsonify(saved) if saved is not None else await task
 
@@ -211,10 +211,10 @@ class Backend_Api(Api):
                 if response is None:
                     return jsonify({"error": {"message": "Provider not found"}}), 404
             except MissingAuthError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+                return jsonify({"error": {"message": "Authentication required"}}), 401
             except Exception as e:
                 logger.exception(e)
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                return jsonify({"error": {"message": "Failed to get provider models"}}), 500
             return jsonify(response)
 
         @app.route("/backend-api/v2/providers", methods=["GET"])
@@ -238,7 +238,7 @@ class Backend_Api(Api):
             try:
                 provider_class = AbstractClientFactory.create_provider(None, provider)
             except ProviderNotFoundError as e:
-                return jsonify({"error": {"message": str(e)}}), 404
+                return jsonify({"error": {"message": "Provider not found"}}), 404
 
             if request.method == "GET":
                 data = request.args.to_dict() or {}
@@ -254,7 +254,7 @@ class Backend_Api(Api):
                     return jsonify(result), 200
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": "Authentication start failed"}}), 500
 
             if hasattr(provider_class, "oauth_poll") and action == "poll":
                 device_code = data.get("device_code")
@@ -274,7 +274,7 @@ class Backend_Api(Api):
                     return jsonify(result), 200
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": "OAuth poll failed"}}), 500
 
             # Fallback: provider.login (blocking) for interactive login flows
             if hasattr(provider_class, "login"):
@@ -283,7 +283,7 @@ class Backend_Api(Api):
                     return jsonify({"status": "success"}), 200
                 except Exception as e:
                     logger.exception(e)
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    return jsonify({"error": {"message": "Login failed"}}), 500
 
             return (
                 jsonify(
@@ -370,7 +370,7 @@ class Backend_Api(Api):
                     None, kwargs.pop("provider", None)
                 )
             except ProviderNotFoundError as e:
-                return jsonify({"error": {"message": str(e)}}), 404
+                return jsonify({"error": {"message": "Provider not found"}}), 404
             return self.app.response_class(
                 safe_iter_generator(
                     self._create_response_stream(
@@ -602,7 +602,7 @@ class Backend_Api(Api):
             try:
                 provider_handler = AbstractClientFactory.create_provider(None, provider)
             except ProviderNotFoundError as e:
-                return jsonify({"error": {"message": str(e)}}), 404
+                return jsonify({"error": {"message": "Provider not found"}}), 404
             if not hasattr(provider_handler, "get_quota"):
                 return (
                     jsonify(
@@ -620,12 +620,12 @@ class Backend_Api(Api):
                 response.headers["cache-control"] = "public, max-age=3600"
                 return response
             except MissingAuthError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+                return jsonify({"error": {"message": "Authentication required"}}), 401
             except NotImplementedError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 501
+                return jsonify({"error": {"message": "Quota check not supported"}}), 501
             except Exception as e:
                 logger.exception(e)
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                return jsonify({"error": {"message": "Failed to retrieve quota"}}), 500
 
         @app.route("/backend-api/v2/log", methods=["POST"])
         def add_log():
@@ -793,14 +793,14 @@ class Backend_Api(Api):
                     )
                 return Response(response, mimetype="text/plain")
             except (ModelNotFoundError, ProviderNotFoundError) as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 404
+                return jsonify({"error": {"message": "Model or provider not found"}}), 404
             except MissingAuthError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+                return jsonify({"error": {"message": "Authentication required"}}), 401
             except RateLimitError as e:
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 429
+                return jsonify({"error": {"message": "Rate limit exceeded"}}), 429
             except Exception as e:
                 logger.exception(e)
-                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
+                return jsonify({"error": {"message": "An error occurred during request generation"}}), 500
 
         @app.route("/backend-api/v2/files/<bucket_id>/stream", methods=["GET"])
         def stream_files(bucket_id: str, event_stream=True):
@@ -822,14 +822,16 @@ class Backend_Api(Api):
                     shutil.rmtree(bucket_dir)
                     return jsonify({"message": "Bucket deleted successfully"}), 200
                 except OSError as e:
+                    logger.exception(e)
                     return (
                         jsonify(
-                            {"error": {"message": f"Error deleting bucket: {str(e)}"}}
+                            {"error": {"message": "Error deleting bucket"}}
                         ),
                         500,
                     )
                 except Exception as e:
-                    return jsonify({"error": {"message": str(e)}}), 500
+                    logger.exception(e)
+                    return jsonify({"error": {"message": "Failed to delete bucket"}}), 500
 
             delete_files = request.args.get("delete_files", True)
             refine_chunks_with_spacy = request.args.get(
@@ -1060,7 +1062,7 @@ class Backend_Api(Api):
         try:
             provider_handler = AbstractClientFactory.create_provider(None, provider)
         except ProviderNotFoundError as e:
-            return jsonify({"error": {"message": str(e)}}), 404
+            return jsonify({"error": {"message": "Provider not found"}}), 404
         if not hasattr(provider_handler, "synthesize"):
             return (
                 jsonify({"error": {"message": "Provider doesn't support synthesize"}}),

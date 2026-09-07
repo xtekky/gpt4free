@@ -436,7 +436,7 @@ class MCPServer:
                 )
             except Exception as e:
                 sys.stderr.write(f"Synthesize error: {e}\n")
-                return web.Response(status=500, text=f"Synthesize error: {str(e)}")
+                return web.Response(status=500, text="Synthesize error: An internal error occurred")
 
         _WORKSPACE_SAFE_TYPES: Dict[str, str] = {
             "html": "text/html; charset=utf-8",

@@ -2345,8 +2345,10 @@ def format_exception(
             model = config.model
     if isinstance(e, str):
         message = e
-    else:
+    elif isinstance(e, (ModelNotFoundError, ProviderNotFoundError, MissingAuthError)):
         message = f"{e.__class__.__name__}: {e}"
+    else:
+        message = f"{e.__class__.__name__}: Request failed"
     return json.dumps(
         {
             "error": {"message": message},
