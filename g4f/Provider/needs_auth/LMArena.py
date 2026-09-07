@@ -724,7 +724,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 _need_clear_cookies = True
                 debug.error(error)
                 continue
-            except:
+            except Exception:
                 raise
         if args:
             debug.log("Save args to cache file:", str(cache_file))
