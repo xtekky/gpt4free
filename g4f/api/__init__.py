@@ -2380,11 +2380,17 @@ def run_api(
     else:
         method = "create_app_debug" if debug else "create_app"
 
+    uvicorn_options = {
+        "timeout_keep_alive": 65,
+        "backlog": 2048,
+    }
+    uvicorn_options.update(filter_none(**kwargs))
+
     uvicorn.run(
         f"g4f.api:{method}",
         host=host,
         port=int(port),
         factory=True,
         use_colors=use_colors,
-        **filter_none(**kwargs),
+        **uvicorn_options,
     )
