@@ -72,6 +72,9 @@ func extractZip(r io.ReaderAt, size int64, dest string) error {
 	}
 
 	for _, f := range zr.File {
+		if strings.Contains(f.Name, "..") {
+			return fmt.Errorf("unsafe path in archive: %s", f.Name)
+		}
 		rel := f.Name
 		if top != "" {
 			rel = strings.TrimPrefix(f.Name, top+"/")
