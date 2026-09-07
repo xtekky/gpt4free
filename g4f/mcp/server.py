@@ -195,50 +195,56 @@ class MCPServer:
 
     async def run(self):
         """Run the MCP server with stdio transport"""
-        # Write server info to stderr for debugging
-        sys.stderr.write(
-            f"Starting {self.server_info['name']} v{self.server_info['version']}\n"
-        )
-        sys.stderr.flush()
+        real_stdout = sys.stdout
+        sys.stdout = sys.stderr
 
-        while True:
-            try:
-                # Read line from stdin
-                line = await asyncio.get_event_loop().run_in_executor(
-                    None, sys.stdin.readline
-                )
+        try:
+            # Write server info to stderr for debugging
+            sys.stderr.write(
+                f"Starting {self.server_info['name']} v{self.server_info['version']}\n"
+            )
+            sys.stderr.flush()
 
-                if not line:
-                    break
+            while True:
+                try:
+                    # Read line from stdin
+                    line = await asyncio.get_event_loop().run_in_executor(
+                        None, sys.stdin.readline
+                    )
 
-                # Parse JSON-RPC request
-                request_data = json.loads(line)
-                request = MCPRequest(
-                    jsonrpc=request_data.get("jsonrpc", "2.0"),
-                    id=request_data.get("id"),
-                    method=request_data.get("method"),
-                    params=request_data.get("params"),
-                )
+                    if not line:
+                        break
 
-                # Handle request
-                response = await self.handle_request(request)
+                    # Parse JSON-RPC request
+                    request_data = json.loads(line)
+                    request = MCPRequest(
+                        jsonrpc=request_data.get("jsonrpc", "2.0"),
+                        id=request_data.get("id"),
+                        method=request_data.get("method"),
+                        params=request_data.get("params"),
+                    )
 
-                # Write response to stdout
-                response_dict = {"jsonrpc": response.jsonrpc, "id": response.id}
-                if response.result is not None:
-                    response_dict["result"] = response.result
-                if response.error is not None:
-                    response_dict["error"] = response.error
+                    # Handle request
+                    response = await self.handle_request(request)
 
-                sys.stdout.write(json.dumps(response_dict) + "\n")
-                sys.stdout.flush()
+                    # Write response to protocol stdout
+                    response_dict = {"jsonrpc": response.jsonrpc, "id": response.id}
+                    if response.result is not None:
+                        response_dict["result"] = response.result
+                    if response.error is not None:
+                        response_dict["error"] = response.error
 
-            except json.JSONDecodeError as e:
-                sys.stderr.write(f"JSON decode error: {e}\n")
-                sys.stderr.flush()
-            except Exception as e:
-                sys.stderr.write(f"Error: {e}\n")
-                sys.stderr.flush()
+                    real_stdout.write(json.dumps(response_dict) + "\n")
+                    real_stdout.flush()
+
+                except json.JSONDecodeError as e:
+                    sys.stderr.write(f"JSON decode error: {e}\n")
+                    sys.stderr.flush()
+                except Exception as e:
+                    sys.stderr.write(f"Error: {e}\n")
+                    sys.stderr.flush()
+        finally:
+            sys.stdout = real_stdout
 
     async def run_http(
         self, host: str = "0.0.0.0", port: int = 8765, origin: Optional[str] = None
