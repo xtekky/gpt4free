@@ -14,7 +14,7 @@ from ..image import (
     is_valid_audio,
     to_data_uri,
 )
-from .files import get_bucket_dir, read_bucket
+from ..files import get_bucket_dir
 
 
 def render_media(

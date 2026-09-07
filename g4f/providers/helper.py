@@ -5,7 +5,6 @@ import string
 from pathlib import Path
 
 from ..typing import Messages, Cookies, AsyncIterator, Iterator
-from ..tools.files import get_bucket_dir, read_bucket
 from .response import JsonResponse, HiddenResponse
 from .. import debug
 
@@ -19,6 +18,7 @@ def to_string(value) -> str:
         elif "name" in value:
             return ""
         elif "bucket_id" in value:
+            from ..tools.files import get_bucket_dir, read_bucket
             bucket_dir = Path(get_bucket_dir(value.get("bucket_id")))
             return "".join(read_bucket(bucket_dir))
         return ""

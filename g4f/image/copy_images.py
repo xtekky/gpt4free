@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from ..typing import Optional, Cookies, Union
 from ..requests.aiohttp import get_connector
 from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP, is_safe_url
-from ..tools.files import secure_filename
+from ..files import secure_filename
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse, quote_url
 from . import is_accepted_format, extract_data_uri
 from .. import debug

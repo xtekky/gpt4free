@@ -9,7 +9,7 @@ from .types import BaseProvider, BaseRetryProvider, ProviderType
 from .response import ProviderInfo, JsonConversation, is_content
 from .base_provider import get_async_provider_method
 from .. import debug
-from ..tools.run_tools import AuthManager
+from ..tools.auth import AuthManager
 from ..config import AppConfig
 from ..errors import RetryProviderError, RetryNoProviderError
 

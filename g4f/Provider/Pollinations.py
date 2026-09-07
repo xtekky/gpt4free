@@ -28,9 +28,9 @@ from ..providers.response import (
     PreviewResponse,
 )
 from ..tools.media import render_messages
-from ..tools.run_tools import AuthManager
+from ..tools.auth import AuthManager
 from ..cookies import get_cookies_dir
-from ..tools.files import secure_filename
+from ..files import secure_filename
 from ..config import AppConfig
 from .template.OpenaiTemplate import OpenaiTemplate, read_response
 from .. import debug
