@@ -98,7 +98,8 @@ ANTIGRAVITY_SCOPES = [
     "https://www.googleapis.com/auth/cclog",
     "https://www.googleapis.com/auth/experimentsandconfigs",
 ]
-OAUTH_CALLBACK_PORT = 51121
+CALLBACK_PORT = 51121
+OAUTH_CALLBACK_PORT = CALLBACK_PORT
 OAUTH_CALLBACK_PATH = "/oauthcallback"
 
 
@@ -247,7 +248,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 class OAuthCallbackServer:
     """Local HTTP server to capture OAuth callback."""
 
-    def __init__(self, port: int = OAUTH_CALLBACK_PORT, timeout: float = 300.0):
+    def __init__(self, port: int = CALLBACK_PORT, timeout: float = 300.0):
         self.port = port
         self.timeout = timeout
         self.server: Optional[HTTPServer] = None
@@ -839,7 +840,7 @@ class AntigravityAuthManager(AuthFileMixin):
         else:
             if not server_started:
                 print(
-                    f"\nCould not start local callback server on port {OAUTH_CALLBACK_PORT}."
+                    f"\nCould not start local callback server on port {CALLBACK_PORT}."
                 )
                 print("You may need to close any application using that port.\n")
 

@@ -257,7 +257,7 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
         import socket
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
+            s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
 
         # Use standard user config directory for profile caching (like other g4f browsers)

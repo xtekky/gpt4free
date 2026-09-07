@@ -68,7 +68,9 @@ def _extract_youtube_video_id(url: str) -> Optional[str]:
     # Fallback: parse query string for a `v` parameter on a youtube host
     try:
         parsed = urlparse(url)
-        if parsed.hostname and parsed.hostname.endswith("youtube.com"):
+        if parsed.hostname and (
+            parsed.hostname == "youtube.com" or parsed.hostname.endswith(".youtube.com")
+        ):
             params = parse_qs(parsed.query)
             if "v" in params and params["v"][0]:
                 return str(params["v"][0])

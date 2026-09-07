@@ -84,7 +84,8 @@ GEMINICLI_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
-GEMINICLI_OAUTH_CALLBACK_PORT = 51122
+CALLBACK_PORT = 51122
+GEMINICLI_OAUTH_CALLBACK_PORT = CALLBACK_PORT
 GEMINICLI_OAUTH_CALLBACK_PATH = "/oauthcallback"
 
 
@@ -237,7 +238,7 @@ class GeminiCLIOAuthCallbackServer:
     """Local HTTP server to capture OAuth callback."""
 
     def __init__(
-        self, port: int = GEMINICLI_OAUTH_CALLBACK_PORT, timeout: float = 300.0
+        self, port: int = CALLBACK_PORT, timeout: float = 300.0
     ):
         self.port = port
         self.timeout = timeout
@@ -1200,7 +1201,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             if not server_started:
                 print(
-                    f"\nCould not start local callback server on port {GEMINICLI_OAUTH_CALLBACK_PORT}."
+                    f"\nCould not start local callback server on port {CALLBACK_PORT}."
                 )
                 print("You may need to close any application using that port.\n")
 
