@@ -53,6 +53,7 @@ from ..helper import (
     format_media_prompt,
     format_prompt,
     get_cookies,
+    get_cookies_async,
     get_last_user_message,
 )
 from .gemini_utils import (
@@ -546,7 +547,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def get_quota(cls, **kwargs):
         if not cls._cookies:
-            cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+            cls._cookies = await get_cookies_async(GOOGLE_COOKIE_DOMAIN, False, True)
         if not cls._cookies:
             raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie')
         async with ClientSession(
@@ -568,7 +569,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         if cookies is not None:
             cls._cookies = cookies
         elif cls._cookies is None:
-            cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+            cls._cookies = await get_cookies_async(GOOGLE_COOKIE_DOMAIN, False, True)
         request_cookies = dict(cls._cookies or {})
         base_connector = get_connector(connector, proxy)
 
@@ -644,7 +645,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         if cookies is not None:
             cls._cookies = cookies
         elif cls._cookies is None:
-            cls._cookies = get_cookies(GOOGLE_COOKIE_DOMAIN, False, True)
+            cls._cookies = await get_cookies_async(GOOGLE_COOKIE_DOMAIN, False, True)
         request_cookies = dict(cls._cookies or {})
         authenticated_session = _has_authenticated_session(request_cookies)
         conversation = _resolve_gemini_conversation(

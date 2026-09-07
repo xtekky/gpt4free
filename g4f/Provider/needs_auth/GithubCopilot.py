@@ -8,7 +8,7 @@ from ...typing import AsyncResult, Messages, Cookies
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...providers.helper import format_prompt, get_last_user_message
-from ...cookies import get_cookies
+from ...cookies import get_cookies, get_cookies_async
 
 
 class Conversation(BaseConversation):
@@ -93,7 +93,7 @@ class GithubCopilot(AsyncGeneratorProvider, ProviderModelMixin):
             model = cls.default_model
 
         if cookies is None:
-            cookies = get_cookies("github.com")
+            cookies = await get_cookies_async("github.com")
 
         async with ClientSession(
             connector=get_connector(proxy=proxy),

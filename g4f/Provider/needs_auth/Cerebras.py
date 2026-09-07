@@ -5,7 +5,7 @@ from aiohttp import ClientSession
 from .OpenaiAPI import OpenaiAPI
 from ...typing import AsyncResult, Messages, Cookies
 from ...requests.raise_for_status import raise_for_status
-from ...cookies import get_cookies
+from ...cookies import get_cookies, get_cookies_async
 
 
 class Cerebras(OpenaiAPI):
@@ -38,7 +38,7 @@ class Cerebras(OpenaiAPI):
     ) -> AsyncResult:
         if api_key is None:
             if cookies is None:
-                cookies = get_cookies(".cerebras.ai")
+                cookies = await get_cookies_async(".cerebras.ai")
             async with ClientSession(cookies=cookies) as session:
                 async with session.get(
                     "https://inference.cerebras.ai/api/auth/session"

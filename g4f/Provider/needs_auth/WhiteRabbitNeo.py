@@ -5,7 +5,7 @@ from aiohttp import ClientSession, BaseConnector
 from ...typing import AsyncResult, Messages, Cookies
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider
-from ..helper import get_cookies, get_connector, get_random_string
+from ..helper import get_cookies, get_cookies_async, get_connector, get_random_string
 
 
 class WhiteRabbitNeo(AsyncGeneratorProvider):
@@ -25,7 +25,7 @@ class WhiteRabbitNeo(AsyncGeneratorProvider):
         **kwargs,
     ) -> AsyncResult:
         if cookies is None:
-            cookies = get_cookies("www.whiterabbitneo.com")
+            cookies = await get_cookies_async("www.whiterabbitneo.com")
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0",
             "Accept": "*/*",

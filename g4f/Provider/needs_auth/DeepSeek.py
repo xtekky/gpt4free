@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Optional, Literal
 
 from g4f import debug
-from g4f.cookies import get_cookies, get_headers
+from g4f.cookies import get_cookies, get_cookies_async, get_headers
 from g4f.errors import MissingAuthError, ResponseError
 from g4f.image import to_bytes, detect_file_type
 from g4f.providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -472,7 +472,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def get_quota(cls, **kwargs):
-        cookies = get_cookies(cls.cookie_domain, False)
+        cookies = await get_cookies_async(cls.cookie_domain, False)
         headers = _normalized_headers(get_headers(cls.cookie_domain) or {})
         if cookies and headers.get("authorization"):
             return {"success": True}
@@ -807,7 +807,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         source_headers = dict(headers or {})
         # Try to get auth from HAR file first
         if cookies is None:
-            cookies = get_cookies(cls.cookie_domain, False)
+            cookies = await get_cookies_async(cls.cookie_domain, False)
             discovered_headers = get_headers(cls.cookie_domain) or {}
             # Explicit caller headers override browser/HAR values, including when
             # their casing differs (normalization happens below).

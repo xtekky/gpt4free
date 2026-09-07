@@ -18,7 +18,7 @@ from ...cookies import get_cookies_dir
 from ..helper import format_media_prompt, render_messages
 from ...providers.response import JsonConversation, ImageResponse
 from ...tools.media import merge_media
-from ...cookies import get_cookies
+from ...cookies import get_cookies, get_cookies_async
 from ...errors import RateLimitError, NoValidHarFileError
 from ... import debug
 
@@ -2711,7 +2711,7 @@ class BlackboxPro(AsyncGeneratorProvider, ProviderModelMixin):
             if not cls.session_data:
                 async with session.get(
                     "https://www.blackbox.ai/api/auth/session",
-                    cookies=get_cookies(cls.cookie_domain, False),
+                    cookies=await get_cookies_async(cls.cookie_domain, False),
                 ) as resp:
                     resp.raise_for_status()
                     cls.session_data = await resp.json()
