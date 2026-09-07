@@ -386,6 +386,18 @@ gemini_3_6_flash = Model(
     name="gemini-3.6-flash", base_provider="Google", best_provider="Gemini"
 )
 
+gemini_3_7_flash = Model(
+    name="gemini-3.7-flash", base_provider="Google", best_provider="Gemini"
+)
+
+gemini_3_8_flash = Model(
+    name="gemini-3.8-flash", base_provider="Google", best_provider="Gemini"
+)
+
+gemini_3_8_pro = Model(
+    name="gemini-3.8-pro", base_provider="Google", best_provider="Gemini"
+)
+
 gemini_3_5_flash_lite = Model(
     name="gemini-3.5-flash-lite", base_provider="Google", best_provider="Gemini"
 )
@@ -586,7 +598,15 @@ class ModelUtils:
     @classmethod
     def get_model(cls, name: str) -> Optional[Model]:
         """Get model by name or alias"""
-        return ModelRegistry.get(name)
+        model = ModelRegistry.get(name)
+        if model is None and isinstance(name, str) and name.startswith("gemini-"):
+            model = Model(
+                name=name,
+                base_provider="Google",
+                best_provider=IterListProvider(["Gemini", "GeminiPro", "GeminiCLI"]),
+            )
+            cls.refresh()
+        return model
 
     @classmethod
     def register_alias(cls, alias: str, model_name: str):

@@ -19,8 +19,16 @@ MODEL_FAMILIES = {
     "gemini-3.6-flash": "flash",
     "gemini-3.5-flash-lite": "flash",
     "gemini-3.1-pro": "pro",
+    "gemini-3.7-flash": "flash",
+    "gemini-3.8-flash": "flash",
+    "gemini-3.8-pro": "pro",
 }
-ANONYMOUS_MODELS = {"gemini-3.6-flash", "gemini-3.5-flash-lite"}
+ANONYMOUS_MODELS = {
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+}
 KNOWN_MODEL_IDS = {
     "fbb127bbb056c959": "flash",
     "5bf011840784117a": "thinking",

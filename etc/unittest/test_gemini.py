@@ -181,21 +181,37 @@ class GeminiHelpersTest(unittest.TestCase):
                 resolved, _ = _resolve_model(legacy_name)
                 self.assertEqual(resolved, current_name)
 
-    def test_unknown_model_falls_back_to_known_model(self):
-        # New Gemini models ship faster than the hard-coded registry can track
-        # them. Unknown names route to the closest known model of the same
-        # family instead of raising, so the provider no longer returns a 500.
-        self.assertEqual(_resolve_model("gemini-3.7-flash")[0], "gemini-3.6-flash")
-        self.assertEqual(_resolve_model("gemini-3.8-flash")[0], "gemini-3.6-flash")
-        self.assertEqual(_resolve_model("gemini-3.8-pro")[0], "gemini-3.1-pro")
+    def test_unknown_model_preserves_exact_name(self):
+        # Resolving unknown model names preserves their exact identity
+        # instead of categorizing/routing them to an older model of the family (#3518).
+        self.assertEqual(_resolve_model("gemini-3.7-flash")[0], "gemini-3.7-flash")
+        self.assertEqual(_resolve_model("gemini-3.8-flash")[0], "gemini-3.8-flash")
+        self.assertEqual(_resolve_model("gemini-3.8-pro")[0], "gemini-3.8-pro")
         self.assertEqual(
-            _resolve_model("gemini-3.9-flash-lite")[0], "gemini-3.5-flash-lite"
+            _resolve_model("gemini-3.9-flash-lite")[0], "gemini-3.9-flash-lite"
         )
+        self.assertEqual(_resolve_model("gemini-4.0-flash")[0], "gemini-4.0-flash")
 
     def test_unknown_thinking_model_enables_expanded_thinking(self):
         model, expanded = _resolve_model("gemini-3.8-flash-thinking")
-        self.assertEqual(model, "gemini-3.6-flash")
+        self.assertEqual(model, "gemini-3.8-flash")
         self.assertTrue(expanded)
+
+    def test_unknown_models_dynamically_determine_request_mode(self):
+        self.assertEqual(Gemini.get_model_mode("gemini-3.7-flash"), 1)
+        self.assertEqual(Gemini.get_model_mode("gemini-3.8-flash"), 1)
+        self.assertEqual(Gemini.get_model_mode("gemini-3.8-pro"), 3)
+        self.assertEqual(Gemini.get_model_mode("gemini-3.9-flash-lite"), 6)
+        self.assertEqual(Gemini.get_model_mode("gemini-4.0-flash"), 1)
+
+        req_flash = Gemini.build_request("test", "en", "gemini-3.8-flash")
+        self.assertEqual(req_flash[79], 1)
+
+        req_pro = Gemini.build_request("test", "en", "gemini-3.8-pro")
+        self.assertEqual(req_pro[79], 3)
+
+        req_lite = Gemini.build_request("test", "en", "gemini-3.9-flash-lite")
+        self.assertEqual(req_lite[79], 6)
 
     def test_invalid_thinking_mode_still_raises(self):
         with self.assertRaises(ValueError):
@@ -319,9 +335,15 @@ class GeminiHelpersTest(unittest.TestCase):
 
         with self.assertRaises(MissingAuthError):
             ProbeGemini.validate_model_access("gemini-3.1-pro")
+        with self.assertRaises(MissingAuthError):
+            ProbeGemini.validate_model_access("gemini-3.8-pro")
         ProbeGemini.validate_model_access("gemini-3.6-flash")
         ProbeGemini.validate_model_access("gemini-3.5-flash")
+        ProbeGemini.validate_model_access("gemini-3.7-flash")
+        ProbeGemini.validate_model_access("gemini-3.8-flash")
+        ProbeGemini.validate_model_access("gemini-4.0-flash")
         ProbeGemini.validate_model_access("gemini-3.1-pro", allow_model_fallback=True)
+        ProbeGemini.validate_model_access("gemini-3.8-pro", allow_model_fallback=True)
 
     def test_dynamic_headers_only_for_available_pro(self):
         _, registry = build_account_response(ACCOUNT_STATUS_AVAILABLE)
@@ -334,8 +356,13 @@ class GeminiHelpersTest(unittest.TestCase):
             ProbeGemini.get_model_headers("gemini-3.1-pro")[MODEL_HEADER_KEY]
         )
         self.assertEqual(pro_header[4], "9d8ca3786ebdfbea")
+        pro_header_38 = json.loads(
+            ProbeGemini.get_model_headers("gemini-3.8-pro")[MODEL_HEADER_KEY]
+        )
+        self.assertEqual(pro_header_38[4], "9d8ca3786ebdfbea")
         self.assertEqual(ProbeGemini.get_model_headers("gemini-3.5-flash"), {})
         self.assertEqual(ProbeGemini.get_model_headers("gemini-3.5-flash-thinking"), {})
+        self.assertEqual(ProbeGemini.get_model_headers("gemini-3.8-flash"), {})
 
 
 class GeminiStreamTest(unittest.IsolatedAsyncioTestCase):

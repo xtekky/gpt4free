@@ -133,6 +133,9 @@ models = {
     "gemini-3.6-flash": {"mode": 1},
     "gemini-3.5-flash-lite": {"mode": 6},
     "gemini-3.1-pro": {"mode": 3},
+    "gemini-3.7-flash": {"mode": 1},
+    "gemini-3.8-flash": {"mode": 1},
+    "gemini-3.8-pro": {"mode": 3},
 }
 MODEL_ALIASES = {
     "gemini-2.0": "gemini-3.6-flash",
@@ -240,18 +243,6 @@ async def _iter_response_lines(
         yield buffer.decode("utf-8", errors="replace")
 
 
-def _fallback_model(requested_model: str) -> str:
-    # Google ships new Gemini models faster than the hard-coded registry can
-    # track them. Route an unknown name to the closest known model of the same
-    # family so the request keeps working until the registry is refreshed.
-    name = requested_model.lower()
-    if "pro" in name:
-        return "gemini-3.1-pro"
-    if "lite" in name:
-        return "gemini-3.5-flash-lite"
-    return "gemini-3.6-flash"
-
-
 def _resolve_model(model: str, think_override: int = None) -> tuple[str, bool]:
     requested_model = model
     think_mode = think_override
@@ -265,15 +256,7 @@ def _resolve_model(model: str, think_override: int = None) -> tuple[str, bool]:
     if think_mode is not None:
         if not isinstance(think_mode, int) or not 0 <= think_mode <= 4:
             raise ValueError("Thinking mode must be an integer between 0 and 4")
-    model = MODEL_ALIASES.get(model, model)
-    if model not in models:
-        fallback = _fallback_model(requested_model)
-        debug.log(
-            f"Unknown Gemini model: {model!r}. "
-            f"Falling back to {fallback!r}. "
-            f"Known models: {', '.join(models)}"
-        )
-        model = fallback
+
     if think_mode is None:
         expanded_thinking = (
             requested_model in EXPANDED_MODEL_ALIASES
@@ -281,6 +264,16 @@ def _resolve_model(model: str, think_override: int = None) -> tuple[str, bool]:
         )
     else:
         expanded_thinking = think_mode <= 2
+
+    # Check explicit model aliases (e.g. gemini-auto -> gemini-3.6-flash)
+    if model in MODEL_ALIASES:
+        model = MODEL_ALIASES[model]
+    elif expanded_thinking and "thinking" in model.lower():
+        cleaned = re.sub(r"-thinking(-with-apps)?", "", model, flags=re.IGNORECASE)
+        cleaned = re.sub(r"-lite-thinking", "-lite", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"-thinking-lite", "-lite", cleaned, flags=re.IGNORECASE)
+        model = MODEL_ALIASES.get(cleaned, cleaned)
+
     return model, expanded_thinking
 
 
@@ -481,10 +474,34 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         cls._account_models_fetched_at = time.time()
 
     @classmethod
+    def get_model_mode(cls, model: str) -> int:
+        if model in cls._account_models:
+            return cls._account_models[model]["mode"]
+        if model in models:
+            return models[model]["mode"]
+        name = model.lower()
+        if "pro" in name:
+            return 3
+        if "lite" in name:
+            return 6
+        return 1
+
+    @classmethod
+    def get_model_family(cls, model: str) -> str:
+        if model in cls._account_models:
+            return cls._account_models[model].get("family", "flash")
+        if model in MODEL_FAMILIES:
+            return MODEL_FAMILIES[model]
+        name = model.lower()
+        if "pro" in name:
+            return "pro"
+        return "flash"
+
+    @classmethod
     def get_model_headers(cls, model: str) -> dict[str, str]:
         if model in cls._account_models:
             return cls._account_models[model].get("headers", {})
-        family = MODEL_FAMILIES.get(model)
+        family = cls.get_model_family(model)
         # Request field 79 selects the model. Pro additionally needs the
         # account-specific model header or Google silently routes it to Flash.
         if family != "pro":
@@ -505,8 +522,9 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         model = MODEL_ALIASES.get(model, model)
         if allow_model_fallback or cls._account_status is None:
             return
+        family = cls.get_model_family(model)
         if cls._account_status == ACCOUNT_STATUS_UNAUTHENTICATED:
-            if model not in ANONYMOUS_MODELS:
+            if model not in ANONYMOUS_MODELS and family == "pro":
                 raise MissingAuthError(
                     f"Gemini session is unauthenticated; model {model!r} would fall back to Flash"
                 )
@@ -515,7 +533,6 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             raise ResponseError(
                 f"Gemini account is unavailable (status {cls._account_status})"
             )
-        family = MODEL_FAMILIES.get(model)
         if family != "pro" or not cls._account_models:
             return
         if not any(
@@ -1101,10 +1118,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         request[59] = request_uuid or str(uuid.uuid4())
         request[61] = []
         request[68] = 2
-        if model in cls._account_models:
-            request[79] = cls._account_models[model]["mode"]
-        else:
-            request[79] = models[model]["mode"]
+        request[79] = cls.get_model_mode(model)
         request[80] = 2 if expanded_thinking else 1
         request[91] = 0
         # Gemini Web marks the first turn with 1 and follow-up turns with 0.
