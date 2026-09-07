@@ -8,11 +8,13 @@ from datetime import datetime
 from urllib.parse import quote, unquote
 from flask import send_from_directory, redirect, request
 
-from ...image.copy_images import secure_filename
+from ...files import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
 from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, GITHUB_URL
 from ... import version
+
+_gui_session = requests.Session()
 
 
 def redirect_home():
@@ -64,17 +66,17 @@ def render(filename="home", download_url: str = GITHUB_URL):
             os.makedirs(cache_dir, exist_ok=True)
         if html is None:
             try:
-                response = requests.get(f"{download_url}{filename}")
+                response = _gui_session.get(f"{download_url}{filename}", timeout=10)
                 response.raise_for_status()
             except requests.exceptions.SSLError:
-                response = requests.get(f"{download_url}{filename}", verify=False)
+                response = _gui_session.get(f"{download_url}{filename}", timeout=10, verify=False)
                 response.raise_for_status()
             except requests.RequestException:
                 try:
-                    response = requests.get(f"{DOWNLOAD_URL}{filename}")
+                    response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10)
                     response.raise_for_status()
                 except requests.exceptions.SSLError:
-                    response = requests.get(f"{DOWNLOAD_URL}{filename}", verify=False)
+                    response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10, verify=False)
                     response.raise_for_status()
                 except requests.RequestException:
                     found = None
@@ -505,11 +507,11 @@ class Website:
         # Download and cache from GitHub
         os.makedirs(os.path.dirname(safe_path), exist_ok=True)
         try:
-            response = requests.get(f"{PLAYGROUND_URL}{filename}", timeout=10)
+            response = _gui_session.get(f"{PLAYGROUND_URL}{filename}", timeout=10)
             response.raise_for_status()
         except requests.exceptions.SSLError:
             try:
-                response = requests.get(
+                response = _gui_session.get(
                     f"{PLAYGROUND_URL}{filename}", timeout=10, verify=False
                 )
                 response.raise_for_status()
