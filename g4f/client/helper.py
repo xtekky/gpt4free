@@ -6,6 +6,9 @@ import logging
 from typing import AsyncIterator, Iterator, AsyncGenerator, Optional
 
 
+_CODE_BLOCK_RE = re.compile(r"```([^\r\n\s]+)?\r?\n(?P<code>[\s\S]*?)(?:\r?\n```|$)")
+
+
 def filter_markdown(text: str, allowed_types=None, default=None) -> str:
     """
     Parses code block from a string.
@@ -16,7 +19,7 @@ def filter_markdown(text: str, allowed_types=None, default=None) -> str:
     Returns:
         dict: A dictionary parsed from the code block.
     """
-    match = re.search(r"```(.+)\n(?P<code>[\S\s]+?)(\n```|$)", text)
+    match = _CODE_BLOCK_RE.search(text)
     if match:
         if allowed_types is None or match.group(1) in allowed_types:
             return match.group("code")
