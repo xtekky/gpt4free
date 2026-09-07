@@ -59,6 +59,7 @@ from ..errors import MissingRequirementsError
 from ..typing import Cookies
 from ..cookies import BrowserConfig, get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
+from .aiohttp import get_shared_connector, close_shared_connectors
 
 if not has_curl_cffi:
 
