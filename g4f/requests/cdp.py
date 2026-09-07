@@ -827,7 +827,7 @@ document.querySelector('[data-send-label="Send message"],'
 
 // 8. Click the send button on gemini.google.com
 const trigger = (el, etype) => {
-  el.dispatchEvent( new Event( etype, { bubbles: true } ) );
+  el?.dispatchEvent( new Event( etype, { bubbles: true } ) );
 };
 setTimeout(() => 
   trigger(document.querySelector(`.send-button`), `click`),
