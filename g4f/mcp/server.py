@@ -334,15 +334,22 @@ class MCPServer:
                 m = re.match("^[0-9]+", s)
                 return int(m.group(0)) if m else 0
 
-            target = os.path.join(get_media_dir(), os.path.basename(filename))
+            media_dir = os.path.realpath(get_media_dir())
+            clean_name = secure_filename(os.path.basename(filename))
+            if not clean_name:
+                return web.Response(status=404, text="File not found")
+
+            target = os.path.realpath(os.path.join(media_dir, clean_name))
+            if not target.startswith(media_dir + os.sep):
+                return web.Response(status=403, text="Access denied")
 
             # Try URL-decoded filename if not found
             if not os.path.isfile(target):
-                other_name = os.path.join(
-                    get_media_dir(), os.path.basename(unquote_plus(filename))
-                )
-                if os.path.isfile(other_name):
-                    target = other_name
+                decoded_name = secure_filename(os.path.basename(unquote_plus(filename)))
+                if decoded_name:
+                    candidate = os.path.realpath(os.path.join(media_dir, decoded_name))
+                    if candidate.startswith(media_dir + os.sep) and os.path.isfile(candidate):
+                        target = candidate
 
             # Get file extension and mime type
             ext = os.path.splitext(filename)[1][1:].lower()
@@ -358,7 +365,7 @@ class MCPServer:
                         sys.stderr.write(f"File copied from {source_url}\n")
                     except Exception as e:
                         sys.stderr.write(f"Download failed: {source_url} - {e}\n")
-                        raise web.HTTPFound(location=source_url)
+                        return web.Response(status=404, text="File not found")
 
             if not os.path.isfile(target):
                 return web.Response(status=404, text="File not found")

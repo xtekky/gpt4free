@@ -2204,29 +2204,43 @@ class Api:
                 else:
                     return 0
 
-            target = os.path.join(get_media_dir(), os.path.basename(filename))
+            media_dir = os.path.realpath(get_media_dir())
+            clean_filename = secure_filename(os.path.basename(filename))
+            if not clean_filename:
+                return ErrorResponse.from_message("Invalid file name", HTTP_400_BAD_REQUEST)
+
+            target = os.path.realpath(os.path.join(media_dir, clean_filename))
+            if not target.startswith(media_dir + os.sep):
+                return ErrorResponse.from_message("Access denied", HTTP_403_FORBIDDEN)
+
+            thumbnail_path = None
             if thumbnail and has_pillow:
-                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
-                thumbnail = os.path.join(thumbnail_dir, filename)
+                thumbnail_dir = os.path.realpath(os.path.join(media_dir, "thumbnails"))
+                os.makedirs(thumbnail_dir, exist_ok=True)
+                cand_thumb = os.path.realpath(os.path.join(thumbnail_dir, clean_filename))
+                if cand_thumb.startswith(thumbnail_dir + os.sep):
+                    thumbnail_path = cand_thumb
+
             if not os.path.isfile(target):
-                other_name = os.path.join(
-                    get_media_dir(), os.path.basename(quote_plus(filename))
-                )
-                if os.path.isfile(other_name):
-                    target = other_name
-            ext = os.path.splitext(filename)[1][1:]
+                decoded_name = secure_filename(os.path.basename(unquote_plus(filename)))
+                if decoded_name:
+                    cand_other = os.path.realpath(os.path.join(media_dir, decoded_name))
+                    if cand_other.startswith(media_dir + os.sep) and os.path.isfile(cand_other):
+                        target = cand_other
+
+            ext = os.path.splitext(clean_filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()
             stat_result.st_size = 0
-            stat_result.st_mtime = get_timestamp(filename)
-            if thumbnail and has_pillow and os.path.isfile(thumbnail):
-                stat_result.st_size = os.stat(thumbnail).st_size
+            stat_result.st_mtime = get_timestamp(clean_filename)
+            if thumbnail and has_pillow and thumbnail_path and os.path.isfile(thumbnail_path):
+                stat_result.st_size = os.stat(thumbnail_path).st_size
             elif not thumbnail and os.path.isfile(target):
                 stat_result.st_size = os.stat(target).st_size
             headers = {
                 "cache-control": "public, max-age=31536000",
                 "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
-                "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"',
+                "etag": f'"{hashlib.md5(clean_filename.encode()).hexdigest()}"',
                 **(
                     {
                         "content-length": str(stat_result.st_size),
@@ -2245,7 +2259,7 @@ class Api:
             response = FileResponse(
                 target,
                 headers=headers,
-                filename=filename,
+                filename=clean_filename,
             )
             try:
                 if_none_match = request.headers["if-none-match"]
@@ -2260,7 +2274,7 @@ class Api:
                 if source_url is None:
                     backend_url = os.environ.get("G4F_BACKEND_URL")
                     if backend_url:
-                        source_url = f"{backend_url}/media/{filename}"
+                        source_url = f"{backend_url}/media/{clean_filename}"
                         ssl = False
                 if source_url is not None:
                     if not is_safe_url(source_url):
@@ -2272,20 +2286,19 @@ class Api:
                         debug.error(f"Download failed:  {source_url}")
                         debug.error(e)
                         return ErrorResponse.from_message("Failed to fetch remote media", HTTP_502_BAD_GATEWAY)
-            if thumbnail and has_pillow:
+            if thumbnail and has_pillow and thumbnail_path:
                 try:
-                    if not os.path.isfile(thumbnail):
+                    if not os.path.isfile(thumbnail_path) and os.path.isfile(target):
                         image = Image.open(target)
-                        os.makedirs(thumbnail_dir, exist_ok=True)
-                        process_image(image, save=thumbnail)
-                        debug.log(f"Thumbnail created: {thumbnail}")
+                        process_image(image, save=thumbnail_path)
+                        debug.log(f"Thumbnail created: {thumbnail_path}")
                 except Exception as e:
                     logger.exception(e)
-            if thumbnail and os.path.isfile(thumbnail):
-                result = thumbnail
+            if thumbnail and has_pillow and thumbnail_path and os.path.isfile(thumbnail_path):
+                result = thumbnail_path
             else:
                 result = target
-            if not os.path.isfile(result):
+            if not os.path.isfile(result) or not result.startswith(media_dir + os.sep):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)
 
             async def stream():

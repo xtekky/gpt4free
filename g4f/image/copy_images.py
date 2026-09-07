@@ -181,17 +181,28 @@ async def copy_media(
             if image is None or image.startswith("/"):
                 return image
 
-            target_path = target
+            real_dest_dir = os.path.realpath(dest_dir)
+
+            def _safe_target(name: str) -> str:
+                clean = secure_filename(os.path.basename(name))
+                if not clean:
+                    clean = hashlib.md5(name.encode()).hexdigest()
+                cand = os.path.realpath(os.path.join(real_dest_dir, clean))
+                if not cand.startswith(real_dest_dir + os.sep):
+                    raise ValueError("Unsafe media target path")
+                return cand
+
+            target_path = _safe_target(target) if target else None
             media_extension = ""
 
             if target_path is None:
                 media_extension = get_media_extension(image)
                 path = urlparse(image).path
                 if path.startswith("/media/"):
-                    filename = secure_filename(path[len("/media/") :])
+                    filename = secure_filename(os.path.basename(path[len("/media/") :]))
                 else:
                     filename = get_filename(tags, alt, media_extension, image)
-                target_path = os.path.join(dest_dir, filename)
+                target_path = _safe_target(filename)
 
             try:
                 if image.startswith("data:"):
@@ -208,7 +219,7 @@ async def copy_media(
                         response.raise_for_status()
                         if target is None:
                             filename = update_filename(response, filename)
-                            target_path = os.path.join(dest_dir, filename)
+                            target_path = _safe_target(filename)
                         media_type = response.headers.get(
                             "content-type", "application/octet-stream"
                         )
@@ -222,7 +233,7 @@ async def copy_media(
                                 )
                             if target is None and not media_extension:
                                 media_extension = f".{MEDIA_TYPE_MAP[media_type]}"
-                                target_path = f"{target_path}{media_extension}"
+                                target_path = _safe_target(f"{os.path.basename(target_path)}{media_extension}")
                         with open(target_path, "wb") as f:
                             async for chunk in response.content.iter_any():
                                 f.write(chunk)
@@ -233,9 +244,8 @@ async def copy_media(
                         file_header = f.read(12)
                     try:
                         detected_type = is_accepted_format(file_header)
-                        media_extension = f".{detected_type.split('/')[-1]}"
-                        media_extension = media_extension.replace("jpeg", "jpg")
-                        new_path = f"{target_path}{media_extension}"
+                        media_extension = f".{detected_type.split('/')[-1]}".replace("jpeg", "jpg")
+                        new_path = _safe_target(f"{os.path.basename(target_path)}{media_extension}")
                         os.rename(target_path, new_path)
                         target_path = new_path
                     except ValueError:

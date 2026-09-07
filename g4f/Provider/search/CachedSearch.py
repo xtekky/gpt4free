@@ -94,7 +94,11 @@ class CachedSearch(AsyncGeneratorProvider, AuthFileMixin):
             Path(get_cookies_dir()) / ".scrape_cache" / "web_search" / f"{date.today()}"
         )
         cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_file = cache_dir / f"{quote_plus(prompt[:20])}.{md5_hash}.cache"
+        safe_prompt = "".join(c for c in prompt[:20] if c.isalnum() or c in ("-", "_"))
+        filename = f"{safe_prompt}_{md5_hash}.cache" if safe_prompt else f"{md5_hash}.cache"
+        cache_file = (cache_dir / filename).resolve()
+        if not str(cache_file).startswith(str(cache_dir.resolve())):
+            cache_file = (cache_dir / f"{md5_hash}.cache").resolve()
 
         search_results: Optional[SearchResults] = None
         if cache_file.exists():

@@ -57,14 +57,16 @@ def render(filename="home", download_url: str = GITHUB_URL):
         latest_version = version.utils.current_version
     today = datetime.today().strftime("%Y-%m-%d")
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
-    if not request.args.get("g4f_session"):
-        latest_version = str(latest_version) + quote(
-            unquote(request.query_string.decode())
-        )
-    cache_file = os.path.join(
-        cache_dir,
-        f"{secure_filename(f'{version.utils.current_version}-{latest_version}')}.{secure_filename(filename)}",
-    )
+    qs_suffix = ""
+    if not request.args.get("g4f_session") and request.query_string:
+        qs_suffix = "_" + hashlib.md5(request.query_string).hexdigest()[:8]
+    safe_filename = secure_filename(os.path.basename(filename))
+    safe_prefix = secure_filename(f"{version.utils.current_version}-{latest_version}")
+    cache_file_name = f"{safe_prefix}{qs_suffix}.{safe_filename}"
+    real_cache_dir = os.path.realpath(cache_dir)
+    cache_file = os.path.realpath(os.path.join(cache_dir, cache_file_name))
+    if not cache_file.startswith(real_cache_dir + os.sep):
+        raise ValueError("Invalid cache path")
     if os.path.isfile(cache_file + ".js"):
         cache_file += ".js"
     if not os.path.exists(cache_file):

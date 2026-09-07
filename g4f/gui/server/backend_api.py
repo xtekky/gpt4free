@@ -402,13 +402,16 @@ class Backend_Api(Api):
             if not _DATE_RE.match(date):
                 return (jsonify({"error": {"message": "Invalid date format"}}), 400)
             try:
-                datetime.date.fromisoformat(date)
+                safe_date = datetime.date.fromisoformat(date).isoformat()
             except ValueError:
                 return (jsonify({"error": {"message": "Invalid date"}}), 400)
-            cache_dir = Path(get_cookies_dir()) / ".usage"
-            cache_file = cache_dir / f"{date}.jsonl"
-            if cache_file.exists():
-                return Response(cache_file.read_text(), mimetype="text/plain")
+            real_dir = os.path.realpath(str(Path(get_cookies_dir()) / ".usage"))
+            target = os.path.realpath(os.path.join(real_dir, f"{safe_date}.jsonl"))
+            if not target.startswith(real_dir + os.sep):
+                return (jsonify({"error": {"message": "Invalid date"}}), 400)
+            target_path = Path(target)
+            if target_path.exists():
+                return Response(target_path.read_text(), mimetype="text/plain")
             else:
                 return (
                     jsonify(
@@ -734,10 +737,13 @@ class Backend_Api(Api):
                         + json.dumps(parameters, sort_keys=True).encode()
                     ).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
-                    cache_file = (
-                        cache_dir
-                        / f"{quote_plus(request.args.get('prompt', '').strip()[:20])}.{cache_id}.txt"
-                    )
+                    safe_prompt = secure_filename(request.args.get("prompt", "").strip()[:20])
+                    file_name = f"{safe_prompt}_{cache_id}.txt" if safe_prompt else f"{cache_id}.txt"
+                    real_cache_dir = os.path.realpath(str(cache_dir))
+                    target = os.path.realpath(os.path.join(real_cache_dir, file_name))
+                    if not target.startswith(real_cache_dir + os.sep):
+                        target = os.path.realpath(os.path.join(real_cache_dir, f"{cache_id}.txt"))
+                    cache_file = Path(target)
                     response = None
                     if cache_file.exists():
                         with cache_file.open("r") as f:
@@ -756,15 +762,19 @@ class Backend_Api(Api):
                     response = cast_str(iter_run_tools(provider_handler, **parameters))
                 if isinstance(response, str) and "\n" not in response:
                     if response.startswith("/media/"):
-                        media_dir = get_media_dir()
-                        filename = os.path.basename(response.split("?")[0])
+                        media_dir = os.path.realpath(get_media_dir())
+                        filename = secure_filename(os.path.basename(response.split("?")[0]))
+                        target_file = os.path.realpath(os.path.join(media_dir, filename))
+                        if not target_file.startswith(media_dir + os.sep):
+                            return jsonify({"error": {"message": "Invalid file"}}), 400
                         if not cache_id:
                             try:
                                 return send_from_directory(
-                                    os.path.abspath(media_dir), filename
+                                    media_dir, filename
                                 )
                             finally:
-                                os.remove(os.path.join(media_dir, filename))
+                                if os.path.exists(target_file):
+                                    os.remove(target_file)
                         else:
                             if response.startswith("/") and not response.startswith("//"):
                                 return redirect(response)
@@ -1006,12 +1016,12 @@ class Backend_Api(Api):
                 file
                 and (file.filename.endswith(".json") or file.filename.endswith(".har"))
             ):
-                filename = secure_filename(file.filename)
+                filename = secure_filename(os.path.basename(file.filename))
                 if not filename:
                     return "Not supported file", 400
-                cookies_dir = os.path.abspath(get_cookies_dir())
-                target_path = os.path.abspath(os.path.join(cookies_dir, filename))
-                if not target_path.startswith(cookies_dir):
+                cookies_dir = os.path.realpath(get_cookies_dir())
+                target_path = os.path.realpath(os.path.join(cookies_dir, filename))
+                if not target_path.startswith(cookies_dir + os.sep):
                     return "Forbidden file path", 403
                 file.save(target_path)
                 if hasattr(os, "chmod") and os.name != "nt":
