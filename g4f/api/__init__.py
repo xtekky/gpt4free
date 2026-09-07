@@ -533,6 +533,8 @@ class Api:
         self.client = AsyncClient()
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
         self.conversations: dict[str, dict[str, BaseConversation]] = {}
+        self._models_cache: dict | None = None
+        self._models_cache_time: float = 0.0
 
     security = HTTPBearer(auto_error=False)
     basic_security = HTTPBasic()
@@ -645,7 +647,11 @@ class Api:
             },
         )
         async def models():
-            return {
+            now = time.time()
+            if self._models_cache is not None and (now - self._models_cache_time) < 300:
+                return self._models_cache
+
+            result = {
                 "object": "list",
                 "data": [
                     {
@@ -673,6 +679,9 @@ class Api:
                     if provider.working
                 ],
             }
+            self._models_cache = result
+            self._models_cache_time = now
+            return result
 
         @self.app.get(
             "/api/{provider:path}/models",
