@@ -337,10 +337,23 @@ _LOG_SKIP_EXACT = {"/api/logs", "/logs", "/favicon.ico"}
 def create_app():
     app = FastAPI(lifespan=lifespan)
 
+    env_origins = [
+        o.strip()
+        for o in os.environ.get("G4F_CORS_ORIGINS", "").split(",")
+        if o.strip()
+    ]
+    if env_origins:
+        cors_origins = env_origins
+        cors_regex = None
+    else:
+        cors_origins = []
+        cors_regex = r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$"
+
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
+        allow_origin_regex=cors_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
