@@ -807,6 +807,7 @@ class Api:
         )
         async def chat_completions(
             config: ChatCompletionsConfig,
+            request: Request = None,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] = None,
@@ -918,6 +919,9 @@ class Api:
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
                     try:
                         async for chunk in response:
+                            if request is not None and await request.is_disconnected():
+                                debug.log("Client disconnected, aborting streaming response.")
+                                return
                             if isinstance(chunk, BaseConversation):
                                 if (
                                     config.conversation_id is not None
@@ -938,6 +942,12 @@ class Api:
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                    finally:
+                        if hasattr(response, "aclose"):
+                            try:
+                                await response.aclose()
+                            except Exception:
+                                pass
                     yield "data: [DONE]\n\n"
 
                 headers = (
@@ -978,6 +988,7 @@ class Api:
         @self.app.post("/api/{provider:path}/responses", responses=responses)
         async def create_response(
             config: ResponsesConfig,
+            request: Request = None,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] | None = None,
@@ -1066,6 +1077,9 @@ class Api:
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
                     try:
                         async for chunk in response:
+                            if request is not None and await request.is_disconnected():
+                                debug.log("Client disconnected, aborting responses stream.")
+                                return
                             if isinstance(chunk, BaseConversation):
                                 pass
                             else:
@@ -1078,6 +1092,12 @@ class Api:
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                    finally:
+                        if hasattr(response, "aclose"):
+                            try:
+                                await response.aclose()
+                            except Exception:
+                                pass
                     yield "data: [DONE]\n\n"
 
                 headers = (
@@ -1120,6 +1140,7 @@ class Api:
         @self.app.post("/api/{provider:path}/messages", responses=responses)
         async def create_message(
             config: MessagesConfig,
+            request: Request = None,
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] = None,
@@ -1210,6 +1231,9 @@ class Api:
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
                     try:
                         async for chunk in response:
+                            if request is not None and await request.is_disconnected():
+                                debug.log("Client disconnected, aborting messages stream.")
+                                return
                             if isinstance(chunk, BaseConversation):
                                 pass
                             else:
@@ -1222,6 +1246,12 @@ class Api:
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                    finally:
+                        if hasattr(response, "aclose"):
+                            try:
+                                await response.aclose()
+                            except Exception:
+                                pass
                     yield "data: [DONE]\n\n"
 
                 headers = (
@@ -2233,6 +2263,8 @@ class Api:
             async def stream():
                 with open(result, "rb") as file:
                     while True:
+                        if request is not None and await request.is_disconnected():
+                            break
                         chunk = file.read(65536)
                         if not chunk:
                             break
