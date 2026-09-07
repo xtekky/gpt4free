@@ -9,7 +9,7 @@ from . import debug, version
 from .models import Model
 from .client import Client, AsyncClient, ClientFactory, create_custom_provider
 from .typing import Messages, CreateResult, AsyncResult, ImageType
-from .cookies import get_cookies, set_cookies
+from .cookies import get_cookies, get_cookies_async, set_cookies
 from .providers.types import ProviderType
 from .providers.base_provider import get_async_provider_method, get_provider_method
 from .providers.helper import concat_chunks, async_concat_chunks

@@ -14,7 +14,7 @@ from ..errors import RetryProviderError, RetryNoProviderError
 
 def _resolve_model(provider: Type[BaseProvider], model: str) -> str:
     alias = model or getattr(provider, "default_model", None)
-    if getattr(provider, "model_aliases"):
+    if getattr(provider, "model_aliases", None):
         alias = provider.model_aliases.get(model, model)
     if isinstance(alias, list):
         alias = random.choice(alias)
