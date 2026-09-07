@@ -961,9 +961,11 @@ class Api:
                     except RateLimitError as e:
                         debug.error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     finally:
                         if hasattr(response, "aclose"):
                             try:
@@ -1111,9 +1113,11 @@ class Api:
                     except RateLimitError as e:
                         debug.error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     finally:
                         if hasattr(response, "aclose"):
                             try:
@@ -1265,9 +1269,11 @@ class Api:
                     except RateLimitError as e:
                         debug.error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     except Exception as e:
                         logger.exception(e)
                         yield f"data: {format_exception(e, config)}\n\n"
+                        return
                     finally:
                         if hasattr(response, "aclose"):
                             try:
