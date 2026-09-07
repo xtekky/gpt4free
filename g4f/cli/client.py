@@ -366,7 +366,9 @@ async def async_run_client_args(args, exit_on_error=True):
                         md = MarkItDown()
                         return md.convert_url(url).text_content
 
-                    txt = await asyncio.to_thread(run_markitdown, tok)
+                    from g4f.providers.asyncio import to_thread
+
+                    txt = await to_thread(run_markitdown, tok)
                     input_txt += f"\n```source: {tok}\n{txt}\n```\n"
             elif os.path.isfile(tok):
                 from g4f.image import is_accepted_format

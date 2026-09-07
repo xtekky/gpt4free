@@ -155,8 +155,8 @@ async def get_cookies_async(
     """Async helper to load cookies without blocking the event loop."""
     if single_browser != "all" and domain_name in CookiesConfig.cookies:
         return CookiesConfig.cookies[domain_name]
-    import asyncio
-    return await asyncio.to_thread(
+    from .providers.asyncio import to_thread
+    return await to_thread(
         get_cookies, domain_name, raise_requirements_error, single_browser, cache_result
     )
 

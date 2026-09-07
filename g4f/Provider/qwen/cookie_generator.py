@@ -400,7 +400,9 @@ async def refresh_cookies():
     global _current_cookies
     try:
         # generate_cookies() is CPU-bound sync; run it off the event loop.
-        result = await asyncio.to_thread(generate_cookies)
+        from ...providers.asyncio import to_thread
+
+        result = await to_thread(generate_cookies)
 
         async with _lock:
             _current_cookies = {
