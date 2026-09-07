@@ -1392,10 +1392,10 @@ class Api:
             try:
                 async with lock:
                     from g4f.requests.cdp import CDPSession
-                    session = CDPSession(headless=True)
+                    session = CDPSession(headless="&headless=false" not in url)
                     await session.start()
                     try:
-                        screenshot_path = await session.capture_screenshot(url)
+                        screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url else 3)
                         return FileResponse(
                             screenshot_path,
                             media_type="image/webp",
@@ -1408,6 +1408,24 @@ class Api:
                 return ErrorResponse.from_exception(
                     e, None, HTTP_500_INTERNAL_SERVER_ERROR
                 )
+        
+        @self.app.get("/screenshot/{path}", responses=responses)
+        async def image_from_url(
+            path: str,
+        ):
+            screenshots_dir = os.path.join(get_media_dir(), "screenshots")
+            for root, _, files in os.walk(screenshots_dir):
+                for file in files:
+                    if file != path:
+                        continue
+                    if not os.path.isfile(os.path.join(root, file)):
+                        continue
+                    return FileResponse(
+                        os.path.join(root, path),
+                        media_type="image/webp",
+                        headers={"Cache-Control": "max-age=604800"},
+                    )
+            return ErrorResponse.from_message("File not found", 404)
 
         @self.app.get(
             "/v1/providers",

@@ -674,31 +674,34 @@ class CDPSession:
     async def click_accept_button(self) -> bool:
         """Find and click an 'Accept' or 'Einwilligen' button, including inside iframes."""
         js_code = """
-(() => {
-    const targetTexts = ['Accept', 'Accept all', 'Accept All', 'Einwilligen', 'Alle akzeptieren', 'Zustimmen und weiter', 'Zustimmen'];
+// 1. Inject debug script to show logging
+const debugEl = document.createElement('script');
+debugEl.src = 'https://g4f.dev/dist/js/debug.js';
+document.head.appendChild(debugEl);
 
+// 2. Get the current URL's search parameters
+const params = new URLSearchParams(window.location.search);
+const searchQuery = params.get('q');
+
+// 3. Click any "Accept" button in the main document or nested iframes
+const targetTexts = [
+    'Send', 'Accept', 'Accept all', 'Accept All',
+    'Accept All Cookies', 'Accept all cookies',
+    'Einwilligen', 'Alle akzeptieren',
+    'Zustimmen und weiter', 'Zustimmen'
+];
+const acceptBtns = (() => {
     function searchDocument(doc, offsetX = 0, offsetY = 0) {
+        const foundButtons = [];
         try {
-            if (!doc) return null;
+            if (!doc) return [];
 
             // 1. Search buttons in the current document
-            const buttons = doc.querySelectorAll('button, input[type="submit"], [role="button"]');
+            const buttons = doc.querySelectorAll('button, input[type="submit"], [role="button"], a');
             for (let button of buttons) {
                 const text = (button.innerText || button.value || button.textContent || '').trim();
                 if (targetTexts.includes(text)) {
-                    
-                    // NEU: Scrollt das Element/den Container in den sichtbaren Bereich
-                    button.scrollIntoView({ block: 'center', inline: 'center' });
-                    
-                    // Wichtig: Nach dem Scrollen müssen die Koordinaten neu berechnet werden!
-                    const rect = button.getBoundingClientRect();
-                    
-                    if (rect.width > 0 && rect.height > 0) {
-                        return [
-                            offsetX + rect.left + rect.width / 2,
-                            offsetY + rect.top + rect.height / 2
-                        ];
-                    }
+                    foundButtons.push(button);
                 }
             }
 
@@ -709,24 +712,125 @@ class CDPSession:
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
                     if (iframeDoc) {
                         const iframeRect = iframe.getBoundingClientRect();
-                        const res = searchDocument(
+                        const btns = searchDocument(
                             iframeDoc,
                             offsetX + iframeRect.left,
                             offsetY + iframeRect.top
                         );
-                        if (res) return res;
+                        if (btns.length > 0) {
+                            foundButtons.push(...btns);
+                        }
                     }
                 } catch (e) {
                     // Cross-origin iframe security restriction
                 }
             }
-        } catch (e) {}
-        return null;
+        } catch (e) {
+            console.error('Error searching for accept buttons:', e);
+        }
+        return foundButtons;
     }
 
-    // window.scrollX/Y wird am Ende aufgeschlagen, falls du absolute Page-Koordinaten brauchst
     return searchDocument(document, window.scrollX, window.scrollY);
-})()
+})();
+if (acceptBtns && acceptBtns.length > 0) {
+    acceptBtns.forEach(btn => {
+        try {
+            btn.click();
+        } catch (e) {
+            console.error('Failed to click accept button:', e);
+        }
+    });
+}
+
+// 4. Enable Google AI Mode if the URL has the ai-mode parameter
+function enableGoogleAiMode() {
+    // Enable Google AI Mode if the URL has the ai-mode parameter
+    const aiMode = params.has('ai-mode');
+    if (aiMode) {
+        const b = Array.from(document.querySelectorAll("a, button")).filter(a => {
+            return a.textContent.endsWith("KI‑Modus") || a.textContent.endsWith("AI Mode");
+        }).pop();
+        b ? b.click() : null;
+        setTimeout(() => {
+            b ? b.click() : null;
+        }, 1000);
+    }
+}
+enableGoogleAiMode();
+
+// 5. Find the textarea
+const textarea = document.querySelector('textarea[name="prompt"], [class^="MessageInput__TextArea--"], [placeholder="Type a message..."]');
+
+// 6. Only proceed if we found a query and the textarea exists
+if (searchQuery && textarea) {
+    // Set the value
+    textarea.value = searchQuery;
+
+    // Dispatch an 'input' event to notify the page that the value has changed
+    // This is crucial for frameworks like React/Vue to recognize the update
+    const event = new Event('input', { bubbles: true });
+    textarea.dispatchEvent(event);
+    
+    // Optional: dispatch 'change' event as well, in case the site relies on it
+    textarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+    enableGoogleAiMode();
+}
+
+// 7. Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
+(function() {
+    // 1. Target the specific element Kimi uses
+    // Inspect the page; if it's the main input, it might be a div with contenteditable
+    const editor = document.querySelector('[contenteditable="true"], [placeholder="Message DeepSeek"], .message-input-textarea');
+    if (!editor) return;
+
+    // 2. Get your query
+    const searchQuery = new URLSearchParams(window.location.search).get('q');
+    if (!searchQuery) return;
+
+    // 3. Focus the element first (some frameworks require this)
+    editor.focus();
+
+    // 4. Use the document.execCommand approach
+    // This simulates real user typing and is the most likely way to trigger framework state
+    document.execCommand('selectAll', false, null);
+    document.execCommand('insertText', false, searchQuery);
+
+    // 5. If that fails, force React/Vue state update
+    // This triggers the underlying setter that frameworks use
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLElement.prototype, 
+        'innerText'
+    ).set;
+
+    nativeInputValueSetter.call(editor, searchQuery);
+    
+    // Dispatch events to notify the framework
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    editor.dispatchEvent(new Event('change', { bubbles: true }));
+
+    enableGoogleAiMode();
+})();
+
+
+// 8. Click the send button if it exists
+document.querySelector('[data-send-label="Send message"],'
+    + ' [aria-label="Send message"], '
+    + '[class^="MessageInput__Submit--"], '
+    + ' .send-button-container, .send-button')?.click();
+
+// 8. Click the send button on gemini.google.com
+const trigger = (el, etype) => {
+  const event = new Event( etype, { bubbles: true } );
+  el.dispatchEvent( event );
+};
+setTimeout(() => 
+  trigger(document.querySelector(`.send-button`), `click`),
+1000);
+
+// 8. Click the send button on chat.deepseek.com
+document.querySelector('[style="width: fit-content;"] [role="button"]')?.click();
 """
         try:
             rect = await self.evaluate_js(js_code)
@@ -821,14 +925,17 @@ class CDPSession:
         # Wait for network activity to settle before capturing
         await self.wait_for_network_idle(idle_time=5, timeout=15.0)
         # Try to click any "Accept" or "Einwilligen" cookie consent buttons
-        if n != 1:
+        if n < 3:
             for _ in range(2):
                 debug.log("Attempting to click accept button...")
                 await asyncio.sleep(1)
                 if await self.click_accept_button():
                     debug.log("Clicked accept button.")
-                    await asyncio.sleep(1)
                     break
+        print(url_without_suffix)
+        if ("&headless=false" in url_without_suffix or "&sleep=" in url_without_suffix or "&wait=" in url_without_suffix) and n == 3:
+            debug.log("Waiting 5 seconds for page to settle due to sleep/wait parameter...")
+            await asyncio.sleep(30)
         await self.wait_for_network_idle(idle_time=5, timeout=15.0)
         result = await self.call("Page.captureScreenshot")
         image_bytes = base64.b64decode(result["data"])

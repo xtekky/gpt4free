@@ -8,7 +8,7 @@ import re
 import time
 from datetime import datetime
 from urllib.parse import quote, unquote
-from flask import send_from_directory, redirect, request
+from flask import jsonify, send_from_directory, redirect, request
 
 from ...files import secure_filename
 from ...cookies import get_cookies_dir
@@ -339,12 +339,12 @@ class Website:
         """
 
         # Screenshot / logo section
-        logo_url = f"{p.get('url', (p.get('base_url', p.get('baseUrl', '')))).replace('playground.ai.', '').replace('https://', '').replace('http://', '').replace('api.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
+        logo_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('playground.ai.', '').replace('https://', '').replace('http://', '').replace('api.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
         logo_url = f"api.airforce" if logo_url == "airforce" else logo_url
-        logo_url = f"/screenshot?url=https://{logo_url}"
+        create_url = f"/screenshot?url=https://{logo_url}"
         screenshot_html = f"""
         <div class="screenshot-section">
-            <img data-src="{logo_url}" alt="{escape(p['name'])} logo" class="provider-logo"
+            <img src="/screenshot/{logo_url}" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
                  style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <p class="screenshot-caption">Load screenshot from {escape(p['url'] or 'N/A')}</p>
         </div>
@@ -375,13 +375,15 @@ class Website:
                         'groq', 'Groq');
                 return img;
             }}
-            const img = document.querySelector('img[data-src="{logo_url}"]');
+            const img = document.querySelector('img[data-src="{create_url}"]');
+            const input = document.createElement('input');
             const previewImg = getImage("{p['name']}")
             img.parentElement.appendChild(previewImg);
             let n = 1;
             let previewRemoved = false;
-            const orgSrc = img.dataset.src;
+            const createSrc = img.dataset.src;
             img.onload = () => {{
+                input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';
                 if (!previewRemoved && previewImg.parentNode) {{
                     previewImg.parentNode.removeChild(previewImg);
                     previewRemoved = true;
@@ -389,20 +391,57 @@ class Website:
                 n = n + 1;
                 if (n <= 3) {{
                     setTimeout(() => {{
-                        img.src = orgSrc + `_${{n}}.webp`;
+                        img.src = createSrc + `_${{n}}.webp`;
                     }}, 1000);
                 }}
             }};
             img.onerror = () => {{
-                if (n === 1) {{
-                    img.src = 'https://image.thum.io/get/width/600/{logo_url}';
+                input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';
+                if (img.src.includes(createSrc)) {{
+                    img.parentNode.removeChild(img);
                     return;
                 }}
-                if (img.src == orgSrc) return;
+                if (n === 1) {{
+                    img.src = createSrc;
+                    return;
+                }}
                 n = 3; // Stop carousel on error
-                img.src = orgSrc;
+                img.src = createSrc;
             }};
-            img.src = img.dataset.src;
+            input.type = 'text';
+            input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';
+            input.className = 'provider-input';
+            input.addEventListener('change', function(event) {{
+                if (!event.target.value) {{
+                    img.src = createSrc;
+                    return;
+                }}
+                let newUrl = '';
+                if ('{p["name"]}' == 'YouTube') {{
+                    const createUrl = new URL('{create_url}', location.origin);
+                    const queryUrl = new URL(createUrl.searchParams.get('url'));
+                    queryUrl.pathname = "/results";
+                    queryUrl.searchParams.set('search_query', event.target.value);
+                    newUrl = "/screenshot?url=" + encodeURIComponent(queryUrl.toString());
+                }} else if (['GoogleSearch', 'GoogleAiMode'].includes('{p["name"]}')) {{
+                    const createUrl = new URL('{create_url}', location.origin);
+                    const queryUrl = new URL(createUrl.searchParams.get('url'));
+                    queryUrl.pathname = "/search";
+                    const appendUrl = queryUrl.toString() + (queryUrl.toString().includes('?') ? '&q=' : '?q=') + event.target.value;
+                    newUrl = "/screenshot?url=" + encodeURIComponent(appendUrl);
+                }} else {{
+                    newUrl = createSrc + encodeURIComponent('?q=' + event.target.value);
+                }}
+                if (img.src !== newUrl) {{
+                    img.src = newUrl;
+                }}
+                input.value = '';
+                input.placeholder = 'Is Loading...';
+            }});
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'provider-input-container';
+            inputContainer.appendChild(input);
+            img.parentElement.appendChild(inputContainer);
         </script>
         """
 
@@ -485,10 +524,6 @@ class Website:
     def _apps(self, filename: str = "index.html"):
         return render(f"apps/{filename}")
 
-    def _sillytavern(self, filename: str = "index.html"):
-        SILLYTAVERN_URL = "https://raw.githubusercontent.com/SillyTavern/SillyTavern/refs/heads/release/"
-        return render(f"public/{filename}", SILLYTAVERN_URL)
-
     def _playground(self, filename: str = "index.html"):
         PLAYGROUND_URL = (
             "https://raw.githubusercontent.com/gpt4free/playground/refs/heads/main/"
@@ -509,7 +544,7 @@ class Website:
         cache_dir = os.path.join(get_cookies_dir(), ".playground_cache")
         safe_path = os.path.normpath(os.path.join(cache_dir, filename))
         if not safe_path.startswith(cache_dir + os.sep) and safe_path != cache_dir:
-            return redirect("/playground/")
+            return jsonify({"error": "Invalid filename"}), 400
         # Serve from cache if present
         if os.path.isfile(safe_path):
             return send_from_directory(
