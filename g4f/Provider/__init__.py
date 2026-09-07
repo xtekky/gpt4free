@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..providers.types import BaseProvider, ProviderType
-from ..providers.retry_provider import RetryProvider, IterListProvider, RotatedProvider
+from ..providers.retry_provider import RetryProvider, IterListProvider, RotatedProvider, ProviderCircuitBreaker
 from ..providers.base_provider import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images import CreateImagesProvider
 
@@ -511,6 +511,7 @@ __all__ = [
     "RetryProvider",
     "IterListProvider",
     "RotatedProvider",
+    "ProviderCircuitBreaker",
     "AsyncProvider",
     "AsyncGeneratorProvider",
     "CreateImagesProvider",
