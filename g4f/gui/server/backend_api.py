@@ -766,11 +766,18 @@ class Backend_Api(Api):
                             finally:
                                 os.remove(os.path.join(media_dir, filename))
                         else:
-                            return redirect(response)
+                            if response.startswith("/") and not response.startswith("//"):
+                                return redirect(response)
+                            return Response(response, mimetype="text/plain")
                     elif response.startswith("https://") or response.startswith(
                         "http://"
                     ):
-                        return redirect(response)
+                        from urllib.parse import urlparse
+                        target_netloc = urlparse(response).netloc.lower()
+                        allowed_hosts = {request.host.lower()}
+                        if target_netloc in allowed_hosts:
+                            return redirect(response)
+                        return Response(response, mimetype="text/plain")
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]
                     response = (
@@ -923,7 +930,7 @@ class Backend_Api(Api):
             ) as f:
                 for filename in filenames:
                     f.write(f"{filename}\n")
-            return {"bucket_id": bucket_id, "files": filenames, "media": media}
+            return jsonify({"bucket_id": bucket_id, "files": filenames, "media": media})
 
         @app.route("/files/<bucket_id>/<file_type>/<filename>", methods=["GET"])
         def get_media(bucket_id, file_type: str, filename, dirname: str = None):
@@ -939,9 +946,6 @@ class Backend_Api(Api):
             try:
                 return send_from_directory(os.path.abspath(media_dir), filename)
             except NotFound:
-                source_url = get_source_url(request.query_string.decode())
-                if source_url is not None:
-                    return redirect(source_url)
                 raise
 
         self.match_files = {}
@@ -1042,7 +1046,7 @@ class Backend_Api(Api):
             share_id = secure_filename(share_id)
             cache_value = self.chat_cache.get(share_id, 0)
             if updated == cache_value:
-                return {"share_id": share_id}
+                return jsonify({"share_id": share_id})
             bucket_dir = get_bucket_dir(share_id)
             os.makedirs(bucket_dir, exist_ok=True)
             with open(
@@ -1050,7 +1054,7 @@ class Backend_Api(Api):
             ) as f:
                 json.dump(chat_data, f)
             self.chat_cache[share_id] = updated
-            return {"share_id": share_id}
+            return jsonify({"share_id": share_id})
 
     def handle_synthesize(self, provider: str):
         try:
