@@ -7,7 +7,7 @@ import requests
 import re
 import time
 from datetime import datetime
-from urllib.parse import quote, unquote
+from urllib.parse import quote_plus
 from flask import jsonify, send_from_directory, redirect, request
 
 from ...files import secure_filename
@@ -334,45 +334,40 @@ class Website:
         """
 
         # Screenshot / logo section
-        logo_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('https://', '').replace('http://', '').replace('api.', '').replace('www.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
-        logo_url = f"api.airforce" if logo_url == "airforce" else logo_url or "g4f.dev"
-        create_url = f"/screenshot?url=https://{logo_url}"
+        screenshot_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('https://', '').replace('http://', '').replace('api.', '').replace('www.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
+        screenshot_url = f"api.airforce" if screenshot_url == "airforce" else screenshot_url or "g4f.dev"
+        if p.get("name", "") == "OperaAria" or p.get("name", "") == "CopilotApp":
+            screenshot_url = p["url"].replace("https://", "")
+        create_url = f"/screenshot?url={quote_plus('https://' + screenshot_url)}"
+        logo_url = "https://g4f.space/logo/" + p.get("name", "").replace(
+            'MetaAIAccount', 'Facebook AI').replace(
+            'MetaAI', 'Facebook AI').replace(
+            'Aria', '').replace(
+            'OpenAI', 'ChatGPT').replace(
+            'Video', 'TV').replace(
+            'Phi-4', 'Windows').replace(
+            '(Text Generation)', '').replace(
+            'Glhf', 'AI').replace(
+            'GithubCopilot', 'GitHub Copilot').replace(
+            'PerplexityApi', 'Perplexity API').replace(
+            'Gemini', '').replace(
+            'API', '').replace(
+            '-2.5M', '').replace(
+            'grok', 'xAI').replace(
+            'Qwen_Qwen_3', 'Qwen').replace(
+            'Yupp', 'with yupp').replace(
+            'groq', 'Groq')
         screenshot_html = f"""
         <div class="screenshot-section">
-            <img src="/screenshot/{logo_url}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
+            <img src="/screenshot/{quote_plus(screenshot_url)}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
                  style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
+            <img src="{logo_url}" alt="{escape(p['name'])} logo" class="provider-logo" style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <p class="screenshot-caption">Load screenshot from {escape(p['url'] or 'N/A')}</p>
         </div>
         <script>
-            // Get provider logo (same as docs page)
-            function getImage(key) {{
-                key = key || "";
-                const img = new Image(200, 200);
-                const gen = 'https://g4f.space';
-                img.src = gen + '/logo/' +
-                    key.replace(
-                        'MetaAIAccount', 'Facebook AI').replace(
-                        'MetaAI', 'Facebook AI').replace(
-                        'Aria', '').replace(
-                        'OpenAI', 'ChatGPT').replace(
-                        'Video', 'TV').replace(
-                        'Phi-4', 'Windows').replace(
-                        '(Text Generation)', '').replace(
-                        'Glhf', 'AI').replace(
-                        'GithubCopilot', 'GitHub Copilot').replace(
-                        'PerplexityApi', 'Perplexity API').replace(
-                        'Gemini', '').replace(
-                        'API', '').replace(
-                        '-2.5M', '').replace(
-                        'grok', 'xAI').replace(
-                        'Qwen_Qwen_3', 'Qwen').replace(
-                        'Yupp', 'with yupp').replace(
-                        'groq', 'Groq');
-                return img;
-            }}
             const img = document.querySelector('img[data-src="{create_url}"]');
             const input = document.createElement('input');
-            const previewImg = getImage("{p['name']}")
+            const previewImg = document.querySelector('img[src="{logo_url}"]');
             img.parentElement.appendChild(previewImg);
             let n = 1;
             let previewRemoved = false;
@@ -384,12 +379,13 @@ class Website:
                     previewRemoved = true;
                     document.querySelector('.screenshot-caption').style.display = 'none';
                 }}
-                // n = n + 1;
-                // if (n <= 3) {{
-                //     setTimeout(() => {{
-                //         img.src = createSrc + `_${{n}}.webp`;
-                //     }}, 1000);
-                // }}
+            }};
+            img.onmouseenter = () => {{
+                n = (n % 3) + 1;
+                if (n <= 3) {{
+                    const append = n == 1 ? ".webp" : `_${{n}}.webp`;
+                    img.src = `/screenshot/{quote_plus(screenshot_url)}${{append}}`;
+                }}
             }};
             img.onerror = () => {{
                 input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';

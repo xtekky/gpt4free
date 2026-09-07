@@ -787,7 +787,13 @@ if (searchQuery && textarea) {
 (function() {
     // 1. Target the specific element Kimi uses
     // Inspect the page; if it's the main input, it might be a div with contenteditable
-    const editor = document.querySelector('[contenteditable="true"], [placeholder="Message DeepSeek"], .message-input-textarea');
+    const fields = [
+        '[contenteditable="true"]',
+        '[placeholder="Message DeepSeek"]',
+        '.message-input-textarea',
+        '#chat-input'
+    ];
+    const editor = document.querySelector(fields.join(', '));
     if (!editor) return;
 
     // 2. Get your query
@@ -820,10 +826,15 @@ if (searchQuery && textarea) {
 
 
 // 8. Click the send button if it exists
-document.querySelector('[data-send-label="Send message"],'
-    + ' [aria-label="Send message"], '
-    + '[class^="MessageInput__Submit--"], '
-    + ' .send-button-container, .send-button')?.click();
+const sendButtonSelectors = [
+    '[data-send-label="Send message"]',
+    '[aria-label="Send message"]',
+    '[class^="MessageInput__Submit--"]',
+    '.send-button-container',
+    '.send-button',
+    '#send-message-button', // z.ai
+];
+document.querySelector(sendButtonSelectors.join(', '))?.click();
 
 // 8. Click the send button on gemini.google.com
 const trigger = (el, etype) => {

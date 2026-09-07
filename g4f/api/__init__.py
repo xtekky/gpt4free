@@ -87,7 +87,7 @@ from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.config import DEFAULT_PORT, DEFAULT_TIMEOUT, DEFAULT_STREAM_TIMEOUT
 from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image, is_safe_url
-from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
+from g4f.image.copy_images import get_media_dir, copy_media, get_source_url, secure_filename
 from g4f.errors import (
     ProviderNotFoundError,
     ModelNotFoundError,
@@ -1409,19 +1409,20 @@ class Api:
                     e, None, HTTP_500_INTERNAL_SERVER_ERROR
                 )
         
-        @self.app.get("/screenshot/{path}", responses=responses)
+        @self.app.get("/screenshot/{name:path}", responses=responses)
         async def image_from_url(
-            path: str,
+            name: str,
         ):
+            safe_name = secure_filename(name)
             screenshots_dir = os.path.join(get_media_dir(), "screenshots")
             for root, _, files in os.walk(screenshots_dir):
                 for file in files:
-                    if file != path:
+                    if file != safe_name:
                         continue
                     if not os.path.isfile(os.path.join(root, file)):
                         continue
                     return FileResponse(
-                        os.path.join(root, path),
+                        os.path.join(root, safe_name),
                         media_type="image/webp",
                         headers={"Cache-Control": "max-age=604800"},
                     )

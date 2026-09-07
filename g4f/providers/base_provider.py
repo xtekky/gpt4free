@@ -316,31 +316,11 @@ class AsyncGeneratorProvider(AbstractProvider):
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
         """Get the quota information for the API key."""
-        if cls.quota_url is None:
-            if not getattr(cls, "use_nodriver", False) or not cls.needs_auth:
-                with cls.quota_lock:
-                    chunks = []
-                    async for chunk in cls.create_async_generator(
-                        model=getattr(cls, "default_model", "auto"),
-                        messages=[{"role": "user", "content": "Hi"}],
-                        stream=False,
-                        reasoning_effort=cls.default_reasoning_effort,
-                        **kwargs,
-                    ):
-                        if isinstance(chunk, str):
-                            chunks.append(chunk)
-                    if chunks:
-                        return {"choices": [{"message": {"content": "".join(chunks)}}]}
-            raise NotImplementedError(
-                f"{cls.__name__} does not implement get_quota method"
-            )
         if not api_key and cls.needs_auth:
             raise MissingAuthError("API key is required.")
-        headers = {"authorization": f"Bearer {api_key}"} if api_key else {}
-        async with StreamSession() as session:
-            async with session.get(cls.quota_url, headers=headers) as response:
-                await raise_for_status(response)
-                return await response.json()
+        raise NotImplementedError(
+            f"{cls.__name__} does not implement get_quota method"
+        )
 
     @staticmethod
     @abstractmethod
