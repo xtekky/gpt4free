@@ -44,6 +44,7 @@ EXTRA_REQUIRE = {
         "PyYAML",
         "websocket-client",
         "pystray",
+        "cryptography",
     ],
     "slim": [
         "curl_cffi>=0.6.2",
@@ -67,6 +68,7 @@ EXTRA_REQUIRE = {
         "PyYAML",
         "websocket-client",
         "pystray",
+        "cryptography",
     ],
     "image": [
         "pillow",
