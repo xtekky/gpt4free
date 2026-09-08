@@ -5,7 +5,6 @@ from .Antigravity import Antigravity
 from .Azure import Azure
 from .BingCreateImages import BingCreateImages
 from .BlackboxPro import BlackboxPro
-from .CablyAI import CablyAI
 from .Cerebras import Cerebras
 from .Claude import Claude
 from .Cohere import Cohere
@@ -13,7 +12,6 @@ from .CopilotAccount import CopilotAccount
 from .Custom import Custom
 from .Custom import Feature
 from .DeepSeek import DeepSeek
-from .FenayAI import FenayAI
 from .Gemini import Gemini
 from .GeminiPro import GeminiPro
 from .GeminiCLI import GeminiCLI

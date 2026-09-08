@@ -30,7 +30,7 @@ class GoogleAiMode(GoogleSearch):
         search_url = f"{cls.url}/search?q={urllib.parse.quote_plus(query)}&ai-mode=true"
 
         debug.log(f"Google Search: Starting CDPSession for query: {query}")
-        session = CDPSession(headless=False)
+        session = CDPSession()
         await session.start()
 
         try:

@@ -31,7 +31,7 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
         search_url = f"{cls.url}/search?q={urllib.parse.quote_plus(query)}"
 
         debug.log(f"Google Search: Starting CDPSession for query: {query}")
-        session = CDPSession(headless=True)
+        session = CDPSession()
         await session.start()
 
         try:
@@ -40,18 +40,19 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
 
             # Wait for Google search results page to load
             for _ in range(10):
+                has_results = None
                 try:
                     has_results = await session.evaluate_js(
                         "document.querySelectorAll('div.g, h3').length > 0"
                     )
                 except Exception as e:
                     debug.log(f"Google Search: Error checking for results: {e}")
-                if has_results:
-                    break
-                await asyncio.sleep(1)
+                if not has_results:
+                    continue
 
                 # Extract search results from the DOM
                 yield await cls._read_search_results(session)
+                break
         finally:
             await session.close()
 

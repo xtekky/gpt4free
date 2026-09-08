@@ -160,19 +160,75 @@ import atexit
 _shared_browser_process = None
 _shared_browser_port = None
 _shared_browser_lock = threading.Lock()
+_shared_browser_refcount = 0  # Track active CDP sessions for parallel tabs
+_shared_browser_idle_timer = None  # Timer to shut down browser after idle period
+_SHARED_BROWSER_IDLE_TIMEOUT = 60  # seconds to keep browser alive with zero tabs
 
 
-def _cleanup_shared_browser():
-    global _shared_browser_process
+def _terminate_shared_browser():
+    """Terminate the shared browser process and reset state."""
+    global _shared_browser_process, _shared_browser_port
     if _shared_browser_process:
         try:
             _shared_browser_process.terminate()
         except Exception:
             pass
         _shared_browser_process = None
+    _shared_browser_port = None
+
+
+def _schedule_idle_shutdown():
+    """Schedule browser termination after idle timeout (call under lock)."""
+    global _shared_browser_idle_timer
+    if _shared_browser_idle_timer:
+        _shared_browser_idle_timer.cancel()
+    _shared_browser_idle_timer = threading.Timer(
+        _SHARED_BROWSER_IDLE_TIMEOUT, _terminate_shared_browser
+    )
+    _shared_browser_idle_timer.daemon = True
+    _shared_browser_idle_timer.start()
+    debug.log(f"CDP: Browser idle shutdown scheduled in {_SHARED_BROWSER_IDLE_TIMEOUT}s")
+
+
+def _cancel_idle_shutdown():
+    """Cancel any pending idle shutdown timer (call under lock)."""
+    global _shared_browser_idle_timer
+    if _shared_browser_idle_timer:
+        _shared_browser_idle_timer.cancel()
+        _shared_browser_idle_timer = None
+
+
+def _cleanup_shared_browser():
+    global _shared_browser_refcount, _shared_browser_idle_timer
+    if _shared_browser_idle_timer:
+        _shared_browser_idle_timer.cancel()
+        _shared_browser_idle_timer = None
+    _terminate_shared_browser()
+    _shared_browser_refcount = 0
 
 
 atexit.register(_cleanup_shared_browser)
+
+
+def acquire_shared_browser_ref():
+    """Increment the shared browser reference count (call when opening a new tab)."""
+    global _shared_browser_refcount
+    with _shared_browser_lock:
+        _cancel_idle_shutdown()
+        _shared_browser_refcount += 1
+        debug.log(f"CDP: Acquired browser tab (#{_shared_browser_refcount} active)")
+
+
+def release_shared_browser_ref() -> bool:
+    """Decrement the shared browser reference count.
+    Returns True if the refcount reached 0 (browser kept alive for reuse)."""
+    global _shared_browser_refcount
+    with _shared_browser_lock:
+        _shared_browser_refcount = max(0, _shared_browser_refcount - 1)
+        debug.log(f"CDP: Released browser tab (#{_shared_browser_refcount} remaining)")
+        if _shared_browser_refcount == 0:
+            _schedule_idle_shutdown()
+        return _shared_browser_refcount == 0
 
 
 def find_running_cdp_port(host: str) -> Optional[int]:
@@ -273,6 +329,17 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
             )
         os.makedirs(user_data_dir, exist_ok=True)
 
+        # Remove stale SingletonLock / SingletonSocket / SingletonCookie left
+        # behind by a previous Chrome crash — otherwise the new process refuses
+        # to start with "Failed to create …/SingletonLock: File exists".
+        for lock_name in ("SingletonLock", "SingletonSocket", "SingletonCookie"):
+            lock_path = os.path.join(user_data_dir, lock_name)
+            try:
+                if os.path.islink(lock_path) or os.path.exists(lock_path):
+                    os.remove(lock_path)
+            except Exception:
+                pass
+
         cmd = [
             chrome_path,
             f"--remote-debugging-port={port}",
@@ -293,8 +360,9 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
         if headless:
             cmd.append("--headless=new")
 
+        debug.log(f"CDP: Launching Chrome: {' '.join(cmd)}")
         _shared_browser_process = subprocess.Popen(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
         # Wait up to 20 seconds for readiness
@@ -306,17 +374,39 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
                 ) as response:
                     if response.status == 200:
                         _shared_browser_port = port
+                        debug.log(f"CDP: Shared Chrome ready on port {port}")
                         return _shared_browser_port
             except Exception:
                 pass
 
+        # Chrome failed to become ready — capture stderr for diagnostics
         if _shared_browser_process:
+            stderr_output = ""
             try:
                 _shared_browser_process.terminate()
+                # Read any stderr output before killing
+                import threading
+
+                def _read_stderr(proc, container):
+                    try:
+                        container.append(proc.stderr.read().decode("utf-8", errors="replace")[:2000])
+                    except Exception:
+                        pass
+
+                err_list = []
+                t = threading.Thread(target=_read_stderr, args=(_shared_browser_process, err_list))
+                t.daemon = True
+                t.start()
+                t.join(timeout=2)
+                if err_list:
+                    stderr_output = err_list[0]
             except Exception:
                 pass
             _shared_browser_process = None
-        raise RuntimeError(f"Failed to start shared Chrome on port {port}")
+        raise RuntimeError(
+            f"Failed to start shared Chrome on port {port}"
+            + (f": {stderr_output}" if stderr_output else "")
+        )
 
 
 class CDPSession:
@@ -335,7 +425,9 @@ class CDPSession:
             host = "127.0.0.1"
         self.port = port
         self.host = host
-        self.headless = headless if headless is not None else BrowserConfig.headless
+        if headless is None:
+            headless = BrowserConfig.headless
+        self.headless = headless
         self.user_data_dir = (
             user_data_dir  # Ignored if using shared pool, but kept for compatibility
         )
@@ -359,6 +451,9 @@ class CDPSession:
         if self.port is None:
             self.port = get_shared_browser(self.host, self.port, self.headless)
 
+        # Acquire a reference so the shared browser stays alive for this tab
+        acquire_shared_browser_ref()
+
         # Create a new tab target
         ws_url = None
         for _ in range(10):
@@ -376,6 +471,7 @@ class CDPSession:
                 await asyncio.sleep(0.5)
 
         if not ws_url:
+            release_shared_browser_ref()
             raise RuntimeError(f"Failed to create new tab target on port {self.port}")
 
         await self.connect(ws_url)
@@ -970,9 +1066,8 @@ if (deepseekSendButton) {
                 await asyncio.sleep(1)
                 if await self.click_accept_button():
                     debug.log("Clicked accept button.")
-                    break
-        print(url_without_suffix)
-        if ("&headless=false" in url_without_suffix or "&sleep=" in url_without_suffix or "&wait=" in url_without_suffix) and n == 3:
+                break
+        if ("headless=false" in url_without_suffix or "sleep=" in url_without_suffix or "wait=" in url_without_suffix) and n == 3:
             debug.log("Waiting 5 seconds for page to settle due to sleep/wait parameter...")
             await asyncio.sleep(120)
         await self.wait_for_network_idle(idle_time=5, timeout=15.0)
@@ -995,7 +1090,12 @@ if (deepseekSendButton) {
         return filepath
 
     async def close(self):
-        """Close WebSocket session, close the specific target tab, and close the browser."""
+        """Close WebSocket session and close this tab only.
+
+        The shared browser process is kept alive as long as other CDP sessions
+        (tabs) are active.  When the last session releases its reference the
+        browser is terminated automatically.
+        """
         self._closing = True
 
         if self._receive_task:
@@ -1022,14 +1122,8 @@ if (deepseekSendButton) {
                 pass
             self.target_id = None
 
-        # Close the browser process
-        global _shared_browser_process
-        if _shared_browser_process:
-            try:
-                _shared_browser_process.terminate()
-            except Exception:
-                pass
-            _shared_browser_process = None
+        # Release our tab; browser stays alive for reuse by other tabs
+        release_shared_browser_ref()
 
 
 class SyncCDPSession:
@@ -1062,7 +1156,7 @@ class SyncCDPSession:
         port: Optional[int] = None,
         host: Optional[str] = None,
         user_data_dir: Optional[str] = None,
-        headless: bool = False,
+        headless: bool = None,
     ):
         if port is None:
             port = BrowserConfig.port
@@ -1070,6 +1164,8 @@ class SyncCDPSession:
             host = BrowserConfig.host
         if host is None:
             host = "127.0.0.1"
+        if headless is None:
+            headless = BrowserConfig.headless
         self.port = port
         self.host = host
         self.headless = headless
@@ -1090,6 +1186,9 @@ class SyncCDPSession:
         if self.port is None:
             self.port = get_shared_browser(self.host, self.port, self.headless)
 
+        # Acquire a reference so the shared browser stays alive for this tab
+        acquire_shared_browser_ref()
+
         # Create a new tab target
         ws_url = None
         for _ in range(10):
@@ -1107,6 +1206,7 @@ class SyncCDPSession:
                 time.sleep(0.5)
 
         if not ws_url:
+            release_shared_browser_ref()
             raise RuntimeError(f"Failed to create new tab target on port {self.port}")
 
         self._connect(ws_url)
@@ -1266,7 +1366,12 @@ class SyncCDPSession:
         )
 
     def close(self):
-        """Close WebSocket session, close the specific target tab, and close the browser."""
+        """Close WebSocket session and close this tab only.
+
+        The shared browser process is kept alive as long as other CDP sessions
+        (tabs) are active.  When the last session releases its reference the
+        browser is terminated automatically.
+        """
         if self.ws:
             try:
                 self.ws.close()
@@ -1284,14 +1389,8 @@ class SyncCDPSession:
                 pass
             self.target_id = None
 
-        # Close the browser process
-        global _shared_browser_process
-        if _shared_browser_process:
-            try:
-                _shared_browser_process.terminate()
-            except Exception:
-                pass
-            _shared_browser_process = None
+        # Release our tab; browser stays alive for reuse by other tabs
+        release_shared_browser_ref()
 
     def capture_screenshot(self, url: str) -> bytes:
         """Navigate to a URL and capture a screenshot, caching the result."""

@@ -22,13 +22,7 @@ try:
 except ImportError:
     has_curl_cffi = False
 
-try:
-    import zendriver as nodriver
-    from zendriver import cdp
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from ...requests.cdp_browser import cdp, CDPTab
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
@@ -93,24 +87,23 @@ def check_link_expiry(url):
     return current_time <= expiry_time
 
 
-if has_nodriver:
 
-    async def click_trunstile(
-        page: nodriver.Tab, element='document.getElementById("cf-turnstile")'
-    ):
-        for _ in range(3):
-            size = None
-            for idx in range(15):
-                size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
-                debug.log(f"Found size: {size.get('x'), size.get('y')}")
-                if "x" not in size:
-                    break
-                await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
-                await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
-                await asyncio.sleep(2)
+async def click_trunstile(
+    page: CDPTab, element='document.getElementById("cf-turnstile")'
+):
+    for _ in range(3):
+        size = None
+        for idx in range(15):
+            size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
+            debug.log(f"Found size: {size.get('x'), size.get('y')}")
             if "x" not in size:
                 break
-        debug.log("Finished clicking trunstile.")
+            await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
+            await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
+            await asyncio.sleep(2)
+        if "x" not in size:
+            break
+    debug.log("Finished clicking trunstile.")
 
 
 class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
@@ -247,7 +240,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     async def get_args_from_nodriver(cls, proxy, clear_cookies=False):
         cache_file = cls.get_cache_file()
 
-        async def callback(page: nodriver.Tab):
+        async def callback(page: CDPTab):
             try:
                 button = await page.find("Accept Cookies")
             except TimeoutError:
@@ -327,7 +320,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         if cls._grecaptcha:
             return args
 
-        async def callback(page: nodriver.Tab):
+        async def callback(page: CDPTab):
             while not await page.evaluate(
                 "window.grecaptcha && window.grecaptcha.enterprise"
             ):
@@ -571,7 +564,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 args = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
             else:
                 raise MissingRequirementsError(
-                    "No auth file found and nodriver is not available."
+                    "No auth file found and browser (CDP) is not available."
                 )
 
             if not cls._models_loaded:

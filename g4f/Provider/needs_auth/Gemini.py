@@ -15,13 +15,7 @@ from urllib.parse import quote, quote_plus, unquote_plus
 
 from aiohttp import BaseConnector, ClientError, ClientSession
 
-try:
-    import zendriver as nodriver
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
-
+from ...requests.cdp_browser import cdp
 from ... import debug
 from ...typing import Messages, Cookies, MediaListType, AsyncResult, AsyncIterator
 from ...providers.response import (
@@ -364,7 +358,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def login_generator(cls, proxy: str = None) -> AsyncIterator[str]:
         if not has_nodriver:
-            debug.log("Skip nodriver login in Gemini provider")
+            debug.log("Skip browser login in Gemini provider")
             return
         browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         try:
@@ -372,8 +366,9 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             page = await browser.get(f"{cls.url}/app")
             await page.select("div.ql-editor.textarea", 240)
             cookies = {}
-            for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
-                cookies[c.name] = c.value
+            result = await page.send(cdp.network.get_cookies([cls.url]))
+            for c in result.get("cookies", []):
+                cookies[c["name"]] = c["value"]
             await page.close()
             cls._cookies = cookies
         finally:

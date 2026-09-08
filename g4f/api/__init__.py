@@ -73,12 +73,7 @@ except ImportError:
         pass
 
 
-try:
-    from zendriver import util
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from g4f.requests import has_nodriver, has_cdp
 
 import g4f
 import g4f.debug
@@ -318,16 +313,9 @@ async def lifespan(app: FastAPI):
     else:
         AppConfig.load_from_env()
     yield
-    if has_nodriver:
-        for browser in util.get_registered_instances():
-            if browser.connection:
-                await browser.stop()
-        lock_file = os.path.join(get_cookies_dir(), ".browser_is_open")
-        if os.path.exists(lock_file):
-            try:
-                os.remove(lock_file)
-            except Exception as e:
-                debug.error(f"Failed to remove lock file {lock_file}:", e)
+    if has_cdp:
+        from g4f.requests.cdp import _terminate_shared_browser
+        _terminate_shared_browser()
 
 
 _LOG_SKIP_PREFIXES = ("/images/", "/media/", "/thumbnail/", "/dist/", "/.well-known/")
@@ -346,8 +334,36 @@ def create_app():
         cors_origins = env_origins
         cors_regex = None
     else:
-        cors_origins = []
+        cors_origins = [
+            "https://g4f.dev",
+            "https://g4f.space",
+        ]
         cors_regex = r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$"
+
+    # When allow_credentials=True, the "*" wildcard is not permitted by the
+    # CORS spec for allow_headers / expose_headers — browsers reject the
+    # preflight and block the actual request.  List the headers explicitly.
+    _cors_allow_headers = [
+        "Accept",
+        "Accept-Language",
+        "Authorization",
+        "Content-Type",
+        "Content-Length",
+        "Origin",
+        "User-Agent",
+        "X-Requested-With",
+        "x-user-id",
+        "x-user",
+        "x-api-key",
+        "x-session-id",
+        "x-requested-with",
+    ]
+    _cors_expose_headers = [
+        "Content-Length",
+        "Content-Type",
+        "Content-Disposition",
+        "X-Request-ID",
+    ]
 
     # Add CORS middleware
     app.add_middleware(
@@ -356,8 +372,8 @@ def create_app():
         allow_origin_regex=cors_regex,
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
+        allow_headers=_cors_allow_headers,
+        expose_headers=_cors_expose_headers,
     )
 
     @app.middleware("http")
@@ -1383,26 +1399,23 @@ class Api:
                     e, config, HTTP_500_INTERNAL_SERVER_ERROR
                 )
     
-        lock = asyncio.Lock()
-
         @self.app.get("/screenshot", responses=responses)
         async def image_from_url(
             url: str,
         ):
             try:
-                async with lock:
-                    from g4f.requests.cdp import CDPSession
-                    session = CDPSession(headless="headless=false" not in url)
-                    await session.start()
-                    try:
-                        screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url else 3)
-                        return FileResponse(
-                            screenshot_path,
-                            media_type="image/webp",
-                            headers={"Cache-Control": "max-age=604800"},
-                        )
-                    finally:
-                        await session.close()
+                from g4f.requests.cdp import CDPSession
+                session = CDPSession(headless="headless=false" not in url)
+                await session.start()
+                try:
+                    screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url else 3)
+                    return FileResponse(
+                        screenshot_path,
+                        media_type="image/webp",
+                        headers={"Cache-Control": "max-age=604800"},
+                    )
+                finally:
+                    await session.close()
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(

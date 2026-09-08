@@ -270,6 +270,7 @@ class Api:
                 },
             )
             for chunk in result:
+                print(type(chunk))
                 if isinstance(chunk, ProviderInfo):
                     model = getattr(chunk, "model", model)
                     provider = getattr(chunk, "provider", provider)

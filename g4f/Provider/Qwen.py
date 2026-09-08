@@ -41,12 +41,7 @@ try:
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
-try:
-    import zendriver as nodriver
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from ..requests import CDPTab
 
 # Global variables to manage Qwen Image Cache
 ImagesCache: Dict[str, dict] = {}
@@ -404,7 +399,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     async def get_args(cls, proxy, **kwargs):
         grecaptcha = []
 
-        async def callback(page: nodriver.Tab):
+        async def callback(page: CDPTab):
             while not await page.evaluate(
                 "window.__baxia__ && window.__baxia__.getFYModule"
             ):

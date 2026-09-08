@@ -7,11 +7,7 @@ import asyncio
 import uuid
 from typing import Dict, Any, AsyncIterator
 
-try:
-    import zendriver as nodriver
-except ImportError:
-    pass
-
+from ...requests.cdp_browser import cdp
 from ...typing import Messages, AsyncResult
 from ...providers.response import (
     JsonConversation,
@@ -84,7 +80,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
             page = await browser.get(cls.url)
             has_headers = False
 
-            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
+            def on_request(event, page=None):
                 nonlocal has_headers
                 if hasattr(event, "request") and event.request.url.startswith(
                     cls.conversation_url + "/new"
@@ -93,8 +89,8 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                         auth_result.headers[key.lower()] = value
                     has_headers = True
 
-            await page.send(nodriver.cdp.network.enable())
-            page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+            await page.send(cdp.network.enable())
+            page.add_handler(cdp.network.RequestWillBeSent, on_request)
             await page.reload()
             auth_result.headers["user-agent"] = await page.evaluate(
                 "window.navigator.userAgent", return_by_value=True
@@ -124,8 +120,9 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                         pass
                 await asyncio.sleep(1)
             auth_result.cookies = {}
-            for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
-                auth_result.cookies[c.name] = c.value
+            result = await page.send(cdp.network.get_cookies([cls.url]))
+            for c in result.get("cookies", []):
+                auth_result.cookies[c["name"]] = c["value"]
             await page.close()
         finally:
             await stop_browser()

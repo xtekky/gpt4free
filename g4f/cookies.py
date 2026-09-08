@@ -77,7 +77,7 @@ class BrowserConfig:
     impersonate: str = "chrome"
     executable_path: str = None
     connection_timeout: float = 0.25
-    headless: bool = True
+    headless: bool = False
 
     @staticmethod
     async def stop_browser():
@@ -323,9 +323,6 @@ def read_cookie_files(
 
     AppConfig.load_from_env()
     BrowserConfig.load_from_env()
-
-    if os.path.exists(os.path.join(dir_path, ".browser_is_open")):
-        os.remove(os.path.join(dir_path, ".browser_is_open"))
 
     har_files, json_files = [], []
     for root, _, files in os.walk(dir_path):

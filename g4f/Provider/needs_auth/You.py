@@ -4,13 +4,7 @@ import re
 import json
 import uuid
 
-try:
-    import zendriver as nodriver
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
-
+from ...requests.cdp_browser import cdp
 from ...typing import AsyncResult, Messages, ImageType, Cookies
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt
@@ -94,10 +88,11 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                         '[data-testid="user-profile-button"]', timeout=900
                     )
                     cookies = {}
-                    for c in await page.send(
-                        nodriver.cdp.network.get_cookies([cls.url])
-                    ):
-                        cookies[c.name] = c.value
+                    result = await page.send(
+                        cdp.network.get_cookies([cls.url])
+                    )
+                    for c in result.get("cookies", []):
+                        cookies[c["name"]] = c["value"]
                     await page.close()
                 finally:
                     await stop_browser()

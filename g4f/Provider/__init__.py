@@ -13,10 +13,10 @@ class ProviderLoader:
         "Antigravity",
         "Airforce",
         "BingCreateImages",
+        "BraveSearch",
         "BlackForestLabs_Flux1Dev",
         "BlackForestLabs_Flux1KontextDev",
         "BlackboxPro",
-        "CablyAI",
         "CachedSearch",
         "Cerebras",
         "Claude",
@@ -32,7 +32,7 @@ class ProviderLoader:
         "DeepSeek",
         "EdgeTTS",
         "ElevenLabs",
-        "FenayAI",
+        "G4FSpace",
         "GLM",
         "Gemini",
         "GeminiCLI",
@@ -127,6 +127,10 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.BingCreateImages import BingCreateImages
 
             return BingCreateImages
+        elif name == "BraveSearch":
+            from g4f.Provider.BraveSearch import BraveSearch
+
+            return BraveSearch
         elif name == "BlackForestLabs_Flux1Dev":
             from g4f.Provider.hf_space.BlackForestLabs_Flux1Dev import (
                 BlackForestLabs_Flux1Dev,
@@ -143,10 +147,6 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.BlackboxPro import BlackboxPro
 
             return BlackboxPro
-        elif name == "CablyAI":
-            from g4f.Provider.needs_auth.CablyAI import CablyAI
-
-            return CablyAI
         elif name == "CachedSearch":
             from g4f.Provider.search.CachedSearch import CachedSearch
 
@@ -213,10 +213,6 @@ class ProviderLoader:
             from g4f.Provider.audio.ElevenLabs import ElevenLabs
 
             return ElevenLabs
-        elif name == "FenayAI":
-            from g4f.Provider.needs_auth.FenayAI import FenayAI
-
-            return FenayAI
         elif name == "G4FSpace":
             from ..client.factory import AbstractClientFactory
             cls.loaded[name] = AbstractClientFactory.create_provider(

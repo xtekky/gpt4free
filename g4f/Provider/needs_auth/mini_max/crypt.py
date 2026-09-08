@@ -6,7 +6,6 @@ import json
 from urllib.parse import quote
 
 from ....providers.response import JsonMixin
-from ....requests import Tab
 
 API_PATH = "/v4/api/chat/msg"
 

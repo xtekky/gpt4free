@@ -192,7 +192,11 @@ class Website:
             try:
                 provider = ProviderLoader.from_name(name)
                 url = getattr(provider, "url", None)
-                models = getattr(provider, "models", []) or getattr(provider, "get_models", [])
+                # Skip model list fetching here — it's slow for 108+ providers.
+                # Models are loaded lazily in _provider_detail() for a single provider.
+                models = getattr(provider, "models", None)
+                if callable(models):
+                    models = None
                 needs_auth = getattr(provider, "needs_auth", False)
                 working = getattr(provider, "working", False)
                 supports_stream = getattr(provider, "supports_stream", False)
@@ -216,7 +220,7 @@ class Website:
                     "params": params if isinstance(params, list) else list(params) if params else [],
                 })
             except Exception:
-                pass
+                raise
         _providers_cache = providers
         _providers_cache_time = now
         return providers
@@ -298,18 +302,40 @@ class Website:
         prev_p = providers[idx - 1] if idx > 0 else providers[-1]
         next_p = providers[idx + 1] if idx < len(providers) - 1 else providers[0]
 
-        # Build models list HTML
-        if p["models"]:
-            models = p["models"]
-            if callable(models):
+        # Lazily load models for this single provider only
+        from g4f.Provider import ProviderLoader
+        models = []
+        try:
+            provider = ProviderLoader.from_name(p["name"])
+            raw_models = getattr(provider, "models", None)
+            if callable(raw_models):
                 try:
-                    models = models()
+                    raw_models = raw_models()
                 except Exception:
-                    models = []
-            if inspect.isawaitable(models):
-                models = []
+                    raw_models = []
+            if raw_models:
+                models = raw_models if isinstance(raw_models, list) else list(raw_models)
+            else:
+                # Fall back to get_models() if available
+                get_models = getattr(provider, "get_models", None)
+                if callable(get_models):
+                    try:
+                        raw_models = get_models()
+                        if inspect.isawaitable(raw_models):
+                            import asyncio as _aio
+                            try:
+                                raw_models = _aio.get_event_loop().run_until_complete(raw_models)
+                            except RuntimeError:
+                                raw_models = _aio.new_event_loop().run_until_complete(raw_models)
+                        models = list(raw_models) if raw_models else []
+                    except Exception:
+                        models = []
+        except Exception:
+            pass
+
+        if models:
             models_html = "<ul class='model-list'>" + "".join(
-                f"<li>{escape(str(m))}</li>" for m in (models if isinstance(models, list) else list(models) if models else [])
+                f"<li>{escape(str(m))}</li>" for m in models
             ) + "</ul>"
         else:
             models_html = "<p><em>No specific models listed</em></p>"
@@ -336,7 +362,11 @@ class Website:
 
         # Screenshot / logo section
         screenshot_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('https://', '').replace('http://', '').replace('api.', '').replace('www.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
-        screenshot_url = f"api.airforce" if screenshot_url == "airforce" else screenshot_url or "g4f.dev"
+        mapping_urls = {
+            "airforce": "api.airforce",
+            "openai": "openrouter.ai",
+        }
+        screenshot_url = mapping_urls.get(screenshot_url, screenshot_url or "g4f.dev")
         if p.get("name", "") == "OperaAria" or p.get("name", "") == "CopilotApp":
             screenshot_url = p["url"].replace("https://", "")
         create_url = f"/screenshot?url={quote_plus('https://' + screenshot_url)}"
@@ -382,12 +412,14 @@ class Website:
                 }}
             }};
             img.onmouseenter = () => {{
+                if (!previewRemoved || !img.complete) return;
                 n = (n % 3) + 1;
                 if (n <= 3) {{
                     const append = n == 1 ? ".webp" : `_${{n}}.webp`;
                     img.src = `/screenshot/{quote_plus(screenshot_url)}${{append}}`;
                 }}
             }};
+            img.onmouseleave = img.onmouseenter;
             img.onerror = () => {{
                 input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';
                 if (img.src.includes(createSrc)) {{

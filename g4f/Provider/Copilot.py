@@ -18,12 +18,7 @@ try:
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
-try:
-    import zendriver as nodriver
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from ..requests.cdp_browser import cdp, CDPTab
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
 from .openai.har_file import get_headers, get_har_files
@@ -93,7 +88,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     anon_cookie_name = "__Host-copilot-anon"
 
     working = True
-    use_nodriver = has_nodriver
+    use_nodriver = True
     needs_auth = True
 
     default_model = "Copilot"
@@ -507,8 +502,8 @@ async def get_access_token_and_cookies(
         while not access_token and Copilot.anon_cookie_name not in cookies:
             await asyncio.sleep(2)
             cookies = {
-                c.name: c.value
-                for c in await page.send(nodriver.cdp.network.get_cookies([url]))
+                c["name"]: c["value"]
+                for c in (await page.send(cdp.network.get_cookies([url]))).get("cookies", [])
             }
             if not needs_auth and Copilot.anon_cookie_name in cookies:
                 break
@@ -548,21 +543,20 @@ def readHAR(url: str):
     return api_key, useridentitytype, cookies
 
 
-if has_nodriver:
 
-    async def click_trunstile(
-        page: nodriver.Tab, element='document.getElementById("cf-turnstile")'
-    ):
-        for _ in range(3):
-            size = None
-            for idx in range(15):
-                size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
-                debug.log(f"Found size: {size.get('x'), size.get('y')}")
-                if "x" not in size:
-                    break
-                await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
-                await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
-                await asyncio.sleep(2)
+async def click_trunstile(
+    page: CDPTab, element='document.getElementById("cf-turnstile")'
+):
+    for _ in range(3):
+        size = None
+        for idx in range(15):
+            size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
+            debug.log(f"Found size: {size.get('x'), size.get('y')}")
             if "x" not in size:
                 break
-        debug.log("Finished clicking trunstile.")
+            await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
+            await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
+            await asyncio.sleep(2)
+        if "x" not in size:
+            break
+    debug.log("Finished clicking trunstile.")

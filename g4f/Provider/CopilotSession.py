@@ -5,13 +5,7 @@ import asyncio
 import base64
 from typing import AsyncIterator
 
-try:
-    import zendriver as nodriver
-    from zendriver import cdp
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from ..requests.cdp_browser import cdp, CDPTab
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
@@ -52,8 +46,8 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot (Session)"
     url = "https://copilot.microsoft.com"
 
-    working = has_nodriver
-    use_nodriver = has_nodriver
+    working = True
+    use_nodriver = True
     needs_auth = True
     active_by_default = True
     use_stream_timeout = False
@@ -233,22 +227,19 @@ class CopilotSession(AsyncAuthedProvider, ProviderModelMixin):
         if sources:
             yield Sources(sources.values())
 
-
-if has_nodriver:
-
-    async def click_trunstile(
-        page: nodriver.Tab, element='document.getElementById("cf-turnstile")'
-    ):
-        for _ in range(3):
-            size = None
-            for idx in range(15):
-                size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
-                debug.log(f"Found size: {size.get('x'), size.get('y')}")
-                if "x" not in size:
-                    break
-                await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
-                await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
-                await asyncio.sleep(2)
+async def click_trunstile(
+    page: CDPTab, element='document.getElementById("cf-turnstile")'
+):
+    for _ in range(3):
+        size = None
+        for idx in range(15):
+            size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
+            debug.log(f"Found size: {size.get('x'), size.get('y')}")
             if "x" not in size:
                 break
-        debug.log("Finished clicking trunstile.")
+            await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
+            await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
+            await asyncio.sleep(2)
+        if "x" not in size:
+            break
+    debug.log("Finished clicking trunstile.")

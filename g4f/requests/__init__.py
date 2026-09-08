@@ -29,18 +29,6 @@ try:
 except ImportError:
     has_webview = False
 try:
-    import zendriver as nodriver
-    from zendriver.cdp.network import CookieParam
-    from zendriver.core.config import find_executable
-    from zendriver import Browser, Tab, util
-
-    has_nodriver = True
-except ImportError:
-    from typing import Type as Browser
-    from typing import Type as Tab
-
-    has_nodriver = False
-try:
     from platformdirs import user_config_dir
 
     has_platformdirs = True
@@ -52,6 +40,20 @@ try:
     has_cdp = True
 except ImportError:
     has_cdp = False
+
+# CDP-based browser wrapper replaces zendriver/nodriver entirely.
+# ``has_nodriver`` is kept as an alias for ``has_cdp`` so existing provider
+# code that checks ``has_nodriver`` continues to work without modification.
+has_nodriver = has_cdp
+
+from .cdp_browser import (
+    CDPBrowser,
+    CDPTab,
+    CDPElement,
+    CookieParam,
+    _CdpShim as cdp,
+    get_cookie_params_from_dict as _get_cookie_params_from_dict_cdp,
+)
 
 from .. import debug
 from .raise_for_status import raise_for_status
@@ -106,7 +108,7 @@ def get_cookie_params_from_dict(
 
 
 async def clear_cookies_for_url(
-    browser: Browser, url: str, ignore_cookies: list[str] = None
+    browser, url: str, ignore_cookies: list[str] = None
 ):
     host = urlparse(url).hostname
     if not host:
@@ -115,20 +117,19 @@ async def clear_cookies_for_url(
     if ignore_cookies is None:
         ignore_cookies = []
     tab = browser.main_tab  # any open tab is fine
-    cookies = (
-        await browser.cookies.get_all()
-    )  # returns CDP cookies :contentReference[oaicite:2]{index=2}
+    if tab is None:
+        tab = await browser.get("about:blank")
+    cookies = await browser.cookies.get_all()
     for c in cookies:
-        dom = (c.domain or "").lstrip(".")
+        dom = (c.get("domain", "") or "").lstrip(".")
         if dom and (host == dom or host.endswith("." + dom)):
-            if c.name in ignore_cookies:
+            if c.get("name") in ignore_cookies:
                 continue
             await tab.send(
-                nodriver.cdp.network.delete_cookies(
-                    name=c.name,
-                    domain=dom,  # exact domain :contentReference[oaicite:3]{index=3}
-                    path=c.path,  # exact path :contentReference[oaicite:4]{index=4}
-                    # partition_key=c.partition_key,  # if you use partitioned cookies
+                cdp.network.delete_cookies(
+                    name=c.get("name"),
+                    domain=dom,
+                    path=c.get("path"),
                 )
             )
 
@@ -164,7 +165,7 @@ async def get_args_from_nodriver(
             debug.log(f"Clear Cookies for url: {url}")
             await clear_cookies_for_url(browser, url)
 
-        debug.log(f"Open nodriver with url: {url}")
+        debug.log(f"Open CDP browser with url: {url}")
         if cookies is None:
             cookies = {}
         else:
@@ -182,10 +183,11 @@ async def get_args_from_nodriver(
             await page.wait_for(wait_for, timeout=timeout)
         if callback is not None:
             await callback(page)
-        for c in await asyncio.wait_for(
-            page.send(nodriver.cdp.network.get_cookies([url])), timeout=timeout
-        ):
-            cookies[c.name] = c.value
+        result = await asyncio.wait_for(
+            page.send(cdp.network.get_cookies([url])), timeout=timeout
+        )
+        for c in result.get("cookies", []):
+            cookies[c["name"]] = c["value"]
         await stop_browser()
         return {
             "impersonate": "chrome",
@@ -201,13 +203,12 @@ async def get_args_from_nodriver(
         await stop_browser()
         raise
 
-
 async def get_args_from_cdp(
     url: str,
     proxy: str = None,
     timeout: int = 120,
     user_data_dir: str = "cdp",
-    headless: bool = True,
+    headless: Optional[bool] = None,
 ) -> dict:
     """Use the lightweight CDP client to get auth cookies and user-agent."""
     if not has_cdp:
@@ -262,18 +263,29 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     return cookies
 
 
-_browser_locks: dict[str, asyncio.Lock] = {}
 
+# CDP browser pool — each CDPBrowser opens tabs on the shared Chrome process.
+# Multiple providers can open tabs in parallel without any lock.
+_shared_cdp_browsers: dict[str, tuple] = {}  # user_data_dir -> (CDPBrowser, refcount)
+_shared_cdp_lock = asyncio.Lock()
 
-def get_browser_lock(user_data_dir: str) -> asyncio.Lock:
-    if user_data_dir not in _browser_locks:
-        _browser_locks[user_data_dir] = asyncio.Lock()
-    return _browser_locks[user_data_dir]
-
+def _make_cdp_on_stop(user_data_dir: str):
+    """Create an on_stop callback that releases the shared CDP browser ref."""
+    async def on_stop():
+        async with _shared_cdp_lock:
+            if user_data_dir in _shared_cdp_browsers:
+                browser, refcount = _shared_cdp_browsers[user_data_dir]
+                refcount -= 1
+                if refcount <= 0:
+                    del _shared_cdp_browsers[user_data_dir]
+                    debug.log(f"CDP: Released last browser ref for {user_data_dir}")
+                else:
+                    _shared_cdp_browsers[user_data_dir] = (browser, refcount)
+                    debug.log(f"CDP: Released browser ref (#{refcount} remaining for {user_data_dir})")
+    return on_stop
 
 def set_browser_executable_path(browser_executable_path: str):
     BrowserConfig.browser_executable_path = browser_executable_path
-
 
 async def get_nodriver(
     proxy: str = None,
@@ -281,126 +293,46 @@ async def get_nodriver(
     timeout: int = 300,
     browser_executable_path: str = None,
     **kwargs,
-) -> tuple[Browser, Callable]:
-    if not has_nodriver:
+) -> tuple:
+    """Return a CDPBrowser wrapper that emulates the nodriver Browser API.
+
+    Multiple callers share the same CDPBrowser per user_data_dir, but each
+    ``browser.get(url)`` call opens an independent tab — so tabs run in
+    parallel without serialising on a lock.
+    """
+    if not has_cdp:
         raise MissingRequirementsError(
-            'Install "zendriver" and "platformdirs" package | pip install -U zendriver platformdirs'
+            'Chrome/Chromium/Edge executable not found. Install Google Chrome.'
         )
-    user_data_dir = (
-        user_config_dir(f"g4f-{user_data_dir}")
-        if user_data_dir and has_platformdirs
-        else None
-    )
-    if browser_executable_path is None:
-        browser_executable_path = BrowserConfig.executable_path
-    if browser_executable_path is None:
-        try:
-            browser_executable_path = find_executable()
-        except FileNotFoundError:
-            # Default to Edge if Chrome is not available.
-            browser_executable_path = (
-                "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
-            )
-            if not os.path.exists(browser_executable_path):
-                # Default to Chromium on Linux systems.
-                browser_executable_path = (
-                    "/data/data/com.termux/files/usr/bin/chromium-browser"
-                )
-                if not os.path.exists(browser_executable_path):
-                    browser_executable_path = None
-    debug.log(f"Browser executable path: {browser_executable_path}")
 
-    browser_lock = get_browser_lock(str(user_data_dir)) if user_data_dir else None
-    if browser_lock is not None:
-        try:
-            await asyncio.wait_for(browser_lock.acquire(), timeout=timeout)
-        except asyncio.TimeoutError:
-            raise TimeoutError("Nodriver is already in use, please try again later.")
+    ud_key = str(user_data_dir) if user_data_dir else "default"
 
-    lock_file = Path(get_cookies_dir()) / ".browser_is_open"
-    if user_data_dir:
-        lock_file.parent.mkdir(exist_ok=True)
-        if lock_file.exists():
-            try:
-                opend_at = float(lock_file.read_text().strip())
-                time_open = time.time() - opend_at
-            except (ValueError, OSError):
-                time_open = float("inf")
+    async with _shared_cdp_lock:
+        if ud_key in _shared_cdp_browsers:
+            browser, refcount = _shared_cdp_browsers[ud_key]
+            refcount += 1
+            _shared_cdp_browsers[ud_key] = (browser, refcount)
+            debug.log(f"CDP: Acquired shared browser (#{refcount} active for {ud_key})")
+            return browser, _make_cdp_on_stop(ud_key)
 
-            if time_open < timeout * 2:
-                debug.log(
-                    f"Nodriver: Browser is already in use since {time_open:.1f} secs."
-                )
-                debug.log("Lock file:", lock_file)
-                for idx in range(int(timeout)):
-                    if lock_file.exists():
-                        await asyncio.sleep(0.5)
-                    else:
-                        break
-                    if idx == int(timeout) - 1:
-                        debug.log("Timeout reached, nodriver is still in use.")
-                        if browser_lock and browser_lock.locked():
-                            browser_lock.release()
-                        raise TimeoutError(
-                            "Nodriver is already in use, please try again later."
-                        )
-            else:
-                debug.log(
-                    f"Nodriver: Stale browser lock detected ({time_open:.1f} secs ago), releasing."
-                )
-                await BrowserConfig.stop_browser()
-                lock_file.unlink(missing_ok=True)
-        try:
-            lock_file.write_text(str(time.time()))
-        except OSError:
-            pass
-        debug.log(f"Open nodriver with user_dir: {user_data_dir}")
-    try:
-        browser_args = kwargs.pop("browser_args", None) or ["--no-sandbox"]
+    # No shared browser yet — create a new CDPBrowser
+    headless = BrowserConfig.headless if BrowserConfig.headless is not None else True
+    browser = CDPBrowser(headless=headless, proxy=proxy, user_data_dir=user_data_dir)
 
-        if BrowserConfig.port:
-            browser_executable_path = "/bin/google-chrome"
-        browser = await nodriver.start(
-            user_data_dir=user_data_dir,
-            browser_args=[*browser_args, f"--proxy-server={proxy}"]
-            if proxy
-            else browser_args,
-            browser_executable_path=browser_executable_path,
-            port=BrowserConfig.port,
-            host=BrowserConfig.host,
-            connection_timeout=BrowserConfig.connection_timeout,
-            **kwargs,
-        )
-    except Exception as e:
-        if user_data_dir:
-            lock_file.unlink(missing_ok=True)
-        if browser_lock and browser_lock.locked():
-            browser_lock.release()
-        if isinstance(e, FileNotFoundError):
-            raise MissingRequirementsError(e)
-        raise
+    async with _shared_cdp_lock:
+        _shared_cdp_browsers[ud_key] = (browser, 1)
+    debug.log(f"CDP: Started shared browser for {ud_key} (#1 active)")
 
-    async def on_stop():
-        try:
-            if BrowserConfig.port is None and browser.connection:
-                await browser.stop()
-        except Exception:
-            pass
-        finally:
-            if user_data_dir:
-                lock_file.unlink(missing_ok=True)
-            if browser_lock and browser_lock.locked():
-                browser_lock.release()
-
+    on_stop = _make_cdp_on_stop(ud_key)
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
-
 
 @asynccontextmanager
 async def get_nodriver_session(**kwargs):
     browser, stop_browser = await get_nodriver(**kwargs)
     yield browser
     await stop_browser()
+
 
 
 async def sse_stream(iter_lines: AsyncIterator[bytes]) -> AsyncIterator[dict]:

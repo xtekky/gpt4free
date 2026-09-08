@@ -25,12 +25,7 @@ from typing import (
 
 from ...requests.curl_cffi import AsyncSession
 
-try:
-    import zendriver as nodriver
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from ...requests.cdp_browser import cdp
 
 from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ...typing import AsyncResult, Messages, Cookies, MediaListType
@@ -1371,7 +1366,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         async with get_nodriver_session(proxy=proxy) as browser:
             page = await browser.get(cls.url)
 
-            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
+            def on_request(event, page=None):
                 if not hasattr(event, "request"):
                     return
                 if event.request.url == start_url or event.request.url.startswith(
@@ -1408,8 +1403,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         userAgent=event.request.headers.get("User-Agent"),
                     )
 
-            await page.send(nodriver.cdp.network.enable())
-            page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+            await page.send(cdp.network.enable())
+            page.add_handler(cdp.network.RequestWillBeSent, on_request)
             await page.reload()
             user_agent = await page.evaluate(
                 "window.navigator.userAgent", return_by_value=True
@@ -1430,7 +1425,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         await asyncio.sleep(1)
                     except TimeoutError:
                         continue
-                except nodriver.core.connection.ProtocolException:
+                except cdp.runtime.ProtocolException:
                     continue
                 break
             try:

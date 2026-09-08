@@ -4,12 +4,7 @@ import os
 import json
 import base64
 
-try:
-    import zendriver as nodriver
-
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
+from ...requests import has_nodriver
 
 from ...typing import AsyncResult, Messages
 from ...providers.response import AudioResponse
