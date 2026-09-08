@@ -192,6 +192,8 @@ class Website:
             try:
                 provider = ProviderLoader.from_name(name)
                 url = getattr(provider, "url", None)
+                screenshot_url = getattr(provider, "screenshot_url", None)
+                login_url = getattr(provider, "login_url", None)
                 # Skip model list fetching here — it's slow for 108+ providers.
                 # Models are loaded lazily in _provider_detail() for a single provider.
                 models = getattr(provider, "models", None)
@@ -211,6 +213,8 @@ class Website:
                 providers.append({
                     "name": name,
                     "url": url,
+                    "screenshot_url": screenshot_url,
+                    "login_url": login_url,
                     "models": models if isinstance(models, list) else list(models) if models else [],
                     "needs_auth": needs_auth,
                     "working": working,
@@ -249,6 +253,8 @@ class Website:
             <div class="providers-list">
             """
             for p in providers:
+                if not p["working"]:
+                    continue  # Skip non-working providers
                 models_html = ""
                 if p["models"]:
                     models_list = ", ".join(p["models"][:5]) if isinstance(p["models"], list) else ""
@@ -361,15 +367,8 @@ class Website:
         """
 
         # Screenshot / logo section
-        screenshot_url = f"{(p.get('url', (p.get('base_url', p.get('baseUrl', '')))) or  "").replace('https://', '').replace('http://', '').replace('api.', '').replace('www.', '').replace('console.', '').replace('api.', '').replace('router.', '').split('/')[0]}"
-        mapping_urls = {
-            "airforce": "api.airforce",
-            "openai": "openrouter.ai",
-        }
-        screenshot_url = mapping_urls.get(screenshot_url, screenshot_url or "g4f.dev")
-        if p.get("name", "") == "OperaAria" or p.get("name", "") == "CopilotApp":
-            screenshot_url = p["url"].replace("https://", "")
-        create_url = f"/screenshot?url={quote_plus('https://' + screenshot_url)}"
+        screenshot_url = p.get("screenshot_url") or p.get("url") or ""
+        create_url = f"/screenshot?url={quote_plus(screenshot_url)}"
         logo_url = "https://g4f.space/logo/" + p.get("name", "").replace(
             'MetaAIAccount', 'Facebook AI').replace(
             'MetaAI', 'Facebook AI').replace(
@@ -390,7 +389,7 @@ class Website:
             'groq', 'Groq')
         screenshot_html = f"""
         <div class="screenshot-section">
-            <img src="/screenshot/{quote_plus(screenshot_url)}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
+            <img src="/screenshot/{quote_plus(screenshot_url.replace('https://', ''))}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
                  style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <img src="{logo_url}" alt="{escape(p['name'])} logo" class="provider-logo" style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <p class="screenshot-caption">Load screenshot from {escape(p['url'] or 'N/A')}</p>
@@ -420,6 +419,7 @@ class Website:
                 }}
             }};
             img.onmouseleave = img.onmouseenter;
+            img.ontouchstart = img.onmouseenter;
             img.onerror = () => {{
                 input.placeholder = 'Ask {escape(p.get("label", p["name"]))}';
                 if (img.src.includes(createSrc)) {{

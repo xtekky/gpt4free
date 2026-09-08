@@ -71,10 +71,14 @@ from pathlib import Path
 from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Type
 from .. import debug
 from ..files import secure_filename
+from ..config import CONFIG_DIR
 
 # ---------------------------------------------------------------------------
 # Workspace directory
 # ---------------------------------------------------------------------------
+
+#: Private directory for secret data (outside the shared workspace).
+SECRET_DIR: Path = CONFIG_DIR / "secret"
 
 
 def get_workspace_dir() -> Path:
@@ -82,6 +86,27 @@ def get_workspace_dir() -> Path:
     workspace = Path.home() / ".g4f" / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     return workspace
+
+
+def _migrate_secret_dir(old_secret_ws: Path, new_secret_ws: Path) -> None:
+    """Move any existing secret files from the workspace into the private dir."""
+    if not old_secret_ws.exists():
+        return
+    new_secret_ws.mkdir(parents=True, exist_ok=True)
+    for item in old_secret_ws.iterdir():
+        target = new_secret_ws / item.name
+        if target.exists():
+            continue
+        item.rename(target)
+    # Remove the old empty directory tree
+    try:
+        old_secret_ws.rmdir()
+        # Also remove the now-empty "secret" parent if it's empty
+        old_secret_parent = get_workspace_dir() / "secret"
+        if old_secret_parent.exists() and not any(old_secret_parent.iterdir()):
+            old_secret_parent.rmdir()
+    except OSError:
+        pass  # Directory not empty — leave it
 
 
 def get_user_workspace_dir(user_id: str) -> Path:
@@ -100,16 +125,23 @@ def get_user_workspace_dir(user_id: str) -> Path:
 
 
 def get_secret_workspace_dir(user_id: str) -> Path:
-    """Return a per-user *secret* workspace ``~/.g4f/workspace/secret/<user_id>``.
+    """Return a per-user *secret* directory ``~/.g4f/secret/<user_id>``.
 
     This is used when a workspace secret is provided.  Files are saved here
     when the user is logged in; reads fall back to the root workspace when
     the file does not exist in the secret workspace.
+
+    Secrets are stored **outside** the shared workspace (under
+    ``~/.g4f/secret/``) so they are never synced or exposed alongside
+    workspace files — similar to how cookies live under ``~/.g4f/cookies/``.
     """
     if not user_id:
         return get_workspace_dir()
     safe_id = re.sub(r"[^a-zA-Z0-9_\-]+", "_", user_id).strip("_") or "anonymous"
-    secret_workspace = get_workspace_dir() / "secret" / safe_id
+    secret_workspace = SECRET_DIR / safe_id
+    # Migrate any existing data from the old workspace-relative location
+    old_location = get_workspace_dir() / "secret" / safe_id
+    _migrate_secret_dir(old_location, secret_workspace)
     secret_workspace.mkdir(parents=True, exist_ok=True)
     return secret_workspace
 
@@ -269,7 +301,7 @@ def get_secret_conversation_dir(user_id: str) -> Path:
     """Return the directory used to store secret conversations for *user_id*.
 
     Conversations are saved as individual JSON files under
-    ``~/.g4f/workspace/secret/<user_id>/conversations/``.  An index file
+    ``~/.g4f/secret/<user_id>/conversations/``.  An index file
     ``index.json`` lists all stored conversation IDs.
     """
     secret_ws = get_secret_workspace_dir(user_id)

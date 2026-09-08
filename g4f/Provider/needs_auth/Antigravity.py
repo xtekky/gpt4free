@@ -1445,8 +1445,9 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     """
 
     label = "Google Antigravity"
-    login_url = "https://cloud.google.com/code-assist"
     url = "https://antigravity.google"
+    screenshot_url = "https://antigravity.google"
+    login_url = "https://cloud.google.com/code-assist"
 
     default_model = "gemini-3-flash"
     fallback_models = [

@@ -17,6 +17,7 @@ from .OpenaiAPI import OpenaiAPI
 class Anthropic(OpenaiAPI):
     label = "Anthropic API"
     url = "https://console.anthropic.com"
+    screenshot_url = "https://anthropic.com"
     login_url = "https://console.anthropic.com/settings/keys"
     working = True
     base_url = "https://api.anthropic.com/v1"
