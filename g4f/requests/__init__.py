@@ -46,7 +46,7 @@ from .cdp_browser import (
     CDPTab,
     CDPElement,
     CookieParam,
-    _CdpShim as cdp,
+    _CdpShim as _cdp,
     get_cookie_params_from_dict as _get_cookie_params_from_dict_cdp,
 )
 
@@ -121,7 +121,7 @@ async def clear_cookies_for_url(
             if c.get("name") in ignore_cookies:
                 continue
             await tab.send(
-                cdp.network.delete_cookies(
+                _cdp.network.delete_cookies(
                     name=c.get("name"),
                     domain=dom,
                     path=c.get("path"),
@@ -179,7 +179,7 @@ async def get_args_from_nodriver(
         if callback is not None:
             await callback(page)
         result = await asyncio.wait_for(
-            page.send(cdp.network.get_cookies([url])), timeout=timeout
+            page.send(_cdp.network.get_cookies([url])), timeout=timeout
         )
         for c in result.get("cookies", []):
             cookies[c["name"]] = c["value"]
