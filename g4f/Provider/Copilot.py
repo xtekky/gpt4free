@@ -26,7 +26,7 @@ from ..typing import AsyncResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
 from ..providers.response import *
 from ..tools.media import merge_media
-from ..requests import get_nodriver, DEFAULT_HEADERS
+from ..requests import get_nodriver, DEFAULT_HEADERS, has_cdp
 from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
 from ..files import get_bucket_dir
@@ -119,7 +119,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
                 access_token, useridentitytype, cookies = readHAR(cls.url)
             except NoValidHarFileError as h:
                 debug.log(f"Copilot: {h}")
-                if has_nodriver:
+                if has_cdp:
                     yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
                     (
                         access_token,

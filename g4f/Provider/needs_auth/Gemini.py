@@ -357,9 +357,6 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def login_generator(cls, proxy: str = None) -> AsyncIterator[str]:
-        if not has_nodriver:
-            debug.log("Skip browser login in Gemini provider")
-            return
         browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         try:
             yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))

@@ -377,7 +377,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 return
             if isinstance(data, dict):
                 json_data = data
-            elif data[0] == "$":
+            elif data and data[0] == "$":
                 if data[1] in ["div", "defs", "style", "script"]:
                     return
                 json_data = data[3]
@@ -405,7 +405,10 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     continue
                 chunk_id, chunk_data = match.groups()
                 if chunk_data.startswith("I["):
-                    data = json.loads(chunk_data[1:])
+                    try:
+                        data = json.loads(chunk_data[1:])
+                    except json.decoder.JSONDecodeError:
+                        continue
                     async with StreamSession() as session:
                         if "Evaluation" == data[2]:
                             js_files = dict(zip(data[1][::2], data[1][1::2]))
@@ -560,12 +563,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         for _ in range(2):
             if args:
                 pass
-            elif has_nodriver:
-                args = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
             else:
-                raise MissingRequirementsError(
-                    "No auth file found and browser (CDP) is not available."
-                )
+                args = await cls.get_args_from_nodriver(proxy, _need_clear_cookies)
 
             if not cls._models_loaded:
                 # change to async
@@ -573,10 +572,6 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
             def get_mode_id(_model):
                 model_id = None
-                # if not model:
-                #     model = cls.default_model
-                if _model in cls.model_aliases:
-                    _model = cls.model_aliases[_model]
                 if _model in cls.text_models:
                     model_id = cls.text_models[_model]
                 elif _model in cls.image_models:
@@ -609,7 +604,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             userMessageId = str(uuid7())
             modelAMessageId = str(uuid7())
             modelBMessageId = str(uuid7())
-            if not cls._grecaptcha and has_nodriver:
+            if not cls._grecaptcha:
                 debug.log("No grecaptcha token found, obtaining new one...")
                 args = await cls.get_grecaptcha(args, proxy)
             files = await cls.prepare_images(args, media)

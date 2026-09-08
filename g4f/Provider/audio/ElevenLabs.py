@@ -4,8 +4,6 @@ import os
 import json
 import base64
 
-from ...requests import has_nodriver
-
 from ...typing import AsyncResult, Messages
 from ...providers.response import AudioResponse
 from ...image.copy_images import get_filename, get_media_dir, ensure_media_dir
@@ -35,8 +33,8 @@ class ElevenLabs(AsyncGeneratorProvider, ProviderModelMixin):
 
     label = "ElevenLabs TTS"
     url = "https://elevenlabs.io"
-    working = has_nodriver
-    use_nodriver = has_nodriver
+    working = True
+    use_nodriver = True
     needs_auth = True  # hcaptcha accessibility cookie
 
     model_id = "elevenlabs-tts"

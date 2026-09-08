@@ -41,11 +41,6 @@ try:
 except ImportError:
     has_cdp = False
 
-# CDP-based browser wrapper replaces zendriver/nodriver entirely.
-# ``has_nodriver`` is kept as an alias for ``has_cdp`` so existing provider
-# code that checks ``has_nodriver`` continues to work without modification.
-has_nodriver = has_cdp
-
 from .cdp_browser import (
     CDPBrowser,
     CDPTab,

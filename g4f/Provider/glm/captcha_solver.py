@@ -26,7 +26,7 @@ from typing import Optional
 
 from ... import debug
 
-from ...requests import get_nodriver, has_nodriver
+from ...requests import get_nodriver
 from ...requests.cdp_browser import cdp
 
 
@@ -330,4 +330,4 @@ def invalidate_captcha_token() -> None:
 
 def is_available() -> bool:
     """Whether the captcha solver can run (requires zendriver)."""
-    return has_nodriver
+    return True

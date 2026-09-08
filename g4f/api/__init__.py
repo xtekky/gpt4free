@@ -73,7 +73,7 @@ except ImportError:
         pass
 
 
-from g4f.requests import has_nodriver, has_cdp
+from g4f.requests import has_cdp
 
 import g4f
 import g4f.debug

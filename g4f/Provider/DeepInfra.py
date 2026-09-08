@@ -3,27 +3,25 @@ from __future__ import annotations
 import asyncio
 import requests
 
-from ..requests.cdp import SyncCDPSession
+from ..requests.cdp import CDPSession
 from .. import debug
 from .template import OpenaiTemplate
 
 
-def _get_turnstile_token_sync(model: str) -> str:
+async def _get_turnstile_token_async(model: str) -> str:
     """
-    Synchronous Turnstile token retrieval using SyncCDPSession with retries.
-    Uses a blocking recv() loop — no async timeouts, waits as long as needed.
-    Designed to be run via asyncio.run_in_executor() from async context.
+    Async Turnstile token retrieval using CDPSession with retries.
+    Navigates to the DeepInfra model page, injects a fetch blocker,
+    enters text, and polls for the Cloudflare Turnstile token.
     """
-    import time
-
     for attempt in range(1):
-        session = SyncCDPSession()
-        session.start_chrome()
+        session = CDPSession()
+        await session.start()
 
         try:
             url = f"https://deepinfra.com/{model}"
             debug.log(f"[DeepInfra] Navigating to {url} (Attempt {attempt + 1}/3)...")
-            session.navigate(url)
+            await session.navigate(url)
 
             # Inject completions request blocker
             fetch_blocker_js = """
@@ -36,10 +34,10 @@ def _get_turnstile_token_sync(model: str) -> str:
                 return origFetch.apply(this, args);
             };
             """
-            session.evaluate_js(fetch_blocker_js)
+            await session.evaluate_js(fetch_blocker_js)
 
             # Try to click "Accept" on cookies consent popup if present
-            session.evaluate_js(
+            await session.evaluate_js(
                 """
             (() => {
                 const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Accept');
@@ -50,14 +48,14 @@ def _get_turnstile_token_sync(model: str) -> str:
 
             # Click on an empty page area to give window focus — signals Cloudflare that
             # a real user is present, which speeds up Turnstile token generation significantly.
-            session.click(200, 400)
+            await session.click(200, 400)
 
             # Wait for textarea readiness, then focus and input text
             debug.log("[DeepInfra] Waiting for active textarea...")
             text_entered = False
             for _ in range(80):  # Up to 40 seconds
                 try:
-                    ready = session.evaluate_js(
+                    ready = await session.evaluate_js(
                         """
                     (() => {
                         const ta = document.querySelector('textarea');
@@ -79,14 +77,14 @@ def _get_turnstile_token_sync(model: str) -> str:
                         )
 
                         # Retrieve textarea nodeId for native focusing
-                        doc = session.call("DOM.getDocument")
+                        doc = await session.call("DOM.getDocument")
                         root_id = doc["root"]["nodeId"]
-                        textarea = session.call(
+                        textarea = await session.call(
                             "DOM.querySelector", nodeId=root_id, selector="textarea"
                         )
 
                         # Native focus via CDP
-                        session.call("DOM.focus", nodeId=textarea["nodeId"])
+                        await session.call("DOM.focus", nodeId=textarea["nodeId"])
 
                         # Enter text via native CDP command
                         import random
@@ -102,12 +100,12 @@ def _get_turnstile_token_sync(model: str) -> str:
                                 "Can you hear me?",
                             ]
                         )
-                        session.call("Input.insertText", text=test_prompt)
+                        await session.call("Input.insertText", text=test_prompt)
 
-                        time.sleep(0.5)
+                        await asyncio.sleep(0.5)
 
                         # Simulate Enter keypress
-                        session.call(
+                        await session.call(
                             "Input.dispatchKeyEvent",
                             type="keyDown",
                             windowsVirtualKeyCode=13,
@@ -116,7 +114,7 @@ def _get_turnstile_token_sync(model: str) -> str:
                             text="\r",
                             unmodifiedText="\r",
                         )
-                        session.call(
+                        await session.call(
                             "Input.dispatchKeyEvent",
                             type="keyUp",
                             windowsVirtualKeyCode=13,
@@ -130,13 +128,13 @@ def _get_turnstile_token_sync(model: str) -> str:
                         break
                 except Exception:
                     pass
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
 
             if not text_entered:
                 debug.log(
                     "[DeepInfra] Textarea/Turnstile not ready or failed to submit, retrying attempt..."
                 )
-                session.close()
+                await session.close()
                 continue
 
             # Poll page for Turnstile token
@@ -145,28 +143,27 @@ def _get_turnstile_token_sync(model: str) -> str:
             token = ""
             for i in range(240):  # Up to 120 seconds per attempt
                 try:
-                    token = session.evaluate_js(token_js)
+                    token = await session.evaluate_js(token_js)
                     if token:
                         debug.log(f"[DeepInfra] Token generated on check {i+1}!")
                         return token
                 except Exception:
                     pass
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
 
         except Exception as e:
             debug.log(f"[DeepInfra] Error on attempt {attempt + 1}: {e}")
         finally:
-            session.close()
+            await session.close()
 
     return ""
 
 
 async def get_turnstile_token_async(model: str = None) -> str:
-    """Run the synchronous Turnstile solver in a thread pool executor."""
+    """Obtain a Cloudflare Turnstile token for DeepInfra."""
     if not model:
         model = DeepInfra.default_model
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, _get_turnstile_token_sync, model)
+    return await _get_turnstile_token_async(model)
 
 
 class DeepInfra(OpenaiTemplate):

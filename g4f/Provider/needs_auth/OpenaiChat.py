@@ -1352,12 +1352,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         f"Access token is not valid: {cls.request_config.access_token}"
                     )
             except NoValidHarFileError:
-                if has_nodriver:
-                    if cls.request_config.access_token is None:
-                        yield RequestLogin(
-                            cls.label, os.environ.get("G4F_LOGIN_URL", "")
-                        )
-                        await cls.nodriver_auth(proxy)
+                if cls.request_config.access_token is None:
+                    yield RequestLogin(
+                        cls.label, os.environ.get("G4F_LOGIN_URL", "")
+                    )
+                    await cls.nodriver_auth(proxy)
                 else:
                     raise
 
