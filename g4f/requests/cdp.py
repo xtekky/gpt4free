@@ -693,7 +693,8 @@ const targetTexts = [
     'Accept All Cookies', 'Accept all cookies',
     'Einwilligen', 'Alle akzeptieren',
     'Zustimmen und weiter', 'Zustimmen',
-    'Run'
+    'Run',
+    ...params.getAll('click')
 ];
 const acceptBtns = (() => {
     function searchDocument(doc, offsetX = 0, offsetY = 0) {
@@ -702,7 +703,7 @@ const acceptBtns = (() => {
             if (!doc) return [];
 
             // 1. Search buttons in the current document
-            const buttons = doc.querySelectorAll('button, input[type="submit"], [role="button"], a');
+            const buttons = doc.querySelectorAll('button, input[type="submit"], [role="button"], a, h2');
             for (let button of buttons) {
                 const text = (button.innerText || button.value || button.textContent || '').trim();
                 if (targetTexts.includes(text)) {
@@ -749,23 +750,31 @@ if (acceptBtns && acceptBtns.length > 0) {
 }
 
 // 4. Enable Google AI Mode if the URL has the ai-mode parameter
+let googleAiModeButton = null;
 function enableGoogleAiMode() {
     // Enable Google AI Mode if the URL has the ai-mode parameter
     const aiMode = params.has('ai-mode');
     if (aiMode) {
-        const b = Array.from(document.querySelectorAll("a, button")).filter(a => {
+        googleAiModeButton = Array.from(document.querySelectorAll("a, button")).filter(a => {
             return a.textContent.endsWith("KI‑Modus") || a.textContent.endsWith("AI Mode");
         }).pop();
-        b ? b.click() : null;
+        googleAiModeButton ? googleAiModeButton.click() : null;
         setTimeout(() => {
-            b ? b.click() : null;
+            googleAiModeButton ? googleAiModeButton.click() : null;
         }, 1000);
+        return !!googleAiModeButton;
     }
+    return false;
 }
 enableGoogleAiMode();
 
 // 5. Find the textarea
-const textarea = document.querySelector('textarea[name="prompt"], [class^="MessageInput__TextArea--"], [placeholder="Type a message..."]');
+const fieldSelectors = [
+    'textarea[name="prompt"]',
+    '[class^="MessageInput__TextArea--"]',
+    '[placeholder="Type a message..."]',
+];
+const textarea = document.querySelector(fieldSelectors.join(', '));
 
 // 6. Only proceed if we found a query and the textarea exists
 if (searchQuery && textarea) {
@@ -825,7 +834,7 @@ if (searchQuery && textarea) {
 })();
 
 
-// 8. Click the send button if it exists
+// 8. Click the send / submit button if it exists
 const sendButtonSelectors = [
     '[data-send-label="Send message"]',
     '[aria-label="Send message"]',
@@ -833,26 +842,39 @@ const sendButtonSelectors = [
     '.send-button-container',
     '.send-button',
     '#send-message-button', // z.ai
+    '[data-testid="chat-submit"]', // grok.com
 ];
-document.querySelector(sendButtonSelectors.join(', '))?.click();
+const sendButton = document.querySelector(sendButtonSelectors.join(', '));
+if (sendButton) {
+    sendButton.click();
+}
 
 // 8. Click the send button on gemini.google.com
-const trigger = (el, etype) => {
-  el?.dispatchEvent( new Event( etype, { bubbles: true } ) );
-};
-setTimeout(() => 
-  trigger(document.querySelector(`.send-button`), `click`),
-1000);
+const geminiSendButton = document.querySelector(`.send-button`);
+if (geminiSendButton) {   
+    setTimeout(() => {
+        geminiSendButton.dispatchEvent(new Event('click', {bubbles: true}));
+    }, 1000);
+}
 
 // 8. Click the send button on chat.deepseek.com
-document.querySelector('[style="width: fit-content;"] [role="button"]')?.click();
+const deepseekSendButton = document.querySelector('[style="width: fit-content;"] [role="button"]');
+if (deepseekSendButton) {
+    deepseekSendButton.click();
+}
+
+// 9. Return the text content of the first found send button for logging/debugging
+(
+    sendButton || geminiSendButton || deepseekSendButton || (acceptBtns && acceptBtns[0]) || googleAiModeButton
+)?.textContent.trim();
 """
         try:
             rect = await self.evaluate_js(js_code)
-            if rect:
-                debug.log(f"Accept button rect: {rect}")
             if rect and isinstance(rect, list) and len(rect) == 2:
                 await self.click(int(rect[0]), int(rect[1]))
+                return True
+            elif rect and isinstance(rect, str):
+                debug.log(f"Clicked button with text: {rect}")
                 return True
         except Exception as e:
             debug.log(f"Failed to click accept button: {e}")
@@ -908,6 +930,8 @@ document.querySelector('[style="width: fit-content;"] [role="button"]')?.click()
 
         if await self.evaluate_js('!document.doctype'):
             raise RuntimeError(f"Failed to load page {url} for screenshot, document.doctype={await self.evaluate_js('String(document.doctype)')}")
+
+        await self.bypass_turnstile()
 
         result = None
         for i in range(n):

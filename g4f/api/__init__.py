@@ -1392,7 +1392,7 @@ class Api:
             try:
                 async with lock:
                     from g4f.requests.cdp import CDPSession
-                    session = CDPSession(headless="&headless=false" not in url)
+                    session = CDPSession(headless="headless=false" not in url)
                     await session.start()
                     try:
                         screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url else 3)
