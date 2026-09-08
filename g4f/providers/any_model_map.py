@@ -187,7 +187,6 @@ model_map = {
         "HuggingFace": "meta-llama/Llama-3.1-8B-Instruct",
         "Cerebras": "llama3.1-8b",
         "Cloudflare": "@cf/meta/llama-3.1-8b-instruct-fp8",
-        "GlhfChat": "hf:meta-llama/Llama-3.1-8B-Instruct",
         "HuggingChat": "meta-llama/Llama-3.1-8B-Instruct",
         "Nvidia": "meta/llama-3.1-8b-instruct",
         "OpenRouter": "meta-llama/llama-3.1-8b-instruct",
@@ -199,14 +198,12 @@ model_map = {
     "llama-3.1-70b": {
         "Together": "llama-3.1-70b",
         "Cerebras": "llama3.1-70b",
-        "GlhfChat": "hf:meta-llama/Llama-3.1-70B-Instruct",
         "Nvidia": "meta/llama-3.1-70b-instruct",
         "OpenRouter": "meta-llama/llama-3.1-70b-instruct",
         "Puter": "openrouter:meta-llama/llama-3.1-70b-instruct",
     },
     "llama-3.1-405b": {
         "Together": "llama-3.1-405b",
-        "GlhfChat": "hf:meta-llama/Llama-3.1-405B-Instruct",
         "Puter": [
             "openrouter:meta-llama/llama-3.1-405b:free",
             "openrouter:meta-llama/llama-3.1-405b",
@@ -216,7 +213,6 @@ model_map = {
     "llama-3.2-3b": {
         "Together": "llama-3.2-3b",
         "Cloudflare": "@cf/meta/llama-3.2-3b-instruct",
-        "GlhfChat": "hf:meta-llama/Llama-3.2-3B-Instruct",
         "Nvidia": "meta/llama-3.2-3b-instruct",
         "OpenRouter": "meta-llama/llama-3.2-3b-instruct",
         "Puter": [
@@ -356,7 +352,6 @@ model_map = {
         "HuggingChat": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "HuggingFace": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "Cloudflare": "@cf/qwen/qwen2.5-coder-32b-instruct",
-        "GlhfChat": "hf:Qwen/Qwen2.5-Coder-32B-Instruct",
         "OpenRouter": "qwen/qwen-2.5-coder-32b-instruct",
         "Pollinations": "qwen-3-coder",
         "Puter": [
@@ -393,7 +388,6 @@ model_map = {
         "Together": "qwq-32b",
         "HuggingChat": "qwq-32b",
         "Cloudflare": "@cf/qwen/qwq-32b",
-        "GlhfChat": "hf:Qwen/QwQ-32B-Preview",
         "LMArena": "qwq-32b",
         "Puter": [
             "openrouter:qwen/qwq-32b-preview",
@@ -937,7 +931,6 @@ model_map = {
     },
     "qwen-2.5-7b": {
         "HuggingFace": "Qwen/Qwen2.5-7B-Instruct",
-        "GlhfChat": "hf:Qwen/Qwen2.5-7B-Instruct",
         "HuggingChat": "Qwen/Qwen2.5-7B-Instruct",
         "OpenRouter": "qwen/qwen-2.5-7b-instruct",
         "Puter": [
@@ -957,7 +950,6 @@ model_map = {
         "HuggingFace": "meta-llama/Llama-3.3-70B-Instruct",
         "Cerebras": "llama-3.3-70b",
         "Cloudflare": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-        "GlhfChat": "hf:meta-llama/Llama-3.3-70B-Instruct",
         "HuggingChat": "meta-llama/Llama-3.3-70B-Instruct",
         "Nvidia": "meta/llama-3.3-70b-instruct",
         "OpenRouter": "meta-llama/llama-3.3-70b-instruct",
@@ -1139,7 +1131,6 @@ model_map = {
         "HuggingFace": "deepseek-ai/DeepSeek-V3",
         "Airforce": "deepseek",
         "DeepSeek": "deepseek-v3",
-        "GlhfChat": "hf:deepseek-ai/DeepSeek-V3",
         "HuggingChat": "deepseek-ai/DeepSeek-V3",
         "PhindAi": "deepseek",
         "Pollinations": "deepseek",
@@ -1166,7 +1157,6 @@ model_map = {
     },
     "qwen-2.5-72b": {
         "HuggingFace": "Qwen/Qwen2.5-72B-Instruct",
-        "GlhfChat": "hf:Qwen/Qwen2.5-72B-Instruct",
         "HuggingChat": "Qwen/Qwen2.5-72B-Instruct",
         "OpenRouter": "qwen/qwen-2.5-72b-instruct",
         "Puter": [

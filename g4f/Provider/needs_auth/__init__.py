@@ -18,7 +18,6 @@ from .GeminiCLI import GeminiCLI
 from .GigaChat import GigaChat
 from ..github import GithubCopilot
 from .GithubCopilotAPI import GithubCopilotAPI
-from .GlhfChat import GlhfChat
 from .Grok import Grok
 from .Groq import Groq
 from .LMArena import LMArena

@@ -40,7 +40,6 @@ class ProviderLoader:
         "GigaChat",
         "GithubCopilot",
         "GithubCopilotAPI",
-        "GlhfChat",
         "GoogleAiMode",
         "GoogleSearch",
         "Grok",
@@ -249,10 +248,6 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.GithubCopilotAPI import GithubCopilotAPI
 
             return GithubCopilotAPI
-        elif name == "GlhfChat":
-            from g4f.Provider.needs_auth.GlhfChat import GlhfChat
-
-            return GlhfChat
         elif name == "GoogleAiMode":
             from g4f.Provider.search.GoogleAiMode import GoogleAiMode
 
