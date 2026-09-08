@@ -789,7 +789,7 @@ const targetTexts = [
     'Accept All Cookies', 'Accept all cookies',
     'Einwilligen', 'Alle akzeptieren',
     'Zustimmen und weiter', 'Zustimmen',
-    'Run',
+    'Run', 'Accept Cookies',
     ...params.getAll('click')
 ];
 const acceptBtns = (() => {
@@ -869,6 +869,7 @@ const fieldSelectors = [
     'textarea[name="prompt"]',
     '[class^="MessageInput__TextArea--"]',
     '[placeholder="Type a message..."]',
+    '[placeholder="Ask anything…"]'
 ];
 const textarea = document.querySelector(fieldSelectors.join(', '));
 
@@ -896,7 +897,8 @@ if (searchQuery && textarea) {
         '[contenteditable="true"]',
         '[placeholder="Message DeepSeek"]',
         '.message-input-textarea',
-        '#chat-input'
+        '#chat-input',
+        '[placeholder="Ask anything…"]' // arena.ai
     ];
     const editor = document.querySelector(fields.join(', '));
     if (!editor) return;
@@ -939,6 +941,7 @@ const sendButtonSelectors = [
     '.send-button',
     '#send-message-button', // z.ai
     '[data-testid="chat-submit"]', // grok.com
+    '[aria-label="Send message"]', // arena.ai
 ];
 const sendButton = document.querySelector(sendButtonSelectors.join(', '));
 if (sendButton) {
