@@ -107,7 +107,7 @@ class AbstractClientFactory:
             if not cls._live_providers:
                 path = (
                     Path(get_cookies_dir())
-                    / "models"
+                    / ".models"
                     / datetime.today().strftime("%Y-%m-%d")
                     / f"providers.json"
                 )
