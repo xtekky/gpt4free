@@ -52,34 +52,34 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
                     continue
 
                 # Extract search results from the DOM
-                yield await cls._read_search_results(session)
+                yield SearchResults(await cls._read_search_results(session))
                 break
         finally:
             await session.close()
 
-    async def _read_search_results(session: CDPSession) -> SearchResults:
-        return SearchResults(await session.evaluate_js("""
-                (() => {
-                    const results = [];
-                    const items = document.querySelectorAll('h3');
-                    items.forEach(item => {
-                        const linkEl = item.parentElement;
-                        const title = item.innerText || '';
-                        const link = linkEl.href  ? new URL(linkEl.href || '/') : null;
-                        if (link) link.searchParams.delete("srsltid")
-                        let parentEl = linkEl.parentElement.parentElement.parentElement;
-                        let snippetEl = null;
-                        while (parentEl) {
-                            if (parentEl.nextElementSibling)
-                            snippetEl = parentEl.nextElementSibling.querySelector("div div:not(:has(a, svg)) span:not(:has(div, span, a, svg)):not(:empty)");
-                            if (snippetEl) break;
-                            parentEl = parentEl.parentElement;
-                        }
-                        const snippet = snippetEl ? snippetEl.innerText : '';
-                        if (title && link) {
-                            results.push({ title, link: link.toString(), snippet });
-                        }
-                    });
-                    return results;
-                })()
-                """))
+    async def _read_search_results(session: CDPSession) -> list:
+        return await session.evaluate_js("""
+            (() => {
+                const results = [];
+                const items = document.querySelectorAll('h3');
+                items.forEach(item => {
+                    const linkEl = item.parentElement;
+                    const title = item.innerText || '';
+                    const link = linkEl.href  ? new URL(linkEl.href || '/') : null;
+                    if (link) link.searchParams.delete("srsltid")
+                    let parentEl = linkEl.parentElement.parentElement.parentElement;
+                    let snippetEl = null;
+                    while (parentEl) {
+                        if (parentEl.nextElementSibling)
+                        snippetEl = parentEl.nextElementSibling.querySelector("div div:not(:has(a, svg)) span:not(:has(div, span, a, svg)):not(:empty)");
+                        if (snippetEl) break;
+                        parentEl = parentEl.parentElement;
+                    }
+                    const snippet = snippetEl ? snippetEl.innerText : '';
+                    if (title && link) {
+                        results.push({ title, link: link.toString(), snippet });
+                    }
+                });
+                return results;
+            })()
+            """)
