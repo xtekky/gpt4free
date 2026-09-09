@@ -370,7 +370,7 @@ class Website:
         # Screenshot / logo section
         screenshot_url = p.get("screenshot_url") or p.get("url") or ""
         create_url = f"/screenshot?url={quote_plus(str(screenshot_url))}"
-        screenshot_url = screenshot_url.replace("https://", "").replace("http://", "")
+        screenshot_url = screenshot_url.replace("https://", "").replace("http://", "").replace("www.", "")
         logo_url = "https://g4f.space/logo/" + p.get("name", "").replace(
             'MetaAIAccount', 'Facebook AI').replace(
             'MetaAI', 'Facebook AI').replace(

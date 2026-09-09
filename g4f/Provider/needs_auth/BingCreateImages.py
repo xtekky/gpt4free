@@ -12,6 +12,7 @@ from ..helper import format_media_prompt
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer in Bing"
     url = "https://www.bing.com/images/create"
+    screenshot_url = "https://www.bing.com"
     working = True
     needs_auth = True
     image_models = ["dall-e-3"]

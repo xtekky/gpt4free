@@ -1,7 +1,7 @@
 """
 Tests for parallel CDP tab support.
 
-Verifies that multiple CDPSession / SyncCDPSession instances can share a
+Verifies that multiple CDPSession instances can share a
 single browser process concurrently without killing each other when one
 tab closes.
 """
@@ -14,7 +14,6 @@ import unittest
 
 from g4f.requests.cdp import (
     CDPSession,
-    SyncCDPSession,
     acquire_shared_browser_ref,
     release_shared_browser_ref,
     get_shared_browser,
@@ -205,63 +204,6 @@ class TestCDPSessionParallel(unittest.TestCase):
                 await s2.close()
 
         asyncio.run(run())
-
-
-@unittest.skipUnless(
-    (__import__("shutil").which("google-chrome")
-    or __import__("shutil").which("chromium")
-    or __import__("shutil").which("chromium-browser")
-    or __import__("os").path.exists("/usr/bin/google-chrome")
-    or __import__("os").path.exists("/usr/bin/chromium-browser"))
-    and __import__("importlib").util.find_spec("websocket"),
-    "No Chrome/Chromium executable or websocket-client not installed",
-)
-class TestSyncCDPSessionParallel(unittest.TestCase):
-    """Integration tests for SyncCDPSession parallel tab support."""
-
-    def setUp(self):
-        _force_terminate_shared_browser()
-
-    def tearDown(self):
-        _force_terminate_shared_browser()
-
-    def test_two_sync_sessions_same_browser(self):
-        """Two SyncCDPSession instances should share the same browser port."""
-        s1 = SyncCDPSession(headless=True)
-        s2 = SyncCDPSession(headless=True)
-        s1.start_chrome()
-        s2.start_chrome()
-        try:
-            self.assertEqual(s1.port, s2.port)
-            self.assertNotEqual(s1.target_id, s2.target_id)
-            s1.navigate("about:blank")
-            s2.navigate("about:blank")
-            self.assertTrue(_browser_alive(s1.host, s1.port))
-        finally:
-            s2.close()
-            # Browser should still be alive
-            self.assertTrue(_browser_alive(s1.host, s1.port))
-            s1.close()
-            # Browser stays alive (idle timer keeps it for reuse)
-            self.assertTrue(_browser_alive("127.0.0.1", s1.port))
-
-    def test_sync_close_one_keeps_browser(self):
-        """Closing one SyncCDPSession must not kill the browser while another is active."""
-        s1 = SyncCDPSession(headless=True)
-        s2 = SyncCDPSession(headless=True)
-        s1.start_chrome()
-        s2.start_chrome()
-        port = s1.port
-        host = s1.host
-        try:
-            s2.close()
-            self.assertTrue(_browser_alive(host, port))
-            s1.navigate("about:blank")
-            self.assertTrue(_browser_alive(host, port))
-        finally:
-            s1.close()
-        self.assertTrue(_browser_alive(host, port))
-
 
 if __name__ == "__main__":
     unittest.main()

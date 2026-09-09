@@ -9,7 +9,7 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http.cookies import Morsel
 from pathlib import Path
-from typing import Iterator, AsyncIterator
+from typing import Iterator, AsyncIterator, Optional
 from urllib.parse import urlparse
 
 try:
@@ -49,6 +49,8 @@ from .cdp_browser import (
     _CdpShim as _cdp,
     get_cookie_params_from_dict as _get_cookie_params_from_dict_cdp,
 )
+
+Browser = CDPBrowser
 
 from .. import debug
 from .raise_for_status import raise_for_status
@@ -280,13 +282,14 @@ def _make_cdp_on_stop(user_data_dir: str):
     return on_stop
 
 def set_browser_executable_path(browser_executable_path: str):
-    BrowserConfig.browser_executable_path = browser_executable_path
+    BrowserConfig.executable_path = browser_executable_path
 
 async def get_nodriver(
     proxy: str = None,
     user_data_dir="nodriver",
     timeout: int = 300,
     browser_executable_path: str = None,
+    browser_args: list = None,
     **kwargs,
 ) -> tuple:
     """Return a CDPBrowser wrapper that emulates the nodriver Browser API.
@@ -300,6 +303,9 @@ async def get_nodriver(
             'Chrome/Chromium/Edge executable not found. Install Google Chrome.'
         )
 
+    if browser_executable_path:
+        set_browser_executable_path(browser_executable_path)
+
     ud_key = str(user_data_dir) if user_data_dir else "default"
 
     async with _shared_cdp_lock:
@@ -312,7 +318,10 @@ async def get_nodriver(
 
     # No shared browser yet — create a new CDPBrowser
     headless = BrowserConfig.headless if BrowserConfig.headless is not None else True
-    browser = CDPBrowser(headless=headless, proxy=proxy, user_data_dir=user_data_dir)
+    browser = CDPBrowser(
+        headless=headless, proxy=proxy, user_data_dir=user_data_dir,
+        browser_args=browser_args,
+    )
 
     async with _shared_cdp_lock:
         _shared_cdp_browsers[ud_key] = (browser, 1)
@@ -325,8 +334,10 @@ async def get_nodriver(
 @asynccontextmanager
 async def get_nodriver_session(**kwargs):
     browser, stop_browser = await get_nodriver(**kwargs)
-    yield browser
-    await stop_browser()
+    try:
+        yield browser
+    finally:
+        await stop_browser()
 
 
 

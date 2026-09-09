@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import html
 import json
 import os
 import random
@@ -91,6 +92,21 @@ _RE_IMAGES = re.compile(r"^/message/metadata/content_references/(\d+)/images$")
 _RE_ACCESS_TOKEN = re.compile(r'"accessToken":"(.+?)"')
 _RE_UTM_SOURCE = re.compile(r"[&?]utm_source=.+")
 
+# New anonymous/guest chat surface ("web-mobile") — used when no access token
+# is available; the classic backend-anon/f/conversation API no longer serves
+# unauthenticated requests.
+mweb_chat_requirements_prepare_url = "https://chatgpt.com/unauth-mweb/sentinel/chat-requirements/prepare"
+mweb_chat_requirements_finalize_url = "https://chatgpt.com/unauth-mweb/sentinel/chat-requirements/finalize"
+mweb_conversation_prepare_url = "https://chatgpt.com/unauth-mweb/conversation/prepare"
+mweb_conversation_updates_url = "https://chatgpt.com/unauth-mweb/conversation/updates"
+_RE_MWEB_CONVERSATION_ID = re.compile(r'data-conversation-id="([\w-]+)"')
+_RE_MWEB_MESSAGE_ID = re.compile(r'data-message-id="([\w-]+)"')
+_RE_MWEB_ASSISTANT_BLOCK = re.compile(
+    r'<p data-assistant-stream-block="" data-assistant-stream-block-index="(\d+)">(.*?)</p>',
+    re.DOTALL,
+)
+_RE_MWEB_MARKER = re.compile(r'<\?[^>]*>')
+
 DEFAULT_HEADERS = {
     "accept": "*/*",
     "accept-encoding": "gzip, deflate, br, zstd",
@@ -167,6 +183,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     model_aliases = model_aliases
     synthesize_content_type = "audio/aac"
     request_config = RequestConfig()
+    supports_native_tools = True
     quota_url = "https://chatgpt.com/backend-api/me"
 
     _api_key: str = None
@@ -468,6 +485,108 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 )
 
     @classmethod
+    async def create_anonymous_mweb(
+        cls,
+        session: StreamSession,
+        auth_result: AuthResult,
+        prompt: str,
+        conversation: Conversation,
+    ) -> str:
+        """Send a single guest message via ChatGPT's "web-mobile" surface.
+
+        Replaces the retired ``backend-anon/f/conversation`` JSON API, which
+        no longer serves unauthenticated requests. This surface returns the
+        full (non-streamed) reply as an HTML partial-update document.
+        """
+        user_agent = getattr(auth_result, "headers", {}).get("user-agent")
+        proof_token = getattr(auth_result, "proof_token", None)
+        if proof_token is None:
+            proof_token = auth_result.proof_token = get_config(user_agent)
+        json_headers = {**cls._headers, "accept": "application/json", "content-type": "application/json"}
+        async with session.post(
+            mweb_chat_requirements_prepare_url,
+            json={"p": get_requirements_token(proof_token)},
+            headers=json_headers,
+        ) as response:
+            await raise_for_status(response)
+            prepare_token = (await response.json())["prepare_token"]
+        async with session.post(
+            mweb_chat_requirements_finalize_url,
+            json={"prepare_token": prepare_token},
+            headers=json_headers,
+        ) as response:
+            await raise_for_status(response)
+            chat_requirements_token = (await response.json())["token"]
+        session_id = str(uuid.uuid4())
+        operation_id = str(uuid.uuid4())
+        conversation_state = {
+            "messages": [],
+            "parentMessageId": conversation.parent_message_id or "client-created-root",
+            "userMessageCount": 0,
+        }
+        form_headers = {
+            **cls._headers,
+            "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "oai-session-id": session_id,
+        }
+        # Registers a "document worker" for this session — without this the
+        # updates call below responds with conversation-document-upgrade-required.
+        async with session.post(
+            f"{mweb_conversation_prepare_url}?lightweight_authenticated=0",
+            data={
+                "conversationRetryOwner": json.dumps({"mode": "anonymous", "sessionEpoch": None}),
+                "conversationState": json.dumps(conversation_state),
+                "clientContextualInfo": json.dumps({
+                    "app_name": "chatgpt.com",
+                    "has_web_push_capabilities": True,
+                    "is_dark_mode": False,
+                    "web_push_notification_permission": "default",
+                    "page_height": 800,
+                    "page_width": 1280,
+                    "pixel_ratio": 1,
+                    "screen_height": 1080,
+                    "screen_width": 1920,
+                    "time_since_loaded": random.randint(2, 10),
+                }),
+                "timezone": "Europe/Berlin",
+                "timezoneOffsetMinutes": -120,
+            },
+            headers={**form_headers, "accept": "*/*"},
+        ) as response:
+            await raise_for_status(response)
+        form_data = {
+            "conversationState": json.dumps(conversation_state),
+            "messageMetadata": "{}",
+            "oai-session-id": session_id,
+            "imageAttachments": "[]",
+            "pendingImageUploads": "[]",
+            "prompt": prompt,
+            "chatRequirementsToken": chat_requirements_token,
+        }
+        async with session.post(
+            f"{mweb_conversation_updates_url}?lightweight_authenticated=0&operationId={operation_id}",
+            data=form_data,
+            headers={**form_headers, "accept": "text/vnd.openai.web-mobile-partial+html"},
+        ) as response:
+            await raise_for_status(response)
+            text = await response.text()
+        conversation_id_match = _RE_MWEB_CONVERSATION_ID.search(text)
+        if conversation_id_match:
+            conversation.conversation_id = conversation_id_match.group(1)
+        message_id_match = _RE_MWEB_MESSAGE_ID.search(text)
+        if message_id_match:
+            conversation.parent_message_id = conversation.message_id = message_id_match.group(1)
+        conversation.finish_reason = "stop"
+        # Later blocks with the same index are streaming updates that
+        # supersede earlier (partial) ones — keep only the last per index.
+        blocks = {}
+        for index, block in _RE_MWEB_ASSISTANT_BLOCK.findall(text):
+            blocks[int(index)] = _RE_MWEB_MARKER.sub("", block)
+        if not blocks:
+            debug.log(f"OpenaiChat: MWEB response had no assistant block: {text[:500]!r}")
+        return html.unescape("".join(blocks[index] for index in sorted(blocks)))
+
+    @classmethod
     async def create_authed(
         cls,
         model: str,
@@ -518,6 +637,20 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         ) as session:
             image_requests = None
             media = merge_media(media, messages)
+            # A previously captured token can outlive its own expiry across
+            # calls (cls._api_key is a class-level attribute) — drop it here
+            # so a stale/expired token doesn't get treated as authenticated.
+            if (
+                cls._api_key is not None
+                and cls._expires is not None
+                and time.time() > cls._expires
+            ):
+                cls._api_key = None
+            if cls._api_key is None and media:
+                # Anonymous chat doesn't support image uploads yet (the
+                # retired backend-anon endpoints used for that no longer work).
+                debug.log("OpenaiChat: Dropping media for anonymous chat (not supported)")
+                media = []
             if not cls.needs_auth and not media:
                 if cls._headers is None:
                     cls._create_request_args(cls._cookies)
@@ -572,6 +705,20 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             if cls._api_key is None:
                 auto_continue = False
             conversation.finish_reason = None
+            if cls._api_key is None:
+                # Guest chat now goes through the "web-mobile" surface —
+                # the legacy backend-anon JSON API no longer accepts requests.
+                prompt = conversation.prompt = format_media_prompt(messages, prompt)
+                print(f"OpenaiChat: Guest prompt: {prompt}")
+                reply = await cls.create_anonymous_mweb(session, auth_result, prompt, conversation)
+                print(f"OpenaiChat: Guest reply: {reply}")
+                if reply:
+                    yield reply
+                conversation.prompt = None
+                if return_conversation:
+                    yield conversation
+                yield FinishReason(conversation.finish_reason)
+                return
             sources = OpenAISources([])
             references = ContentReferences()
             system_hints = ["picture_v2"] if image_model else []
@@ -727,10 +874,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     headers=headers,
                 ) as response:
                     cls._update_request_args(auth_result, session)
-                    if response.status in (401, 403, 429, 500):
-                        raise MissingAuthError("Access token is not valid")
-                    elif response.status == 422:
-                        raise RuntimeError((await response.json()), data)
+                    # if response.status in (401, 403, 429, 500):
+                    #     raise MissingAuthError("Access token is not valid")
+                    # elif response.status == 422:
+                    #     raise RuntimeError((await response.json()), data)
                     await raise_for_status(response)
                     buffer = ""
                     matches = []
@@ -1353,19 +1500,25 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         f"Access token is not valid: {cls.request_config.access_token}"
                     )
             except NoValidHarFileError:
-                if cls.request_config.access_token is None:
-                    yield RequestLogin(
-                        cls.label, os.environ.get("G4F_LOGIN_URL", "")
-                    )
-                    await cls.nodriver_auth(proxy)
-                else:
-                    raise
+                # An expired cached token needs the same browser re-login as a
+                # missing one — re-raising here would surface a stale
+                # MissingAuthError instead of actually refreshing the token.
+                yield RequestLogin(
+                    cls.label, os.environ.get("G4F_LOGIN_URL", "")
+                )
+                await cls.nodriver_auth(proxy)
 
     @classmethod
     async def nodriver_auth(cls, proxy: str = None):
         async with get_nodriver_session(proxy=proxy) as browser:
             page = await browser.get(cls.url)
+            try:
+                await cls._nodriver_auth_page(page)
+            finally:
+                await page.close()
 
+    @classmethod
+    async def _nodriver_auth_page(cls, page):
             def on_request(event, page=None):
                 if not hasattr(event, "request"):
                     return
@@ -1410,31 +1563,58 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 "window.navigator.userAgent", return_by_value=True
             )
             debug.log(f"OpenaiChat: User-Agent: {user_agent}")
-            for _ in range(3):
+            logged_in = not cls.needs_auth
+            for attempt in range(3):
                 try:
                     if cls.needs_auth:
-                        try:
-                            await page.select(
-                                '[data-testid="accounts-profile-button"]', 300
+                        debug.log(
+                            f"OpenaiChat: Waiting for login (attempt {attempt + 1}/3, up to 300s)..."
+                        )
+                        profile_button = await page.select(
+                            '[data-testid="accounts-profile-button"]', 300
+                        )
+                        if profile_button is None:
+                            title = await page.evaluate("document.title", return_by_value=True)
+                            url = await page.evaluate("window.location.href", return_by_value=True)
+                            debug.log(
+                                f"OpenaiChat: Not logged in yet (title={title!r}, url={url!r})"
                             )
-                        except TimeoutError:
                             continue
-                    try:
-                        textarea = await page.select("#prompt-textarea", 300)
-                        await textarea.send_keys("Hello")
-                        await asyncio.sleep(1)
-                    except TimeoutError:
+                        logged_in = True
+                    debug.log(
+                        f"OpenaiChat: Waiting for #prompt-textarea (attempt {attempt + 1}/3, up to 300s)..."
+                    )
+                    textarea = await page.select("#prompt-textarea, #mobile-composer-prompt", 300)
+                    if textarea is None:
+                        title = await page.evaluate("document.title", return_by_value=True)
+                        url = await page.evaluate("window.location.href", return_by_value=True)
+                        debug.log(
+                            f"OpenaiChat: #prompt-textarea not found (title={title!r}, url={url!r})"
+                        )
                         continue
+                    await textarea.send_keys("Hello")
+                    await asyncio.sleep(1)
                 except cdp.runtime.ProtocolException:
                     continue
                 break
-            try:
-                button = await page.select('[data-testid="send-button"]')
+            if not logged_in:
+                # Without a confirmed login the page falls back to ChatGPT's
+                # anonymous "unauth-mweb" guest UI, which never yields a real
+                # access token — fail clearly instead of hanging or silently
+                # continuing as a guest.
+                raise MissingAuthError(
+                    "Login was not completed in the browser window in time"
+                )
+            # Mobile layout uses [data-composer-submit] instead of data-testid.
+            button = await page.select(
+                '[data-testid="send-button"], [data-composer-submit]'
+            )
+            if button is not None:
                 await button.click()
                 debug.log("OpenaiChat: 'Hello' sended")
-            except TimeoutError:
-                pass
-            while True:
+            else:
+                debug.log("OpenaiChat: send-button not found, 'Hello' not sent")
+            for _ in range(120):
                 body = await page.evaluate(
                     "JSON.stringify(window.__remixContext)", return_by_value=True
                 )
@@ -1452,6 +1632,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.log(
                 f"OpenaiChat: Access token: {'False' if cls._api_key is None else cls._api_key[:12] + '...'}"
             )
+            if cls.needs_auth and cls._api_key is None:
+                raise MissingAuthError("Could not obtain an access token after login")
             # while True:
             #    if cls.request_config.proof_token:
             #        break
@@ -1462,7 +1644,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 "document.documentElement.getAttribute('data-build')"
             )
             cls.request_config.cookies = await page.send(get_cookies([cls.url]))
-            await page.close()
             cls._create_request_args(
                 cls.request_config.cookies,
                 cls.request_config.headers,

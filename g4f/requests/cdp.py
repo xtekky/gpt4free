@@ -20,27 +20,6 @@ CDPSession (Async) — for high-throughput providers like Cloudflare.
           await session.close()
 
 ──────────────────────────────────────────────────────────────────────
-SyncCDPSession (Sync) — for Turnstile-solving providers like DeepInfra.
-──────────────────────────────────────────────────────────────────────
-  • Synchronous blocking recv() loop — waits as long as the browser needs.
-  • No async timeouts — more reliable for slow/interactive pages.
-  • Run from an async context via run_in_executor().
-  • Requires: pip install websocket-client
-
-  Example:
-      def run_sync():
-          session = SyncCDPSession(port=12345, headless=False)
-          session.start_chrome()
-          try:
-              session.navigate("https://example.com")
-              title = session.evaluate_js("document.title")
-              return title
-          finally:
-              session.close()
-
-      title = await asyncio.get_event_loop().run_in_executor(None, run_sync)
-
-──────────────────────────────────────────────────────────────────────
 Common features:
   • Auto-detects Chrome/Chromium/Edge path via BrowserConfig or system PATH.
   • Stores browser profiles in g4f cookies directory (no project root pollution).
@@ -263,10 +242,20 @@ def find_running_cdp_port(host: str) -> Optional[int]:
     return None
 
 
-def get_shared_browser(host: str, preferred_port: int, headless: bool = True) -> int:
+def get_shared_browser(
+    host: str,
+    preferred_port: int,
+    headless: bool = True,
+    proxy: Optional[str] = None,
+    browser_args: Optional[List[str]] = None,
+) -> int:
     """
     Ensure a single shared browser instance is running and return its port.
     If a browser is already running anywhere on the system, we use it directly.
+
+    ``proxy``/``browser_args`` only take effect when the shared browser is
+    first launched — later callers reusing the shared process are ignored,
+    since Chrome does not support changing its proxy at runtime.
     """
     global _shared_browser_process, _shared_browser_port
 
@@ -359,6 +348,10 @@ def get_shared_browser(host: str, preferred_port: int, headless: bool = True) ->
         ]
         if headless:
             cmd.append("--headless=new")
+        if proxy:
+            cmd.append(f"--proxy-server={proxy}")
+        if browser_args:
+            cmd.extend(browser_args)
 
         debug.log(f"CDP: Launching Chrome: {' '.join(cmd)}")
         _shared_browser_process = subprocess.Popen(
@@ -416,6 +409,8 @@ class CDPSession:
         host: Optional[str] = None,
         user_data_dir: Optional[str] = None,
         headless: Optional[bool] = None,
+        proxy: Optional[str] = None,
+        browser_args: Optional[List[str]] = None,
     ):
         if port is None:
             port = BrowserConfig.port
@@ -428,6 +423,8 @@ class CDPSession:
         if headless is None:
             headless = BrowserConfig.headless
         self.headless = headless
+        self.proxy = proxy
+        self.browser_args = browser_args
         self.user_data_dir = (
             user_data_dir  # Ignored if using shared pool, but kept for compatibility
         )
@@ -441,15 +438,23 @@ class CDPSession:
         self._event_handlers: Dict[str, List[asyncio.Future]] = {}
         self._event_queues: Dict[str, List[asyncio.Queue]] = {}
         self._closing = False
+        self._connection_lost = False
 
         # Network event loggers
         self.network_requests: List[dict] = []
         self.network_responses: List[dict] = []
 
+    @property
+    def is_alive(self) -> bool:
+        """Return True if the WebSocket is still connected and not closing."""
+        return not self._closing and not self._connection_lost and self.ws is not None and not self.ws.closed
+
     async def start(self):
         """Launch/get shared Chrome and connect via CDP targeting a new tab."""
         if self.port is None:
-            self.port = get_shared_browser(self.host, self.port, self.headless)
+            self.port = get_shared_browser(
+                self.host, self.port, self.headless, self.proxy, self.browser_args
+            )
 
         # Acquire a reference so the shared browser stays alive for this tab
         acquire_shared_browser_ref()
@@ -491,6 +496,20 @@ class CDPSession:
         await self.call("Runtime.enable")
         await self.call("Network.enable")
         await self.call("Emulation.setFocusEmulationEnabled", enabled=True)
+
+        # Force a desktop-sized viewport — the OS window size hint
+        # (--window-size) is not always honored by the window manager, which
+        # can leave the page narrow enough to trigger a site's mobile layout.
+        try:
+            await self.call(
+                "Emulation.setDeviceMetricsOverride",
+                width=1280,
+                height=800,
+                deviceScaleFactor=1,
+                mobile=False,
+            )
+        except Exception:
+            pass
 
         # Anti-detect: Override User-Agent to remove "HeadlessChrome"
         user_agent = await self.evaluate_js("navigator.userAgent")
@@ -552,11 +571,15 @@ class CDPSession:
         except Exception as e:
             if not self._closing:
                 logger.error(f"CDP receiver loop error: {e}")
+        finally:
+            self._connection_lost = True
 
     async def call(self, method: str, **params) -> dict:
         """Call a CDP method and wait for its result."""
         if not self.ws:
             raise RuntimeError("CDPSession is not connected")
+        if self._connection_lost or self.ws.closed:
+            raise ConnectionError("CDPSession connection lost (browser closed?)")
 
         self.id_counter += 1
         req_id = self.id_counter
@@ -565,7 +588,12 @@ class CDPSession:
         self._pending_requests[req_id] = fut
 
         payload = {"id": req_id, "method": method, "params": params}
-        await self.ws.send_json(payload)
+        try:
+            await self.ws.send_json(payload)
+        except Exception as e:
+            self._connection_lost = True
+            self._pending_requests.pop(req_id, None)
+            raise ConnectionError(f"CDPSession connection lost during send: {e}")
 
         try:
             return await asyncio.wait_for(fut, timeout=30.0)
@@ -657,6 +685,22 @@ class CDPSession:
             logger.warning(
                 f"Timeout waiting for Page.loadEventFired when navigating to {url}"
             )
+
+    async def reload(self):
+        """Reload the current page and wait for it to load."""
+        fut = asyncio.get_running_loop().create_future()
+        if "Page.loadEventFired" not in self._event_handlers:
+            self._event_handlers["Page.loadEventFired"] = []
+        self._event_handlers["Page.loadEventFired"].append(fut)
+
+        await self.call("Page.reload")
+
+        try:
+            await asyncio.wait_for(fut, timeout=30.0)
+        except asyncio.TimeoutError:
+            if fut in self._event_handlers.get("Page.loadEventFired", []):
+                self._event_handlers["Page.loadEventFired"].remove(fut)
+            logger.warning("Timeout waiting for Page.loadEventFired when reloading")
 
     async def wait_for_network_idle(
         self, idle_time: float = 0.5, timeout: float = 15.0
@@ -1005,6 +1049,7 @@ if (deepseekSendButton) {
         """Navigate to a URL and capture a screenshot, caching the result."""
         url_without_suffix = url[:-7] if url.endswith("_2.webp") or url.endswith("_3.webp") else url
         url_with_noads = f"{url_without_suffix}&noads={int(time.time())}" if "?" in url_without_suffix else f"{url_without_suffix}?noads={int(time.time())}"
+        debug.log(f"Navigating to URL: {url_with_noads}")
         await self.navigate(url_with_noads)
 
         if await self.evaluate_js('!document.doctype'):

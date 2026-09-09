@@ -16,7 +16,7 @@ import os.path
 import hashlib
 import base64
 from contextlib import asynccontextmanager
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, unquote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Form, Depends, Header
 from fastapi.responses import (
     StreamingResponse,
@@ -158,7 +158,7 @@ section{padding:28px 0 92px}.section-head{display:flex;justify-content:space-bet
 <a class="card" href="/docs"><h3>Live schema</h3><p>Try requests in your browser and inspect the generated OpenAPI contract.</p><span class="endpoint">GET /docs</span></a>
 </div></section><section><div class="section-head"><h2>Start here</h2><span>curl · JSON · streamable</span></div><div class="code-box"><button class="copy" onclick="copyExample(this)">copy</button><pre id="example">curl -X POST /v1/chat/completions \\
     -H 'Content-Type: application/json' \\
-    -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello"}]}'</pre></div></section></main>
+    -d '{"model":"auto","messages":[{"role":"user","content":"Hello"}]}'</pre></div></section></main>
 <footer>g4f API · <a href="/openapi.json">openapi.json</a> · Compatible clients welcome.</footer></div>
 <script>function copyExample(button){navigator.clipboard?.writeText(document.getElementById("example").textContent).then(()=>{button.textContent="copied";setTimeout(()=>button.textContent="copy",1400)})}</script></body></html>"""
 
@@ -2473,6 +2473,9 @@ def run_api(
     uvicorn_options = {
         "timeout_keep_alive": 65,
         "backlog": 2048,
+        # Avoid hanging forever on shutdown when a long-running request (e.g.
+        # a browser-based provider login) is still in-flight.
+        "timeout_graceful_shutdown": 10,
     }
     uvicorn_options.update(filter_none(**kwargs))
 

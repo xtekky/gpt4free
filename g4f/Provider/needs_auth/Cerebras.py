@@ -10,7 +10,7 @@ from ...cookies import get_cookies, get_cookies_async
 
 class Cerebras(OpenaiAPI):
     label = "Cerebras Inference"
-    url = "https://chat.cerebras.ai/"
+    url = "https://chat.cerebras.ai"
     login_url = "https://cloud.cerebras.ai"
     base_url = "https://api.cerebras.ai/v1"
     working = True

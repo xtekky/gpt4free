@@ -229,12 +229,20 @@ class CDPElement:
         self._node_id = node_id
 
     async def click(self):
-        """Scroll into view and click the element via JS."""
-        await self._tab.evaluate_js(
-            f"(function(){{var el=document.querySelector('[data-cdp-oid=\"{self._object_id}\"]');"
-            f"if(!el)return;el.scrollIntoView({{block:'center'}});el.click();}})()"
-        )
-        # Fallback: use CDP DOM.requestNode + Input dispatch
+        """Scroll into view and click the element."""
+        try:
+            await self._tab._session.call(
+                "Runtime.callFunctionOn",
+                objectId=self._object_id,
+                functionDeclaration=(
+                    "function(){this.scrollIntoView({block:'center'});"
+                    "this.click();}"
+                ),
+            )
+            return
+        except Exception:
+            pass
+        # Fallback: dispatch a real mouse click at the element's on-screen position.
         try:
             res = await self._tab._session.call(
                 "DOM.requestNode", objectId=self._object_id
@@ -258,20 +266,31 @@ class CDPElement:
 
     async def send_keys(self, text: str):
         """Type text into the element."""
-        # Focus the element first
-        await self._tab._session.call(
-            "DOM.focus", objectId=self._object_id
-        )
-        # Dispatch each character as a key event
+        # Focus via JS first — more reliable than DOM.focus for contenteditable
+        # editors (e.g. ChatGPT's ProseMirror-based prompt box).
+        try:
+            await self._tab._session.call(
+                "Runtime.callFunctionOn",
+                objectId=self._object_id,
+                functionDeclaration="function(){this.focus();}",
+            )
+        except Exception:
+            pass
+        try:
+            await self._tab._session.call("DOM.focus", objectId=self._object_id)
+        except Exception:
+            pass
+        # keyDown/keyUp alone don't insert text into contenteditable elements —
+        # Input.insertText is required to actually mutate the editor content.
         for char in text:
             await self._tab._session.call(
                 "Input.dispatchKeyEvent",
-                type="keyDown",
-                text=char,
+                type="rawKeyDown",
                 key=char,
                 code="",
                 windowsVirtualKeyCode=ord(char) if char.isascii() else 0,
             )
+            await self._tab._session.call("Input.insertText", text=char)
             await self._tab._session.call(
                 "Input.dispatchKeyEvent",
                 type="keyUp",
@@ -306,8 +325,8 @@ class CDPTab:
         return self
 
     async def reload(self):
-        """Reload the current page."""
-        await self._session.call("Page.reload")
+        """Reload the current page and wait for it to finish loading."""
+        await self._session.reload()
 
     async def close(self):
         """Close this tab."""
@@ -567,10 +586,11 @@ class CDPBrowser:
     """
 
     def __init__(self, headless: Optional[bool] = None, proxy: str = None,
-                 user_data_dir: str = None):
+                 user_data_dir: str = None, browser_args: Optional[List[str]] = None):
         self.headless = headless
         self.proxy = proxy
         self.user_data_dir = user_data_dir
+        self.browser_args = browser_args
         self._tabs: List[CDPTab] = []
         self.cdp = _CdpShim
         self.cookies = _BrowserCookies(self)
@@ -585,7 +605,9 @@ class CDPBrowser:
 
         Emulates ``browser.get(url)`` from nodriver.
         """
-        session = CDPSession(headless=self.headless)
+        session = CDPSession(
+            headless=self.headless, proxy=self.proxy, browser_args=self.browser_args
+        )
         await session.start()
         tab = CDPTab(session)
         self._tabs.append(tab)

@@ -54,6 +54,9 @@ async def _get_turnstile_token_async(model: str) -> str:
             debug.log("[DeepInfra] Waiting for active textarea...")
             text_entered = False
             for _ in range(80):  # Up to 40 seconds
+                if not session.is_alive:
+                    debug.log("[DeepInfra] Browser session lost, aborting textarea wait.")
+                    break
                 try:
                     ready = await session.evaluate_js(
                         """
@@ -126,6 +129,10 @@ async def _get_turnstile_token_async(model: str) -> str:
 
                         text_entered = True
                         break
+                except (ConnectionError, RuntimeError) as e:
+                    if not session.is_alive:
+                        debug.log(f"[DeepInfra] Browser session lost during textarea wait: {e}")
+                        break
                 except Exception:
                     pass
                 await asyncio.sleep(0.5)
@@ -142,11 +149,18 @@ async def _get_turnstile_token_async(model: str) -> str:
             token_js = "document.querySelector('[name=cf-turnstile-response]') ? document.querySelector('[name=cf-turnstile-response]').value : ''"
             token = ""
             for i in range(240):  # Up to 120 seconds per attempt
+                if not session.is_alive:
+                    debug.log("[DeepInfra] Browser session lost, aborting Turnstile token poll.")
+                    break
                 try:
                     token = await session.evaluate_js(token_js)
                     if token:
                         debug.log(f"[DeepInfra] Token generated on check {i+1}!")
                         return token
+                except (ConnectionError, RuntimeError) as e:
+                    if not session.is_alive:
+                        debug.log(f"[DeepInfra] Browser session lost during token poll: {e}")
+                        break
                 except Exception:
                     pass
                 await asyncio.sleep(0.5)
@@ -171,7 +185,7 @@ class DeepInfra(OpenaiTemplate):
     login_url = "https://deepinfra.com/dash/api_keys"
     base_url = "https://api.deepinfra.com/v1/openai"
 
-    working = True
+    working = False
     active_by_default = True
 
     default_model = "zai-org/GLM-5.2"
