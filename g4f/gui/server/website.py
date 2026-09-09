@@ -369,6 +369,7 @@ class Website:
         # Screenshot / logo section
         screenshot_url = p.get("screenshot_url") or p.get("url") or ""
         create_url = f"/screenshot?url={quote_plus(screenshot_url)}"
+        screenshot_url = screenshot_url.replace("https://", "").replace("http://", "")
         logo_url = "https://g4f.space/logo/" + p.get("name", "").replace(
             'MetaAIAccount', 'Facebook AI').replace(
             'MetaAI', 'Facebook AI').replace(
@@ -389,7 +390,7 @@ class Website:
             'groq', 'Groq')
         screenshot_html = f"""
         <div class="screenshot-section">
-            <img src="/screenshot/{quote_plus(screenshot_url.replace('https://', ''))}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
+            <img src="/screenshot/{quote_plus(screenshot_url)}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
                  style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <img src="{logo_url}" alt="{escape(p['name'])} logo" class="provider-logo" style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <p class="screenshot-caption">Load screenshot from {escape(p['url'] or 'N/A')}</p>
