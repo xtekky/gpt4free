@@ -105,26 +105,34 @@ PARAMETER_EXAMPLES = {
 
 
 async def wait_for(response: AsyncIterator, timeout: int = None) -> AsyncIterator:
-    if timeout is not None:
-        while True:
+    try:
+        if timeout is not None:
+            while True:
+                try:
+                    async def wait_for_next():
+                        try:
+                            return await response.__anext__()
+                        except TimeoutError as e:
+                            raise TimeoutError(str(e) or "The operation timed out") from e
+                    yield await asyncio.wait_for(wait_for_next(), timeout=timeout)
+                except TimeoutError as e:
+                    if str(e):
+                        raise TimeoutError(str(e)) from e
+                    raise TimeoutError(
+                        "The operation timed out after {} seconds".format(timeout)
+                    ) from e
+                except StopAsyncIteration:
+                    break
+        else:
+            async for chunk in response:
+                yield chunk
+    finally:
+        close = getattr(response, "aclose", None)
+        if close is not None:
             try:
-                async def wait_for_next():
-                    try:
-                        return await response.__anext__()
-                    except TimeoutError as e:
-                        raise TimeoutError(str(e) or "The operation timed out") from e
-                yield await asyncio.wait_for(wait_for_next(), timeout=timeout)
-            except TimeoutError as e:
-                if str(e):
-                    raise TimeoutError(str(e)) from e
-                raise TimeoutError(
-                    "The operation timed out after {} seconds".format(timeout)
-                ) from e
-            except StopAsyncIteration:
-                break
-    else:
-        async for chunk in response:
-            yield chunk
+                await close()
+            except Exception:
+                pass
 
 
 def get_async_provider_method(provider: type) -> Optional[callable]:
