@@ -1011,6 +1011,7 @@ if (deepseekSendButton) {
             raise RuntimeError(f"Failed to load page {url} for screenshot, document.doctype={await self.evaluate_js('String(document.doctype)')}")
 
         await self.bypass_turnstile()
+        await self.evaluate_js("window.scrollTo(0, 0);")
 
         result = None
         for i in range(n):
@@ -1022,6 +1023,31 @@ if (deepseekSendButton) {
             except Exception as e:
                 debug.log(f"Screenshot #{i+1} failed: {e}")
         return result
+
+#         response = await self.evaluate_js("""
+#         new Promise((resolve, reject) => {
+#         const html2canvasEL = document.createElement('script');
+# html2canvasEL.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+# html2canvasEL.onload = async () => {
+#     c=await html2canvas(document.body, {/*width: 1200, height: 630*/});
+#     c.toBlob(async (b)=>{
+#         const url = "https://media.pollinations.ai/upload";
+#         const formData = new FormData();
+#         formData.append('file', b);
+#         const response = await fetch(url, {
+#             method: 'POST',
+#             body: formData,
+#             headers: {"Authorization": "Bearer pk_7X0QLj0xijSd0xj7"}
+#         });
+#         resolve(await response.json())
+#     }, 'image/webp');
+# };
+# html2canvasEL.onerror = (e) => { reject(e); };
+# document.head.appendChild(html2canvasEL);
+#         """)
+#         async with aiohttp.ClientSession() as session:
+#             async with session.get(response['url']) as resp:
+#                 image_bytes = await resp.read()
     
     async def _capture_screenshot_impl(self, url: str, n: int) -> str:
         url_without_suffix = url[:-7] if url.endswith("_2.webp") or url.endswith("_3.webp") else url
@@ -1107,304 +1133,3 @@ if (deepseekSendButton) {
 
         # Release our tab; browser stays alive for reuse by other tabs
         release_shared_browser_ref()
-
-
-class SyncCDPSession:
-    """
-    Synchronous (blocking) CDP client for use in Turnstile-solving providers
-    (e.g. DeepInfra) where async timeout-based approach is unreliable.
-
-    Unlike CDPSession which uses asyncio+aiohttp and futures with timeouts,
-    this class uses a simple blocking while-loop recv() model — it will wait
-    as long as the browser needs without the risk of a premature TimeoutError.
-
-    Requires: pip install websocket-client
-
-    Example Usage (run from an async context via executor):
-        def run_sync():
-            session = SyncCDPSession(port=12345, headless=False)
-            session.start_chrome()
-            try:
-                session.navigate("https://example.com")
-                title = session.evaluate_js("document.title")
-                return title
-            finally:
-                session.close()
-
-        result = await asyncio.get_event_loop().run_in_executor(None, run_sync)
-    """
-
-    def __init__(
-        self,
-        port: Optional[int] = None,
-        host: Optional[str] = None,
-        user_data_dir: Optional[str] = None,
-        headless: bool = None,
-    ):
-        if port is None:
-            port = BrowserConfig.port
-        if host is None:
-            host = BrowserConfig.host
-        if host is None:
-            host = "127.0.0.1"
-        if headless is None:
-            headless = BrowserConfig.headless
-        self.port = port
-        self.host = host
-        self.headless = headless
-        self.user_data_dir = (
-            user_data_dir  # Ignored if using shared pool, but kept for compatibility
-        )
-        self.process = None
-        self.ws = None
-        self.target_id = None
-        self.id_counter = 0
-
-        # Network event loggers
-        self.network_requests: List[dict] = []
-        self.network_responses: List[dict] = []
-
-    def start_chrome(self):
-        """Launch/get shared Chrome and connect via CDP targeting a new tab."""
-        if self.port is None:
-            self.port = get_shared_browser(self.host, self.port, self.headless)
-
-        # Acquire a reference so the shared browser stays alive for this tab
-        acquire_shared_browser_ref()
-
-        # Create a new tab target
-        ws_url = None
-        for _ in range(10):
-            try:
-                req = urllib.request.Request(
-                    f"http://{self.host}:{self.port}/json/new", method="PUT"
-                )
-                with urllib.request.urlopen(req, timeout=2) as response:
-                    target = json.loads(response.read().decode("utf-8"))
-                    ws_url = target.get("webSocketDebuggerUrl")
-                    self.target_id = target.get("id")
-                    if ws_url:
-                        break
-            except Exception:
-                time.sleep(0.5)
-
-        if not ws_url:
-            release_shared_browser_ref()
-            raise RuntimeError(f"Failed to create new tab target on port {self.port}")
-
-        self._connect(ws_url)
-
-    def _connect(self, ws_url: str):
-        """Connect via WebSocket to the target."""
-        try:
-            from websocket import create_connection
-        except ImportError:
-            raise ImportError(
-                'Install "websocket-client" package: pip install websocket-client'
-            )
-
-        self.ws = create_connection(ws_url)
-        self.ws.settimeout(60)  # Prevent infinite hang if Chrome crashes mid-call
-
-        # Enable essential CDP domains
-        self.call("Page.enable")
-        self.call("DOM.enable")
-        self.call("Runtime.enable")
-        self.call("Network.enable")
-        self.call("Emulation.setFocusEmulationEnabled", enabled=True)
-
-    def call(self, method: str, **params) -> dict:
-        """Send a CDP command and block until the matching response arrives, logging events."""
-        self.id_counter += 1
-        payload = {"id": self.id_counter, "method": method, "params": params}
-        self.ws.send(json.dumps(payload))
-
-        # Blocking loop with a 60s socket timeout — won't hang forever if browser exits
-        while True:
-            response = json.loads(self.ws.recv())
-            if "id" in response:
-                if response.get("id") == self.id_counter:
-                    if "error" in response:
-                        raise RuntimeError(
-                            f"CDP error in {method}: {response['error']}"
-                        )
-                    return response.get("result", {})
-            else:
-                # Event
-                event_method = response.get("method")
-                event_params = response.get("params", {})
-                if event_method == "Network.requestWillBeSent":
-                    self.network_requests.append(event_params)
-                elif event_method == "Network.responseReceived":
-                    self.network_responses.append(event_params)
-
-    def evaluate_js(self, expression: str) -> Any:
-        """Execute JS on the page and return the primitive result value."""
-        res = self.call("Runtime.evaluate", expression=expression, returnByValue=True)
-        return res.get("result", {}).get("value")
-
-    def get_cookies(self) -> dict:
-        """Retrieve all cookies from the browser as a name-value dict."""
-        cookies = self.get_cookies_list()
-        return {c["name"]: c["value"] for c in cookies}
-
-    def get_cookies_list(self, urls: Optional[List[str]] = None) -> List[dict]:
-        """Retrieve full cookie objects from the browser session."""
-        params = {}
-        if urls:
-            params["urls"] = urls
-        res = self.call("Network.getCookies", **params)
-        return res.get("cookies", [])
-
-    def set_cookies(self, cookies: List[dict]):
-        """Set cookies in the browser session."""
-        for cookie in cookies:
-            params = {
-                "name": cookie.get("name"),
-                "value": cookie.get("value"),
-                "domain": cookie.get("domain"),
-                "path": cookie.get("path"),
-                "secure": cookie.get("secure"),
-                "httpOnly": cookie.get("httpOnly"),
-                "sameSite": cookie.get("sameSite"),
-                "expires": cookie.get("expires"),
-            }
-            params = {k: v for k, v in params.items() if v is not None}
-            if "domain" not in params and "url" not in params:
-                params["url"] = "https://deepinfra.com"
-            self.call("Network.setCookie", **params)
-
-    def navigate(self, url: str):
-        """Navigate to a URL and wait for initial load."""
-        self.call("Page.navigate", url=url)
-        time.sleep(2.0)
-
-    def wait_for_network_idle(self, idle_time: float = 0.5, timeout: float = 15.0) -> bool:
-        """Wait until network activity settles (no in-flight requests for *idle_time* seconds).
-
-        Polls document.readyState and the Performance Resource Timing API to detect
-        when resource loading has stabilised. Returns True when idle, False on timeout.
-        """
-        deadline = time.monotonic() + timeout
-        last_count = -1
-        stable_since = time.monotonic()
-
-        while time.monotonic() < deadline:
-            try:
-                ready = self.evaluate_js("document.readyState")
-                if ready == "complete":
-                    # Count resources that are still loading (responseStart > 0 but no responseEnd)
-                    count = self.evaluate_js(
-                        """(() => {
-                            const entries = performance.getEntriesByType('resource');
-                            let pending = 0;
-                            for (const e of entries) {
-                                if (e.responseStart > 0 && e.responseEnd === 0) {
-                                    pending++;
-                                }
-                            }
-                            return pending;
-                        })()"""
-                    )
-                    count = count or 0
-                    if count == last_count:
-                        if (time.monotonic() - stable_since) >= idle_time:
-                            return True
-                    else:
-                        last_count = count
-                        stable_since = time.monotonic()
-                else:
-                    # Page not fully loaded yet — reset stability timer
-                    last_count = -1
-                    stable_since = time.monotonic()
-            except Exception:
-                pass
-            time.sleep(0.2)
-
-        return False
-
-    def click(self, x: int = 200, y: int = 400):
-        """
-        Simulate a real mouse click at (x, y) on the page.
-
-        Gives the page window focus, which signals Cloudflare that a real user
-        is present. This significantly speeds up Turnstile token generation.
-        Call this once after navigate(), before polling for the token.
-        """
-        self.call(
-            "Input.dispatchMouseEvent",
-            type="mousePressed",
-            x=x,
-            y=y,
-            button="left",
-            clickCount=1,
-        )
-        self.call(
-            "Input.dispatchMouseEvent",
-            type="mouseReleased",
-            x=x,
-            y=y,
-            button="left",
-            clickCount=1,
-        )
-
-    def close(self):
-        """Close WebSocket session and close this tab only.
-
-        The shared browser process is kept alive as long as other CDP sessions
-        (tabs) are active.  When the last session releases its reference the
-        browser is terminated automatically.
-        """
-        if self.ws:
-            try:
-                self.ws.close()
-            except Exception:
-                pass
-            self.ws = None
-
-        if self.target_id and self.port:
-            try:
-                urllib.request.urlopen(
-                    f"http://{self.host}:{self.port}/json/close/{self.target_id}",
-                    timeout=2,
-                )
-            except Exception:
-                pass
-            self.target_id = None
-
-        # Release our tab; browser stays alive for reuse by other tabs
-        release_shared_browser_ref()
-
-    def capture_screenshot(self, url: str) -> bytes:
-        """Navigate to a URL and capture a screenshot, caching the result."""
-        datekey = datetime.date.today().isoformat()
-        screenshots_dir = get_screenshot_dir(datekey)
-        filename = f"{secure_filename(url)}.webp"
-        filepath = os.path.join(screenshots_dir, filename)
-
-        if os.path.exists(filepath):
-            return Path(filepath).read_bytes()
-
-        self.navigate(url)
-        # Wait for network activity to settle before capturing
-        self.wait_for_network_idle()
-        # Try to click any "Accept" or "Einwilligen" cookie consent buttons
-        self.click_accept_button()
-        time.sleep(0.5)
-        result = self.call("Page.captureScreenshot")
-        image_bytes = base64.b64decode(result["data"])
-        
-        # Resize to 1200x675 and save as WebP to reduce file size
-        if has_pillow:
-            from io import BytesIO
-            image = Image.open(BytesIO(image_bytes))
-            image = image.resize((1200, 675), Image.Resampling.LANCZOS)
-            width, height = image.size
-            image = image.crop((0, 0, max(0, width - 10), height))
-            image = image.convert("RGB")
-            output = BytesIO()
-            image.save(output, format="WEBP", quality=85, method=6)
-            image_bytes = output.getvalue()
-        
-        Path(filepath).write_bytes(image_bytes)
-        return image_bytes

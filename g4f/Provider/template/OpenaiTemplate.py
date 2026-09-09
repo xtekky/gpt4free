@@ -51,9 +51,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             return await super().get_quota(api_key=api_key, **kwargs)
         if not api_key and cls.needs_auth:
             raise MissingAuthError("API key is required.")
-        if not cls.default_model and not cls.backup_url:
-            raise NotImplementedError("No default model specified.")
-        return await cls.test_api_key(api_key)
+        raise NotImplementedError("Quota URL is not defined for this provider.")
 
     @classmethod
     async def test_api_key(cls, api_key: str):

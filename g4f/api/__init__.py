@@ -132,6 +132,36 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+V1_LANDING_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101411"><title>g4f /v1 API</title>
+<style>
+:root{--bg:#101411;--panel:#171d18;--ink:#f5f4ed;--muted:#a7afa4;--line:#344138;--lime:#c4f06c;--coral:#ff816d;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.55 Georgia,serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.2;background-image:linear-gradient(#344138 1px,transparent 1px),linear-gradient(90deg,#344138 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(#000,transparent 72%)}a{color:var(--lime)}.wrap{width:min(1120px,calc(100% - 40px));margin:auto;position:relative}
+header{display:flex;justify-content:space-between;align-items:center;padding:28px 0;border-bottom:1px solid var(--line)}.brand{color:var(--ink);text-decoration:none;font:700 18px/1 var(--mono);letter-spacing:-.04em}.brand b{color:var(--lime)}nav{display:flex;gap:22px;font:13px var(--mono)}nav a{color:var(--muted);text-decoration:none}nav a:hover{color:var(--lime)}
+.hero{padding:96px 0 88px;display:grid;grid-template-columns:1.2fr .8fr;gap:70px;align-items:end}.eyebrow{color:var(--coral);font:12px var(--mono);letter-spacing:.12em;text-transform:uppercase}h1{max-width:720px;margin:20px 0;font-size:clamp(48px,8vw,94px);line-height:.94;letter-spacing:-.065em;font-weight:400}.lede{max-width:590px;color:var(--muted);font-size:20px}.hero-aside{border-left:2px solid var(--lime);padding-left:22px;color:var(--muted)}.hero-aside strong{display:block;color:var(--ink);font:700 14px var(--mono);margin-bottom:12px}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}.button{display:inline-block;padding:11px 16px;border:1px solid var(--lime);color:var(--bg);background:var(--lime);font:700 13px var(--mono);text-decoration:none}.button.alt{color:var(--lime);background:transparent}
+section{padding:28px 0 92px}.section-head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:24px;border-bottom:1px solid var(--line);padding-bottom:14px}h2{margin:0;font-size:28px;font-weight:400;letter-spacing:-.04em}.section-head span{color:var(--muted);font:12px var(--mono)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{display:block;padding:23px;border:1px solid var(--line);background:rgba(23,29,24,.88);min-height:174px;text-decoration:none}.card:hover{border-color:var(--lime)}.card h3{margin:0 0 8px;color:var(--ink);font-size:21px;font-weight:400}.card p{margin:0 0 18px;color:var(--muted)}code,pre{font-family:var(--mono)}.endpoint{color:var(--lime);font-size:12px}
+.code-box{position:relative;border:1px solid var(--line);background:#0b0e0c;padding:24px;overflow:auto}pre{margin:0;color:#d9e5d2;font-size:13px;line-height:1.7}.token{color:var(--coral)}.copy{position:absolute;top:12px;right:12px;border:1px solid var(--line);color:var(--lime);background:transparent;padding:7px 10px;cursor:pointer;font:11px var(--mono)}footer{padding:22px 0 42px;color:var(--muted);border-top:1px solid var(--line);font:12px var(--mono)}
+@media(max-width:720px){.wrap{width:min(100% - 28px,560px)}header{align-items:flex-start;gap:18px}nav{gap:10px;flex-wrap:wrap;justify-content:flex-end}.hero{padding:68px 0 58px;display:block}h1{font-size:clamp(50px,16vw,78px)}.hero-aside{margin-top:42px}.grid{grid-template-columns:1fr}section{padding-bottom:60px}}
+</style></head>
+<body><div class="wrap">
+<header><a class="brand" href="/"><b>g4f</b> / api</a><nav><a href="/v1/models">models</a><a href="/docs">swagger</a><a href="/redoc">redoc</a></nav></header>
+<main><div class="hero"><div><div class="eyebrow">Unified inference gateway · v1</div><h1>One endpoint.<br>Many minds.</h1><p class="lede">Build with chat, reasoning, vision, image, audio, and Anthropic-compatible interfaces through a single g4f API.</p><div class="actions"><a class="button" href="/docs">Open API reference</a><a class="button alt" href="/v1/models">Browse models</a></div></div><aside class="hero-aside"><strong>BASE URL</strong><code>/v1</code><p>Drop it into an OpenAI client, keep your existing request shape, and switch models without rewriting your application.</p></aside></div>
+<section><div class="section-head"><h2>Interfaces</h2><span>three ways in</span></div><div class="grid">
+<a class="card" href="/docs"><h3>Chat completions</h3><p>OpenAI-compatible messages with streaming, tools, vision, and model selection.</p><span class="endpoint">POST /v1/chat/completions</span></a>
+<a class="card" href="/docs"><h3>Responses</h3><p>A modern response interface for multi-turn reasoning and richer output types.</p><span class="endpoint">POST /v1/responses</span></a>
+<a class="card" href="/docs"><h3>Messages</h3><p>Anthropic-style requests for teams moving between compatible providers.</p><span class="endpoint">POST /v1/messages</span></a>
+<a class="card" href="/docs"><h3>Media generation</h3><p>Generate images and other supported media from the same API surface.</p><span class="endpoint">POST /v1/media/generate</span></a>
+<a class="card" href="/v1/models"><h3>Model catalog</h3><p>Inspect the models and provider options available on this server right now.</p><span class="endpoint">GET /v1/models</span></a>
+<a class="card" href="/docs"><h3>Live schema</h3><p>Try requests in your browser and inspect the generated OpenAPI contract.</p><span class="endpoint">GET /docs</span></a>
+</div></section><section><div class="section-head"><h2>Start here</h2><span>curl · JSON · streamable</span></div><div class="code-box"><button class="copy" onclick="copyExample(this)">copy</button><pre id="example">curl -X POST /v1/chat/completions \\
+    -H 'Content-Type: application/json' \\
+    -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"Hello"}]}'</pre></div></section></main>
+<footer>g4f API · <a href="/openapi.json">openapi.json</a> · Compatible clients welcome.</footer></div>
+<script>function copyExample(button){navigator.clipboard?.writeText(document.getElementById("example").textContent).then(()=>{button.textContent="copied";setTimeout(()=>button.textContent="copy",1400)})}</script></body></html>"""
+
 # ---------------------------------------------------------------------------
 # Request / response log store
 # ---------------------------------------------------------------------------
@@ -669,16 +699,7 @@ class Api:
 
         @self.app.get("/v1")
         async def read_root_v1():
-            return HTMLResponse(
-                "g4f API: Go to "
-                '<a href="/v1/models">models</a>, '
-                '<a href="/v1/chat/completions">chat/completions</a>, '
-                '<a href="/v1/responses">responses</a> (OpenAI), '
-                '<a href="/v1/messages">messages</a> (Anthropic), or '
-                '<a href="/v1/media/generate">media/generate</a> <br><br>'
-                "Open Swagger UI at: "
-                '<a href="/docs">/docs</a>'
-            )
+            return HTMLResponse(V1_LANDING_PAGE)
 
         @self.app.get(
             "/v1/models",

@@ -12,6 +12,7 @@ from ...cookies import get_cookies
 from ...typing import AsyncResult, Messages
 from ...config import AppConfig
 from ...errors import MissingAuthError
+from ...tools.auth import AuthManager
 
 
 class Ollama(OpenaiTemplate):
