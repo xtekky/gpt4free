@@ -18,6 +18,7 @@ from ..helper import format_media_prompt
 
 class YouTube(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://youtube.com"
+    screenshot_url = f"{url}/results?search_query=Hello"
     working = has_yt_dlp
 
     default_model = "search"

@@ -489,6 +489,8 @@ class Images:
         api_key: Optional[str] = None,
         **kwargs,
     ) -> ImagesResponse:
+        from ..Provider import PollinationsImage
+
         provider_handler = await self.get_provider_handler(
             model, provider, PollinationsImage
         )

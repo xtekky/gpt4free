@@ -32,6 +32,7 @@ def clean_name(name: str) -> str:
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
+    screenshot_url = f"{url}/models?q=Hello"
     working = True
     use_nodriver = False
     active_by_default = True

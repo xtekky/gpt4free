@@ -151,6 +151,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     label = "OpenAI ChatGPT"
     url = "https://chatgpt.com"
+    screenshot_url = "https://chatgpt.com/?q=Hello"
     working = True
     active_by_default = True
     use_nodriver = True

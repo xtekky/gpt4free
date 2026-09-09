@@ -14,6 +14,7 @@ from .GoogleSearch import GoogleSearch
 class GoogleAiMode(GoogleSearch):
     label = "Google AI Mode"
     url = "https://google.com"
+    screenshot_url = f"{url}/search?q=Hello&ai-mode=true"
     working = True
     active_by_default = True
     supports_native_tools = True

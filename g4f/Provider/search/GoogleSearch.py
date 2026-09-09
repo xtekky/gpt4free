@@ -14,6 +14,7 @@ from ..helper import get_last_user_message
 class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Search"
     url = "https://google.com"
+    screenshot_url = f"{url}/search?q=Hello"
     working = True
     active_by_default = True
     supports_native_tools = True

@@ -305,8 +305,9 @@ class Website:
             return self._providers()
 
         p = providers[idx]
-        prev_p = providers[idx - 1] if idx > 0 else providers[-1]
-        next_p = providers[idx + 1] if idx < len(providers) - 1 else providers[0]
+        working_providers = [p for p in providers if p["working"]]
+        prev_p = working_providers[idx - 1] if idx > 0 and idx < len(working_providers) - 1 else working_providers[-1]
+        next_p = working_providers[idx + 1] if idx < len(working_providers) - 1 else working_providers[0]
 
         # Lazily load models for this single provider only
         from g4f.Provider import ProviderLoader
@@ -368,7 +369,7 @@ class Website:
 
         # Screenshot / logo section
         screenshot_url = p.get("screenshot_url") or p.get("url") or ""
-        create_url = f"/screenshot?url={quote_plus(screenshot_url)}"
+        create_url = f"/screenshot?url={quote_plus(str(screenshot_url))}"
         screenshot_url = screenshot_url.replace("https://", "").replace("http://", "")
         logo_url = "https://g4f.space/logo/" + p.get("name", "").replace(
             'MetaAIAccount', 'Facebook AI').replace(
@@ -449,12 +450,8 @@ class Website:
                     queryUrl.pathname = "/results";
                     queryUrl.searchParams.set('search_query', event.target.value);
                     newUrl = "/screenshot?url=" + encodeURIComponent(queryUrl.toString());
-                }} else if (['GoogleSearch', 'GoogleAiMode'].includes('{p["name"]}')) {{
-                    const createUrl = new URL('{create_url}', location.origin);
-                    const queryUrl = new URL(createUrl.searchParams.get('url'));
-                    queryUrl.pathname = "/search";
-                    const appendUrl = queryUrl.toString() + (queryUrl.toString().includes('?') ? '&q=' : '?q=') + event.target.value;
-                    newUrl = "/screenshot?url=" + encodeURIComponent(appendUrl);
+                }} else if ('{create_url}'.includes('q=Hello')) {{
+                    newUrl = "{create_url}".replace("q=Hello", "q=" + encodeURIComponent(event.target.value));
                 }} else {{
                     newUrl = createSrc + encodeURIComponent('?q=' + event.target.value);
                 }}

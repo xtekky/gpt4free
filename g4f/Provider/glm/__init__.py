@@ -72,6 +72,7 @@ class _CaptchaRequired(Exception):
 
 class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     url = GLM_BASE_URL
+    screenshot_url = f"{GLM_BASE_URL}/#q=Hello"
     api_endpoint = f"{GLM_BASE_URL}/api/v2/chat/completions"
     working = True
     active_by_default = True

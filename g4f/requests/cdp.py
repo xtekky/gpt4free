@@ -776,7 +776,7 @@ debugEl.src = 'https://g4f.dev/dist/js/debug.js';
 document.head.appendChild(debugEl);
 
 // 2. Get the current URL's search parameters
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(window.location.search || document.location.hash.substring(1));
 const searchQuery = params.get('q');
 
 // 2b. Insert prompt in Flux HF before clicking on run button
@@ -789,7 +789,7 @@ const targetTexts = [
     'Accept All Cookies', 'Accept all cookies',
     'Einwilligen', 'Alle akzeptieren',
     'Zustimmen und weiter', 'Zustimmen',
-    'Run', 'Accept Cookies',
+    'Run', 'Accept Cookies', 'Skip for now',
     ...params.getAll('click')
 ];
 const acceptBtns = (() => {
@@ -869,43 +869,18 @@ const fieldSelectors = [
     'textarea[name="prompt"]',
     '[class^="MessageInput__TextArea--"]',
     '[placeholder="Type a message..."]',
-    '[placeholder="Ask anything…"]'
+    '#chat-input', // # z.ai
+    '[contenteditable="true"]',
+    '[placeholder="Message DeepSeek"]',
+    '.message-input-textarea',
+    '[placeholder="Ask anything…"]', // arena.ai
+    '[placeholder="Ask Meta AI..."]', // meta.ai
+    '[placeholder="Ask anything..."]', // cloudflare
 ];
-const textarea = document.querySelector(fieldSelectors.join(', '));
-
-// 6. Only proceed if we found a query and the textarea exists
-if (searchQuery && textarea) {
-    // Set the value
-    textarea.value = searchQuery;
-
-    // Dispatch an 'input' event to notify the page that the value has changed
-    // This is crucial for frameworks like React/Vue to recognize the update
-    const event = new Event('input', { bubbles: true });
-    textarea.dispatchEvent(event);
-    
-    // Optional: dispatch 'change' event as well, in case the site relies on it
-    textarea.dispatchEvent(new Event('change', { bubbles: true }));
-
-    enableGoogleAiMode();
-}
-
 // 7. Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
 (function() {
-    // 1. Target the specific element Kimi uses
-    // Inspect the page; if it's the main input, it might be a div with contenteditable
-    const fields = [
-        '[contenteditable="true"]',
-        '[placeholder="Message DeepSeek"]',
-        '.message-input-textarea',
-        '#chat-input',
-        '[placeholder="Ask anything…"]' // arena.ai
-    ];
-    const editor = document.querySelector(fields.join(', '));
+    const editor = document.querySelector(fieldSelectors.join(', '));
     if (!editor) return;
-
-    // 2. Get your query
-    const searchQuery = new URLSearchParams(window.location.search).get('q');
-    if (!searchQuery) return;
 
     // 3. Focus the element first (some frameworks require this)
     editor.focus();
@@ -925,6 +900,7 @@ if (searchQuery && textarea) {
     nativeInputValueSetter.call(editor, searchQuery);
     
     // Dispatch events to notify the framework
+    editor.dispatchEvent(new Event('keyup', { bubbles: true }));
     editor.dispatchEvent(new Event('input', { bubbles: true }));
     editor.dispatchEvent(new Event('change', { bubbles: true }));
 
@@ -935,17 +911,21 @@ if (searchQuery && textarea) {
 // 8. Click the send / submit button if it exists
 const sendButtonSelectors = [
     '[data-send-label="Send message"]',
-    '[aria-label="Send message"]',
     '[class^="MessageInput__Submit--"]',
     '.send-button-container',
     '.send-button',
     '#send-message-button', // z.ai
     '[data-testid="chat-submit"]', // grok.com
-    '[aria-label="Send message"]', // arena.ai
+    '[aria-label="Send"]', // meta.ai
+    '#send-message-button', // z.ai
+    '[aria-label="Send message"]', // arena.ai / gemini.google.com
+    '[aria-label="Nachricht senden"]', // gemini.google.com
 ];
 const sendButton = document.querySelector(sendButtonSelectors.join(', '));
 if (sendButton) {
-    sendButton.click();
+    setTimeout(() => {
+        sendButton.click();
+    }, 1000);
 }
 
 // 8. Click the send button on gemini.google.com

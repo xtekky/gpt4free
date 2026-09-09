@@ -324,6 +324,7 @@ def _is_xsrf_error(error: Exception, status: int | None) -> bool:
 class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini"
     url = "https://gemini.google.com"
+    screenshot_url = f"{url}/app?q=Hello"
 
     needs_auth = False
     working = True

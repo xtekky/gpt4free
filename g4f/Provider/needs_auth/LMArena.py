@@ -109,6 +109,7 @@ async def click_trunstile(
 class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena"
     url = "https://arena.ai"
+    screenshot_url = "https://arena.ai/?q=Hello"
     share_url = None
     create_evaluation = "https://arena.ai/nextjs-api/stream/create-evaluation"
     post_to_evaluation = "https://arena.ai/nextjs-api/stream/post-to-evaluation/{id}"
