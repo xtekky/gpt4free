@@ -64,7 +64,7 @@ class BraveSearch(AsyncGeneratorProvider, ProviderModelMixin):
 
     label = "Brave Search"
     url = BRAVE_ASK_URL
-    screenshot_url = f"{BRAVE_ASK_URL}/?q=Hello"
+    screenshot_url = f"{BRAVE_URL}?q=Hello"
     working = True
     needs_auth = False
     supports_stream = True

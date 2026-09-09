@@ -27,7 +27,6 @@ class ProviderLoader:
         "CopilotAccount",
         "CopilotApp",
         "CopilotSession",
-        "Custom",
         "DeepInfra",
         "DeepSeek",
         "EdgeTTS",
@@ -514,6 +513,7 @@ __all__ = [
     "CreateImagesProvider",
     "ProviderUtils",
     "G4FSpace",
+    "Custom",
     "__providers__",
     "__map__",
 ] + ProviderLoader.names

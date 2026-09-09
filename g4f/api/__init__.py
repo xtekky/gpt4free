@@ -1408,7 +1408,7 @@ class Api:
                 session = CDPSession(headless="headless=false" not in url)
                 await session.start()
                 try:
-                    screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url else 3)
+                    screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url and "q=Hello" not in url else 3)
                     return FileResponse(
                         screenshot_path,
                         media_type="image/webp",
