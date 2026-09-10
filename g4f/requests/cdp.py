@@ -811,6 +811,21 @@ class CDPSession:
             logger.debug(f"Failed to auto-click Turnstile: {e}")
         return False
 
+    async def include_debug(self) -> bool:
+        """Inject a debug script into the page to enable logging."""
+        js_code = """
+    // 1. Inject debug script to show logging
+    const debugEl = document.createElement('script');
+    debugEl.src = 'https://g4f.dev/dist/js/debug.js';
+    document.head.appendChild(debugEl);
+    """
+        try:
+            await self.evaluate_js(js_code)
+            return True
+        except Exception as e:
+            logger.debug(f"Failed to include debug script: {e}")
+        return False
+
     async def click_accept_button(self) -> bool:
         """Find and click an 'Accept' or 'Einwilligen' button, including inside iframes."""
         js_code = """
@@ -1055,8 +1070,9 @@ if (deepseekSendButton) {
         if await self.evaluate_js('!document.doctype'):
             raise RuntimeError(f"Failed to load page {url} for screenshot, document.doctype={await self.evaluate_js('String(document.doctype)')}")
 
-        await self.bypass_turnstile()
+        #await self.bypass_turnstile()
         await self.evaluate_js("window.scrollTo(0, 0);")
+        await self.include_debug()
 
         result = None
         for i in range(n):
@@ -1114,7 +1130,7 @@ if (deepseekSendButton) {
         # Wait for network activity to settle before capturing
         await self.wait_for_network_idle(idle_time=5, timeout=15.0)
         # Try to click any "Accept" or "Einwilligen" cookie consent buttons
-        if n < 3:
+        if n < 3 and not "id=" in url_without_suffix:
             for _ in range(2):
                 debug.log("Attempting to click accept button...")
                 await asyncio.sleep(1)

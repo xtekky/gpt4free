@@ -1426,9 +1426,10 @@ class Api:
         ):
             try:
                 from g4f.requests.cdp import CDPSession
-                session = CDPSession(headless="headless=false" not in url)
+                session = CDPSession()
                 await session.start()
                 try:
+                    debug.log(f"Capturing screenshot for URL: {url}")
                     screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url and "q=Hello" not in url else 3)
                     return FileResponse(
                         screenshot_path,

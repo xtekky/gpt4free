@@ -174,6 +174,13 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     )
 
     api_parser.add_argument(
+        "--no-headless",
+        action="store_true",
+        default=False,
+        help="Run the browser in visible (non-headless) mode.",
+    )
+
+    api_parser.add_argument(
         "--disable-pa-auto-download",
         action="store_true",
         default=False,
@@ -227,6 +234,14 @@ def run_api_args(args):
     if args.browser_port:
         BrowserConfig.port = args.browser_port
         BrowserConfig.host = args.browser_host
+
+    # Run browser in visible mode when requested.
+    # Set the env var too, because BrowserConfig.load_from_env() is called
+    # later during cookie loading (with dotenv override=True) and would
+    # otherwise clobber the CLI value.
+    if getattr(args, "no_headless", False):
+        BrowserConfig.headless = False
+        os.environ["G4F_BROWSER_HEADLESS"] = "false"
 
     # Custom cookie browsers
     if args.cookie_browsers:

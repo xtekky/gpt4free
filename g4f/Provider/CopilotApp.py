@@ -12,7 +12,7 @@ from ..providers.response import SourceLink, Sources
 
 class CopilotApp(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Copilot App"
-    url = "https://play.google.com/store/apps/details?id=com.microsoft.copilot"
+    url = "https://play.google.com/store/apps/details?id=com.microsoft.office.officehubrow"
     working = True
     active_by_default = True
 

@@ -77,7 +77,7 @@ class BrowserConfig:
     impersonate: str = "chrome"
     executable_path: str = None
     connection_timeout: float = 0.25
-    headless: bool = False
+    headless: bool = True
 
     @staticmethod
     async def stop_browser():
