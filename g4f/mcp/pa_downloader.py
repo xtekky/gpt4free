@@ -359,6 +359,10 @@ def auto_download_pa_providers(
     When *force* is ``False`` (the default), the download is skipped if the
     auto-download marker is fresher than :data:`AUTO_DOWNLOAD_INTERVAL`.
     """
+    if not os.environ.get("G4F_ENABLE_PA_AUTO_DOWNLOAD", "").lower() in ("1", "true", "yes"):
+        debug.log("pa-providers: auto-download disabled by default for security")
+        return []
+
     try:
         workspace = get_workspace_dir()
     except Exception as e:
