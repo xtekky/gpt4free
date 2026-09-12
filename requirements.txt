@@ -21,5 +21,4 @@ ddgs
 numpy
 PyYAML
 websocket-client
-pystray
 cryptography

@@ -421,11 +421,13 @@ def create_app():
         user_info = f" user={user}" if user else ""
         logger.debug("→ %s %s%s%s", request.method, path, qs, user_info)
 
-        # Capture request body (Starlette caches after first read)
-        req_body_bytes = await request.body()
-        req_body = _try_parse_body(
-            req_body_bytes, request.headers.get("content-type", "")
-        )
+        audit_body = os.environ.get("G4F_ENABLE_AUDIT_LOG", "").lower() in ("1", "true", "yes")
+        req_body = None
+        if audit_body:
+            req_body_bytes = await request.body()
+            req_body = _try_parse_body(
+                req_body_bytes, request.headers.get("content-type", "")
+            )
 
         start = time.monotonic()
         response = await call_next(request)
@@ -434,45 +436,46 @@ def create_app():
         resp_content_type = response.headers.get("content-type", "")
         is_streaming = "text/event-stream" in resp_content_type
         log_entry: dict = {}
+        resp_body = None
 
         resp_headers_log = _sanitize_headers(dict(response.headers))
-        if not is_streaming:
-            chunks: list[bytes] = []
-            async for chunk in response.body_iterator:
-                chunks.append(chunk)
-            resp_body_bytes = b"".join(chunks)
-            resp_body = _try_parse_body(resp_body_bytes, resp_content_type)
-            # Reconstruct response so it can still be sent to the client
-            resp_headers = {
-                k: v
-                for k, v in response.headers.items()
-                if k.lower() != "content-length"
-            }
-            response = Response(
-                content=resp_body_bytes,
-                status_code=response.status_code,
-                headers=resp_headers,
-                media_type=response.media_type,
-            )
-        else:
-            # Tee the streaming iterator: forward chunks to client AND accumulate for log
-            sse_chunks: list[bytes] = []
-            resp_body = None
-            orig_iterator = response.body_iterator
+        if audit_body:
+            if not is_streaming:
+                chunks: list[bytes] = []
+                async for chunk in response.body_iterator:
+                    chunks.append(chunk)
+                resp_body_bytes = b"".join(chunks)
+                resp_body = _try_parse_body(resp_body_bytes, resp_content_type)
+                # Reconstruct response so it can still be sent to the client
+                resp_headers = {
+                    k: v
+                    for k, v in response.headers.items()
+                    if k.lower() != "content-length"
+                }
+                response = Response(
+                    content=resp_body_bytes,
+                    status_code=response.status_code,
+                    headers=resp_headers,
+                    media_type=response.media_type,
+                )
+            else:
+                # Tee the streaming iterator: forward chunks to client AND accumulate for log
+                sse_chunks: list[bytes] = []
+                orig_iterator = response.body_iterator
 
-            async def tee_iterator():
-                async for chunk in orig_iterator:
-                    if isinstance(chunk, bytes):
-                        sse_chunks.append(chunk)
-                    else:
-                        sse_chunks.append(chunk.encode("utf-8", errors="replace"))
-                    yield chunk
-                # After iteration completes, parse and store the full SSE body
-                raw = b"".join(sse_chunks)
-                parsed = _try_parse_body(raw, "text/plain")
-                log_entry["response_body"] = parsed
+                async def tee_iterator():
+                    async for chunk in orig_iterator:
+                        if isinstance(chunk, bytes):
+                            sse_chunks.append(chunk)
+                        else:
+                            sse_chunks.append(chunk.encode("utf-8", errors="replace"))
+                        yield chunk
+                    # After iteration completes, parse and store the full SSE body
+                    raw = b"".join(sse_chunks)
+                    parsed = _try_parse_body(raw, "text/plain")
+                    log_entry["response_body"] = parsed
 
-            response.body_iterator = tee_iterator()
+                response.body_iterator = tee_iterator()
 
         level = logging.WARNING if response.status_code >= 400 else logging.INFO
         logger.log(
@@ -605,6 +608,7 @@ class Api:
         self.conversations: dict[str, dict[str, BaseConversation]] = {}
         self._models_cache: dict | None = None
         self._models_cache_time: float = 0.0
+        self._screenshot_sem = asyncio.Semaphore(1)
 
     security = HTTPBearer(auto_error=False)
     basic_security = HTTPBasic()
@@ -1424,25 +1428,36 @@ class Api:
         async def image_from_url(
             url: str,
         ):
-            try:
-                from g4f.requests.cdp import CDPSession
-                session = CDPSession()
-                await session.start()
-                try:
-                    debug.log(f"Capturing screenshot for URL: {url}")
-                    screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url and "q=Hello" not in url else 3)
-                    return FileResponse(
-                        screenshot_path,
-                        media_type="image/webp",
-                        headers={"Cache-Control": "max-age=604800"},
-                    )
-                finally:
-                    await session.close()
-            except Exception as e:
-                logger.exception(e)
-                return ErrorResponse.from_exception(
-                    e, None, HTTP_500_INTERNAL_SERVER_ERROR
+            if not is_safe_url(url):
+                return ErrorResponse.from_message(
+                    f"Blocked unsafe or private URL: {url}",
+                    HTTP_400_BAD_REQUEST,
                 )
+            if self._screenshot_sem.locked():
+                return ErrorResponse.from_message(
+                    "Screenshot service is busy, please try again later",
+                    HTTP_429_TOO_MANY_REQUESTS,
+                )
+            async with self._screenshot_sem:
+                try:
+                    from g4f.requests.cdp import CDPSession
+                    session = CDPSession()
+                    await session.start()
+                    try:
+                        debug.log(f"Capturing screenshot for URL: {url}")
+                        screenshot_path = await session.capture_screenshot(url, 1 if "q=" in url and "q=Hello" not in url else 3)
+                        return FileResponse(
+                            screenshot_path,
+                            media_type="image/webp",
+                            headers={"Cache-Control": "max-age=604800"},
+                        )
+                    finally:
+                        await session.close()
+                except Exception as e:
+                    logger.exception(e)
+                    return ErrorResponse.from_exception(
+                        e, None, HTTP_500_INTERNAL_SERVER_ERROR
+                    )
         
         @self.app.get("/screenshot/{name:path}", responses=responses)
         async def image_from_url(
@@ -1576,7 +1591,6 @@ class Api:
             "woff2": "font/woff2",
             "ttf": "font/ttf",
             "otf": "font/otf",
-            "py": "text/plain; charset=utf-8",
         }
 
         @self.app.get(
@@ -2064,6 +2078,11 @@ class Api:
                     f"Invalid URL: {url}. URL must start with http:// or https://",
                     HTTP_422_UNPROCESSABLE_CONTENT,
                 )
+            if not is_safe_url(url):
+                return ErrorResponse.from_message(
+                    f"Blocked unsafe or private URL: {url}",
+                    HTTP_400_BAD_REQUEST,
+                )
             try:
                 from g4f.integration.markitdown import MarkItDown
 
@@ -2113,6 +2132,11 @@ class Api:
                 return ErrorResponse.from_message(
                     f"Invalid URL: {url}. URL must start with http:// or https://",
                     HTTP_422_UNPROCESSABLE_CONTENT,
+                )
+            if not is_safe_url(url):
+                return ErrorResponse.from_message(
+                    f"Blocked unsafe or private URL: {url}",
+                    HTTP_400_BAD_REQUEST,
                 )
             try:
                 from g4f.integration.markitdown import MarkItDown

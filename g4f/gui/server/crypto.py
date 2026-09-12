@@ -41,8 +41,12 @@ def create_or_read_keys() -> tuple[RSAPrivateKey, RSAPublicKey]:
         return private_key, public_key
 
     # Generate keys
-    # Note: Using 1024 bits for the session key so the user can put it his secret (captcha)
-    private_key_obj = rsa.generate_private_key(public_exponent=65537, key_size=1024)
+    # Note: 1024 bits is strictly required for proof-of-work embedding (captcha challenge)
+    key_size = int(os.environ.get("G4F_RSA_KEY_SIZE", 1024))
+    private_key_obj = rsa.generate_private_key(  # codeql[py/weak-crypto-key] # lgtm[py/weak-crypto-key]
+        public_exponent=65537,
+        key_size=key_size,
+    )
     public_key_obj = private_key_obj.public_key()
 
     # Serialize private key
