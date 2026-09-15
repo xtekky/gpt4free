@@ -55,35 +55,34 @@ class GoogleAiMode(GoogleSearch):
 
         try:
             for _ in range(5):
-                result = await session.evaluate_js("""const b = Array.from(document.querySelectorAll("a, button")).filter(a => {
+                await session.evaluate_js("""const b = Array.from(document.querySelectorAll("a, button")).filter(a => {
                     return a.textContent.endsWith("KI‑Modus") || a.textContent.endsWith("AI Mode");
                 }).pop(); b ? b.click() : null; !!b""")
-                await asyncio.sleep(1)
-                if not result:
-                    continue
                 await session.wait_for_network_idle(idle_time=1, timeout=10.0)
-                results = await session.call("Runtime.evaluate", expression=r"""
+                result = await session.evaluate_js("""
 const rootElement = document.querySelector('[decode-data-ved="1"]');
-const allElements = rootElement.querySelectorAll('*');
-const textNodes = [];
-Array.from(allElements).forEach(el => {
-    for (const child of el.childNodes) {
+function getTextNodes(element) {
+    const textNodes = [];
+    for (const child of element.childNodes) {
         if (child.nodeType === Node.TEXT_NODE && child.textContent) {
-            const trimedText = child.textContent.trim();
-            if ([
-                "KI-Antworten können Fehler enthalten.",
-                "AI responses may include mistakes."].includes(trimedText)) {
-                break;
-            }
             textNodes.push(child);
-        }   
+        } else {
+            textNodes.push(...getTextNodes(child));
+        }
     }
-});
-textNodes.map(n => n.textContent).filter(Boolean);
-""", returnByValue=True);
-                debug.log(f"Google Search: AI mode results: {results}")
-                if results:
-                    for text in results.get("result", {}).get("value", []):
+    return textNodes;
+}
+const allTexts = [];
+for (const text of getTextNodes(rootElement).map(node => node.textContent)) {
+    if (text.includes("KI-Antworten können Fehler enthalten.") || text.includes("AI responses may include mistakes.")) {
+        break;
+    }
+    allTexts.push(text);
+}
+allTexts;""");
+                debug.log(f"Google Search: AI mode results: {result}")
+                if result:
+                    for text in result:
                         yield f"{text}\n"
                     return
             raise RuntimeError("No AI mode results found.")

@@ -29,7 +29,7 @@ from ...providers.any_model_map import model_map
 from ...providers.any_provider import AnyProvider
 from ...providers.cache import FileStorage
 from ...version import utils as version_utils
-from ... import Provider
+from ...Provider import ProviderLoader
 from ... import debug
 
 logger = logging.getLogger(__name__)
@@ -65,9 +65,8 @@ class Api:
                 else provider.models_tags.get(model_id, []),
                 **(model if isinstance(model, dict) else {}),
             }
-
-        if provider in Provider.__map__:
-            provider = Provider.__map__[provider]
+        try:
+            provider = ProviderLoader.from_name(provider)
             if issubclass(provider, ProviderModelMixin):
                 has_grouped_models = hasattr(provider, "get_grouped_models")
                 method = (
@@ -106,7 +105,9 @@ class Api:
                         models.values() if isinstance(models, dict) else models
                     )
                 ]
-        elif provider in model_map:
+        except ImportError as e:
+            debug.log(f"Error getting provider models for {provider}:", e)
+        if provider in model_map:
             return [get_model_data(AnyProvider, provider, True)]
 
         return []
