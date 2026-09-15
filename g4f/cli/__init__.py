@@ -388,15 +388,25 @@ def get_tray_parser(exit_on_error: bool = True) -> ArgumentParser:
 def run_tray_args(args):
     """
     Launches the system tray icon using the parsed CLI arguments.
+    Falls back to API server if system tray or display is unavailable (e.g. headless Docker).
     """
-    from ..tray import run_tray
+    try:
+        from ..tray import run_tray
 
-    run_tray(
-        port=args.port,
-        host=args.host,
-        debug=args.debug,
-        no_autostart=args.no_autostart,
-    )
+        run_tray(
+            port=args.port,
+            host=args.host,
+            debug=args.debug,
+            no_autostart=args.no_autostart,
+        )
+    except Exception as e:
+        print(f"Warning: System tray unavailable ({e}), falling back to API server...")
+        parser = get_api_parser()
+        bind_addr = f"{args.host}:{args.port}"
+        fallback_args = parser.parse_args(["--port", str(args.port), "--bind", bind_addr])
+        if getattr(args, "debug", False):
+            fallback_args.debug = True
+        run_api_args(fallback_args)
 
 
 # --------------------------------------------------------------
@@ -516,19 +526,21 @@ def main():
         help="Mode to run g4f in (default: api).",
     )
 
-    try:
+    original_remaining = list(remaining)
+    # If the first token looks like a port number (e.g. 8080 or :8080), treat it as API mode with that port
+    if remaining and (remaining[0].isdigit() or (remaining[0].startswith(":") and remaining[0][1:].isdigit())):
+        port_val = remaining[0].lstrip(":")
+        args = argparse.Namespace(mode="api")
+        remaining = ["--port", port_val] + remaining[1:]
+    else:
         try:
             args, remaining = mode_parser.parse_known_args(remaining)
-        except argparse.ArgumentError:
-            try:
-                parser = get_tray_parser(exit_on_error=False)
-                args = parser.parse_args(remaining)
-                run_tray_args(args)
-            except (argparse.ArgumentError, ImportError) as e:
-                parser = get_api_parser(exit_on_error=False)
-                args = parser.parse_args(remaining)
-                run_api_args(args)
-            return
+        except (argparse.ArgumentError, SystemExit):
+            # Fall back to API mode and restore remaining so the API parser can handle flags/ports
+            args = argparse.Namespace(mode="api")
+            remaining = original_remaining
+
+    try:
         if args.mode == "auth":
             parser = get_auth_parser()
             args, remaining = parser.parse_known_args(remaining)

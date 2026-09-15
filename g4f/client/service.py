@@ -63,7 +63,8 @@ def get_model_and_provider(
     """
     if debug.version_check:
         debug.version_check = False
-        version.utils.check_version()
+        import threading
+        threading.Thread(target=version.utils.check_version, daemon=True).start()
 
     if isinstance(provider, str):
         provider = convert_to_provider(provider)

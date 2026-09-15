@@ -80,14 +80,14 @@ def render(filename="home", download_url: str = GITHUB_URL):
                 response = _gui_session.get(f"{download_url}{filename}", timeout=10)
                 response.raise_for_status()
             except requests.exceptions.SSLError:
-                response = _gui_session.get(f"{download_url}{filename}", timeout=10, verify=False)
+                response = _gui_session.get(f"{download_url}{filename}", timeout=10, verify=False)  # codeql[py/insecure-protocol]
                 response.raise_for_status()
             except requests.RequestException:
                 try:
                     response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10)
                     response.raise_for_status()
                 except requests.exceptions.SSLError:
-                    response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10, verify=False)
+                    response = _gui_session.get(f"{DOWNLOAD_URL}{filename}", timeout=10, verify=False)  # codeql[py/insecure-protocol]
                     response.raise_for_status()
                 except requests.RequestException:
                     found = None

@@ -138,6 +138,8 @@ class RotatedProvider(BaseRetryProvider):
                 provider.live -= 1
                 exceptions[provider.__name__] = e
                 debug.error(f"{provider.__name__} failed: {e}")
+                if started:
+                    raise e
 
         raise_exceptions(exceptions)
 

@@ -100,7 +100,12 @@ class ProviderLoader:
     def from_name(cls, name: str) -> ProviderType:
         if name in cls.loaded:
             return cls.loaded[name]
+        provider = cls._load(name)
+        cls.loaded[name] = provider
+        return provider
 
+    @classmethod
+    def _load(cls, name: str) -> ProviderType:
         if name == "AnyProvider":
             from g4f.providers.any_provider import AnyProvider
 
