@@ -30,6 +30,7 @@ from ...providers.any_provider import AnyProvider
 from ...providers.cache import FileStorage
 from ...version import utils as version_utils
 from ...Provider import ProviderLoader
+from ... import Provider
 from ... import debug
 
 logger = logging.getLogger(__name__)
