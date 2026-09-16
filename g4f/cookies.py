@@ -78,6 +78,9 @@ class BrowserConfig:
     executable_path: str = None
     connection_timeout: float = 0.25
     headless: bool = True
+    # "extension": route CDP through the g4f browser extension relay
+    # (see g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
+    browser_mode: str = None
 
     @staticmethod
     async def stop_browser():
@@ -98,6 +101,7 @@ class BrowserConfig:
             cls.port = int(cls.port)
             debug.log(f"Using browser: {cls.host}:{cls.port}")
         cls.impersonate = os.environ.get("G4F_BROWSER_IMPERSONATE", cls.impersonate)
+        cls.browser_mode = os.environ.get("G4F_BROWSER_MODE", cls.browser_mode)
 
 
 COOKIE_DOMAINS = (

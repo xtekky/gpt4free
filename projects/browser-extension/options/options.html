@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gpt4free — Settings</title>
+  <link rel="stylesheet" href="../assets/options.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="page-header">
+      <img src="../icons/icon48.png" alt="" width="36" height="36" />
+      <div>
+        <h1>gpt4free Assistant — Settings</h1>
+        <p class="sub">Connect the extension to your local gpt4free server.</p>
+      </div>
+    </header>
+
+    <section class="card" id="account-card">
+      <h2>Account — g4f.space</h2>
+      <p class="hint">
+        Sign in to sync conversations across devices via your server's
+        <code>/v1/secret/conversations</code> endpoints (AES-256-GCM encrypted at rest).
+      </p>
+      <div id="account-signed-out" class="account-row">
+        <button id="oauth-login" class="btn primary">Sign in with g4f.space</button>
+        <span id="oauth-status" class="conn-result"></span>
+      </div>
+      <div id="account-signed-in" class="account-row" hidden>
+        <img id="account-avatar" class="account-avatar" alt="" />
+        <div class="account-info">
+          <strong id="account-name"></strong>
+          <span id="account-detail" class="hint"></span>
+        </div>
+        <button id="sync-now" class="btn subtle">Sync now</button>
+        <button id="oauth-logout" class="btn danger">Sign out</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Server</h2>
+
+      <div class="field">
+        <label for="server-url">Server URL</label>
+        <input id="server-url" type="url" placeholder="https://g4f.space" />
+        <p class="hint">Defaults to the public <code>https://g4f.space</code> instance. For a local server run <code>python -m g4f --port 1337</code> and enter <code>http://localhost:1337</code>.</p>
+      </div>
+
+      <div class="field">
+        <label for="api-key">API key <span class="optional">(optional)</span></label>
+        <input id="api-key" type="password" placeholder="Only if G4F_API_KEY is set on the server" />
+        <p class="hint">Sent as <code>Authorization: Bearer …</code> and <code>g4f-api-key</code>.</p>
+      </div>
+
+      <div class="field row">
+        <button id="test-conn" class="btn">Test connection</button>
+        <span id="conn-result" class="conn-result"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Browser as CDP provider</h2>
+      <p class="hint">Let your g4f server drive this browser (automation tabs via <code>chrome.debugger</code>) instead of launching its own headless Chrome. Requires a local g4f server with <code>G4F_BROWSER_MODE=extension</code>.</p>
+      <div class="field row">
+        <button id="cdp-toggle" class="btn">Enable</button>
+        <span id="cdp-status" class="conn-result"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Chat defaults</h2>
+
+      <div class="field">
+        <label for="model">Model</label>
+        <select id="model"><option value="">Server default</option></select>
+        <p class="hint">Loaded from <code>/v1/models</code>. Leave empty to let the server pick.</p>
+      </div>
+
+      <div class="field">
+        <label for="provider">Provider <span class="optional">(optional)</span></label>
+        <select id="provider"><option value="">Auto</option></select>
+      </div>
+
+      <div class="field">
+        <label for="system-prompt">System prompt</label>
+        <textarea id="system-prompt" rows="3"></textarea>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="temperature">Temperature <span class="optional">(empty = default)</span></label>
+          <input id="temperature" type="number" min="0" max="2" step="0.1" placeholder="default" />
+        </div>
+        <div class="field">
+          <label for="max-tokens">Max tokens <span class="optional">(empty = default)</span></label>
+          <input id="max-tokens" type="number" min="1" step="1" placeholder="default" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="checkbox">
+          <input id="stream" type="checkbox" />
+          <span>Stream responses token by token</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Images</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="image-model">Image model</label>
+          <select id="image-model"><option value="">Server default</option></select>
+        </div>
+        <div class="field">
+          <label for="image-count">Images per request</label>
+          <input id="image-count" type="number" min="1" max="4" step="1" />
+        </div>
+      </div>
+      <p class="hint">Generate images from the side panel with <code>/img your prompt</code>.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context &amp; behavior</h2>
+      <div class="field">
+        <label for="page-context-limit">Page context limit (characters)</label>
+        <input id="page-context-limit" type="number" min="500" max="100000" step="500" />
+      </div>
+      <div class="field">
+        <label class="checkbox">
+          <input id="send-on-enter" type="checkbox" />
+          <span>Send on Enter (Shift+Enter for newline)</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Quick actions</h2>
+      <p class="hint">Shown as buttons in the popup. <code>{text}</code> is replaced with the selection/page content.</p>
+      <div id="quick-actions-list" class="qa-list"></div>
+      <button id="add-qa" class="btn subtle">＋ Add action</button>
+    </section>
+
+    <footer class="page-footer">
+      <button id="reset" class="btn danger">Reset to defaults</button>
+      <button id="save" class="btn primary">Save settings</button>
+    </footer>
+  </main>
+
+  <div id="toast-root" class="toast-root"></div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

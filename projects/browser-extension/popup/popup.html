@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gpt4free Assistant</title>
+  <link rel="stylesheet" href="../assets/popup.css" />
+</head>
+<body>
+  <header class="popup-header">
+    <div class="brand">
+      <img src="../icons/icon32.png" alt="" width="20" height="20" />
+      <span class="brand-name">gpt4free</span>
+    </div>
+    <span id="status-dot" class="status-dot" title="Checking server…"></span>
+    <button id="open-panel" class="icon-btn" title="Open side panel (Alt+Shift+S)">▤</button>
+    <button id="open-options" class="icon-btn" title="Settings">⚙</button>
+  </header>
+
+  <section class="quick-actions" id="quick-actions">
+    <!-- quick action buttons injected -->
+  </section>
+
+  <section class="selection-box" id="selection-box" hidden>
+    <div class="selection-label">Selected text</div>
+    <div id="selection-text" class="selection-text"></div>
+  </section>
+
+  <section class="chat-preview" id="chat-preview" hidden>
+    <div id="preview-messages" class="preview-messages"></div>
+  </section>
+
+  <footer class="popup-footer">
+    <textarea id="prompt" rows="3" placeholder="Ask anything… (Enter to send, Shift+Enter for newline)"></textarea>
+    <div class="footer-row">
+      <label class="checkbox">
+        <input type="checkbox" id="include-page" />
+        <span>Include page content</span>
+      </label>
+      <button id="send" class="primary-btn">Send</button>
+    </div>
+  </footer>
+
+  <div id="toast-root" class="toast-root"></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

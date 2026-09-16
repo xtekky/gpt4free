@@ -355,6 +355,15 @@ _LOG_SKIP_EXACT = {"/api/logs", "/logs", "/favicon.ico"}
 def create_app():
     app = FastAPI(lifespan=lifespan)
 
+    # CDP relay: let the g4f browser extension act as a CDP provider.
+    # Enabled via G4F_BROWSER_MODE=extension or always available on demand.
+    try:
+        from g4f.api.cdp_relay import register_cdp_relay
+
+        register_cdp_relay(app)
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"CDP relay not available: {e}")
+
     env_origins = [
         o.strip()
         for o in os.environ.get("G4F_CORS_ORIGINS", "").split(",")
@@ -878,7 +887,7 @@ class Api:
         @self.app.post("/v1/chat/completions", responses=responses)
         @self.app.post("/{mode}/{provider:path}/chat/completions",  responses=responses)
         @self.app.post(
-            "/api/{provider}/{conversation_id}/chat/completions", responses=responses
+            "/api/{provider}/{model}/chat/completions", responses=responses
         )
         async def chat_completions(
             config: ChatCompletionsConfig,
@@ -888,7 +897,7 @@ class Api:
             ] = None,
             mode: str | None = None,
             provider: str | None = None,
-            conversation_id: str | None = None,
+            model: str | None = None,
             x_user: Annotated[str | None, Header()] | None = None,
         ):
             if mode == "raw":
@@ -2488,6 +2497,12 @@ def run_api(
     if port is None:
         port = DEFAULT_PORT
 
+    # Record the actual bind address so in-process components (e.g. the CDP
+    # extension relay client in g4f/requests/cdp.py) can find the server
+    # without extra configuration.
+    os.environ["G4F_API_HOST"] = host
+    os.environ["G4F_API_PORT"] = str(port)
+
     if AppConfig.demo and debug:
         method = "create_app_with_demo_and_debug"
     elif AppConfig.gui and debug:
@@ -2504,7 +2519,26 @@ def run_api(
     }
     uvicorn_options.update(filter_none(**kwargs))
 
-    uvicorn.run(
+    class _PortRecordingServer(uvicorn.Server):
+        """Record the actually bound host/port once uvicorn starts listening.
+
+        The port may differ from the requested one (e.g. port=0 for an
+        OS-assigned port). In-process components — e.g. the CDP extension
+        relay client in g4f/requests/cdp.py — read these env vars to find
+        the server.
+        """
+
+        async def startup(self, sockets=None):
+            await super().startup(sockets)
+            try:
+                if self.servers:
+                    sock_host, sock_port = self.servers[0].sockets[0].getsockname()[:2]
+                    os.environ["G4F_API_HOST"] = str(sock_host)
+                    os.environ["G4F_API_PORT"] = str(sock_port)
+            except Exception:
+                pass
+
+    config = uvicorn.Config(
         f"g4f.api:{method}",
         host=host,
         port=int(port),
@@ -2512,3 +2546,4 @@ def run_api(
         use_colors=use_colors,
         **uvicorn_options,
     )
+    _PortRecordingServer(config).run()

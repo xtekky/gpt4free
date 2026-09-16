@@ -38,7 +38,7 @@ import time
 import urllib.request
 from typing import Optional, Dict, Any, List, AsyncIterator
 import hashlib
-from urllib.parse import urlparse
+from urllib.parse import quote_plus
 import datetime
 
 try:
@@ -451,6 +451,11 @@ class CDPSession:
 
     async def start(self):
         """Launch/get shared Chrome and connect via CDP targeting a new tab."""
+        # Extension mode: route through the g4f browser extension relay
+        # (g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
+        if getattr(BrowserConfig, "browser_mode", None) == "extension":
+            return await self._start_via_extension()
+
         if self.port is None:
             self.port = get_shared_browser(
                 self.host, self.port, self.headless, self.proxy, self.browser_args
@@ -531,6 +536,50 @@ class CDPSession:
         };
         """
         await self.call("Page.addScriptToEvaluateOnNewDocument", source=stealth_js)
+
+    async def _start_via_extension(self):
+        """
+        Connect through the g4f browser extension relay.
+
+        Instead of http://host:port/json/new + a direct Chrome WebSocket,
+        ask the relay (running inside the g4f API server) to create a tab in
+        the extension's browser, then use the relay's pass-through WebSocket
+        /v1/cdp/ws/{target_id}. Everything else (call/evaluate/event loop)
+        works unchanged because the relay speaks plain CDP WebSocket.
+        """
+        import aiohttp
+
+        api_host = os.environ.get("G4F_API_HOST", "127.0.0.1")
+        api_port = os.environ.get("G4F_API_PORT", "1337")
+        base = f"http://{api_host}:{api_port}"
+
+        # 1. Create a tab in the extension's browser via the relay.
+        import urllib.request
+
+        req = urllib.request.Request(
+            f"{base}/json/new", method="PUT",
+            data=b"", headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            target = json.loads(response.read().decode("utf-8"))
+        target_id = target.get("id")
+        if not target_id:
+            raise RuntimeError("CDP relay: failed to create extension tab")
+
+        self.target_id = target_id
+
+        # 2. Connect to the relay's pass-through WebSocket for this target.
+        ws_url = f"ws://{api_host}:{api_port}/v1/cdp/ws/{quote_plus(target_id)}"
+        self.session = aiohttp.ClientSession()
+        self.ws = await self.session.ws_connect(ws_url)
+        self._closing = False
+        self._receive_task = asyncio.create_task(self._receiver_loop())
+
+        # 3. Enable essential domains (same as local mode).
+        await self.call("Page.enable")
+        await self.call("DOM.enable")
+        await self.call("Runtime.enable")
+        await self.call("Network.enable")
 
     async def _receiver_loop(self):
         """Listen for WebSocket messages."""
