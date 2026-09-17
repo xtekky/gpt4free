@@ -599,11 +599,13 @@ class ErrorResponse(Response):
 
 
 def update_headers(
-    request: Request, user: str = None
+    request: Request, user: str = None, remove_authorization_header: bool = False
 ) -> Request:
     new_headers = request.headers.mutablecopy()
     if user:
         new_headers["x-user"] = user
+    if remove_authorization_header and "authorization" in new_headers:
+        del new_headers["authorization"]
     request.scope["headers"] = new_headers.raw
     delattr(request, "_headers")
     return request
@@ -649,6 +651,7 @@ class Api:
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
             user = None
+            remove_authorization_header = False
             if (
                 request.method != "OPTIONS"
                 and AppConfig.g4f_api_key is not None
@@ -659,24 +662,24 @@ class Api:
                     user_g4f_api_key = getattr(
                         await self.security(request), "credentials", None
                     )
-                if user_g4f_api_key:
-                    user_g4f_api_key = user_g4f_api_key.split()
+                    remove_authorization_header = True
                 if (
                     AppConfig.g4f_api_key is None
                     or not user_g4f_api_key
                     or not secrets.compare_digest(
-                        AppConfig.g4f_api_key, user_g4f_api_key[0]
+                        AppConfig.g4f_api_key, user_g4f_api_key
                     )
                 ):
                     try:
                         new_user = await self.get_username(request)
                         if user is None:
+                            remove_authorization_header = True
                             user = new_user
                     except HTTPException as e:
                         return ErrorResponse.from_message(
                             e.detail, e.status_code, e.headers
                         )
-                request = update_headers(request, user)
+                request = update_headers(request, user, remove_authorization_header)
             response = await call_next(request)
             return response
 
@@ -897,7 +900,7 @@ class Api:
             ] = None,
             mode: str | None = None,
             provider: str | None = None,
-            model: str | None = None,
+            conversation_id: str | None = None,
             x_user: Annotated[str | None, Header()] | None = None,
         ):
             if mode == "raw":

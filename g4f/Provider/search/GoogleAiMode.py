@@ -37,13 +37,13 @@ class GoogleAiMode(GoogleSearch):
 
         try:
             await session.navigate(search_url)
-            await session.click_accept_button()
+            await session.click_accept_button(False)
         except Exception as e:
             await session.close()
             raise e
 
         try:
-            await session.wait_for_network_idle(idle_time=1, timeout=10.0)
+            await session.wait_for_network_idle()
             search_results = await cls._read_search_results(session)
             if search_results:
                 yield SearchResults(search_results)
@@ -55,7 +55,7 @@ class GoogleAiMode(GoogleSearch):
 
         try:
             for _ in range(5):
-                await session.evaluate_js("""const b = Array.from(document.querySelectorAll("a, button")).filter(a => {
+                await session.evaluate_js("""b = Array.from(document.querySelectorAll("a, button")).filter(a => {
                     return a.textContent.endsWith("KI‑Modus") || a.textContent.endsWith("AI Mode");
                 }).pop(); b ? b.click() : null; !!b""")
                 await session.wait_for_network_idle(idle_time=1, timeout=10.0)
@@ -64,26 +64,41 @@ const rootElement = document.querySelector('[decode-data-ved="1"]');
 function getTextNodes(element) {
     const textNodes = [];
     for (const child of element.childNodes) {
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "STRONG") {
+            textNodes.push("**");
+        }
         if (child.nodeType === Node.TEXT_NODE && child.textContent) {
-            textNodes.push(child);
+            textNodes.push(child.textContent);
         } else {
             textNodes.push(...getTextNodes(child));
+        }
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "STRONG") {
+            textNodes.push("**");
+        }
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "DIV") {
+            if (child.parentElement && child.parentElement.tagName !== "DIV") {
+                textNodes.push("\\n");
+            }
         }
     }
     return textNodes;
 }
 const allTexts = [];
-for (const text of getTextNodes(rootElement).map(node => node.textContent)) {
+for (const text of getTextNodes(rootElement)) {
     if (text.includes("KI-Antworten können Fehler enthalten.") || text.includes("AI responses may include mistakes.")) {
         break;
     }
     allTexts.push(text);
 }
 allTexts;""");
-                debug.log(f"Google Search: AI mode results: {result}")
                 if result:
+                    first = True
                     for text in result:
-                        yield f"{text}\n"
+                        if first:
+                            first = False
+                            debug.log(f"Google AI Mode: {text}")
+                        else:
+                            yield text
                     return
             raise RuntimeError("No AI mode results found.")
         finally:

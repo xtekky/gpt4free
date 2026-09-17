@@ -439,6 +439,9 @@ class CDPSession:
         self._event_queues: Dict[str, List[asyncio.Queue]] = {}
         self._closing = False
         self._connection_lost = False
+        # True when this session runs through the browser-extension relay
+        # (g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
+        self._via_extension = False
 
         # Network event loggers
         self.network_requests: List[dict] = []
@@ -567,6 +570,7 @@ class CDPSession:
             raise RuntimeError("CDP relay: failed to create extension tab")
 
         self.target_id = target_id
+        self._via_extension = True
 
         # 2. Connect to the relay's pass-through WebSocket for this target.
         ws_url = f"ws://{api_host}:{api_port}/v1/cdp/ws/{quote_plus(target_id)}"
@@ -680,6 +684,8 @@ class CDPSession:
         res = await self.call(
             "Runtime.evaluate", expression=expression, returnByValue=True
         )
+        if "result" not in res or "value" not in res["result"]:
+            raise RuntimeError(f"JavaScript evaluation failed: {res}")
         return res.get("result", {}).get("value")
 
     async def get_cookies(self) -> dict:
@@ -875,14 +881,9 @@ class CDPSession:
             logger.debug(f"Failed to include debug script: {e}")
         return False
 
-    async def click_accept_button(self) -> bool:
+    async def click_accept_button(self, do_submit: bool = True) -> bool:
         """Find and click an 'Accept' or 'Einwilligen' button, including inside iframes."""
         js_code = """
-// 1. Inject debug script to show logging
-const debugEl = document.createElement('script');
-debugEl.src = 'https://g4f.dev/dist/js/debug.js';
-document.head.appendChild(debugEl);
-
 // 2. Get the current URL's search parameters
 const params = new URLSearchParams(window.location.search || document.location.hash.substring(1));
 const searchQuery = params.get('q');
@@ -943,16 +944,28 @@ const acceptBtns = (() => {
 
     return searchDocument(document, window.scrollX, window.scrollY);
 })();
+const clickedTexts = [];
 if (acceptBtns && acceptBtns.length > 0) {
     acceptBtns.forEach(btn => {
         try {
             btn.click();
+            clickedTexts.push(btn.innerText || btn.value || btn.textContent || '');
         } catch (e) {
             console.error('Failed to click accept button:', e);
         }
     });
 }
-
+clickedTexts.join(', ');
+"""
+        try:
+            rect = await self.evaluate_js(js_code)
+            if rect and isinstance(rect, str):
+                debug.log(f"Clicked button with text: {rect}")
+        except Exception as e:
+            debug.log(f"Failed to click accept button: {e}")
+        if not do_submit:
+            return bool(rect)
+        js_code = """
 // 4. Enable Google AI Mode if the URL has the ai-mode parameter
 let googleAiModeButton = null;
 function enableGoogleAiMode() {
@@ -1052,15 +1065,12 @@ if (deepseekSendButton) {
 
 // 9. Return the text content of the first found send button for logging/debugging
 (
-    sendButton || geminiSendButton || deepseekSendButton || (acceptBtns && acceptBtns[0]) || googleAiModeButton
+    sendButton || geminiSendButton || deepseekSendButton || googleAiModeButton
 )?.textContent.trim();
 """
         try:
             rect = await self.evaluate_js(js_code)
-            if rect and isinstance(rect, list) and len(rect) == 2:
-                await self.click(int(rect[0]), int(rect[1]))
-                return True
-            elif rect and isinstance(rect, str):
+            if rect and isinstance(rect, str):
                 debug.log(f"Clicked button with text: {rect}")
                 return True
         except Exception as e:
@@ -1231,15 +1241,30 @@ if (deepseekSendButton) {
             await self.session.close()
             self.session = None
 
-        if self.target_id and self.port:
-            try:
-                urllib.request.urlopen(
-                    f"http://{self.host}:{self.port}/json/close/{self.target_id}",
-                    timeout=2,
-                )
-            except Exception:
-                pass
+        if self.target_id:
+            if self._via_extension:
+                # Extension mode: ask the relay to close the automation tab
+                # in the extension's browser (agent executes close_tab).
+                try:
+                    api_host = os.environ.get("G4F_API_HOST", "127.0.0.1")
+                    api_port = os.environ.get("G4F_API_PORT", "1337")
+                    urllib.request.urlopen(
+                        f"http://{api_host}:{api_port}/json/close/{self.target_id}",
+                        timeout=5,
+                    )
+                except Exception:
+                    pass
+            elif self.port:
+                try:
+                    urllib.request.urlopen(
+                        f"http://{self.host}:{self.port}/json/close/{self.target_id}",
+                        timeout=2,
+                    )
+                except Exception:
+                    pass
             self.target_id = None
 
-        # Release our tab; browser stays alive for reuse by other tabs
-        release_shared_browser_ref()
+        # Release our tab; browser stays alive for reuse by other tabs.
+        # Extension mode never acquired a shared-browser reference.
+        if not self._via_extension:
+            release_shared_browser_ref()

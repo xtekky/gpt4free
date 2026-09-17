@@ -361,6 +361,7 @@ class ProviderLoader:
 
             return OpenAIFM
         elif name == "OpenCode":
+            import time
             from ..client.factory import AbstractClientFactory
             cls.loaded[name] = AbstractClientFactory.create_provider(
                 None, "https://opencode.ai/zen/v1"
@@ -369,6 +370,12 @@ class ProviderLoader:
             cls.loaded[name].url = "https://opencode.ai"
             cls.loaded[name].active_by_default = True
             cls.loaded[name].default_model = "big-pickle"
+            cls.loaded[name].headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "opencode/1.18.31 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
+                "x-session-affinity": f"ses_{int(time.time())}",
+                "x-session-id": f"ses_{int(time.time())}",
+            }
             return cls.loaded[name]
 
         elif name == "OpenRouter":

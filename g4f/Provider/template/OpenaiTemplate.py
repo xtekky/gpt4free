@@ -34,6 +34,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     supports_native_tools: bool = True
     _checked_api_keys: dict = {}
     add_thought_signature = None
+    headers = {
+        "Content-Type": "application/json"
+    }
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
@@ -366,7 +369,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     ) -> dict:
         return {
             "Accept": "text/event-stream" if stream else "application/json",
-            "Content-Type": "application/json",
+            **cls.headers,
             **({"Authorization": f"Bearer {api_key}"} if api_key else {}),
             **({} if headers is None else headers),
         }

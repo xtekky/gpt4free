@@ -133,6 +133,7 @@ default = Model(
             "KiloCode",
             "OpenRouterFree",
             "GeminiPro",
+            "LLM7"
         ]
     ),
 )
