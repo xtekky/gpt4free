@@ -20,7 +20,7 @@ from .types import BaseProvider
 from .asyncio import to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
 from ..cookies import get_cookies_dir
-from ..requests import raise_for_status, StreamSession
+from ..requests import raise_for_status
 from ..errors import (
     ResponseError,
     MissingAuthError,
@@ -326,9 +326,14 @@ class AsyncGeneratorProvider(AbstractProvider):
         """Get the quota information for the API key."""
         if not api_key and cls.needs_auth:
             raise MissingAuthError("API key is required.")
-        raise NotImplementedError(
-            f"{cls.__name__} does not implement get_quota method"
-        )
+        if not cls.quota_url:
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement get_quota method"
+            )
+        async with ClientSession() as session:
+            async with session.get(cls.quota_url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
+                await raise_for_status(response)
+                return await response.json()
 
     @staticmethod
     @abstractmethod
