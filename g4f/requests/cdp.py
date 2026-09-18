@@ -24,6 +24,10 @@ Common features:
   • Auto-detects Chrome/Chromium/Edge path via BrowserConfig or system PATH.
   • Stores browser profiles in g4f cookies directory (no project root pollution).
   • Offscreen windowed mode (--window-position=-2000,-2000) bypasses Turnstile.
+  • Android app: creates dedicated automation WebViews through its DevTools
+    socket (browser_mode="webview", auto-detected — no Chrome needed). Each
+    target is shown in front of the app UI with a close button; WebView
+    debugging is disabled again when the last target is closed.
 """
 
 import asyncio
@@ -38,7 +42,7 @@ import time
 import urllib.request
 from typing import Optional, Dict, Any, List, AsyncIterator
 import hashlib
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 import datetime
 
 try:
@@ -401,6 +405,133 @@ def get_shared_browser(
             + (f": {stderr_output}" if stderr_output else "")
         )
 
+# ──────────────────────────────────────────────────────────────────────
+# Android WebView support — drive the app's own WebView via CDP.
+# ──────────────────────────────────────────────────────────────────────
+
+def _is_android() -> bool:
+    """Return True when running under Android (e.g. the Chaquopy app)."""
+    if os.path.exists("/system/build.prop"):
+        return True
+    try:
+        import java  # Chaquopy java bridge  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+def _enable_webview_debugging() -> bool:
+    """Enable remote debugging for all WebViews in this app (process-wide)."""
+    try:
+        from java import jclass
+
+        WebView = jclass("android.webkit.WebView")
+        WebView.setWebContentsDebuggingEnabled(True)
+        return True
+    except Exception as e:
+        debug.log(f"CDP: failed to enable WebView debugging: {e}")
+        return False
+
+def _disable_webview_debugging() -> bool:
+    """Disable remote debugging for all WebViews in this app (process-wide).
+
+    Called when the last automation target has been closed, so the DevTools
+    socket is not exposed while no automation is running.
+    """
+    try:
+        from java import jclass
+
+        WebView = jclass("android.webkit.WebView")
+        WebView.setWebContentsDebuggingEnabled(False)
+        debug.log("CDP: WebView debugging disabled (no targets left)")
+        return True
+    except Exception as e:
+        debug.log(f"CDP: failed to disable WebView debugging: {e}")
+        return False
+
+def _find_webview_devtools_socket() -> str:
+    """
+    Find the abstract Unix socket name of the WebView DevTools server.
+
+    The WebView listens on ``@webview_devtools_remote_<pid>`` in the app's
+    own process. Since Android 10 apps can no longer read /proc/net/unix,
+    so the pid based name is preferred and the scan is only a fallback.
+    """
+    own = f"webview_devtools_remote_{os.getpid()}"
+    candidates = []
+    try:
+        with open("/proc/net/unix") as fp:
+            for line in fp:
+                name = line.split()[-1].lstrip("@")
+                if name.startswith("webview_devtools_remote_"):
+                    candidates.append(name)
+    except Exception:
+        pass
+    if own in candidates:
+        return own
+    if candidates:
+        return candidates[0]
+    return own
+
+def _webview_devtools_request(socket_name: str, path: str, timeout: float = 5.0):
+    """HTTP GET against the WebView DevTools server over its abstract Unix socket."""
+    import http.client
+    import socket as _socket
+
+    sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        sock.connect("\0" + socket_name)
+        conn = http.client.HTTPConnection("localhost")
+        conn.sock = sock  # reuse the abstract socket connection
+        conn.request("GET", path, headers={"Host": "localhost", "Connection": "close"})
+        body = conn.getresponse().read()
+        return json.loads(body.decode("utf-8", errors="replace"))
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+# DevTools target ids claimed by active webview-mode sessions, so parallel
+# sessions don't attach to the same freshly created automation WebView.
+_webview_claimed_targets = set()
+
+async def _webview_bridge_call(socket_name: str, target: dict, expression: str, timeout: float = 10.0):
+    """Evaluate a JS expression on a WebView target and return its value.
+
+    Used to reach the app's automation bridge (window.G4FAutomation) on the
+    chat UI page, which creates and closes dedicated automation WebViews.
+    """
+    import aiohttp
+
+    ws_path = urlparse(target.get("webSocketDebuggerUrl", "")).path
+    if not ws_path:
+        ws_path = f"/devtools/page/{target.get('id')}"
+    connector = aiohttp.UnixConnector(path="\0" + socket_name)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        ws = await session.ws_connect(f"ws://localhost{ws_path}")
+        try:
+            await ws.send_str(json.dumps({
+                "id": 1,
+                "method": "Runtime.evaluate",
+                "params": {"expression": expression, "returnByValue": True},
+            }))
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                msg = await asyncio.wait_for(ws.receive(), timeout=deadline - time.time())
+                if msg.type != aiohttp.WSMsgType.TEXT:
+                    if msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                        break
+                    continue
+                data = json.loads(msg.data)
+                if data.get("id") == 1:
+                    if "error" in data:
+                        raise RuntimeError(f"WebView bridge error: {data['error']}")
+                    return data.get("result", {}).get("result", {}).get("value")
+        finally:
+            await ws.close()
+    raise TimeoutError("WebView bridge call timed out")
+
 
 class CDPSession:
     def __init__(
@@ -442,6 +573,17 @@ class CDPSession:
         # True when this session runs through the browser-extension relay
         # (g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
         self._via_extension = False
+        # True when this session is attached to the Android app's WebView
+        # (browser_mode="webview") instead of a local Chrome CDP port.
+        self._via_webview = False
+        self._webview_initial_url: Optional[str] = None
+        # WebView automation target bookkeeping: the DevTools socket name, the
+        # bridge id of the dedicated automation WebView created for this
+        # session (None when falling back to the chat UI page) and the target
+        # id of the chat UI page used for bridge calls.
+        self._webview_socket: Optional[str] = None
+        self._webview_automation_id: Optional[str] = None
+        self._webview_control_id: Optional[str] = None
 
         # Network event loggers
         self.network_requests: List[dict] = []
@@ -453,11 +595,21 @@ class CDPSession:
         return not self._closing and not self._connection_lost and self.ws is not None and not self.ws.closed
 
     async def start(self):
-        """Launch/get shared Chrome and connect via CDP targeting a new tab."""
+        """Connect a CDP target: Android WebView, extension relay or shared Chrome."""
+        browser_mode = getattr(BrowserConfig, "browser_mode", None)
         # Extension mode: route through the g4f browser extension relay
         # (g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
-        if getattr(BrowserConfig, "browser_mode", None) == "extension":
+        if browser_mode == "extension":
             return await self._start_via_extension()
+
+        # WebView mode: attach to the Android app's own WebView through its
+        # DevTools socket — there is no installable Chrome on Android. Forced
+        # with G4F_BROWSER_MODE=webview, auto-detected on Android when no
+        # explicit CDP port is configured.
+        if browser_mode == "webview" or (
+            browser_mode is None and self.port is None and _is_android()
+        ):
+            return await self._start_via_webview()
 
         if self.port is None:
             self.port = get_shared_browser(
@@ -584,6 +736,205 @@ class CDPSession:
         await self.call("DOM.enable")
         await self.call("Runtime.enable")
         await self.call("Network.enable")
+
+    async def _start_via_webview(self):
+        """
+        Run automation in a dedicated WebView of the Android app.
+
+        The app's chat UI WebView exposes a JS bridge (window.G4FAutomation)
+        that creates additional WebViews on demand. Each one appears as its
+        own "page" target on the app's DevTools socket
+        ``@webview_devtools_remote_<pid>``, is shown in front of the chat UI
+        (with a close button) and can be attached via a WebSocket (aiohttp
+        UnixConnector). Everything else (call/evaluate/events) works
+        unchanged, because the WebView speaks plain CDP.
+
+        Without the bridge (older app builds) this falls back to attaching to
+        the chat UI page itself.
+        """
+        import aiohttp
+
+        if not _enable_webview_debugging():
+            raise RuntimeError(
+                "CDP: could not enable WebView debugging — not running inside the Android app?"
+            )
+
+        socket_name = _find_webview_devtools_socket()
+        # The DevTools socket appears shortly after debugging is enabled.
+        targets = None
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            try:
+                targets = _webview_devtools_request(socket_name, "/json/list")
+                if isinstance(targets, list) and targets:
+                    break
+            except Exception:
+                pass
+            await asyncio.sleep(0.5)
+        if not targets or not isinstance(targets, list):
+            raise RuntimeError(
+                f"CDP: no WebView DevTools targets on socket @{socket_name}"
+            )
+        self._webview_socket = socket_name
+
+        pages = [t for t in targets if t.get("type") == "page"]
+        if not pages:
+            raise RuntimeError(f"CDP: no page target in WebView DevTools: {targets}")
+        # The app's chat UI acts as the control page for the automation bridge.
+        control = next((t for t in pages if "127.0.0.1" in t.get("url", "")), None)
+
+        # Prefer a dedicated automation WebView (a new CDP target) created via
+        # the app's JS bridge: it is shown in front of the chat UI and keeps
+        # the chat UI itself untouched. Parallel sessions each get their own.
+        target = None
+        if control is not None:
+            target = await self._create_webview_target(socket_name, control, targets)
+
+        if target is None:
+            # Fallback: attach to the app's chat UI page directly.
+            target = control if control is not None else pages[0]
+            debug.log("CDP: no automation bridge — attaching to the chat UI page")
+
+        ws_path = urlparse(target.get("webSocketDebuggerUrl", "")).path
+        if not ws_path:
+            ws_path = f"/devtools/page/{target.get('id')}"
+        self.target_id = target.get("id")
+        self._webview_initial_url = target.get("url")
+        self._via_webview = True
+        debug.log(
+            f"CDP: attached to Android WebView target {self.target_id} "
+            f"({self._webview_initial_url}) via @{socket_name}"
+        )
+
+        connector = aiohttp.UnixConnector(path="\0" + socket_name)
+        self.session = aiohttp.ClientSession(connector=connector)
+        self.ws = await self.session.ws_connect(f"ws://localhost{ws_path}")
+        self._closing = False
+        self._receive_task = asyncio.create_task(self._receiver_loop())
+
+        # Enable essential domains (no viewport/UA overrides — the WebView is
+        # a real, visible browser and the app already configured it).
+        await self.call("Page.enable")
+        await self.call("DOM.enable")
+        await self.call("Runtime.enable")
+        await self.call("Network.enable")
+
+    async def _create_webview_target(
+        self, socket_name: str, control: dict, known_targets: list
+    ) -> Optional[dict]:
+        """Create a dedicated automation WebView (new CDP target) via the app's
+        JS bridge and return its DevTools target. Returns None when the bridge
+        is unavailable or the target never shows up."""
+        known_ids = {t.get("id") for t in known_targets}
+        try:
+            automation_id = await _webview_bridge_call(
+                socket_name, control,
+                "(window.G4FAutomation && window.G4FAutomation.createTarget('about:blank')) || null",
+            )
+        except Exception as e:
+            debug.log(f"CDP: WebView bridge createTarget failed: {e}")
+            return None
+        if not isinstance(automation_id, str) or not automation_id:
+            return None
+
+        # Wait for the new WebView to appear as a page target on the socket.
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            try:
+                fresh = _webview_devtools_request(socket_name, "/json/list")
+                new_pages = [
+                    t for t in (fresh or [])
+                    if isinstance(t, dict)
+                    and t.get("type") == "page"
+                    and t.get("id") not in known_ids
+                    and t.get("id") not in _webview_claimed_targets
+                ]
+                if new_pages:
+                    target = new_pages[0]
+                    _webview_claimed_targets.add(target.get("id"))
+                    self._webview_automation_id = automation_id
+                    self._webview_control_id = control.get("id")
+                    debug.log(
+                        f"CDP: created automation WebView target {target.get('id')} "
+                        f"(bridge id {automation_id})"
+                    )
+                    return target
+            except Exception:
+                pass
+            await asyncio.sleep(0.25)
+
+        # Target never showed up — destroy the stray WebView again.
+        debug.log("CDP: automation WebView target did not appear — cleaning up")
+        try:
+            await _webview_bridge_call(
+                socket_name, control,
+                "window.G4FAutomation && window.G4FAutomation.closeTarget(%s)"
+                % json.dumps(automation_id),
+            )
+        except Exception:
+            pass
+        return None
+
+    async def _close_webview_target(self):
+        """Tear down this webview-mode session.
+
+        Dedicated automation WebViews (created through the app's JS bridge)
+        are destroyed via the bridge — the app removes them from the UI and
+        disables WebView debugging when the last one is closed. Fallback
+        sessions attached to the chat UI only navigate back, and debugging is
+        disabled when no other page target is left.
+        """
+        if self._webview_automation_id:
+            _webview_claimed_targets.discard(self.target_id)
+            control = None
+            try:
+                targets = _webview_devtools_request(self._webview_socket, "/json/list")
+                pages = [
+                    t for t in (targets or [])
+                    if isinstance(t, dict) and t.get("type") == "page"
+                ]
+                control = next(
+                    (t for t in pages if t.get("id") == self._webview_control_id),
+                    next((t for t in pages if "127.0.0.1" in t.get("url", "")), None),
+                )
+            except Exception:
+                pass  # Socket gone — debugging already disabled (last target closed)
+            if control is not None:
+                try:
+                    await _webview_bridge_call(
+                        self._webview_socket, control,
+                        "window.G4FAutomation && window.G4FAutomation.closeTarget(%s)"
+                        % json.dumps(self._webview_automation_id),
+                    )
+                except Exception as e:
+                    debug.log(f"CDP: WebView bridge closeTarget failed: {e}")
+        else:
+            # Fallback: the target is the app's chat UI — never close it.
+            # Navigate back to the page the WebView showed before automation.
+            if (
+                self._webview_initial_url
+                and self.ws
+                and not self.ws.closed
+                and not self._connection_lost
+            ):
+                try:
+                    await asyncio.wait_for(
+                        self.call("Page.navigate", url=self._webview_initial_url),
+                        timeout=3.0,
+                    )
+                except Exception:
+                    pass
+            # Disable WebView debugging when this was the only page left.
+            try:
+                targets = _webview_devtools_request(self._webview_socket, "/json/list")
+                pages = [
+                    t for t in (targets or [])
+                    if isinstance(t, dict) and t.get("type") == "page"
+                ]
+                if len(pages) <= 1:
+                    _disable_webview_debugging()
+            except Exception:
+                pass  # Socket gone — debugging already disabled
 
     async def _receiver_loop(self):
         """Listen for WebSocket messages."""
@@ -1223,8 +1574,16 @@ if (deepseekSendButton) {
         The shared browser process is kept alive as long as other CDP sessions
         (tabs) are active.  When the last session releases its reference the
         browser is terminated automatically.
+
+        In webview mode a dedicated automation WebView is destroyed through
+        the app's bridge — WebView debugging is disabled again when the last
+        automation target is closed. Fallback sessions (attached to the chat
+        UI) only navigate the WebView back to its initial URL.
         """
         self._closing = True
+
+        if self._via_webview:
+            await self._close_webview_target()
 
         if self._receive_task:
             self._receive_task.cancel()
@@ -1241,7 +1600,9 @@ if (deepseekSendButton) {
             self.session = None
 
         if self.target_id:
-            if self._via_extension:
+            if self._via_webview:
+                pass  # Automation WebView already destroyed via the app bridge.
+            elif self._via_extension:
                 # Extension mode: ask the relay to close the automation tab
                 # in the extension's browser (agent executes close_tab).
                 try:
@@ -1264,6 +1625,6 @@ if (deepseekSendButton) {
             self.target_id = None
 
         # Release our tab; browser stays alive for reuse by other tabs.
-        # Extension mode never acquired a shared-browser reference.
-        if not self._via_extension:
+        # Extension/webview mode never acquired a shared-browser reference.
+        if not self._via_extension and not self._via_webview:
             release_shared_browser_ref()

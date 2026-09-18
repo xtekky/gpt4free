@@ -56,3 +56,16 @@ WebView polls /chat/ until 200, then loads it (2-thread executor: server + polle
   native JS bridge (`window.AndroidClipboard` → `ClipboardManager`), so copy/paste works
   reliably inside the WebView
 - **Text selection**: long-press works natively; WebView text selection menu is enabled by default
+
+## Provider browser automation (CDP)
+
+Providers that need a browser (e.g. Cloudflare) use `CDPSession`. On Android there is no
+installable Chrome, so `CDPSession` attaches to the app's own **WebView**:
+
+- `MainActivity` enables `WebView.setWebContentsDebuggingEnabled(true)`, which exposes the
+  DevTools abstract socket `@webview_devtools_remote_<pid>`
+- `CDPSession` (mode `webview`, auto-detected on Android or forced with `G4F_BROWSER_MODE=webview`)
+  connects to that socket with an aiohttp `UnixConnector` and speaks plain CDP
+- On close, the session navigates the WebView back to the page it showed before automation
+- Limitation: there is only one WebView, so sessions cannot run in parallel tabs and
+  automation navigation is visible in the app UI

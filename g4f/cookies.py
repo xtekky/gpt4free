@@ -80,6 +80,8 @@ class BrowserConfig:
     headless: bool = True
     # "extension": route CDP through the g4f browser extension relay
     # (see g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
+    # "webview": attach to the Android app's WebView via its DevTools socket
+    # (auto-detected on Android when no CDP port is configured).
     browser_mode: str = None
 
     @staticmethod

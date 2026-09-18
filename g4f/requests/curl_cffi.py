@@ -33,6 +33,7 @@ else:
     has_curl_ws = False
 from typing import AsyncGenerator, Any
 from functools import partialmethod
+import asyncio
 import json
 from ..cookies import BrowserConfig
 
@@ -168,34 +169,110 @@ else:
 if has_curl_cffi and has_curl_ws:
 
     class WebSocket:
+        """WebSocket wrapper compatible with curl_cffi >= 0.16 (and older).
+
+        curl_cffi 0.16 replaced the old recv()/send() API with AsyncWebSocket
+        (recv_str/send_str, keyword-only timeout, ``closed`` attribute). The
+        wrapper is awaitable directly and also usable as async context manager.
+        """
+
         def __init__(self, session, url, **kwargs) -> None:
             self.session: StreamSession = session
             self.url: str = url
             if "autoping" in kwargs:
                 del kwargs["autoping"]
             self.options: dict = kwargs
+            self.inner = None
+            self._closed: bool = False
 
-        async def __aenter__(self):
-            self.inner = await self.session._ws_connect(self.url, **self.options)
+        def __await__(self):
+            return self._connect().__await__()
+
+        async def _connect(self):
+            if self.inner is None:
+                self.inner = await self.session._ws_connect(self.url, **self.options)
             return self
 
+        async def __aenter__(self):
+            return await self._connect()
+
         async def __aexit__(self, *args):
-            await self.inner.aclose() if hasattr(
-                self.inner, "aclose"
-            ) else await self.inner.close()
+            await self.close()
+
+        @property
+        def closed(self) -> bool:
+            if self._closed:
+                return True
+            if self.inner is None:
+                return False
+            closed = getattr(self.inner, "closed", None)
+            if callable(closed):
+                return closed()
+            return bool(closed)
+
+        async def close(self):
+            self._closed = True
+            if self.inner is not None:
+                inner_close = getattr(self.inner, "close", None)
+                if inner_close is not None:
+                    result = inner_close()
+                    if asyncio.iscoroutine(result):
+                        await result
+                self.inner = None
 
         async def receive_str(self, **kwargs) -> str:
+            await self._connect()
+            timeout = kwargs.get("timeout")
+            if hasattr(self.inner, "recv_str"):
+                # curl_cffi >= 0.16: recv_str(*, timeout=None) -> str
+                if timeout:
+                    return await self.inner.recv_str(timeout=timeout)
+                return await self.inner.recv_str()
             method = (
                 self.inner.arecv if hasattr(self.inner, "arecv") else self.inner.recv
             )
-            bytes, _ = await method()
-            return bytes.decode(errors="ignore")
+            data = await method()
+            if isinstance(data, tuple):
+                data = data[0]
+            return data.decode(errors="ignore") if isinstance(data, bytes) else data
+
+        async def recv(self, **kwargs):
+            """Return (data, flags) like the legacy curl_cffi recv API."""
+            await self._connect()
+            timeout = kwargs.get("timeout")
+            if hasattr(self.inner, "recv"):
+                if timeout:
+                    return await self.inner.recv(timeout=timeout)
+                return await self.inner.recv()
+            data = await self.receive_str(**kwargs)
+            return data, 0
 
         async def send_str(self, data: str):
-            method = (
-                self.inner.asend if hasattr(self.inner, "asend") else self.inner.send
-            )
-            await method(data.encode(), CurlWsFlag.TEXT)
+            await self._connect()
+            if hasattr(self.inner, "send_str"):
+                # curl_cffi >= 0.16
+                await self.inner.send_str(data)
+            else:
+                method = (
+                    self.inner.asend if hasattr(self.inner, "asend") else self.inner.send
+                )
+                await method(data.encode(), CurlWsFlag.TEXT)
+
+        async def send(self, data):
+            await self._connect()
+            if hasattr(self.inner, "send_str"):
+                # curl_cffi >= 0.16
+                if isinstance(data, str):
+                    await self.inner.send_str(data)
+                else:
+                    await self.inner.send(data)
+            else:
+                method = (
+                    self.inner.asend if hasattr(self.inner, "asend") else self.inner.send
+                )
+                await method(
+                    data if isinstance(data, bytes) else data.encode(), CurlWsFlag.TEXT
+                )
 
 else:
 
