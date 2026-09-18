@@ -3,7 +3,6 @@ dist
 __pycache__
 generated_media
 site-packages
-projects
 node_modules
 g4f.egg-info
 models
@@ -16,5 +15,6 @@ g4f.exe
 har_and_cookies
 playground
 .vscode
-
+.gradle
+windows
 build
