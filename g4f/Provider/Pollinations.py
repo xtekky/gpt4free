@@ -502,9 +502,9 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str,
         extra_body: dict,
         **kwargs,
-    ) -> AsyncResult:
-        if not cache and seed is None:
-            seed = random.randint(0, 2**32)
+     ) -> AsyncResult:
+    #     if not cache and seed is None:
+    #         seed = random.randint(0, 2**32)
 
         async with ClientSession(
             headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)
