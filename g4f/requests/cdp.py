@@ -1000,6 +1000,7 @@ const fieldSelectors = [
 ];
 // 7. Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
 (function() {
+    if (!searchQuery) return;
     const editor = document.querySelector(fieldSelectors.join(', '));
     if (!editor) return;
 
@@ -1024,8 +1025,6 @@ const fieldSelectors = [
     editor.dispatchEvent(new Event('keyup', { bubbles: true }));
     editor.dispatchEvent(new Event('input', { bubbles: true }));
     editor.dispatchEvent(new Event('change', { bubbles: true }));
-
-    enableGoogleAiMode();
 })();
 
 
@@ -1069,12 +1068,12 @@ if (deepseekSendButton) {
 )?.textContent.trim();
 """
         try:
-            rect = await self.evaluate_js(js_code)
-            if rect and isinstance(rect, str):
-                debug.log(f"Clicked button with text: {rect}")
+            text = await self.evaluate_js(js_code)
+            if text and isinstance(text, str):
+                debug.log(f"Clicked button with text: {text}")
                 return True
         except Exception as e:
-            debug.log(f"Failed to click accept button: {e}")
+            debug.error(f"Failed to click accept button:", e)
         return False
 
     async def bypass_turnstile(self):
@@ -1141,7 +1140,7 @@ if (deepseekSendButton) {
                 if url.endswith(f"_{n - i}.jpg"):
                     return result
             except Exception as e:
-                debug.log(f"Screenshot #{i+1} failed: {e}")
+                debug.error("Screenshot #{i+1} failed:", e)
         return result
 
 #         response = await self.evaluate_js("""
