@@ -15,7 +15,8 @@ def secure_filename(filename: str, max_length: int = 100) -> str:
     # Keep letters, numbers, basic punctuation, underscores
     filename = re.sub(r"[^\w.,_+\-]+", "_", unquote(filename).strip(), flags=re.UNICODE)
     encoding = "utf-8"
-    encoded = filename.encode(encoding)[:max_length]
+    encoded = filename.encode(encoding)
+    encoded = encoded[:max_length-4] + encoded[-4:]
     decoded = encoded.decode(encoding, "ignore")
     return decoded.strip(".,_+-")
 

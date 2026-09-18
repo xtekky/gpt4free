@@ -185,7 +185,7 @@ class DeepInfra(OpenaiTemplate):
     login_url = "https://deepinfra.com/dash/api_keys"
     base_url = "https://api.deepinfra.com/v1/openai"
 
-    working = False
+    working = True
     active_by_default = True
 
     default_model = "zai-org/GLM-5.2"

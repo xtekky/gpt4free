@@ -525,7 +525,7 @@ class ImageResponse(MediaResponse):
             return "\n".join(
                 [
                     f'<a href="{html.escape(url)}" data-src="{self.get("image", url)}" data-width="{self.get("width")}" data-height="{self.get("height")}" data-source="{html.escape(self.get("source_url", ""))}">'
-                    + f'<img src="{self.get("thumbnail", url.replace("/media/", "/thumbnail/"))}" alt="{html.escape(self.alt)}" width="{html.escape(str(self.get("thumbnail_width", "")))}" height="{html.escape(str(self.get("thumbnail_height", "")))}"></a>'
+                    + f'<img src="{self.get("thumbnail", url.replace("/media/", "/thumbnail/"))}" alt="{html.escape(" ".join(self.alt.split()))}" width="{html.escape(str(self.get("thumbnail_width", "")))}" height="{html.escape(str(self.get("thumbnail_height", "")))}"></a>'
                     for url in self.get_list()
                 ]
             )

@@ -156,12 +156,10 @@ async def get_args_from_nodriver(
 
         async def stop_browser():
             pass
-
     try:
         if clear_cookies_except:
             debug.log(f"Clear Cookies for url: {url}")
             await clear_cookies_for_url(browser, url)
-
         debug.log(f"Open CDP browser with url: {url}")
         if cookies is None:
             cookies = {}
@@ -171,6 +169,10 @@ async def get_args_from_nodriver(
                 get_cookie_params_from_dict(cookies, url=url, domain=domain)
             )
         page = await browser.get(url)
+    except:
+        await stop_browser()
+        raise
+    try:
         user_agent = await page.evaluate(
             "window.navigator.userAgent", return_by_value=True
         )
@@ -185,7 +187,6 @@ async def get_args_from_nodriver(
         )
         for c in result.get("cookies", []):
             cookies[c["name"]] = c["value"]
-        await stop_browser()
         return {
             "impersonate": "chrome",
             "cookies": cookies,
@@ -196,9 +197,9 @@ async def get_args_from_nodriver(
             },
             "proxy": proxy,
         }
-    except Exception:
+    finally:
+        await page.close()
         await stop_browser()
-        raise
 
 async def get_args_from_cdp(
     url: str,
