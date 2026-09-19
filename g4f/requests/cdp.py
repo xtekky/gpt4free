@@ -30,6 +30,8 @@ Common features:
     debugging is disabled again when the last target is closed.
 """
 
+from __future__ import annotations
+
 import asyncio
 import base64
 import json
