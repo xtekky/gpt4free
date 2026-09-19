@@ -404,10 +404,10 @@ class SearchResults(ResponseType):
         return (
             "".join(
                 [
-                    f"> **{format_link(link['link'], link.get('title', link.get('name', None)))}**\n{link.get('snippet', '')}\n"
+                    f"> **{format_link(link['link'], link.get('title', link.get('name', None)))}**\n> {link.get('snippet', '')}\n"
                     for link in self.list
                 ]
-            ).replace("\n", "\n> ")
+            )
         )
 
 
