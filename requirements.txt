@@ -20,5 +20,4 @@ python-dotenv
 ddgs
 numpy
 PyYAML
-websocket-client
 cryptography
