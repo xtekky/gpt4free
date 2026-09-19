@@ -32,17 +32,14 @@ EXTRA_REQUIRE = {
         "flask[async]",  # gui
         "fastapi",  # api
         "uvicorn",  # api
-        "zendriver",
         "python-multipart",
         "a2wsgi",
         "setuptools",
         "markitdown[all]",
         "python-dotenv",
-        "aiofile",
         "wasmtime",
         "numpy",
         "PyYAML",
-        "websocket-client",
         "pystray",
         "cryptography",
     ],
@@ -58,15 +55,12 @@ EXTRA_REQUIRE = {
         "flask[async]",  # gui
         "fastapi",  # api
         "uvicorn",  # api
-        "zendriver",
         "python-multipart",
         "a2wsgi",
         "pypdf2",
         "python-docx",
         "python-dotenv",
-        "aiofile",
         "PyYAML",
-        "websocket-client",
         "pystray",
         "cryptography",
     ],
@@ -74,12 +68,6 @@ EXTRA_REQUIRE = {
         "pillow",
         "cairosvg",
         "beautifulsoup4",
-    ],
-    "webview": [
-        "pywebview",
-        "platformdirs",
-        "plyer",
-        "cryptography",
     ],
     "api": ["loguru", "fastapi", "uvicorn", "python-multipart", "a2wsgi", "PyYAML"],
     "gui": [
