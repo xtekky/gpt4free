@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 import html
 import json
 import os
@@ -12,6 +11,7 @@ import uuid
 
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession
+from ...requests.cdp import CDPSession
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt
@@ -65,9 +65,11 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
     required" (rate limiting / IP reputation). Requests are therefore retried
     with a fresh session a few times before giving up.
 
-    A "cf_clearance" cookie from a real browser session (HAR capture or the
-    local browser profile) marks the visitor as trusted and greatly improves
-    the pass rate; see `_load_auth_state`.
+    A "cf_clearance" cookie from a real browser session marks the visitor
+    as trusted and greatly improves the pass rate. Fresh cookies and matching
+    client-hint headers are harvested through a CDP browser session on first
+    use (see `_harvest_via_cdp`), falling back to cached HAR captures
+    (`_load_auth_state`) when no browser is available.
     """
 
     label = "ChatGPT (Lightweight)"
@@ -160,6 +162,8 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                 # flagged, so reusing it would poison every retry.
                 if attempt > 0:
                     conversation.oai_did = str(uuid.uuid4())
+                if attempt >= 3:
+                    cls._auth_state = None
                 reply = await cls._fetch_reply(prompt=prompt, conversation=conversation, proxy=proxy, timeout=timeout)
                 if reply is not None:
                     yield reply
@@ -245,6 +249,69 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         return cls._auth_state
 
     @classmethod
+    async def _harvest_via_cdp(cls, proxy: str = None) -> tuple:
+        """Harvest fresh chatgpt.com cookies and headers via a CDP browser.
+
+        Opens a real browser, waits for the Cloudflare gate to clear and
+        captures the cookies (notably "cf_clearance") together with the
+        client-hint headers the browser actually sends, so later requests
+        match the fingerprint the cookies were issued for.
+        """
+        async with CDPSession(proxy=proxy) as session:
+            try:
+                await session.navigate(cls.url)
+            except Exception as e:
+                # A load-event race must not discard an otherwise good session.
+                debug.log(f"ChatGPTLightweight: CDP navigate: {e}")
+            # Wait for a pending Cloudflare challenge to resolve.
+            for _ in range(30):
+                title = await session.evaluate_js("document.title") or ""
+                if title and "Just a moment" not in title and "Attention Required" not in title:
+                    break
+                await asyncio.sleep(1)
+            debug.log("ChatGPTLightweight: waiting for network idle")
+            await session.wait_for_network_idle()
+            debug.log("ChatGPTLightweight: network idle reached")
+            cookies = await session.get_cookies([f"{cls.url}/"])
+            if not cookies.get("cf_clearance"):
+                # The clearance cookie is minted once the challenge resolves;
+                # give it a moment to show up.
+                for _ in range(10):
+                    await asyncio.sleep(1)
+                    cookies = await session.get_cookies([f"{cls.url}/"])
+                    if cookies.get("cf_clearance"):
+                        break
+            if not cookies:
+                # Fall back to whatever the current page holds.
+                cookies = await session.get_cookies()
+            # Copy headers from requests the browser itself sent to chatgpt.com.
+            headers = {}
+            for params in session.network_requests:
+                request = params.get("request", {})
+                if "chatgpt.com" not in request.get("url", ""):
+                    continue
+                sent = {
+                    name.lower(): value
+                    for name, value in request.get("headers", {}).items()
+                }
+                for name in cls._AUTH_HEADERS_WHITELIST:
+                    if name in sent:
+                        headers.setdefault(name, sent[name])
+                if "user-agent" in sent:
+                    headers["user-agent"] = sent["user-agent"]
+                    # Keep proof-of-work / turnstile on the same UA the
+                    # cookies were issued for.
+                    cls.user_agent = sent["user-agent"]
+                if "accept-language" in sent:
+                    headers.setdefault("accept-language", sent["accept-language"])
+            debug.log(
+                f"ChatGPTLightweight: CDP harvest: {len(cookies)} cookies"
+                f" (cf_clearance={'yes' if cookies.get('cf_clearance') else 'no'}),"
+                f" {len(headers)} headers"
+            )
+            return cookies, headers
+
+    @classmethod
     async def _fetch_reply(
         cls,
         prompt: str,
@@ -252,6 +319,15 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 120,
     ) -> str:
+        if cls._auth_state is None:
+            # Harvest fresh cookies and headers from a real browser before
+            # falling back to cached HAR captures: a cf_clearance minted for
+            # the current IP passes the gate far more reliably.
+            try:
+                cls._auth_state = await cls._harvest_via_cdp(proxy=proxy)
+                cls._auth_state_loaded_at = time.time()
+            except Exception as e:
+                debug.log(f"ChatGPTLightweight: CDP harvest failed: {e}")
         auth_cookies, auth_headers = cls._load_auth_state()
         # Reuse the captured visitor id when available so the session stays
         # consistent with the cf_clearance cookie it was issued with.

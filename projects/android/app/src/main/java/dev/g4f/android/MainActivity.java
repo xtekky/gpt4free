@@ -41,7 +41,7 @@ public class MainActivity extends Activity {
     private ExecutorService executor;
     public static final int PORT = 1337;
     private static final String APP_DIR = "app";
-    private static final String EXTRACTION_VERSION = "5"; // bump to force re-extraction
+    private static final String EXTRACTION_VERSION = "6"; // bump to force re-extraction
 
     // File chooser (image / file upload from the chat UI)
     private static final int FILE_CHOOSER_REQUEST = 1001;
