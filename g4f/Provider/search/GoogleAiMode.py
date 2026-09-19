@@ -61,6 +61,9 @@ class GoogleAiMode(GoogleSearch):
                 await session.wait_for_network_idle(idle_time=1, timeout=10.0)
                 result = await session.evaluate_js("""
 const rootElement = document.querySelector('[decode-data-ved="1"]');
+if (!rootElement) {
+    throw new Error("Root element not found");
+}
 function getTextNodes(element) {
     const textNodes = [];
     for (const child of element.childNodes) {

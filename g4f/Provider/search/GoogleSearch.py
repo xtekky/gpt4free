@@ -5,7 +5,7 @@ import urllib.parse
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...providers.response import SearchResults
+from ...providers.response import SearchResults, format_link
 from ...requests.cdp import CDPSession
 from ... import debug
 from ..helper import get_last_user_message
@@ -29,30 +29,36 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs,
     ) -> AsyncResult:
         query = get_last_user_message(messages)
-        search_url = f"{cls.url}/search?q={urllib.parse.quote_plus(query)}"
+        search_url = f"{cls.url}/search?q={urllib.parse.quote(query)}"
 
         debug.log(f"Google Search: Starting CDPSession for query: {query}")
         session = CDPSession()
         await session.start()
 
         try:
+            debug.log(f"Google Search: Navigating to search URL: {search_url}")
             await session.navigate(search_url)
-            await session.click_accept_button()
+            # debug.log(f"Google Search: Waiting for the page to load...")
+            await session.click_accept_button(False)
+            # debug.log(f"Google Search: Clicking accept button if present...")
 
             # Wait for Google search results page to load
             for _ in range(10):
                 has_results = None
                 try:
                     has_results = await session.evaluate_js(
-                        "document.querySelectorAll('div.g, h3').length > 0"
+                        "document.querySelectorAll('h3').length > 0"
                     )
                 except Exception as e:
                     debug.log(f"Google Search: Error checking for results: {e}")
                 if not has_results:
+                    debug.log(f"Google Search: No results yet, retrying...")
+                    await asyncio.sleep(1)
                     continue
 
                 # Extract search results from the DOM
                 yield SearchResults(await cls._read_search_results(session))
+                yield f'\n\nSource: {format_link(search_url, "Google Search")}'
                 break
         finally:
             await session.close()
@@ -61,21 +67,14 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
         return await session.evaluate_js("""
             (() => {
                 const results = [];
-                const items = document.querySelectorAll('h3');
-                items.forEach(item => {
-                    const linkEl = item.parentElement;
-                    const title = item.innerText || '';
+                const boxes = document.querySelectorAll('[data-snhf="0"]')
+                boxes.forEach(box => {
+                    const linkEl = box.querySelector('a');
+                    const title = linkEl.querySelector('h3') ? linkEl.querySelector('h3').innerText : '';
                     const link = linkEl.href  ? new URL(linkEl.href || '/') : null;
                     if (link) link.searchParams.delete("srsltid")
-                    let parentEl = linkEl.parentElement.parentElement.parentElement;
-                    let snippetEl = null;
-                    while (parentEl) {
-                        if (parentEl.nextElementSibling)
-                        snippetEl = parentEl.nextElementSibling.querySelector("div div:not(:has(a, svg)) span:not(:has(div, span, a, svg)):not(:empty)");
-                        if (snippetEl) break;
-                        parentEl = parentEl.parentElement;
-                    }
-                    const snippet = snippetEl ? snippetEl.innerText : '';
+                    const snippetEl = box.nextElementSibling;
+                    const snippet = snippetEl ? snippetEl.innerText.replace('...Read more', '...') : undefined;
                     if (title && link) {
                         results.push({ title, link: link.toString(), snippet });
                     }

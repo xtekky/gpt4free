@@ -552,6 +552,7 @@ def create_app_debug():
 def create_app_with_gui_and_debug():
     g4f.debug.logging = True
     AppConfig.gui = True
+    os.environ["G4F_ENABLE_AUDIT_LOG"] = os.environ.get("G4F_ENABLE_AUDIT_LOG", "1")
     return create_app()
 
 

@@ -2,26 +2,27 @@ from __future__ import annotations
 
 import asyncio
 import mimetypes
+import os
+import time
 from datetime import datetime
 from typing import Any, Optional, Literal
 
 from g4f import debug
-from g4f.cookies import get_cookies, get_cookies_async, get_headers
 from g4f.errors import MissingAuthError, ResponseError
 from g4f.image import to_bytes, detect_file_type
-from g4f.providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from g4f.providers.base_provider import AsyncAuthedProvider, ProviderModelMixin
 from g4f.providers.helper import get_last_user_message
 from g4f.providers.response import (
+    AuthResult,
     FinishReason,
     JsonConversation,
     JsonRequest,
+    RequestLogin,
 )
-from g4f.requests import StreamSession, raise_for_status, FormData
-from g4f.typing import AsyncResult, Messages, Cookies
+from g4f.requests import StreamSession, raise_for_status, FormData, DEFAULT_HEADERS
+from g4f.typing import AsyncResult, Messages
 from .deepseek.pow import (
     DEEPSEEK_POW_ALGORITHM,
-    WASM_PATH,
-    DeepSeekHash,
     DeepSeekPOW,
     has_wasmtime_and_numpy,
 )
@@ -243,16 +244,19 @@ def _build_completion_payload(
     }
 
 
-class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
+class DeepSeek(AsyncAuthedProvider, ProviderModelMixin):
     """
-    DeepSeek provider using browser emulation with HAR file support.
+    DeepSeek provider using browser emulation with CDP-based authentication.
 
-    This provider extends DeepSeek implementation with HAR file support
-    for easier authentication management. It uses curl_cffi's Chrome impersonation
-    for realistic browser-like requests.
+    Authentication is handled by ``on_auth_async``: a CDPSession opens
+    chat.deepseek.com, waits for the user to log in and captures both the
+    session cookies and the ``authorization`` header the web app sends with
+    its API requests. The result is persisted by ``AsyncAuthedProvider`` and
+    replayed to ``create_authed`` until it becomes invalid.
+
+    It uses curl_cffi's Chrome impersonation for realistic browser-like requests.
     """
 
-    label = "DeepSeek (HAR Auth)"
     url = DEEPSEEK_URL
     cookie_domain = DEEPSEEK_DOMAIN
     working = has_wasmtime_and_numpy
@@ -260,19 +264,82 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
     needs_auth = True
     supports_file_upload = True
 
-    default_model = "deepseek-v3"
-    models = ["deepseek-v3", "deepseek-r1"]
-    model_aliases = {"deepseek-chat": "deepseek-v3"}
+    default_model = "deepseek-chat"
+    models = ["deepseek-chat", "deepseek-r1"]
+    model_aliases = {"deepseek-v3": "deepseek-chat"}
+
+    @classmethod
+    async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncResult:
+        """
+        Authenticate with a CDP-driven browser session.
+
+        Opens chat.deepseek.com, waits for the user to log in and captures
+        the session cookies plus the ``authorization`` header from outgoing
+        API requests (with a localStorage fallback for the bearer token).
+        """
+        from ...requests.cdp import CDPSession
+
+        auth_result = AuthResult(
+            headers=dict(DEFAULT_HEADERS), cookies={}, impersonate="chrome"
+        )
+        auth_result.headers["referer"] = f"{cls.url}/a/chat/"
+        authorization = None
+
+        debug.log("DeepSeekAuth: Starting CDPSession for login...")
+        session = CDPSession(proxy=proxy)
+        await session.start()
+        try:
+            yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or cls.url)
+            # Watch outgoing requests to capture the live authorization header
+            request_queue = asyncio.Queue()
+            session.add_event_handler("Network.requestWillBeSent", request_queue)
+            await session.navigate(cls.url)
+
+            # Wait for the login token (allows the user to log in manually)
+            deadline = time.time() + 300
+            while time.time() < deadline:
+                debug.log("DeepSeek: Waiting for authorization header...")
+                cookies = await session.get_cookies_list([cls.url])
+                auth_result.cookies = {c["name"]: c["value"] for c in cookies}
+
+                if not authorization:
+                    # Fallback: the web app persists its token in localStorage
+                    token = await session.evaluate_js(
+                        "JSON.parse(window.localStorage.getItem('userToken') || '{}').value||''"
+                    )
+                    if token:
+                        authorization = f"Bearer {token}"
+
+                # The authorization header is only sent once logged in
+                if authorization:
+                    break
+                await asyncio.sleep(2)
+
+            if not authorization:
+                raise MissingAuthError(
+                    "DeepSeekAuth: Login timed out. "
+                    "No authorization token was captured from the browser."
+                )
+            auth_result.headers["user-agent"] = await session.get_user_agent()
+            auth_result.headers["authorization"] = authorization
+        finally:
+            await session.close()
+
+        debug.log(
+            "DeepSeekAuth: Login successful, captured "
+            f"{len(auth_result.cookies)} cookies and authorization header"
+        )
+        yield auth_result
 
     @classmethod
     async def create_pow_response(
             cls, session: StreamSession, target_path: str
     ) -> str:
         """Request and solve a PoW challenge for one exact API target path."""
-        debug.log(
-            f"DeepSeekAuth: Requesting PoW challenge for {target_path} "
-            f"from {POW_CHALLENGE_ENDPOINT}"
-        )
+        # debug.log(
+        #     f"DeepSeekAuth: Requesting PoW challenge for {target_path} "
+        #     f"from {POW_CHALLENGE_ENDPOINT}"
+        # )
         async with session.post(
                 POW_CHALLENGE_ENDPOINT,
                 json={"target_path": target_path},
@@ -311,7 +378,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         pow_response = await loop.run_in_executor(
             None, _solve_pow_challenge, challenge
         )
-        debug.log(f"DeepSeekAuth: PoW challenge solved for {target_path}")
+        # debug.log(f"DeepSeekAuth: PoW challenge solved for {target_path}")
         return pow_response
 
     @classmethod
@@ -471,10 +538,10 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         return True
 
     @classmethod
-    async def get_quota(cls, **kwargs):
-        cookies = await get_cookies_async(cls.cookie_domain, False)
-        headers = _normalized_headers(get_headers(cls.cookie_domain) or {})
-        if cookies and headers.get("authorization"):
+    async def get_quota(cls, api_key: Optional[str] = None, **kwargs):
+        auth_result = cls.get_auth_result()
+        headers = _normalized_headers(getattr(auth_result, "headers", None) or {})
+        if headers.get("authorization"):
             return {"success": True}
         raise MissingAuthError("DeepSeekAuth: No authentication found.")
 
@@ -760,11 +827,11 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
             request_headers = None
 
     @classmethod
-    async def create_async_generator(
+    async def create_authed(
             cls,
             model: str,
             messages: Messages,
-            cookies: Cookies = None,
+            auth_result: AuthResult,
             headers: dict = None,
             proxy: str = None,
             conversation: JsonConversation = None,
@@ -780,19 +847,19 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
             **kwargs,
     ) -> AsyncResult:
         """
-        Create async generator for DeepSeek requests with HAR file support.
+        Create async generator for DeepSeek requests using cached browser auth.
 
-        Authentication priority:
-        1. HAR file cookies and auth token (har_and_cookies/deepseek*.har)
-        2. Cookie jar from get_cookies()
+        Authentication is provided by ``auth_result`` from ``on_auth_async``
+        (CDP browser login) or the persisted auth cache file.
 
-        Note: DeepSeek requires proof-of-work challenge which may require
-        additional handling. This implementation provides basic HAR-based auth.
+        Note: DeepSeek requires proof-of-work challenge which is solved
+        with the WASM solver before each completion request.
 
         Args:
             model: Model name to use
             messages: Message history
-            cookies: Optional cookies
+            auth_result: Authentication result with cookies and headers
+            headers: Optional header overrides
             proxy: Optional proxy
             conversation: JsonConversation object for continuing sessions
             web_search: Enable web search
@@ -804,27 +871,12 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         if not model:
             model = cls.default_model
 
-        source_headers = dict(headers or {})
-        # Try to get auth from HAR file first
-        if cookies is None:
-            cookies = await get_cookies_async(cls.cookie_domain, False)
-            discovered_headers = get_headers(cls.cookie_domain) or {}
-            # Explicit caller headers override browser/HAR values, including when
-            # their casing differs (normalization happens below).
-            source_headers = {**discovered_headers, **source_headers}
-            normalized_source_headers = _normalized_headers(source_headers)
-            if cookies and normalized_source_headers.get("authorization"):
-                debug.log(
-                    "DeepSeekAuth: Using "
-                    f"{len(cookies)} cookies and {len(source_headers)} headers "
-                    "from cookie jar"
-                )
-            # else:
-            #     raise MissingAuthError(
-            #         "DeepSeekAuth: No authentication found. "
-            #         "Please add a DeepSeek HAR file to har_and_cookies/ directory "
-            #         "with an authorization token."
-            #     )
+        # Browser cookies and headers captured during login (CDP session)
+        cookies = auth_result.cookies or {}
+        source_headers = dict(auth_result.headers or {})
+        # Explicit caller headers override the captured values, including when
+        # their casing differs (normalization happens below).
+        source_headers = {**source_headers, **(headers or {})}
 
         # Initialize conversation if needed
         if conversation is None:
@@ -832,7 +884,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
 
         token = kwargs.get("token", "") or kwargs.get("api_key", "")
         authorization = (token if token.lower().startswith("bearer ") else f"Bearer {token}") if token else ""
-        # Get auth token from HAR data or conversation
+        # Get auth token from the captured headers or conversation
         if not authorization:
             authorization = _normalized_headers(source_headers).get("authorization")
             if not authorization and hasattr(conversation, "authorization"):
@@ -841,7 +893,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
         if not authorization:
             raise MissingAuthError(
                 "DeepSeekAuth: Authorization token required. "
-                "Please ensure HAR file contains authorization header."
+                "Please log in again to refresh the authorization header."
             )
 
         headers = _build_chat_headers(source_headers, authorization)
@@ -869,7 +921,7 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 not hasattr(conversation, "chat_session_id")
                 or not conversation.chat_session_id
         ):
-            debug.log(f"DeepSeekAuth: Creating new chat session...")
+            # debug.log(f"DeepSeekAuth: Creating new chat session...")
             async with StreamSession(
                     headers=headers, cookies=cookies, proxy=proxy, impersonate="chrome"
             ) as session:
@@ -921,7 +973,6 @@ class DeepSeek(AsyncGeneratorProvider, ProviderModelMixin):
                 )
 
         # Build request data
-
         json_data = _build_completion_payload(
             conversation,
             prompt=prompt,

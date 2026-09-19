@@ -1076,37 +1076,15 @@ class CDPSession:
 
     async def navigate(self, url: str):
         """Navigate to a URL and wait for it to load."""
-        fut = asyncio.get_running_loop().create_future()
-        if "Page.loadEventFired" not in self._event_handlers:
-            self._event_handlers["Page.loadEventFired"] = []
-        self._event_handlers["Page.loadEventFired"].append(fut)
 
         await self.call("Page.navigate", url=url)
-
-        try:
-            await asyncio.wait_for(fut, timeout=30.0)
-        except asyncio.TimeoutError:
-            if fut in self._event_handlers.get("Page.loadEventFired", []):
-                self._event_handlers["Page.loadEventFired"].remove(fut)
-            logger.warning(
-                f"Timeout waiting for Page.loadEventFired when navigating to {url}"
-            )
+        await self.evaluate_js("new Promise(resolve => window.addEventListener('load', resolve))")
 
     async def reload(self):
         """Reload the current page and wait for it to load."""
-        fut = asyncio.get_running_loop().create_future()
-        if "Page.loadEventFired" not in self._event_handlers:
-            self._event_handlers["Page.loadEventFired"] = []
-        self._event_handlers["Page.loadEventFired"].append(fut)
 
         await self.call("Page.reload")
-
-        try:
-            await asyncio.wait_for(fut, timeout=30.0)
-        except asyncio.TimeoutError:
-            if fut in self._event_handlers.get("Page.loadEventFired", []):
-                self._event_handlers["Page.loadEventFired"].remove(fut)
-            logger.warning("Timeout waiting for Page.loadEventFired when reloading")
+        await self.evaluate_js("new Promise(resolve => window.addEventListener('load', resolve))")
 
     async def wait_for_network_idle(
         self, idle_time: float = 0.5, timeout: float = 15.0
@@ -1235,15 +1213,15 @@ class CDPSession:
     async def click_accept_button(self, do_submit: bool = True) -> bool:
         """Find and click an 'Accept' or 'Einwilligen' button, including inside iframes."""
         js_code = """
-// 2. Get the current URL's search parameters
+// Get the current URL's search parameters
 const params = new URLSearchParams(window.location.search || document.location.hash.substring(1));
 const searchQuery = params.get('q');
 
-// 2b. Insert prompt in Flux HF before clicking on run button
+// Insert prompt in Flux HF before clicking on run button
 const textbox = document.querySelector('[data-testid="textbox"]');
 textbox ? textbox.value = searchQuery : null;
 
-// 3. Click any "Accept" button in the main document or nested iframes
+// Click any "Accept" button in the main document or nested iframes
 const targetTexts = [
     'Send', 'Accept', 'Accept all', 'Accept All',
     'Accept All Cookies', 'Accept all cookies',
@@ -1317,7 +1295,7 @@ clickedTexts.join(', ');
         if not do_submit:
             return bool(rect)
         js_code = """
-// 4. Enable Google AI Mode if the URL has the ai-mode parameter
+// Enable Google AI Mode if the URL has the ai-mode parameter
 let googleAiModeButton = null;
 function enableGoogleAiMode() {
     // Enable Google AI Mode if the URL has the ai-mode parameter
@@ -1336,7 +1314,7 @@ function enableGoogleAiMode() {
 }
 enableGoogleAiMode();
 
-// 5. Find the textarea
+// Find the textarea
 const fieldSelectors = [
     'textarea[name="prompt"]',
     '[class^="MessageInput__TextArea--"]',
@@ -1349,7 +1327,7 @@ const fieldSelectors = [
     '[placeholder="Ask Meta AI..."]', // meta.ai
     '[placeholder="Ask anything..."]', // cloudflare
 ];
-// 7. Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
+// Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
 (function() {
     if (!searchQuery) return;
     const editor = document.querySelector(fieldSelectors.join(', '));
@@ -1379,7 +1357,7 @@ const fieldSelectors = [
 })();
 
 
-// 8. Click the send / submit button if it exists
+// Click the send / submit button if it exists
 const sendButtonSelectors = [
     '[data-send-label="Send message"]',
     '[class^="MessageInput__Submit--"]',
@@ -1399,7 +1377,7 @@ if (sendButton) {
     }, 1000);
 }
 
-// 8. Click the send button on gemini.google.com
+// Click the send button on gemini.google.com
 const geminiSendButton = document.querySelector(`.send-button`);
 if (geminiSendButton) {   
     setTimeout(() => {
@@ -1407,13 +1385,13 @@ if (geminiSendButton) {
     }, 1000);
 }
 
-// 8. Click the send button on chat.deepseek.com
+// Click the send button on chat.deepseek.com
 const deepseekSendButton = document.querySelector('[style="width: fit-content;"] [role="button"]');
 if (deepseekSendButton) {
     deepseekSendButton.click();
 }
 
-// 9. Return the text content of the first found send button for logging/debugging
+// Return the text content of the first found send button for logging/debugging
 (
     sendButton || geminiSendButton || deepseekSendButton || googleAiModeButton
 )?.textContent.trim();
