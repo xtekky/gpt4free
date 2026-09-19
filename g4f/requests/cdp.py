@@ -1030,18 +1030,23 @@ class CDPSession:
         if method in self._event_queues and queue in self._event_queues[method]:
             self._event_queues[method].remove(queue)
 
-    async def evaluate_js(self, expression: str) -> Any:
+    async def evaluate_js(self, expression: str, returnByValue: bool = True, awaitPromise: bool = True) -> Any:
         """Execute JavaScript and return the value."""
         res = await self.call(
-            "Runtime.evaluate", expression=expression, returnByValue=True
+            "Runtime.evaluate", expression=expression, returnByValue=returnByValue, awaitPromise=awaitPromise
         )
-        if "result" not in res or "value" not in res["result"] and res["result"].get("type") != "undefined":
+        if res.get("result", {}).get("type") == "undefined":
+            return None
+        if "result" not in res or "value" not in res["result"]:
             raise RuntimeError(f"JavaScript evaluation failed: {res}")
         return res.get("result", {}).get("value")
 
-    async def get_cookies(self) -> dict:
+    async def wrapped_js(self, expression: str) -> str:
+        return await self.evaluate_js(f"(async () => {{ {expression}; }})()")
+
+    async def get_cookies(self, urls: Optional[List[str]] = None) -> dict:
         """Retrieve all cookies from the browser as a name-value dict."""
-        cookies = await self.get_cookies_list()
+        cookies = await self.get_cookies_list(urls=urls)
         return {c["name"]: c["value"] for c in cookies}
 
     async def get_cookies_list(self, urls: Optional[List[str]] = None) -> List[dict]:
@@ -1066,8 +1071,6 @@ class CDPSession:
                 "expires": cookie.get("expires"),
             }
             params = {k: v for k, v in params.items() if v is not None}
-            if "domain" not in params and "url" not in params:
-                params["url"] = "https://deepinfra.com"
             await self.call("Network.setCookie", **params)
 
     async def get_user_agent(self) -> str:
@@ -1078,13 +1081,16 @@ class CDPSession:
         """Navigate to a URL and wait for it to load."""
 
         await self.call("Page.navigate", url=url)
-        await self.evaluate_js("(async () => await new Promise(resolve => window.addEventListener('load', resolve)))()")
+        await self.wait_for_load()
 
     async def reload(self):
         """Reload the current page and wait for it to load."""
 
         await self.call("Page.reload")
-        await self.evaluate_js("(async () => await new Promise(resolve => window.addEventListener('load', resolve)))()")
+        await self.wait_for_load()
+
+    async def wait_for_load(self):
+        await self.evaluate_js("new Promise(resolve => window.addEventListener('load', resolve))")
 
     async def wait_for_network_idle(
         self, idle_time: float = 0.5, timeout: float = 15.0
@@ -1161,6 +1167,7 @@ class CDPSession:
 
     async def click_turnstile_checkbox(self) -> bool:
         """Find the Cloudflare Turnstile iframe on the page and click its center."""
+
         js_code = """
         (() => {
             const iframes = document.querySelectorAll('iframe');
@@ -1198,7 +1205,7 @@ class CDPSession:
     async def include_debug(self) -> bool:
         """Inject a debug script into the page to enable logging."""
         js_code = """
-    // 1. Inject debug script to show logging
+    // Inject debug script to show logging
     const debugEl = document.createElement('script');
     debugEl.src = 'https://g4f.dev/dist/js/debug.js';
     document.head.appendChild(debugEl);
@@ -1210,91 +1217,89 @@ class CDPSession:
             logger.debug(f"Failed to include debug script: {e}")
         return False
 
-    async def click_accept_button(self, do_submit: bool = True) -> bool:
-        """Find and click an 'Accept' or 'Einwilligen' button, including inside iframes."""
-        js_code = """
-// Get the current URL's search parameters
+    async def click_button_by_text(self, texts: list[str] = [
+        'Send', 'Accept', 'Accept all', 'Accept All',
+        'Accept All Cookies', 'Accept all cookies',
+        'Einwilligen', 'Alle akzeptieren',
+        'Zustimmen und weiter', 'Zustimmen',
+        'Run', 'Accept Cookies', 'Skip for now'
+    ]) -> bool:
+        """Find and click a button by its visible text, including inside iframes."""
+
+        js_code = f"""
 const params = new URLSearchParams(window.location.search || document.location.hash.substring(1));
-const searchQuery = params.get('q');
-
-// Insert prompt in Flux HF before clicking on run button
-const textbox = document.querySelector('[data-testid="textbox"]');
-textbox ? textbox.value = searchQuery : null;
-
-// Click any "Accept" button in the main document or nested iframes
 const targetTexts = [
-    'Send', 'Accept', 'Accept all', 'Accept All',
-    'Accept All Cookies', 'Accept all cookies',
-    'Einwilligen', 'Alle akzeptieren',
-    'Zustimmen und weiter', 'Zustimmen',
-    'Run', 'Accept Cookies', 'Skip for now',
+    ...{json.dumps(texts)},
     ...params.getAll('click')
 ];
-const acceptBtns = (() => {
-    function searchDocument(doc, offsetX = 0, offsetY = 0) {
+const acceptBtns = (() => {{
+    function searchDocument(doc, offsetX = 0, offsetY = 0) {{
         const foundButtons = [];
-        try {
+        try {{
             if (!doc) return [];
 
             // 1. Search buttons in the current document
             const buttons = doc.querySelectorAll('button, input[type="submit"], [role="button"], a, h2');
-            for (let button of buttons) {
+            for (let button of buttons) {{
                 const text = (button.innerText || button.value || button.textContent || '').trim();
-                if (targetTexts.includes(text)) {
+                if (targetTexts.includes(text)) {{
                     foundButtons.push(button);
-                }
-            }
+                }}
+            }}
 
             // 2. Search inside nested iframes
             const iframes = doc.querySelectorAll('iframe');
-            for (let iframe of iframes) {
-                try {
+            for (let iframe of iframes) {{
+                try {{
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                    if (iframeDoc) {
+                    if (iframeDoc) {{
                         const iframeRect = iframe.getBoundingClientRect();
                         const btns = searchDocument(
                             iframeDoc,
                             offsetX + iframeRect.left,
                             offsetY + iframeRect.top
                         );
-                        if (btns.length > 0) {
+                        if (btns.length > 0) {{
                             foundButtons.push(...btns);
-                        }
-                    }
-                } catch (e) {
+                        }}
+                    }}
+                }} catch (e) {{
                     // Cross-origin iframe security restriction
-                }
-            }
-        } catch (e) {
+                }}
+            }}
+        }} catch (e) {{
             console.error('Error searching for accept buttons:', e);
-        }
+        }}
         return foundButtons;
-    }
+    }}
 
     return searchDocument(document, window.scrollX, window.scrollY);
-})();
+}})();
 const clickedTexts = [];
-if (acceptBtns && acceptBtns.length > 0) {
-    acceptBtns.forEach(btn => {
-        try {
+if (acceptBtns && acceptBtns.length > 0) {{
+    acceptBtns.forEach(btn => {{
+        try {{
             btn.click();
             clickedTexts.push(btn.innerText || btn.value || btn.textContent || '');
-        } catch (e) {
+        }} catch (e) {{
             console.error('Failed to click accept button:', e);
-        }
-    });
-}
-clickedTexts.join(', ');
+        }}
+    }});
+}}
+return clickedTexts.join(', ');
 """
-        try:
-            rect = await self.evaluate_js(js_code)
-            if rect and isinstance(rect, str):
-                debug.log(f"Clicked button with text: {rect}")
-        except Exception as e:
-            debug.log(f"Failed to click accept button: {e}")
-        if not do_submit:
-            return bool(rect)
+        return await self.wrapped_js(
+            js_code
+        )
+
+    async def insert_text_and_submit(self) -> bool:
+        """Insert text into the appropriate input field and submit it."""
+
         js_code = """
+// Get the current URL's search parameters
+const params = new URLSearchParams(window.location.search || document.location.hash.substring(1));
+const searchQuery = params.get('q');
+
 // Enable Google AI Mode if the URL has the ai-mode parameter
 let googleAiModeButton = null;
 function enableGoogleAiMode() {
@@ -1326,22 +1331,24 @@ const fieldSelectors = [
     '[placeholder="Ask anything…"]', // arena.ai
     '[placeholder="Ask Meta AI..."]', // meta.ai
     '[placeholder="Ask anything..."]', // cloudflare
+    '[data-testid="textbox"]', // Flux HF
 ];
 // Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
 (function() {
     if (!searchQuery) return;
+
     const editor = document.querySelector(fieldSelectors.join(', '));
     if (!editor) return;
 
-    // 3. Focus the element first (some frameworks require this)
+    // Focus the element first (some frameworks require this)
     editor.focus();
 
-    // 4. Use the document.execCommand approach
+    // Use the document.execCommand approach
     // This simulates real user typing and is the most likely way to trigger framework state
     document.execCommand('selectAll', false, null);
     document.execCommand('insertText', false, searchQuery);
 
-    // 5. If that fails, force React/Vue state update
+    // If that fails, force React/Vue state update
     // This triggers the underlying setter that frameworks use
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLElement.prototype, 
@@ -1392,12 +1399,12 @@ if (deepseekSendButton) {
 }
 
 // Return the text content of the first found send button for logging/debugging
-(
+return (
     sendButton || geminiSendButton || deepseekSendButton || googleAiModeButton
 )?.textContent.trim();
 """
         try:
-            text = await self.evaluate_js(js_code)
+            text = await self.wrapped_js(js_code)
             if text and isinstance(text, str):
                 debug.log(f"Clicked button with text: {text}")
                 return True
@@ -1449,6 +1456,7 @@ if (deepseekSendButton) {
 
     async def capture_screenshot(self, url: str, n: int = 3) -> AsyncIterator[str]:
         """Navigate to a URL and capture a screenshot, caching the result."""
+
         url_without_suffix = url[:-7] if url.endswith("_2.webp") or url.endswith("_3.webp") else url
         url_with_noads = f"{url_without_suffix}&noads={int(time.time())}" if "?" in url_without_suffix else f"{url_without_suffix}?noads={int(time.time())}"
         debug.log(f"Navigating to URL: {url_with_noads}")
@@ -1457,7 +1465,7 @@ if (deepseekSendButton) {
         if await self.evaluate_js('!document.doctype'):
             raise RuntimeError(f"Failed to load page {url} for screenshot, document.doctype={await self.evaluate_js('String(document.doctype)')}")
 
-        #await self.bypass_turnstile()
+        await self.bypass_turnstile()
         await self.evaluate_js("window.scrollTo(0, 0);")
         await self.include_debug()
 
@@ -1521,8 +1529,10 @@ if (deepseekSendButton) {
             for _ in range(2):
                 debug.log("Attempting to click accept button...")
                 await asyncio.sleep(1)
-                if await self.click_accept_button():
+                if await self.click_button_by_text():
                     debug.log("Clicked accept button.")
+                if await self.insert_text_and_submit():
+                    debug.log("Inserted text and submitted.")
                 break
         if ("headless=false" in url_without_suffix or "sleep=" in url_without_suffix or "wait=" in url_without_suffix) and n == 3:
             debug.log("Waiting 5 seconds for page to settle due to sleep/wait parameter...")
@@ -1606,3 +1616,10 @@ if (deepseekSendButton) {
         # Extension/webview mode never acquired a shared-browser reference.
         if not self._via_extension and not self._via_webview:
             release_shared_browser_ref()
+
+    async def __aenter__(self):
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()

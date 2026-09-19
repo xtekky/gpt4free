@@ -39,7 +39,7 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
             debug.log(f"Google Search: Navigating to search URL: {search_url}")
             await session.navigate(search_url)
             # debug.log(f"Google Search: Waiting for the page to load...")
-            await session.click_accept_button(False)
+            await session.click_button_by_text()
             # debug.log(f"Google Search: Clicking accept button if present...")
 
             # Wait for Google search results page to load

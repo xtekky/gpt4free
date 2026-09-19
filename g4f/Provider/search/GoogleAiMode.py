@@ -37,7 +37,7 @@ class GoogleAiMode(GoogleSearch):
 
         try:
             await session.navigate(search_url)
-            await session.click_accept_button(False)
+            await session.click_button_by_text()
         except Exception as e:
             await session.close()
             raise e

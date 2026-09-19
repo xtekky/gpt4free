@@ -14,161 +14,126 @@ async def _get_turnstile_token_async(model: str) -> str:
     Navigates to the DeepInfra model page, injects a fetch blocker,
     enters text, and polls for the Cloudflare Turnstile token.
     """
-    for attempt in range(1):
-        session = CDPSession()
-        await session.start()
 
-        try:
-            url = f"https://deepinfra.com/{model}"
-            debug.log(f"[DeepInfra] Navigating to {url} (Attempt {attempt + 1}/3)...")
-            await session.navigate(url)
+    async with CDPSession() as session:
+        url = f"https://deepinfra.com/{model}"
+        await session.navigate(url)
 
-            # Inject completions request blocker
-            fetch_blocker_js = """
-            const origFetch = window.fetch;
-            window.fetch = async function(...args) {
-                let url = args[0];
-                if (typeof url === 'string' && url.includes('/chat/completions')) {
-                    return new Response('{}', {status: 200});
-                }
-                return origFetch.apply(this, args);
-            };
-            """
-            await session.evaluate_js(fetch_blocker_js)
+        # Inject completions request blocker
+        fetch_blocker_js = """
+        const origFetch = window.fetch;
+        window.fetch = async function(...args) {
+            let url = args[0];
+            if (typeof url === 'string' && url.includes('/chat/completions')) {
+                return new Response('{}', {status: 200});
+            }
+            return origFetch.apply(this, args);
+        };
+        """
+        await session.evaluate_js(fetch_blocker_js)
 
-            # Try to click "Accept" on cookies consent popup if present
-            await session.evaluate_js(
-                """
-            (() => {
-                const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Accept');
-                if (btn) btn.click();
-            })()
-            """
-            )
+        # Try to click "Accept" on cookies consent popup if present
+        await session.click_button_by_text()
 
-            # Click on an empty page area to give window focus — signals Cloudflare that
-            # a real user is present, which speeds up Turnstile token generation significantly.
-            await session.click(200, 400)
+        # Click on an empty page area to give window focus — signals Cloudflare that
+        # a real user is present, which speeds up Turnstile token generation significantly.
+        await session.click(200, 400)
 
-            # Wait for textarea readiness, then focus and input text
-            debug.log("[DeepInfra] Waiting for active textarea...")
-            text_entered = False
-            for _ in range(80):  # Up to 40 seconds
-                if not session.is_alive:
-                    debug.log("[DeepInfra] Browser session lost, aborting textarea wait.")
-                    break
-                try:
-                    ready = await session.evaluate_js(
-                        """
-                    (() => {
-                        const ta = document.querySelector('textarea');
-                        const ts = document.querySelector('[name=cf-turnstile-response]');
-                        if (!ta) return 'no_textarea';
-                        if (ta.disabled) return 'disabled';
-                        if (!ts) return 'no_turnstile';
-                        ta.click();
-                        ta.focus();
-                        ta.scrollIntoView({ block: 'center' });
-                        return 'ready';
-                    })()
+        # Wait for textarea readiness, then focus and input text
+        debug.log("[DeepInfra] Waiting for active textarea...")
+        text_entered = False
+        for _ in range(80):  # Up to 40 seconds
+            if not session.is_alive:
+                debug.log("[DeepInfra] Browser session lost, aborting textarea wait.")
+                break
+            try:
+                ready = await session.evaluate_js(
                     """
+                (() => {
+                    const ta = document.querySelector('textarea');
+                    const ts = document.querySelector('[name=cf-turnstile-response]');
+                    if (!ta) return 'no_textarea';
+                    if (ta.disabled) return 'disabled';
+                    if (!ts) return 'no_turnstile';
+                    ta.click();
+                    ta.focus();
+                    ta.scrollIntoView({ block: 'center' });
+                    return 'ready';
+                })()
+                """
+                )
+
+                if ready == "ready":
+                    debug.log(
+                        "[DeepInfra] Textarea and Turnstile found, focusing and entering text..."
                     )
 
-                    if ready == "ready":
-                        debug.log(
-                            "[DeepInfra] Textarea and Turnstile found, focusing and entering text..."
-                        )
+                    # Retrieve textarea nodeId for native focusing
+                    doc = await session.call("DOM.getDocument")
+                    root_id = doc["root"]["nodeId"]
+                    textarea = await session.call(
+                        "DOM.querySelector", nodeId=root_id, selector="textarea"
+                    )
 
-                        # Retrieve textarea nodeId for native focusing
-                        doc = await session.call("DOM.getDocument")
-                        root_id = doc["root"]["nodeId"]
-                        textarea = await session.call(
-                            "DOM.querySelector", nodeId=root_id, selector="textarea"
-                        )
+                    # Native focus via CDP
+                    await session.call("DOM.focus", nodeId=textarea["nodeId"])
 
-                        # Native focus via CDP
-                        await session.call("DOM.focus", nodeId=textarea["nodeId"])
+                    # Enter text via native CDP command
+                    import random
 
-                        # Enter text via native CDP command
-                        import random
+                    test_prompt = random.choice(
+                        [
+                            "Hello",
+                            "Hi",
+                            "Hey there",
+                            "Testing",
+                            "Ping",
+                            "What's up?",
+                            "Can you hear me?",
+                        ]
+                    )
+                    await session.call("Input.insertText", text=test_prompt)
 
-                        test_prompt = random.choice(
-                            [
-                                "Hello",
-                                "Hi",
-                                "Hey there",
-                                "Testing",
-                                "Ping",
-                                "What's up?",
-                                "Can you hear me?",
-                            ]
-                        )
-                        await session.call("Input.insertText", text=test_prompt)
+                    await asyncio.sleep(0.5)
 
-                        await asyncio.sleep(0.5)
-
-                        # Simulate Enter keypress
-                        await session.call(
-                            "Input.dispatchKeyEvent",
-                            type="keyDown",
-                            windowsVirtualKeyCode=13,
-                            key="Enter",
-                            code="Enter",
-                            text="\r",
-                            unmodifiedText="\r",
-                        )
-                        await session.call(
-                            "Input.dispatchKeyEvent",
-                            type="keyUp",
-                            windowsVirtualKeyCode=13,
-                            key="Enter",
-                            code="Enter",
-                            text="\r",
-                            unmodifiedText="\r",
-                        )
-
-                        text_entered = True
+                    # Simulate Enter keypress
+                    text_entered = await session.click_button_by_text(["Send Message"])
+                    if text_entered:
                         break
-                except (ConnectionError, RuntimeError) as e:
-                    if not session.is_alive:
-                        debug.log(f"[DeepInfra] Browser session lost during textarea wait: {e}")
-                        break
-                except Exception:
-                    pass
-                await asyncio.sleep(0.5)
-
-            if not text_entered:
-                debug.log(
-                    "[DeepInfra] Textarea/Turnstile not ready or failed to submit, retrying attempt..."
-                )
-                await session.close()
-                continue
-
-            # Poll page for Turnstile token
-            debug.log("[DeepInfra] Waiting for Cloudflare Turnstile solve...")
-            token_js = "document.querySelector('[name=cf-turnstile-response]') ? document.querySelector('[name=cf-turnstile-response]').value : ''"
-            token = ""
-            for i in range(240):  # Up to 120 seconds per attempt
+            except (ConnectionError, RuntimeError) as e:
                 if not session.is_alive:
-                    debug.log("[DeepInfra] Browser session lost, aborting Turnstile token poll.")
+                    debug.log(f"[DeepInfra] Browser session lost during textarea wait: {e}")
                     break
-                try:
-                    token = await session.evaluate_js(token_js)
-                    if token:
-                        debug.log(f"[DeepInfra] Token generated on check {i+1}!")
-                        return token
-                except (ConnectionError, RuntimeError) as e:
-                    if not session.is_alive:
-                        debug.log(f"[DeepInfra] Browser session lost during token poll: {e}")
-                        break
-                except Exception:
-                    pass
-                await asyncio.sleep(0.5)
+            except Exception:
+                pass
+            await asyncio.sleep(0.5)
 
-        except Exception as e:
-            debug.log(f"[DeepInfra] Error on attempt {attempt + 1}: {e}")
-        finally:
-            await session.close()
+        if not text_entered:
+            debug.log(
+                "[DeepInfra] Textarea/Turnstile not ready or failed to submit, retrying attempt..."
+            )
+            return ""
+
+        # Poll page for Turnstile token
+        debug.log("[DeepInfra] Waiting for Cloudflare Turnstile solve...")
+        token_js = "document.querySelector('[name=cf-turnstile-response]') ? document.querySelector('[name=cf-turnstile-response]').value : ''"
+        token = ""
+        for i in range(240):  # Up to 120 seconds per attempt
+            if not session.is_alive:
+                debug.log("[DeepInfra] Browser session lost, aborting Turnstile token poll.")
+                break
+            try:
+                token = await session.evaluate_js(token_js)
+                if token:
+                    debug.log(f"[DeepInfra] Token generated on check {i+1}!")
+                    return token
+            except (ConnectionError, RuntimeError) as e:
+                if not session.is_alive:
+                    debug.log(f"[DeepInfra] Browser session lost during token poll: {e}")
+                    break
+            except Exception:
+                pass
+            await asyncio.sleep(0.5)
 
     return ""
 

@@ -43,6 +43,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.debug
         }
     }
 
@@ -58,7 +59,22 @@ android {
     }
 }
 
+task copyG4fAssets(type: Copy) {
+    from("${rootDir}/../../g4f") {
+        into("g4f")
+        exclude "**/__pycache__", "**/*.pyc", "**/.git*"
+    }
+    from("${rootDir}/../../g4f.dev") {
+        into("g4f.dev")
+        exclude "**/node_modules", "**/.git*", "**/.venv*", "**/.wrangler"
+    }
+    into("src/main/assets")
+}
+
+preBuild.dependsOn copyG4fAssets
+
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.8.0'
 }
+

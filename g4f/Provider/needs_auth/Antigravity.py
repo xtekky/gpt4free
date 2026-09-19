@@ -1,10 +1,11 @@
 """
-Antigravity Provider for gpt4free
+Antigravity Provider for gpt4free (v2)
 
 Provides access to Google's Antigravity API (Code Assist) supporting:
-- Gemini 2.5 (Pro/Flash) with thinkingBudget
-- Gemini 3 (Pro/Flash) with thinkingLevel
-- Claude (Sonnet 4.5 / Opus 4.5) via Antigravity proxy
+- Gemini 2.5 & Gemini 3 (Pro/Flash) with thinkingBudget and thinkingLevel
+- Gemini 3.1 / 3.5 / 3.6 / 3.7 / 3.8 Flash & Pro variants
+- Claude (Sonnet 4.5 / 4.6, Opus 4.5 / 4.6) via Antigravity proxy
+- Image generation models (gemini-3.1-flash-image)
 
 Uses OAuth2 authentication with Antigravity-specific credentials.
 Supports endpoint fallback chain for reliability.
@@ -19,6 +20,8 @@ import time
 import secrets
 import hashlib
 import asyncio
+import uuid
+import re
 import webbrowser
 import threading
 from pathlib import Path
@@ -84,12 +87,206 @@ def _sanitize_schema(schema: dict) -> dict:
     return result
 
 
-def get_antigravity_oauth_creds_path():
+def get_antigravity_oauth_creds_path() -> Path:
     """Get the default path for Antigravity OAuth credentials."""
     return Path.home() / ".antigravity" / "oauth_creds.json"
 
 
-# OAuth configuration
+# --- Constants ---
+CREDENTIALS_DIR = ".antigravity"
+CREDENTIALS_FILE = "oauth_creds.json"
+
+# Base URLs
+ANTIGRAVITY_BASE_URL_DAILY = "https://daily-cloudcode-pa.googleapis.com"
+ANTIGRAVITY_BASE_URL_PROD = "https://cloudcode-pa.googleapis.com"
+ANTIGRAVITY_API_VERSION = "v1internal"
+
+BASE_URLS = [
+    f"{ANTIGRAVITY_BASE_URL_DAILY}/{ANTIGRAVITY_API_VERSION}",
+    f"{ANTIGRAVITY_BASE_URL_PROD}/{ANTIGRAVITY_API_VERSION}",
+]
+
+PRODUCTION_URL = f"{ANTIGRAVITY_BASE_URL_PROD}/{ANTIGRAVITY_API_VERSION}"
+
+OAUTH_CLIENT_ID = (
+    "1071006060591-" + "tmhssin2h21lcre235vtolojh4g403ep" + ".apps.googleusercontent.com"
+)
+OAUTH_CLIENT_SECRET = "GOCSPX-" + "K58FWR486LdLJ1m" + "LB8sXC4z6qDAf"
+DEFAULT_USER_AGENT = "antigravity/2.8.1 darwin/arm64"
+REFRESH_SKEW = 3000  # 3000 seconds (50 minutes) advance refresh
+
+ANTIGRAVITY_SYSTEM_PROMPT = (
+    "You are Antigravity, a powerful agentic AI coding assistant designed by the Google Deepmind team "
+    "working on Advanced Agentic Coding.You are pair programming with a USER to solve their coding task. "
+    "The task may require creating a new codebase, modifying or debugging an existing codebase, or simply "
+    "answering a question.**Absolute paths only****Proactiveness**"
+)
+
+DEFAULT_THINKING_MIN = 1024
+DEFAULT_THINKING_MAX = 100000
+ANTIGRAVITY_EMPTY_TEXT_PLACEHOLDER = "."
+
+ANTIGRAVITY_STREAM_FIRST_BYTE_TIMEOUT_MS = 180000
+ANTIGRAVITY_STREAM_IDLE_TIMEOUT_MS = 300000
+
+ANTIGRAVITY_RAW_FALLBACK_MAX_LINES = 20000
+ANTIGRAVITY_ERROR_BODY_MAX_BYTES = 1024 * 1024
+
+ANTIGRAVITY_MODELS = [
+    "claude-opus-4-6-thinking",
+    "claude-sonnet-4-6",
+    "gemini-3-flash",
+    "gemini-3-pro-high",
+    "gemini-3-pro-low",
+    "gemini-3.1-flash-image",
+    "gemini-pro-agent",
+    "gemini-3.1-pro-high",
+    "gemini-3.1-pro-low",
+    "gpt-oss-120b-medium",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-low",
+    "gemini-3.5-flash-high",
+    "gemini-3.6-flash",
+    "gemini-3.6-flash-low",
+    "gemini-3.6-flash-high",
+    "gemini-3.7-flash",
+    "gemini-3.7-flash-low",
+    "gemini-3.7-flash-high",
+    "gemini-3.8-flash",
+    "gemini-3.8-flash-low",
+    "gemini-3.8-flash-high",
+]
+
+ANTIGRAVITY_CLIENT_TO_UPSTREAM_MODEL = {
+    "gemini-3.1-pro-high": "gemini-pro-agent",
+    "gemini-3.1-pro-preview": "gemini-pro-agent",
+    "gemini-3.5-flash-high": "gemini-3.5-flash-low",
+    "gemini-3.6-flash": "gemini-3.6-flash-low",
+    "gemini-3.7-flash": "gemini-3.7-flash-low",
+    "gemini-3.8-flash": "gemini-3.8-flash-low",
+}
+
+ANTIGRAVITY_UPSTREAM_TO_CLIENT_MODELS = {
+    "gemini-pro-agent": ["gemini-3.1-pro-high", "gemini-3.1-pro-preview"],
+    "gemini-3.6-flash-low": ["gemini-3.6-flash", "gemini-3.6-flash-low"],
+    "gemini-3.7-flash-low": ["gemini-3.7-flash", "gemini-3.7-flash-low"],
+    "gemini-3.8-flash-low": ["gemini-3.8-flash", "gemini-3.8-flash-low"],
+}
+
+ANTIGRAVITY_CLIENT_MODEL_THINKING_LEVEL = {
+    "gemini-pro-agent": "high",
+    "gemini-3.1-pro-high": "high",
+    "gemini-3.1-pro-preview": "high",
+    "gemini-3-pro-high": "high",
+    "gemini-3-pro-preview": "high",
+    "gemini-3.5-flash-high": "high",
+    "gemini-3.6-flash-high": "high",
+    "gemini-3.7-flash-high": "high",
+    "gemini-3.8-flash-high": "high",
+    "gemini-3.1-pro-low": "low",
+    "gemini-3-pro-low": "low",
+    "gemini-3.5-flash-low": "low",
+    "gemini-3.6-flash-low": "low",
+    "gemini-3.7-flash-low": "low",
+    "gemini-3.8-flash-low": "low",
+}
+
+ANTIGRAVITY_MODEL_METADATA = {
+    "claude-opus-4-6-thinking": {
+        "maxOutputTokens": 64000,
+        "thinking": {"min": 1024, "max": 64000, "zeroAllowed": True, "dynamicAllowed": True},
+    },
+    "claude-sonnet-4-6": {
+        "maxOutputTokens": 64000,
+        "thinking": {"min": 1024, "max": 64000, "zeroAllowed": True, "dynamicAllowed": True},
+    },
+    "gemini-3-flash": {
+        "maxOutputTokens": 65536,
+        "thinking": {
+            "min": 128,
+            "max": 32768,
+            "dynamicAllowed": True,
+            "levels": ["minimal", "low", "medium", "high"],
+        },
+    },
+    "gemini-3-pro-high": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 128, "max": 32768, "dynamicAllowed": True, "levels": ["low", "high"]},
+    },
+    "gemini-3-pro-low": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 128, "max": 32768, "dynamicAllowed": True, "levels": ["low", "high"]},
+    },
+    "gemini-3.1-flash-image": {
+        "thinking": {"min": 128, "max": 32768, "dynamicAllowed": True, "levels": ["minimal", "high"]},
+    },
+    "gemini-pro-agent": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.1-pro-high": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.1-pro-low": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gpt-oss-120b-medium": {
+        "maxOutputTokens": 32768,
+    },
+    "gemini-3.1-flash-lite": {
+        "maxOutputTokens": 65535,
+        "thinking": {
+            "min": 1,
+            "max": 65535,
+            "zeroAllowed": True,
+            "dynamicAllowed": True,
+            "levels": ["minimal", "low", "medium", "high"],
+        },
+    },
+    "gemini-3.5-flash-low": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.6-flash-low": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.6-flash-high": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.7-flash-low": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.7-flash-high": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.8-flash-low": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+    "gemini-3.8-flash-high": {
+        "maxOutputTokens": 65535,
+        "thinking": {"min": 1, "max": 65535, "dynamicAllowed": True, "levels": ["low", "medium", "high"]},
+    },
+}
+
+ANTIGRAVITY_HEADERS = {
+    "User-Agent": DEFAULT_USER_AGENT,
+    "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+    "Client-Metadata": '{"ideType":"ANTIGRAVITY","platform":"PLATFORM_UNSPECIFIED","pluginType":"GEMINI"}',
+}
+
+ANTIGRAVITY_AUTH_HEADERS = {
+    "User-Agent": "google-api-nodejs-client/10.3.0",
+    "X-Goog-Api-Client": "gl-node/22.18.0",
+    "Client-Metadata": '{"ideType":"ANTIGRAVITY","platform":"PLATFORM_UNSPECIFIED","pluginType":"GEMINI"}',
+}
+
 ANTIGRAVITY_REDIRECT_URI = "http://localhost:51121/oauthcallback"
 ANTIGRAVITY_SCOPES = [
     "https://www.googleapis.com/auth/cloud-platform",
@@ -102,51 +299,743 @@ CALLBACK_PORT = 51121
 OAUTH_CALLBACK_PORT = CALLBACK_PORT
 OAUTH_CALLBACK_PATH = "/oauthcallback"
 
-
-def generate_pkce_pair() -> Tuple[str, str]:
-    """
-    Generate a PKCE (Proof Key for Code Exchange) verifier and challenge pair.
-
-    Returns:
-        Tuple of (verifier, challenge) where:
-        - verifier: Random 43-128 character string
-        - challenge: Base64URL-encoded SHA256 hash of verifier
-    """
-    # Generate a random verifier (43-128 characters)
-    verifier = secrets.token_urlsafe(32)
-
-    # Create SHA256 hash of verifier
-    digest = hashlib.sha256(verifier.encode("ascii")).digest()
-
-    # Base64URL encode (no padding)
-    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
-
-    return verifier, challenge
+TOOL_ID_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 
-def encode_oauth_state(verifier: str, project_id: str = "") -> str:
-    """Encode OAuth state parameter with PKCE verifier and project ID."""
-    payload = {"verifier": verifier, "projectId": project_id}
-    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+def normalize_antigravity_model_id(model_name: str) -> str:
+    if not model_name or not isinstance(model_name, str):
+        return ""
+    normalized = model_name.strip()
+    if normalized.startswith("models/"):
+        normalized = normalized[len("models/") :]
+    return normalized
 
 
-def decode_oauth_state(state: str) -> Dict[str, str]:
-    """Decode OAuth state parameter back to verifier and project ID."""
-    # Add padding if needed
-    padded = state + "=" * (4 - len(state) % 4) if len(state) % 4 else state
-    # Convert URL-safe base64 to standard
-    normalized = padded.replace("-", "+").replace("_", "/")
+def strip_model_suffix(model_name: str) -> str:
+    normalized = normalize_antigravity_model_id(model_name)
+    match = re.match(r"^(.+?)\([^()]+\)$", normalized)
+    return match.group(1).strip() if match else normalized
+
+
+def resolve_antigravity_upstream_model(model_name: str) -> str:
+    base_model = strip_model_suffix(model_name)
+    if not base_model:
+        return ""
+    if base_model.startswith("gemini-claude-"):
+        return base_model.replace("gemini-claude-", "claude-")
+    return ANTIGRAVITY_CLIENT_TO_UPSTREAM_MODEL.get(base_model, base_model)
+
+
+def expand_antigravity_client_models(upstream_model: str) -> List[str]:
+    base_model = strip_model_suffix(upstream_model)
+    if not base_model:
+        return []
+    out = []
+
+    def push(m):
+        if m and m not in out:
+            out.append(m)
+
+    if base_model.startswith("claude-"):
+        push(f"gemini-{base_model}")
+        return out
+
+    exposed_alias = False
+    for alias in ANTIGRAVITY_UPSTREAM_TO_CLIENT_MODELS.get(base_model, []):
+        if alias in ANTIGRAVITY_MODELS:
+            push(alias)
+            exposed_alias = True
+
+    if base_model in ANTIGRAVITY_MODELS or (
+        not exposed_alias and base_model in ANTIGRAVITY_MODEL_METADATA
+    ):
+        push(base_model)
+
+    return out
+
+
+def get_antigravity_model_metadata(model_name: str) -> Optional[dict]:
+    upstream_model = resolve_antigravity_upstream_model(model_name)
+    return ANTIGRAVITY_MODEL_METADATA.get(
+        upstream_model
+    ) or ANTIGRAVITY_MODEL_METADATA.get(strip_model_suffix(model_name))
+
+
+def is_known_antigravity_model(model_name: str) -> bool:
+    base_model = strip_model_suffix(model_name)
+    if not base_model:
+        return False
+    return (
+        base_model in ANTIGRAVITY_MODELS
+        or get_antigravity_model_metadata(base_model) is not None
+    )
+
+
+def antigravity_model_uses_thinking_levels(model_name: str) -> bool:
+    metadata = get_antigravity_model_metadata(model_name)
+    levels = metadata.get("thinking", {}).get("levels") if metadata else None
+    return isinstance(levels, list) and len(levels) > 0
+
+
+def antigravity_model_requires_stream_for_non_stream(model_name: str) -> bool:
+    name = str(model_name or "").lower()
+    return (
+        "claude" in name
+        or "gemini-3-pro" in name
+        or "gemini-3.1-flash-image" in name
+    )
+
+
+def normalize_antigravity_text_part(part: dict) -> None:
+    if not isinstance(part, dict) or "text" not in part:
+        return
+    if not isinstance(part["text"], str):
+        part["text"] = "" if part["text"] is None else str(part["text"])
+    if len(part["text"].strip()) == 0:
+        part["text"] = ANTIGRAVITY_EMPTY_TEXT_PLACEHOLDER
+
+
+def normalize_antigravity_text_parts(parts: list) -> None:
+    if isinstance(parts, list):
+        for p in parts:
+            normalize_antigravity_text_part(p)
+
+
+def get_antigravity_client_model_thinking_level(model_name: str) -> str:
+    base_model = strip_model_suffix(model_name)
+    return ANTIGRAVITY_CLIENT_MODEL_THINKING_LEVEL.get(base_model, "")
+
+
+def apply_antigravity_thinking_level_config(
+    thinking_config: dict, level: str
+) -> dict:
+    thinking_config["thinkingLevel"] = level
+    thinking_config["includeThoughts"] = True
+    thinking_config.pop("thinkingBudget", None)
+    thinking_config.pop("thinking_budget", None)
+    return thinking_config
+
+
+def apply_antigravity_client_model_thinking_level(
+    payload: dict, client_model_name: str
+) -> dict:
+    level = get_antigravity_client_model_thinking_level(client_model_name)
+    if not level or not payload.get("request"):
+        return payload
+    gen_cfg = payload["request"].setdefault("generationConfig", {})
+    th_cfg = gen_cfg.setdefault("thinkingConfig", {})
+    apply_antigravity_thinking_level_config(th_cfg, level)
+    return payload
+
+
+def apply_antigravity_client_model_thinking_level_to_request(
+    request_body: dict, client_model_name: str
+) -> dict:
+    level = get_antigravity_client_model_thinking_level(client_model_name)
+    if not level or not request_body:
+        return request_body
+    gen_cfg = request_body.setdefault("generationConfig", {})
+    th_cfg = gen_cfg.setdefault("thinkingConfig", {})
+    apply_antigravity_thinking_level_config(th_cfg, level)
+    return request_body
+
+
+def is_claude(model_name: str) -> bool:
+    return bool(model_name and "claude" in model_name.lower())
+
+
+def is_image_model(model_name: str) -> bool:
+    return bool(model_name and "image" in model_name.lower())
+
+
+def model_supports_thinking(model_name: str) -> bool:
+    if not model_name:
+        return False
+    metadata = get_antigravity_model_metadata(model_name)
+    if metadata and "thinking" in metadata:
+        return True
+    name = model_name.lower()
+    return (
+        "gemini-3" in name
+        or name.startswith("gemini-2.5-")
+        or "-thinking" in name
+    )
+
+
+def generate_request_id() -> str:
+    return f"agent-{uuid.uuid4()}"
+
+
+def generate_image_gen_request_id() -> str:
+    return f"image_gen/{int(time.time()*1000)}/{uuid.uuid4()}/12"
+
+
+def generate_session_id() -> str:
+    n = secrets.randbelow(9000)
+    return f"-{n}"
+
+
+def generate_stable_session_id(payload: dict) -> str:
     try:
-        decoded = base64.b64decode(normalized).decode("utf-8")
-        parsed = json.loads(decoded)
-        return {
-            "verifier": parsed.get("verifier", ""),
-            "projectId": parsed.get("projectId", ""),
-        }
+        contents = payload.get("request", {}).get("contents")
+        if isinstance(contents, list):
+            for content in contents:
+                if (
+                    isinstance(content, dict)
+                    and content.get("role") == "user"
+                    and isinstance(content.get("parts"), list)
+                ):
+                    text = (
+                        content["parts"][0].get("text")
+                        if content["parts"]
+                        else None
+                    )
+                    if text:
+                        digest = hashlib.sha256(text.encode("utf-8")).digest()
+                        n = (
+                            int.from_bytes(digest[:8], byteorder="big")
+                            & 0x7FFFFFFFFFFFFFFF
+                        )
+                        return f"-{n}"
     except Exception:
-        return {"verifier": "", "projectId": ""}
+        pass
+    return generate_session_id()
 
 
+def generate_project_id() -> str:
+    adjectives = ["useful", "bright", "swift", "calm", "bold"]
+    nouns = ["fuze", "wave", "spark", "flow", "core"]
+    adj = secrets.choice(adjectives)
+    noun = secrets.choice(nouns)
+    random_part = secrets.token_hex(3)[:5]
+    return f"{adj}-{noun}-{random_part}"
+
+
+def normalize_thinking_budget(model_name: str, budget: int) -> int:
+    if budget == -1:
+        return -1
+    thinking = get_antigravity_model_metadata(model_name)
+    thinking_cfg = thinking.get("thinking", {}) if thinking else {}
+    min_b = thinking_cfg.get("min", DEFAULT_THINKING_MIN)
+    max_b = thinking_cfg.get("max", DEFAULT_THINKING_MAX)
+    if budget < min_b:
+        return min_b
+    if budget > max_b:
+        return max_b
+    return budget
+
+
+def normalize_antigravity_thinking(
+    model_name: str, payload: dict, is_claude_model: bool
+) -> dict:
+    if not model_supports_thinking(model_name):
+        if payload.get("request", {}).get("generationConfig", {}).get(
+            "thinkingConfig"
+        ):
+            payload["request"]["generationConfig"].pop("thinkingConfig", None)
+        return payload
+
+    thinking_config = (
+        payload.get("request", {})
+        .get("generationConfig", {})
+        .get("thinkingConfig")
+    )
+    if not thinking_config:
+        return payload
+
+    thinking_level = thinking_config.get("thinkingLevel")
+    budget = thinking_config.get("thinkingBudget")
+    thinking_requested = (thinking_level is not None) or (
+        budget is not None and budget != 0
+    )
+
+    if thinking_requested and "includeThoughts" not in thinking_config:
+        thinking_config["includeThoughts"] = True
+
+    if budget is None:
+        return payload
+
+    normalized_budget = normalize_thinking_budget(model_name, budget)
+
+    gen_cfg = payload["request"].get("generationConfig", {})
+    max_tokens = gen_cfg.get("maxOutputTokens") or gen_cfg.get(
+        "max_output_tokens"
+    )
+    if max_tokens and max_tokens > 0 and normalized_budget >= max_tokens:
+        normalized_budget = max(0, max_tokens - 1)
+
+    if is_claude_model:
+        min_budget = DEFAULT_THINKING_MIN
+        if 0 <= normalized_budget < min_budget and normalized_budget != -1:
+            payload["request"]["generationConfig"].pop("thinkingConfig", None)
+            return payload
+
+    payload["request"]["generationConfig"]["thinkingConfig"][
+        "thinkingBudget"
+    ] = normalized_budget
+    return payload
+
+
+def generate_synthetic_tool_id() -> str:
+    bytes_data = secrets.token_bytes(26)
+    s = "".join(TOOL_ID_ALPHABET[b % 62] for b in bytes_data)
+    return f"toolu_vrtx_{s}"
+
+
+def ensure_tool_call_ids(contents: list) -> None:
+    if not isinstance(contents, list):
+        return
+    pending_by_name = {}
+    for content in contents:
+        if not isinstance(content, dict) or not isinstance(
+            content.get("parts"), list
+        ):
+            continue
+        for part in content["parts"]:
+            if not isinstance(part, dict):
+                continue
+            if "functionCall" in part:
+                fc = part["functionCall"]
+                if not fc.get("id"):
+                    fc["id"] = generate_synthetic_tool_id()
+                fc_name = fc.get("name")
+                if fc_name:
+                    pending_by_name.setdefault(fc_name, []).append(fc["id"])
+            elif "functionResponse" in part:
+                fr = part["functionResponse"]
+                fr_name = fr.get("name")
+                if fr_name:
+                    q = pending_by_name.get(fr_name, [])
+                    pending_id = q.pop(0) if q else None
+                    if not fr.get("id") and pending_id:
+                        fr["id"] = pending_id
+
+
+def normalize_antigravity_tool_config(
+    request_obj: dict, is_claude_model: bool
+) -> None:
+    tool_cfg = request_obj.get("toolConfig")
+    if not isinstance(tool_cfg, dict):
+        return
+    fc_cfg = tool_cfg.get("functionCallingConfig")
+    if not isinstance(fc_cfg, dict):
+        return
+    mode = str(fc_cfg.get("mode", "")).upper()
+    if mode:
+        fc_cfg["mode"] = mode
+        if mode == "ANY" and "allowedFunctionNames" not in fc_cfg:
+            names = []
+            tools = request_obj.get("tools", [])
+            if isinstance(tools, list):
+                for t in tools:
+                    if isinstance(t, dict) and isinstance(
+                        t.get("functionDeclarations"), list
+                    ):
+                        for fd in t["functionDeclarations"]:
+                            if isinstance(fd, dict) and fd.get("name"):
+                                names.append(fd["name"])
+            if names:
+                fc_cfg["allowedFunctionNames"] = names
+
+
+def gemini_to_antigravity(
+    model_name: str, payload: dict, project_id: str
+) -> dict:
+    template = json.loads(json.dumps(payload))
+    ensure_tool_call_ids(template.get("request", {}).get("contents"))
+
+    is_claude_model = is_claude(model_name)
+    is_img_model = is_image_model(model_name)
+
+    template["model"] = model_name
+    template["userAgent"] = "antigravity"
+    template["requestType"] = "image_gen" if is_img_model else "agent"
+
+    if project_id:
+        template["project"] = project_id
+    else:
+        template.pop("project", None)
+
+    if is_img_model:
+        template["requestId"] = generate_image_gen_request_id()
+    else:
+        template["requestId"] = generate_request_id()
+        if "request" not in template:
+            template["request"] = {}
+        template["request"]["sessionId"] = generate_stable_session_id(template)
+
+    if "request" not in template:
+        template["request"] = {}
+
+    template["request"].pop("safetySettings", None)
+
+    if "tool_config" in template and "toolConfig" not in template:
+        template["toolConfig"] = template.pop("tool_config")
+    else:
+        template.pop("tool_config", None)
+
+    if "toolConfig" in template:
+        if "toolConfig" not in template["request"]:
+            template["request"]["toolConfig"] = template["toolConfig"]
+        template.pop("toolConfig", None)
+
+    normalize_antigravity_tool_config(template["request"], is_claude_model)
+
+    gen_cfg = template["request"].get("generationConfig", {})
+    max_tokens = gen_cfg.get("maxOutputTokens")
+    metadata = get_antigravity_model_metadata(model_name)
+    model_max_tokens = metadata.get("maxOutputTokens") if metadata else None
+
+    if (
+        isinstance(max_tokens, int)
+        and model_max_tokens
+        and max_tokens > model_max_tokens
+    ):
+        template["request"]["generationConfig"][
+            "maxOutputTokens"
+        ] = model_max_tokens
+
+    if not is_claude_model and "maxOutputTokens" in gen_cfg:
+        gen_cfg.pop("maxOutputTokens", None)
+
+    tools = template["request"].get("tools")
+    if isinstance(tools, list):
+        for tool in tools:
+            if isinstance(tool, dict) and isinstance(
+                tool.get("functionDeclarations"), list
+            ):
+                for func_decl in tool["functionDeclarations"]:
+                    if "parametersJsonSchema" in func_decl:
+                        func_decl["parameters"] = _sanitize_schema(
+                            func_decl["parametersJsonSchema"]
+                        )
+                        func_decl.pop("parametersJsonSchema", None)
+                    elif "parameters" in func_decl:
+                        func_decl["parameters"] = _sanitize_schema(
+                            func_decl["parameters"]
+                        )
+
+    if gen_cfg.get("responseJsonSchema"):
+        gen_cfg["responseJsonSchema"] = _sanitize_schema(
+            gen_cfg["responseJsonSchema"]
+        )
+    if gen_cfg.get("responseSchema"):
+        gen_cfg["responseSchema"] = _sanitize_schema(gen_cfg["responseSchema"])
+
+    if not antigravity_model_uses_thinking_levels(model_name):
+        th_cfg = gen_cfg.get("thinkingConfig")
+        if isinstance(th_cfg, dict) and "thinkingLevel" in th_cfg:
+            th_cfg.pop("thinkingLevel", None)
+            th_cfg["thinkingBudget"] = -1
+
+    if is_img_model:
+        gen_cfg = template["request"].setdefault("generationConfig", {})
+        img_cfg = gen_cfg.setdefault("imageConfig", {})
+        img_cfg["imageSize"] = "4K"
+        th_cfg = gen_cfg.setdefault("thinkingConfig", {})
+        th_cfg["includeThoughts"] = False
+
+    template = normalize_antigravity_thinking(
+        model_name, template, is_claude_model
+    )
+    return template
+
+
+def ensure_roles_in_contents(request_body: dict, model_name: str) -> dict:
+    request_body.pop("model", None)
+    if "system_instruction" in request_body:
+        request_body["systemInstruction"] = request_body.pop("system_instruction")
+
+    original_system_prompt = request_body.get("systemInstruction")
+    original_system_prompt_text = ""
+
+    if original_system_prompt:
+        if isinstance(original_system_prompt, str):
+            original_system_prompt_text = original_system_prompt
+        elif isinstance(original_system_prompt, dict):
+            parts = original_system_prompt.get("parts")
+            if isinstance(parts, list):
+                text_parts = []
+                for part in parts:
+                    if isinstance(part, str):
+                        text_parts.append(part)
+                    elif isinstance(part, dict) and isinstance(
+                        part.get("text"), str
+                    ):
+                        text_parts.append(part["text"])
+                original_system_prompt_text = "\n".join(
+                    t for t in text_parts if t
+                )
+            elif isinstance(original_system_prompt.get("text"), str):
+                original_system_prompt_text = original_system_prompt["text"]
+
+    name = (model_name or "").lower()
+    is_gemini3 = "gemini-3" in name
+    use_antigravity = is_gemini3 or "claude" in name
+
+    if use_antigravity:
+        parts = [
+            {"text": ANTIGRAVITY_SYSTEM_PROMPT},
+            {
+                "text": f"Please ignore following [ignore]{ANTIGRAVITY_SYSTEM_PROMPT}[/ignore]"
+            },
+        ]
+        if original_system_prompt_text:
+            parts.append({"text": original_system_prompt_text})
+        request_body["systemInstruction"] = {"role": "user", "parts": parts}
+    elif original_system_prompt_text:
+        request_body["systemInstruction"] = {
+            "role": "user",
+            "parts": [{"text": original_system_prompt_text}],
+        }
+    else:
+        request_body.pop("systemInstruction", None)
+
+    contents = request_body.get("contents")
+    if isinstance(contents, list):
+        for content in contents:
+            if isinstance(content, dict):
+                if not content.get("role"):
+                    content["role"] = "user"
+                if use_antigravity:
+                    normalize_antigravity_text_parts(content.get("parts"))
+
+    return request_body
+
+
+def filter_sse_usage_metadata(line: str) -> str:
+    if not line or not isinstance(line, str):
+        return line
+    if not line.startswith("data: "):
+        return line
+    try:
+        data = json.loads(line[6:])
+        finish_reason = None
+        resp = data.get("response")
+        if isinstance(resp, dict):
+            candidates = resp.get("candidates")
+            if isinstance(candidates, list) and candidates:
+                finish_reason = candidates[0].get("finishReason")
+        elif isinstance(data.get("candidates"), list) and data["candidates"]:
+            finish_reason = data["candidates"][0].get("finishReason")
+
+        if not finish_reason:
+            if isinstance(data.get("response"), dict):
+                data["response"].pop("usageMetadata", None)
+            data.pop("usageMetadata", None)
+            return "data: " + json.dumps(data)
+    except Exception:
+        pass
+    return line
+
+
+def convert_stream_to_non_stream(stream_text: str) -> dict:
+    lines = stream_text.split("\n")
+    response_template = ""
+    trace_id = ""
+    finish_reason = ""
+    model_version = ""
+    response_id = ""
+    role = ""
+    usage_raw = None
+    parts = []
+
+    pending_kind = ""
+    pending_text = ""
+    pending_thought_sig = ""
+
+    def flush_pending():
+        nonlocal pending_kind, pending_text, pending_thought_sig
+        if not pending_kind:
+            return
+        text = pending_text
+        if pending_kind == "text":
+            if text.strip():
+                parts.append({"text": text})
+        elif pending_kind == "thought":
+            if text.strip() or pending_thought_sig:
+                part = {"thought": True, "text": text}
+                if pending_thought_sig:
+                    part["thoughtSignature"] = pending_thought_sig
+                parts.append(part)
+        pending_kind = ""
+        pending_text = ""
+        pending_thought_sig = ""
+
+    def normalize_part(part):
+        m = dict(part)
+        sig = part.get("thoughtSignature") or part.get("thought_signature")
+        if sig:
+            m["thoughtSignature"] = sig
+            m.pop("thought_signature", None)
+        if "inline_data" in m:
+            m["inlineData"] = m.pop("inline_data")
+        return m
+
+    for line in lines:
+        trimmed = line.strip()
+        if not trimmed:
+            continue
+        try:
+            data = json.loads(trimmed)
+        except Exception:
+            continue
+
+        response_node = data.get("response")
+        if not response_node:
+            if "candidates" in data:
+                response_node = data
+            else:
+                continue
+        response_template = json.dumps(response_node)
+
+        if data.get("traceId"):
+            trace_id = data["traceId"]
+
+        candidates = response_node.get("candidates", [])
+        if candidates and isinstance(candidates[0], dict):
+            c0 = candidates[0]
+            if c0.get("content", {}).get("role"):
+                role = c0["content"]["role"]
+            if c0.get("finishReason"):
+                finish_reason = c0["finishReason"]
+
+        if response_node.get("modelVersion"):
+            model_version = response_node["modelVersion"]
+        if response_node.get("responseId"):
+            response_id = response_node["responseId"]
+        if response_node.get("usageMetadata"):
+            usage_raw = response_node["usageMetadata"]
+        elif data.get("usageMetadata"):
+            usage_raw = data["usageMetadata"]
+
+        parts_array = (
+            candidates[0].get("content", {}).get("parts")
+            if candidates and isinstance(candidates[0], dict)
+            else None
+        )
+        if isinstance(parts_array, list):
+            for part in parts_array:
+                if not isinstance(part, dict):
+                    continue
+                has_fc = "functionCall" in part
+                has_inline = "inlineData" in part or "inline_data" in part
+                sig = (
+                    part.get("thoughtSignature")
+                    or part.get("thought_signature")
+                    or ""
+                )
+                text = part.get("text", "")
+                thought = part.get("thought", False)
+
+                if has_fc or has_inline:
+                    flush_pending()
+                    parts.append(normalize_part(part))
+                    continue
+
+                if thought or "text" in part:
+                    kind = "thought" if thought else "text"
+                    if pending_kind and pending_kind != kind:
+                        flush_pending()
+                    pending_kind = kind
+                    pending_text += text
+                    if kind == "thought" and sig:
+                        pending_thought_sig = sig
+                    continue
+
+                flush_pending()
+                parts.append(normalize_part(part))
+
+    flush_pending()
+
+    if not response_template:
+        response_template = '{"candidates":[{"content":{"role":"model","parts":[]}}]}'
+
+    result = json.loads(response_template)
+    if "candidates" not in result or not result["candidates"]:
+        result["candidates"] = [{"content": {"role": "model", "parts": []}}]
+    c0 = result["candidates"][0]
+    if "content" not in c0 or not isinstance(c0["content"], dict):
+        c0["content"] = {"role": "model", "parts": []}
+    c0["content"]["parts"] = parts
+
+    if role:
+        c0["content"]["role"] = role
+    if finish_reason:
+        c0["finishReason"] = finish_reason
+    if model_version:
+        result["modelVersion"] = model_version
+    if response_id:
+        result["responseId"] = response_id
+    if usage_raw:
+        result["usageMetadata"] = usage_raw
+    elif "usageMetadata" not in result:
+        result["usageMetadata"] = {
+            "promptTokenCount": 0,
+            "candidatesTokenCount": 0,
+            "totalTokenCount": 0,
+        }
+
+    return {
+        "response": result,
+        "traceId": trace_id or "",
+    }
+
+
+def to_gemini_api_response(antigravity_response: dict) -> Optional[dict]:
+    if not antigravity_response:
+        return None
+    compliant_response = {
+        "candidates": antigravity_response.get("candidates", [])
+    }
+    if "usageMetadata" in antigravity_response:
+        compliant_response["usageMetadata"] = antigravity_response[
+            "usageMetadata"
+        ]
+    if "promptFeedback" in antigravity_response:
+        compliant_response["promptFeedback"] = antigravity_response[
+            "promptFeedback"
+        ]
+    if "automaticFunctionCallingHistory" in antigravity_response:
+        compliant_response["automaticFunctionCallingHistory"] = (
+            antigravity_response["automaticFunctionCallingHistory"]
+        )
+    return compliant_response
+
+
+def build_antigravity_payload(
+    model: str,
+    request_body: dict,
+    project_id: str,
+    available_models: Optional[list] = None,
+) -> Tuple[dict, str, str]:
+    selected_model = normalize_antigravity_model_id(model)
+    avail = available_models or ANTIGRAVITY_MODELS
+    if selected_model not in avail and not is_known_antigravity_model(
+        selected_model
+    ):
+        selected_model = "gemini-3-flash"
+        request_body["model"] = selected_model
+
+    actual_model_name = resolve_antigravity_upstream_model(selected_model)
+
+    apply_antigravity_client_model_thinking_level_to_request(
+        request_body, selected_model
+    )
+    processed_request_body = ensure_roles_in_contents(
+        json.loads(json.dumps(request_body)), selected_model
+    )
+    payload = apply_antigravity_client_model_thinking_level(
+        gemini_to_antigravity(
+            actual_model_name, {"request": processed_request_body}, project_id
+        ),
+        selected_model,
+    )
+    request_body["model"] = actual_model_name
+    return payload, selected_model, actual_model_name
+
+
+# --- PKCE / OAuth Callback Server ---
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OAuth callback."""
 
@@ -154,11 +1043,9 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
     callback_error: Optional[str] = None
 
     def log_message(self, format, *args):
-        """Suppress default logging."""
         pass
 
     def do_GET(self):
-        """Handle GET request for OAuth callback."""
         parsed = urlparse(self.path)
 
         if parsed.path != OAUTH_CALLBACK_PATH:
@@ -174,14 +1061,18 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             OAuthCallbackHandler.callback_error = error
             self._send_error_response(error)
         elif code and state:
-            OAuthCallbackHandler.callback_result = {"code": code, "state": state}
+            OAuthCallbackHandler.callback_result = {
+                "code": code,
+                "state": state,
+            }
             self._send_success_response()
         else:
-            OAuthCallbackHandler.callback_error = "Missing code or state parameter"
+            OAuthCallbackHandler.callback_error = (
+                "Missing code or state parameter"
+            )
             self._send_error_response("Missing parameters")
 
     def _send_success_response(self):
-        """Send success HTML response."""
         html = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -209,12 +1100,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 </html>"""
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", len(html.encode()))
+        self.send_header("Content-Length", str(len(html.encode())))
         self.end_headers()
         self.wfile.write(html.encode())
 
     def _send_error_response(self, error: str):
-        """Send error HTML response."""
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -240,7 +1130,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 </html>"""
         self.send_response(400)
         self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", len(html.encode()))
+        self.send_header("Content-Length", str(len(html.encode())))
         self.end_headers()
         self.wfile.write(html.encode())
 
@@ -256,15 +1146,13 @@ class OAuthCallbackServer:
         self._stop_flag = False
 
     def start(self) -> bool:
-        """Start the callback server. Returns True if successful."""
         try:
-            # Reset any previous results
             OAuthCallbackHandler.callback_result = None
             OAuthCallbackHandler.callback_error = None
             self._stop_flag = False
 
             self.server = HTTPServer(("localhost", self.port), OAuthCallbackHandler)
-            self.server.timeout = 0.5  # Short timeout for responsive shutdown
+            self.server.timeout = 0.5
 
             self._thread = threading.Thread(target=self._serve, daemon=True)
             self._thread.start()
@@ -274,7 +1162,6 @@ class OAuthCallbackServer:
             return False
 
     def _serve(self):
-        """Serve requests until shutdown or result received."""
         start_time = time.time()
         while not self._stop_flag and self.server:
             if time.time() - start_time > self.timeout:
@@ -283,7 +1170,6 @@ class OAuthCallbackServer:
                 OAuthCallbackHandler.callback_result
                 or OAuthCallbackHandler.callback_error
             ):
-                # Give browser time to receive response
                 time.sleep(0.3)
                 break
             try:
@@ -292,8 +1178,6 @@ class OAuthCallbackServer:
                 break
 
     def wait_for_callback(self) -> Optional[Dict[str, str]]:
-        """Wait for OAuth callback and return result."""
-        # Poll for result instead of blocking on thread join
         start_time = time.time()
         while time.time() - start_time < self.timeout:
             if (
@@ -303,19 +1187,18 @@ class OAuthCallbackServer:
                 break
             time.sleep(0.1)
 
-        # Signal thread to stop
         self._stop_flag = True
-
         if self._thread:
             self._thread.join(timeout=2.0)
 
         if OAuthCallbackHandler.callback_error:
-            raise RuntimeError(f"OAuth error: {OAuthCallbackHandler.callback_error}")
+            raise RuntimeError(
+                f"OAuth error: {OAuthCallbackHandler.callback_error}"
+            )
 
         return OAuthCallbackHandler.callback_result
 
     def stop(self):
-        """Stop the callback server."""
         self._stop_flag = True
         if self.server:
             try:
@@ -325,88 +1208,65 @@ class OAuthCallbackServer:
             self.server = None
 
 
-# Antigravity base URLs with fallback order
-# For streaming/generation: prefer production (most stable)
-# For discovery: sandbox daily may work faster
-BASE_URLS = [
-    "https://cloudcode-pa.googleapis.com/v1internal",
-    "https://daily-cloudcode-pa.googleapis.com/v1internal",
-    "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal",
-]
+def generate_pkce_pair() -> Tuple[str, str]:
+    verifier = secrets.token_urlsafe(32)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return verifier, challenge
 
-# Production URL (most reliable for generation)
-PRODUCTION_URL = "https://cloudcode-pa.googleapis.com/v1internal"
 
-# Required headers for Antigravity API calls
-# These headers are CRITICAL for gemini-3-pro-high/low to work
-# User-Agent matches official Antigravity Electron client
-ANTIGRAVITY_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Antigravity/1.104.0 Chrome/138.0.7204.235 Electron/37.3.1 Safari/537.36",
-    "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
-    "Client-Metadata": '{"ideType":"IDE_UNSPECIFIED","platform":"PLATFORM_UNSPECIFIED","pluginType":"GEMINI"}',
-}
+def encode_oauth_state(verifier: str, project_id: str = "") -> str:
+    payload = {"verifier": verifier, "projectId": project_id}
+    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
 
-# Headers for auth/discovery calls (uses different User-Agent for tier detection)
-ANTIGRAVITY_AUTH_HEADERS = {
-    "User-Agent": "google-api-nodejs-client/10.3.0",
-    "X-Goog-Api-Client": "gl-node/22.18.0",
-    "Client-Metadata": '{"ideType":"IDE_UNSPECIFIED","platform":"PLATFORM_UNSPECIFIED","pluginType":"GEMINI"}',
-}
+
+def decode_oauth_state(state: str) -> Dict[str, str]:
+    padded = state + "=" * (4 - len(state) % 4) if len(state) % 4 else state
+    normalized = padded.replace("-", "+").replace("_", "/")
+    try:
+        decoded = base64.b64decode(normalized).decode("utf-8")
+        parsed = json.loads(decoded)
+        return {
+            "verifier": parsed.get("verifier", ""),
+            "projectId": parsed.get("projectId", ""),
+        }
+    except Exception:
+        return {"verifier": "", "projectId": ""}
 
 
 class AntigravityAuthManager(AuthFileMixin):
     """
     Handles OAuth2 authentication for Google's Antigravity API.
-
     Uses Antigravity-specific OAuth credentials and supports endpoint fallback.
-    Manages token caching, refresh, and API calls with automatic retry on 401.
     """
 
     parent = "Antigravity"
-
     OAUTH_REFRESH_URL = "https://oauth2.googleapis.com/token"
-    OAUTH_CLIENT_ID = os.environ.get(
-        "ANTIGRAVITY_CLIENT_ID",
-        os.environ.get("GOOGLE_CLIENT_ID", base64.b64decode(
-            "MTA3MTAwN" +
-            "jA2MDU5MS10bWhzc2luMmgyMWxjcmUy" +
-            "MzV2dG9sb2poNGc0MDNlcC5hcHBzLmdvb2dsZX" +
-            "VzZXJjb250ZW50LmNvbQ=="
-        ).decode(encoding="utf-8")),
-    )
+    OAUTH_CLIENT_ID = os.environ.get("ANTIGRAVITY_CLIENT_ID", OAUTH_CLIENT_ID)
     OAUTH_CLIENT_SECRET = os.environ.get(
-        "ANTIGRAVITY_CLIENT_SECRET",
-        os.environ.get("GOOGLE_CLIENT_SECRET", base64.b64decode(
-            "R09DU1B" + "YLUs1OEZXUjQ4NkxkTEoxbUxCOHNYQzR6NnFEQWY="
-        ).decode(encoding="utf-8")),
+        "ANTIGRAVITY_CLIENT_SECRET", OAUTH_CLIENT_SECRET
     )
-    TOKEN_BUFFER_TIME = 5 * 60  # seconds, 5 minutes
+    TOKEN_BUFFER_TIME = REFRESH_SKEW
     KV_TOKEN_KEY = "antigravity_oauth_token_cache"
 
     def __init__(self, env: Dict[str, Any]):
         self.env = env
         self._access_token: Optional[str] = None
-        self._expiry: Optional[float] = None  # Unix timestamp in seconds
-        self._token_cache = {}  # In-memory cache
-        self._working_base_url: Optional[str] = None  # Cache working endpoint
-        self._project_id: Optional[str] = None  # Cached project ID from credentials
+        self._expiry: Optional[float] = None
+        self._token_cache = {}
+        self._working_base_url: Optional[str] = None
+        self._project_id: Optional[str] = None
 
     async def initialize_auth(self) -> None:
-        """
-        Initialize authentication by using cached token, or refreshing if needed.
-        Raises RuntimeError if no valid token can be obtained.
-        """
-        # Try cached token from in-memory cache
         cached = await self._get_cached_token()
         now = time.time()
         if cached:
-            expires_at = cached["expiry_date"] / 1000  # ms to seconds
+            expires_at = cached["expiry_date"] / 1000
             if expires_at - now > self.TOKEN_BUFFER_TIME:
                 self._access_token = cached["access_token"]
                 self._expiry = expires_at
-                return  # Use cached token if valid
+                return
 
-        # Try loading from cache file or default path
         path = AntigravityAuthManager.get_cache_file()
         if not path.exists():
             path = get_antigravity_oauth_creds_path()
@@ -416,9 +1276,10 @@ class AntigravityAuthManager(AuthFileMixin):
                 with path.open("r") as f:
                     creds = json.load(f)
             except Exception as e:
-                raise RuntimeError(f"Failed to read OAuth credentials from {path}: {e}")
+                raise RuntimeError(
+                    f"Failed to read OAuth credentials from {path}: {e}"
+                )
         else:
-            # Parse credentials from environment
             if "ANTIGRAVITY_SERVICE_ACCOUNT" not in self.env:
                 raise RuntimeError(
                     "ANTIGRAVITY_SERVICE_ACCOUNT environment variable not set. "
@@ -426,15 +1287,13 @@ class AntigravityAuthManager(AuthFileMixin):
                 )
             creds = json.loads(self.env["ANTIGRAVITY_SERVICE_ACCOUNT"])
 
-        # Store project_id from credentials if available
         if creds.get("project_id"):
             self._project_id = creds["project_id"]
 
         refresh_token = creds.get("refresh_token")
         access_token = creds.get("access_token")
-        expiry_date = creds.get("expiry_date")  # milliseconds since epoch
+        expiry_date = creds.get("expiry_date")
 
-        # Use original access token if still valid
         if access_token and expiry_date:
             expires_at = expiry_date / 1000
             if expires_at - now > self.TOKEN_BUFFER_TIME:
@@ -443,14 +1302,12 @@ class AntigravityAuthManager(AuthFileMixin):
                 await self._cache_token(access_token, expiry_date)
                 return
 
-        # Otherwise, refresh token
         if not refresh_token:
             raise RuntimeError("No refresh token found in credentials.")
 
         await self._refresh_and_cache_token(refresh_token)
 
     async def _refresh_and_cache_token(self, refresh_token: str) -> None:
-        """Refresh the OAuth token and cache it."""
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "client_id": self.OAUTH_CLIENT_ID,
@@ -468,28 +1325,25 @@ class AntigravityAuthManager(AuthFileMixin):
                     raise RuntimeError(f"Token refresh failed: {text}")
                 resp_data = await resp.json()
                 access_token = resp_data.get("access_token")
-                expires_in = resp_data.get("expires_in", 3600)  # seconds
+                expires_in = resp_data.get("expires_in", 3600)
 
                 if not access_token:
                     raise RuntimeError("No access_token in refresh response.")
 
                 self._access_token = access_token
                 self._expiry = time.time() + expires_in
-
-                expiry_date_ms = int(self._expiry * 1000)  # milliseconds
+                expiry_date_ms = int(self._expiry * 1000)
                 await self._cache_token(access_token, expiry_date_ms)
 
     async def _cache_token(self, access_token: str, expiry_date: int) -> None:
-        """Cache token in memory."""
         token_data = {
             "access_token": access_token,
             "expiry_date": expiry_date,
-            "cached_at": int(time.time() * 1000),  # ms
+            "cached_at": int(time.time() * 1000),
         }
         self._token_cache[self.KV_TOKEN_KEY] = token_data
 
     async def _get_cached_token(self) -> Optional[Dict[str, Any]]:
-        """Return in-memory cached token if present and still valid."""
         cached = self._token_cache.get(self.KV_TOKEN_KEY)
         if cached:
             expires_at = cached["expiry_date"] / 1000
@@ -498,13 +1352,11 @@ class AntigravityAuthManager(AuthFileMixin):
         return None
 
     async def clear_token_cache(self) -> None:
-        """Clear the token cache."""
         self._access_token = None
         self._expiry = None
         self._token_cache.pop(self.KV_TOKEN_KEY, None)
 
     def get_access_token(self) -> Optional[str]:
-        """Return current valid access token or None."""
         if (
             self._access_token is not None
             and self._expiry is not None
@@ -514,8 +1366,11 @@ class AntigravityAuthManager(AuthFileMixin):
         return None
 
     def get_project_id(self) -> Optional[str]:
-        """Return cached project ID from credentials."""
         return self._project_id
+
+    def get_working_base_url(self) -> str:
+        """Get the cached working base URL or default to first in list."""
+        return self._working_base_url or BASE_URLS[0]
 
     async def call_endpoint(
         self,
@@ -524,22 +1379,19 @@ class AntigravityAuthManager(AuthFileMixin):
         is_retry: bool = False,
         use_auth_headers: bool = False,
     ) -> Any:
-        """
-        Call Antigravity API endpoint with JSON body and endpoint fallback.
-
-        Tries each base URL in order until one succeeds.
-        Automatically retries once on 401 Unauthorized by refreshing auth.
-        """
         if not self.get_access_token():
             await self.initialize_auth()
 
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.get_access_token()}",
-            **(ANTIGRAVITY_AUTH_HEADERS if use_auth_headers else ANTIGRAVITY_HEADERS),
+            **(
+                ANTIGRAVITY_AUTH_HEADERS
+                if use_auth_headers
+                else ANTIGRAVITY_HEADERS
+            ),
         }
 
-        # Try cached working URL first, then fallback chain
         urls_to_try = []
         if self._working_base_url:
             urls_to_try.append(self._working_base_url)
@@ -554,7 +1406,6 @@ class AntigravityAuthManager(AuthFileMixin):
                         url, headers=headers, json=body, timeout=30
                     ) as resp:
                         if resp.status == 401 and not is_retry:
-                            # Token likely expired, clear and retry once
                             await self.clear_token_cache()
                             await self.initialize_auth()
                             return await self.call_endpoint(
@@ -564,7 +1415,7 @@ class AntigravityAuthManager(AuthFileMixin):
                                 use_auth_headers=use_auth_headers,
                             )
                         elif resp.ok:
-                            self._working_base_url = base_url  # Cache working URL
+                            self._working_base_url = base_url
                             return await resp.json()
                         else:
                             last_error = f"HTTP {resp.status}: {await resp.text()}"
@@ -580,18 +1431,8 @@ class AntigravityAuthManager(AuthFileMixin):
             f"All Antigravity endpoints failed. Last error: {last_error}"
         )
 
-    def get_working_base_url(self) -> str:
-        """Get the cached working base URL or default to first in list."""
-        return self._working_base_url or BASE_URLS[0]
-
     @classmethod
     def build_authorization_url(cls, project_id: str = "") -> Tuple[str, str, str]:
-        """
-        Build OAuth authorization URL with PKCE.
-
-        Returns:
-            Tuple of (authorization_url, verifier, state)
-        """
         verifier, challenge = generate_pkce_pair()
         state = encode_oauth_state(verifier, project_id)
 
@@ -616,16 +1457,6 @@ class AntigravityAuthManager(AuthFileMixin):
         code: str,
         state: str,
     ) -> Dict[str, Any]:
-        """
-        Exchange authorization code for access and refresh tokens.
-
-        Args:
-            code: Authorization code from OAuth callback
-            state: State parameter containing PKCE verifier
-
-        Returns:
-            Dict containing tokens and user info
-        """
         decoded_state = decode_oauth_state(state)
         verifier = decoded_state.get("verifier", "")
         project_id = decoded_state.get("projectId", "")
@@ -635,7 +1466,6 @@ class AntigravityAuthManager(AuthFileMixin):
 
         start_time = time.time()
 
-        # Exchange code for tokens
         async with aiohttp.ClientSession() as session:
             token_data = {
                 "client_id": cls.OAUTH_CLIENT_ID,
@@ -667,7 +1497,6 @@ class AntigravityAuthManager(AuthFileMixin):
             if not access_token or not refresh_token:
                 raise RuntimeError("Missing tokens in response")
 
-            # Get user info
             email = None
             async with session.get(
                 "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
@@ -677,14 +1506,13 @@ class AntigravityAuthManager(AuthFileMixin):
                     user_info = await resp.json()
                     email = user_info.get("email")
 
-            # Discover project ID if not provided
             effective_project_id = project_id
             if not effective_project_id:
                 effective_project_id = await cls._fetch_project_id(
                     session, access_token
                 )
 
-        expires_at = int((start_time + expires_in) * 1000)  # milliseconds
+        expires_at = int((start_time + expires_in) * 1000)
 
         return {
             "access_token": access_token,
@@ -698,7 +1526,6 @@ class AntigravityAuthManager(AuthFileMixin):
     async def _fetch_project_id(
         cls, session: aiohttp.ClientSession, access_token: str
     ) -> str:
-        """Fetch project ID from Antigravity API."""
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
@@ -707,13 +1534,12 @@ class AntigravityAuthManager(AuthFileMixin):
 
         load_request = {
             "metadata": {
-                "ideType": "IDE_UNSPECIFIED",
+                "ideType": "ANTIGRAVITY",
                 "platform": "PLATFORM_UNSPECIFIED",
                 "pluginType": "GEMINI",
             }
         }
 
-        # Try endpoints in order with short timeout
         timeout = aiohttp.ClientTimeout(total=10)
         for base_url in BASE_URLS:
             try:
@@ -734,23 +1560,26 @@ class AntigravityAuthManager(AuthFileMixin):
             except Exception as e:
                 debug.log(f"Project discovery failed at {base_url}: {e}")
                 continue
-        # If discovery failed, attempt to onboard a managed project for the user.
-        # Read optional configuration from environment
+
         attempts = int(os.environ.get("ANTIGRAVITY_ONBOARD_ATTEMPTS", "10"))
         delay_seconds = float(os.environ.get("ANTIGRAVITY_ONBOARD_DELAY_S", "5"))
         tier_id = os.environ.get("ANTIGRAVITY_TIER_ID", "free-tier")
-        # Use any preconfigured project id as metadata if available
         configured_project = os.environ.get("ANTIGRAVITY_PROJECT_ID", "")
 
         if tier_id:
-            onboard_request_body = {"tierId": tier_id, "metadata": {}}
+            onboard_request_body = {
+                "tier_id": tier_id,
+                "metadata": {
+                    "ide_type": "ANTIGRAVITY",
+                    "ide_version": "2.8.1",
+                    "ide_name": "antigravity",
+                },
+            }
             if configured_project:
-                # include requested project id in metadata
                 onboard_request_body["metadata"][
                     "cloudaicompanionProject"
                 ] = configured_project
 
-            # Try onboarding across endpoints with retries
             for base_url in BASE_URLS:
                 for attempt in range(attempts):
                     try:
@@ -767,26 +1596,20 @@ class AntigravityAuthManager(AuthFileMixin):
                             timeout=timeout,
                         ) as resp:
                             if not resp.ok:
-                                text = await resp.text()
                                 if resp.status == 403:
                                     raise MissingAuthError(
                                         "Account not eligible for Antigravity Code Assist."
                                     )
-                                print(
-                                    f"Onboarding attempt {attempt+1} at {base_url} failed with status {resp.status}"
-                                )
-                                print(text)
-                                # Stop attempts on this endpoint and try next base_url
                                 break
 
                             payload = await resp.json()
-                            # payload.response?.cloudaicompanionProject?.id
                             response_obj = payload.get("response") or {}
                             managed = response_obj.get("cloudaicompanionProject")
-                            if isinstance(managed, dict):
-                                managed_id = managed.get("id")
-                            else:
-                                managed_id = None
+                            managed_id = (
+                                managed.get("id")
+                                if isinstance(managed, dict)
+                                else None
+                            )
 
                             done = bool(payload.get("done", False))
                             if done and managed_id:
@@ -803,7 +1626,7 @@ class AntigravityAuthManager(AuthFileMixin):
 
                     await asyncio.sleep(delay_seconds)
 
-        return ""
+        return generate_project_id()
 
     @classmethod
     async def interactive_login(
@@ -812,27 +1635,12 @@ class AntigravityAuthManager(AuthFileMixin):
         no_browser: bool = False,
         timeout: float = 300.0,
     ) -> Dict[str, Any]:
-        """
-        Perform interactive OAuth login flow.
-
-        This opens a browser for Google OAuth and captures the callback locally.
-
-        Args:
-            project_id: Optional GCP project ID
-            no_browser: If True, don't auto-open browser (print URL instead)
-            timeout: Timeout in seconds for OAuth callback
-
-        Returns:
-            Dict containing tokens and user info
-        """
-        # Build authorization URL
         auth_url, verifier, state = cls.build_authorization_url(project_id)
 
         print("\n" + "=" * 60)
         print("Antigravity OAuth Login")
         print("=" * 60)
 
-        # Try to start local callback server
         callback_server = OAuthCallbackServer(timeout=timeout)
         server_started = callback_server.start()
 
@@ -840,8 +1648,6 @@ class AntigravityAuthManager(AuthFileMixin):
             print(f"\nOpening browser for authentication...")
             print(f"If browser doesn't open, visit this URL:\n")
             print(f"{auth_url}\n")
-
-            # Try to open browser
             try:
                 webbrowser.open(auth_url)
             except Exception as e:
@@ -852,17 +1658,13 @@ class AntigravityAuthManager(AuthFileMixin):
                 print(
                     f"\nCould not start local callback server on port {CALLBACK_PORT}."
                 )
-                print("You may need to close any application using that port.\n")
-
             print(f"\nPlease open this URL in your browser:\n")
             print(f"{auth_url}\n")
 
         if server_started:
             print("Waiting for authentication callback...")
-
             try:
                 callback_result = callback_server.wait_for_callback()
-
                 if not callback_result:
                     raise RuntimeError("OAuth callback timed out")
 
@@ -873,8 +1675,6 @@ class AntigravityAuthManager(AuthFileMixin):
                     raise RuntimeError("No authorization code received")
 
                 print("\n✓ Authorization code received. Exchanging for tokens...")
-
-                # Exchange code for tokens
                 tokens = await cls.exchange_code_for_tokens(
                     code, callback_state or state
                 )
@@ -886,31 +1686,24 @@ class AntigravityAuthManager(AuthFileMixin):
                     print(f"  Project ID: {tokens['project_id']}")
 
                 return tokens
-
             finally:
                 callback_server.stop()
         else:
-            # Manual flow - ask user to paste the redirect URL or code
             print(
                 "\nAfter completing authentication, you'll be redirected to a localhost URL."
             )
-            print(
-                "Copy and paste the full redirect URL or just the authorization code below:\n"
-            )
-
+            print("Copy and paste the full redirect URL or just the code below:\n")
             user_input = input("Paste redirect URL or code: ").strip()
 
             if not user_input:
                 raise RuntimeError("No input provided")
 
-            # Parse the input
             if user_input.startswith("http"):
                 parsed = urlparse(user_input)
                 params = parse_qs(parsed.query)
                 code = params.get("code", [None])[0]
                 callback_state = params.get("state", [state])[0]
             else:
-                # Assume it's just the code
                 code = user_input
                 callback_state = state
 
@@ -933,22 +1726,10 @@ class AntigravityAuthManager(AuthFileMixin):
         no_browser: bool = False,
         credentials_path: Optional[Path] = None,
     ) -> "AntigravityAuthManager":
-        """
-        Perform interactive login and save credentials to file.
-
-        Args:
-            project_id: Optional GCP project ID
-            no_browser: If True, don't auto-open browser
-            credentials_path: Path to save credentials (default: g4f cache or ~/.antigravity/oauth_creds.json)
-
-        Returns:
-            AntigravityAuthManager instance with loaded credentials
-        """
         tokens = await cls.interactive_login(
             project_id=project_id, no_browser=no_browser
         )
 
-        # Prepare credentials for saving
         creds = {
             "access_token": tokens["access_token"],
             "refresh_token": tokens["refresh_token"],
@@ -959,19 +1740,12 @@ class AntigravityAuthManager(AuthFileMixin):
             "client_secret": cls.OAUTH_CLIENT_SECRET,
         }
 
-        # Save credentials - use provided path, or g4f cache file, or default path
-        if credentials_path:
-            path = credentials_path
-        else:
-            # Prefer g4f cache location (checked first by initialize_auth)
-            path = cls.get_cache_file()
-
+        path = credentials_path or cls.get_cache_file()
         path.parent.mkdir(parents=True, exist_ok=True)
 
         with path.open("w") as f:
             json.dump(creds, f, indent=2)
 
-        # Set restrictive permissions on Unix
         try:
             path.chmod(0o600)
         except Exception:
@@ -980,19 +1754,16 @@ class AntigravityAuthManager(AuthFileMixin):
         print(f"\n✓ Credentials saved to: {path}")
         print("=" * 60 + "\n")
 
-        # Create and return auth manager
         auth_manager = cls(env=os.environ)
         auth_manager._access_token = tokens["access_token"]
         auth_manager._expiry = tokens["expiry_date"] / 1000
-
         return auth_manager
 
 
 class AntigravityProvider:
     """
     Internal provider class for Antigravity API communication.
-
-    Handles message formatting, project discovery, and streaming content generation.
+    Handles payload formatting, project discovery, and streaming content generation.
     """
 
     url = "https://cloud.google.com/code-assist"
@@ -1001,24 +1772,19 @@ class AntigravityProvider:
         self.env = env
         self.auth_manager = auth_manager
         self._project_id: Optional[str] = None
+        self.available_models: List[str] = []
 
     async def discover_project_id(self) -> str:
-        """Discover the GCP project ID for API calls."""
-        # Check environment variable first
         if self.env.get("ANTIGRAVITY_PROJECT_ID"):
             return self.env["ANTIGRAVITY_PROJECT_ID"]
-
-        # Check cached project ID
         if self._project_id:
             return self._project_id
 
-        # Check auth manager's cached project ID (from credentials file)
         auth_project_id = self.auth_manager.get_project_id()
         if auth_project_id:
             self._project_id = auth_project_id
             return auth_project_id
 
-        # Fall back to API discovery
         try:
             access_token = self.auth_manager.get_access_token()
             if not access_token:
@@ -1033,16 +1799,14 @@ class AntigravityProvider:
             if project:
                 self._project_id = project
                 return project
-            raise RuntimeError(
-                "Project ID discovery failed - set ANTIGRAVITY_PROJECT_ID in environment."
-            )
         except MissingAuthError:
             raise
         except Exception as e:
             debug.error(f"Failed to discover project ID: {e}")
-            raise RuntimeError(
-                "Could not discover project ID. Ensure authentication or set ANTIGRAVITY_PROJECT_ID."
-            )
+
+        fallback_id = generate_project_id()
+        self._project_id = fallback_id
+        return fallback_id
 
     @staticmethod
     def _messages_to_gemini_format(
@@ -1050,12 +1814,8 @@ class AntigravityProvider:
     ) -> List[Dict[str, Any]]:
         format_messages = []
         for msg in messages:
-            # Convert a ChatMessage dict to GeminiFormattedMessage dict
             role = "model" if msg["role"] == "assistant" else "user"
 
-            # Handle tool role (OpenAI style)
-            # Group consecutive tool responses into a single user turn so that
-            # the number of functionResponse parts equals the number of functionCall parts.
             if msg["role"] == "tool":
                 tool_result = msg.get("content", "")
                 func_response_part = {
@@ -1084,7 +1844,6 @@ class AntigravityProvider:
                     )
                 continue
 
-            # Handle assistant messages with tool calls
             elif msg["role"] == "assistant" and msg.get("tool_calls"):
                 parts = []
                 content = msg.get("content")
@@ -1096,7 +1855,8 @@ class AntigravityProvider:
                             "name": tool_call["function"]["name"],
                             "args": json.loads(tool_call["function"]["arguments"]),
                         }
-                        # Restore thought_signature for Gemini thinking models when available
+                        if tool_call.get("id"):
+                            func_call["id"] = tool_call["id"]
                         thought_sig = (
                             tool_call.get("extra_content", {})
                             .get("google", {})
@@ -1108,11 +1868,9 @@ class AntigravityProvider:
                             {"functionCall": func_call, "thoughtSignature": thought_sig}
                         )
 
-            # Handle string content
             elif isinstance(msg["content"], str):
                 parts = [{"text": msg["content"]}]
 
-            # Handle array content (possibly multimodal)
             elif isinstance(msg["content"], list):
                 parts = []
                 for content in msg["content"]:
@@ -1124,7 +1882,6 @@ class AntigravityProvider:
                         if not image_url:
                             continue
                         if image_url.startswith("data:"):
-                            # Inline base64 data image
                             prefix, b64data = image_url.split(",", 1)
                             mime_type = prefix.split(":")[1].split(";")[0]
                             parts.append(
@@ -1134,17 +1891,18 @@ class AntigravityProvider:
                             parts.append(
                                 {
                                     "fileData": {
-                                        "mimeType": "image/jpeg",  # Could improve by validation
+                                        "mimeType": "image/jpeg",
                                         "fileUri": image_url,
                                     }
                                 }
                             )
-            elif content is not None:
-                parts = [{"text": str(content)}]
+            elif msg.get("content") is not None:
+                parts = [{"text": str(msg["content"])}]
             else:
                 parts = []
 
             format_messages.append({"role": role, "parts": parts})
+
         if media:
             if not format_messages:
                 format_messages.append({"role": "user", "parts": []})
@@ -1157,17 +1915,17 @@ class AntigravityProvider:
                         {
                             "fileData": {
                                 "mimeType": f"image/{extension}",
-                                "fileUri": image_url,
+                                "fileUri": media_data,
                             }
                         }
                     )
                 else:
-                    media_data = to_bytes(media_data)
+                    media_bytes = to_bytes(media_data)
                     format_messages[-1]["parts"].append(
                         {
                             "inlineData": {
-                                "mimeType": is_data_an_media(media_data, filename),
-                                "data": base64.b64encode(media_data).decode(),
+                                "mimeType": is_data_an_media(media_bytes, filename),
+                                "data": base64.b64encode(media_bytes).decode(),
                             }
                         }
                     )
@@ -1192,16 +1950,12 @@ class AntigravityProvider:
         response_format: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> AsyncGenerator:
-        """Stream content generation from Antigravity API."""
-        # Convert user-facing model name to internal API name
         if model in Antigravity.model_aliases:
             model = Antigravity.model_aliases[model]
 
         await self.auth_manager.initialize_auth()
-
         project_id = await self.discover_project_id()
 
-        # Convert messages to Gemini format
         contents = self._messages_to_gemini_format(
             [m for m in messages if m["role"] not in ["developer", "system"]],
             media=kwargs.get("media", None),
@@ -1209,9 +1963,8 @@ class AntigravityProvider:
         system_prompt = get_system_prompt(messages)
         request_data = {}
         if system_prompt:
-            request_data["system_instruction"] = {"parts": {"text": system_prompt}}
+            request_data["system_instruction"] = {"parts": [{"text": system_prompt}]}
 
-        # Convert OpenAI-style tools to Gemini format
         gemini_tools = None
         function_declarations = []
         if tools:
@@ -1228,9 +1981,8 @@ class AntigravityProvider:
             if function_declarations:
                 gemini_tools = [{"functionDeclarations": function_declarations}]
 
-        # Build generation config
         generation_config = {
-            "maxOutputTokens": max_tokens or 32000,  # Antigravity default
+            "maxOutputTokens": max_tokens,
             "temperature": temperature,
             "topP": top_p,
             "stop": stop,
@@ -1239,33 +1991,22 @@ class AntigravityProvider:
             "seed": seed,
         }
 
-        # Handle response format
         if response_format is not None and response_format.get("type") == "json_object":
             generation_config["responseMimeType"] = "application/json"
 
-        # Handle thinking configuration
-        if thinking_budget:
+        if thinking_budget is not None:
             generation_config["thinkingConfig"] = {
                 "thinkingBudget": thinking_budget,
                 "includeThoughts": True,
             }
 
-        # Compose request body with required Antigravity fields
         req_body = {
-            "model": model,
-            "project": project_id,
-            "userAgent": "antigravity",
-            "requestType": "agent",
-            "requestId": f"req-{secrets.token_hex(8)}",
-            "request": {
-                "contents": contents,
-                "generationConfig": generation_config,
-                "tools": gemini_tools,
-                **request_data,
-            },
+            "contents": contents,
+            "generationConfig": generation_config,
+            "tools": gemini_tools,
+            **request_data,
         }
 
-        # Add tool config if specified, only include allowedFunctionNames if mode is ANY
         if tool_choice and gemini_tools:
             mode = tool_choice.upper()
             function_calling_config = {"mode": mode}
@@ -1273,11 +2014,10 @@ class AntigravityProvider:
                 function_calling_config["allowedFunctionNames"] = [
                     fd["name"] for fd in function_declarations
                 ]
-            req_body["request"]["toolConfig"] = {
+            req_body["toolConfig"] = {
                 "functionCallingConfig": function_calling_config
             }
 
-        # Remove None values recursively
         def clean_none(d):
             if isinstance(d, dict):
                 return {k: clean_none(v) for k, v in d.items() if v is not None}
@@ -1287,90 +2027,114 @@ class AntigravityProvider:
 
         req_body = clean_none(req_body)
 
+        payload, selected_model, actual_model_name = build_antigravity_payload(
+            model, req_body, project_id, self.available_models
+        )
+
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.auth_manager.get_access_token()}",
+            "Accept": "text/event-stream",
             **ANTIGRAVITY_HEADERS,
         }
 
-        # Use production URL for streaming (most reliable)
-        base_url = PRODUCTION_URL
+        base_url = self.auth_manager.get_working_base_url()
         url = f"{base_url}:streamGenerateContent?alt=sse"
 
-        # Streaming SSE parsing helper
         async def parse_sse_stream(
             stream: aiohttp.StreamReader,
         ) -> AsyncGenerator[Dict[str, Any], None]:
-            """Parse SSE stream yielding parsed JSON objects."""
             buffer = ""
-            object_buffer = ""
-
+            raw_lines = []
+            yield_count = 0
             async for chunk_bytes in stream.iter_any():
-                chunk = chunk_bytes.decode()
+                chunk = chunk_bytes.decode("utf-8", errors="replace")
                 buffer += chunk
                 lines = buffer.split("\n")
-                buffer = lines.pop()  # Save last incomplete line back
+                buffer = lines.pop()
 
                 for line in lines:
-                    line = line.strip()
-                    if line == "":
-                        # Empty line indicates end of SSE message -> parse object buffer
-                        if object_buffer:
-                            try:
-                                yield json.loads(object_buffer)
-                            except Exception as e:
-                                debug.error(f"Error parsing SSE JSON: {e}")
-                            object_buffer = ""
-                    elif line.startswith("data: "):
-                        object_buffer += line[6:]
+                    trimmed = line.strip()
+                    if yield_count == 0 and trimmed:
+                        if len(raw_lines) < ANTIGRAVITY_RAW_FALLBACK_MAX_LINES:
+                            raw_lines.append(trimmed)
 
-            # Final parse when stream ends
-            if object_buffer:
+                    if trimmed.startswith("data: "):
+                        processed_line = filter_sse_usage_metadata(trimmed)
+                        json_str = processed_line[6:]
+                        try:
+                            data = json.loads(json_str)
+                            yield_count += 1
+                            yield data
+                        except Exception as e:
+                            debug.error(f"Error parsing SSE JSON: {e}")
+                    elif trimmed == "" and raw_lines and yield_count > 0:
+                        pass
+
+            if buffer.strip():
+                trimmed = buffer.strip()
+                if trimmed.startswith("data: "):
+                    processed_line = filter_sse_usage_metadata(trimmed)
+                    json_str = processed_line[6:]
+                    try:
+                        yield json.loads(json_str)
+                        yield_count += 1
+                    except Exception as e:
+                        debug.error(f"Error parsing final SSE JSON: {e}")
+
+            if yield_count == 0 and raw_lines:
+                raw_body = "\n".join(raw_lines)
                 try:
-                    yield json.loads(object_buffer)
+                    parsed = json.loads(raw_body)
+                    items = parsed if isinstance(parsed, list) else [parsed]
+                    for item in items:
+                        if isinstance(item, dict):
+                            yield item
                 except Exception as e:
-                    debug.error(f"Error parsing final SSE JSON: {e}")
+                    debug.error(f"Failed to parse raw fallback JSON: {e}")
 
-        timeout = ClientTimeout(total=None)  # No total timeout
+        timeout = ClientTimeout(total=None)
         connector = get_connector(None, proxy)
 
         async with ClientSession(
             headers=headers, timeout=timeout, connector=connector
         ) as session:
-            async with session.post(url, json=req_body) as resp:
+            async with session.post(url, json=payload) as resp:
                 if not resp.ok:
                     if resp.status == 503:
                         try:
+                            body = await resp.json(content_type=None)
                             retry_delay = int(
                                 max(
                                     [
                                         float(d.get("retryDelay", 0))
-                                        for d in (await resp.json(content_type=None))
-                                        .get("error", {})
-                                        .get("details", [])
+                                        for d in body.get("error", {}).get(
+                                            "details", []
+                                        )
                                     ]
                                 )
                             )
-                        except ValueError:
-                            retry_delay = 30  # Default retry delay if not specified
-                        debug.log(f"Received 503 error, retrying after {retry_delay}")
+                        except Exception:
+                            retry_delay = 30
+                        debug.log(
+                            f"Received 503 error, retrying after {retry_delay}s"
+                        )
                         if retry_delay <= 120:
                             await asyncio.sleep(retry_delay)
-                            resp = await session.post(url, json=req_body)
-                            if not resp.ok:
-                                debug.error(
-                                    f"Retry after 503 failed with status {resp.status}"
-                                )
+                            resp = await session.post(url, json=payload)
                 await raise_for_status(resp)
 
                 usage_metadata = {}
                 openai_tool_calls = []
                 tool_calls_index = 0
                 async for json_data in parse_sse_stream(resp.content):
-                    # Process JSON data according to Gemini API structure
-                    candidates = json_data.get("response", {}).get("candidates", [])
-                    usage_metadata = json_data.get("response", {}).get(
-                        "usageMetadata", usage_metadata
+                    candidates = json_data.get("response", {}).get(
+                        "candidates", []
+                    ) or json_data.get("candidates", [])
+                    usage_metadata = (
+                        json_data.get("response", {}).get("usageMetadata")
+                        or json_data.get("usageMetadata")
+                        or usage_metadata
                     )
 
                     if not candidates:
@@ -1379,42 +2143,36 @@ class AntigravityProvider:
                     candidate = candidates[0]
                     content = candidate.get("content", {})
                     parts = content.get("parts", [])
-
                     tool_calls = []
 
                     for part in parts:
-                        # Real thinking chunks
                         if part.get("thought") is True and "text" in part:
                             yield Reasoning(part["text"])
 
-                        # Function calls from Gemini
                         elif "functionCall" in part:
                             tool_calls.append(part)
 
-                        # Text content
                         elif "text" in part:
                             yield part["text"]
 
-                        # Inline media data
                         elif "inlineData" in part:
-                            async for media in save_response_media(
+                            async for media_chunk in save_response_media(
                                 part["inlineData"], format_media_prompt(messages)
                             ):
-                                yield media
+                                yield media_chunk
 
-                        # File data (e.g. external image)
                         elif "fileData" in part:
                             file_data = part["fileData"]
                             yield ImageResponse(file_data.get("fileUri"))
 
                     if tool_calls:
-                        # Convert Gemini tool calls to OpenAI format
                         for i, part in enumerate(tool_calls):
                             tc = part["functionCall"]
                             tool_call_obj = {
                                 "index": tool_calls_index,
                                 "id": tc.get(
-                                    "id", f"call_{i}_{tc.get('name', 'unknown')}"
+                                    "id",
+                                    f"call_{i}_{tc.get('name', 'unknown')}",
                                 ),
                                 "type": "function",
                                 "function": {
@@ -1422,15 +2180,17 @@ class AntigravityProvider:
                                     "arguments": json.dumps(tc.get("args", {})),
                                 },
                             }
-                            # Preserve thought_signature for thinking models (Gemini 2.5+)
                             if "thoughtSignature" in part:
                                 tool_call_obj["extra_content"] = {
                                     "google": {
-                                        "thought_signature": part["thoughtSignature"]
+                                        "thought_signature": part[
+                                            "thoughtSignature"
+                                        ]
                                     }
                                 }
                             openai_tool_calls.append(tool_call_obj)
                             tool_calls_index += 1
+
                 if openai_tool_calls:
                     yield ToolCalls(openai_tool_calls)
 
@@ -1440,12 +2200,13 @@ class AntigravityProvider:
 
 class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     """
-    Antigravity Provider for gpt4free.
+    Antigravity Provider for gpt4free (v2).
 
     Provides access to Google's Antigravity API (Code Assist) supporting:
-    - Gemini 2.5 Pro/Flash with extended thinking
-    - Gemini 3 Pro/Flash (preview)
-    - Claude Sonnet 4.5 / Opus 4.5 via Antigravity proxy
+    - Gemini 2.5 & Gemini 3 Pro/Flash models
+    - Gemini 3.1 / 3.5 / 3.6 / 3.7 / 3.8 Flash & Pro variants
+    - Claude Sonnet 4.5/4.6 & Opus 4.5/4.6 via Antigravity proxy
+    - Image generation models (gemini-3.1-flash-image)
 
     Requires OAuth2 credentials. Set ANTIGRAVITY_SERVICE_ACCOUNT environment
     variable or create credentials at ~/.antigravity/oauth_creds.json
@@ -1457,22 +2218,13 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://cloud.google.com/code-assist"
 
     default_model = "gemini-3-flash"
-    fallback_models = [
-        # Gemini 2.5 models
-        "gemini-2.5-pro",
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        # Gemini 3 models
-        "gemini-3-flash",
-        # Claude models (via Antigravity proxy)
-        "claude-sonnet-4.5",
-        "claude-opus-4.5",
-    ]
+    fallback_models = ANTIGRAVITY_MODELS
 
-    # Model aliases for compatibility
     model_aliases = {
         "claude-sonnet-4.5": "claude-sonnet-4-5",
         "claude-opus-4.5": "claude-opus-4-5",
+        "claude-sonnet-4.6": "claude-sonnet-4-6",
+        "claude-opus-4.6": "claude-opus-4-6-thinking",
     }
 
     working = True
@@ -1486,8 +2238,6 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_models(cls, **kwargs) -> List[str]:
-        """Return available models, fetching dynamically from API if authenticated."""
-        # Try to fetch models dynamically if we have credentials
         if not cls.models and cls.has_credentials():
             try:
                 get_running_loop(check_nested=True)
@@ -1495,7 +2245,6 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
             except Exception as e:
                 debug.log(f"Failed to fetch dynamic models: {e}")
 
-        # Update live status
         if cls.live == 0:
             if cls.auth_manager is None:
                 cls.auth_manager = AntigravityAuthManager(env=os.environ)
@@ -1506,7 +2255,6 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def _fetch_models(cls) -> List[str]:
-        """Fetch available models dynamically from the Antigravity API."""
         if cls.auth_manager is None:
             cls.auth_manager = AntigravityAuthManager(env=os.environ)
 
@@ -1517,26 +2265,26 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
                 method="fetchAvailableModels",
                 body={"project": cls.auth_manager.get_project_id()},
             )
-
-            # Extract model names from the response
-            models = [
-                key
-                for key, value in response.get("models", {}).items()
-                if not value.get("isInternal", False) and not key.startswith("tab_")
-            ]
-            if not isinstance(models, list):
-                raise ValueError("Invalid response format: 'models' should be a list")
-
-            return models
+            models_dict = response.get("models", {})
+            if isinstance(models_dict, dict):
+                raw_models = [
+                    key
+                    for key, value in models_dict.items()
+                    if not value.get("isInternal", False) and not key.startswith("tab_")
+                ]
+                expanded_models = []
+                for m in raw_models:
+                    for expanded in expand_antigravity_client_models(m):
+                        if expanded not in expanded_models:
+                            expanded_models.append(expanded)
+                return expanded_models if expanded_models else ANTIGRAVITY_MODELS
+            return ANTIGRAVITY_MODELS
         except Exception as e:
             debug.log(f"Failed to fetch models: {e}")
-            return []
+            return ANTIGRAVITY_MODELS
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None) -> dict:
-        """
-        Fetch usage/quota information from the Antigravity API.
-        """
         if cls.auth_manager is None:
             cls.auth_manager = AntigravityAuthManager(env=os.environ)
         await cls.auth_manager.initialize_auth()
@@ -1561,17 +2309,13 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         tools: Optional[list] = None,
         **kwargs,
     ) -> AsyncResult:
-        """Create an async generator for streaming responses."""
         if cls.auth_manager is None:
             cls.auth_manager = AntigravityAuthManager(env=os.environ)
 
-        # Apply model alias if needed
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
 
-        # Initialize Antigravity provider with auth manager and environment
         provider = AntigravityProvider(env=os.environ, auth_manager=cls.auth_manager)
-
         async for chunk in provider.stream_content(
             model=model,
             messages=messages,
@@ -1589,24 +2333,6 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         no_browser: bool = False,
         credentials_path: Optional[Path] = None,
     ) -> "AntigravityAuthManager":
-        """
-        Perform interactive OAuth login and save credentials.
-
-        This is the main entry point for authenticating with Antigravity.
-
-        Args:
-            project_id: Optional GCP project ID
-            no_browser: If True, don't auto-open browser
-            credentials_path: Path to save credentials
-
-        Returns:
-            AntigravityAuthManager with active credentials
-
-        Example:
-            >>> import asyncio
-            >>> from g4f.Provider.needs_auth import Antigravity
-            >>> asyncio.run(Antigravity.login())
-        """
         auth_manager = await AntigravityAuthManager.login_and_save(
             project_id=project_id,
             no_browser=no_browser,
@@ -1617,46 +2343,32 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def has_credentials(cls) -> bool:
-        """Check if valid credentials exist."""
-        # Check g4f cache file (checked first by initialize_auth)
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             return True
-
-        # Check default path (~/.antigravity/oauth_creds.json)
         default_path = get_antigravity_oauth_creds_path()
         if default_path.exists():
             return True
-
-        # Check environment variable
         if "ANTIGRAVITY_SERVICE_ACCOUNT" in os.environ:
             return True
-
         return False
 
     @classmethod
     def get_credentials_path(cls) -> Path:
-        """Get the path where credentials are stored or should be stored."""
-        # Check g4f cache file first (matches initialize_auth order)
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             return cache_path
-
-        # Check default path
         default_path = get_antigravity_oauth_creds_path()
         if default_path.exists():
             return default_path
-
-        # Return cache path as the preferred location for new credentials
         return cache_path
 
 
 async def main(args: Optional[List[str]] = None):
-    """CLI entry point for Antigravity authentication."""
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Antigravity OAuth Authentication for gpt4free",
+        description="Antigravity OAuth Authentication for gpt4free (v2)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1669,8 +2381,6 @@ Examples:
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
-
-    # Login command
     login_parser = subparsers.add_parser("login", help="Authenticate with Google")
     login_parser.add_argument(
         "--project-id",
@@ -1685,10 +2395,7 @@ Examples:
         help="Don't auto-open browser, print URL instead",
     )
 
-    # Status command
     subparsers.add_parser("status", help="Check authentication status")
-
-    # Logout command
     subparsers.add_parser("logout", help="Remove saved credentials")
 
     args = parser.parse_args(args)
@@ -1713,8 +2420,6 @@ Examples:
         if Antigravity.has_credentials():
             creds_path = Antigravity.get_credentials_path()
             print(f"✓ Credentials found at: {creds_path}")
-
-            # Try to read and display some info
             try:
                 with creds_path.open() as f:
                     creds = json.load(f)
@@ -1737,24 +2442,20 @@ Examples:
                 print(f"  (Could not read credential details: {e})")
         else:
             print("✗ No credentials found")
-            print(f"\nRun 'antigravity login' to authenticate.")
-
+            print("\nRun 'antigravity login' to authenticate.")
         print()
 
     elif args.command == "logout":
         print("\nAntigravity Logout")
         print("=" * 40)
-
         removed = False
 
-        # Remove cache file
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             cache_path.unlink()
             print(f"✓ Removed: {cache_path}")
             removed = True
 
-        # Remove default credentials file
         default_path = get_antigravity_oauth_creds_path()
         if default_path.exists():
             default_path.unlink()
@@ -1765,15 +2466,12 @@ Examples:
             print("\n✓ Credentials removed successfully.")
         else:
             print("No credentials found to remove.")
-
         print()
-
     else:
         parser.print_help()
 
 
 def cli_main(args: Optional[List[str]] = None):
-    """Synchronous CLI entry point for setup.py console_scripts."""
     asyncio.run(main(args))
 
 

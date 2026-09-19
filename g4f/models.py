@@ -129,6 +129,7 @@ default = Model(
             "Qwen",
             "TeachAnything",
             "OpenaiChat",
+            "ChatGPTLightweight",
             "OpenCode",
             "KiloCode",
             "OpenRouterFree",
@@ -174,7 +175,7 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name="gpt-4o-mini",
     base_provider="OpenAI",
-    best_provider=IterListProvider(["OpenaiChat", "Surfsense"]),
+    best_provider=IterListProvider(["OpenaiChat", "ChatGPTLightweight", "Surfsense"]),
 )
 
 
