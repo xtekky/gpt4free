@@ -1035,7 +1035,7 @@ class CDPSession:
         res = await self.call(
             "Runtime.evaluate", expression=expression, returnByValue=True
         )
-        if "result" not in res or "value" not in res["result"]:
+        if "result" not in res or "value" not in res["result"] and res["result"].get("type") != "undefined":
             raise RuntimeError(f"JavaScript evaluation failed: {res}")
         return res.get("result", {}).get("value")
 
@@ -1078,13 +1078,13 @@ class CDPSession:
         """Navigate to a URL and wait for it to load."""
 
         await self.call("Page.navigate", url=url)
-        await self.evaluate_js("new Promise(resolve => window.addEventListener('load', resolve))")
+        await self.evaluate_js("(async () => await new Promise(resolve => window.addEventListener('load', resolve)))()")
 
     async def reload(self):
         """Reload the current page and wait for it to load."""
 
         await self.call("Page.reload")
-        await self.evaluate_js("new Promise(resolve => window.addEventListener('load', resolve))")
+        await self.evaluate_js("(async () => await new Promise(resolve => window.addEventListener('load', resolve)))()")
 
     async def wait_for_network_idle(
         self, idle_time: float = 0.5, timeout: float = 15.0
