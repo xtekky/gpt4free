@@ -68,6 +68,7 @@ class ProviderLoader:
         "OpenaiAPI",
         "OpenaiAccount",
         "OpenaiChat",
+        "ChatGPTLightweight",
         "OpenaiTemplate",
         "OperaAria",
         "Perplexity",
@@ -408,6 +409,10 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.OpenaiChat import OpenaiChat
 
             return OpenaiChat
+        elif name == "ChatGPTLightweight":
+            from g4f.Provider.needs_auth.ChatGPTLightweight import ChatGPTLightweight
+
+            return ChatGPTLightweight
         elif name == "OpenaiTemplate":
             from g4f.Provider.template.OpenaiTemplate import OpenaiTemplate
 

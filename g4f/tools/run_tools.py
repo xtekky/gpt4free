@@ -43,7 +43,9 @@ from ..config import AppConfig
 from .web_search import do_search, get_search_message
 from .auth import AuthManager
 from .files import read_bucket, get_bucket_dir
+from .tool_support import normalize_tool_defs, normalize_tool_calls
 from .. import debug
+
 
 
 # ---- In-memory conversation cache -------------------------------------------
@@ -338,11 +340,18 @@ async def async_iter_run_tools(
 
     stream = bool(kwargs.get("stream"))
     tools = kwargs.get("tools")
+    if tools:
+        tools = normalize_tool_defs(tools)
+        kwargs["tools"] = tools
+    if tool_calls:
+        tool_calls = normalize_tool_calls(tool_calls)
+
     # Auto-enable tool emulation for providers without native tool support
     # (i.e. web-API providers that are not OpenaiTemplate subclasses).
     if tools and not tool_calls and not tool_emulation:
         if not provider_supports_native_tools(provider):
             tool_emulation = True
+
     if tool_emulation and tools and not tool_calls:
         from ..providers.tool_support import ToolSupportProvider
 
@@ -536,11 +545,18 @@ def iter_run_tools(
 
     stream = bool(kwargs.get("stream"))
     tools = kwargs.get("tools")
+    if tools:
+        tools = normalize_tool_defs(tools)
+        kwargs["tools"] = tools
+    if tool_calls:
+        tool_calls = normalize_tool_calls(tool_calls)
+
     # Auto-enable tool emulation for providers without native tool support
     # (i.e. web-API providers that are not OpenaiTemplate subclasses).
     if tools and not tool_calls and not tool_emulation:
         if not provider_supports_native_tools(provider):
             tool_emulation = True
+
     if tool_emulation and tools and not tool_calls:
         from ..providers.tool_support import ToolSupportProvider
 

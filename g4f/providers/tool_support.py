@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Optional, Union
+import inspect
+from typing import Optional, Union, Any
 
 from ..typing import AsyncResult, Messages, MediaListType
 from ..client.service import get_model_and_provider
@@ -10,6 +11,11 @@ from ..client.helper import filter_json
 from .types import ProviderType
 from .base_provider import AsyncGeneratorProvider, get_async_provider_method
 from .response import ToolCalls, FinishReason, Usage, Reasoning, JsonConversation
+from ..tools.tool_support import (
+    normalize_tool_defs,
+    normalize_tool_calls,
+    parse_tool_calls_from_text,
+)
 
 
 def _strip_code_fences(text: str) -> str:
@@ -59,24 +65,12 @@ def _parse_json_maybe(s: str):
 
 def _stringify_tool_calls(tool_calls: list) -> str:
     """Render an assistant ``tool_calls`` list as a human-readable text block."""
+    normalized = normalize_tool_calls(tool_calls)
     parts = []
-    for tc in tool_calls:
-        if not isinstance(tc, dict):
-            continue
-        fn = tc.get("function") if tc.get("type") == "function" else tc
-        if not isinstance(fn, dict):
-            continue
-        name = fn.get("name") or tc.get("name") or "unknown"
-        args = fn.get("arguments")
-        if isinstance(args, str):
-            args_str = args
-        else:
-            try:
-                args_str = json.dumps(
-                    args if isinstance(args, dict) else {}, ensure_ascii=True
-                )
-            except Exception:
-                args_str = "{}"
+    for tc in normalized:
+        fn = tc.get("function", {})
+        name = fn.get("name") or "unknown"
+        args_str = fn.get("arguments", "{}")
         call_id = tc.get("id", "")
         header = f"[Tool call: {name}]"
         if call_id:
@@ -88,8 +82,6 @@ def _stringify_tool_calls(tool_calls: list) -> str:
 # Matches the text format produced by ``_stringify_tool_calls``:
 #   [Tool call: NAME] (id=CALL_ID)
 #   Arguments: { ... JSON ... }
-# The ``(id=...)`` part is optional. The JSON arguments may span multiple
-# lines and contain nested braces, so we balance them manually.
 _TOOL_CALL_HEADER_RE = re.compile(
     r"\[\s*Tool\s*call\s*:\s*([^\]]+?)\s*\](?:\s*\(id=([^\)]*)\))?\s*\n\s*Arguments\s*:\s*",
     re.IGNORECASE,
@@ -97,14 +89,11 @@ _TOOL_CALL_HEADER_RE = re.compile(
 
 
 def _extract_balanced_json(s: str, start: int) -> tuple[str, int]:
-    """Return the balanced JSON object/array starting at ``s[start]`` and the
-    index just past it. If ``s[start]`` is not ``{`` or ``[``, returns the
-    remainder of the line as a best-effort argument string."""
+    """Return the balanced JSON object/array starting at ``s[start]``."""
     if start >= len(s):
         return "", start
     open_ch = s[start]
     if open_ch not in "{[":
-        # Take until end of line as the argument text.
         end = s.find("\n", start)
         if end == -1:
             end = len(s)
@@ -133,19 +122,11 @@ def _extract_balanced_json(s: str, start: int) -> tuple[str, int]:
                 if depth == 0:
                     return s[start : i + 1], i + 1
         i += 1
-    # Unbalanced — return everything from start as a best effort.
     return s[start:].strip(), len(s)
 
 
 def _parse_stringified_tool_calls(text: str) -> list[dict]:
-    """Parse the human-readable ``[Tool call: NAME] (id=ID)\\nArguments: {JSON}``
-    format back into a list of tool-call dicts.
-
-    This handles the case where a web-API model echoes back the stringified
-    tool-call format (the same format produced by ``_stringify_tool_calls``)
-    instead of emitting a raw JSON tool-call object. Returns an empty list when
-    no stringified tool calls are found.
-    """
+    """Parse the human-readable ``[Tool call: NAME] (id=ID)\\nArguments: {JSON}`` format."""
     calls: list[dict] = []
     if not text:
         return calls
@@ -156,8 +137,6 @@ def _parse_stringified_tool_calls(text: str) -> list[dict]:
         args_str, _ = _extract_balanced_json(text, args_start)
         if not name:
             continue
-        # ``arguments`` may be a JSON object, a JSON string, or plain text.
-        arguments: object
         if args_str:
             try:
                 arguments = json.loads(args_str)
@@ -176,10 +155,9 @@ def _parse_stringified_tool_calls(text: str) -> list[dict]:
 
 
 def _stringify_tool_response(message: dict) -> str:
-    """Render a ``role: tool`` message as a human-readable text block."""
+    """Render a ``role: tool`` or ``role: function`` message as a human-readable text block."""
     content = message.get("content")
     if isinstance(content, list):
-        # Concatenate text parts from a multipart content list.
         text_parts = []
         for part in content:
             if isinstance(part, dict) and part.get("type") == "text":
@@ -189,8 +167,8 @@ def _stringify_tool_response(message: dict) -> str:
         content = "\n".join(text_parts)
     if content is None:
         content = ""
-    tool_call_id = message.get("tool_call_id", "")
-    name = message.get("name", "")
+    tool_call_id = message.get("tool_call_id") or message.get("id") or ""
+    name = message.get("name") or ""
     header = "[Tool response"
     if name:
         header += f": {name}"
@@ -216,13 +194,7 @@ def _extract_text(content) -> str:
 
 
 def _merge_messages_to_single_user(messages: Messages) -> Messages:
-    """Merge all assistant and user messages into a single ``role: user`` message.
-
-    Web-API providers (e.g. Qwen, Copilot) that rely on ``get_last_user_message``
-    only forward the last user message to the server when no ``conversation``
-    handle is available, dropping all prior context.  Folding the whole history
-    into one user message ensures the model still sees the full conversation.
-    """
+    """Merge all assistant and user messages into a single ``role: user`` message."""
     if not messages:
         return messages
     parts: list[str] = []
@@ -243,23 +215,11 @@ def _merge_messages_to_single_user(messages: Messages) -> Messages:
 
 
 def _preprocess_tool_messages(messages: Messages) -> Messages:
-    """Convert ``tool_calls`` on assistant messages and ``role: tool`` messages
-    into readable text so web-only providers can follow the conversation history.
-
-    Assistant messages keep their textual ``content`` (if any) and get the
-    stringified tool calls appended. Tool response messages are rewritten as
-    ``role: user`` messages with the stringified response as content.
-
-    ``role: system`` messages are folded into the next ``role: user`` message
-    (prefixed with a ``[System]`` header) so providers that only accept
-    ``user``/``assistant`` roles still receive the system instructions. If no
-    user message follows, the system content is emitted as a user message.
-    """
+    """Convert ``tool_calls`` on assistant messages and ``role: tool`` messages into readable text."""
     processed: Messages = []
     pending_system: list[str] = []
     for msg in messages:
         if not isinstance(msg, dict):
-            # Flush any pending system text before non-dict entries.
             if pending_system:
                 processed.append(
                     {
@@ -270,15 +230,30 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
                 pending_system = []
             processed.append(msg)
             continue
+
         role = msg.get("role")
-        tool_calls = msg.get("tool_calls")
+        tool_calls = msg.get("tool_calls") or msg.get("function_call")
+
+        content = msg.get("content")
+        anthropic_tool_uses = []
+        anthropic_tool_results = []
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict):
+                    if part.get("type") == "tool_use":
+                        anthropic_tool_uses.append(part)
+                    elif part.get("type") == "tool_result":
+                        anthropic_tool_results.append(part)
+
         if role == "system":
             text = _extract_text(msg.get("content"))
             if text:
                 pending_system.append(text)
             continue
-        if role == "assistant" and isinstance(tool_calls, list) and tool_calls:
-            new_msg = {k: v for k, v in msg.items() if k != "tool_calls"}
+
+        if role == "assistant" and (tool_calls or anthropic_tool_uses):
+            calls_to_stringify = tool_calls or anthropic_tool_uses
+            new_msg = {k: v for k, v in msg.items() if k not in ("tool_calls", "function_call")}
             text_parts = []
             existing_content = new_msg.get("content")
             if isinstance(existing_content, str) and existing_content.strip():
@@ -291,11 +266,12 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
                             text_parts.append(t)
                     elif isinstance(part, str) and part:
                         text_parts.append(part)
-            rendered = _stringify_tool_calls(tool_calls)
+            rendered = _stringify_tool_calls(
+                calls_to_stringify if isinstance(calls_to_stringify, list) else [calls_to_stringify]
+            )
             if rendered:
                 text_parts.append(rendered)
             new_msg["content"] = "\n\n".join(text_parts) if text_parts else rendered
-            # Flush any pending system text before this assistant message.
             if pending_system:
                 processed.append(
                     {
@@ -305,9 +281,20 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
                 )
                 pending_system = []
             processed.append(new_msg)
-        elif role == "tool":
-            rendered = _stringify_tool_response(msg)
-            # Fold any pending system text into this rewritten user message.
+        elif role in ("tool", "function") or anthropic_tool_results:
+            if anthropic_tool_results:
+                rendered_parts = []
+                for res in anthropic_tool_results:
+                    res_msg = {
+                        "name": res.get("name", ""),
+                        "tool_call_id": res.get("tool_use_id", ""),
+                        "content": res.get("content", ""),
+                    }
+                    rendered_parts.append(_stringify_tool_response(res_msg))
+                rendered = "\n\n".join(rendered_parts)
+            else:
+                rendered = _stringify_tool_response(msg)
+
             if pending_system:
                 rendered = "[System]\n" + "\n".join(pending_system) + "\n\n" + rendered
                 pending_system = []
@@ -324,7 +311,6 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
                 pending_system = []
             processed.append(new_msg)
         else:
-            # Flush any pending system text before unhandled roles.
             if pending_system:
                 processed.append(
                     {
@@ -334,7 +320,7 @@ def _preprocess_tool_messages(messages: Messages) -> Messages:
                 )
                 pending_system = []
             processed.append(msg)
-    # Flush any trailing system text as a user message.
+
     if pending_system:
         processed.append(
             {"role": "user", "content": "[System]\n" + "\n".join(pending_system)}
@@ -347,9 +333,7 @@ class ToolSupportProvider(AsyncGeneratorProvider):
 
     Injects a system prompt instructing the model to emit a JSON tool-call plan,
     delegates to the real provider, parses the JSON response and converts it into
-    ``ToolCalls`` + ``FinishReason("tool_calls")`` chunks. ``Reasoning`` / thinking
-    chunks emitted by the underlying provider are forwarded to the caller so the
-    client still sees the model's reasoning.
+    ``ToolCalls`` + ``FinishReason("tool_calls")`` chunks.
     """
 
     working = True
@@ -371,76 +355,59 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         model, provider = get_model_and_provider(
             model, provider, stream, logging=False, has_images=media is not None
         )
-        tool_names: list[str] = []
-        tool_schemas: dict[str, dict] = {}
-        if tools:
-            tool_defs = tools if isinstance(tools, list) else []
-            for t in tool_defs:
-                if not isinstance(t, dict) or t.get("type") != "function":
-                    continue
-                fn = t.get("function")
-                if not isinstance(fn, dict):
-                    continue
-                name = fn.get("name")
-                if not isinstance(name, str) or not name:
-                    continue
-                tool_names.append(name)
-                params = fn.get("parameters")
-                if isinstance(params, dict):
-                    tool_schemas[name] = params
 
-            if tool_names:
-                # Only force JSON output when the caller hasn't requested a
-                # specific format. Some web providers reject/ignore this field.
-                if response_format is None:
-                    response_format = {"type": "json"}
+        normalized_tools = normalize_tool_defs(tools) if tools else []
+        tool_names: list[str] = [
+            t["function"]["name"]
+            for t in normalized_tools
+            if isinstance(t, dict) and t.get("function", {}).get("name")
+        ]
 
-                lines = [
-                    *getattr(provider, "tool_support_prompts", []),
-                    "You have access to the following tools. When you decide a tool is needed, "
-                    "respond with ONLY a valid JSON object (no markdown, no explanation) in this format:",
-                    '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
-                    "You may include multiple tool calls in the array. The `arguments` value MUST be "
-                    "a JSON object matching the tool's parameter schema.",
-                    "If no tool is needed, respond normally with plain text. Don't try to call a tool, simply respond only with the JSON object.",
-                    f"Available tools: {', '.join(tool_names)}",
-                ]
-                if tool_schemas:
+        if tool_names:
+            if response_format is None:
+                response_format = {"type": "json"}
+
+            lines = [
+                *getattr(provider, "tool_support_prompts", []),
+                "You have access to the following tools. When you decide a tool is needed, "
+                "respond with ONLY a valid JSON object (no markdown, no explanation) in this format:",
+                '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
+                "You may include multiple tool calls in the array. The `arguments` value MUST be "
+                "a JSON object matching the tool's parameter schema.",
+                "If no tool is needed, respond normally with plain text. Don't try to call a tool, simply respond only with the JSON object.",
+                f"Available tools: {', '.join(tool_names)}",
+            ]
+            for t in normalized_tools:
+                fn = t["function"]
+                desc = fn.get("description", "")
+                tool_str = f"- Tool `{fn['name']}`" + (f": {desc}" if desc else "")
+                lines.append(tool_str)
+                if fn.get("parameters"):
                     lines.append(
-                        "Tool parameter schemas (JSON Schema): "
-                        f"{json.dumps(tool_schemas, ensure_ascii=True)}"
+                        f"  Parameter Schema: {json.dumps(fn['parameters'], ensure_ascii=True)}"
                     )
-                if tool_choice is not None:
-                    if tool_choice == "required":
-                        lines.append(
-                            "You MUST call at least one tool. Respond with the JSON tool-call object only."
-                        )
-                    elif tool_choice == "none":
-                        lines.append(
-                            "Do not call any tools. Respond with plain text only."
-                        )
-                    elif isinstance(tool_choice, dict):
-                        fn = (
-                            tool_choice.get("function")
-                            if tool_choice.get("type") == "function"
-                            else None
-                        )
-                        if isinstance(fn, dict) and fn.get("name"):
-                            lines.append(f"You must call the tool `{fn['name']}`.")
-                    else:
-                        lines.append(f"Tool choice: {tool_choice}")
-                messages = [{"role": "system", "content": "\n".join(lines)}] + messages
 
-        # Rewrite any prior assistant tool_calls and tool-role response messages
-        # into readable text so the underlying web provider can follow the
-        # conversation history.
+            if tool_choice is not None:
+                if tool_choice == "required":
+                    lines.append(
+                        "You MUST call at least one tool. Respond with the JSON tool-call object only."
+                    )
+                elif tool_choice == "none":
+                    lines.append("Do not call any tools. Respond with plain text only.")
+                elif isinstance(tool_choice, dict):
+                    fn = (
+                        tool_choice.get("function")
+                        if tool_choice.get("type") == "function"
+                        else None
+                    )
+                    if isinstance(fn, dict) and fn.get("name"):
+                        lines.append(f"You must call the tool `{fn['name']}`.")
+                else:
+                    lines.append(f"Tool choice: {tool_choice}")
+            messages = [{"role": "system", "content": "\n".join(lines)}] + messages
+
         messages = _preprocess_tool_messages(messages)
 
-        # When no conversation handle is provided, web-API providers (e.g. Qwen,
-        # Copilot) only forward the last user message to the server via
-        # ``get_last_user_message``, dropping all prior context.  Merge the
-        # whole history into a single user message so the model still sees the
-        # full conversation.
         if kwargs.get("conversation") is None:
             messages = _merge_messages_to_single_user(messages)
 
@@ -460,16 +427,11 @@ class ToolSupportProvider(AsyncGeneratorProvider):
             if isinstance(chunk, str):
                 content_chunks.append(chunk)
             elif isinstance(chunk, Reasoning):
-                # Forward thinking output to the client; do not mix it into
-                # the content that will be parsed as a tool-call JSON.
                 yield chunk
             elif isinstance(chunk, Usage):
                 yield chunk
                 has_usage = True
             elif isinstance(chunk, FinishReason):
-                # Store the finish reason but keep consuming chunks so we don't
-                # miss trailing ``Usage`` / ``JsonConversation`` chunks that
-                # some providers (e.g. Qwen image-gen) emit *after* the finish.
                 finish = chunk
             else:
                 yield chunk
@@ -483,83 +445,8 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         content = "".join(content_chunks)
 
         if tool_names:
-            payload = filter_json(content)
-            obj = _parse_json_maybe(payload)
-            calls = None
-            if isinstance(obj, dict) and isinstance(obj.get("tool_calls"), list):
-                calls = obj.get("tool_calls")
-            elif isinstance(obj, dict) and ("name" in obj or "tool" in obj):
-                calls = [obj]
-            elif isinstance(obj, list):
-                calls = obj
-
-            openai_calls = []
-            if isinstance(calls, list):
-                idx = -1
-                for c in calls:
-                    if not isinstance(c, dict):
-                        continue
-                    name = c.get("name") or c.get("tool")
-                    if not isinstance(name, str) or not name or name not in tool_names:
-                        continue
-                    args = c.get("arguments")
-                    if isinstance(args, str):
-                        arguments_str = args
-                    else:
-                        try:
-                            arguments_str = json.dumps(
-                                args if isinstance(args, dict) else {},
-                                ensure_ascii=True,
-                            )
-                        except Exception:
-                            arguments_str = "{}"
-                    idx += 1
-                    openai_calls.append(
-                        {
-                            "index": idx,
-                            "id": f"call_{idx}",
-                            "type": "function",
-                            "function": {"name": name, "arguments": arguments_str},
-                        }
-                    )
-
-            # Fallback: the model may have echoed back the stringified
-            # ``[Tool call: NAME] (id=ID)\nArguments: {JSON}`` format that
-            # ``_stringify_tool_calls`` produces instead of emitting a raw
-            # JSON tool-call object. Parse those too so the conversation can
-            # continue with real tool execution.
-            if not openai_calls:
-                stringified = _parse_stringified_tool_calls(content)
-                if stringified:
-                    idx = -1
-                    for c in stringified:
-                        name = c.get("name")
-                        if (
-                            not isinstance(name, str)
-                            or not name
-                            or name not in tool_names
-                        ):
-                            continue
-                        args = c.get("arguments")
-                        if isinstance(args, str):
-                            arguments_str = args
-                        else:
-                            try:
-                                arguments_str = json.dumps(
-                                    args if isinstance(args, dict) else {},
-                                    ensure_ascii=True,
-                                )
-                            except Exception:
-                                arguments_str = "{}"
-                        idx += 1
-                        openai_calls.append(
-                            {
-                                "index": idx,
-                                "id": f"call_{idx}",
-                                "type": "function",
-                                "function": {"name": name, "arguments": arguments_str},
-                            }
-                        )
+            parsed_calls = parse_tool_calls_from_text(content, tool_names)
+            openai_calls = normalize_tool_calls(parsed_calls)
 
             if openai_calls:
                 yield ToolCalls(openai_calls)
