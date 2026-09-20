@@ -165,7 +165,7 @@ func normalizeArgs(args []string) []string {
 // automatic g4f upgrade (only when g4f is already installed).
 func isUpgradeCommand(arg string) bool {
 	switch arg {
-	case "api", "gui", "dev":
+	case "api", "gui":
 		return true
 	}
 	return false
