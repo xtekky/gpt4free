@@ -272,6 +272,8 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
         ],
         **kwargs,
     ) -> AsyncResult:
+        if not api_key or AppConfig.disable_custom_api_key:
+            api_key = AuthManager.load_api_key(cls)
         if cache is None:
             cache = kwargs.get("action") is None or kwargs.get("action") != "variant"
         if extra_body is None:
@@ -353,7 +355,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
         transparent: bool,
         n: int,
         api_key: str,
-        timeout: int = 120,
+        timeout: int = 0,
     ) -> AsyncResult:
         if enhance is None:
             enhance = True if model == "flux" else False
@@ -414,8 +416,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
             headers = {"authorization": f"Bearer {api_key}"}
         async with ClientSession(
             headers=DEFAULT_HEADERS,
-            connector=get_connector(proxy=proxy),
-            timeout=ClientTimeout(timeout),
+            connector=get_connector(proxy=proxy)
         ) as session:
             responses = set()
             yield Reasoning(
@@ -537,7 +538,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
                 seed=None if "tools" in extra_body else seed,
                 **extra_body,
             )
-            if (OpenaiTemplate.is_provider_api_key(api_key)):
+            if model and api_key and api_key.startswith("sk_"):
                 endpoint = cls.gen_text_api_endpoint
             else:
                 endpoint = cls.worker_api_endpoint

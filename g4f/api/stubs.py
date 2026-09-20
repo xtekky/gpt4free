@@ -56,6 +56,9 @@ class RequestConfig(BaseModel):
     # When set (or when env G4F_TOOL_EMULATION=1), the server will attempt to
     # emulate OpenAI tool_calls for providers that don't support tools natively.
     tool_emulation: Optional[bool] = None
+    # Total time budget in seconds for agent models (e.g. "agent-tools").
+    # After this the agent stops passing responses and ends with a finish reason.
+    agent_timeout: Optional[int] = None
 
 
 class ChatCompletionsConfig(RequestConfig):

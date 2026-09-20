@@ -202,6 +202,152 @@ def _try_parse_body(body_bytes: bytes, content_type: str):
         return f"<binary {len(body_bytes)} bytes>"
 
 
+def _har_log_min_status() -> int:
+    """Minimum response status saved as HAR.
+
+    Defaults to failed requests only (>= 400). When debug logging is
+    enabled, all requests are logged instead. An explicit
+    ``G4F_HAR_LOG_MIN_STATUS`` always takes precedence.
+    """
+    env_value = os.environ.get("G4F_HAR_LOG_MIN_STATUS", "").strip()
+    if env_value:
+        try:
+            return int(env_value)
+        except (TypeError, ValueError):
+            pass
+    return 0 if g4f.debug.logging else 400
+
+def _get_har_log_dir() -> str:
+    """Get (and create) the date-keyed directory for HAR request logs."""
+    root = os.environ.get("G4F_HAR_LOG_DIR", "").strip() or os.path.join(
+        get_cookies_dir(), "request_logs"
+    )
+    path = os.path.join(root, time.strftime("%Y-%m-%d", time.gmtime()))
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def _headers_to_har(headers: dict) -> list:
+    return [{"name": name, "value": value} for name, value in headers.items()]
+
+def _body_to_text(body) -> str:
+    if body is None:
+        return ""
+    if isinstance(body, (dict, list)):
+        try:
+            return json.dumps(body, ensure_ascii=False)
+        except Exception:
+            return str(body)
+    return str(body)
+
+def _sse_body_has_error(raw: bytes) -> bool:
+    """Detect error payloads in an SSE body.
+
+    Streaming endpoints always answer HTTP 200; failures are delivered as
+    ``data: {"error": ...}`` chunks inside the stream (see format_exception).
+    """
+    try:
+        text = raw.decode("utf-8", errors="replace")
+    except Exception:
+        return False
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("data:"):
+            continue
+        payload = line[5:].strip()
+        if not payload or payload == "[DONE]":
+            continue
+        try:
+            data = json.loads(payload)
+        except Exception:
+            continue
+        if isinstance(data, dict) and "error" in data:
+            return True
+    return False
+
+def _save_request_har(request: Request, entry: dict) -> None:
+    """Save a complete request/response pair as a HAR file.
+
+    Files are named by timestamp and stored in date-keyed directories below
+    the cookies dir (``request_logs/<YYYY-MM-DD>/``) or ``G4F_HAR_LOG_DIR``.
+    In debug mode all requests are saved; otherwise only failed ones
+    (see log_requests).
+    """
+    try:
+        now = time.time()
+        day_dir = _get_har_log_dir()
+        ts = time.strftime("%H-%M-%S", time.gmtime(now)) + f"-{int((now % 1) * 1000):03d}"
+        base = f"{ts}_{str(entry.get('method', 'GET')).lower()}_{entry.get('status')}"
+        path = os.path.join(day_dir, f"{base}.har")
+        suffix = 1
+        while os.path.exists(path):
+            path = os.path.join(day_dir, f"{base}_{suffix}.har")
+            suffix += 1
+
+        req_headers = entry.get("request_headers") or {}
+        resp_headers = entry.get("response_headers") or {}
+        req_text = _body_to_text(entry.get("request_body"))
+        resp_text = _body_to_text(entry.get("response_body"))
+        try:
+            version = g4f.version.utils.current_version
+        except Exception:
+            version = ""
+        request_entry = {
+            "method": entry.get("method"),
+            "url": str(request.url),
+            "httpVersion": "HTTP/1.1",
+            "headers": _headers_to_har(req_headers),
+            "queryString": [
+                {"name": name, "value": value}
+                for name, value in request.query_params.items()
+            ],
+            "cookies": [],
+            "headersSize": -1,
+            "bodySize": len(req_text),
+        }
+        if entry.get("request_body") is not None:
+            request_entry["postData"] = {
+                "mimeType": req_headers.get("content-type", ""),
+                "text": req_text,
+            }
+        har = {
+            "log": {
+                "version": "1.2",
+                "creator": {"name": "g4f", "version": version or "0"},
+                "entries": [
+                    {
+                        "startedDateTime": entry.get("timestamp"),
+                        "time": entry.get("duration_ms", 0),
+                        "request": request_entry,
+                        "response": {
+                            "status": entry.get("status"),
+                            "statusText": "",
+                            "httpVersion": "HTTP/1.1",
+                            "headers": _headers_to_har(resp_headers),
+                            "content": {
+                                "size": len(resp_text),
+                                "mimeType": resp_headers.get("content-type", ""),
+                                "text": resp_text,
+                            },
+                            "redirectURL": "",
+                            "headersSize": -1,
+                            "bodySize": len(resp_text),
+                        },
+                        "cache": {},
+                        "timings": {
+                            "send": 0,
+                            "wait": entry.get("duration_ms", 0),
+                            "receive": 0,
+                        },
+                    }
+                ],
+            }
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(har, f, ensure_ascii=False, indent=2)
+        logger.debug("Saved HAR request log: %s", path)
+    except Exception as e:
+        logger.warning("Failed to save HAR request log: %s", e)
+
 _LOGS_HTML = """<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -431,8 +577,13 @@ def create_app():
         logger.debug("→ %s %s%s%s", request.method, path, qs, user_info)
 
         audit_body = os.environ.get("G4F_ENABLE_AUDIT_LOG", "").lower() in ("1", "true", "yes")
+        # In debug mode, request/response pairs are saved as HAR files
+        # (see _save_request_har) so they can be inspected later.
+        har_log_enabled = g4f.debug.logging
+        har_min_status = _har_log_min_status()
+        capture_body = audit_body or har_log_enabled
         req_body = None
-        if audit_body:
+        if capture_body:
             req_body_bytes = await request.body()
             req_body = _try_parse_body(
                 req_body_bytes, request.headers.get("content-type", "")
@@ -448,7 +599,7 @@ def create_app():
         resp_body = None
 
         resp_headers_log = _sanitize_headers(dict(response.headers))
-        if audit_body:
+        if capture_body:
             if not is_streaming:
                 chunks: list[bytes] = []
                 async for chunk in response.body_iterator:
@@ -483,6 +634,15 @@ def create_app():
                     raw = b"".join(sse_chunks)
                     parsed = _try_parse_body(raw, "text/plain")
                     log_entry["response_body"] = parsed
+                    # Streaming errors arrive as 200 responses with error
+                    # chunks inside the SSE body – save those HARs too.
+                    has_stream_error = _sse_body_has_error(raw)
+                    if has_stream_error:
+                        log_entry["stream_error"] = True
+                    if har_log_enabled and (
+                        response.status_code >= har_min_status or has_stream_error
+                    ):
+                        _save_request_har(request, log_entry)
 
                 response.body_iterator = tee_iterator()
 
@@ -517,6 +677,13 @@ def create_app():
             }
         )
         _request_log.append(log_entry)
+
+        # Non-streaming 200 responses can also carry error payloads.
+        body_has_error = isinstance(resp_body, dict) and "error" in resp_body
+        if har_log_enabled and not is_streaming and (
+            response.status_code >= har_min_status or body_has_error
+        ):
+            _save_request_har(request, log_entry)
 
         return response
 

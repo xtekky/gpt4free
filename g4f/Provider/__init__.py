@@ -11,6 +11,7 @@ class ProviderLoader:
         "AIBadgr",
         "Anthropic",
         "Antigravity",
+        "AgentTools",
         "Airforce",
         "BingCreateImages",
         "BraveSearch",
@@ -397,6 +398,10 @@ class ProviderLoader:
             cls.loaded[name].active_by_default = True
             cls.loaded[name].supports_native_tools = True
             return cls.loaded[name]
+        elif name == "AgentTools":
+            from g4f.Provider.AgentTools import AgentTools
+
+            return AgentTools
         elif name == "OpenaiAPI":
             from g4f.Provider.needs_auth.OpenaiAPI import OpenaiAPI
 

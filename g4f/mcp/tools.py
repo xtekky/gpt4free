@@ -10,16 +10,24 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 - FileWriteTool: Write files to the ~/.g4f/workspace directory
 - FileListTool: List files in the ~/.g4f/workspace directory
 - FileDeleteTool: Delete files from the ~/.g4f/workspace directory
+- BrowserNavigateTool / BrowserEvaluateTool / BrowserScreenshotTool / BrowserCloseTool:
+  Browser automation over a shared Chrome DevTools Protocol session that is
+  closed automatically after an idle period
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from abc import ABC, abstractmethod
+import asyncio
+import base64
 import fnmatch
+import os
 import re
+import time
 import urllib.parse
 
+from .. import debug
 from aiohttp import ClientSession
 
 
@@ -1525,3 +1533,459 @@ class TokenOptimizerTool(MCPTool):
             "logs": logs,
             "optimized_messages": messages_copy,
         }
+
+class _SharedCDPSession:
+    """Shared CDP session used by all MCP browser tools.
+
+    Browser tools reuse a single browser tab so page state (URL, cookies,
+    JavaScript globals) survives between tool calls. The session is closed
+    automatically after ``idle_timeout`` seconds without use and re-opened
+    on demand. The idle timeout can be configured with the
+    ``G4F_MCP_BROWSER_IDLE_TIMEOUT`` environment variable in seconds
+    (``0`` disables auto-close).
+    """
+
+    _DEFAULT_IDLE_TIMEOUT = 300.0
+
+    def __init__(self, idle_timeout: Optional[float] = None):
+        if idle_timeout is None:
+            try:
+                idle_timeout = float(
+                    os.environ.get("G4F_MCP_BROWSER_IDLE_TIMEOUT", self._DEFAULT_IDLE_TIMEOUT)
+                )
+            except (TypeError, ValueError):
+                idle_timeout = self._DEFAULT_IDLE_TIMEOUT
+        self.idle_timeout = idle_timeout
+        self._session = None
+        self._lock: Optional[asyncio.Lock] = None
+        self._idle_task: Optional[asyncio.Task] = None
+        self._last_use: float = time.monotonic()
+
+    async def get(self):
+        """Return the shared session, (re)starting it when necessary."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        async with self._lock:
+            self._cancel_idle_task()
+            if self._session is None or not self._session.is_alive:
+                if self._session is not None:
+                    try:
+                        await self._session.close()
+                    except Exception:
+                        pass
+                from ..requests.cdp import CDPSession
+
+                session = CDPSession()
+                await session.start()
+                self._session = session
+            return self._session
+
+    def touch(self) -> None:
+        """Mark the session as used and (re)start the idle timer."""
+        self._last_use = time.monotonic()
+        if self.idle_timeout > 0 and self._session is not None and self._idle_task is None:
+            self._idle_task = asyncio.create_task(self._close_after_idle())
+
+    def _cancel_idle_task(self) -> None:
+        if self._idle_task is not None:
+            self._idle_task.cancel()
+            self._idle_task = None
+
+    async def _close_after_idle(self) -> None:
+        try:
+            while True:
+                remaining = self.idle_timeout - (time.monotonic() - self._last_use)
+                if remaining <= 0:
+                    break
+                await asyncio.sleep(remaining)
+        except asyncio.CancelledError:
+            return
+        # Detach before closing so close() does not cancel this task itself.
+        self._idle_task = None
+        debug.log("MCP: Closing idle shared browser session")
+        await self.close()
+
+    async def close(self) -> None:
+        """Close the shared session and cancel the idle timer."""
+        self._cancel_idle_task()
+        session, self._session = self._session, None
+        if session is not None:
+            try:
+                await session.close()
+            except Exception:
+                pass
+
+
+_shared_browser_session = _SharedCDPSession()
+
+async def _get_shared_cdp_session():
+    """Get the shared CDP session and reset its idle timer."""
+    session = await _shared_browser_session.get()
+    _shared_browser_session.touch()
+    return session
+
+async def _get_page_state(session) -> Dict[str, Any]:
+    """Collect common page state (url, title, text excerpt) from a CDP session."""
+    state: Dict[str, Any] = {}
+    try:
+        state["url"] = await session.evaluate_js("location.href")
+    except Exception:
+        state["url"] = None
+    try:
+        state["title"] = await session.evaluate_js("document.title")
+    except Exception:
+        state["title"] = None
+    return state
+
+class BrowserNavigateTool(MCPTool):
+    """Navigate a CDP-driven browser to a URL and return the page state."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Navigate a browser (Chrome DevTools Protocol session) to a URL and wait for "
+            "the page to load. Returns the page URL, title and a plain-text excerpt of the "
+            "page content. The browser session is shared with browser_evaluate and "
+            "browser_screenshot, so page state persists between tool calls. It closes "
+            "automatically after an idle period. Use browser_evaluate for deeper interaction."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The absolute URL to navigate to (http:// or https://)",
+                },
+                "waitForIdle": {
+                    "type": "boolean",
+                    "description": "Wait for network activity to settle after load (default: true)",
+                    "default": True,
+                },
+                "maxChars": {
+                    "type": "number",
+                    "description": "Maximum number of text characters to return (default: 4000)",
+                    "default": 4000,
+                },
+            },
+            "required": ["url"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        url = arguments.get("url", "")
+        if not url:
+            return {"error": "url parameter is required"}
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return {"error": "Only http:// and https:// URLs are supported"}
+
+        max_chars = int(arguments.get("maxChars", 4000))
+        wait_for_idle = bool(arguments.get("waitForIdle", True))
+        try:
+            session = await _get_shared_cdp_session()
+            await session.navigate(url)
+            if wait_for_idle:
+                try:
+                    await session.wait_for_network_idle(idle_time=0.5, timeout=10.0)
+                except Exception:
+                    pass
+            state = await _get_page_state(session)
+            try:
+                text = await session.evaluate_js("document.body ? document.body.innerText : ''")
+            except Exception:
+                text = ""
+            text = (text or "").strip()
+            return {
+                "url": state.get("url") or url,
+                "title": state.get("title"),
+                "content": text[:max_chars],
+                "truncated": len(text) > max_chars,
+                "totalChars": len(text),
+            }
+        except Exception as exc:
+            return {"error": f"Browser navigation failed: {exc}"}
+
+class BrowserEvaluateTool(MCPTool):
+    """Evaluate JavaScript in the current CDP browser page."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Evaluate JavaScript in the currently open browser page (Chrome DevTools Protocol). "
+            "The expression may be async (await is supported). Returns the JSON value of the "
+            "expression. The browser session is shared with browser_navigate and "
+            "browser_screenshot, so page state persists between tool calls. Use "
+            "browser_navigate first to open a page."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string",
+                    "description": "JavaScript expression to evaluate, e.g. 'document.title' or 'document.body.innerText.slice(0, 1000)'",
+                },
+            },
+            "required": ["expression"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        expression = arguments.get("expression", "")
+        if not expression:
+            return {"error": "expression parameter is required"}
+
+        try:
+            session = await _get_shared_cdp_session()
+            state = await _get_page_state(session)
+            if not state.get("url") or state.get("url") in ("about:blank", ""):
+                return {"error": "No page open. Use browser_navigate first."}
+            value = await session.evaluate_js(expression)
+            result: Dict[str, Any] = {"url": state.get("url"), "title": state.get("title")}
+            if isinstance(value, str):
+                max_chars = int(arguments.get("maxChars", 8000))
+                result["result"] = value[:max_chars]
+                result["truncated"] = len(value) > max_chars
+            else:
+                result["result"] = value
+            return result
+        except Exception as exc:
+            return {"error": f"Browser evaluation failed: {exc}"}
+
+class BrowserScreenshotTool(MCPTool):
+    """Capture a screenshot of the current page via the shared CDP browser."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Capture a screenshot of the currently open browser page (Chrome DevTools "
+            "Protocol). Optionally navigate to a URL first. The screenshot is saved to "
+            "the g4f media directory and the file path is returned. The browser session "
+            "is shared with browser_navigate / browser_evaluate and stays open afterwards."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Optional absolute URL to navigate to before capturing (http:// or https://). If omitted, the currently open page is captured.",
+                },
+                "fullPage": {
+                    "type": "boolean",
+                    "description": "Capture the full scrollable page instead of only the viewport (default: false)",
+                    "default": False,
+                },
+            },
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        url = (arguments.get("url") or "").strip()
+        if url:
+            parsed = urllib.parse.urlparse(url)
+            if parsed.scheme not in ("http", "https"):
+                return {"error": "Only http:// and https:// URLs are supported"}
+
+        full_page = bool(arguments.get("fullPage", False))
+        try:
+            session = await _get_shared_cdp_session()
+            if url:
+                await session.navigate(url)
+                try:
+                    await session.wait_for_network_idle(idle_time=0.5, timeout=10.0)
+                except Exception:
+                    pass
+            state = await _get_page_state(session)
+            if not state.get("url") or state.get("url") in ("about:blank", ""):
+                return {"error": "No page open. Use browser_navigate first or pass a url."}
+            params: Dict[str, Any] = {"format": "png"}
+            if full_page:
+                params["captureBeyondViewport"] = True
+            capture = await session.call("Page.captureScreenshot", **params)
+            image_bytes = base64.b64decode(capture["data"])
+            filepath = _save_screenshot(image_bytes, state.get("url") or url)
+            return {
+                "url": state.get("url") or url,
+                "title": state.get("title"),
+                "screenshot": filepath,
+                "fullPage": full_page,
+            }
+        except Exception as exc:
+            return {"error": f"Screenshot failed: {exc}"}
+
+def _save_screenshot(image_bytes: bytes, url: str) -> str:
+    """Save raw screenshot bytes to the g4f screenshot directory."""
+    from ..files import secure_filename
+    from ..requests.cdp import get_screenshot_dir
+
+    slug = secure_filename(urllib.parse.urlparse(url).netloc or "page") or "page"
+    filename = f"mcp_{time.strftime('%Y%m%d-%H%M%S')}_{slug}.png"
+    filepath = os.path.join(get_screenshot_dir(), filename)
+    base, ext = os.path.splitext(filepath)
+    counter = 1
+    while os.path.exists(filepath):
+        filepath = f"{base}_{counter}{ext}"
+        counter += 1
+    with open(filepath, "wb") as file:
+        file.write(image_bytes)
+    return filepath
+
+class BrowserCloseTool(MCPTool):
+    """Close the shared CDP browser session."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Close the shared browser session (Chrome DevTools Protocol) used by the "
+            "browser tools. It is also closed automatically after an idle period; use "
+            "this tool to release it immediately."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {"type": "object", "properties": {}}
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        await _shared_browser_session.close()
+        return {"closed": True}
+
+class NotebookCreateTool(MCPTool):
+    """Create a markdown notebook file in the workspace ``notebooks/`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Create a markdown notebook (.md file) in the ~/.g4f/workspace/notebooks directory. "
+            "Notebooks are plain markdown files that can be listed with notebook_list and read "
+            "with file_read. The name is normalized (spaces become dashes, .md appended)."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Notebook name, e.g. 'research-notes' or 'My Ideas'. '.md' is appended if missing.",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Markdown content of the notebook",
+                },
+                "overwrite": {
+                    "type": "boolean",
+                    "description": "If true, overwrite an existing notebook (default: false)",
+                    "default": False,
+                },
+            },
+            "required": ["name", "content"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import resolve_workspace_path
+
+        name = (arguments.get("name") or "").strip()
+        content = arguments.get("content")
+        overwrite = bool(arguments.get("overwrite", False))
+
+        if not name:
+            return {"error": "name parameter is required"}
+        if content is None:
+            return {"error": "content parameter is required"}
+
+        # Normalize the notebook name: keep it a safe single path segment.
+        safe_name = re.sub(r"[^\w\- ]", "", name).strip().replace(" ", "-")
+        if not safe_name:
+            return {"error": f"Invalid notebook name: {name}"}
+        if not safe_name.lower().endswith(".md"):
+            safe_name += ".md"
+
+        rel_path = f"notebooks/{safe_name}"
+        user_id = arguments.get("user_id")
+        workspace_secret = arguments.get("workspace_secret")
+        try:
+            target, workspace = resolve_workspace_path(
+                rel_path, user_id=user_id, workspace_secret=workspace_secret, for_write=True
+            )
+            if not str(target).startswith(str(workspace)):
+                return {"error": "Access outside the workspace is not allowed"}
+            existed = target.exists()
+            if existed and not overwrite:
+                return {
+                    "error": f"Notebook already exists: {rel_path}. Use overwrite=true to replace it."
+                }
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+            result: Dict[str, Any] = {
+                "notebook": rel_path,
+                "name": safe_name,
+                "created": not existed,
+                "overwritten": existed,
+                "size": len(content),
+            }
+            origin = arguments.get("origin")
+            if origin:
+                result["url"] = f"{origin}/pa/files/{rel_path}"
+            return result
+        except Exception as exc:
+            return {"error": f"Notebook creation failed: {exc}"}
+
+class NotebookListTool(MCPTool):
+    """List markdown notebook files in the workspace ``notebooks/`` directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "List markdown notebooks (.md files) in the ~/.g4f/workspace/notebooks directory. "
+            "Returns notebook names, paths, sizes and modification times sorted by newest first."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Optional filter: only notebooks whose name contains this text (case-insensitive)",
+                },
+            },
+            "required": [],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import resolve_workspace_path
+
+        query = (arguments.get("query") or "").strip().lower()
+        user_id = arguments.get("user_id")
+        workspace_secret = arguments.get("workspace_secret")
+        try:
+            notebooks_dir, workspace = resolve_workspace_path(
+                "notebooks", user_id=user_id, workspace_secret=workspace_secret, for_write=False
+            )
+            if not str(notebooks_dir).startswith(str(workspace)):
+                return {"error": "Access outside the workspace is not allowed"}
+            if not notebooks_dir.exists() or not notebooks_dir.is_dir():
+                return {"notebooks": [], "count": 0}
+
+            notebooks = []
+            for entry in sorted(notebooks_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
+                if query and query not in entry.name.lower():
+                    continue
+                stat = entry.stat()
+                notebooks.append({
+                    "name": entry.name,
+                    "path": f"notebooks/{entry.name}",
+                    "size": stat.st_size,
+                    "modified": int(stat.st_mtime),
+                })
+
+            return {"notebooks": notebooks, "count": len(notebooks)}
+        except Exception as exc:
+            return {"error": f"Notebook listing failed: {exc}"}

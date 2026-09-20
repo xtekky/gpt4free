@@ -15,7 +15,7 @@ async def _get_turnstile_token_async(model: str) -> str:
     enters text, and polls for the Cloudflare Turnstile token.
     """
 
-    async with CDPSession() as session:
+    async with CDPSession(headless=False) as session:
         url = f"https://deepinfra.com/{model}"
         await session.navigate(url)
 
@@ -118,7 +118,7 @@ async def _get_turnstile_token_async(model: str) -> str:
         debug.log("[DeepInfra] Waiting for Cloudflare Turnstile solve...")
         token_js = "document.querySelector('[name=cf-turnstile-response]') ? document.querySelector('[name=cf-turnstile-response]').value : ''"
         token = ""
-        for i in range(240):  # Up to 120 seconds per attempt
+        for i in range(60):  # Up to 30 seconds per attempt
             if not session.is_alive:
                 debug.log("[DeepInfra] Browser session lost, aborting Turnstile token poll.")
                 break

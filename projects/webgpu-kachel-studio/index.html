@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGPU Kachel Studio & 3D Room Suite</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles/main.css">
+</head>
+<body class="theme-dark">
+  <div id="app" class="app-container">
+    <!-- Top Header Navigation -->
+    <header class="studio-header">
+      <div class="brand-badge">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+            <rect x="3" y="3" width="8" height="8" rx="2" fill="url(#brandG1)"/>
+            <rect x="13" y="3" width="8" height="8" rx="2" fill="url(#brandG2)"/>
+            <rect x="3" y="13" width="8" height="8" rx="2" fill="url(#brandG2)"/>
+            <rect x="13" y="13" width="8" height="8" rx="2" fill="url(#brandG1)"/>
+            <defs>
+              <linearGradient id="brandG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00f2fe"/><stop offset="100%" stop-color="#4facfe"/></linearGradient>
+              <linearGradient id="brandG2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="brand-title">KACHEL<span class="brand-accent">GPU</span></span>
+        <span class="brand-version">v2.0</span>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="nav-btn active" data-tab="studio">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Tile Studio
+        </button>
+        <button class="nav-btn" data-tab="room">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Fill the Room 3D
+        </button>
+        <button class="nav-btn" data-tab="history">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History & Maps (<span id="history-count">0</span>)
+        </button>
+        <button class="nav-btn nav-game-btn" data-tab="game">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          Kachel Game
+        </button>
+      </nav>
+
+      <div class="header-status">
+        <div id="gpu-badge" class="gpu-indicator webgpu">
+          <span class="indicator-dot"></span>
+          <span id="gpu-text">WebGPU Active</span>
+        </div>
+        <button id="quick-randomize-btn" class="btn btn-outline btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Randomize
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      
+      <!-- TAB 1: TILE STUDIO -->
+      <section id="tab-studio" class="tab-content active">
+        <aside class="sidebar-panel left-panel">
+          <div class="panel-header">
+            <h3>Tile Generator Controls</h3>
+            <span class="badge">WGSL Shader Engine</span>
+          </div>
+
+          <!-- Preset Selector -->
+          <div class="control-group">
+            <label class="control-label">Pattern Preset</label>
+            <div class="preset-grid" id="preset-buttons">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Natural Language Prompt Box -->
+          <div class="control-group">
+            <label class="control-label" for="prompt-input">
+              <span>Prompt / Style Keywords</span>
+              <span class="hint">Click tile to trigger</span>
+            </label>
+            <div class="prompt-box">
+              <input type="text" id="prompt-input" placeholder="e.g. emerald gold terrazzo voronoi zellige hex" value="emerald gold terrazzo voronoi">
+              <button id="apply-prompt-btn" class="btn btn-primary btn-sm">Generate</button>
+            </div>
+          </div>
+
+          <!-- Parameter Sliders -->
+          <div class="control-group sliders-group">
+            <div class="slider-row">
+              <label for="slider-scale">Pattern Scale / Frequency</label>
+              <input type="range" id="slider-scale" min="1" max="25" step="0.5" value="8">
+              <span id="val-scale" class="slider-val">8.0</span>
+            </div>
+
+            <div class="slider-row">
+              <label for="slider-complexity">Intricacy / Complexity</label>
+              <input type="range" id="slider-complexity" min="1" max="10" step="0.5" value="5">
+              <span id="val-complexity" class="slider-val">5.0</span>
+            </div>
+
+            <div class="slider-row">
+              <label for="slider-grout">Grout Width</label>
+              <input type="range" id="slider-grout" min="0" max="0.15" step="0.005" value="0.03">
+              <span id="val-grout" class="slider-val">0.03</span>
+            </div>
+
+            <div class="slider-row">
+              <label for="slider-roughness">Roughness / Gloss Sheen</label>
+              <input type="range" id="slider-roughness" min="0" max="1" step="0.05" value="0.3">
+              <span id="val-roughness" class="slider-val">0.30</span>
+            </div>
+
+            <div class="slider-row">
+              <label for="slider-bump">Normal Bump Depth</label>
+              <input type="range" id="slider-bump" min="0" max="2" step="0.1" value="0.8">
+              <span id="val-bump" class="slider-val">0.80</span>
+            </div>
+          </div>
+
+          <!-- Color Swatches -->
+          <div class="control-group">
+            <label class="control-label">Color Palette</label>
+            <div class="color-palette-row">
+              <input type="color" id="color-primary" value="#10b981" title="Primary Color">
+              <input type="color" id="color-secondary" value="#f59e0b" title="Secondary Color">
+              <input type="color" id="color-accent" value="#00f2fe" title="Accent Color">
+              <input type="color" id="color-grout" value="#1e293b" title="Grout Color">
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-row">
+            <button id="btn-save-history" class="btn btn-emerald btn-full">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Kachel to History
+            </button>
+          </div>
+        </aside>
+
+        <!-- Canvas Viewport -->
+        <div class="viewport-panel">
+          <div class="viewport-toolbar">
+            <div class="toolbar-left">
+              <span class="active-preset-title" id="active-preset-name">Andalusian Star Geometry</span>
+              <span class="resolution-badge">1024 x 1024 WebGPU</span>
+            </div>
+            <div class="toolbar-right">
+              <!-- Tile Selection Target Mode -->
+              <div class="btn-group-segmented" id="target-mode-toggle" title="Targeting Mode">
+                <button class="segmented-btn active" data-mode="single">Single Tile</button>
+                <button class="segmented-btn" data-mode="multi">Multi / Grid</button>
+                <button class="segmented-btn" data-mode="global">All Tiles</button>
+              </div>
+              <button id="btn-toggle-tiling" class="btn btn-ghost btn-sm" title="Toggle 3x3 Tile Grid Preview">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span id="tile-toggle-label">Grid Preview (3x3)</span>
+              </button>
+              <button id="btn-apply-to-room-direct" class="btn btn-accent btn-sm">
+                Apply to 3D Room →
+              </button>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper" id="canvas-container">
+            <canvas id="webgpu-canvas" width="1024" height="1024"></canvas>
+            
+            <!-- Drag & Touch Overlay Hint -->
+            <div class="canvas-overlay-hint">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 15l5 5M4 4l16 16"/><circle cx="9" cy="9" r="7"/></svg>
+              <span>Click / Touch tile to mutate | Drag & Drop tiles from History onto grid</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: FILL THE ROOM 3D -->
+      <section id="tab-room" class="tab-content">
+        <aside class="sidebar-panel left-panel">
+          <div class="panel-header">
+            <h3>3D Room Environment</h3>
+            <span class="badge badge-accent">PBR Renderer</span>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Surface Target</label>
+            <div class="btn-group-segmented" id="room-surface-target">
+              <button class="segmented-btn active" data-surface="floor">Floor</button>
+              <button class="segmented-btn" data-surface="wall">Accent Wall</button>
+              <button class="segmented-btn" data-surface="backsplash">Kitchen Splashback</button>
+              <button class="segmented-btn" data-surface="all">All Surfaces</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Room Scene Template</label>
+            <div class="scene-presets-grid" id="scene-preset-buttons">
+              <button class="scene-btn active" data-scene="modern-living">Modern Living Room</button>
+              <button class="scene-btn" data-scene="luxury-bathroom">Luxury Spa Bathroom</button>
+              <button class="scene-btn" data-scene="kitchen-studio">Minimalist Kitchen</button>
+              <button class="scene-btn" data-scene="patio-terrace">Sunlit Terrace</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Lighting Preset</label>
+            <div class="btn-group-segmented" id="lighting-preset">
+              <button class="segmented-btn active" data-light="daylight">Daylight</button>
+              <button class="segmented-btn" data-light="warm">Warm Evening</button>
+              <button class="segmented-btn" data-light="nordic">Soft Nordic</button>
+              <button class="segmented-btn" data-light="cyber">Studio Neon</button>
+            </div>
+          </div>
+
+          <div class="control-group sliders-group">
+            <div class="slider-row">
+              <label for="room-tile-repeat">Tile Repeat Scale (Density)</label>
+              <input type="range" id="room-tile-repeat" min="1" max="20" step="1" value="6">
+              <span id="val-room-repeat" class="slider-val">6x6</span>
+            </div>
+
+            <div class="slider-row">
+              <label for="room-grout-width">3D Grout Inlay Gap</label>
+              <input type="range" id="room-grout-width" min="0" max="0.05" step="0.002" value="0.01">
+              <span id="val-room-grout" class="slider-val">0.01m</span>
+            </div>
+          </div>
+
+          <div class="current-tile-mini">
+            <span class="mini-label">Active Tile Material:</span>
+            <div class="mini-tile-preview">
+              <canvas id="mini-kachel-canvas" width="90" height="90"></canvas>
+              <div class="mini-info">
+                <span id="mini-tile-name">Andalusian Star</span>
+                <button id="mini-re-gen-btn" class="btn btn-ghost btn-xs">Mutate Tile</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="viewport-panel">
+          <div class="viewport-toolbar">
+            <div class="toolbar-left">
+              <span class="active-preset-title">Interactive 3D Room Studio</span>
+              <span class="resolution-badge">Orbit & Pan to View</span>
+            </div>
+            <div class="toolbar-right">
+              <button id="btn-reset-camera" class="btn btn-ghost btn-sm">Reset View</button>
+              <button id="btn-snapshot-room" class="btn btn-outline btn-sm">Take Photo</button>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper room-3d-wrapper" id="room-3d-container">
+            <!-- Three.js Canvas injected here -->
+            <div class="room-hint">
+              <span>Drag to rotate 3D camera | Scroll to zoom | Click surface to mutate pattern</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: HISTORY GALLERY & EXPORT MAPS -->
+      <section id="tab-history" class="tab-content">
+        <div class="history-view-container">
+          <div class="history-header">
+            <div>
+              <h2>Kachel History & PBR Maps Exporter</h2>
+              <p>Every generated tile is stored locally. Re-apply to 3D room or download diffuse, normal, and roughness maps.</p>
+            </div>
+            <div class="history-actions">
+              <button id="btn-clear-history" class="btn btn-ghost btn-sm">Clear History</button>
+              <button id="btn-export-all-zip" class="btn btn-outline btn-sm">Download Texture Pack</button>
+            </div>
+          </div>
+
+          <div class="history-grid" id="history-items-grid">
+            <!-- Dynamically populated history cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: KACHEL GAME MODE -->
+      <section id="tab-game" class="tab-content">
+        <div class="game-view-container">
+          <div class="game-header">
+            <div class="game-title-group">
+              <span class="badge badge-gold">Kachel Arcade & Challenge</span>
+              <h2>Kachel Master & Spatial Room Decorator</h2>
+            </div>
+            <div class="game-score-badge">
+              <span>SCORE: <strong id="game-score">0</strong></span>
+              <span>LEVEL: <strong id="game-level">1</strong></span>
+            </div>
+          </div>
+
+          <div class="game-mode-selector">
+            <button class="game-mode-card active" data-mode="matcher">
+              <div class="mode-icon">🎯</div>
+              <h3>Room Style Matcher</h3>
+              <p>Clients request specific room aesthetics. Tweak tile parameters to match target patterns (>80% accuracy) before time runs out!</p>
+            </button>
+            <button class="game-mode-card" data-mode="dragdrop">
+              <div class="mode-icon">🎨</div>
+              <h3>Drag & Drop Tile Painter</h3>
+              <p>Drag procedural tiles from your palette into individual grid slots or paint custom mosaics tile by tile!</p>
+            </button>
+            <button class="game-mode-card" data-mode="memory">
+              <div class="mode-icon">🧩</div>
+              <h3>Spatial Kachel Memory</h3>
+              <p>Flip and match procedural kacheln generated live by WebGPU. Test your pattern recognition!</p>
+            </button>
+          </div>
+
+          <div class="game-stage" id="game-stage-container">
+            <!-- Dynamically rendered game interface -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ON-CLICK PROMPT & MUTATION POPOVER MODAL -->
+    <div id="prompt-popover" class="popover-modal hidden">
+      <div class="popover-backdrop"></div>
+      <div class="popover-card">
+        <div class="popover-header">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            Tile Inspector & Quick Mutator
+          </h3>
+          <button id="popover-close-btn" class="btn-close">&times;</button>
+        </div>
+
+        <div class="popover-body">
+          <div class="popover-preview-col">
+            <canvas id="popover-canvas" width="256" height="256"></canvas>
+            <button id="btn-popover-seed" class="btn btn-outline btn-full btn-sm">
+              🎲 Mutate Random Seed
+            </button>
+          </div>
+
+          <div class="popover-controls-col">
+            <div class="control-group">
+              <label for="popover-prompt-text">Natural Language Keywords / Prompt</label>
+              <input type="text" id="popover-prompt-text" value="voronoi emerald gold luxury">
+            </div>
+
+            <div class="control-group">
+              <label>Quick Style Palettes</label>
+              <div class="quick-palettes-grid" id="popover-palette-btns">
+                <button class="palette-chip" data-colors="#10b981,#f59e0b,#00f2fe,#1e293b" style="background: linear-gradient(135deg, #10b981, #f59e0b, #00f2fe)"></button>
+                <button class="palette-chip" data-colors="#00f2fe,#4facfe,#6b21a8,#090d16" style="background: linear-gradient(135deg, #00f2fe, #4facfe, #6b21a8)"></button>
+                <button class="palette-chip" data-colors="#d97706,#7c2d12,#fef3c7,#292524" style="background: linear-gradient(135deg, #d97706, #7c2d12, #fef3c7)"></button>
+                <button class="palette-chip" data-colors="#ec4899,#8b5cf6,#3b82f6,#0f172a" style="background: linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6)"></button>
+                <button class="palette-chip" data-colors="#e2e8f0,#94a3b8,#475569,#0f172a" style="background: linear-gradient(135deg, #e2e8f0, #94a3b8, #475569)"></button>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <div class="slider-row">
+                <label for="popover-slider-scale">Scale</label>
+                <input type="range" id="popover-slider-scale" min="1" max="25" value="8">
+              </div>
+              <div class="slider-row">
+                <label for="popover-slider-roughness">Gloss / Roughness</label>
+                <input type="range" id="popover-slider-roughness" min="0" max="1" step="0.05" value="0.3">
+              </div>
+            </div>
+
+            <div class="popover-actions">
+              <button id="btn-popover-apply-room" class="btn btn-accent btn-sm">Apply & Fill 3D Room</button>
+              <button id="btn-popover-save-history" class="btn btn-emerald btn-sm">Save to History</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

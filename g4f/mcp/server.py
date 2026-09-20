@@ -44,6 +44,12 @@ from .tools import (
     GrepSearchTool,
     GithubRepoTool,
     GithubTextSearchTool,
+    BrowserNavigateTool,
+    BrowserEvaluateTool,
+    BrowserScreenshotTool,
+    BrowserCloseTool,
+    NotebookCreateTool,
+    NotebookListTool,
 )
 
 
@@ -105,6 +111,12 @@ class MCPServer:
             "grep_search": GrepSearchTool(),
             "github_repo": GithubRepoTool(False, self.github_token),
             "github_text_search": GithubTextSearchTool(False, self.github_token),
+            "browser_navigate": BrowserNavigateTool(),
+            "browser_evaluate": BrowserEvaluateTool(),
+            "browser_screenshot": BrowserScreenshotTool(),
+            "browser_close": BrowserCloseTool(),
+            "notebook_create": NotebookCreateTool(),
+            "notebook_list": NotebookListTool(),
         }
         self.server_info = {
             "name": "gpt4free-mcp-server",

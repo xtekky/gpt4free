@@ -418,7 +418,7 @@ Repository: https://github.com/xtekky/gpt4free
 
 ## Security, privacy & takedown policy
 - Do not store or share sensitive credentials. Use per-provider recommended security practices.
-- If your site appears in the project’s links and you want it removed, send proof of ownership to takedown@g4f.ai and it will be removed promptly.
+- If your site appears in the project’s links and you want it removed, send proof of ownership to https://g4f.dev/community and it will be removed promptly.
 - For production, secure the server with HTTPS, authentication, and firewall rules. Limit access to provider credentials and cookie/HAR storage.
 
 ---
@@ -487,10 +487,10 @@ GNU General Public License for more details.
 ---
 
 ## Contact & sponsorship
-- Maintainers: https://github.com/hlohaus  
+- Maintainers: https://github.com/hlohaus
+- Community & contact: https://g4f.dev/community
 - Sponsorship: https://github.com/sponsors/hlohaus  
 - Issues & feature requests: https://github.com/xtekky/gpt4free/issues  
-- Takedown requests: takedown@g4f.ai
 
 ---
 

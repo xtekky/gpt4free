@@ -106,6 +106,8 @@ class Api:
                         models.values() if isinstance(models, dict) else models
                     )
                 ]
+            elif hasattr(provider, "models"):
+                return provider.models
         except ImportError as e:
             debug.log(f"Error getting provider models for {provider}:", e)
         if provider in model_map:

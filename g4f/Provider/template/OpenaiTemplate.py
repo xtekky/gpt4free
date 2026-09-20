@@ -77,12 +77,12 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 
     @classmethod
     def is_provider_api_key(cls, api_key: str) -> bool:
-        return (
+        return True if (
             api_key
             and isinstance(api_key, str)
             and not api_key.startswith("g4f_")
             and not api_key.startswith("gfs_")
-        )
+        ) else False
 
     @classmethod
     def get_models(

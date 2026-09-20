@@ -1092,7 +1092,17 @@ class CDPSession:
         await self.wait_for_load()
 
     async def wait_for_load(self):
-        await self.evaluate_js("new Promise(resolve => window.addEventListener('load', resolve))")
+        # Attach the listener and check readiness in a single evaluation so a
+        # page that already finished loading (or loads while we evaluate)
+        # resolves immediately instead of waiting for a 'load' event that
+        # never fires.
+        await self.evaluate_js("""
+            new Promise(resolve => {
+                if (document.readyState === 'complete') return resolve();
+                window.addEventListener('load', () => resolve(), {once: true});
+                setTimeout(resolve, 10000);
+            })
+        """)
 
     async def wait_for_network_idle(
         self, idle_time: float = 0.5, timeout: float = 15.0

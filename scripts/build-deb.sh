@@ -6,7 +6,7 @@ set -e
 PACKAGE_NAME="g4f"
 VERSION="${G4F_VERSION:-0.0.0-dev}"
 ARCHITECTURE="${ARCH:-amd64}"
-MAINTAINER="Tekky <support@g4f.ai>"
+MAINTAINER="hlohaus"
 DESCRIPTION="The official gpt4free repository"
 LONG_DESCRIPTION="Various collection of powerful language models"
 
@@ -32,7 +32,7 @@ Maintainer: ${MAINTAINER}
 Description: ${DESCRIPTION}
  ${LONG_DESCRIPTION}
 Depends: python3 (>= 3.10), python3-pip, python3-aiohttp, python3-requests
-Homepage: https://github.com/xtekky/gpt4free
+Homepage: https://g4f.dev/community
 EOF
 
 # Create postinst script

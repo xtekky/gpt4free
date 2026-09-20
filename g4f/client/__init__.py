@@ -167,7 +167,8 @@ def iter_response(
 
     if stream:
         chat_completion = ChatCompletionChunk.model_construct(
-            None, finish_reason, completion_id, int(time.time()), usage=usage
+            None, finish_reason, completion_id, int(time.time()), usage=usage,
+            conversation=conversation,
         )
     else:
         if response_format is not None and "type" in response_format:

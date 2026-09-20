@@ -1,6 +1,6 @@
 ## Legal Notice
 
-This repository is **not associated with or endorsed** by the providers of the APIs contained herein. This project is intended **for educational purposes only**. It is a personal project aimed at learning and exploration. Owners of any included sites or services may contact me to improve their security or request the removal of their content from this repository.
+This repository is **not associated with or endorsed** by the providers of the APIs contained herein. This project is intended **for educational purposes only**. It is a personal project aimed at learning and exploration. Owners of any included sites or services may contact me via https://g4f.dev/community to improve their security or request the removal of their content from this repository.
 
 ### **Affiliation Disclaimer**
 

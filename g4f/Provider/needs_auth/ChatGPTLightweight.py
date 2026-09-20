@@ -259,7 +259,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         """
         async with CDPSession(proxy=proxy) as session:
             try:
-                await session.navigate(cls.url)
+                await session.navigate(f"{cls.url}/?q=Hello")
             except Exception as e:
                 # A load-event race must not discard an otherwise good session.
                 debug.log(f"ChatGPTLightweight: CDP navigate: {e}")

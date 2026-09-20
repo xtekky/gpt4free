@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from .Provider import ProviderType, IterListProvider
+from .Provider.AgentTools import AgentTools
 
 
 class ModelRegistry:
@@ -156,6 +157,14 @@ default_vision = VisionModel(
         ],
         shuffle=False,
     ),
+)
+
+# agent with MCP tools (browser, notebooks, files) behind /chat/completions
+agent_tools = Model(
+    name="agent-tools",
+    base_provider="g4f",
+    best_provider=AgentTools,
+    long_name="Agent Tools (MCP)",
 )
 
 # gpt-4
