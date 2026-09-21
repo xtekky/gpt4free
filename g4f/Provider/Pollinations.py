@@ -416,7 +416,8 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
             headers = {"authorization": f"Bearer {api_key}"}
         async with ClientSession(
             headers=DEFAULT_HEADERS,
-            connector=get_connector(proxy=proxy)
+            connector=get_connector(proxy=proxy),
+            timeout=ClientTimeout(),
         ) as session:
             responses = set()
             yield Reasoning(

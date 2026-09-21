@@ -1809,11 +1809,17 @@ class BrowserScreenshotTool(MCPTool):
             capture = await session.call("Page.captureScreenshot", **params)
             image_bytes = base64.b64decode(capture["data"])
             filepath = _save_screenshot(image_bytes, state.get("url") or url)
+            basename = os.path.basename(filepath)
+            origin = arguments.get("origin")
+            screenshot_url = f"{origin}/media/screenshots/{basename}" if origin else None
             return {
                 "url": state.get("url") or url,
                 "title": state.get("title"),
                 "screenshot": filepath,
                 "fullPage": full_page,
+                **({
+                    "screenshot_url": screenshot_url} if screenshot_url else {}
+                )
             }
         except Exception as exc:
             return {"error": f"Screenshot failed: {exc}"}

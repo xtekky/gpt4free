@@ -288,7 +288,6 @@ def set_browser_executable_path(browser_executable_path: str):
 async def get_nodriver(
     proxy: str = None,
     user_data_dir="nodriver",
-    timeout: int = 300,
     browser_executable_path: str = None,
     browser_args: list = None,
     **kwargs,

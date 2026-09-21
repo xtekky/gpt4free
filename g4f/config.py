@@ -29,15 +29,15 @@ def get_config_dir() -> Path:
 
 DEFAULT_PORT = 1337
 DEFAULT_TIMEOUT = 600
-DEFAULT_STREAM_TIMEOUT = 300
+DEFAULT_STREAM_TIMEOUT = 600
 
 PACKAGE_NAME = "g4f"
 CONFIG_DIR = get_config_dir()
 COOKIES_DIR = CONFIG_DIR / "cookies"
 CUSTOM_COOKIES_DIR = "./har_and_cookies"
 ORGANIZATION = "gpt4free"
-GITHUB_REPOSITORY = f"xtekky/{ORGANIZATION}"
-STATIC_DOMAIN = f"{PACKAGE_NAME}.dev"
+GITHUB_REPOSITORY = f"xtekky/gpt4free"
+STATIC_DOMAIN = f"g4f.dev"
 STATIC_URL = f"https://{STATIC_DOMAIN}/"
 REFFERER_URL = f"https://{STATIC_DOMAIN}/"
 SPACE_URL = f"https://g4f.space/"

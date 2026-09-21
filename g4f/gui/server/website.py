@@ -49,8 +49,11 @@ def render(filename="home", download_url: str = GITHUB_URL):
                 with open(path, "r", encoding="utf-8") as f:
                     html = f.read()
                 return html.replace("{{ v }}", str(latest_version))
+            # Web app manifests must be re-fetched promptly, otherwise
+            # installability checks keep using a stale cached manifest.
+            max_age = 0 if path.endswith((".webmanifest", ".json")) else 31536000
             return send_from_directory(
-                os.path.dirname(path), os.path.basename(path), max_age=31536000
+                os.path.dirname(path), os.path.basename(path), max_age=max_age
             )
     try:
         latest_version = version.utils.latest_version

@@ -38,8 +38,6 @@ def main(app_root: str, port: int) -> None:
     _log("creating GUI app ...")
     app = g4f.gui.get_gui_app()
     app.debug = False
-    app.timeout = 600
-    app.stream_timeout = 300
 
     _log(f"serving on 127.0.0.1:{port}")
     # Werkzeug dev server is fine for a local, single-user app.

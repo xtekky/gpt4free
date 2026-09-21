@@ -97,7 +97,7 @@ def get_model_and_provider(
                 if dynamic_model is not None:
                     model = dynamic_model
 
-        if not model:
+        if not model or model == "auto":
             if has_images:
                 model = default_vision
                 provider = default_vision.best_provider

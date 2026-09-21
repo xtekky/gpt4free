@@ -214,9 +214,12 @@ def _merge_tool_call_fragments(accumulated: list, fragments: list) -> list:
         if isinstance(fn, dict):
             matched_fn = matched.setdefault("function", {})
             if fn.get("name"):
-                matched_fn["name"] = (matched_fn.get("name") or "") + fn["name"]
-            if fn.get("arguments"):
-                matched_fn["arguments"] = (matched_fn.get("arguments") or "") + fn["arguments"]
+                matched_fn["name"] = fn.get("name")
+            if "arguments" in fn:
+                if fn["arguments"] == "":
+                    matched_fn["arguments"] = fn["arguments"]
+                else:
+                    matched_fn["arguments"] += fn["arguments"]
     return accumulated
 
 def _select_native_provider(inner_provider):
@@ -364,6 +367,7 @@ def _make_session(key, server, inner_provider, inner_model, loop_messages, kwarg
         "done": False,
         "error": None,
         "created": time.time(),
+        "origin": os.environ.get("G4F_AGENT_ORIGIN"),
     }
 
 def _append_step_messages(session: dict, calls: list, tool_results: list, content: str) -> None:
