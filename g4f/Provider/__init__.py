@@ -4,7 +4,27 @@ from ..providers.types import BaseProvider, ProviderType
 from ..providers.retry_provider import RetryProvider, IterListProvider, RotatedProvider, ProviderCircuitBreaker
 from ..providers.base_provider import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images import CreateImagesProvider
+from .. import debug
 
+__others__ = [
+    "AnyProvider",
+    "BaseProvider",
+    "ProviderType",
+    "RetryProvider",
+    "IterListProvider",
+    "RotatedProvider",
+    "ProviderCircuitBreaker",
+    "AsyncProvider",
+    "AsyncGeneratorProvider",
+    "CreateImagesProvider",
+    "ProviderUtils",
+    "ProviderLoader",
+    "Custom",
+    "debug",
+    "__providers__",
+    "__map__",
+    "__path__"
+]
 
 class ProviderLoader:
     names = [
@@ -97,6 +117,7 @@ class ProviderLoader:
         "xAI",
     ]
     loaded = {}
+    ignored = []
 
     @classmethod
     def from_name(cls, name: str) -> ProviderType:
@@ -108,6 +129,8 @@ class ProviderLoader:
 
     @classmethod
     def _load(cls, name: str) -> ProviderType:
+        debug.log(f"Loading provider: {name}")
+
         if name == "AnyProvider":
             from g4f.providers.any_provider import AnyProvider
 
@@ -521,36 +544,22 @@ class ProviderLoader:
         else:
             raise ImportError(f"Provider '{name}' not found")
 
-
-__all__ = [
-    "AnyProvider",
-    "BaseProvider",
-    "ProviderType",
-    "RetryProvider",
-    "IterListProvider",
-    "RotatedProvider",
-    "ProviderCircuitBreaker",
-    "AsyncProvider",
-    "AsyncGeneratorProvider",
-    "CreateImagesProvider",
-    "ProviderUtils",
-    "G4FSpace",
-    "Custom",
-    "__providers__",
-    "__map__",
-] + ProviderLoader.names
-
+__all__ = __others__ +ProviderLoader.names
 
 def __getattr__(name: str):
     if name == "__providers__":
         # Load all providers if specifically requested
         providers_list = []
         for provider_name in ProviderLoader.names:
+            if provider_name in ProviderLoader.ignored:
+                continue
             try:
                 providers_list.append(ProviderLoader.from_name(provider_name))
             except AttributeError:
                 pass
         return providers_list
+    if name in __others__:
+        return globals()[name]
     try:
         return ProviderLoader.from_name(name)
     except ImportError as e:

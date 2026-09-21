@@ -10,13 +10,12 @@ from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
 from ..errors import ModelNotFoundError
-from ..Provider import G4FSpace, __getattr__
+from ..Provider import ProviderLoader, G4FSpace
 from .base_provider import (
     AsyncGeneratorProvider,
     ProviderModelMixin,
     get_async_provider_method,
 )
-from .. import Provider
 from .. import models
 from .. import debug
 from .any_model_map import (
@@ -143,13 +142,11 @@ class AnyModelProviderMixin(ProviderModelMixin):
         cls.vision_models = []
         cls.video_models = []
 
-        from ..Provider import __getattr__
-
         def resolve_provider(p):
             if isinstance(p, str):
                 try:
-                    return __getattr__(p)
-                except AttributeError:
+                    return ProviderLoader.from_name(p)
+                except ImportError:
                     return None
             return p
 
@@ -221,9 +218,9 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     [clean_name(model) for model in provider.video_models]
                 )
 
-        for provider in Provider.__providers__:
+        for provider in ProviderLoader.names:
             try:
-                if provider == __getattr__("Perplexity"):
+                if provider == ProviderLoader.from_name("Perplexity"):
                     for model in provider.fallback_models:
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
@@ -234,9 +231,9 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     and provider
                     not in [
                         AnyProvider,
-                        __getattr__("Custom"),
-                        __getattr__("PollinationsImage"),
-                        __getattr__("OpenaiAccount"),
+                        ProviderLoader.from_name("Custom"),
+                        ProviderLoader.from_name("PollinationsImage"),
+                        ProviderLoader.from_name("OpenaiAccount"),
                     ]
                 ):
                     for model in provider.get_models():
@@ -247,7 +244,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                         for alias, model in provider.model_aliases.items():
                             if alias in cls.model_map:
                                 cls.model_map[alias].update({provider.__name__: model})
-                    if provider == __getattr__("GeminiPro"):
+                    if provider == ProviderLoader.from_name("GeminiPro"):
                         for model in cls.model_map.keys():
                             if "gemini" in model or "gemma" in model:
                                 cls.model_map[model].update({provider.__name__: model})
@@ -258,7 +255,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 continue
 
         # Process audio providers
-        for provider in [__getattr__("Pollinations")]:
+        for provider in [ProviderLoader.from_name("Pollinations")]:
             if provider.working:
                 cls.audio_models.extend(
                     [
@@ -279,12 +276,13 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         # Create a mapping of parent providers to their children
         cls.parents = {}
-        for provider in Provider.__providers__:
-            if provider.working and provider.__name__ != provider.get_parent():
-                if provider.get_parent() not in cls.parents:
-                    cls.parents[provider.get_parent()] = [provider.__name__]
-                elif provider.__name__ not in cls.parents[provider.get_parent()]:
-                    cls.parents[provider.get_parent()].append(provider.__name__)
+        for provider in ProviderLoader.names:
+            provider_instance = ProviderLoader.from_name(provider)
+            if provider_instance.working and provider_instance.__name__ != provider_instance.get_parent():
+                if provider_instance.get_parent() not in cls.parents:
+                    cls.parents[provider_instance.get_parent()] = [provider_instance.__name__]
+                elif provider_instance.__name__ not in cls.parents[provider_instance.get_parent()]:
+                    cls.parents[provider_instance.get_parent()].append(provider_instance.__name__)
 
         for model, providers in cls.model_map.items():
             for provider, alias in providers.items():
@@ -455,15 +453,15 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             ):
                 yield chunk
             return
-        elif model in Provider.__map__:
-            provider = Provider.__map__[model]
+        elif model in Provider.names:
+            provider = ProviderLoader.from_name(model)
             if provider.working and provider.get_parent() not in ignored:
                 model = None
                 providers.append(provider)
         elif model and ":" in model:
             provider, submodel = model.split(":", maxsplit=1)
-            if hasattr(Provider, provider):
-                provider = getattr(Provider, provider)
+            if provider in ProviderLoader.names:
+                provider = ProviderLoader.from_name(provider)
                 method = get_async_provider_method(provider)
                 async for chunk in method(
                     submodel,
@@ -481,8 +479,10 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     model = cls.model_aliases[model]
             if model in cls.model_map:
                 for provider, alias in cls.model_map[model].items():
+                    if provider not in ProviderLoader.names or provider in ProviderLoader.ignored:
+                        continue
                     try:
-                        provider_cls = Provider.__map__[provider]
+                        provider_cls = ProviderLoader.from_name(provider)
                         if provider_cls.model_aliases is None:
                             provider_cls.model_aliases = {}
                         if model not in provider_cls.model_aliases:
@@ -493,8 +493,8 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         if not providers:
             def _safe_getattr(p):
                 try:
-                    return __getattr__(p)
-                except AttributeError:
+                    return ProviderLoader.from_name(p)
+                except ImportError:
                     return None
 
             for provider in [

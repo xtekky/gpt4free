@@ -334,7 +334,7 @@ async def _execute_tool_call(server, call: dict, kwargs: dict) -> tuple:
     call["extra_content"] = _build_extra_content(name, arguments, result)
     return call, name, result
 
-def _make_session(key, server, inner_provider, inner_model, loop_messages, kwargs, media,
+def _make_session(key, server, inner_provider, inner_model, loop_messages, kwargs, media, api_key,
                   tool_defs, tool_choice, use_native, tool_names, completion_tokens, usage,
                   pending=None, partial="") -> dict:
     """Create a background session that continues the agent loop."""
@@ -346,6 +346,7 @@ def _make_session(key, server, inner_provider, inner_model, loop_messages, kwarg
         "messages": loop_messages,
         "kwargs": kwargs,
         "media": media,
+        "api_key": api_key,
         "tool_defs": tool_defs,
         "tool_choice": tool_choice,
         "use_native": use_native,
@@ -386,7 +387,7 @@ def _append_step_messages(session: dict, calls: list, tool_results: list, conten
         })
 
 def _store_done_session(session_key: Optional[str], server, inner_provider, inner_model,
-                        loop_messages, kwargs, media, tool_defs, tool_choice, use_native,
+                        loop_messages, kwargs, media, api_key, tool_defs, tool_choice, use_native,
                         tool_names, completion_tokens, usage, result: Optional[str],
                         finish_reason: str, provider_info: Optional[ProviderInfo] = None) -> None:
     """Cache a finished agent run so a later matching request can resume it.
@@ -399,7 +400,7 @@ def _store_done_session(session_key: Optional[str], server, inner_provider, inne
         return
     session = _make_session(
         session_key, server, inner_provider, inner_model, loop_messages,
-        kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+        kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
         completion_tokens, usage,
     )
     session["result"] = result
@@ -453,6 +454,7 @@ async def _run_background_session(session: dict) -> None:
                 messages=inner_messages,
                 stream=True,
                 media=session["media"],
+                api_key=session["api_key"],
                 **inner_kwargs,
             )
             # ``remaining`` is ``None`` without a background time budget:
@@ -477,8 +479,8 @@ async def _run_background_session(session: dict) -> None:
                         session["provider_info"] = chunk.get_dict()
                     elif isinstance(chunk, (JsonConversation, Reasoning)):
                         continue
-                    elif isinstance(chunk, Exception):
-                        raise chunk
+                    else:
+                        yield chunk
             except TimeoutError:
                 # Model call stalled: retry it with the remaining budget.
                 continue
@@ -739,7 +741,7 @@ class AgentTools(AsyncGeneratorProvider):
                 api_key=api_key,
                 **inner_kwargs,
             )
-            response = wait_for(response, timeout=max(remaining, 0.1))
+            # response = wait_for(response, timeout=max(remaining, 0.1))
 
             content_chunks: list[str] = []
             native_calls: list = []
@@ -791,7 +793,7 @@ class AgentTools(AsyncGeneratorProvider):
                 if session_key:
                     _store_done_session(
                         session_key, server, inner_provider, model, loop_messages,
-                        kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                        kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                         completion_tokens, usage, result=content or None,
                         finish_reason=finish.reason if finish is not None else "stop",
                         provider_info=inner_info,
@@ -817,7 +819,7 @@ class AgentTools(AsyncGeneratorProvider):
                 if session_key:
                     _store_done_session(
                         session_key, server, inner_provider, model, loop_messages,
-                        kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                        kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                         completion_tokens, usage, result=content or None, finish_reason="stop",
                         provider_info=inner_info,
                     )
@@ -837,11 +839,11 @@ class AgentTools(AsyncGeneratorProvider):
                 # Time budget exhausted mid-step: keep the agent running in the
                 # background and end this stream with a session token. Complete
                 # tool calls are handed over so no work is lost.
-                if openai_calls:
-                    yield ToolCalls(openai_calls)
+                # if openai_calls:
+                #    yield ToolCalls(openai_calls)
                 agent_session = _make_session(
                     session_key, server, inner_provider, model, loop_messages,
-                    kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                    kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                     completion_tokens, usage, pending=openai_calls, partial=content,
                 )
                 async for chunk in cls._start_background(agent_session, messages, completion_tokens):
@@ -853,7 +855,7 @@ class AgentTools(AsyncGeneratorProvider):
                 await _execute_tool_call(server, call, kwargs) for call in openai_calls
             ]
 
-            yield ToolCalls(openai_calls)
+            # yield ToolCalls(openai_calls)
 
             # Feed the tool results back into the conversation.
             loop_messages.append({

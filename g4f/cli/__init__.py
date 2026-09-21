@@ -218,7 +218,6 @@ def run_api_args(args):
     # Apply configuration
     AppConfig.set_config(
         ignore_cookie_files=args.ignore_cookie_files,
-        ignored_providers=args.ignored_providers,
         g4f_api_key=args.g4f_api_key,
         provider=args.provider,
         media_provider=args.media_provider,
@@ -229,6 +228,10 @@ def run_api_args(args):
         timeout=args.timeout,
         stream_timeout=args.stream_timeout,
     )
+
+    if args.ignored_providers:
+        from ..Provider import ProviderLoader
+        ProviderLoader.ignored = args.ignored_providers
 
     # Browser automation config
     if args.browser_port:

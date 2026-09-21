@@ -117,9 +117,10 @@ class Api:
 
     @staticmethod
     def get_providers() -> dict[str, str]:
-        saved = storage.get(f"{version_utils.current_version}/providers")
-        if saved is not None:
-            return saved
+        if not ProviderLoader.ignored:
+            saved = storage.get(f"{version_utils.current_version}/providers")
+            if saved is not None:
+                return saved
         result = [
             {
                 "name": provider.__name__,

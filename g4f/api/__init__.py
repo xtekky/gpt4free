@@ -105,7 +105,7 @@ from g4f.providers.any_model_map import (
 from g4f.config import AppConfig
 from g4f.client.factory import AbstractClientFactory
 from g4f import Provider
-from g4f.Provider import ProviderUtils
+from g4f.Provider import ProviderUtils, ProviderLoader
 
 from g4f.gui import get_gui_app
 from .stubs import (
@@ -488,6 +488,10 @@ async def lifespan(app: FastAPI):
         read_cookie_files()
     else:
         AppConfig.load_from_env()
+    if not ProviderLoader.ignored:
+        ProviderLoader.ignored = [p for p in os.environ.get("G4F_IGNORED_PROVIDERS", "").split(",") if p]
+    if ProviderLoader.ignored:
+        debug.log(f"Ignored providers: {ProviderLoader.ignored}")
     yield
     if has_cdp:
         from g4f.requests.cdp import _terminate_shared_browser
@@ -701,12 +705,7 @@ def create_app():
         gui_app = WSGIMiddleware(
             get_gui_app(AppConfig.demo, AppConfig.timeout, AppConfig.stream_timeout)
         )
-        app.mount("/", gui_app)
-
-    if AppConfig.ignored_providers:
-        for provider in AppConfig.ignored_providers:
-            if provider in ProviderUtils.convert:
-                ProviderUtils.convert[provider].working = False
+        app.mount("/", gui_app)        
 
     return app
 
@@ -1152,7 +1151,7 @@ class Api:
                                 "user": x_user,
                             },
                         },
-                        ignored=AppConfig.ignored_providers,
+                        ignored=ProviderLoader.ignored,
                     ),
                 )
 
@@ -1295,7 +1294,7 @@ class Api:
                                 "user": x_user,
                             },
                         },
-                        ignored=AppConfig.ignored_providers,
+                        ignored=ProviderLoader.ignored,
                     ),
                 )
 
@@ -1453,7 +1452,7 @@ class Api:
                                 "user": x_user,
                             },
                         },
-                        ignored=AppConfig.ignored_providers,
+                        ignored=ProviderLoader.ignored,
                     ),
                 )
 
