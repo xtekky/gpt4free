@@ -1204,7 +1204,7 @@ def load_pa_provider(file_path: "str | Path") -> Optional[Type]:
         raise ValueError(f"File must have .pa.py extension: {file_path}")
 
     code = file_path.read_text(encoding="utf-8")
-    result = execute_safe_code(code, file_path=file_path, timeout=0.1, max_depth=100)
+    result = execute_safe_code(code, file_path=file_path, timeout=1, max_depth=100)
 
     if not result.success:
         raise RuntimeError(

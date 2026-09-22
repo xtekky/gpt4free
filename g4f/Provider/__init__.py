@@ -607,15 +607,18 @@ class ProviderUtils:
         # Check explicit map
         try:
             return ProviderLoader.from_name(label)
-        except AttributeError:
+        except ImportError:
             pass
 
         # Fallback to search
         for provider_name in ProviderLoader.names:
             if provider_name.lower().startswith(label.lower()):
-                provider = ProviderLoader.from_name(provider_name)
-                if provider.working:
-                    return provider
+                try:
+                    provider = ProviderLoader.from_name(provider_name)
+                    if provider.working:
+                        return provider
+                except ImportError:
+                    pass
 
         raise ValueError(f"Provider with label '{label}' not found")
 
