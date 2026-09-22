@@ -453,7 +453,7 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             ):
                 yield chunk
             return
-        elif model in Provider.names:
+        elif model in ProviderLoader.names:
             provider = ProviderLoader.from_name(model)
             if provider.working and provider.get_parent() not in ignored:
                 model = None
