@@ -105,10 +105,10 @@ def get_model_and_provider(
                 model = default
                 provider = model.best_provider
         elif isinstance(model, str):
-            provider = model.split(":")
-            if provider[0] in ProviderUtils.convert:
-                model = provider[1] if len(provider) > 1 else getattr(provider, "default_model", "")
-                provider = ProviderUtils.convert[provider[0]]
+            splited = model.split(":")
+            if splited[0] in ProviderUtils.convert:
+                provider = ProviderUtils.convert[splited[0]]
+                model = splited[1] if len(splited) > 1 else getattr(provider, "default_model", "")
             else:
                 raise ModelNotFoundError(f"Model not found: {model}")
         elif isinstance(model, Model):
