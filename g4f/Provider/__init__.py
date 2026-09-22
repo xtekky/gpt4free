@@ -555,7 +555,7 @@ def __getattr__(name: str):
                 continue
             try:
                 providers_list.append(ProviderLoader.from_name(provider_name))
-            except AttributeError:
+            except ImportError:
                 pass
         return providers_list
     if name in __others__:
