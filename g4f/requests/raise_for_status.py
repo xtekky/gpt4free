@@ -47,17 +47,20 @@ async def raise_for_status_async(
                 message = await response.json()
                 if isinstance(message, list):
                     message = message[0] if message else {}
-                error = message.get("error")
-                if isinstance(error, dict):
-                    message = error.get("message")
-                else:
-                    message = message.get("message", message)
-                if isinstance(error, str):
-                    message = f"{error}: {message}"
+                if isinstance(message, dict):
+                    error = message.get("error")
+                    if isinstance(error, dict):
+                        message = error.get("message") or error
+                    else:
+                        message = message.get("message", message)
+                    if isinstance(error, str):
+                        message = f"{error}: {message}"
             except json.JSONDecodeError:
                 message = await response.text()
         else:
             message = await response.text()
+        if not isinstance(message, str):
+            message = json.dumps(message, default=str)
         if content_type.startswith(
                 "text/html"
             ) or message.strip().lower().startswith("<!DOCTYPE".lower()):

@@ -438,7 +438,7 @@ class ProviderLoader:
 
             return OpenaiChat
         elif name == "ChatGPTLightweight":
-            from g4f.Provider.needs_auth.ChatGPTLightweight import ChatGPTLightweight
+            from g4f.Provider.ChatGPTLightweight import ChatGPTLightweight
 
             return ChatGPTLightweight
         elif name == "OpenaiTemplate":

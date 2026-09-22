@@ -9,19 +9,19 @@ import re
 import time
 import uuid
 
-from ...typing import AsyncResult, Messages
-from ...requests import StreamSession
-from ...requests.cdp import CDPSession
-from ...requests.raise_for_status import raise_for_status
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_prompt
-from ..openai.proofofwork import generate_proof_token
-from ..openai.new import get_requirements_token, get_config
-from ..openai.turnstile_vm import process_turnstile_new
-from ...providers.response import JsonConversation, FinishReason
-from ...cookies import get_cookies
-from ...config import COOKIES_DIR, CUSTOM_COOKIES_DIR
-from ... import debug
+from ..typing import AsyncResult, Messages
+from ..requests import StreamSession
+from ..requests.cdp import CDPSession
+from ..requests.raise_for_status import raise_for_status
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import format_prompt
+from .openai.proofofwork import generate_proof_token
+from .openai.new import get_requirements_token, get_config
+from .openai.turnstile_vm import process_turnstile_new
+from ..providers.response import JsonConversation, FinishReason
+from ..cookies import get_cookies
+from ..config import COOKIES_DIR, CUSTOM_COOKIES_DIR
+from .. import debug
 
 
 class Conversation(JsonConversation):
@@ -257,7 +257,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         client-hint headers the browser actually sends, so later requests
         match the fingerprint the cookies were issued for.
         """
-        async with CDPSession(proxy=proxy) as session:
+        async with CDPSession(proxy=proxy, headless=False) as session:
             try:
                 await session.navigate(f"{cls.url}/?q=Hello")
             except Exception as e:
@@ -319,15 +319,15 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 120,
     ) -> str:
-        if cls._auth_state is None:
+        # if cls._auth_state is None:
             # Harvest fresh cookies and headers from a real browser before
             # falling back to cached HAR captures: a cf_clearance minted for
             # the current IP passes the gate far more reliably.
-            try:
-                cls._auth_state = await cls._harvest_via_cdp(proxy=proxy)
-                cls._auth_state_loaded_at = time.time()
-            except Exception as e:
-                debug.log(f"ChatGPTLightweight: CDP harvest failed: {e}")
+            # try:
+            #     cls._auth_state = await cls._harvest_via_cdp(proxy=proxy)
+            #     cls._auth_state_loaded_at = time.time()
+            # except Exception as e:
+            #     debug.log(f"ChatGPTLightweight: CDP harvest failed: {e}")
         auth_cookies, auth_headers = cls._load_auth_state()
         # Reuse the captured visitor id when available so the session stays
         # consistent with the cf_clearance cookie it was issued with.
@@ -502,3 +502,12 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
             debug.log(f"ChatGPTLightweight: no assistant block in response: {text[:300]!r}")
             return None
         return html.unescape("".join(blocks[index] for index in sorted(blocks)))
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        response = await ChatGPTLightweight._fetch_reply("Hello", Conversation("auto"))
+        print(response)
+
+    asyncio.run(main())
