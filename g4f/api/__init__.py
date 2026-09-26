@@ -2426,11 +2426,25 @@ class Api:
             },
         )
         def upload_cookies(
+            request: Request,
             files: List[UploadFile],
             credentials: Annotated[
                 HTTPAuthorizationCredentials, Depends(Api.security)
             ] = None,
         ):
+            # Security: without an API key the middleware allows all origins,
+            # so restrict cookie uploads to loopback clients to prevent
+            # remote credential pollution of the shared cookie store.
+            if not AppConfig.g4f_api_key:
+                client_host = request.client.host if request.client else ""
+                if client_host not in ("127.0.0.1", "::1"):
+                    return ErrorResponse.from_exception(
+                        HTTPException(
+                            status_code=HTTP_403_FORBIDDEN,
+                            detail="Cookie uploads require an API key when accessed remotely",
+                        ),
+                        None,
+                    )
             response_data = []
             if not AppConfig.ignore_cookie_files:
                 for file in files:

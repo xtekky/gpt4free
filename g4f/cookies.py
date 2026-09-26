@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 import json
+import re
 from typing import Optional, List
 
 try:
@@ -105,6 +106,12 @@ class BrowserConfig:
         cls.impersonate = os.environ.get("G4F_BROWSER_IMPERSONATE", cls.impersonate)
         cls.browser_mode = os.environ.get("G4F_BROWSER_MODE", cls.browser_mode)
 
+
+SENSITIVE_HEADERS = {
+    "authorization", "proxy-authorization", "host", ":authority", "cookie",
+    "set-cookie", "x-api-key", "x-auth-token", "x-csrftoken", "x-session-token",
+}
+SAFE_COOKIE_NAME = re.compile(r"^[A-Za-z0-9_.\-\[\]]{1,64}$")
 
 COOKIE_DOMAINS = (
     ".bing.com",
@@ -275,12 +282,19 @@ def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
         for entry in har_file.get("log", {}).get("entries", []):
             domain = _get_domain(entry)
             if domain:
+                safe_headers = {
+                    k: v for k, v in _get_headers(entry).items()
+                    if k not in SENSITIVE_HEADERS
+                }
                 HeadersConfig.headers[domain] = {
                     **HeadersConfig.headers.get(domain, {}),
-                    **_get_headers(entry),
+                    **safe_headers,
                 }
                 v_cookies = {
-                    c["name"]: c["value"] for c in entry["request"].get("cookies", [])
+                    c["name"]: c["value"]
+                    for c in entry["request"].get("cookies", [])
+                    if SAFE_COOKIE_NAME.fullmatch(str(c.get("name", "")))
+                    and len(str(c.get("value", ""))) <= 512
                 }
                 if v_cookies:
                     cookies_by_domain[domain] = v_cookies
@@ -317,16 +331,9 @@ def read_cookie_files(
         debug.log(f"Read cookies: {dir_path} dir is not readable")
         return
 
-    # Optionally load environment variables
-    try:
-        from dotenv import load_dotenv
-
-        env_path = os.path.join(dir_path, ".env")
-        load_dotenv(env_path, override=True)
-        debug.log(f"Loaded env vars from {env_path}: {os.path.exists(env_path)}")
-    except ImportError:
-        debug.error("Warning: 'python-dotenv' is not installed. Env vars not loaded.")
-
+    # Security: never load environment files from a user-writable directory.
+    # (Previously load_dotenv(..., override=True) here allowed uploaded files
+    # to override runtime environment variables, incl. provider keys.)
     AppConfig.load_from_env()
     BrowserConfig.load_from_env()
 
