@@ -500,7 +500,10 @@ class LiveFeed(commands.Cog):
             return
         session = self._get_session()
         try:
-            async with session.get(self.errors_url) as resp:
+            async with session.get(
+                self.errors_url,
+                headers={**({"Authorization": f"Bearer {self.api_key}"} if self.api_key else {})},
+            ) as resp:
                 if resp.status != 200:
                     return
                 data = await resp.json()

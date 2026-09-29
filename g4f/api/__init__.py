@@ -2689,26 +2689,7 @@ def run_api(
     }
     uvicorn_options.update(filter_none(**kwargs))
 
-    class _PortRecordingServer(uvicorn.Server):
-        """Record the actually bound host/port once uvicorn starts listening.
-
-        The port may differ from the requested one (e.g. port=0 for an
-        OS-assigned port). In-process components — e.g. the CDP extension
-        relay client in g4f/requests/cdp.py — read these env vars to find
-        the server.
-        """
-
-        async def startup(self, sockets=None):
-            await super().startup(sockets)
-            try:
-                if self.servers:
-                    sock_host, sock_port = self.servers[0].sockets[0].getsockname()[:2]
-                    os.environ["G4F_API_HOST"] = str(sock_host)
-                    os.environ["G4F_API_PORT"] = str(sock_port)
-            except Exception:
-                pass
-
-    config = uvicorn.Config(
+    uvicorn.run(
         f"g4f.api:{method}",
         host=host,
         port=int(port),
@@ -2716,4 +2697,3 @@ def run_api(
         use_colors=use_colors,
         **uvicorn_options,
     )
-    _PortRecordingServer(config).run()

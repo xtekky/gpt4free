@@ -231,14 +231,14 @@ def _select_native_provider(inner_provider):
     """
     providers = getattr(inner_provider, "providers", None)
     if providers:
-        from ..Provider import __getattr__ as get_provider
+        from ..Provider import ProviderLoader
 
         native = []
         for p in providers:
             if isinstance(p, str):
                 try:
-                    p = get_provider(p)
-                except AttributeError:
+                    p = ProviderLoader.from_name(p)
+                except ImportError:
                     continue
             if getattr(p, "supports_native_tools", False):
                 native.append(p)
@@ -879,7 +879,7 @@ class AgentTools(AsyncGeneratorProvider):
                     # messages) and end this stream with a session token.
                     agent_session = _make_session(
                         session_key, server, inner_provider, model, loop_messages,
-                        kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                        kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                         completion_tokens, usage,
                     )
                     async for chunk in cls._start_background(agent_session, messages, completion_tokens):
@@ -910,7 +910,7 @@ class AgentTools(AsyncGeneratorProvider):
         if session_key and time.time() >= deadline:
             agent_session = _make_session(
                 session_key, server, inner_provider, model, loop_messages,
-                kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                 completion_tokens, usage,
             )
             async for chunk in cls._start_background(agent_session, messages, completion_tokens):

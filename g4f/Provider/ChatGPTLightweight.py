@@ -235,10 +235,10 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                     continue
                 for cookie in request.get("cookies", []):
                     cookies.setdefault(cookie["name"], cookie["value"])
-                for name in cls._AUTH_HEADERS_WHITELIST:
-                    if name in entry_headers:
-                        headers.setdefault(name, entry_headers[name])
-
+                if "x-web-mobile-conversation-document-affinity" in entry_headers:
+                    for name, value in entry_headers.items():
+                        if name not in ("cookie", "content-length"):
+                            headers.setdefault(name, value)
         if cookies:
             debug.log(
                 f"ChatGPTLightweight: loaded {len(cookies)} chatgpt.com cookies"
@@ -504,6 +504,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         return html.unescape("".join(blocks[index] for index in sorted(blocks)))
 
 if __name__ == "__main__":
+    debug.logging = True
     import asyncio
 
     async def main():

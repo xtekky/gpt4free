@@ -637,7 +637,10 @@ async def _fetch_api_errors(
 ) -> List[dict]:
     """Fetch recent API errors from the given errors endpoint."""
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-        async with session.get(url) as resp:
+        async with session.get(
+            url,
+            headers={**({"Authorization": f"Bearer {FEED_API_KEY}"} if FEED_API_KEY else {})},
+        ) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"HTTP {resp.status} from {url}")
             data = await resp.json()
