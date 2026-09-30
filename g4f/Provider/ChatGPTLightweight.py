@@ -8,6 +8,7 @@ import random
 import re
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
@@ -16,7 +17,8 @@ from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 from .openai.proofofwork import generate_proof_token
-from .openai.new import get_requirements_token, get_config
+from .openai.new import get_requirements_token
+from .openai.har_file import RequestConfig
 from .openai.turnstile_vm import process_turnstile_new
 from ..providers.response import JsonConversation, FinishReason
 from ..cookies import get_cookies
@@ -74,7 +76,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
 
     label = "ChatGPT (Lightweight)"
     url = "https://chatgpt.com"
-    working = True
+    working = False
     needs_auth = False
     supports_stream = True
     supports_system_message = True
@@ -92,18 +94,28 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
     _auth_state = None
     _auth_state_loaded_at = 0.0
     _AUTH_STATE_TTL = 600.0
+    # Document script srcs captured during the last CDP harvest. The
+    # turnstile VM probes them with regexes (op 11); without the real
+    # sentinel sdk.js URL the resolved token is short and the gate rejects
+    # the chat with 403.
+    _script_srcs: list = []
 
-    # Static app-version headers worth copying from a captured session.
-    # Note: the worker-version headers ("cloudflare-workers-version-overrides",
-    # "x-web-mobile-document-worker-version") are deliberately NOT copied:
-    # they are validated against the signed
-    # "x-web-mobile-conversation-document-affinity" token, which is minted
-    # client-side per session and cannot be reused. Sending the version
-    # headers without a matching affinity fails with a hard 403 "Invalid
-    # conversation document affinity"; sending neither reaches the app gate.
+    # Static fingerprint headers worth copying from a captured session.
+    # Session-bound headers are deliberately NOT copied:
+    # - "x-web-mobile-conversation-document-affinity" is signed client-side
+    #   per session (its payload binds the worker version AND the
+    #   oai-session-id) and cannot be reused; the worker-version headers
+    #   ("x-web-mobile-document-worker-version",
+    #   "cloudflare-workers-version-overrides") are validated against it.
+    #   Replaying any of them fails with a hard 403 ("Invalid conversation
+    #   document affinity" / gate rejection) — sending neither reaches the
+    #   app gate.
+    # - "oai-session-id" must match the id sent in the form field, so a
+    #   fresh one is generated per request instead of replaying a captured
+    #   one.
     _AUTH_HEADERS_WHITELIST = (
-        "x-web-mobile-document-renderer",
-        "x-web-mobile-connectivity-effective-type",
+        "x-web-mobile-conversation-renderer",
+        "x-web-mobile-prepare-state",
         "sec-ch-ua",
         "sec-ch-ua-arch",
         "sec-ch-ua-bitness",
@@ -140,6 +152,75 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         })
 
     @classmethod
+    def _get_proof_config(cls, user_agent: str, kind: str = "proof") -> list:
+        """Build the sentinel config in the shape the guest surface sends.
+
+        Captured from a real guest session: the mweb surface uses the full
+        sentinel config (25 elements) extended by seven trailing zeros. The
+        browser mints the requirements token and the proof-of-work token
+        from two different script contexts, so the configs are NOT shared:
+        the requirements token carries the
+        "declarative-partial-updates-<hash>.js" script URL while the
+        proof-of-work token carries "assets/octane-home-client-<hash>.js"
+        with its own element values. Sharing one config between both tokens
+        gets the issued chat requirements token flagged and the updates
+        request gated with "Chat verification required".
+        """
+        now = datetime.now(timezone(timedelta(hours=2)))
+        parse_time = now.strftime("%a %b %d %Y %H:%M:%S") + \
+            " GMT+0200 (Mitteleuropäische Sommerzeit)"
+        if kind == "requirements":
+            # Context: the partial-updates page script that rebuilds the
+            # requirements token (captured). Prefer the fresh src from the
+            # harvest over the stale hardcoded fallback.
+            script_url = next(
+                (s for s in cls._script_srcs
+                 if re.search(r"declarative-partial-updates-[0-9a-f]+\.js$", s)),
+                "https://chatgpt.com/unauth-mweb/scripts/declarative-partial-updates-1222007e7648.js",
+            )
+            pow_counter = 20
+            nav_entry = 207
+            feature_probe = "cookieEnabled−true"
+            early_intent = "__webMobileConversationAnnouncements"
+            event_probe = "onclick"
+            perf_now = random.randint(800, 3000)
+        else:
+            # Context: the octane home bundle that mints the proof token
+            # (captured).
+            script_url = next(
+                (s for s in cls._script_srcs
+                 if re.search(r"octane-home-client-[0-9a-zA-Z]+\.js$", s)),
+                "https://chatgpt.com/unauth-mweb/assets/octane-home-client-DUBzS6ZD.js",
+            )
+            pow_counter = 0  # PoW counter, overwritten while solving
+            nav_entry = 9
+            feature_probe = "product−Gecko"
+            early_intent = "__octaneEarlyHydrationIntents"
+            event_probe = "onbeforematch"
+            perf_now = random.uniform(400, 2500)
+        return [
+            2500,
+            parse_time,
+            4395630592,
+            pow_counter,
+            user_agent,
+            script_url,
+            RequestConfig.data_build,
+            "de-DE",
+            "en-US,en",
+            nav_entry,
+            feature_probe,
+            early_intent,
+            event_probe,
+            perf_now,
+            str(uuid.uuid4()),
+            "model",
+            8,
+            time.time() * 1000,
+            0, 0, 0, 0, 0, 0, 0,
+        ]
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -162,8 +243,6 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                 # flagged, so reusing it would poison every retry.
                 if attempt > 0:
                     conversation.oai_did = str(uuid.uuid4())
-                if attempt >= 3:
-                    cls._auth_state = None
                 reply = await cls._fetch_reply(prompt=prompt, conversation=conversation, proxy=proxy, timeout=timeout)
                 if reply is not None:
                     yield reply
@@ -237,7 +316,15 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                     cookies.setdefault(cookie["name"], cookie["value"])
                 if "x-web-mobile-conversation-document-affinity" in entry_headers:
                     for name, value in entry_headers.items():
-                        if name not in ("cookie", "content-length"):
+                        # Session-bound headers must not be replayed: the
+                        # affinity token and the worker-version headers are
+                        # validated against each other and expire per session
+                        # (replaying them fails with 403 "Invalid conversation
+                        # document affinity"). Only stable fingerprint headers
+                        # from the whitelist are safe to copy.
+                        if name in cls._AUTH_HEADERS_WHITELIST or name in (
+                            "user-agent", "accept-language",
+                        ):
                             headers.setdefault(name, value)
         if cookies:
             debug.log(
@@ -258,25 +345,41 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         match the fingerprint the cookies were issued for.
         """
         async with CDPSession(proxy=proxy, headless=False) as session:
-            try:
-                await session.navigate(f"{cls.url}/?q=Hello")
-            except Exception as e:
-                # A load-event race must not discard an otherwise good session.
-                debug.log(f"ChatGPTLightweight: CDP navigate: {e}")
-            # Wait for a pending Cloudflare challenge to resolve.
-            for _ in range(30):
-                title = await session.evaluate_js("document.title") or ""
-                if title and "Just a moment" not in title and "Attention Required" not in title:
-                    break
-                await asyncio.sleep(1)
+            await session.navigate(f"{cls.url}/#q=Hello")
+            debug.log("ChatGPTLightweight: navigated to chat page")
+            await session.bypass_turnstile()
+            debug.log("ChatGPTLightweight: bypassing turnstile")
+            await session.insert_text_and_submit()
             debug.log("ChatGPTLightweight: waiting for network idle")
             await session.wait_for_network_idle()
             debug.log("ChatGPTLightweight: network idle reached")
+            # The "?q=" parameter makes the guest UI auto-submit a chat. Watch
+            # the browser's own turn: a rendered reply proves this IP and
+            # fingerprint pass the gate, a failure marker means they are
+            # flagged. A reload then gives Cloudflare a second chance to
+            # serve a challenge and mint a "cf_clearance" cookie.
+            outcome = None
+            for _ in range(20):
+                await asyncio.sleep(1)
+                outcome = await session.evaluate_js(
+                    "(() => { const el = document.querySelector("
+                    "'[data-failure-status],[data-assistant-stream-block]');"
+                    " return el ? (el.getAttribute('data-failure-status') || 'reply') : ''; })()"
+                )
+                if outcome:
+                    break
+            if outcome and outcome != "reply":
+                debug.log(f"ChatGPTLightweight: browser chat rejected (status={outcome})")
+                try:
+                    await session.navigate(f"{cls.url}/?q=Hello")
+                    await session.wait_for_network_idle()
+                except Exception as e:
+                    debug.log(f"ChatGPTLightweight: CDP reload: {e}")
             cookies = await session.get_cookies([f"{cls.url}/"])
             if not cookies.get("cf_clearance"):
-                # The clearance cookie is minted once the challenge resolves;
+                # The clearance cookie is minted once a challenge resolves;
                 # give it a moment to show up.
-                for _ in range(10):
+                for _ in range(15):
                     await asyncio.sleep(1)
                     cookies = await session.get_cookies([f"{cls.url}/"])
                     if cookies.get("cf_clearance"):
@@ -288,7 +391,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
             headers = {}
             for params in session.network_requests:
                 request = params.get("request", {})
-                if "chatgpt.com" not in request.get("url", ""):
+                if "https://chatgpt.com/unauth-mweb/conversation/" not in request.get("url", ""):
                     continue
                 sent = {
                     name.lower(): value
@@ -304,10 +407,49 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                     cls.user_agent = sent["user-agent"]
                 if "accept-language" in sent:
                     headers.setdefault("accept-language", sent["accept-language"])
+            # Report how the browser's own auto-submitted chat fared: its
+            # response status is the ground truth for whether this IP and
+            # fingerprint pass the app gate at all.
+            for params in session.network_responses:
+                response = params.get("response", {})
+                url = params.get("request", {}).get("url", "") or response.get("url", "")
+                if "unauth-mweb/conversation/updates" in url:
+                    debug.log(
+                        f"ChatGPTLightweight: browser chat status {response.get('status')}"
+                        f" ({response.get('mimeType', '').split(';')[0]})"
+                    )
+                    break
+            # Dump the browser's successful updates request (headers + form)
+            # so the replayed request can be aligned with it field by field.
+            for params in session.network_requests:
+                request = params.get("request", {})
+                if "unauth-mweb/conversation/updates" not in request.get("url", ""):
+                    continue
+                sent_headers = {
+                    name.lower(): value
+                    for name, value in request.get("headers", {}).items()
+                }
+                debug.log(
+                    "ChatGPTLightweight: browser request headers: "
+                    + json.dumps(sorted(sent_headers))
+                )
+                break
+            # Capture the document script srcs: the turnstile challenge
+            # probes them with regexes (e.g. the sentinel sdk.js URL) and
+            # folds the matches into the token.
+            try:
+                srcs_json = await session.evaluate_js(
+                    "JSON.stringify([...document.scripts].map(s => s.src).filter(Boolean))"
+                )
+                srcs = json.loads(srcs_json) if srcs_json else []
+                if srcs:
+                    cls._script_srcs = srcs
+            except Exception as e:
+                debug.log(f"ChatGPTLightweight: script src capture failed: {e}")
             debug.log(
                 f"ChatGPTLightweight: CDP harvest: {len(cookies)} cookies"
                 f" (cf_clearance={'yes' if cookies.get('cf_clearance') else 'no'}),"
-                f" {len(headers)} headers"
+                f" {len(headers)} headers, {len(cls._script_srcs)} script srcs"
             )
             return cookies, headers
 
@@ -319,28 +461,33 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 120,
     ) -> str:
-        # if cls._auth_state is None:
+        if cls._auth_state is None:
             # Harvest fresh cookies and headers from a real browser before
             # falling back to cached HAR captures: a cf_clearance minted for
             # the current IP passes the gate far more reliably.
-            # try:
-            #     cls._auth_state = await cls._harvest_via_cdp(proxy=proxy)
-            #     cls._auth_state_loaded_at = time.time()
-            # except Exception as e:
-            #     debug.log(f"ChatGPTLightweight: CDP harvest failed: {e}")
+            try:
+                cls._auth_state = await cls._harvest_via_cdp(proxy=proxy)
+                cls._auth_state_loaded_at = time.time()
+            except Exception as e:
+                debug.log(f"ChatGPTLightweight: CDP harvest failed: {e}")
         auth_cookies, auth_headers = cls._load_auth_state()
         # Reuse the captured visitor id when available so the session stays
         # consistent with the cf_clearance cookie it was issued with.
         oai_did = conversation.oai_did = auth_cookies.get("oai-did") or str(uuid.uuid4())
         session_id = str(uuid.uuid4())
+        # The guest UI does not send an "oai-did" header on the mweb calls
+        # (captured); the device id travels in the cookie and request bodies.
         headers = {
             **DEFAULT_HEADERS,
-            "oai-did": oai_did,
             "oai-session-id": session_id,
             **auth_headers,
         }
         cookies = {**auth_cookies, "oai-did": oai_did}
-        config = get_config(cls.user_agent)
+        # The browser mints the requirements token and the proof-of-work
+        # token from two different script contexts, so each token gets its
+        # own config (captured); sharing one gets the chat token flagged.
+        config = cls._get_proof_config(cls.user_agent, kind="requirements")
+        proof_config = cls._get_proof_config(cls.user_agent, kind="proof")
         requirements_token = get_requirements_token(config)
 
         async with StreamSession(
@@ -349,6 +496,9 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             json_headers = {
                 **headers,
+                # No "oai-did" header here: the guest UI does not send one on
+                # the mweb calls (captured); the device id travels in the
+                # cookie and request bodies only.
                 "accept": "application/json",
                 "content-type": "application/json",
             }
@@ -373,7 +523,8 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
 
             # 3. Solve the hashcash challenge
             proof_token = generate_proof_token(
-                True, pow_config.get("seed", ""), pow_config.get("difficulty", ""), cls.user_agent
+                True, pow_config.get("seed", ""), pow_config.get("difficulty", ""),
+                cls.user_agent, proof_token=proof_config
             )
 
             # 3b. Solve the invisible turnstile challenge. The "dx" payload is
@@ -384,18 +535,34 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
             turnstile_token = ""
             if turnstile_config.get("required"):
                 turnstile_token = process_turnstile_new(
-                    turnstile_config.get("dx", ""), requirements_token, cls.user_agent
+                    turnstile_config.get("dx", ""), requirements_token, cls.user_agent,
+                    script_srcs=cls._script_srcs,
                 )
                 debug.log(f"ChatGPTLightweight: turnstile token len {len(turnstile_token)}")
 
-            # 4. Finalize: exchange prepare token + proof for a chat requirements token
+            # 4. Finalize: exchange prepare token + proof for a chat requirements
+            # token. The turnstile token MUST be included here: the server
+            # binds it to the issued requirements token (captured finalize
+            # body: {"prepare_token", "proofofwork", "turnstile"}). Without
+            # it the updates request is rejected with 403 "Chat verification
+            # required" even though the token itself is valid.
+            finalize_body = {"prepare_token": prepare_token, "proofofwork": proof_token}
+            if turnstile_token:
+                finalize_body["turnstile"] = turnstile_token
             async with session.post(
                 cls.requirements_finalize_url,
-                json={"prepare_token": prepare_token, "proofofwork": proof_token},
+                json=finalize_body,
                 headers=json_headers,
             ) as response:
                 await raise_for_status(response)
                 chat_requirements_token = (await response.json())["token"]
+
+            # The session observer token is minted by the sentinel script in
+            # the browser and bound to the requirements token (captured: a
+            # ~640 char blob). Without a browser we cannot compute one; the
+            # gate accepts an empty value (the browser sends it only when a
+            # sentinel observer ran).
+            session_observer_token = ""
 
             client_context = cls.get_client_context()
             retry_owner = json.dumps({"mode": "anonymous", "sessionEpoch": None})
@@ -413,7 +580,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                     }),
                     "clientContextualInfo": client_context,
                     "timezone": "Europe/Berlin",
-                    "timezoneOffsetMinutes": "-120",
+                    "timezoneOffsetMinutes": -120,
                 },
                 headers=form_headers,
             ) as response:
@@ -423,12 +590,15 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
 
             # 6. Send the message and read the DPU partial document
             operation_id = str(uuid.uuid4())
+            # Captured sessions use two distinct uuids here: the operation id
+            # in the URL and a separate turn trace id in the headers.
+            trace_id = str(uuid.uuid4())
             form = {
                 "conversationState": json.dumps({
                     "messages": [],
                     "parentMessageId": "client-created-root",
                     "safety": {"dismissedInterventionIds": []},
-                    "userMessageCount": 1,
+                    "userMessageCount": 0,
                 }),
                 "messageMetadata": "{}",
                 "oai-session-id": session_id,
@@ -438,15 +608,23 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                 "chatRequirementsToken": chat_requirements_token,
                 "proofToken": proof_token,
                 "turnstileToken": turnstile_token,
+                # Captured: the browser sends an EMPTY telemetry token.
                 "telemetryToken": "",
-                # Real browsers send measured turn timings; "[1,null]" is a
-                # bot signal that feeds the "Chat verification required" gate.
-                "timingToken": "[1,%.1f,70,0,21,2,0,88]" % random.uniform(40.0, 150.0),
+                # The real guest UI sends a constant "[1,null]" here (captured),
+                # so a fabricated timing array stands out more than it helps.
+                "timingToken": "[1,null]",
+                # Captured: set to "1" when the chat was started from the
+                # instant-query URL parameter.
+                "__web_mobile_instant_query": "1",
                 "clientContextualInfo": client_context,
                 "imageSaveData": "off",
                 "imageEffectiveType": "4g",
                 "timezone": "Europe/Berlin",
-                "timezoneOffsetMinutes": "-120",
+                "timezoneOffsetMinutes": -120,
+                # Captured: the prepare token from step 1 is echoed in the
+                # form alongside the finalized requirements token.
+                "chatRequirementsPrepareToken": prepare_token,
+                "sessionObserverToken": session_observer_token,
                 "conversationRetryOwner": retry_owner,
                 "assistantMessageId": f"pending-{str(uuid.uuid4())}",
                 "userMessageId": str(uuid.uuid4()),
@@ -455,7 +633,7 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
                 **form_headers,
                 "accept": "text/vnd.openai.web-mobile-partial+html",
                 "x-conduit-token": conduit_token,
-                "x-oai-turn-trace-id": operation_id,
+                "x-oai-turn-trace-id": trace_id,
                 "x-web-mobile-conversation-renderer": "octane",
                 "x-web-mobile-conversation-stream-protocol": "1",
                 "x-web-mobile-prepare-state": "success",
@@ -508,7 +686,13 @@ if __name__ == "__main__":
     import asyncio
 
     async def main():
-        response = await ChatGPTLightweight._fetch_reply("Hello", Conversation("auto"))
-        print(response)
+        # Exercise the full retry path (fresh sessions + re-harvests), not
+        # just a single _fetch_reply attempt.
+        async for chunk in ChatGPTLightweight.create_async_generator(
+            "auto", [{"role": "user", "content": "Guten Tag"}]
+        ):
+            if isinstance(chunk, (FinishReason, JsonConversation)):
+                continue
+            print(chunk)
 
     asyncio.run(main())

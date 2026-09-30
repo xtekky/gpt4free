@@ -2685,7 +2685,7 @@ def run_api(
         "backlog": 2048,
         # Avoid hanging forever on shutdown when a long-running request (e.g.
         # a browser-based provider login) is still in-flight.
-        "timeout_graceful_shutdown": 10,
+        "timeout_graceful_shutdown": 600,
     }
     uvicorn_options.update(filter_none(**kwargs))
 

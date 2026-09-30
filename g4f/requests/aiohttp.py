@@ -75,7 +75,7 @@ class StreamSession:
     def __init__(
         self,
         headers=None,
-        timeout: int = None,
+        timeout: int = 0,
         connector: BaseConnector = None,
         proxy: str = None,
         proxies=None,
@@ -91,11 +91,11 @@ class StreamSession:
             headers = {**DEFAULT_HEADERS, **headers}
         if not has_brotli and "br" in headers.get("accept-encoding", ""):
             headers["accept-encoding"] = "gzip, deflate"
-        connect = None
         if isinstance(timeout, tuple):
-            connect, timeout = timeout
-        if timeout is not None:
+            timeout, connect = timeout
             timeout = ClientTimeout(timeout, connect)
+        elif timeout is not None:
+            timeout = ClientTimeout(timeout)
         if proxy is None:
             proxy = proxies.get("all", proxies.get("https"))
 

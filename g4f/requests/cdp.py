@@ -1393,7 +1393,7 @@ const sendButton = document.querySelector(sendButtonSelectors.join(', '));
 if (sendButton) {
     setTimeout(() => {
         sendButton.click();
-    }, 1000);
+    }, 2000);
 }
 
 // Click the send button on gemini.google.com

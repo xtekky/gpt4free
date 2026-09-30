@@ -127,6 +127,7 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     )
 
     api_parser.add_argument("--reload", action="store_true", help="Enable hot reload.")
+    api_parser.add_argument("--no-reload", action="store_true", help="Disable hot reload.")
     api_parser.add_argument("--demo", action="store_true", help="Enable demo mode.")
 
     api_parser.add_argument(
@@ -279,7 +280,7 @@ def run_api_args(args):
         debug=args.debug,
         workers=args.workers,
         use_colors=not args.disable_colors,
-        reload=args.reload,
+        reload=args.reload and not args.no_reload,
         ssl_keyfile=args.ssl_keyfile,
         ssl_certfile=args.ssl_certfile,
         log_config=args.log_config,

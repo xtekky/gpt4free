@@ -195,13 +195,71 @@ class TurnstileVM:
             def now() -> float:
                 return (time.time() - vm.start) * 1000.0 + random.random()
 
+        class Element:
+            """Minimal DOM element: the sentinel program measures font
+            metrics of a hidden probe div (getBoundingClientRect)."""
+
+            def __init__(self, tag: str = "div"):
+                self.tag = tag
+                self.style: dict = {}
+                self._inner_text = ""
+                self._rect = (0.0, 0.0, 0.0, 0.0)
+
+            def setAttribute(self, name: str, value) -> None:
+                pass
+
+            def appendChild(self, child) -> None:
+                pass
+
+            def removeChild(self, child) -> None:
+                pass
+
+            def getBoundingClientRect(self) -> dict:
+                # Deterministic Arial 12px metrics for the probe glyph
+                # (captured from a real desktop Chrome: 24.6875 x 18).
+                # Combining marks (U+0300-U+036F etc.) are zero-width, so a
+                # naive len() estimate would overstate the width ~3.5x.
+                width, height = self.style.get("_rect", (24.6875, 18.0))
+                return {"width": width, "height": height, "x": 0.0, "y": 0.0,
+                        "top": 0.0, "left": 0.0, "right": width, "bottom": height}
+
+            @property
+            def innerText(self) -> str:
+                return self._inner_text
+
+            @innerText.setter
+            def innerText(self, value: str) -> None:
+                # Keep the captured default rect: Chrome's shaping of the
+                # probe glyph (base chars + combining marks) cannot be
+                # reproduced by per-glyph estimation, and the sentinel
+                # program always measures the same fixed string.
+                self._inner_text = value
+
+        # The sentinel VM runs inside the frame.html iframe (captured:
+        # https://chatgpt.com/backend-api/sentinel/frame.html?sv=<version>),
+        # so document.location must be the frame URL, not the host page.
+        document = {
+            "location": "https://chatgpt.com/backend-api/sentinel/frame.html?sv=20260810913b",
+            "visibilityState": "visible",
+            "body": {
+                "appendChild": lambda child: None,
+                "removeChild": lambda child: None,
+            },
+            "createElement": lambda tag="div": Element(tag),
+        }
+
         return {
-            "document": {"location": "https://chatgpt.com/", "visibilityState": "visible"},
+            "document": document,
             "navigator": {
                 "userAgent": user_agent,
                 "language": "en-US",
                 "languages": ["en-US"],
+                "vendor": "Google Inc.",
+                "platform": "Linux x86_64",
+                "deviceMemory": 16,
+                "maxTouchPoints": 0,
                 "hardwareConcurrency": 8,
+                "cookieEnabled": True,
             },
             "localStorage": {
                 "STATSIG_LOCAL_STORAGE_INTERNAL_STORE_V4": "{}",
@@ -211,12 +269,20 @@ class TurnstileVM:
                 "oai-did": "",
                 "STATSIG_LOCAL_STORAGE_LOGGING_REQUEST": "",
                 "UiState.isNavigationCollapsed.1": "",
+                "setItem": lambda k, v: None,
             },
-            "screen": {"width": 412, "height": 915, "availWidth": 412, "availHeight": 915},
+            # Desktop Chrome values (captured); the mobile 412x915 shape
+            # contradicted the desktop Linux user agent.
+            "screen": {
+                "width": 1600, "height": 900,
+                "availWidth": 1600, "availHeight": 900,
+                "availLeft": 0, "availTop": 0,
+                "colorDepth": 24, "pixelDepth": 24,
+            },
             "history": {"length": 2},
             "performance": Performance,
             "Math": {"random": lambda: random.random()},
-            "Object": {"create": lambda _proto=None: {}},
+            "Object": {"create": lambda _proto=None: {}, "keys": lambda obj: list(obj.keys()) if isinstance(obj, dict) else []},
             "Reflect": {"set": lambda obj, k, v: obj.__setitem__(k, v) if isinstance(obj, dict) else None},
         }
 

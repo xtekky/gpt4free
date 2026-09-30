@@ -35,7 +35,7 @@ class RequestConfig:
     turnstile_token: str = None
     arkose_request: arkReq = None
     arkose_token: str = None
-    data_build: str = "prod-db8e51e8414e068257091cf5003a62d3d4ee6ed0"
+    data_build: str = "prod-329d9af90bc80a50b17d4b6f95c261f7c70f5a9b"
 
 
 class arkReq:
