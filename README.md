@@ -6,7 +6,7 @@
   <!--img src="https://g4f.dev/docs/images/477107515-7f60c240-00fa-4c37-bf7f-ae5cc20906a1.png" alt="GPT4Free logo" height="200" /-->
 
 
-  [<img width="2752" height="1536" alt="1000066442" src="https://github.com/user-attachments/assets/4c77fa18-e2bb-4ee8-80ca-384fed7edc1c" />](https://g4f.dev/community-day-2026.html)
+  [<img alt="Community Day 2026" src="https://g4f.dev/community-day-2026/awards/Start.jpeg" />](https://g4f.dev/community-day-2026/awards/)
 
 </p>
 
