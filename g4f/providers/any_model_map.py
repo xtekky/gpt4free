@@ -16,7 +16,7 @@ model_map = {
     "OperaAria": "",
     "GeminiPro": "",
     "OpenRouterFree": "",
-    "ChatGPTLightweight": "",
+    "ChatGPT": "",
     "LLM7": "default",
     "OpenaiChat": "",
     "G4FSpace": "default:"
@@ -47,12 +47,12 @@ model_map = {
     "GithubCopilot": "gpt-4o",
     "KiloCode": "openai/gpt-4o-2024-05-13",
     "OpenRouter": "openai/gpt-4o:batch",
-    "ChatGPTLightweight": "gpt-4o",
+    "ChatGPT": "gpt-4o",
     "Puter": "openrouter:openai/gpt-4o:batch"
   },
   "gpt-4o-mini": {
     "OpenaiChat": "gpt-4o-mini",
-    "ChatGPTLightweight": "gpt-4o-mini",
+    "ChatGPT": "gpt-4o-mini",
     "Airforce": "gpt-4o-mini",
     "CopilotApp": "chat",
     "GithubCopilot": "gpt-4o-mini",
