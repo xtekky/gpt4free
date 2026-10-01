@@ -183,19 +183,20 @@ jobs:
 
       - name: Build Android APK
         working-directory: projects/android
+        env:
+          G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           chmod +x gradlew || true
           if [ -f "./gradlew" ]; then
-            ./gradlew assembleRelease
+            ./gradlew assembleRelease -PappVersionName="${G4F_VERSION}"
           else
-            gradle assembleRelease
+            gradle assembleRelease -PappVersionName="${G4F_VERSION}"
           fi
 
       - name: Prepare APK release artifacts
         run: |
           mkdir -p dist-android
           find projects/android/app/build/outputs/apk -name "*.apk" -exec cp -v {} dist-android/g4f-${{ needs.prepare.outputs.version }}.apk \; || true
-          find projects/android/app/build/outputs/apk -name "*.apk" -exec cp -v {} dist-android/g4f-android.apk \; || true
           ls -la dist-android/
 
       - name: Upload Android APK artifact
@@ -333,7 +334,7 @@ jobs:
             - FreeBSD amd64: `g4f-go-${{ needs.prepare.outputs.version }}-freebsd-amd64.zip`
 
             **Android App:**
-            - Android APK: `g4f-${{ needs.prepare.outputs.version }}.apk` / `g4f-android.apk`
+            - Android APK: `g4f-${{ needs.prepare.outputs.version }}.apk`
 
             **System Packages:**
             - WinGet: `winget install gpt4free`

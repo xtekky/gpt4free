@@ -5,11 +5,15 @@ The Flask GUI (`g4f.gui`) runs in-process and a WebView loads `http://127.0.0.1:
 
 ## Install (prebuilt APK)
 
+Download `g4f-<version>.apk` (e.g. `g4f-v8.5.9.apk`) from the
+[releases page](https://github.com/xtekky/gpt4free/releases) — the APK version
+matches the release tag — then:
+
 ```bash
-adb install -r ../g4f-android-debug.apk   # from repo root: adb install -r g4f-android-debug.apk
+adb install -r g4f-v8.5.9.apk
 ```
 
-Or copy `g4f-android-debug.apk` to a phone and open it (enable "Install unknown apps").
+Or copy the APK to a phone and open it (enable "Install unknown apps").
 
 Watch startup logs:
 

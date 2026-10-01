@@ -3,6 +3,18 @@ plugins {
     id 'com.chaquo.python'
 }
 
+// Version comes from the git tag in CI (-PappVersionName or G4F_VERSION env,
+// e.g. v8.5.9 -> 8.5.9). Falls back to 0.1.0 for local builds.
+def g4fVersionName = ((project.findProperty("appVersionName")
+        ?: System.getenv("G4F_VERSION") ?: "0.1.0") as String).replaceFirst(/^v/, "")
+def g4fVersionCode = 1
+def versionMatch = (g4fVersionName =~ /(\d+)\.(\d+)\.(\d+)/)
+if (versionMatch.find()) {
+    g4fVersionCode = versionMatch.group(1).toInteger() * 10000
+            + versionMatch.group(2).toInteger() * 100
+            + versionMatch.group(3).toInteger()
+}
+
 android {
     namespace 'dev.g4f.android'
     compileSdk 34
@@ -11,8 +23,8 @@ android {
         applicationId "dev.g4f.android"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "0.1.0"
+        versionCode g4fVersionCode
+        versionName g4fVersionName
 
         ndk {
             // Chaquopy supports: arm64-v8a, armeabi-v7a, x86, x86_64
