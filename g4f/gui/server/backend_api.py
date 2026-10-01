@@ -77,6 +77,7 @@ from ...image import (
     MEDIA_TYPE_MAP,
     is_safe_url as _is_safe_url,
 )
+from ..config import AppConfig
 from ...cookies import get_cookies_dir
 from ...image.copy_images import (
     secure_filename,
@@ -994,6 +995,12 @@ class Backend_Api(Api):
 
         @app.route("/backend-api/v2/upload_cookies", methods=["POST"])
         def upload_cookies():
+            # Security: restrict uploads to loopback clients while no API key
+            # is configured, matching the /v1/upload_cookies guard.
+            peer = request.remote or ""
+            if peer not in ("127.0.0.1", "::1") and not peer.startswith("127."):
+                if not AppConfig.g4f_api_key:
+                    return "Forbidden: cookie uploads require an API key", 403
             file = None
             if "file" in request.files:
                 file = request.files["file"]
