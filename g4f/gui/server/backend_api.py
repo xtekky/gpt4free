@@ -12,14 +12,11 @@ import shutil
 import random
 import datetime
 from hashlib import sha256
-from urllib.parse import quote_plus
 from functools import lru_cache
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
 from typing import Generator
 from pathlib import Path
-from urllib.parse import quote_plus
-from hashlib import sha256
 
 try:
     from PIL import Image, UnidentifiedImageError
@@ -77,11 +74,10 @@ from ...image import (
     MEDIA_TYPE_MAP,
     is_safe_url as _is_safe_url,
 )
-from ..config import AppConfig
+from ...config import AppConfig
 from ...cookies import get_cookies_dir
 from ...image.copy_images import (
     secure_filename,
-    get_source_url,
     get_media_dir,
     copy_media,
 )

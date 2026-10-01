@@ -144,6 +144,7 @@ import atexit
 
 _shared_browser_process = None
 _shared_browser_port = None
+_last_shared_browser_port = None  # Port of the last known browser (survives shutdown)
 _shared_browser_lock = threading.Lock()
 _shared_browser_refcount = 0  # Track active CDP sessions for parallel tabs
 _shared_browser_idle_timer = None  # Timer to shut down browser after idle period
@@ -155,9 +156,26 @@ def _terminate_shared_browser():
     global _shared_browser_process, _shared_browser_port
     if _shared_browser_process:
         try:
-            _shared_browser_process.terminate()
+            if os.name == "nt":
+                # Kill the whole Chrome process tree. Terminating only the
+                # main process can leave children (and the profile lock)
+                # behind, which blocks the next launch via singleton handoff.
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(_shared_browser_process.pid)],
+                    capture_output=True,
+                    timeout=10,
+                )
+            else:
+                _shared_browser_process.terminate()
         except Exception:
             pass
+        try:
+            _shared_browser_process.wait(timeout=10)
+        except Exception:
+            try:
+                _shared_browser_process.kill()
+            except Exception:
+                pass
         _shared_browser_process = None
     _shared_browser_port = None
 
@@ -248,6 +266,46 @@ def find_running_cdp_port(host: str) -> Optional[int]:
     return None
 
 
+_PORT_FILE_NAME = "cdp_port.txt"
+
+def _save_browser_port(user_data_dir: str, port: int):
+    """Record the shared browser port next to its profile for later rediscovery."""
+    try:
+        with open(os.path.join(user_data_dir, _PORT_FILE_NAME), "w") as f:
+            f.write(str(port))
+    except Exception:
+        pass
+
+def _read_saved_browser_port(host: str, user_data_dir: Optional[str] = None) -> Optional[int]:
+    """Probe the port recorded for the shared browser profile, if still alive."""
+    if user_data_dir is None:
+        try:
+            from platformdirs import user_config_dir
+
+            user_data_dir = user_config_dir("g4f-cdp")
+        except Exception:
+            return None
+    port_file = os.path.join(user_data_dir, _PORT_FILE_NAME)
+    try:
+        with open(port_file) as f:
+            port = int(f.read().strip())
+    except Exception:
+        return None
+    try:
+        with urllib.request.urlopen(
+            f"http://{host}:{port}/json", timeout=0.5
+        ) as response:
+            if response.status == 200:
+                return port
+    except Exception:
+        pass
+    # Stale — clean up so we don't probe it forever
+    try:
+        os.remove(port_file)
+    except Exception:
+        pass
+    return None
+
 def get_shared_browser(
     host: str,
     preferred_port: int,
@@ -264,7 +322,7 @@ def get_shared_browser(
     first launched — later callers reusing the shared process are ignored,
     since Chrome does not support changing its proxy at runtime.
     """
-    global _shared_browser_process, _shared_browser_port
+    global _shared_browser_process, _shared_browser_port, _last_shared_browser_port
 
     with _shared_browser_lock:
         if preferred_port is not None:
@@ -276,6 +334,7 @@ def get_shared_browser(
                         return preferred_port
             except Exception:
                 pass
+
         # 1. If we already started a shared browser in this thread, check if it's still alive/reachable
         if _shared_browser_port is not None:
             try:
@@ -296,8 +355,13 @@ def get_shared_browser(
 
         # 2. Check if a browser is already running anywhere on the system with CDP remote debugging
         running_port = find_running_cdp_port(host)
+        if running_port is None:
+            # psutil-free fallback: a previous run recorded its port next to
+            # the profile — probe it in case that Chrome is still alive.
+            running_port = _read_saved_browser_port(host, user_data_dir=None)
         if running_port is not None:
             _shared_browser_port = running_port
+            _shared_browser_process = None  # Not started here — don't own it
             return _shared_browser_port
 
         # 3. Otherwise, launch a new shared Chromium process on a free port
@@ -346,13 +410,16 @@ def get_shared_browser(
             "--no-first-run",
             "--disable-infobars",
             "--disable-popup-blocking",
-            "--hide-crash-restore-bubble"
+            "--hide-crash-restore-bubble",
+            # Required for CDP WebSocket connections on Chrome 111+
+            "--remote-allow-origins=*",
         ] + (
             [
-            "--disable-features=PrivacySandboxSettings4",
-            "--disable-blink-features=AutomationControlled",
-            "--disable-web-security"
-            "--disable-features=IsolateOrigins,site-per-process",
+                # Chrome only honors the last --disable-features flag, so all
+                # values must be merged into a single argument.
+                "--disable-features=PrivacySandboxSettings4,IsolateOrigins,site-per-process",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-web-security",
             ] if disable_web_security else []
         )
         if headless:
@@ -364,11 +431,33 @@ def get_shared_browser(
 
         debug.log(f"CDP: Launching Chrome: {' '.join(cmd)}")
         _shared_browser_process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
         )
+        proc = _shared_browser_process
+        _last_shared_browser_port = port
+        _save_browser_port(user_data_dir, port)
+
+        # Drain stderr in the background — an unread pipe fills up and can
+        # block Chrome. Keep a tail of the last lines for diagnostics.
+        stderr_tail: List[str] = []
+
+        def _drain_stderr():
+            try:
+                for line in proc.stderr:
+                    stderr_tail.append(line.decode("utf-8", errors="replace"))
+                    if len(stderr_tail) > 50:
+                        stderr_tail.pop(0)
+            except Exception:
+                pass
+
+        threading.Thread(target=_drain_stderr, daemon=True).start()
 
         # Wait up to 20 seconds for readiness
         for _ in range(40):
+            if proc.poll() is not None:
+                # Chrome exited right away — likely it handed the profile
+                # over to an already-running instance (singleton) and quit.
+                break
             time.sleep(0.5)
             try:
                 with urllib.request.urlopen(
@@ -381,30 +470,36 @@ def get_shared_browser(
             except Exception:
                 pass
 
-        # Chrome failed to become ready — capture stderr for diagnostics
-        if _shared_browser_process:
-            stderr_output = ""
+        # Chrome did not become ready on the new port. If an older instance
+        # still holds the profile (singleton handoff), adopt it instead of
+        # failing — it is a fully usable shared browser.
+        adopted_port = find_running_cdp_port(host)
+        if adopted_port is None and _last_shared_browser_port is not None:
             try:
-                _shared_browser_process.terminate()
-                # Read any stderr output before killing
-                import threading
-
-                def _read_stderr(proc, container):
-                    try:
-                        container.append(proc.stderr.read().decode("utf-8", errors="replace")[:2000])
-                    except Exception:
-                        pass
-
-                err_list = []
-                t = threading.Thread(target=_read_stderr, args=(_shared_browser_process, err_list))
-                t.daemon = True
-                t.start()
-                t.join(timeout=2)
-                if err_list:
-                    stderr_output = err_list[0]
+                with urllib.request.urlopen(
+                    f"http://{host}:{_last_shared_browser_port}/json", timeout=0.5
+                ) as response:
+                    if response.status == 200:
+                        adopted_port = _last_shared_browser_port
             except Exception:
                 pass
-            _shared_browser_process = None
+        if adopted_port is not None:
+            _shared_browser_port = adopted_port
+            _shared_browser_process = None  # Not our child — don't manage its lifetime
+            debug.log(f"CDP: Adopted already-running Chrome on port {adopted_port}")
+            return _shared_browser_port
+
+        # Chrome failed to become ready — capture stderr for diagnostics
+        stderr_output = ""
+        if proc:
+            try:
+                proc.terminate()
+                proc.wait(timeout=2)
+            except Exception:
+                pass
+            if stderr_tail:
+                stderr_output = "".join(stderr_tail)[-2000:]
+        _shared_browser_process = None
         raise RuntimeError(
             f"Failed to start shared Chrome on port {port}"
             + (f": {stderr_output}" if stderr_output else "")
