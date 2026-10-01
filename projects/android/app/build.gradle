@@ -72,13 +72,12 @@ android {
 }
 
 task copyG4fAssets(type: Copy) {
+    // Only the Python package is embedded. GUI assets are NOT embedded:
+    // g4f.gui's website.py fetches the chat UI from the g4f.dev CDN at
+    // runtime when ./g4f.dev/dist is missing (same as a pip install).
     from("${rootDir}/../../g4f") {
         into("g4f")
         exclude "**/__pycache__", "**/*.pyc", "**/.git*"
-    }
-    from("${rootDir}/../../g4f.dev") {
-        into("g4f.dev")
-        exclude "**/node_modules", "**/.git*", "**/.venv*", "**/.wrangler"
     }
     into("src/main/assets")
 }

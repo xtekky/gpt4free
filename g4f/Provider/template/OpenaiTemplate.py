@@ -6,6 +6,7 @@ from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, StreamResponse, raise_for_status, sse_stream
+from ...tools.tool_support import normalize_stream_tool_calls
 from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
 from ...providers.response import *
@@ -466,7 +467,11 @@ async def read_response(
                         yield content
                 tool_calls = choice.get("delta", {}).get("tool_calls")
                 if tool_calls:
-                    yield ToolCalls(tool_calls)
+                    normalized_calls = normalize_stream_tool_calls(
+                        tool_calls, tool_calls_index
+                    )
+                    tool_calls_index += len(normalized_calls)
+                    yield ToolCalls(normalized_calls)
                 reasoning_content = choice.get("delta", {}).get(
                     "reasoning_content", choice.get("delta", {}).get("reasoning")
                 )

@@ -6,6 +6,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
@@ -41,7 +42,9 @@ public class MainActivity extends Activity {
     private ExecutorService executor;
     public static final int PORT = 1337;
     private static final String APP_DIR = "app";
-    private static final String EXTRACTION_VERSION = "6"; // bump to force re-extraction
+    // v7: g4f.dev assets are no longer embedded (GUI is CDN-fetched at
+    // runtime); bump cleans previously extracted g4f.dev files.
+    private static final String EXTRACTION_VERSION = "7";
 
     // File chooser (image / file upload from the chat UI)
     private static final int FILE_CHOOSER_REQUEST = 1001;
@@ -132,6 +135,10 @@ public class MainActivity extends Activity {
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(rootLayout);
 
+        // Lime boot splash (styled after g4f.dev/index.html) shown in the
+        // WebView while the Python server starts, instead of a white screen.
+        webView.setBackgroundColor(Color.parseColor("#101411"));
+        showSplash();
         startServer();
     }
 
@@ -302,6 +309,10 @@ public class MainActivity extends Activity {
     }
 
     private void startServer() {
+        // Lime boot splash while the Python engine spins up (replaced by the
+        // chat UI once the server answers, or by showError() on failure).
+        showSplash();
+
         // Thread 1: extract assets + start the Python server (blocks forever in app.run)
         executor.execute(() -> {
             try {
@@ -312,7 +323,6 @@ public class MainActivity extends Activity {
                     deleteRecursive(root);
                     root.mkdirs();
                     extractAssets("g4f", root);
-                    extractAssets("g4f.dev", root);
                     markerV.createNewFile();
                 }
 
@@ -356,12 +366,50 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** Lime boot splash styled after the g4f.dev/index.html theme
+    *  (#c4f06c on #101411, pulsing dot). Replaced when the chat UI loads
+    *  or by showError() on failure. Self-contained: no external resources. */
+    private void showSplash() {
+        runOnUiThread(() -> webView.loadDataWithBaseURL(null,
+            "<!DOCTYPE html><html><head>"
+            + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            + "<style>"
+            + "*{margin:0;padding:0;box-sizing:border-box}"
+            + "html,body{height:100%}"
+            + "body{background:#101411;color:#f5f4ed;font-family:monospace;"
+            + "display:flex;align-items:center;justify-content:center;overflow:hidden}"
+            + ".wrap{text-align:center}"
+            + ".logo{font-size:64px;font-weight:900;letter-spacing:6px}"
+            + ".logo span{color:#c4f06c;text-shadow:0 0 24px rgba(196,240,108,.6)}"
+            + ".dot{width:10px;height:10px;background:#c4f06c;border-radius:50%;"
+            + "display:inline-block;margin:28px auto 18px;"
+            + "animation:pulse 2s ease infinite;box-shadow:0 0 12px rgba(196,240,108,.7)}"
+            + "@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(196,240,108,.7)}"
+            + "50%{opacity:.6;box-shadow:0 0 0 14px rgba(196,240,108,0)}}"
+            + ".status{color:#a7afa4;font-size:13px;letter-spacing:2px;text-transform:uppercase}"
+            + ".bar{width:180px;height:2px;background:#344138;margin:22px auto 0;"
+            + "border-radius:2px;overflow:hidden}"
+            + ".bar i{display:block;height:100%;width:40%;background:#c4f06c;"
+            + "border-radius:2px;animation:slide 1.2s ease-in-out infinite}"
+            + "@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}"
+            + "</style></head><body>"
+            + "<div class='wrap'><div class='logo'>G4<span>F</span></div>"
+            + "<div class='dot'></div>"
+            + "<div class='status'>Starting AI engine</div>"
+            + "<div class='bar'><i></i></div></div>"
+            + "</body></html>",
+            "text/html", "utf-8", null));
+    }
+
     private void showError(final String message) {
-        runOnUiThread(() -> webView.loadData(
+        // loadData() treats '#' as a fragment and truncates the HTML there,
+        // which renders a blank white page instead of the error. Use
+        // loadDataWithBaseURL() and percent-encode the payload instead.
+        runOnUiThread(() -> webView.loadDataWithBaseURL(null,
             "<html><body style='background:#18181b;color:#ef4444;"
             + "font-family:monospace;padding:24px;white-space:pre-wrap'>"
             + message.replace("<", "&lt;") + "</body></html>",
-            "text/html", "utf-8"));
+            "text/html", "utf-8", null));
     }
 
     @Override
