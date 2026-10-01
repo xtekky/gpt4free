@@ -259,6 +259,64 @@ def normalize_tool_calls(tool_calls: Any) -> list[dict]:
 
     return normalized
 
+def normalize_stream_tool_calls(tool_calls: Any, start_index: int = 0) -> list[dict]:
+    """Normalize tool call fragments for OpenAI-compatible streaming deltas.
+
+    Ensures every ``delta.tool_calls`` entry conforms to the OpenAI streaming
+    schema: ``function.arguments`` is always a JSON-encoded string and new
+    tool calls carry ``index``, ``id`` and ``type`` fields. Continuation
+    fragments (without a function name) are passed through with only the
+    ``index`` field ensured.
+    """
+    if not tool_calls:
+        return []
+
+    if hasattr(tool_calls, "get_list") and callable(tool_calls.get_list):
+        tool_calls = tool_calls.get_list()
+    if isinstance(tool_calls, dict):
+        tool_calls = [tool_calls]
+    if not isinstance(tool_calls, (list, tuple)):
+        return []
+
+    normalized: list[dict] = []
+    for offset, tc in enumerate(tool_calls):
+        if not isinstance(tc, dict):
+            continue
+        call = dict(tc)
+        fn = call.get("function")
+        if isinstance(fn, dict):
+            fn = dict(fn)
+        elif call.get("type") == "tool_use" or ("name" in call and "function" not in call):
+            # Anthropic-style flat tool_use block
+            fn = {
+                "name": call.pop("name", None),
+                "arguments": call.pop("input", call.pop("arguments", {})),
+            }
+        else:
+            fn = {}
+        call["function"] = fn
+
+        # The streaming schema requires an integer index on every entry.
+        if not isinstance(call.get("index"), int):
+            call["index"] = start_index + offset
+
+        arguments = fn.get("arguments", "")
+        if not isinstance(arguments, str):
+            try:
+                arguments = json.dumps(arguments if arguments else {}, ensure_ascii=True)
+            except Exception:
+                arguments = "{}"
+        fn["arguments"] = arguments
+
+        if fn.get("name"):
+            # New tool call: ensure id and type fields are present.
+            if not call.get("id"):
+                call["id"] = f"call_{call['index']}"
+            call.setdefault("type", "function")
+        normalized.append(call)
+
+    return normalized
+
 
 def _strip_code_fences(text: str) -> str:
     """Remove markdown code fences wrapping a payload."""
