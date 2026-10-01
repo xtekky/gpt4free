@@ -11,20 +11,17 @@ The agent loop:
    native tool support.
 3. Executes returned tool calls through the MCP server and feeds results
    back (``role: "tool"`` messages) until the model answers in plain text.
-4. Streams chunks (content, ``ToolCalls``, ``Usage``) and always terminates
-   with a ``FinishReason`` — also when the total time budget (default 30s)
-   is exhausted, so clients never see a hanging response. On timeout the
-   agent does not stop: it keeps running in a background task and the stream
-   ends with a session token (``JsonConversation``). A later request whose
-   messages match the session resumes it and receives the result.
+4. Streams chunks (content, ``Usage``) and always terminates with a
+   ``FinishReason`` — also when the total time budget (default 30s) is
+   exhausted. On timeout the agent does not stop: it keeps running in a
+   background task and the same stream keeps consuming it live (tool-call
+   fences, reasoning, final answer). If the agent goes quiet, the stream
+   ends with a session token (``JsonConversation``) and a later request
+   whose messages match the session resumes it and receives the result.
 5. Always ends with a session token (``JsonConversation``) so clients can
    continue/resume the task later — even after a normal completion (the
    finished run is cached and replayed on resume). Inner provider/model
    selections are passed through as ``ProviderInfo`` chunks.
-
-Tool calls carry an ``extra_content`` dict with file paths and change
-summaries (created / replaced / deleted / size) so GUIs and API clients can
-highlight changed files directly in the tool calls.
 """
 
 from __future__ import annotations
@@ -70,6 +67,27 @@ AGENT_BACKGROUND = os.environ.get("G4F_AGENT_BACKGROUND", "1").strip().lower() n
 # ``0`` or a negative value means: no limit — the background agent runs until
 # it produces a final answer (or hits the step limit / fails).
 AGENT_BACKGROUND_TIMEOUT = float(os.environ.get("G4F_AGENT_BACKGROUND_TIMEOUT", "0") or 0)
+
+# Maximum model <-> tool round trips for a background run. Background
+# sessions have no time budget by default, so this is the runaway guard
+# (the foreground request uses AGENT_MAX_STEPS).
+AGENT_BACKGROUND_MAX_STEPS = int(os.environ.get("G4F_AGENT_BACKGROUND_MAX_STEPS", "32") or 32)
+
+# Maximum size of a single tool result kept in the loop history (chars).
+# Oversized results (file reads, browser scrapes, base64 screenshots) are
+# truncated to a head+tail window so one tool call cannot blow up context.
+_TOOL_RESULT_MAX_CHARS = int(os.environ.get("G4F_AGENT_TOOL_RESULT_CHARS", "20000") or 20000)
+
+# Soft context budget for the messages sent to the model per step (chars,
+# ~4 chars per token). Oldest tool-call steps are dropped and old oversized
+# texts truncated when the history exceeds it, keeping the request within
+# the endpoint's context length.
+_AGENT_CONTEXT_BUDGET = int(os.environ.get("G4F_AGENT_CONTEXT_BUDGET", "600000") or 600000)
+
+# Keep consuming a background session while it showed activity within this
+# window (seconds) — long model calls / tool executions emit no events until
+# they finish, but the agent is still working.
+_AGENT_ACTIVITY_WINDOW = float(os.environ.get("G4F_AGENT_ACTIVITY_WINDOW", "300") or 300)
 
 # ---- Background agent sessions ----------------------------------------------
 # Sessions are keyed by a hash of the conversation prefix (all messages up to
@@ -180,9 +198,62 @@ def _extract_session_token(conversation) -> Optional[str]:
                 return token
     return None
 
-# Tools that modify files, used to build the extra_content change summary.
-_FILE_RESULT_KEYS = ("filePath", "path", "notebook", "dirPath", "screenshot")
-_CHANGE_KEYS = ("created", "overwritten", "replaced", "deleted", "appended", "size")
+def _content_hash(content) -> Optional[str]:
+    """Hash a message content (string or structured) for resume matching."""
+    if isinstance(content, str):
+        if not content.strip():
+            return None
+        return hashlib.sha256(content.strip().encode("utf-8")).hexdigest()
+    try:
+        return hashlib.sha256(
+            json.dumps(content, sort_keys=True, ensure_ascii=True, default=str).encode("utf-8")
+        ).hexdigest()
+    except Exception:
+        return None
+
+def _user_message_hashes(messages: Messages) -> set:
+    """Hashes of all user messages in a request (any-of fallback match)."""
+    hashes = set()
+    for msg in messages:
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            h = _content_hash(msg.get("content"))
+            if h:
+                hashes.add(h)
+    return hashes
+
+def _session_user_hashes(session: dict) -> set:
+    """Hashes of all user messages known to a background session."""
+    hashes = session.get("user_hashes")
+    if hashes is None:
+        hashes = _user_message_hashes(session.get("messages") or [])
+        session["user_hashes"] = hashes
+    return hashes
+
+def _find_resumable_session(incoming_hashes: set) -> Optional[dict]:
+    """Find a background session sharing a user message with the request.
+
+    Fallback for clients that re-send a request with a changed message
+    prefix (extra history, a new "continue" message, injected system
+    prompts): attach to the existing background job instead of starting a
+    duplicate run that times out again. Running sessions are preferred over
+    finished ones, newer ones over older ones.
+    """
+    if not incoming_hashes:
+        return None
+    now = time.time()
+    best = None
+    for session in _agent_sessions.values():
+        if now - session["created"] > _SESSION_TTL:
+            continue
+        if not (_session_user_hashes(session) & incoming_hashes):
+            continue
+        if best is None:
+            best = session
+        elif not session.get("done") and best.get("done"):
+            best = session  # prefer a running job
+        elif (not session.get("done")) == (not best.get("done")) and session["created"] > best["created"]:
+            best = session
+    return best
 
 def _merge_tool_call_fragments(accumulated: list, fragments: list) -> list:
     """Merge streamed tool-call delta fragments into complete tool calls.
@@ -283,28 +354,8 @@ def _build_tool_prompt(tool_defs: list, tool_choice: Optional[Union[str, dict]])
     return "\n".join(lines)
 
 
-def _build_extra_content(name: str, arguments: dict, result) -> Optional[dict]:
-    """Summarize a tool execution for UI code-highlight / file-change rendering."""
-    extra: dict = {"tool": name}
-    if not isinstance(result, dict):
-        return extra
-    for key in _FILE_RESULT_KEYS:
-        if result.get(key):
-            extra["file"] = result[key]
-            break
-    changes = {key: result[key] for key in _CHANGE_KEYS if key in result}
-    if changes:
-        extra["changes"] = changes
-    if isinstance(arguments.get("oldString"), str):
-        extra["oldString"] = arguments["oldString"][:2000]
-    if isinstance(arguments.get("newString"), str):
-        extra["newString"] = arguments["newString"][:2000]
-    if isinstance(result.get("error"), str):
-        extra["error"] = result["error"]
-    return extra
-
 async def _execute_tool_call(server, call: dict, kwargs: dict) -> tuple:
-    """Execute a single MCP tool call and attach ``extra_content`` metadata."""
+    """Execute a single MCP tool call."""
     from ..mcp.server import MCPRequest
 
     fn = call.get("function", {})
@@ -331,7 +382,6 @@ async def _execute_tool_call(server, call: dict, kwargs: dict) -> tuple:
             result = call_response.result
     except Exception as e:
         result = {"error": str(e)}
-    call["extra_content"] = _build_extra_content(name, arguments, result)
     return call, name, result
 
 def _make_session(key, server, inner_provider, inner_model, loop_messages, kwargs, media, api_key,
@@ -351,7 +401,9 @@ def _make_session(key, server, inner_provider, inner_model, loop_messages, kwarg
         "tool_choice": tool_choice,
         "use_native": use_native,
         "tool_names": tool_names,
-        "max_steps": AGENT_MAX_STEPS,
+        # Background runs get their own (larger) step budget — the foreground
+        # request counts its steps separately against AGENT_MAX_STEPS.
+        "max_steps": AGENT_BACKGROUND_MAX_STEPS,
         "steps": 0,
         # ``None`` deadline: the background run has no time budget.
         "deadline": (time.time() + AGENT_BACKGROUND_TIMEOUT) if AGENT_BACKGROUND_TIMEOUT > 0 else None,
@@ -369,7 +421,19 @@ def _make_session(key, server, inner_provider, inner_model, loop_messages, kwarg
         "error": None,
         "created": time.time(),
         "origin": os.environ.get("G4F_AGENT_ORIGIN"),
+        # Heartbeat: updated on every background step, so consumers can keep
+        # waiting while the agent is actively working (long tool executions
+        # emit no events until they finish).
+        "last_activity": time.time(),
     }
+
+def _format_tool_calls_fence(calls: list) -> str:
+    """Render tool calls as a highlighted markdown code fence for the client."""
+    try:
+        body = json.dumps({"tool_calls": calls}, indent=2, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        body = str(calls)
+    return Reasoning(f"\n```json\n{body}\n```\n")
 
 def _append_step_messages(session: dict, calls: list, tool_results: list, content: str) -> None:
     """Append the assistant tool-call message and the tool results."""
@@ -383,8 +447,116 @@ def _append_step_messages(session: dict, calls: list, tool_results: list, conten
             "role": "tool",
             "tool_call_id": call.get("id", ""),
             "name": name,
-            "content": json.dumps(result, ensure_ascii=True, default=str),
+            "content": _truncate_text(json.dumps(result, ensure_ascii=True, default=str)),
         })
+
+# Placeholder left behind when an old tool result is stripped from the
+# history to keep the prompt small.
+_TOOL_RESULT_PLACEHOLDER = "[previous tool result omitted]"
+
+def _truncate_text(text: str, max_chars: int = _TOOL_RESULT_MAX_CHARS) -> str:
+    """Truncate *text* to a head+tail window of ``max_chars`` characters."""
+    if max_chars <= 0 or len(text) <= max_chars:
+        return text
+    head = max_chars * 2 // 3
+    tail = max_chars - head
+    omitted = len(text) - max_chars
+    return f"{text[:head]}\n...[{omitted} characters truncated]...\n{text[-tail:]}"
+
+def _message_size(message) -> int:
+    """Approximate the size of a message in characters."""
+    try:
+        return len(json.dumps(message, ensure_ascii=True, default=str))
+    except Exception:
+        return len(str(message))
+
+def _enforce_context_budget(messages: Messages, budget: int) -> Messages:
+    """Shrink the history so the model request stays within *budget* chars.
+
+    Old tool-call steps (assistant + their tool replies) are dropped from the
+    front first; if still over budget, oversized text contents of older
+    messages are truncated. System messages and the newest exchange stay.
+    """
+    total = sum(_message_size(m) for m in messages)
+    if budget <= 0 or total <= budget:
+        return messages
+    result = list(messages)
+    # Index of the newest tool-call step: never dropped, so the model keeps
+    # the current task context.
+    last_step = max(
+        (i for i, m in enumerate(result)
+         if isinstance(m, dict) and m.get("role") == "assistant" and m.get("tool_calls")),
+        default=-1,
+    )
+    # Drop complete old tool-call steps (assistant + tool replies) from the
+    # front, after the leading system messages, until the history fits.
+    i = 0
+    while total > budget and i < len(result):
+        m = result[i]
+        if i < last_step and isinstance(m, dict) and m.get("role") == "assistant" and m.get("tool_calls"):
+            j = i + 1
+            while j < len(result) and isinstance(result[j], dict) and result[j].get("role") == "tool":
+                total -= _message_size(result[j])
+                j += 1
+            total -= _message_size(m)
+            del result[i:j]
+            continue
+        i += 1
+    # Still over budget: truncate long text contents (including the newest
+    # tool results — the model can work with a truncated result).
+    if total > budget:
+        for idx in range(len(result)):
+            m = result[idx]
+            if not isinstance(m, dict) or not isinstance(m.get("content"), str):
+                continue
+            if idx == len(result) - 1 and m.get("role") != "tool":
+                # Keep the newest non-tool message (current answer) intact.
+                continue
+            content = m["content"]
+            if len(content) > _TOOL_RESULT_MAX_CHARS:
+                total -= len(content) - _TOOL_RESULT_MAX_CHARS
+                result[idx] = {**m, "content": _truncate_text(content)}
+            if total <= budget:
+                break
+    return result
+
+def _trim_loop_messages(messages: Messages, keep_last: int = 1, budget: int = _AGENT_CONTEXT_BUDGET) -> Messages:
+    """Strip old reasoning and tool results from the agent message history.
+
+    Everything before the last ``keep_last`` assistant tool-call steps is
+    collapsed: tool result contents are replaced with a short placeholder and
+    old assistant step text (reasoning / tool-call preamble) is dropped. The
+    original conversation (user/system messages) and the most recent exchange
+    stay intact, so the model keeps its current task context while the prompt
+    no longer grows with every executed tool (large file reads, browser
+    output, ...). Message structure is preserved: every ``tool_calls`` entry
+    keeps its matching ``tool`` replies.
+
+    When the result still exceeds ``budget`` characters (huge tool results,
+    many steps, a large client conversation), old tool-call steps are dropped
+    and old oversized texts truncated so the request fits the endpoint's
+    context length.
+    """
+    step_idx = [
+        i for i, m in enumerate(messages)
+        if isinstance(m, dict) and m.get("role") == "assistant" and m.get("tool_calls")
+    ]
+    if len(step_idx) <= keep_last:
+        return _enforce_context_budget(messages, budget)
+    cutoff = step_idx[-keep_last]
+    trimmed = []
+    for i, m in enumerate(messages):
+        if i >= cutoff:
+            trimmed.append(m)
+            continue
+        if isinstance(m, dict) and m.get("role") == "tool":
+            trimmed.append({**m, "content": _TOOL_RESULT_PLACEHOLDER})
+        elif isinstance(m, dict) and m.get("role") == "assistant" and m.get("tool_calls"):
+            # Keep the tool_calls structure, drop the old step text.
+            trimmed.append({**m, "content": None})
+        else:
+            trimmed.append(m)
+    return _enforce_context_budget(trimmed, budget)
 
 def _store_done_session(session_key: Optional[str], server, inner_provider, inner_model,
                         loop_messages, kwargs, media, api_key, tool_defs, tool_choice, use_native,
@@ -429,9 +601,12 @@ async def _run_background_session(session: dict) -> None:
                 await _execute_tool_call(session["server"], call, session["kwargs"])
                 for call in pending
             ]
-            session["events"].append({"tool_calls": pending})
+            # All pending calls merged into a single fence event.
+            session["events"].append({"text": _format_tool_calls_fence(pending)})
             _append_step_messages(session, pending, tool_results, content)
+            session["last_activity"] = time.time()
         while True:
+            session["last_activity"] = time.time()
             session["steps"] += 1
             remaining = None if session["deadline"] is None else session["deadline"] - time.time()
             if (remaining is not None and remaining <= 0) or session["steps"] > session["max_steps"]:
@@ -443,11 +618,11 @@ async def _run_background_session(session: dict) -> None:
                 inner_kwargs["tools"] = session["tool_defs"]
                 if session["tool_choice"] is not None:
                     inner_kwargs["tool_choice"] = session["tool_choice"]
-                inner_messages = session["messages"]
+                inner_messages = _trim_loop_messages(session["messages"])
             else:
                 inner_kwargs = session["kwargs"]
                 inner_messages = _merge_messages_to_single_user(
-                    _preprocess_tool_messages(session["messages"])
+                    _preprocess_tool_messages(_trim_loop_messages(session["messages"]))
                 )
             response = method(
                 model=session["inner_model"],
@@ -477,8 +652,12 @@ async def _run_background_session(session: dict) -> None:
                     elif isinstance(chunk, ProviderInfo):
                         # Remember the inner provider/model selection for resume.
                         session["provider_info"] = chunk.get_dict()
-                    elif isinstance(chunk, (JsonConversation, Reasoning)):
+                    elif isinstance(chunk, JsonConversation):
                         continue
+                    elif isinstance(chunk, Reasoning):
+                        # Forward reasoning to the outer request on resume.
+                        if chunk.token:
+                            session["events"].append({"reasoning": chunk.token})
                     else:
                         yield chunk
             except TimeoutError:
@@ -503,8 +682,10 @@ async def _run_background_session(session: dict) -> None:
                 await _execute_tool_call(session["server"], call, session["kwargs"])
                 for call in openai_calls
             ]
-            session["events"].append({"tool_calls": openai_calls})
+            # All calls of this step merged into a single fence event.
+            session["events"].append({"text": _format_tool_calls_fence(openai_calls)})
             _append_step_messages(session, openai_calls, tool_results, content)
+            session["last_activity"] = time.time()
     except Exception as e:
         session["status"] = "error"
         session["error"] = str(e)
@@ -522,10 +703,11 @@ class AgentTools(AsyncGeneratorProvider):
     providers without native tool support). The request is capped by
     ``G4F_AGENT_TIMEOUT`` seconds (default 30); on expiry the agent keeps
     running in the background — without an extra time budget by default —
-    and the stream ends with a finish reason plus a session token
-    (``JsonConversation``). Sending the same messages again
-    resumes the session and streams the final result. Every stream ends with a
-    session token so the task can always be continued/resumed, and inner
+    and the same stream keeps consuming it live (tool-call fences, reasoning,
+    final answer). If the agent goes quiet, the stream ends with a session
+    token (``JsonConversation``); sending the same messages again reattaches
+    to the session and streams its progress. Every stream ends with a session
+    token so the task can always be continued/resumed, and inner
     provider/model selections are passed through as ``ProviderInfo`` chunks.
     """
 
@@ -536,39 +718,55 @@ class AgentTools(AsyncGeneratorProvider):
 
     @classmethod
     async def _start_background(
-        cls, session: dict, messages: Messages, completion_tokens: int
+        cls, session: dict, messages: Messages, completion_tokens: int,
+        timeout: float = AGENT_TIMEOUT, note: Optional[str] = None,
     ) -> AsyncResult:
-        """Spawn the background task and end the stream with a session token."""
+        """Spawn the background task and keep consuming it live."""
         if not session.get("task"):
             # Run on the dedicated background loop, so the agent survives the
             # request's event loop being closed (sync / Flask request flows).
+            # ``_run_background_session`` is an async generator, which
+            # ``run_coroutine_threadsafe`` rejects ("A coroutine object is
+            # required") — drain it inside a plain coroutine instead.
+            async def _run_background_task() -> None:
+                async for _chunk in _run_background_session(session):
+                    pass
             session["task"] = asyncio.run_coroutine_threadsafe(
-                _run_background_session(session), _get_background_loop()
+                _run_background_task(), _get_background_loop()
             )
         _put_session(session["key"], session)
-        yield JsonConversation(provider=cls.__name__, agent_session=session["key"], status="running")
-        usage = session.get("usage")
-        if usage is None:
-            usage = Usage(
-                promptTokens=round(len(json.dumps(messages, default=str).encode("utf-8")) / 4),
-                completionTokens=completion_tokens,
-                totalTokens=completion_tokens,
-            )
-        yield usage
-        yield FinishReason("stop")
+        # Keep the stream open and consume the background job live: new steps
+        # (tool-call fences, reasoning) and the final answer are streamed as
+        # they happen. If the agent goes quiet, ``_consume_session`` ends the
+        # stream with the session token so the client can reattach later.
+        if note is not None:
+            yield note
+        else:
+            yield "\n\n⏳ *Time budget reached — the agent keeps running in the background. Live progress follows; if this stream ends, send the same messages again to reattach.*\n"
+        async for chunk in cls._consume_session(session, timeout):
+            yield chunk
 
     @classmethod
-    async def _resume_session(cls, session: dict, timeout: float) -> AsyncResult:
-        """Wait for a background session and stream its result.
+    async def _consume_session(cls, session: dict, timeout: float, initial_note: str = None) -> AsyncResult:
+        """Consume a background session and stream its progress live.
 
-        Replays tool calls executed in the background, waits up to ``timeout``
-        seconds for completion and yields the final answer — or a fresh session
-        token when the agent is still running.
+        Replays tool calls executed in the background, then keeps consuming
+        the running job: new steps (tool-call fences, reasoning) are streamed
+        as they happen and the wait is extended while the agent makes
+        progress. When the agent goes quiet, the final answer is yielded —
+        or an explicit "still running" note plus a fresh session token.
         """
         def pending_events() -> list:
             events = session["events"][session["replayed"]:]
             session["replayed"] = len(session["events"])
-            return [ToolCalls(event["tool_calls"]) for event in events]
+            chunks = []
+            for event in events:
+                if "text" in event:
+                    # Highlighted tool-call code fence.
+                    chunks.append(event["text"])
+                elif "reasoning" in event:
+                    chunks.append(Reasoning(token=event["reasoning"]))
+            return chunks
 
         for chunk in pending_events():
             yield chunk
@@ -576,14 +774,33 @@ class AgentTools(AsyncGeneratorProvider):
         if info:
             # Pass the inner provider/model selection through on resume too.
             yield ProviderInfo(**info)
+        if initial_note:
+            # e.g. the "time budget reached" note on the background handoff.
+            yield initial_note
         deadline = time.time() + max(timeout, 1.0)
-        while not session["done"] and time.time() < deadline:
+        while not session["done"]:
             await asyncio.sleep(0.25)
-            for chunk in pending_events():
-                yield chunk
+            events = pending_events()
+            if events:
+                # Live steps: stream fences/reasoning as they happen and
+                # extend the wait while the agent keeps making progress.
+                for chunk in events:
+                    yield chunk
+                deadline = time.time() + max(timeout, 1.0)
+            elif time.time() >= deadline:
+                # Keep waiting while the agent shows signs of life: long
+                # model calls / tool executions emit no events until done.
+                last = session.get("last_activity") or session["created"]
+                if time.time() - last < _AGENT_ACTIVITY_WINDOW:
+                    continue
+                break
+        # Flush events recorded between the last poll and completion.
+        for chunk in pending_events():
+            yield chunk
         if not session["done"]:
-            # Still running: end this stream with the session token so the
-            # client can resume again later.
+            # Still running: inform the client and end this stream with the
+            # session token so it can resume again later.
+            yield '\n\n⏳ *The background agent is still running — send the same messages again (or just "continue") to keep streaming its progress.*\n'
             yield JsonConversation(provider=cls.__name__, agent_session=session["key"], status="running")
             yield FinishReason("stop")
             return
@@ -594,9 +811,20 @@ class AgentTools(AsyncGeneratorProvider):
         elif session.get("partial"):
             yield session["partial"]
         else:
-            # Without a result or partial output the run was stopped by the
-            # step limit (background sessions have no time budget by default).
-            yield "The background agent ended without a result."
+            # Step limit reached without a final answer: report the progress
+            # made so far instead of a bare dead-end message.
+            used_tools = []
+            for msg in session["messages"]:
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    for call in msg.get("tool_calls") or []:
+                        name = (call.get("function") or {}).get("name")
+                        if name and name not in used_tools:
+                            used_tools.append(name)
+            summary = f"The agent stopped after {session.get('steps', 0)} step(s) without a final answer"
+            if used_tools:
+                summary += " (tools used: " + ", ".join(used_tools[:8]) + ")"
+            summary += ". Send the same messages again to continue this task."
+            yield summary
         # Always end with the session token so the task can be continued /
         # resumed again later (finished runs are cached and replayed).
         yield JsonConversation(provider=cls.__name__, agent_session=session["key"], status=session["status"])
@@ -665,13 +893,56 @@ class AgentTools(AsyncGeneratorProvider):
                 token = _extract_session_token(kwargs.get("conversation"))
                 if token and token != session_key:
                     session = _get_session(token, running_only=True)
+            if session is None:
+                # Fallback: attach to a background session that shares any
+                # user message with this request (the client may have re-sent
+                # with a changed prefix or a new "continue" message).
+                session = _find_resumable_session(_user_message_hashes(messages))
             # The agent manages its own session state; never forward the
             # conversation token to the inner provider.
             kwargs.pop("conversation", None)
             if session is not None:
                 yield ProviderInfo(**cls.get_dict(), model=model or "agent-tools")
-                async for chunk in cls._resume_session(session, timeout):
-                    yield chunk
+                unseen = _user_message_hashes(messages) - _session_user_hashes(session)
+                if session.get("done") and (unseen or (session.get("status") == "timeout" and not session.get("result"))):
+                    # Finished run + new user message, or stalled run (step
+                    # limit, no final answer): continue the task with the
+                    # accumulated history instead of replaying the cached /
+                    # dead-end message forever. New user messages (e.g.
+                    # "continue") are appended so the agent acts on them.
+                    for msg in messages:
+                        if not isinstance(msg, dict) or msg.get("role") != "user":
+                            continue
+                        h = _content_hash(msg.get("content"))
+                        if h and h in unseen:
+                            unseen.discard(h)
+                            session["messages"].append(msg)
+                    session.update(
+                        done=False, status="running", steps=0, task=None,
+                        result=None, finish=None, partial="",
+                        last_activity=time.time(),
+                    )
+                    _put_session(session["key"], session)
+                    async for chunk in cls._start_background(
+                        session, messages, 0, timeout,
+                        note="\n\n🔄 *Continuing the previous agent run…*\n",
+                    ):
+                        yield chunk
+                else:
+                    if unseen:
+                        # Running session: append new user messages (e.g. a
+                        # "continue" nudge) so the agent sees them next step.
+                        seen = _session_user_hashes(session)
+                        for msg in messages:
+                            if not isinstance(msg, dict) or msg.get("role") != "user":
+                                continue
+                            h = _content_hash(msg.get("content"))
+                            if h and h in unseen:
+                                unseen.discard(h)
+                                seen.add(h)
+                                session["messages"].append(msg)
+                    async for chunk in cls._consume_session(session, timeout):
+                        yield chunk
                 return
 
         # Build the tool definitions from the local MCP server.
@@ -729,10 +1000,11 @@ class AgentTools(AsyncGeneratorProvider):
                 if tool_choice is not None:
                     inner_kwargs["tool_choice"] = tool_choice
                 # Native tool APIs expect proper assistant/tool message roles.
-                inner_messages = loop_messages
+                # Old reasoning and tool results are stripped to save tokens.
+                inner_messages = _trim_loop_messages(loop_messages)
             else:
                 inner_kwargs = kwargs
-                inner_messages = _merge_messages_to_single_user(_preprocess_tool_messages(loop_messages))
+                inner_messages = _merge_messages_to_single_user(_preprocess_tool_messages(_trim_loop_messages(loop_messages)))
             response = method(
                 model=model,
                 messages=inner_messages,
@@ -836,26 +1108,28 @@ class AgentTools(AsyncGeneratorProvider):
                 return
 
             if timed_out:
-                # Time budget exhausted mid-step: keep the agent running in the
-                # background and end this stream with a session token. Complete
-                # tool calls are handed over so no work is lost.
-                # if openai_calls:
-                #    yield ToolCalls(openai_calls)
+                # Time budget exhausted mid-step: keep the agent running in
+                # the background and keep consuming it live in this stream.
+                # Complete tool calls are handed over so no work is lost.
                 agent_session = _make_session(
                     session_key, server, inner_provider, model, loop_messages,
                     kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                     completion_tokens, usage, pending=openai_calls, partial=content,
                 )
-                async for chunk in cls._start_background(agent_session, messages, completion_tokens):
+                async for chunk in cls._start_background(
+                    agent_session, messages, completion_tokens, timeout
+                ):
                     yield chunk
                 return
 
-            # Surface the tool calls (with file/change metadata) to the client.
+            # Surface the tool calls to the client as a single highlighted
+            # code fence (visible in any markdown UI). No structured
+            # ``ToolCalls`` chunks are passed to the frontend.
+            if openai_calls:
+                yield _format_tool_calls_fence(openai_calls)
             tool_results = [
                 await _execute_tool_call(server, call, kwargs) for call in openai_calls
             ]
-
-            # yield ToolCalls(openai_calls)
 
             # Feed the tool results back into the conversation.
             loop_messages.append({
@@ -868,7 +1142,7 @@ class AgentTools(AsyncGeneratorProvider):
                     "role": "tool",
                     "tool_call_id": call.get("id", ""),
                     "name": name,
-                    "content": json.dumps(result, ensure_ascii=True, default=str),
+                    "content": _truncate_text(json.dumps(result, ensure_ascii=True, default=str)),
                 })
 
             remaining = deadline - time.time()
@@ -876,13 +1150,15 @@ class AgentTools(AsyncGeneratorProvider):
                 if background and session_key:
                     # Budget exhausted after tool execution: continue the loop
                     # in the background (tool results are already part of the
-                    # messages) and end this stream with a session token.
+                    # messages) and keep consuming it live in this stream.
                     agent_session = _make_session(
                         session_key, server, inner_provider, model, loop_messages,
                         kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                         completion_tokens, usage,
                     )
-                    async for chunk in cls._start_background(agent_session, messages, completion_tokens):
+                    async for chunk in cls._start_background(
+                        agent_session, messages, completion_tokens, timeout
+                    ):
                         yield chunk
                     return
                 if session_key:
@@ -905,15 +1181,17 @@ class AgentTools(AsyncGeneratorProvider):
                 return
 
         # Time budget or step limit exhausted before a final answer. When the
-        # time budget expired, keep the agent running in the background and end
-        # the stream with a session token so the client can resume it later.
+        # time budget expired, keep the agent running in the background and
+        # keep consuming it live in this stream.
         if session_key and time.time() >= deadline:
             agent_session = _make_session(
                 session_key, server, inner_provider, model, loop_messages,
                 kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                 completion_tokens, usage,
             )
-            async for chunk in cls._start_background(agent_session, messages, completion_tokens):
+            async for chunk in cls._start_background(
+                agent_session, messages, completion_tokens, timeout
+            ):
                 yield chunk
             return
         # Step limit exhausted with time remaining (or no resumable session):

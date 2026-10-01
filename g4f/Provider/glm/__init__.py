@@ -13,8 +13,8 @@ Reference files:
 Key design decisions matching the TS reference:
   - x-signature: HMAC-SHA256 with empty key over sorted URL params
     (requestId, timestamp, user_id) — NOT SHA-256 of the body
-  - Fingerprint: Linux/Chrome 149/Africa/Cairo timezone
-  - x-fe-version: prod-fe-1.1.69
+  - Fingerprint: Linux/Chrome 152/Europe/Berlin timezone (from HAR)
+  - x-fe-version: prod-fe-1.1.98
   - Session flow: validate JWT via /api/v1/auths/, then create chat
   - Body: full messages array, signature_prompt = first 500 chars
   - Stream: phase-based parsing (thinking/answer/other/done)
@@ -26,6 +26,8 @@ import time
 import hmac
 import hashlib
 import uuid
+import random
+import string
 import requests
 import urllib.parse
 from datetime import datetime, timezone
@@ -43,12 +45,19 @@ from .captcha_solver import (
 
 
 GLM_BASE_URL = "https://chat.z.ai"
-GLM_FE_VERSION = "prod-fe-1.1.69"
+GLM_FE_VERSION = "prod-fe-1.1.98"
 GLM_QUERY_VERSION = "0.0.1"
 GLM_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
 )
+GLM_PAGE_TITLE = "Z.ai - Advanced AI Chatbot & Agent powered by GLM-5.3-Flash"
+
+
+def _generate_device_id() -> str:
+    """Generate a stable x-device-id: ``uid_`` + 16 lowercase alphanumeric chars."""
+    return "uid_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=16))
+
 
 WEEKDAYS = [
     "Sunday",
@@ -58,6 +67,11 @@ WEEKDAYS = [
     "Thursday",
     "Friday",
     "Saturday",
+]
+
+MONTHS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ]
 
 
@@ -100,7 +114,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     # ── Fingerprint params (spoofing.ts: buildFingerprintParams) ────────────
 
     @classmethod
-    def _build_url_params(cls, token: str, user_id: str) -> dict:
+    def _build_url_params(cls, token: str, user_id: str, chat_id: str = "") -> dict:
         """Build the fingerprint query params for GLM chat completion.
 
         Matches the browser's URL query params exactly (spoofing.ts).
@@ -108,6 +122,20 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         """
         ts = str(int(time.time() * 1000))
         request_id = str(uuid.uuid4())
+
+        # Browser is on the chat page: https://chat.z.ai/c/{chat_id}
+        current_url = f"{GLM_BASE_URL}/c/{chat_id}" if chat_id else f"{GLM_BASE_URL}/"
+        pathname = f"/c/{chat_id}" if chat_id else "/"
+
+        # local_time: ISO 8601 with ms + Z (e.g. 2026-10-01T06:38:58.813Z)
+        now_utc = datetime.now(timezone.utc)
+        local_time = now_utc.strftime("%Y-%m-%dT%H:%M:%S") + f".{now_utc.microsecond // 1000:03d}Z"
+        # utc_time: RFC 7231 (e.g. Thu, 01 Oct 2026 06:38:58 GMT)
+        utc_time = now_utc.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+        # timezone_offset in minutes, matching JS getTimezoneOffset() sign
+        # convention (UTC+2 → -120). tm_gmtoff is seconds east of UTC.
+        timezone_offset = -int(time.localtime().tm_gmtoff / 60)
 
         return {
             "timestamp": ts,
@@ -119,7 +147,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "user_agent": GLM_USER_AGENT,
             "language": "en-US",
             "languages": "en-US,en",
-            "timezone": "Africa/Cairo",
+            "timezone": "Europe/Berlin",
             "cookie_enabled": "true",
             "screen_width": "1920",
             "screen_height": "1080",
@@ -129,23 +157,23 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "viewport_size": "1920x1080",
             "color_depth": "30",
             "pixel_ratio": "1",
-            "current_url": f"{GLM_BASE_URL}/",
-            "pathname": "/",
+            "current_url": current_url,
+            "pathname": pathname,
             "host": "chat.z.ai",
             "hostname": "chat.z.ai",
             "protocol": "https:",
             "search": "",
             "hash": "",
             "referrer": "",
-            "title": "",
-            "timezone_offset": str(-int(time.timezone // 60)),
-            "local_time": datetime.now().strftime("%m/%d/%Y, %I:%M:%S %p"),
-            "utc_time": datetime.now(timezone.utc).isoformat(),
+            "title": GLM_PAGE_TITLE,
+            "timezone_offset": str(timezone_offset),
+            "local_time": local_time,
+            "utc_time": utc_time,
             "is_mobile": "false",
             "is_touch": "false",
             "max_touch_points": "0",
-            "browser_name": "chrome",
-            "os_name": "linux",
+            "browser_name": "Chrome",
+            "os_name": "Linux",
             "signature_timestamp": ts,
         }
 
@@ -165,7 +193,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "content-type": "application/json",
             "accept-language": "en-US",
             "x-fe-version": GLM_FE_VERSION,
-            "referer": "",
+            "x-device-id": _generate_device_id(),
             "user-agent": GLM_USER_AGENT,
             "x-region": "overseas",
             "accept": "*/*",
@@ -197,7 +225,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "{{CURRENT_DATE}}": f"{now.year}-{pad(now.month)}-{pad(now.day)}",
             "{{CURRENT_TIME}}": f"{pad(now.hour)}:{pad(now.minute)}:{pad(now.second)}",
             "{{CURRENT_WEEKDAY}}": WEEKDAYS[now.weekday()],
-            "{{CURRENT_TIMEZONE}}": "Africa/Cairo",
+            "{{CURRENT_TIMEZONE}}": "Europe/Berlin",
             "{{USER_LANGUAGE}}": "en-US",
         }
 
@@ -254,59 +282,47 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             cls.models = list(cls.model_aliases.keys())
         return cls.models
 
-    # ── Session (session.ts: getCurrentUser, getOrCreateChatSession) ────────
+    # ── Session (session.ts: getOrCreateChatSession) ────────────────────────
 
     @classmethod
-    def _get_current_user(cls, session) -> dict:
-        """Validate JWT and get user info via /api/v1/auths/ (session.ts).
-
-        Returns dict with id, name, email, or raises ProviderException.
-        """
-
-        async def _fetch():
-            async with session.get(
-                f"{GLM_BASE_URL}/api/v1/auths/",
-                headers={
-                    "Authorization": f"Bearer {cls.api_key}",
-                    "Content-Type": "application/json",
-                },
-            ) as response:
-                if response.status >= 400:
-                    raise ProviderException(
-                        f"Cannot validate GLM account (status {response.status})"
-                    )
-                data = await response.json()
-                user = data.get("user") or data
-                if not user or not user.get("id"):
-                    raise ProviderException("No user ID in auth response")
-                return {
-                    "id": str(user["id"]),
-                    "name": user.get("name") or user.get("nickname") or "User",
-                    "email": user.get("email", ""),
-                }
-
-        # Run in the async context — this is called from create_async_generator
-        import asyncio
-
-        return asyncio.get_event_loop().run_until_complete(_fetch())
-
-    @classmethod
-    async def _get_or_create_chat_session(cls, session, model: str) -> str:
+    async def _get_or_create_chat_session(cls, session, model: str, user_message: str = "") -> str:
         """Create a new chat session via /api/v1/chats/new (session.ts).
 
-        Returns the chat_id string.
+        The HAR shows the browser sends ``id: ""`` (server assigns the id) and
+        includes the user message in ``history.messages`` plus the 5-entry MCP
+        features array. Returns the chat_id string.
         """
-        chat_id = str(uuid.uuid4())
+        msg_id = str(uuid.uuid4())
+        timestamp = int(time.time())
         chat_body = {
             "chat": {
-                "id": chat_id,
+                "id": "",
                 "title": "New Chat",
                 "models": [model],
                 "params": {},
-                "history": {"messages": {}, "currentId": None},
+                "history": {
+                    "messages": {
+                        msg_id: {
+                            "id": msg_id,
+                            "parentId": None,
+                            "childrenIds": [],
+                            "role": "user",
+                            "content": user_message,
+                            "timestamp": timestamp,
+                            "models": [model],
+                        }
+                    },
+                    "currentId": msg_id,
+                },
                 "tags": [],
                 "flags": [],
-                "features": [],
+                "features": [
+                    {"server": "vibe-coding", "status": "hidden", "type": "mcp"},
+                    {"server": "ppt-maker", "status": "hidden", "type": "mcp"},
+                    {"server": "image-search", "status": "hidden", "type": "mcp"},
+                    {"server": "deep-research", "status": "hidden", "type": "mcp"},
+                    {"server": "tool_selector", "status": "hidden", "type": "tool_selector"},
+                ],
                 "mcp_servers": [],
                 "enable_thinking": "glm-5" in model or "glm-4" in model,
                 "reasoning_effort": "max" if "glm-5" in model else "",
@@ -330,7 +346,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     f"Cannot create GLM chat session (status {response.status})"
                 )
             chat_data = await response.json()
-            return chat_data.get("id") or chat_data.get("chat", {}).get("id") or chat_id
+            return chat_data.get("id") or chat_data.get("chat", {}).get("id") or msg_id
 
     # ── Captcha ─────────────────────────────────────────────────────────────
 
@@ -360,6 +376,10 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             model = cls.get_model(model)
         except ModelNotFoundError:
             pass
+        # get_model may return a display name (e.g. "GLM-4.7") when given the
+        # API id or "auto" — map it back to the API id the endpoint expects.
+        if cls.model_aliases and model in cls.model_aliases:
+            model = cls.model_aliases[model]
         if conversation is None:
             conversation = JsonConversation(
                 chat_id=None, message_id=None, parent_id=None, completion_id=None
@@ -428,8 +448,9 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
             # 2. Create chat session (session.ts: getOrCreateChatSession)
             if conversation.chat_id is None:
+                last_content = messages[-1].get("content", "") if isinstance(messages[-1].get("content"), str) else ""
                 conversation.chat_id = await cls._get_or_create_chat_session(
-                    session, model
+                    session, model, last_content
                 )
 
             yield conversation
@@ -456,7 +477,7 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             }
 
             # 4. Build fingerprint query string and URL (spoofing.ts)
-            url_params = cls._build_url_params(cls.api_key, user_id)
+            url_params = cls._build_url_params(cls.api_key, user_id, conversation.chat_id)
             query_string = urllib.parse.urlencode(url_params)
             endpoint = f"{GLM_BASE_URL}/api/v2/chat/completions?{query_string}"
 

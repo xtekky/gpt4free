@@ -538,6 +538,25 @@ async def _webview_bridge_call(socket_name: str, target: dict, expression: str, 
     raise TimeoutError("WebView bridge call timed out")
 
 
+def _sanitize_cdp_params(params: dict) -> dict:
+    """Convert CDP command params to JSON-serializable values.
+
+    Provider shims (e.g. ``cdp_browser._CdpFetch.RequestPattern``) pass
+    objects with a ``to_dict()`` method instead of plain dicts — convert
+    them recursively so ``send_json`` can serialize the payload.
+    """
+    def convert(value):
+        if isinstance(value, dict):
+            return {k: convert(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [convert(v) for v in value]
+        if hasattr(value, "to_dict") and callable(value.to_dict):
+            return convert(value.to_dict())
+        return value
+
+    return {k: convert(v) for k, v in params.items()}
+
+
 class CDPSession:
     def __init__(
         self,
@@ -1047,7 +1066,7 @@ class CDPSession:
         fut = asyncio.get_running_loop().create_future()
         self._pending_requests[req_id] = fut
 
-        payload = {"id": req_id, "method": method, "params": params}
+        payload = {"id": req_id, "method": method, "params": _sanitize_cdp_params(params)}
         try:
             await self.ws.send_json(payload)
         except Exception as e:

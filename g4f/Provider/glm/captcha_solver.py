@@ -168,12 +168,15 @@ async def _intercept_and_fulfill(page, page_url: str, html: str) -> None:
         )
     )
 
-    async def on_request_paused(event: cdp.fetch.RequestPaused, page=None):
+    async def on_request_paused(event, page=None):
         request = event.request
         url = request.url
         # Only fulfil the top-level document navigation to chat.z.ai.
         is_document = url == page_url or url == page_url.rstrip("/")
-        if is_document and event.resource_type == cdp.network.ResourceType.DOCUMENT:
+        resource_type = getattr(event, "resource_type", None) or getattr(
+            event, "resourceType", None
+        )
+        if is_document and resource_type == cdp.network.ResourceType.DOCUMENT:
             await page.send(
                 cdp.fetch.fulfill_request(
                     request_id=event.request_id,
@@ -189,7 +192,28 @@ async def _intercept_and_fulfill(page, page_url: str, html: str) -> None:
         else:
             await page.send(cdp.fetch.continue_request(request_id=event.request_id))
 
-    page.add_handler(cdp.fetch.RequestPaused, on_request_paused)
+    def on_request_paused_safe(event, page=None):
+        # Never let handler errors strand a paused request — a request left in
+        # "paused" state blocks navigation forever (Page.navigate timeout).
+        try:
+            result = on_request_paused(event, page=page)
+            if asyncio.iscoroutine(result):
+                return result
+        except Exception as err:
+            debug.error(f"GLM captcha: request handler error: {err}")
+            request_id = getattr(event, "request_id", None) or getattr(
+                event, "requestId", None
+            )
+            if request_id and page is not None:
+                try:
+                    return page.send(
+                        cdp.fetch.continue_request(request_id=request_id)
+                    )
+                except Exception:
+                    pass
+            return None
+
+    page.add_handler(cdp.fetch.RequestPaused, on_request_paused_safe)
 
 
 async def _solve_once() -> str:

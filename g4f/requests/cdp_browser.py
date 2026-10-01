@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from typing import Any, Callable, Dict, List, Optional
 
@@ -62,6 +63,20 @@ class _CdpNetwork:
     RequestWillBeSent = "Network.requestWillBeSent"
     WebSocketFrameReceived = "Network.webSocketFrameReceived"
     WebSocketCreated = "Network.webSocketCreated"
+
+    # Resource types used by providers comparing ``event.resource_type``
+    class ResourceType:
+        DOCUMENT = "Document"
+        STYLESHEET = "Stylesheet"
+        IMAGE = "Image"
+        MEDIA = "Media"
+        FONT = "Font"
+        SCRIPT = "Script"
+        XHR = "XHR"
+        FETCH = "Fetch"
+        PING = "Ping"
+        WEB_SOCKET = "WebSocket"
+        OTHER = "Other"
 
 
 class _CdpFetch:
@@ -538,6 +553,11 @@ class _CdpEvent:
                 setattr(self, key, _DictAttr(value))
             else:
                 setattr(self, key, value)
+            # snake_case alias for camelCase CDP keys, so providers can use
+            # either ``event.resourceType`` or ``event.resource_type``.
+            snake = re.sub(r"(?<!^)(?=[A-Z])", "_", key).lower()
+            if snake != key and not hasattr(self, snake):
+                setattr(self, snake, getattr(self, key))
 
     def __getitem__(self, key):
         return self._raw[key]

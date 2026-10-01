@@ -646,7 +646,7 @@ class FileListTool(MCPTool):
             for entry in sorted(iterator):
                 try:
                     rel = str(entry.relative_to(workspace))
-                    if is_hidden_file(rel):
+                    if self.safe_mode and is_hidden_file(rel):
                         continue
                     if self.safe_mode and target == workspace:
                         if entry.name != "pa-providers" and (not entry.is_file() or entry.suffix.lower() != ".md"):
@@ -1102,7 +1102,7 @@ class FileSearchGlobTool(MCPTool):
                     continue
                 rel = entry.relative_to(workspace)
                 rel_str = rel.as_posix()
-                if is_hidden_file(rel_str):
+                if self.safe_mode and is_hidden_file(rel_str):
                     continue
                 if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(
                     entry.name, pattern
@@ -1183,7 +1183,7 @@ class GrepSearchTool(MCPTool):
                 if not entry.is_file():
                     continue
                 rel_str = entry.relative_to(workspace).as_posix()
-                if is_hidden_file(rel_str):
+                if self.safe_mode and is_hidden_file(rel_str):
                     continue
                 if include_pattern and not fnmatch.fnmatch(rel_str, include_pattern):
                     continue

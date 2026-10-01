@@ -180,7 +180,7 @@ def resolve_workspace_path(
 
 def is_hidden_file(path: str) -> bool:
     """Return True if *path* is a hidden file (starts with a dot)."""
-    return any(part.startswith(".") or part.startswith("__") for part in str(path).replace("\\", "/").split("/"))
+    return any(part.startswith(".") or part == "__pycache__" for part in str(path).replace("\\", "/").split("/"))
 
 
 # ---------------------------------------------------------------------------
