@@ -114,10 +114,9 @@ def render(filename="home", download_url: str = GITHUB_URL):
                 dist_url = (
                     "/dist/" if os.path.exists(DIST_DIR) else f"{STATIC_URL}dist/"
                 )
-                html = html.replace("'../dist/", f"'{dist_url}")
-                html = html.replace("'/dist/", f"'{dist_url}")
-                html = html.replace("'dist/", f"'{dist_url}")
-                html = html.replace('<base href="/">', f'<base href="/sillytavern/">')
+                html = html.replace('"../dist/', f'"{dist_url}')
+                html = html.replace('"/dist/', f'"{dist_url}')
+                html = html.replace('"dist/', f'"{dist_url}')
         if html is None:
             with open(cache_file, "wb") as f:
                 f.write(response.content)
@@ -207,12 +206,7 @@ class Website:
                 supports_stream = getattr(provider, "supports_stream", False)
                 supports_message_history = getattr(provider, "supports_message_history", False)
                 supports_system_message = getattr(provider, "supports_system_message", False)
-                params = getattr(provider, "params", [])
-                if callable(params):
-                    try:
-                        params = params()
-                    except Exception:
-                        params = []
+                params = provider.get_params()
                 providers.append({
                     "name": name,
                     "url": url,
@@ -224,7 +218,7 @@ class Website:
                     "supports_stream": supports_stream,
                     "supports_message_history": supports_message_history,
                     "supports_system_message": supports_system_message,
-                    "params": params if isinstance(params, list) else list(params) if params else [],
+                    "params": params,
                 })
             except Exception:
                 raise
@@ -352,9 +346,7 @@ class Website:
 
         # Build params list HTML
         if p["params"]:
-            params_html = "<ul class='param-list'>" + "".join(
-                f"<li>{escape(str(param))}</li>" for param in p["params"]
-            ) + "</ul>"
+            params_html = "<pre>" + escape(str(p["params"])) + "</pre>"
         else:
             params_html = "<p><em>None</em></p>"
 

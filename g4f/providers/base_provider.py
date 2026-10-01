@@ -246,8 +246,7 @@ class AbstractProvider(BaseProvider):
         return params
 
     @classmethod
-    @property
-    def params(cls) -> str:
+    def get_params(cls) -> str:
         """
         Returns the parameters supported by the provider.
 
