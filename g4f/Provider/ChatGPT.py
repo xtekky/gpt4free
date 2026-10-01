@@ -83,7 +83,14 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "auto"
     # The guest surface routes to ChatGPT's default model; it is advertised
     # for the models it can serve so model/provider validation passes.
-    models = [default_model, "gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-5"]
+    models = [default_model]
+    model_aliases = {
+        "gpt-4o-mini": "gpt-4o-mini",
+        "gpt-4o": "gpt-4o",
+        "gpt-4": "gpt-4",
+        "gpt-4.1-mini": "gpt-4.1-mini",
+        "gpt-5": "gpt-5",
+    }
 
     updates_url_pattern = "*conversation/updates*"
     seed_prompt = "Hello"
