@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from typing import Optional, List
 from time import time
@@ -104,13 +105,16 @@ class ToolCallModel(BaseModel):
 
     @classmethod
     def model_construct(cls, function=None, index=0, **kwargs):
-        # Ensure arguments is always a string
-        if (
-            function
-            and "arguments" in function
-            and not isinstance(function["arguments"], str)
-        ):
-            function["arguments"] = str(function["arguments"])
+        # Ensure arguments is always a JSON-encoded string (OpenAI schema)
+        if function and "arguments" in function:
+            arguments = function["arguments"]
+            if not isinstance(arguments, str):
+                try:
+                    function["arguments"] = json.dumps(
+                        arguments if arguments else {}, ensure_ascii=True
+                    )
+                except (TypeError, ValueError):
+                    function["arguments"] = str(arguments)
         return super().model_construct(
             index=index,
             **kwargs,

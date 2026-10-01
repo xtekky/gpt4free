@@ -10,6 +10,7 @@ from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
 from ...providers.response import *
 from ...tools.media import render_messages
+from ...tools.tool_support import normalize_stream_tool_calls
 from ...config import SPACE_URL, AppConfig
 from ...errors import MissingAuthError
 from ... import debug
@@ -415,7 +416,7 @@ async def read_response(
             if choice and "content" in message and message["content"]:
                 yield message["content"].strip()
             if "tool_calls" in message:
-                yield ToolCalls(message["tool_calls"])
+                yield ToolCalls(normalize_stream_tool_calls(message["tool_calls"]))
             if choice:
                 reasoning_content = choice.get("delta", {}).get(
                     "reasoning_content", choice.get("delta", {}).get("reasoning")
@@ -444,6 +445,7 @@ async def read_response(
         reasoning = False
         first = True
         model_returned = False
+        tool_calls_index = 0
         async for data in sse_stream(response):
             yield JsonResponse.from_dict(data)
             OpenaiTemplate.raise_error(data)
@@ -465,7 +467,11 @@ async def read_response(
                         yield content
                 tool_calls = choice.get("delta", {}).get("tool_calls")
                 if tool_calls:
-                    yield ToolCalls(tool_calls)
+                    normalized_calls = normalize_stream_tool_calls(
+                        tool_calls, tool_calls_index
+                    )
+                    tool_calls_index += len(normalized_calls)
+                    yield ToolCalls(normalized_calls)
                 reasoning_content = choice.get("delta", {}).get(
                     "reasoning_content", choice.get("delta", {}).get("reasoning")
                 )

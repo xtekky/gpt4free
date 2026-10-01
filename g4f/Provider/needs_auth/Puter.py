@@ -8,6 +8,7 @@ from ...typing import AsyncResult, Messages, MediaListType
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...providers.response import FinishReason, Usage, Reasoning, ToolCalls
 from ...tools.media import render_messages
+from ...tools.tool_support import normalize_stream_tool_calls
 from ...requests import sse_stream, raise_for_status
 from ...errors import ResponseError, ModelNotFoundError, MissingAuthError
 from ..helper import format_media_prompt
@@ -482,6 +483,7 @@ class Puter(AsyncGeneratorProvider, ProviderModelMixin):
                     return
                 elif mime_type.startswith("text/event-stream"):
                     reasoning = False
+                    tool_calls_index = 0
                     async for result in sse_stream(response.content):
                         if "error" in result:
                             raise ResponseError(
@@ -505,7 +507,11 @@ class Puter(AsyncGeneratorProvider, ProviderModelMixin):
                             yield Usage(**result["usage"])
                         tool_calls = choice.get("delta", {}).get("tool_calls")
                         if tool_calls:
-                            yield ToolCalls(choice["delta"]["tool_calls"])
+                            normalized_calls = normalize_stream_tool_calls(
+                                tool_calls, tool_calls_index
+                            )
+                            tool_calls_index += len(normalized_calls)
+                            yield ToolCalls(normalized_calls)
                         finish_reason = choice.get("finish_reason")
                         if finish_reason:
                             yield FinishReason(finish_reason)
@@ -529,7 +535,7 @@ class Puter(AsyncGeneratorProvider, ProviderModelMixin):
                     elif content:
                         yield content
                     if "tool_calls" in message:
-                        yield ToolCalls(message["tool_calls"])
+                        yield ToolCalls(normalize_stream_tool_calls(message["tool_calls"]))
                     if result.get("usage") is not None:
                         yield Usage(**result["usage"])
                     finish_reason = choice.get("finish_reason")
@@ -545,21 +551,25 @@ class Puter(AsyncGeneratorProvider, ProviderModelMixin):
                             yield Reasoning(data.get("reasoning", ""))
                         elif data.get("type") == "tool_use":
                             yield ToolCalls(
-                                [
-                                    {
-                                        "id": tools_idx,
-                                        "type": "function",
-                                        "id": data.get("id"),
-                                        "function": {
-                                            "name": data.get("name"),
-                                            "arguments": data.get("input"),
-                                        },
-                                    }
-                                ]
+                                normalize_stream_tool_calls(
+                                    [
+                                        {
+                                            "id": data.get("id"),
+                                            "type": "function",
+                                            "function": {
+                                                "name": data.get("name"),
+                                                "arguments": data.get("input"),
+                                            },
+                                        }
+                                    ],
+                                    tools_idx,
+                                )
                             )
                             tools_idx += 1
                         elif data.get("type") == "tool_calls":
-                            yield ToolCalls(data.get("tool_calls", []))
+                            yield ToolCalls(
+                                normalize_stream_tool_calls(data.get("tool_calls", []))
+                            )
                         elif data.get("type") == "usage":
                             yield Usage.from_dict(data.get("usage", {}))
                 else:
