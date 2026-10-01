@@ -228,18 +228,19 @@ class CDPElement:
         self._object_id = object_id
         self._node_id = node_id
 
-    async def click(self):
+    async def click(self, scroll_into_view: bool = True):
         """Scroll into view and click the element."""
         try:
-            await self._tab._session.call(
-                "Runtime.callFunctionOn",
-                objectId=self._object_id,
-                functionDeclaration=(
-                    "function(){this.scrollIntoView({block:'center'});"
-                    "this.click();}"
-                ),
-            )
-            return
+            if scroll_into_view:
+                await self._tab._session.call(
+                    "Runtime.callFunctionOn",
+                    objectId=self._object_id,
+                    functionDeclaration=(
+                        "function(){this.scrollIntoView({block:'center'});"
+                        "this.click();}"
+                    ),
+                )
+                return
         except Exception:
             pass
         # Fallback: dispatch a real mouse click at the element's on-screen position.

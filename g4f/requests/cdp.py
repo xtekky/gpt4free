@@ -254,6 +254,7 @@ def get_shared_browser(
     headless: bool = True,
     proxy: Optional[str] = None,
     browser_args: Optional[List[str]] = None,
+    disable_web_security: bool = False,
 ) -> int:
     """
     Ensure a single shared browser instance is running and return its port.
@@ -345,13 +346,15 @@ def get_shared_browser(
             "--no-first-run",
             "--disable-infobars",
             "--disable-popup-blocking",
-            "--hide-crash-restore-bubble",
+            "--hide-crash-restore-bubble"
+        ] + (
+            [
             "--disable-features=PrivacySandboxSettings4",
             "--disable-blink-features=AutomationControlled",
-            "--remote-allow-origins=*",
-            "--disable-web-security",
+            "--disable-web-security"
             "--disable-features=IsolateOrigins,site-per-process",
-        ]
+            ] if disable_web_security else []
+        )
         if headless:
             cmd.append("--headless=new")
         if proxy:
@@ -544,6 +547,7 @@ class CDPSession:
         headless: Optional[bool] = None,
         proxy: Optional[str] = None,
         browser_args: Optional[List[str]] = None,
+        disable_web_security: Optional[bool] = None,
     ):
         if port is None:
             port = BrowserConfig.port
@@ -556,6 +560,9 @@ class CDPSession:
         if headless is None:
             headless = BrowserConfig.headless
         self.headless = headless
+        if disable_web_security is None:
+            disable_web_security = BrowserConfig.disable_web_security
+        self.disable_web_security = disable_web_security
         self.proxy = proxy
         self.browser_args = browser_args
         self.user_data_dir = (
@@ -570,6 +577,10 @@ class CDPSession:
         self._pending_requests: Dict[int, asyncio.Future] = {}
         self._event_handlers: Dict[str, List[asyncio.Future]] = {}
         self._event_queues: Dict[str, List[asyncio.Queue]] = {}
+        # When set, only these CDP event methods are dispatched to handlers
+        # and queues (e.g. {"Network.webSocketFrameReceived"}). Responses to
+        # pending calls are always delivered regardless of this filter.
+        self._event_filter: Optional[set] = None
         self._closing = False
         self._connection_lost = False
         # True when this session runs through the browser-extension relay
@@ -615,7 +626,7 @@ class CDPSession:
 
         if self.port is None:
             self.port = get_shared_browser(
-                self.host, self.port, self.headless, self.proxy, self.browser_args
+                self.host, self.port, self.headless, self.proxy, self.browser_args, self.disable_web_security,
             )
 
         # Acquire a reference so the shared browser stays alive for this tab
@@ -938,42 +949,85 @@ class CDPSession:
             except Exception:
                 pass  # Socket gone — debugging already disabled
 
+    def _dispatch_message(self, data: dict):
+        """Route a decoded CDP message to pending calls and event listeners."""
+        if "id" in data:
+            req_id = data["id"]
+            if req_id in self._pending_requests:
+                fut = self._pending_requests[req_id]
+                if not fut.done():
+                    if "error" in data:
+                        fut.set_exception(RuntimeError(data["error"]))
+                    else:
+                        fut.set_result(data.get("result", {}))
+        elif "method" in data:
+            method = data["method"]
+            params = data.get("params") or {}
+
+            # Skip events the session does not need — keeps the receiver
+            # cheap when a provider only listens to a few event types.
+            if self._event_filter is not None and method not in self._event_filter:
+                return
+
+            # Intercept network events
+            if method == "Network.requestWillBeSent":
+                self.network_requests.append(params)
+            elif method == "Network.responseReceived":
+                self.network_responses.append(params)
+
+            # Resolve any futures waiting for this event
+            if method in self._event_handlers:
+                for fut in self._event_handlers[method]:
+                    if not fut.done():
+                        fut.set_result(params)
+                self._event_handlers[method].clear()
+
+            if method in self._event_queues:
+                event = {"_method": method, **params}
+                for q in self._event_queues[method]:
+                    try:
+                        q.put_nowait(event)
+                    except asyncio.QueueFull:
+                        logger.debug("CDP: event queue full — dropping event")
+
     async def _receiver_loop(self):
-        """Listen for WebSocket messages."""
+        """Listen for WebSocket messages.
+
+        A single malformed or unexpected message must never kill the
+        receiver: parse and dispatch errors are logged and skipped, so the
+        session stays alive for subsequent events.
+        """
         try:
             async for msg in self.ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    data = json.loads(msg.data)
-
-                    if "id" in data:
-                        req_id = data["id"]
-                        if req_id in self._pending_requests:
-                            fut = self._pending_requests[req_id]
-                            if not fut.done():
-                                if "error" in data:
-                                    fut.set_exception(RuntimeError(data["error"]))
-                                else:
-                                    fut.set_result(data.get("result", {}))
-                    elif "method" in data:
-                        method = data["method"]
-                        params = data.get("params", {})
-
-                        # Intercept network events
-                        if method == "Network.requestWillBeSent":
-                            self.network_requests.append(params)
-                        elif method == "Network.responseReceived":
-                            self.network_responses.append(params)
-
-                        # Resolve any futures waiting for this event
-                        if method in self._event_handlers:
-                            for fut in self._event_handlers[method]:
-                                if not fut.done():
-                                    fut.set_result(params)
-                            self._event_handlers[method].clear()
-
-                        if method in self._event_queues:
-                            for q in self._event_queues[method]:
-                                q.put_nowait({"_method": method, **params})
+                    raw = msg.data
+                elif msg.type == aiohttp.WSMsgType.BINARY:
+                    raw = msg.data.decode("utf-8", errors="replace")
+                elif msg.type in (
+                    aiohttp.WSMsgType.CLOSE,
+                    aiohttp.WSMsgType.CLOSING,
+                    aiohttp.WSMsgType.CLOSED,
+                ):
+                    break
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    logger.error(f"CDP receiver loop error: {msg.data}")
+                    continue
+                else:
+                    continue  # ping/pong and other control frames
+                try:
+                    data = json.loads(raw)
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.debug(f"CDP: dropping malformed message: {e}")
+                    continue
+                if not isinstance(data, dict):
+                    logger.debug(f"CDP: dropping non-object message: {str(data)[:100]}")
+                    continue
+                try:
+                    self._dispatch_message(data)
+                except Exception as e:
+                    logger.debug(f"CDP: error dispatching message: {e}")
+        except asyncio.CancelledError:
+            pass  # Normal shutdown via close()
         except Exception as e:
             if not self._closing:
                 logger.error(f"CDP receiver loop error: {e}")
@@ -1026,6 +1080,14 @@ class CDPSession:
         if method not in self._event_queues:
             self._event_queues[method] = []
         self._event_queues[method].append(queue)
+
+    def set_event_filter(self, methods: Optional[List[str]]):
+        """Restrict event dispatch to the given CDP event methods.
+
+        Pass ``None`` to receive all events again. Responses to pending
+        calls are unaffected by this filter.
+        """
+        self._event_filter = set(methods) if methods is not None else None
 
     def remove_event_handler(self, method: str, queue: asyncio.Queue):
         """Remove a persistent event listener."""
@@ -1304,14 +1366,21 @@ return clickedTexts.join(', ');
             js_code
         )
 
-    async def insert_text_and_submit(self) -> bool:
+    async def insert_text_and_submit(self, text = "") -> bool:
         """Insert text into the appropriate input field and submit it."""
 
         js_code = """
 // Get the current URL's search parameters
 const params = new URLSearchParams(window.location.search || document.location.hash.substring(1));
-const searchQuery = params.get('q');
+"""
+        if text:
+            js_code += f"""
+const searchQuery = {json.dumps(text)};"""
+        else:
+            js_code += """
+const searchQuery = params.get('q');"""
 
+        js_code += """
 // Enable Google AI Mode if the URL has the ai-mode parameter
 let googleAiModeButton = null;
 function enableGoogleAiMode() {
@@ -1344,6 +1413,7 @@ const fieldSelectors = [
     '[placeholder="Ask Meta AI..."]', // meta.ai
     '[placeholder="Ask anything..."]', // cloudflare
     '[data-testid="textbox"]', // Flux HF
+    '[contenteditable="true"]', // copilot.microsoft.com
 ];
 // Handle special cases for specific sites (like DeepSeek, Gemini, etc.)
 (function() {
@@ -1388,13 +1458,16 @@ const sendButtonSelectors = [
     '#send-message-button', // z.ai
     '[aria-label="Send message"]', // arena.ai / gemini.google.com
     '[aria-label="Nachricht senden"]', // gemini.google.com
+    '[aria-label="Senden"]', // copilot.microsoft.com
 ];
 const sendButton = document.querySelector(sendButtonSelectors.join(', '));
-if (sendButton) {
-    setTimeout(() => {
+setTimeout(() => {
+    // Search for new send button (copilot.microsoft.com)
+    const sendButton = document.querySelector(sendButtonSelectors.join(', '));
+    if (sendButton) {
         sendButton.click();
-    }, 2000);
-}
+    }
+}, 2000);
 
 // Click the send button on gemini.google.com
 const geminiSendButton = document.querySelector(`.send-button`);

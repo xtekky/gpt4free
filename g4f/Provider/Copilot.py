@@ -1,38 +1,18 @@
 from __future__ import annotations
 
-import os
 import json
-import uuid
 import asyncio
 import base64
-import random
-import string
-import urllib.parse
-from typing import AsyncIterator
-from urllib.parse import quote
+from urllib.parse import parse_qs, urlparse
 
-try:
-    from curl_cffi.requests import AsyncSession
-    from curl_cffi import CurlWsFlag, CurlMime
+from ..requests.cdp import CDPSession
 
-    has_curl_cffi = True
-except ImportError:
-    has_curl_cffi = False
-from ..requests.cdp_browser import cdp, CDPTab
-
-from .base_provider import AsyncAuthedProvider, ProviderModelMixin
-from .openai.har_file import get_headers, get_har_files
-from ..typing import AsyncResult, Messages, MediaListType
-from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..typing import AsyncResult, Messages
+from ..errors import MissingAuthError
 from ..providers.response import *
-from ..tools.media import merge_media
-from ..requests import get_nodriver, DEFAULT_HEADERS, has_cdp
-from ..image import to_bytes, is_accepted_format
+from ..image import is_accepted_format
 from .helper import get_last_user_message
-from ..files import get_bucket_dir
-from ..tools.files import read_bucket
-from ..cookies import get_cookies
-from pathlib import Path
 from .. import debug
 
 
@@ -60,36 +40,119 @@ def extract_bucket_items(messages: Messages) -> list[dict]:
     return bucket_items
 
 
-def random_hex(length):
-    return "".join(random.choices("0123456789ABCDEF", k=length))
+def iter_stream_events(payload: str, allow_plain_text: bool = False):
+    """Normalize websocket frames into legacy stream events.
+
+    The classic copilot.microsoft.com socket emits ``{"event": ...}`` dicts.
+    The newer substrate.office.com/m365Copilot/Chathub socket used by the
+    office web client speaks SignalR: ``{"type": 1, "target": "update",
+    "arguments": [...]}`` invocation frames carry cumulative message
+    snapshots and ``writeAtCursor`` deltas, a ``{"type": 2}`` frame ends
+    the turn.
+    """
+    try:
+        msg = json.loads(payload)
+    except (json.JSONDecodeError, TypeError):
+        if allow_plain_text and isinstance(payload, str) and payload:
+            yield {"event": "appendText", "text": payload}
+        return
+    yield from _normalize_stream_message(msg)
+
+# Message types that carry no response content
+_SKIPPED_MESSAGE_TYPES = {
+    "Progress", "HintInvocation", "ReferencesListComplete", "Suggestion",
+    "SearchQuery", "GeneratedCode", "TaskComplete", "Disengaged",
+}
+
+def _adaptive_card_text(message: dict) -> str:
+    """Extract the visible text from a bot message's adaptive cards."""
+    parts = []
+    for card in message.get("adaptiveCards") or []:
+        if not isinstance(card, dict):
+            continue
+        for block in card.get("body") or []:
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+    return "\n".join(parts)
+
+def _normalize_stream_message(msg):
+    if isinstance(msg, list):
+        for item in msg:
+            yield from _normalize_stream_message(item)
+    elif isinstance(msg, dict):
+        if "event" in msg:
+            yield msg
+        elif msg.get("type") == 1 and isinstance(msg.get("arguments"), list):
+            # SignalR invocation frame (Chathub socket)
+            for argument in msg["arguments"]:
+                if not isinstance(argument, dict):
+                    continue
+                if argument.get("conversationId"):
+                    yield {
+                        "event": "startMessage",
+                        "conversationId": argument["conversationId"],
+                    }
+                delta = argument.get("writeAtCursor")
+                if isinstance(delta, str) and delta:
+                    yield {"event": "appendText", "text": delta}
+                if isinstance(argument.get("messages"), list):
+                    for item in argument["messages"]:
+                        yield from _normalize_stream_message(item)
+        elif msg.get("type") == 2:
+            # SignalR completion frame
+            result = (msg.get("item") or {}).get("result") or {}
+            if result.get("value") not in (None, "Success"):
+                yield {"event": "error", **result}
+            else:
+                yield {"event": "done"}
+        elif msg.get("type") in (3, 6):
+            pass  # SignalR close/ping — handled by the browser itself
+        elif msg.get("author") == "user":
+            pass  # Never echo the user's own message
+        elif msg.get("messageType") in _SKIPPED_MESSAGE_TYPES:
+            pass
+        elif isinstance(msg.get("adaptiveCards"), list) and msg.get("adaptiveCards"):
+            # Bot message: a cumulative text snapshot
+            text = _adaptive_card_text(msg) or msg.get("text") or ""
+            if text:
+                yield {"event": "replaceText", "text": text}
+            for attribution in msg.get("sourceAttributions") or []:
+                if isinstance(attribution, dict) and attribution.get("url"):
+                    yield {
+                        "event": "citation",
+                        "url": attribution["url"],
+                        "title": attribution.get("displayName"),
+                    }
+            suggestions = [
+                item.get("text")
+                for item in msg.get("suggestedResponses") or []
+                if isinstance(item, dict) and item.get("text")
+            ]
+            if suggestions:
+                yield {"event": "suggestedFollowups", "suggestions": suggestions}
+        elif isinstance(msg.get("messages"), list):
+            for item in msg["messages"]:
+                yield from _normalize_stream_message(item)
+        elif isinstance(msg.get("text"), str):
+            yield {"event": "appendText", "text": msg["text"]}
+        else:
+            yield msg
+    elif isinstance(msg, str):
+        if msg:
+            yield {"event": "appendText", "text": msg}
+    else:
+        yield msg
 
 
-def random_base64(length):
-    chars = string.ascii_letters + string.digits + "+/="
-    return "".join(random.choices(chars, k=length))
-
-
-def get_fake_cookie():
-    return {
-        "_C_ETH": "1",
-        "_C_Auth": "",
-        "MUID": random_hex(32),
-        "MUIDB": random_hex(32),
-        "_EDGE_S": f"F=1&SID={random_hex(32)}",
-        "_EDGE_V": "1",
-        "ak_bmsc": f"{random_hex(32)}~{'0'*48}~{urllib.parse.quote(random_base64(300))}",
-    }
-
-
-class Copilot(AsyncAuthedProvider, ProviderModelMixin):
+class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
-    url = "https://copilot.microsoft.com"
-    cookie_domain = ".microsoft.com"
-    anon_cookie_name = "__Host-copilot-anon"
+    url = "https://copilot.com"
 
     working = True
+    active_by_default = True
     use_nodriver = True
     needs_auth = True
+    use_stream_timeout = False
 
     default_model = "Copilot"
     models = [default_model, "Think Deeper", "Smart (GPT-5)", "Study"]
@@ -100,463 +163,190 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
         "gpt-5": "GPT-5",
         "study": "Study",
     }
-
-    websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
-    conversation_url = f"{url}/c/api/conversations"
-
+    
     @classmethod
-    async def on_auth_async(
-        cls, cookies: dict = None, proxy: str = None, **kwargs
-    ) -> AsyncIterator:
-        if cookies is None:
-            cookies = get_fake_cookie() or get_cookies(
-                cls.cookie_domain, False, cache_result=False
-            )
-        access_token = None
-        useridentitytype = None
-        if cls.needs_auth or cls.anon_cookie_name not in cookies:
-            try:
-                access_token, useridentitytype, cookies = readHAR(cls.url)
-            except NoValidHarFileError as h:
-                debug.log(f"Copilot: {h}")
-                if has_cdp:
-                    yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                    (
-                        access_token,
-                        useridentitytype,
-                        cookies,
-                    ) = await get_access_token_and_cookies(
-                        cls.url, proxy, cls.needs_auth
-                    )
-                else:
-                    raise h
-        yield AuthResult(
-            access_token=access_token,
-            useridentitytype=useridentitytype,
-            cookies=cookies,
-        )
-
-    @classmethod
-    async def create_authed(
+    async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        auth_result: AuthResult,
         proxy: str = None,
-        timeout: int = 30,
+        timeout: int = None,
         prompt: str = None,
-        media: MediaListType = None,
         conversation: BaseConversation = None,
-        return_conversation: bool = True,
         **kwargs,
     ) -> AsyncResult:
-        if not has_curl_cffi:
-            raise MissingRequirementsError(
-                'Install or update "curl_cffi" package | pip install -U curl_cffi'
+        if prompt is None:
+            prompt = get_last_user_message(messages, False)
+        if conversation is not None:
+            url = f"{cls.url}/chats/{conversation.conversation_id}"
+        else:
+            url = cls.url
+        async with CDPSession(proxy=proxy, headless=False) as session:
+            # Listen for websocket events from the chat API. Register before
+            # navigating, so the chat socket created during page load is seen.
+            queue: asyncio.Queue = asyncio.Queue()
+            ws_events = (
+                "Network.webSocketCreated",
+                "Network.webSocketFrameReceived",
+                "Network.webSocketClosed",
             )
-        model = cls.get_model(model)
-        websocket_url = cls.websocket_url + f"&clientSessionId={uuid.uuid4()}"
-        headers = DEFAULT_HEADERS.copy()
-        headers["origin"] = cls.url
-        headers["referer"] = cls.url + "/"
-        if getattr(auth_result, "access_token", None):
-            websocket_url = (
-                f"{websocket_url}&accessToken={quote(auth_result.access_token)}"
-                + (
-                    f"&X-UserIdentityType={quote(auth_result.useridentitytype)}"
-                    if getattr(auth_result, "useridentitytype", None)
-                    else ""
-                )
-            )
-            headers["authorization"] = f"Bearer {auth_result.access_token}"
+            # Only listen to websocket events — skip all other CDP traffic
+            session.set_event_filter(list(ws_events))
+            for ws_event in ws_events:
+                session.add_event_handler(ws_event, queue)
 
-        cookies = getattr(auth_result, "cookies", None)
-        if not cookies:
-            # Cached AuthResult from an older version may not have cookies.
-            # Re-run auth to obtain a fresh AuthResult with cookies.
-            async for chunk in cls.on_auth_async(proxy=proxy):
-                if isinstance(chunk, AuthResult):
-                    auth_result = chunk
-                    cookies = getattr(auth_result, "cookies", None)
+            await session.navigate(url)
+
+            # Wait for the chat UI. A login redirect flow (copilot.com/chat
+            # ?...IdentityProvider=msa → login.microsoftonline.com) may run
+            # first. Never clear cookies here — that would log the user out
+            # of their Microsoft account. The browser is visible, so a manual
+            # login also completes this wait. While a login page is open the
+            # timeout keeps extending: raising here would only make the
+            # retry loop open a fresh tab and reload the site again.
+            loop = asyncio.get_running_loop()
+            has_input = False
+            deadline = loop.time() + 120
+            while loop.time() < deadline:
+                if await session.evaluate_js("!!document.querySelector('textarea, [contenteditable=\"true\"]')"):
+                    has_input = True
                     break
-            cls.write_cache_file(cls.get_cache_file(), auth_result)
-        async with AsyncSession(
-            timeout=timeout,
-            proxy=proxy,
-            impersonate="chrome",
-            headers=headers,
-            cookies=cookies,
-        ) as session:
-            if conversation is None:
-                # har_file = os.path.join(os.path.dirname(__file__), "copilot", "copilot.microsoft.com.har")
-                # with open(har_file, "r") as f:
-                #     har_entries = json.load(f).get("log", {}).get("entries", [])
-                # conversationId = ""
-                # for har_entry in har_entries:
-                #     if har_entry.get("request"):
-                #         if "/c/api/" in har_entry.get("request").get("url", ""):
-                #             try:
-                #                 response = await getattr(session, har_entry.get("request").get("method").lower())(
-                #                     har_entry.get("request").get("url", "").replace("cvqBJw7kyPAp1RoMTmzC6", conversationId),
-                #                     data=har_entry.get("request").get("postData", {}).get("text"),
-                #                     headers={header["name"]: header["value"] for header in har_entry.get("request").get("headers")}
-                #                 )
-                #                 response.raise_for_status()
-                #                 if response.headers.get("content-type", "").startswith("application/json"):
-                #                     conversationId = response.json().get("currentConversationId", conversationId)
-                #             except Exception as e:
-                #                 debug.log(f"Copilot: Failed request to {har_entry.get('request').get('url', '')}: {e}")
-                data = {
-                    "timeZone": "America/Los_Angeles",
-                    "startNewConversation": True,
-                    "teenSupportEnabled": True,
-                    "correctPersonalizationSetting": True,
-                    "performUserMerge": True,
-                    "deferredDataUseCapable": True,
-                }
-                response = await session.post(
-                    "https://copilot.microsoft.com/c/api/start",
-                    headers={
-                        "content-type": "application/json",
-                        **(
-                            {"x-useridentitytype": auth_result.useridentitytype}
-                            if getattr(auth_result, "useridentitytype", None)
-                            else {}
-                        ),
-                        **(headers or {}),
-                    },
-                    json=data,
-                )
-                if response.status_code == 401:
-                    raise MissingAuthError("Status 401: Invalid session")
-                response.raise_for_status()
-                debug.log(
-                    f"Copilot: Update cookies: [{', '.join(key for key in response.cookies)}]"
-                )
-                auth_result.cookies.update(
-                    {key: value for key, value in response.cookies.items()}
-                )
-                if (
-                    not getattr(auth_result, "access_token", None)
-                    and not cls.needs_auth
-                    and cls.anon_cookie_name not in auth_result.cookies
+                if await session.evaluate_js(
+                    "/^login\\.(microsoftonline|live)\\.com$/.test(location.hostname)"
                 ):
-                    raise MissingAuthError(f"Missing cookie: {cls.anon_cookie_name}")
-                conversation = Conversation(
-                    response.json().get("currentConversationId")
-                )
-                debug.log(
-                    f"Copilot: Created conversation: {conversation.conversation_id}"
-                )
-            else:
-                debug.log(f"Copilot: Use conversation: {conversation.conversation_id}")
+                    deadline = loop.time() + 30
+                await asyncio.sleep(0.5)
+            if not has_input:
+                raise MissingAuthError("Copilot: No prompt input found on page")
 
-            # response = await session.get("https://copilot.microsoft.com/c/api/user?api-version=4", headers={"x-useridentitytype": useridentitytype} if cls._access_token else {})
-            # if response.status_code == 401:
-            #     raise MissingAuthError("Status 401: Invalid session")
-            # response.raise_for_status()
-            # print(response.json())
-            # user = response.json().get('firstName')
-            # if user is None:
-            #     if cls.needs_auth:
-            #         raise MissingAuthError("No user found, please login first")
-            #     cls._access_token = None
-            # else:
-            #     debug.log(f"Copilot: User: {user}")
-
-            uploaded_attachments = []
-            if getattr(auth_result, "access_token", None):
-                # Upload regular media (images)
-                for media, _ in merge_media(media, messages):
-                    if not isinstance(media, str):
-                        data = to_bytes(media)
-                        response = await session.post(
-                            "https://copilot.microsoft.com/c/api/attachments",
-                            headers={
-                                "content-type": is_accepted_format(data),
-                                "content-length": str(len(data)),
-                                **(
-                                    {"x-useridentitytype": auth_result.useridentitytype}
-                                    if getattr(auth_result, "useridentitytype", None)
-                                    else {}
-                                ),
-                            },
-                            data=data,
-                        )
-                        response.raise_for_status()
-                        media = response.json().get("url")
-                    uploaded_attachments.append({"type": "image", "url": media})
-
-                # Upload bucket files
-                bucket_items = extract_bucket_items(messages)
-                for item in bucket_items:
-                    try:
-                        # Handle plain text content from bucket
-                        bucket_path = Path(get_bucket_dir(item["bucket_id"]))
-                        for text_chunk in read_bucket(bucket_path):
-                            if text_chunk.strip():
-                                # Upload plain text as a text file
-                                text_data = text_chunk.encode("utf-8")
-                                data = CurlMime()
-                                data.addpart(
-                                    "file",
-                                    filename=f"bucket_{item['bucket_id']}.txt",
-                                    content_type="text/plain",
-                                    data=text_data,
-                                )
-                                response = await session.post(
-                                    "https://copilot.microsoft.com/c/api/attachments",
-                                    multipart=data,
-                                    headers={
-                                        "x-useridentitytype": auth_result.useridentitytype
-                                    }
-                                    if getattr(auth_result, "useridentitytype", None)
-                                    else {},
-                                )
-                                response.raise_for_status()
-                                data = response.json()
-                                uploaded_attachments.append(
-                                    {"type": "document", "attachmentId": data.get("id")}
-                                )
-                                debug.log(
-                                    f"Copilot: Uploaded bucket text content: {item['bucket_id']}"
-                                )
-                            else:
-                                debug.log(
-                                    f"Copilot: No text content found in bucket: {item['bucket_id']}"
-                                )
-                    except Exception as e:
-                        debug.log(f"Copilot: Failed to upload bucket item: {item}")
-                        debug.error(e)
-
-            if prompt is None:
-                prompt = get_last_user_message(messages, False)
-
-            wss = await session.ws_connect(websocket_url, timeout=3)
-            if "Think" in model:
-                mode = "reasoning"
-            elif model.startswith("gpt-5") or "GPT-5" in model:
-                mode = "smart"
-            else:
-                mode = "chat"
-            await wss.send(
-                json.dumps(
-                    {
-                        "event": "send",
-                        "conversationId": conversation.conversation_id,
-                        "content": [
-                            *uploaded_attachments,
-                            {
-                                "type": "text",
-                                "text": prompt,
-                            },
-                        ],
-                        "mode": mode,
-                    }
-                ).encode(),
-                CurlWsFlag.TEXT,
-            )
+            await session.insert_text_and_submit(prompt)
 
             done = False
-            msg = None
             image_prompt: str = None
             last_msg = None
             sources = {}
-            while not wss.closed:
-                try:
-                    msg_txt, _ = await asyncio.wait_for(
-                        wss.recv(), 1 if done else timeout
-                    )
-                    msg = json.loads(msg_txt)
-                except Exception:
-                    break
-                last_msg = msg
-                if msg.get("event") == "appendText":
-                    yield msg.get("text")
-                elif msg.get("event") == "generatingImage":
-                    image_prompt = msg.get("prompt")
-                elif msg.get("event") == "imageGenerated":
-                    yield ImageResponse(
-                        msg.get("url"),
-                        image_prompt,
-                        {"preview": msg.get("thumbnailUrl")},
-                    )
-                elif msg.get("event") == "done":
-                    yield FinishReason("stop")
-                    done = True
-                elif msg.get("event") == "suggestedFollowups":
-                    yield SuggestedFollowups(msg.get("suggestions"))
-                    break
-                elif msg.get("event") == "replaceText":
-                    yield msg.get("text")
-                elif msg.get("event") == "titleUpdate":
-                    yield TitleGeneration(msg.get("title"))
-                elif msg.get("event") == "citation":
-                    sources[msg.get("url")] = msg
-                    yield SourceLink(
-                        list(sources.keys()).index(msg.get("url")), msg.get("url")
-                    )
-                elif msg.get("event") == "partialImageGenerated":
-                    mime_type = is_accepted_format(
-                        base64.b64decode(msg.get("content")[:12])
-                    )
-                    yield ImagePreview(
-                        f"data:{mime_type};base64,{msg.get('content')}", image_prompt
-                    )
-                elif msg.get("event") == "chainOfThought":
-                    yield Reasoning(msg.get("text"))
-                elif msg.get("event") == "error":
-                    raise RuntimeError(f"Error: {msg}")
-                elif msg.get("event") not in [
-                    "received",
-                    "startMessage",
-                    "partCompleted",
-                    "connected",
-                ]:
-                    debug.log(f"Copilot Message: {msg_txt[:100]}...")
+            ws_request_id = None
+            ws_is_chathub = False
+            ws_conversation_id = None
+            got_response = False
+            # Text emitted so far — used to turn the Chathub protocol's
+            # cumulative snapshots into append-only deltas.
+            emitted_text = ""
+            sent_conversation = False
+
+            def handle_ws_message(event: dict):
+                """Handle a single CDP event and yield response chunks."""
+                nonlocal done, image_prompt, last_msg, got_response
+                nonlocal ws_request_id, ws_is_chathub, ws_conversation_id, sources
+                nonlocal emitted_text, sent_conversation
+                method = event.get("_method")
+                if method == "Network.webSocketCreated":
+                    # Track the chat websocket, so only its frames are processed
+                    ws_url = event.get("url", "")
+                    if ws_url.startswith("wss://substrate.office.com/m365Copilot/Chathub"):
+                        # The office web client streams via the M365 Chathub
+                        ws_request_id = event.get("requestId")
+                        ws_is_chathub = True
+                        query = parse_qs(urlparse(ws_url).query)
+                        ws_conversation_id = query.get("ConversationId", [None])[0]
+                    return
+                if method == "Network.webSocketClosed":
+                    if ws_request_id is not None and event.get("requestId") == ws_request_id:
+                        done = True
+                    return
+                if ws_request_id is not None and event.get("requestId") != ws_request_id:
+                    return
+                payload_data = (event.get("response") or {}).get("payloadData")
+                if not payload_data:
+                    return
+                for msg in iter_stream_events(payload_data, ws_is_chathub):
+                    last_msg = msg
+                    event_name = msg.get("event") if isinstance(msg, dict) else None
+                    if event_name in (
+                        "appendText", "replaceText", "imageGenerated",
+                        "partialImageGenerated", "chainOfThought",
+                    ):
+                        got_response = True
+                    if event_name == "startMessage":
+                        conversation_id = msg.get("conversationId") or ws_conversation_id
+                        if conversation_id and not sent_conversation:
+                            sent_conversation = True
+                            yield Conversation(conversation_id)
+                    elif event_name == "appendText":
+                        text = msg.get("text") or ""
+                        emitted_text += text
+                        yield text
+                    elif event_name == "generatingImage":
+                        image_prompt = msg.get("prompt")
+                    elif event_name == "imageGenerated":
+                        yield ImageResponse(
+                            msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")}
+                        )
+                    elif event_name == "done":
+                        yield FinishReason("stop")
+                        done = True
+                    elif event_name == "suggestedFollowups":
+                        yield SuggestedFollowups(msg.get("suggestions"))
+                        done = True
+                        return
+                    elif event_name == "replaceText":
+                        text = msg.get("text") or ""
+                        if text.startswith(emitted_text):
+                            # Cumulative snapshot: only forward the new part
+                            delta = text[len(emitted_text):]
+                            emitted_text = text
+                            if delta:
+                                yield delta
+                        else:
+                            emitted_text = text
+                            yield text
+                    elif event_name == "titleUpdate":
+                        yield TitleGeneration(msg.get("title"))
+                    elif event_name == "citation":
+                        sources[msg.get("url")] = msg
+                        yield SourceLink(
+                            list(sources.keys()).index(msg.get("url")), msg.get("url")
+                        )
+                    elif event_name == "partialImageGenerated":
+                        mime_type = is_accepted_format(
+                            base64.b64decode(msg.get("content")[:12])
+                        )
+                        yield ImagePreview(
+                            f"data:{mime_type};base64,{msg.get('content')}", image_prompt
+                        )
+                    elif event_name == "chainOfThought":
+                        yield Reasoning(msg.get("text"))
+                    elif event_name == "error":
+                        raise RuntimeError(f"Error: {msg}")
+                    elif event_name not in [
+                        "received",
+                        "startMessage",
+                        "partCompleted",
+                        "connected",
+                    ]:
+                        debug.log(f"Copilot Message: {payload_data[:100]}...")
+
+            try:
+                while not done:
+                    try:
+                        event = await asyncio.wait_for(queue.get(), timeout)
+                    except asyncio.TimeoutError:
+                        break
+                    for chunk in handle_ws_message(event):
+                        yield chunk
+            finally:
+                for event_name in (
+                    "Network.webSocketCreated",
+                    "Network.webSocketFrameReceived",
+                    "Network.webSocketClosed",
+                ):
+                    session.remove_event_handler(event_name, queue)
             if not done:
-                raise MissingAuthError(f"Invalid response: {last_msg}")
-            if return_conversation:
-                yield conversation
+                if got_response:
+                    # The Chathub socket closes without sending a done event
+                    debug.log("Copilot: Stream ended without done event")
+                    yield FinishReason("stop")
+                else:
+                    raise MissingAuthError(f"Invalid response: {last_msg}")
             if sources:
                 yield Sources(sources.values())
-            if not wss.closed:
-                await wss.close()
-
-
-async def get_access_token_and_cookies(
-    url: str, proxy: str = None, needs_auth: bool = False
-):
-    browser, stop_browser = await get_nodriver(proxy=proxy)
-    try:
-        page = await browser.get(url)
-        access_token = None
-        useridentitytype = None
-        while access_token is None:
-            for _ in range(2):
-                await asyncio.sleep(3)
-                access_token = await page.evaluate(
-                    """
-                    (() => {
-                        for (var i = 0; i < localStorage.length; i++) {
-                            try {
-                                const key = localStorage.key(i);
-                                const item = JSON.parse(localStorage.getItem(key));
-                                if (item?.body?.access_token) {
-                                    return ["" + item?.body?.access_token, "google"];
-                                } else if (key.includes("chatai")) {
-                                    return "" + item.secret;
-                                }
-                            } catch(e) {}
-                        }
-                    })()
-                """
-                )
-                if access_token is None:
-                    await asyncio.sleep(1)
-                    continue
-                if isinstance(access_token, list):
-                    access_token, useridentitytype = access_token
-                access_token = (
-                    access_token.get("value")
-                    if isinstance(access_token, dict)
-                    else access_token
-                )
-                useridentitytype = (
-                    useridentitytype.get("value")
-                    if isinstance(useridentitytype, dict)
-                    else None
-                )
-                debug.log(
-                    f"Got access token: {access_token[:10]}..., useridentitytype: {useridentitytype}"
-                )
-                break
-            if not needs_auth:
-                debug.log("No access token found, but authentication not required.")
-                break
-        if not needs_auth:
-            try:
-                textarea = await page.select("textarea")
-            except TimeoutError:
-                textarea = None
-            if textarea is not None:
-                debug.log("Filling textarea to generate anon cookie.")
-                await textarea.send_keys("Hello")
-                await asyncio.sleep(1)
-                try:
-                    button = await page.select('[data-testid="submit-button"]')
-                except TimeoutError:
-                    button = None
-                if button:
-                    debug.log("Clicking submit button to generate anon cookie.")
-                    await button.click()
-                    try:
-                        turnstile = await page.select("#cf-turnstile")
-                    except TimeoutError:
-                        turnstile = None
-                    if turnstile:
-                        debug.log("Found Element: 'cf-turnstile'")
-                        await asyncio.sleep(3)
-                        await click_trunstile(page)
-        cookies = {}
-        while not access_token and Copilot.anon_cookie_name not in cookies:
-            await asyncio.sleep(2)
-            cookies = {
-                c["name"]: c["value"]
-                for c in (await page.send(cdp.network.get_cookies([url]))).get("cookies", [])
-            }
-            if not needs_auth and Copilot.anon_cookie_name in cookies:
-                break
-            elif needs_auth and next(filter(lambda x: "auth0" in x, cookies), None):
-                break
-        await stop_browser()
-        return access_token, useridentitytype, cookies
-    finally:
-        await stop_browser()
-
-
-def readHAR(url: str):
-    api_key = None
-    useridentitytype = None
-    cookies = None
-    for path in get_har_files():
-        with open(path, "rb") as file:
-            try:
-                harFile = json.loads(file.read())
-            except json.JSONDecodeError:
-                # Error: not a HAR file!
-                continue
-            for v in harFile["log"]["entries"]:
-                if v["request"]["url"].startswith(url):
-                    v_headers = get_headers(v)
-                    if "authorization" in v_headers:
-                        api_key = v_headers["authorization"].split(maxsplit=1).pop()
-                    if "x-useridentitytype" in v_headers:
-                        useridentitytype = v_headers["x-useridentitytype"]
-                    if v["request"]["cookies"]:
-                        cookies = {
-                            c["name"]: c["value"] for c in v["request"]["cookies"]
-                        }
-    if not cookies:
-        raise NoValidHarFileError("No session found in .har files")
-
-    return api_key, useridentitytype, cookies
-
-
-
-async def click_trunstile(
-    page: CDPTab, element='document.getElementById("cf-turnstile")'
-):
-    for _ in range(3):
-        size = None
-        for idx in range(15):
-            size = await page.js_dumps(f"{element}?.getBoundingClientRect()||{{}}")
-            debug.log(f"Found size: {size.get('x'), size.get('y')}")
-            if "x" not in size:
-                break
-            await page.flash_point(size.get("x") + idx * 3, size.get("y") + idx * 3)
-            await page.mouse_click(size.get("x") + idx * 3, size.get("y") + idx * 3)
-            await asyncio.sleep(2)
-        if "x" not in size:
-            break
-    debug.log("Finished clicking trunstile.")

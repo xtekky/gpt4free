@@ -45,9 +45,7 @@ class ProviderLoader:
         "Cohere",
         "CohereForAI_C4AI_Command",
         "Copilot",
-        "CopilotAccount",
         "CopilotApp",
-        "CopilotSession",
         "DeepInfra",
         "DeepSeek",
         "EdgeTTS",
@@ -198,7 +196,7 @@ class ProviderLoader:
             )
 
             return CohereForAI_C4AI_Command
-        elif name == "Copilot":
+        elif name == "Copilot" or name == "CopilotSession":
             from g4f.Provider.Copilot import Copilot
 
             return Copilot

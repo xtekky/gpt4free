@@ -78,6 +78,7 @@ class BrowserConfig:
     executable_path: str = None
     connection_timeout: float = 0.25
     headless: bool = True
+    disable_web_security: bool = False
     # "extension": route CDP through the g4f browser extension relay
     # (see g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
     # "webview": attach to the Android app's WebView via its DevTools socket
@@ -93,6 +94,7 @@ class BrowserConfig:
         cls.port = os.environ.get("G4F_BROWSER_PORT", cls.port)
         cls.host = os.environ.get("G4F_BROWSER_HOST", cls.host)
         cls.headless = os.environ.get("G4F_BROWSER_HEADLESS", str(cls.headless)).lower() in ("1", "true", "yes")
+        cls.disable_web_security = os.environ.get("G4F_BROWSER_DISABLE_WEB_SECURITY", str(cls.disable_web_security)).lower() in ("1", "true", "yes")
         cls.executable_path = os.environ.get(
             "G4F_BROWSER_EXECUTABLE_PATH", cls.executable_path
         )

@@ -2,13 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
-import random
-import time
-from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http.cookies import Morsel
-from pathlib import Path
 from typing import Iterator, AsyncIterator, Optional
 from urllib.parse import urlparse
 
@@ -317,7 +312,7 @@ async def get_nodriver(
             return browser, _make_cdp_on_stop(ud_key)
 
     # No shared browser yet — create a new CDPBrowser
-    headless = BrowserConfig.headless if BrowserConfig.headless is not None else True
+    headless = kwargs.get("headless", BrowserConfig.headless if BrowserConfig.headless is not None else True)
     browser = CDPBrowser(
         headless=headless, proxy=proxy, user_data_dir=user_data_dir,
         browser_args=browser_args,
