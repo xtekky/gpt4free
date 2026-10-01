@@ -6,7 +6,7 @@ async def main():
     client = AsyncClient()
 
     stream = client.chat.completions.create(
-        model="gpt-4",
+        model="auto",
         messages=[{"role": "user", "content": "Say hello there!"}],
         stream=True,
     )

@@ -10,7 +10,7 @@ Hey! How can I recursively list all files in a directory in Python?
 def sync_stream():
     client = Client()
     stream = client.chat.completions.create(
-        model="gpt-4",
+        model="auto",
         messages=[{"role": "user", "content": question}],
         stream=True,
     )
@@ -24,7 +24,7 @@ def sync_stream():
 async def async_stream():
     client = AsyncClient()
     stream = client.chat.completions.create(
-        model="gpt-4",
+        model="auto",
         messages=[{"role": "user", "content": question}],
         stream=True,
     )

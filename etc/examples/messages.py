@@ -2,7 +2,7 @@ from g4f.client import Client
 
 
 class ConversationHandler:
-    def __init__(self, model="gpt-4"):
+    def __init__(self, model="auto"):
         self.client = Client()
         self.model = model
         self.conversation_history = []

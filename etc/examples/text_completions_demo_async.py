@@ -6,7 +6,7 @@ async def main():
     client = AsyncClient()
 
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="auto",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {

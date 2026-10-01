@@ -276,7 +276,7 @@ from g4f.client import Client
 
 client = Client()
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="auto",
     messages=[{"role": "user", "content": "Hello, how are you?"}],
     web_search=False
 )
@@ -308,7 +308,7 @@ import asyncio
 async def main():
     client = AsyncClient()
     response = await client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="auto",
         messages=[{"role": "user", "content": "Explain quantum computing briefly"}],
     )
     print(response.choices[0].message.content)
@@ -331,7 +331,7 @@ Example:
 
   const client = new Client();
   const result = await client.chat.completions.create({
-      model: 'gpt-4.1',  // Or "gpt-4o", "deepseek-v3", etc.
+      model: 'auto',  // Or "glm-5.3", "kimi-k3", etc.
       messages: [{ role: 'user', content: 'Explain quantum computing' }]
   });
   console.log(result.choices[0].message.content);

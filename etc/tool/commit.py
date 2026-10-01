@@ -28,7 +28,7 @@ Examples:
   python -m etc.tool.commit --repo ~/projects/app --no-commit
   
   # Use specific AI model
-  python -m etc.tool.commit --model gpt-4 --repo ./backend
+  python -m etc.tool.commit --model auto --repo ./backend
   
   # List available models
   python -m etc.tool.commit --list-models
@@ -49,7 +49,7 @@ Features:
   - Comprehensive error handling and validation
 
 Options:
-  --model MODEL      Specify the AI model to use (default: gpt-4o)
+  --model MODEL      Specify the AI model to use (default: auto)
   --edit             Edit the generated commit message before committing
   --no-commit        Generate message only without committing
   --list-models      List available AI models and exit
@@ -107,7 +107,7 @@ from g4f import debug
 debug.logging = True
 
 # Constants
-DEFAULT_MODEL = "gpt-4o"
+DEFAULT_MODEL = "auto"
 FALLBACK_MODELS = []
 MAX_DIFF_SIZE = (
     None  # Set to None to disable truncation, or a number for character limit

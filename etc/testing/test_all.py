@@ -41,7 +41,6 @@ async def start_test():
     models_to_test = [
         # GPT-3.5
         g4f.models.gpt_35_turbo,
-        # GPT-4
         g4f.models.gpt_4,
     ]
 

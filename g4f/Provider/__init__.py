@@ -85,11 +85,7 @@ class ProviderLoader:
         "OpenCode",
         "OpenRouter",
         "OpenRouterFree",
-        "OrcaRouter",
         "OpenaiAPI",
-        "OpenaiAccount",
-        "OpenaiChat",
-        "ChatGPTLightweight",
         "ChatGPT",
         "OpenaiTemplate",
         "OperaAria",
@@ -434,15 +430,7 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.OpenaiAccount import OpenaiAccount
 
             return OpenaiAccount
-        elif name == "OpenaiChat":
-            from g4f.Provider.needs_auth.OpenaiChat import OpenaiChat
-
-            return OpenaiChat
-        elif name == "ChatGPTLightweight":
-            from g4f.Provider.ChatGPTLightweight import ChatGPTLightweight
-
-            return ChatGPTLightweight
-        elif name == "ChatGPT":
+        elif name == "ChatGPT" or name == "OpenaiChat":
             from g4f.Provider.ChatGPT import ChatGPT
 
             return ChatGPT
