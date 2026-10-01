@@ -12,7 +12,7 @@ from ...typing import AsyncResult, Messages
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
-from ..Copilot import get_headers, get_har_files
+from ..openai.har_file import get_headers, get_har_files
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_random_hex, format_media_prompt
 from ... import debug
