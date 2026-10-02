@@ -525,7 +525,7 @@ def main():
     mode_parser.add_argument(
         "mode",
         nargs="?",
-        choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa"],
+        choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa", "test"],
         default="api",
         help="Mode to run g4f in (default: api).",
     )
@@ -586,7 +586,18 @@ def main():
         elif args.mode == "pa":
             parser = get_pa_parser()
             args = parser.parse_args(remaining)
-            run_pa_args(args)
+        elif args.mode == "test" and remaining:
+            from .. import debug; debug.logging = True
+            from ..cookies import read_cookie_files; read_cookie_files()
+            from ..Provider import ProviderLoader
+            async def run():
+                provider = ProviderLoader.from_name(remaining[0])
+                async for chunk in provider.create_async_generator(
+                    "", [{"role": "user", "content": "Hello"}]
+                ):
+                    print(chunk)
+            import asyncio
+            asyncio.run(run())
         else:
             # No mode provided
             raise argparse.ArgumentError(
