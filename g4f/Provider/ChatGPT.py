@@ -9,7 +9,7 @@ from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
 from ..requests.cdp import CDPSession
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from .helper import get_last_user_message
 from ..providers.response import JsonConversation, FinishReason
 from .. import debug
 
@@ -117,7 +117,7 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs,
     ) -> AsyncResult:
         model = cls.get_model(model)
-        prompt = format_prompt(messages)
+        prompt = get_last_user_message(messages)
         if conversation is None:
             conversation = Conversation(model)
 
