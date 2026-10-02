@@ -306,19 +306,3 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
         if tail:
             parts.append(tail)
         return "\n\n".join(part for part in parts if part)
-
-
-if __name__ == "__main__":
-    debug.logging = True
-    import asyncio
-
-    async def main():
-        from g4f.cookies import read_cookie_files; read_cookie_files()
-        async for chunk in ChatGPT.create_async_generator(
-            "auto", [{"role": "user", "content": "Guten Tag"}]
-        ):
-            if isinstance(chunk, (FinishReason, JsonConversation)):
-                continue
-            print(chunk)
-
-    asyncio.run(main())
