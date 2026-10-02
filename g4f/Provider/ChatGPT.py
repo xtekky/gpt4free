@@ -313,6 +313,7 @@ if __name__ == "__main__":
     import asyncio
 
     async def main():
+        from g4f.cookies import read_cookie_files; read_cookie_files()
         async for chunk in ChatGPT.create_async_generator(
             "auto", [{"role": "user", "content": "Guten Tag"}]
         ):

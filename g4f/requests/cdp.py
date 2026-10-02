@@ -24,6 +24,11 @@ Common features:
   • Auto-detects Chrome/Chromium/Edge path via BrowserConfig or system PATH.
   • Stores browser profiles in g4f cookies directory (no project root pollution).
   • Offscreen windowed mode (--window-position=-2000,-2000) bypasses Turnstile.
+  • Browser-level CDP WebSocket servers (e.g. Lightpanda) that expose no
+    /json/new HTTP endpoint: targets are created via Target.createTarget and
+    attached with a flat session (Target.attachToTarget, flatten=True).
+    Such servers are also shut down through CDP (Browser.close on the
+    browser-level socket) instead of a process handle or /json/close.
   • Android app: creates dedicated automation WebViews through its DevTools
     socket (browser_mode="webview", auto-detected — no Chrome needed). Each
     target is shown in front of the app UI with a close button; WebView
@@ -41,6 +46,7 @@ import shutil
 import platform
 import subprocess
 import time
+import urllib.error
 import urllib.request
 from typing import Optional, Dict, Any, List, AsyncIterator
 import hashlib
@@ -145,39 +151,108 @@ import atexit
 _shared_browser_process = None
 _shared_browser_port = None
 _last_shared_browser_port = None  # Port of the last known browser (survives shutdown)
+_shared_browser_adopted = False  # True when the browser was found running (not launched by us)
 _shared_browser_lock = threading.Lock()
 _shared_browser_refcount = 0  # Track active CDP sessions for parallel tabs
 _shared_browser_idle_timer = None  # Timer to shut down browser after idle period
 _SHARED_BROWSER_IDLE_TIMEOUT = 60  # seconds to keep browser alive with zero tabs
 
 
+def _close_browser_via_cdp(host: str, port: int, timeout: float = 5.0) -> bool:
+    """Close the browser gracefully via the CDP ``Browser.close`` command.
+
+    Connects to the browser-level WebSocket (discovered through
+    /json/version) and sends Browser.close. This works even when we hold no
+    process handle (adopted instances) and on Windows, where killing only
+    the main process can leave the browser (and its profile lock) behind.
+
+    Servers without a /json/version endpoint (e.g. Lightpanda, which only
+    exposes a single browser-level WebSocket at ``ws://host:port/`` and an
+    empty /json/list) are closed through that socket directly — for adopted
+    instances this is the only way to shut them down at all.
+    """
+    ws_url = None
+    try:
+        with urllib.request.urlopen(
+            f"http://{host}:{port}/json/version", timeout=timeout
+        ) as response:
+            ws_url = json.loads(response.read().decode("utf-8")).get(
+                "webSocketDebuggerUrl"
+            )
+        if not ws_url:
+            debug.log("CDP: /json/version has no webSocketDebuggerUrl — trying browser-level socket")
+    except Exception as e:
+        debug.log(f"CDP: could not fetch browser WebSocket URL for Browser.close: {e}")
+    if not ws_url:
+        # Browser-level CDP servers (e.g. Lightpanda) serve no /json/version
+        # — their browser WebSocket lives at the root path.
+        ws_url = f"ws://{host}:{port}/"
+
+    async def _send_browser_close():
+        import aiohttp
+
+        async with aiohttp.ClientSession() as session:
+            async with session.ws_connect(ws_url, timeout=timeout) as ws:
+                await ws.send_str(json.dumps({"id": 1, "method": "Browser.close"}))
+                # Chrome replies and then closes the socket — drain briefly.
+                try:
+                    async for _ in ws:
+                        pass
+                except Exception:
+                    pass
+
+    try:
+        asyncio.run(asyncio.wait_for(_send_browser_close(), timeout=timeout))
+    except RuntimeError:
+        # Called from a thread with a running event loop — use our own.
+        thread = threading.Thread(
+            target=lambda: asyncio.run(
+                asyncio.wait_for(_send_browser_close(), timeout=timeout)
+            ),
+            daemon=True,
+        )
+        thread.start()
+        thread.join(timeout + 1)
+    except Exception as e:
+        debug.log(f"CDP: Browser.close via CDP failed: {e}")
+        return False
+    debug.log(f"CDP: Browser.close sent via CDP to {host}:{port}")
+    return True
+
 def _terminate_shared_browser():
     """Terminate the shared browser process and reset state."""
-    global _shared_browser_process, _shared_browser_port
-    if _shared_browser_process:
-        try:
-            if os.name == "nt":
-                # Kill the whole Chrome process tree. Terminating only the
-                # main process can leave children (and the profile lock)
-                # behind, which blocks the next launch via singleton handoff.
-                subprocess.run(
-                    ["taskkill", "/F", "/T", "/PID", str(_shared_browser_process.pid)],
-                    capture_output=True,
-                    timeout=10,
-                )
-            else:
-                _shared_browser_process.terminate()
-        except Exception:
-            pass
-        try:
-            _shared_browser_process.wait(timeout=10)
-        except Exception:
+    global _shared_browser_process, _shared_browser_port, _shared_browser_adopted
+    if _shared_browser_process or _shared_browser_port is not None:
+        # Ask the browser to shut down gracefully via CDP first. This also
+        # closes browsers we hold no process handle for (e.g. after a
+        # Windows singleton handoff), which otherwise stay open.
+        if _shared_browser_port is not None and not _shared_browser_adopted:
+            _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
+        if _shared_browser_process:
             try:
-                _shared_browser_process.kill()
+                if os.name == "nt":
+                    # Kill the whole Chrome process tree. Terminating only the
+                    # main process can leave children (and the profile lock)
+                    # behind, which blocks the next launch via singleton handoff.
+                    subprocess.run(
+                        ["taskkill", "/F", "/T", "/PID", str(_shared_browser_process.pid)],
+                        capture_output=True,
+                        timeout=10,
+                    )
+                else:
+                    _shared_browser_process.terminate()
             except Exception:
                 pass
-        _shared_browser_process = None
+            try:
+                _shared_browser_process.wait(timeout=10)
+            except Exception:
+                try:
+                    _shared_browser_process.kill()
+                except Exception:
+                    pass
+            _shared_browser_process = None
     _shared_browser_port = None
+    _shared_browser_adopted = False
 
 
 def _schedule_idle_shutdown():
@@ -323,6 +398,7 @@ def get_shared_browser(
     since Chrome does not support changing its proxy at runtime.
     """
     global _shared_browser_process, _shared_browser_port, _last_shared_browser_port
+    global _shared_browser_adopted
 
     with _shared_browser_lock:
         if preferred_port is not None:
@@ -332,6 +408,25 @@ def get_shared_browser(
                 ) as response:
                     if response.status == 200:
                         return preferred_port
+            except urllib.error.HTTPError as e:
+                # The port serves HTTP but has no Chrome-style /json endpoint
+                # — likely an alternative CDP server (e.g. Lightpanda, which
+                # returns an empty /json/list and no /json/new). Adopt the
+                # port anyway; target creation then falls back to the
+                # browser-level WebSocket (see _start_via_browser_socket).
+                if e.code in (403, 404, 405, 501):
+                    debug.log(
+                        f"CDP: port {preferred_port} has no /json endpoint "
+                        f"(HTTP {e.code}) — adopting it as CDP server"
+                    )
+                    # Record the port as the shared browser. We hold no process
+                    # handle for it, so _terminate_shared_browser closes it via
+                    # the CDP Browser.close command (root WebSocket fallback in
+                    # _close_browser_via_cdp) — the only way to stop it.
+                    _shared_browser_port = preferred_port
+                    _shared_browser_process = None
+                    _shared_browser_adopted = False
+                    return preferred_port
             except Exception:
                 pass
 
@@ -353,15 +448,19 @@ def get_shared_browser(
                     _shared_browser_process = None
                 _shared_browser_port = None
 
-        # 2. Check if a browser is already running anywhere on the system with CDP remote debugging
-        running_port = find_running_cdp_port(host)
+        # 2. Check if a browser is already running with CDP remote debugging.
+        # Probe the port recorded for our own profile first — a browser we
+        # started earlier may still be alive (also without psutil).
+        running_port = _read_saved_browser_port(host, user_data_dir=None)
+        adopted_external = False
         if running_port is None:
-            # psutil-free fallback: a previous run recorded its port next to
-            # the profile — probe it in case that Chrome is still alive.
-            running_port = _read_saved_browser_port(host, user_data_dir=None)
+            # Fall back to scanning processes for any CDP-enabled browser.
+            running_port = find_running_cdp_port(host)
+            adopted_external = running_port is not None
         if running_port is not None:
             _shared_browser_port = running_port
             _shared_browser_process = None  # Not started here — don't own it
+            _shared_browser_adopted = adopted_external
             return _shared_browser_port
 
         # 3. Otherwise, launch a new shared Chromium process on a free port
@@ -434,6 +533,7 @@ def get_shared_browser(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
         )
         proc = _shared_browser_process
+        _shared_browser_adopted = False
         _last_shared_browser_port = port
         _save_browser_port(user_data_dir, port)
 
@@ -482,6 +582,7 @@ def get_shared_browser(
         if adopted_port is not None:
             _shared_browser_port = adopted_port
             _shared_browser_process = None  # Not our child — don't manage its lifetime
+            _shared_browser_adopted = False  # Same profile — safe to close via CDP
             debug.log(f"CDP: Adopted already-running Chrome on port {adopted_port}")
             return _shared_browser_port
 
@@ -708,6 +809,13 @@ class CDPSession:
         self._webview_automation_id: Optional[str] = None
         self._webview_control_id: Optional[str] = None
 
+        # True when this session runs on a browser-level CDP WebSocket
+        # (e.g. Lightpanda) with a flat session created via
+        # Target.attachToTarget, instead of a per-page /devtools/page URL.
+        self._via_browser_socket = False
+        # Flat CDP session id on the browser-level socket (see above).
+        self._cdp_session_id: Optional[str] = None
+
         # Network event loggers
         self.network_requests: List[dict] = []
         self.network_responses: List[dict] = []
@@ -755,12 +863,29 @@ class CDPSession:
                     self.target_id = target.get("id")
                     if ws_url:
                         break
+            except urllib.error.HTTPError as e:
+                # The server is reachable but does not implement /json/new
+                # (e.g. Lightpanda only exposes the browser-level WebSocket
+                # and an empty /json/list). Retrying is pointless — create
+                # the target via CDP instead.
+                debug.log(
+                    f"CDP: /json/new not supported (HTTP {e.code}) — "
+                    f"falling back to browser-level WebSocket"
+                )
+                break
             except Exception:
                 await asyncio.sleep(0.5)
 
         if not ws_url:
-            release_shared_browser_ref()
-            raise RuntimeError(f"Failed to create new tab target on port {self.port}")
+            # No per-page target via HTTP — try the browser-level WebSocket,
+            # where targets are created via CDP itself.
+            try:
+                return await self._start_via_browser_socket()
+            except Exception as e:
+                release_shared_browser_ref()
+                raise RuntimeError(
+                    f"Failed to create new tab target on port {self.port}: {e}"
+                ) from e
 
         await self.connect(ws_url)
 
@@ -814,6 +939,86 @@ class CDPSession:
         };
         """
         await self.call("Page.addScriptToEvaluateOnNewDocument", source=stealth_js)
+
+    async def _start_via_browser_socket(self):
+        """
+        Connect through a browser-level CDP WebSocket.
+
+        Some CDP servers (e.g. Lightpanda) expose a single browser-level
+        WebSocket at ``ws://host:port/`` and no working /json/new HTTP
+        endpoint — /json/list stays empty because no targets exist yet.
+        Connect to the browser socket, create a target via CDP
+        (Target.createTarget) and attach to it with a flat session
+        (Target.attachToTarget, flatten=True). All later calls are routed
+        through the session id, so call()/evaluate/events work unchanged.
+        """
+        import aiohttp
+
+        ws_url = f"ws://{self.host}:{self.port}/"
+        self.session = aiohttp.ClientSession()
+        try:
+            self.ws = await self.session.ws_connect(ws_url)
+        except Exception as e:
+            await self.session.close()
+            self.session = None
+            raise RuntimeError(
+                f"CDP: cannot connect to browser WebSocket {ws_url}: {e}") from e
+
+        self._closing = False
+        self._receive_task = asyncio.create_task(self._receiver_loop())
+
+        try:
+            # Create the tab target via CDP — there is no /json/new endpoint.
+            # (target_id may already be set when /json/new answered without
+            # a webSocketDebuggerUrl.)
+            if not self.target_id:
+                result = await self.call("Target.createTarget", url="about:blank")
+                self.target_id = result.get("targetId")
+                if not self.target_id:
+                    raise RuntimeError("Target.createTarget returned no targetId")
+            # Attach with a flat session: commands and events are multiplexed
+            # on this socket and tagged with the returned sessionId.
+            result = await self.call(
+                "Target.attachToTarget", targetId=self.target_id, flatten=True
+            )
+            self._cdp_session_id = result.get("sessionId")
+            if not self._cdp_session_id:
+                raise RuntimeError("Target.attachToTarget returned no sessionId")
+        except Exception as e:
+            await self._close_browser_socket()
+            raise RuntimeError(
+                f"CDP: failed to create/attach target on {ws_url}: {e}") from e
+
+        self._via_browser_socket = True
+        debug.log(
+            f"CDP: attached to target {self.target_id} via browser-level "
+            f"WebSocket {ws_url} (session {self._cdp_session_id})"
+        )
+
+        # Enable essential domains — tolerate servers that lack some of them.
+        for method in ("Page.enable", "DOM.enable", "Runtime.enable", "Network.enable"):
+            try:
+                await self.call(method)
+            except Exception as e:
+                debug.log(f"CDP: {method} not supported by browser-level socket: {e}")
+
+    async def _close_browser_socket(self):
+        """Tear down a browser-level socket session (best effort)."""
+        if self._receive_task:
+            self._receive_task.cancel()
+            self._receive_task = None
+        if self.ws:
+            try:
+                await self.ws.close()
+            except Exception:
+                pass
+            self.ws = None
+        if self.session:
+            try:
+                await self.session.close()
+            except Exception:
+                pass
+            self.session = None
 
     async def _start_via_extension(self):
         """
@@ -1074,6 +1279,13 @@ class CDPSession:
             method = data["method"]
             params = data.get("params") or {}
 
+            # Flat session mode (browser-level socket): ignore events from
+            # other sessions. Browser-level events carry no sessionId.
+            if self._cdp_session_id is not None:
+                sid = data.get("sessionId")
+                if sid is not None and sid != self._cdp_session_id:
+                    return
+
             # Skip events the session does not need — keeps the receiver
             # cheap when a provider only listens to a few event types.
             if self._event_filter is not None and method not in self._event_filter:
@@ -1144,8 +1356,13 @@ class CDPSession:
         finally:
             self._connection_lost = True
 
-    async def call(self, method: str, **params) -> dict:
-        """Call a CDP method and wait for its result."""
+    async def call(self, method: str, _browser_level: bool = False, **params) -> dict:
+        """Call a CDP method and wait for its result.
+
+        On a browser-level socket (flat session mode) the call is routed to
+        the attached session via its sessionId — except ``Target.*`` commands
+        (and calls marked ``_browser_level``), which operate on the browser.
+        """
         if not self.ws:
             raise RuntimeError("CDPSession is not connected")
         if self._connection_lost or self.ws.closed:
@@ -1158,6 +1375,12 @@ class CDPSession:
         self._pending_requests[req_id] = fut
 
         payload = {"id": req_id, "method": method, "params": _sanitize_cdp_params(params)}
+        if (
+            self._cdp_session_id
+            and not _browser_level
+            and not method.startswith("Target.")
+        ):
+            payload["sessionId"] = self._cdp_session_id
         try:
             await self.ws.send_json(payload)
         except Exception as e:
@@ -1768,6 +1991,21 @@ return (
         if self._via_webview:
             await self._close_webview_target()
 
+        if self._via_browser_socket and self.target_id:
+            # Browser-level socket mode: there is no /json/close HTTP
+            # endpoint — close the target via CDP on the same socket.
+            try:
+                await asyncio.wait_for(
+                    self.call(
+                        "Target.closeTarget",
+                        targetId=self.target_id,
+                        _browser_level=True,
+                    ),
+                    timeout=5.0,
+                )
+            except Exception:
+                pass
+
         if self._receive_task:
             self._receive_task.cancel()
 
@@ -1797,6 +2035,8 @@ return (
                     )
                 except Exception:
                     pass
+            elif self._via_browser_socket:
+                pass  # Target already closed via CDP above.
             elif self.port:
                 try:
                     urllib.request.urlopen(

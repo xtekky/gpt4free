@@ -42,7 +42,6 @@ from ..cookies import get_cookies_dir
 from ..config import AppConfig
 from .web_search import do_search, get_search_message
 from .auth import AuthManager
-from .files import read_bucket, get_bucket_dir
 from .tool_support import normalize_tool_defs, normalize_tool_calls
 from .. import debug
 
