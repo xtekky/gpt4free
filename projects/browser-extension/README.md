@@ -1,57 +1,52 @@
 # gpt4free Browser Extension
 
 A Chrome (MV3) extension that brings [gpt4free](https://github.com/xtekky/gpt4free)
-into your browser: sidebar chat, page context, image generation, quick actions —
-and optional **g4f.space account sign-in** with encrypted conversation cloud sync.
+into your browser: the **full g4f.dev chat embedded in the side panel**, page
+context, image generation, quick actions — with all conversations stored
+**locally on your device**.
 
 ## Features
 
-- 💬 **Side panel chat** — streaming responses with markdown rendering, code copy buttons, abort
-- 🖼 **Image generation** — type `/img a red cube` in the panel
+- 💬 **Embedded g4f.dev chat** — the complete web chat (model picker, providers,
+  files, web search) runs in the side panel. Conversations persist in the chat's
+  own IndexedDB, exactly like on g4f.dev.
+- 🔁 **Native lite mode** — a lightweight built-in chat (⇆ button) backed by
+  `chrome.storage.local`, with a conversation history drawer (☰). Used as a
+  fallback when the embed is unavailable, and for popup handoffs.
+- 🖼 **Image generation** — type `/img a red cube` in the lite chat
 - 📄 **Page context** — chat about the current tab or the selected text
-- ⚡ **Quick actions** — right-click any selection: Ask / Explain / Translate / Summarize
-- 🔐 **g4f.space OAuth** — sign in with GitHub / Discord / HuggingFace (PKCE flow)
-- ☁️ **Conversation sync** — conversations stored in the server's secret workspace
-  (`/v1/secret/conversations`), AES-256-GCM encrypted at rest
+  (checkboxes in the lite chat, or right-click → "Summarize this page")
+- ⚡ **Quick actions** — right-click any selection: Ask / Explain / Translate /
+  Summarize. The prompt is injected straight into the embedded chat.
+- 🧩 **CDP bridge** — let a local g4f server drive this browser as a provider
+  (optional, off by default)
 - ⌨️ Shortcuts: `Alt+Shift+G` (open assistant), `Alt+Shift+S` (toggle side panel)
+
+> **Privacy:** there is no account, no OAuth and no cloud sync. Conversations
+> never leave your browser storage (IndexedDB for the embedded chat,
+> `chrome.storage.local` for lite mode).
 
 ## Setup
 
-1. Start your local gpt4free server:
-
-   ```bash
-   python -m g4f --port 1337
-   ```
-
-2. Load the extension:
+1. Load the extension:
    - Open `chrome://extensions`
    - Enable **Developer mode**
    - Click **Load unpacked** and select this `browser-extension/` folder
 
-3. The extension defaults to the public `https://g4f.space` server. To use your own
-   local server, run `python -m g4f --port 1337` and set the server URL to
-   `http://localhost:1337` in the extension options (gear icon).
+2. The embedded chat uses the public `https://g4f.dev` instance by default.
+   To point it at your own server, open the chat's settings (gear icon inside
+   the embedded chat) or use the extension options to configure the lite chat's
+   server URL (e.g. `http://localhost:1337` from `python -m g4f --port 1337`).
 
-## g4f.space account & cloud sync
+## How it fits together
 
-Click the **⇧** button in the side panel header (or "Sign in with g4f.space" in Settings)
-to connect your account. Sign-in uses the official g4f.space OAuth server
-(`auth.g4f.space`) with the PKCE authorization-code flow — your password is never
-seen by the extension.
-
-Once signed in:
-
-- Conversations are **automatically pushed** to your account's secret workspace after
-  each response (`POST /v1/secret/conversations/sync` with `x-user-id` +
-  `x-workspace-secret` headers).
-- Use the **⟳** button (or "Sync now" in Settings) for a full two-way sync
-  (last-write-wins per conversation by `updatedAt`).
-- The workspace secret is derived client-side as
-  `SHA-256("<user.id>:<user.secret>")` — the server only ever stores ciphertext
-  when the header is present.
-
-> Requires your g4f server to be reachable; sync targets the server configured in
-> Settings (local or remote instance exposing the `/v1/secret/*` endpoints).
+- **Side panel (default)** — an iframe with `https://g4f.dev/chat/`. A small
+  postMessage bridge (`g4f-ext:ask` / `g4f-chat:ready`) lets the extension
+  inject prompts from context menus and the popup into the embedded chat.
+- **Lite chat** — plain ES-module UI with streaming over a port
+  (`g4f:<streamId>`), markdown rendering, history drawer, `/img` images.
+- **Popup** — quick actions and a mini chat; results are handed off to the
+  side panel so they persist in history.
 
 ## Architecture
 
@@ -59,18 +54,17 @@ Once signed in:
 browser-extension/
 ├── manifest.json            MV3 manifest (permissions, side panel, commands)
 ├── background/
-│   └── service-worker.js    Message router, streaming owner, context menus, OAuth/sync handlers
+│   └── service-worker.js    Message router, streaming owner, context menus, page extraction
 ├── lib/
 │   ├── constants.js         Defaults, storage keys, message types
 │   ├── storage.js           chrome.storage wrappers (settings + conversations)
 │   ├── g4f-client.js        /v1/models, /v1/chat/completions (SSE), /v1/images/generations
-│   ├── oauth.js             PKCE sign-in for auth.g4f.space, session storage
-│   ├── secret-sync.js       /v1/secret/conversations push/pull/merge
+│   ├── cdp-agent.js         Optional browser-as-provider bridge (chrome.debugger)
 │   ├── markdown.js          Dependency-free markdown renderer
 │   └── ui.js                Toasts, copy buttons, spinner
-├── popup/                   Toolbar popup (quick actions, mini chat)
-├── sidepanel/               Full chat side panel (history, models, /img, account bar)
-├── options/                 Settings page (server, chat defaults, account, quick actions)
+├── popup/                   Toolbar popup (quick actions, mini chat → side panel)
+├── sidepanel/               Dual-mode panel (embedded g4f.dev chat + native lite chat)
+├── options/                 Settings page (server, chat defaults, quick actions, CDP)
 ├── assets/                  Styles (dark theme)
 └── icons/                   Generated icons (16–128 px)
 ```
@@ -83,8 +77,9 @@ flowchart LR
     S[Side Panel] -->|runtime message| SW
     SW -->|port: g4f:streamId| S
     SW -->|fetch SSE| G[g4f server /v1/chat/completions]
-    SW -->|OAuth PKCE| A[auth.g4f.space]
-    SW -->|x-user-id + x-workspace-secret| G
+    SW -->|chrome.scripting| T[Active tab: page text / selection]
+    S -->|postMessage bridge| C[g4f.dev chat iframe]
+    C -->|IndexedDB| L[(Local conversations)]
 ```
 
 ## Development

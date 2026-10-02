@@ -12,7 +12,7 @@
       <img src="../icons/icon32.png" alt="" width="20" height="20" />
       <span class="brand-name">gpt4free</span>
     </div>
-    <span id="status-dot" class="status-dot" title="Checking server…"></span>
+    <span id="health-dot" class="status-dot" title="Checking server…"></span>
     <button id="open-panel" class="icon-btn" title="Open side panel (Alt+Shift+S)">▤</button>
     <button id="open-options" class="icon-btn" title="Settings">⚙</button>
   </header>
@@ -24,19 +24,20 @@
   <section class="selection-box" id="selection-box" hidden>
     <div class="selection-label">Selected text</div>
     <div id="selection-text" class="selection-text"></div>
+    <button id="selection-use" class="btn-mini">Use in prompt</button>
   </section>
 
-  <section class="chat-preview" id="chat-preview" hidden>
-    <div id="preview-messages" class="preview-messages"></div>
-  </section>
+  <main id="messages" class="messages">
+    <div class="welcome">
+      <p>Quick chats here are handed off to the side panel, where they are saved in your conversation history.</p>
+    </div>
+  </main>
 
   <footer class="popup-footer">
-    <textarea id="prompt" rows="3" placeholder="Ask anything… (Enter to send, Shift+Enter for newline)"></textarea>
+    <textarea id="input" rows="2" placeholder="Ask anything… (Enter to send)"></textarea>
     <div class="footer-row">
-      <label class="checkbox">
-        <input type="checkbox" id="include-page" />
-        <span>Include page content</span>
-      </label>
+      <span class="hint">Chats continue in the side panel</span>
+      <button id="stop" class="icon-btn stop" title="Stop" hidden>■</button>
       <button id="send" class="primary-btn">Send</button>
     </div>
   </footer>

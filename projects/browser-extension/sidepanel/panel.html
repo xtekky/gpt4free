@@ -6,60 +6,86 @@
   <title>gpt4free — Side Panel</title>
   <link rel="stylesheet" href="../assets/panel.css" />
 </head>
-<body>
-  <header class="panel-header">
-    <img src="../icons/icon24.png" alt="" width="18" height="18" />
-    <span class="title">gpt4free</span>
-    <select id="model-select" class="model-select" title="Model">
-      <option value="">Default model</option>
-    </select>
-    <button id="new-chat" class="icon-btn" title="New chat">＋</button>
-    <button id="sync-btn" class="icon-btn" title="Sync conversations with your g4f.space account" hidden>⟳</button>
-    <button id="account-btn" class="icon-btn account-btn" title="Sign in with g4f.space">⇧</button>
-    <button id="open-options" class="icon-btn" title="Settings">⚙</button>
-  </header>
+<body class="mode-chat">
 
-  <div id="account-bar" class="account-bar" hidden>
-    <img id="account-avatar" class="account-avatar" alt="" />
-    <div class="account-info">
-      <span id="account-name" class="account-name"></span>
-      <span id="account-tier" class="account-tier"></span>
-    </div>
-    <button id="account-logout" class="btn-mini">Sign out</button>
+  <!-- ============ Embedded g4f.dev chat (default) ============ -->
+  <div id="embed-view" class="embed-view">
+    <header class="panel-header">
+      <img src="../icons/icon24.png" alt="" width="18" height="18" />
+      <span class="title">gpt4free</span>
+      <span class="header-spacer"></span>
+      <button id="embed-reload" class="icon-btn" title="Reload chat">⟳</button>
+      <button id="embed-open-tab" class="icon-btn" title="Open in full tab">⧉</button>
+      <button id="mode-toggle" class="icon-btn" title="Switch to the lightweight built-in chat">⇆</button>
+      <button id="open-options" class="icon-btn" title="Settings">⚙</button>
+    </header>
+    <div id="embed-status" class="embed-status" hidden></div>
+    <iframe
+      id="chat-frame"
+      class="chat-frame"
+      src="https://g4f.dev/chat/"
+      allow="clipboard-write; microphone; camera"
+      referrerpolicy="no-referrer"
+    ></iframe>
   </div>
 
-  <main id="messages" class="messages">
-    <div class="welcome">
-      <img src="../icons/icon48.png" alt="" width="42" height="42" />
-      <h1>Free AI, in your sidebar</h1>
-      <p>Ask anything. Use <strong>Ask g4f</strong> in the right-click menu on any selection, or enable “page context” to chat about the current tab.</p>
-      <div class="welcome-tips">
-        <span class="tip">Alt+Shift+S — toggle panel</span>
-        <span class="tip">Right-click — quick actions</span>
+  <!-- ============ Built-in lightweight chat (fallback) ============ -->
+  <div id="native-view" class="native-view" hidden>
+    <header class="panel-header">
+      <img src="../icons/icon24.png" alt="" width="18" height="18" />
+      <span class="title">g4f lite</span>
+      <select id="model-select" class="model-select" title="Model">
+        <option value="">Default model</option>
+      </select>
+      <button id="history-btn" class="icon-btn" title="Conversations">☰</button>
+      <button id="new-chat" class="icon-btn" title="New chat">＋</button>
+      <button id="mode-toggle-native" class="icon-btn" title="Switch to the full g4f.dev chat">⇆</button>
+      <button id="open-options-native" class="icon-btn" title="Settings">⚙</button>
+    </header>
+
+    <!-- history drawer -->
+    <aside id="history-drawer" class="history-drawer" hidden>
+      <div class="history-head">
+        <span>Conversations</span>
+        <button id="history-close" class="icon-btn" title="Close">✕</button>
       </div>
-    </div>
-  </main>
+      <div id="history-list" class="history-list"></div>
+      <button id="history-clear" class="btn-mini danger">Delete all</button>
+    </aside>
 
-  <div id="images" class="images"></div>
+    <main id="messages" class="messages">
+      <div class="welcome">
+        <img src="../icons/icon48.png" alt="" width="42" height="42" />
+        <h1>Free AI, in your sidebar</h1>
+        <p>Ask anything. Use <strong>Ask g4f</strong> in the right-click menu on any selection, or enable “page context” to chat about the current tab.</p>
+        <div class="welcome-tips">
+          <span class="tip">/img a red cube — generate images</span>
+          <span class="tip">Alt+Shift+S — toggle panel</span>
+        </div>
+      </div>
+    </main>
 
-  <footer class="panel-footer">
-    <div class="context-row">
-      <label class="checkbox" title="Attach the text of the active tab as context">
-        <input type="checkbox" id="include-page" />
-        <span>📄 Page context</span>
-      </label>
-      <label class="checkbox" title="Attach the current selection as context">
-        <input type="checkbox" id="include-selection" />
-        <span>✂️ Selection</span>
-      </label>
-      <span id="conn-status" class="conn-status" title="Server status">●</span>
-    </div>
-    <div class="input-row">
-      <textarea id="input" rows="1" placeholder="Message g4f…"></textarea>
-      <button id="stop" class="icon-btn stop" title="Stop generating" hidden>■</button>
-      <button id="send" class="send-btn" title="Send">➤</button>
-    </div>
-  </footer>
+    <div id="images" class="images"></div>
+
+    <footer class="panel-footer">
+      <div class="context-row">
+        <label class="checkbox" title="Attach the text of the active tab as context">
+          <input type="checkbox" id="include-page" />
+          <span>📄 Page context</span>
+        </label>
+        <label class="checkbox" title="Attach the current selection as context">
+          <input type="checkbox" id="include-selection" />
+          <span>✂️ Selection</span>
+        </label>
+        <span id="conn-status" class="conn-status" title="Server status">●</span>
+      </div>
+      <div class="input-row">
+        <textarea id="input" rows="1" placeholder="Message g4f…"></textarea>
+        <button id="stop" class="icon-btn stop" title="Stop generating" hidden>■</button>
+        <button id="send" class="send-btn" title="Send">➤</button>
+      </div>
+    </footer>
+  </div>
 
   <div id="toast-root" class="toast-root"></div>
   <script type="module" src="panel.js"></script>

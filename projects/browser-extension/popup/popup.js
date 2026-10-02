@@ -1,200 +1,237 @@
 /**
- * g4f extension — popup logic.
- * Quick actions, selection handling, mini chat preview, handoff to side panel.
+ * g4f extension — popup.
+ * Quick actions and mini-chats. Everything typed here is handed off to the
+ * side panel (embedded g4f.dev chat or native lite chat) so it persists in
+ * the conversation history instead of vanishing when the popup closes.
  */
 
 import { MESSAGE_TYPES } from "../lib/constants.js";
 import { getSettings } from "../lib/storage.js";
+import { toast, bindCopyHandlers } from "../lib/ui.js";
 import { renderMarkdown } from "../lib/markdown.js";
-import { toast, bindCopyHandlers, escapeHtml } from "../lib/ui.js";
 
 const $ = (sel) => document.querySelector(sel);
 
 let settings = null;
-let selection = "";
-let pending = []; // messages accumulated in the popup preview
 let streamId = null;
 let port = null;
+let pending = []; // messages accumulated for the side-panel handoff
 
 init();
 
 async function init() {
   settings = await getSettings();
-  bindCopyHandlers(document, () => {});
+  bindCopyHandlers(document, () => toast($("#toast-root"), "Copied"));
+
   renderQuickActions();
   wireEvents();
   checkHealth();
   loadSelection();
 }
 
+/* ------------------------------------------------------------------ */
+/* Quick actions                                                       */
+/* ------------------------------------------------------------------ */
+
 function renderQuickActions() {
-  const root = $("#quick-actions");
-  root.innerHTML = "";
-  for (const qa of settings.quickActions || []) {
+  const wrap = $("#quick-actions");
+  wrap.innerHTML = "";
+  for (const action of settings.quickActions || []) {
     const btn = document.createElement("button");
     btn.className = "qa-btn";
-    btn.textContent = qa.label;
-    btn.title = qa.prompt.slice(0, 120);
-    btn.addEventListener("click", () => runQuickAction(qa));
-    root.appendChild(btn);
+    btn.textContent = action.label;
+    btn.title = `Run "${action.label}" on the current page or selection`;
+    btn.addEventListener("click", () => runQuickAction(action));
+    wrap.appendChild(btn);
+  }
+  if (!settings.quickActions?.length) {
+    wrap.innerHTML = '<div class="qa-empty">No quick actions configured</div>';
   }
 }
+
+/**
+ * Quick actions run against the active tab's page/selection and open the
+ * side panel, where the prompt is injected into the embedded chat.
+ */
+async function runQuickAction(action) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  let text = "";
+  try {
+    const res = await chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.GET_SELECTION, tabId: tab?.id,
+    });
+    text = res?.text?.trim() || "";
+  } catch { /* fall through to page text */ }
+  if (!text) {
+    try {
+      const res = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.GET_PAGE, tabId: tab?.id,
+      });
+      text = (res?.text || "").slice(0, settings.pageContextLimit);
+    } catch { /* no context available */ }
+  }
+
+  const templates = {
+    summarize: (t) => `Summarize the following content in a few bullet points:\n\n${t}`,
+    explain: (t) => `Explain this in simple terms:\n\n${t}`,
+    translate: (t) => `Translate the following text to English. Only output the translation:\n\n${t}`,
+    ask: (t) => t,
+  };
+  const fn = templates[action.type] || templates.ask;
+  const prompt = fn(text || action.prompt || "");
+
+  // Hand off to the side panel; it owns the conversation.
+  await chrome.storage.session.set({
+    g4fPreset: { type: action.type, text: text || action.prompt || "", ts: Date.now() },
+  });
+  await openPanel();
+}
+
+/* ------------------------------------------------------------------ */
+/* Mini chat                                                           */
+/* ------------------------------------------------------------------ */
 
 function wireEvents() {
-  $("#open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
-  $("#open-panel").addEventListener("click", async () => {
-    // Must be called directly in the popup: the user-gesture context is lost
-    // when routed through the service worker, and Chrome then rejects
-    // sidePanel.open() with "may only be called in response to a user gesture".
-    try {
-      const win = await chrome.windows.getCurrent();
-      await chrome.sidePanel.open({ windowId: win.id });
-    } catch (e) {
-      console.warn("[g4f] direct sidePanel.open failed, falling back to SW:", e);
-      try {
-        await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OPEN_SIDE_PANEL });
-      } catch { /* ignore */ }
-    }
-    window.close();
-  });
-
-  $("#include-page").addEventListener("change", (e) => {
-    // Persist choice for next time.
-    chrome.storage.sync.set({ g4fIncludePage: e.target.checked });
-  });
-  chrome.storage.sync.get("g4fIncludePage").then((r) => {
-    $("#include-page").checked = !!r.g4fIncludePage;
-  });
-
-  const promptEl = $("#prompt");
-  const sendEl = $("#send");
-  sendEl.addEventListener("click", () => sendPrompt(promptEl.value));
-  promptEl.addEventListener("keydown", (e) => {
+  const input = $("#input");
+  $("#send").addEventListener("click", () => sendPrompt());
+  input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && settings.sendOnEnter) {
       e.preventDefault();
-      sendPrompt(promptEl.value);
+      sendPrompt();
     }
   });
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 100) + "px";
+  });
+
+  $("#open-panel").addEventListener("click", () => openPanel());
+  $("#open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
 }
 
-async function loadSelection() {
+async function openPanel() {
   try {
-    const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.GET_SELECTION });
-    selection = (res?.text || "").trim();
-    if (selection) {
-      $("#selection-box").hidden = false;
-      $("#selection-text").textContent =
-        selection.length > 300 ? selection.slice(0, 300) + "…" : selection;
-    }
+    // Must be called synchronously from the user gesture when possible.
+    await chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
   } catch {
-    /* activeTab not granted — ignore */
+    // Fallback: let the service worker open it.
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OPEN_SIDE_PANEL }).catch(() => {});
   }
+  window.close();
 }
 
-async function checkHealth() {
-  const dot = $("#status-dot");
-  try {
-    const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.HEALTH });
-    dot.classList.toggle("ok", !!res?.ok);
-    dot.classList.toggle("bad", !res?.ok);
-    dot.title = res?.ok
-      ? "g4f server reachable"
-      : "g4f server unreachable — click to open settings";
-    if (!res?.ok) {
-      dot.addEventListener("click", () => chrome.runtime.openOptionsPage(), { once: true });
-    }
-  } catch {
-    dot.classList.add("bad");
-  }
-}
-
-async function runQuickAction(qa) {
-  let context = selection;
-  if (!context && qa.id === "summarize") {
-    const page = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.GET_PAGE });
-    context = page?.text || "";
-  }
-  if (!context) {
-    toast($("#toast-root"), "No text selected / page empty", "warn");
-    return;
-  }
-  await sendPrompt(qa.prompt + context.slice(0, settings.pageContextLimit));
-}
-
-async function sendPrompt(text) {
-  text = (text || "").trim();
+async function sendPrompt() {
+  const input = $("#input");
+  const text = input.value.trim();
   if (!text || streamId) return;
+
+  pending.push({ role: "user", content: text });
+  appendMessage({ role: "user", content: text });
+  input.value = "";
+  input.style.height = "auto";
+  setGenerating(true);
 
   const messages = [];
   if (settings.systemPrompt) {
     messages.push({ role: "system", content: settings.systemPrompt });
   }
-  if ($("#include-page").checked) {
-    const page = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.GET_PAGE });
-    if (page?.text) {
-      messages.push({
-        role: "system",
-        content: `Current page: "${page.title}" (${page.url})\n\nContent:\n${page.text.slice(0, settings.pageContextLimit)}`,
-      });
-    }
-  }
-  messages.push({ role: "user", content: text });
+  for (const m of pending) messages.push({ role: m.role, content: m.content });
 
-  // Show preview area with user message
-  pending.push({ role: "user", content: text });
-  renderPreview();
-  $("#chat-preview").hidden = false;
-  $("#prompt").value = "";
-  $("#send").disabled = true;
-
-  // Open streaming port to background
   streamId = "popup-" + Date.now();
   port = chrome.runtime.connect({ name: "g4f:" + streamId });
-  port.onMessage.addListener(onStreamMessage);
-  port.onDisconnect.addListener(() => {
-    port = null;
-  });
+  port.onMessage.addListener(onStream);
+  port.onDisconnect.addListener(() => (port = null));
 
   await chrome.runtime.sendMessage({
     type: MESSAGE_TYPES.CHAT,
     streamId,
     messages,
+    overrides: { model: settings.model || undefined },
   });
 }
 
-function onStreamMessage(msg) {
+function onStream(msg) {
   if (msg.type === MESSAGE_TYPES.STREAM_CHUNK) {
     const last = pending[pending.length - 1];
-    if (last && last.role === "assistant") {
+    if (last?.role === "assistant") {
       last.content = msg.full;
-    } else {
-      pending.push({ role: "assistant", content: msg.full });
+      const el = $("#messages").lastElementChild?.querySelector(".msg-body");
+      if (el) el.innerHTML = renderMarkdown(msg.full);
     }
-    renderPreview();
   } else if (msg.type === MESSAGE_TYPES.STREAM_DONE) {
-    finishStream();
+    const last = pending[pending.length - 1];
+    if (last?.role === "assistant" && !last.content) last.content = "*(empty response)*";
+    setGenerating(false);
   } else if (msg.type === MESSAGE_TYPES.STREAM_ERROR) {
-    toast($("#toast-root"), msg.error || "Request failed", "error");
-    finishStream();
+    const el = $("#messages").lastElementChild?.querySelector(".msg-body");
+    if (el) el.innerHTML = `<span class="error">⚠ ${msg.error || "Request failed"}</span>`;
+    setGenerating(false);
   }
 }
 
-function finishStream() {
-  streamId = null;
-  $("#send").disabled = false;
-  // Hand the conversation off to the side panel so the user keeps it.
-  if (pending.some((m) => m.role === "assistant")) {
-    chrome.storage.session.set({ g4fHandoff: { messages: pending, ts: Date.now() } });
-  }
+function setGenerating(on) {
+  $("#send").hidden = on;
+  $("#stop").hidden = !on;
 }
 
-function renderPreview() {
-  const root = $("#preview-messages");
-  root.innerHTML = pending
-    .map(
-      (m) =>
-        `<div class="msg msg-${m.role}"><div class="msg-body">${renderMarkdown(m.content)}</div></div>`
-    )
-    .join("");
+function appendMessage(message) {
+  const root = $("#messages");
+  root.querySelector(".welcome")?.remove();
+  const wrap = document.createElement("div");
+  wrap.className = `msg msg-${message.role}`;
+
+  const actions = document.createElement("div");
+  actions.className = "msg-actions";
+  if (message.role === "assistant" && message.content) {
+    const copy = document.createElement("button");
+    copy.className = "copy-btn mini";
+    copy.textContent = "⧉";
+    copy.setAttribute("data-copy", message.content);
+    actions.appendChild(copy);
+  }
+
+  const body = document.createElement("div");
+  body.className = "msg-body";
+  body.innerHTML = message.content ? renderMarkdown(message.content) : '<span class="spinner"></span>';
+
+  wrap.appendChild(actions);
+  wrap.appendChild(body);
+  root.appendChild(wrap);
   root.scrollTop = root.scrollHeight;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Status                                                              */
+/* ------------------------------------------------------------------ */
+
+async function checkHealth() {
+  const dot = $("#health-dot");
+  try {
+    const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.HEALTH });
+    dot.classList.toggle("ok", !!res?.ok);
+    dot.classList.toggle("bad", !res?.ok);
+    dot.title = res?.ok ? "Server reachable" : "Server unreachable";
+  } catch {
+    dot.classList.add("bad");
+  }
+}
+
+async function loadSelection() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const res = await chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.GET_SELECTION, tabId: tab?.id,
+    });
+    const text = res?.text?.trim();
+    if (text) {
+      const box = $("#selection-box");
+      box.hidden = false;
+      $("#selection-text").textContent = text.slice(0, 120) + (text.length > 120 ? "…" : "");
+      $("#selection-use").addEventListener("click", () => {
+        $("#input").value = text;
+        $("#input").focus();
+      });
+    }
+  } catch { /* activeTab not granted on this tab */ }
 }

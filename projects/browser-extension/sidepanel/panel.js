@@ -1,7 +1,14 @@
 /**
  * g4f extension — side panel logic.
- * Full conversation UI: history, streaming, model picker, context toggles,
- * image generation mode, context-menu presets and popup handoff.
+ *
+ * Two modes:
+ *  1. "embed"  (default) — the full g4f.dev chat in an iframe. Conversations
+ *     persist in the chat's own IndexedDB (chat-db / conversations), exactly
+ *     like on the website. A postMessage bridge injects quick-action prompts
+ *     and page context into the embedded chat.
+ *  2. "native" — lightweight built-in chat backed by chrome.storage.local,
+ *     with a conversation history drawer. Used when the embed is unavailable
+ *     (offline, blocked, or by user preference).
  */
 
 import { MESSAGE_TYPES, normalizeBaseUrl } from "../lib/constants.js";
@@ -13,6 +20,8 @@ import { renderMarkdown } from "../lib/markdown.js";
 import { toast, bindCopyHandlers, escapeHtml } from "../lib/ui.js";
 
 const $ = (sel) => document.querySelector(sel);
+const CHAT_URL = "https://g4f.dev/chat/";
+const EMBED_KEY = "g4fEmbedMode"; // "embed" | "native" (chrome.storage.local)
 
 let settings = null;
 let conversation = null;
@@ -21,12 +30,30 @@ let streamId = null;
 let port = null;
 let generating = false;
 let imageMode = false;
+/** pending prompt waiting for the embedded chat to confirm readiness */
+let pendingEmbedPrompt = null;
+/** resolve fn for the bridge handshake */
+let embedReadyResolve = null;
+/** current waiter promise for the bridge handshake */
+let embedReadyWait = null;
+/** true once the embedded chat announced readiness */
+let embedChatReady = false;
 
 init();
+
+// Quick actions hand their prompt over via session storage. init() only
+// runs once per panel load, so consume new presets even when the side
+// panel is already open.
+chrome.storage.session.onChanged.addListener((changes, area) => {
+  if (area === "session" && changes.g4fPreset?.newValue) consumePreset();
+});
 
 async function init() {
   settings = await getSettings();
   bindCopyHandlers(document, () => toast($("#toast-root"), "Copied"));
+
+  const mode = await getMode();
+  applyMode(mode);
 
   conversations = await getConversations();
   const activeId = await getActiveConversationId();
@@ -34,78 +61,143 @@ async function init() {
     conversations.find((c) => c.id === activeId) || createConversation();
 
   wireEvents();
-  loadModels();
-  checkHealth();
-  renderMessages();
-  refreshAccountUI();
-
+  wireEmbedBridge();
+  if (mode === "native") {
+    loadModels();
+    checkHealth();
+    renderMessages();
+    renderHistory();
+  }
   await consumePreset();   // context-menu handoff
   await consumeHandoff();  // popup handoff
 }
 
 /* ------------------------------------------------------------------ */
-/* Account (g4f.space OAuth) & cloud sync                              */
+/* Mode switching (embed <-> native)                                   */
 /* ------------------------------------------------------------------ */
 
-async function refreshAccountUI() {
-  const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OAUTH_STATUS });
-  const signedIn = !!res?.signedIn;
-  const user = res?.user;
-
-  $("#account-btn").hidden = signedIn;
-  $("#sync-btn").hidden = !signedIn;
-  $("#account-bar").hidden = !signedIn;
-  if (signedIn && user) {
-    $("#account-name").textContent = user.name || user.username || user.id;
-    $("#account-tier").textContent = user.tier ? String(user.tier) : "";
-    const avatar = $("#account-avatar");
-    if (user.avatar) { avatar.src = user.avatar; avatar.hidden = false; }
-    else avatar.hidden = true;
-  }
+async function getMode() {
+  const { [EMBED_KEY]: mode } = await chrome.storage.local.get(EMBED_KEY);
+  return mode === "native" ? "native" : "embed";
 }
 
-async function startSignIn() {
-  const btn = $("#account-btn");
-  btn.disabled = true;
-  btn.textContent = "…";
-  try {
-    const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OAUTH_START });
-    if (!res?.ok) throw new Error(res?.error || "Sign-in failed");
-    toast($("#toast-root"), "Signed in as " + (res.user?.name || res.user?.id), "ok");
-    await refreshAccountUI();
-    await syncNow(true);
-  } catch (e) {
-    toast($("#toast-root"), e.message || String(e), "error");
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "⇧";
-  }
+function applyMode(mode) {
+  const embed = mode !== "native";
+  $("#embed-view").hidden = !embed;
+  $("#native-view").hidden = embed;
+  document.body.classList.toggle("mode-chat", embed);
+  document.body.classList.toggle("mode-native", !embed);
 }
 
-async function syncNow(silent = false) {
-  const btn = $("#sync-btn");
-  btn.classList.add("spinning");
-  try {
-    const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.SYNC_NOW });
-    if (!res?.ok) throw new Error(res?.error || "Sync failed");
-    if (res.pulled > 0) {
-      conversations = await getConversations();
-      const activeId = await getActiveConversationId();
-      conversation = conversations.find((c) => c.id === activeId) || conversation;
-      renderMessages();
-    }
-    if (!silent) {
-      toast($("#toast-root"), `Synced: pushed ${res.pushed}, pulled ${res.pulled}`, "ok");
-    }
-  } catch (e) {
-    if (!silent) toast($("#toast-root"), e.message || String(e), "error");
-  } finally {
-    btn.classList.remove("spinning");
+async function setMode(mode) {
+  await chrome.storage.local.set({ [EMBED_KEY]: mode });
+  applyMode(mode);
+  if (mode === "native") {
+    // lazy-init native view
+    conversations = await getConversations();
+    const activeId = await getActiveConversationId();
+    conversation = conversations.find((c) => c.id === activeId) || createConversation();
+    loadModels();
+    checkHealth();
+    renderMessages();
+    renderHistory();
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* Conversation management                                             */
+/* Embedded g4f.dev chat bridge                                        */
+/* ------------------------------------------------------------------ */
+
+function wireEmbedBridge() {
+  const frame = $("#chat-frame");
+
+  $("#embed-reload").addEventListener("click", () => {
+    embedChatReady = false;
+    frame.src = CHAT_URL; // base URL: never re-run a #q= prompt
+  });
+  $("#embed-open-tab").addEventListener("click", () =>
+    chrome.tabs.create({ url: CHAT_URL })
+  );
+  $("#mode-toggle").addEventListener("click", () => setMode("native"));
+  $("#mode-toggle-native").addEventListener("click", () => setMode("embed"));
+  $("#open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
+  $("#open-options-native").addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+  // Surface load failures (offline / blocked) without blocking the UI.
+  frame.addEventListener("error", () => showEmbedError("Could not load the g4f.dev chat."));
+  frame.addEventListener("load", () => {
+    embedChatReady = false; // a (re)loaded chat must re-announce
+    $("#embed-status").hidden = true;
+    // The chat app announces itself once its addons are up.
+    frame.contentWindow?.postMessage({ type: "g4f-ext:hello" }, CHAT_URL);
+    // Fast path: the chat registers its message listener before its load
+    // event, so a direct postMessage usually lands. Must not go through
+    // sendToEmbed() here — embedChatReady is still false and it would
+    // answer with a #q= reload, looping forever.
+    if (pendingEmbedPrompt) {
+      frame.contentWindow?.postMessage({ type: "g4f-ext:ask", prompt: pendingEmbedPrompt }, CHAT_URL);
+    }
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.origin !== "https://g4f.dev") return;
+    const data = event.data || {};
+    if (data.type === "g4f-chat:ready") {
+      embedChatReady = true;
+      embedReadyResolve?.();
+      embedReadyResolve = null;
+      if (pendingEmbedPrompt) sendToEmbed(pendingEmbedPrompt);
+    }
+  });
+}
+
+function showEmbedError(message) {
+  const el = $("#embed-status");
+  el.textContent = message + " Use ⇆ for the built-in chat or ⧉ to open g4f.dev in a tab.";
+  el.hidden = false;
+}
+
+/**
+ * Inject a prompt into the embedded chat. The chat's own ask flow
+ * (handle_ask) reads #userInput, so we fill it and click #sendButton.
+ * Falls back to a URL handoff (?prompt=…) if the bridge is not ready.
+ */
+function sendToEmbed(prompt) {
+  const frame = $("#chat-frame");
+  if (!embedChatReady) {
+    // Chat not ready (or still loading): a postMessage could fire before
+    // the page's listener exists. Instead, reload the frame with the
+    // prompt in the #q= hash — the chat page consumes it on load.
+    pendingEmbedPrompt = null;
+    frame.src = CHAT_URL + "#q=" + encodeURIComponent(prompt);
+    return;
+  }
+  try {
+    frame.contentWindow?.postMessage({ type: "g4f-ext:ask", prompt }, CHAT_URL);
+    pendingEmbedPrompt = null;
+  } catch {
+    pendingEmbedPrompt = prompt;
+  }
+}
+
+/** Wait briefly for the embedded chat to announce readiness. */
+function waitForEmbedReady(timeoutMs = 8000) {
+  if (embedChatReady) return Promise.resolve();
+  if (!embedReadyWait) {
+    let resolveWait;
+    embedReadyWait = new Promise((resolve) => { resolveWait = resolve; });
+    const timer = setTimeout(() => { embedReadyWait = null; resolveWait(); }, timeoutMs);
+    embedReadyResolve = () => {
+      clearTimeout(timer);
+      embedReadyWait = null;
+      resolveWait();
+    };
+  }
+  return embedReadyWait;
+}
+
+/* ------------------------------------------------------------------ */
+/* Conversation management (native mode)                               */
 /* ------------------------------------------------------------------ */
 
 function createConversation() {
@@ -122,20 +214,86 @@ function touchConversation() {
   if (idx >= 0) conversations[idx] = conversation;
   saveConversations(conversations);
   setActiveConversationId(conversation.id);
+  renderHistory();
 }
 
 function resetChat() {
   conversation = createConversation();
   renderMessages();
+  renderHistory();
 }
 
 /* ------------------------------------------------------------------ */
-/* Events                                                              */
+/* History drawer (native mode)                                        */
+/* ------------------------------------------------------------------ */
+
+function renderHistory() {
+  const list = $("#history-list");
+  if (!list) return;
+  list.innerHTML = "";
+  const items = conversations
+    .filter((c) => c.messages.some((m) => m.role === "user" && m.content))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  if (!items.length) {
+    list.innerHTML = '<div class="history-empty">No conversations yet</div>';
+    return;
+  }
+  for (const c of items) {
+    const row = document.createElement("div");
+    row.className = "history-item" + (c.id === conversation.id ? " active" : "");
+    const btn = document.createElement("button");
+    btn.className = "history-open";
+    btn.innerHTML =
+      `<span class="history-title">${escapeHtml(c.title || "New chat")}</span>` +
+      `<span class="history-date">${new Date(c.updatedAt || c.createdAt).toLocaleDateString()}</span>`;
+    btn.addEventListener("click", async () => {
+      conversation = c;
+      await setActiveConversationId(c.id);
+      renderMessages();
+      renderHistory();
+      $("#history-drawer").hidden = true;
+    });
+    const del = document.createElement("button");
+    del.className = "history-del";
+    del.textContent = "🗑";
+    del.title = "Delete conversation";
+    del.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      conversations = conversations.filter((x) => x.id !== c.id);
+      await saveConversations(conversations);
+      if (conversation.id === c.id) {
+        conversation = createConversation();
+        renderMessages();
+      }
+      renderHistory();
+    });
+    row.appendChild(btn);
+    row.appendChild(del);
+    list.appendChild(row);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Events (native mode)                                                */
 /* ------------------------------------------------------------------ */
 
 function wireEvents() {
   $("#new-chat").addEventListener("click", resetChat);
-  $("#open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
+  $("#history-btn").addEventListener("click", () => {
+    const drawer = $("#history-drawer");
+    drawer.hidden = !drawer.hidden;
+    if (!drawer.hidden) renderHistory();
+  });
+  $("#history-close").addEventListener("click", () => { $("#history-drawer").hidden = true; });
+  $("#history-clear").addEventListener("click", async () => {
+    if (!confirm("Delete all conversations?")) return;
+    conversations = [];
+    await saveConversations(conversations);
+    conversation = createConversation();
+    renderMessages();
+    renderHistory();
+  });
 
   const input = $("#input");
   const send = $("#send");
@@ -157,10 +315,6 @@ function wireEvents() {
   input.addEventListener("input", () => {
     input.style.height = "auto";
     input.style.height = Math.min(input.scrollHeight, 140) + "px";
-  });
-
-  // Image mode: prefix prompt with "/img "
-  input.addEventListener("input", () => {
     imageMode = input.value.startsWith("/img ");
   });
 
@@ -181,15 +335,6 @@ function wireEvents() {
       loadModels();
     }
   });
-
-  // Account & sync
-  $("#account-btn").addEventListener("click", startSignIn);
-  $("#account-logout").addEventListener("click", async () => {
-    await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OAUTH_LOGOUT });
-    await refreshAccountUI();
-    toast($("#toast-root"), "Signed out");
-  });
-  $("#sync-btn").addEventListener("click", () => syncNow());
 }
 
 async function loadModels() {
@@ -239,7 +384,7 @@ async function checkHealth() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Submit / stream                                                     */
+/* Submit / stream (native mode)                                       */
 /* ------------------------------------------------------------------ */
 
 async function submit() {
@@ -326,8 +471,6 @@ function onStream(msg, assistantEl) {
     }
     touchConversation();
     setGenerating(false);
-    // Auto-push the finished conversation to the user's secret workspace.
-    syncNow(true);
   } else if (msg.type === MESSAGE_TYPES.STREAM_ERROR) {
     assistantEl.querySelector(".msg-body").innerHTML =
       `<span class="error">⚠ ${escapeHtml(msg.error || "Request failed")}</span>`;
@@ -350,7 +493,7 @@ function scrollBottom() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Image generation                                                    */
+/* Image generation (native mode)                                      */
 /* ------------------------------------------------------------------ */
 
 async function runImage(prompt) {
@@ -391,7 +534,7 @@ async function runImage(prompt) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Rendering                                                           */
+/* Rendering (native mode)                                             */
 /* ------------------------------------------------------------------ */
 
 function renderMessages() {
@@ -464,10 +607,18 @@ async function consumePreset() {
   const text = (g4fPreset.text || "").trim();
   if (!text) return;
 
-  const input = $("#input");
-  input.value = fn(text.slice(0, settings.pageContextLimit));
-  input.dispatchEvent(new Event("input"));
-  submit();
+  const prompt = fn(text.slice(0, settings.pageContextLimit));
+
+  if ($("#embed-view").hidden === false) {
+    // Embedded chat: wait for readiness, then inject.
+    await waitForEmbedReady();
+    sendToEmbed(prompt);
+  } else {
+    const input = $("#input");
+    input.value = prompt;
+    input.dispatchEvent(new Event("input"));
+    submit();
+  }
 }
 
 async function consumeHandoff() {
@@ -476,6 +627,8 @@ async function consumeHandoff() {
   await chrome.storage.session.remove("g4fHandoff");
   if (Date.now() - (g4fHandoff.ts || 0) > 60000) return;
 
+  // Popup mini-chat results always land in the native history so they persist.
+  await setMode("native");
   for (const m of g4fHandoff.messages || []) {
     conversation.messages.push(m);
     appendMessageEl(m);

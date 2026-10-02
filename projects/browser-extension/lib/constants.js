@@ -43,11 +43,6 @@ export const STORAGE_KEYS = {
   settings: "settings",
   conversations: "conversations",
   activeConversation: "activeConversationId",
-  // OAuth session (chrome.storage.local)
-  user: "g4fUser",
-  token: "g4fToken",
-  expires: "g4fExpires",
-  workspaceSecret: "g4fWorkspaceSecret",
 };
 
 export const MESSAGE_TYPES = {
@@ -61,13 +56,6 @@ export const MESSAGE_TYPES = {
   GET_PAGE: "g4f:get-page",
   GET_SELECTION: "g4f:get-selection",
   OPEN_SIDE_PANEL: "g4f:open-side-panel",
-  // account & cloud sync
-  OAUTH_START: "g4f:oauth:start",
-  OAUTH_LOGOUT: "g4f:oauth:logout",
-  OAUTH_STATUS: "g4f:oauth:status",
-  SYNC_PUSH: "g4f:sync:push",
-  SYNC_PULL: "g4f:sync:pull",
-  SYNC_NOW: "g4f:sync:now",
   // background -> UI (stream chunks)
   STREAM_CHUNK: "g4f:stream:chunk",
   STREAM_DONE: "g4f:stream:done",

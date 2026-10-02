@@ -17,7 +17,6 @@ async function init() {
   fillForm();
   wireEvents();
   loadModelOptions();
-  refreshAccountUI();
   refreshCdpUI();
 }
 
@@ -51,42 +50,7 @@ async function toggleCdp() {
   await refreshCdpUI();
 }
 
-/* ---------------- account (g4f.space OAuth + sync) ---------------- */
-
-async function refreshAccountUI() {
-  const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OAUTH_STATUS });
-  const signedIn = !!res?.signedIn;
-  $("#account-signed-out").hidden = signedIn;
-  $("#account-signed-in").hidden = !signedIn;
-  if (signedIn && res.user) {
-    $("#account-name").textContent = res.user.name || res.user.username || res.user.id;
-    $("#account-detail").textContent =
-      [res.user.username, res.user.tier, res.user.id].filter(Boolean).join(" · ");
-    const avatar = $("#account-avatar");
-    if (res.user.avatar) { avatar.src = res.user.avatar; avatar.hidden = false; }
-    else avatar.hidden = true;
-  }
-}
-
-async function handleLogin() {
-  const status = $("#oauth-status");
-  const btn = $("#oauth-login");
-  btn.disabled = true;
-  status.textContent = "Opening sign-in window…";
-  status.className = "conn-result";
-  try {
-    const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OAUTH_START });
-    if (!res?.ok) throw new Error(res?.error || "Sign-in failed");
-    status.textContent = "✓ Signed in";
-    status.classList.add("ok");
-    await refreshAccountUI();
-  } catch (e) {
-    status.textContent = "✗ " + (e.message || String(e));
-    status.classList.add("bad");
-  } finally {
-    btn.disabled = false;
-  }
-}
+/* ---------------- form ---------------- */
 
 function fillForm() {
   $("#server-url").value = settings.serverUrl;
@@ -189,29 +153,6 @@ function wireEvents() {
 
   // CDP bridge toggle
   $("#cdp-toggle").addEventListener("click", toggleCdp);
-
-  // Account & sync
-  $("#oauth-login").addEventListener("click", handleLogin);
-  $("#oauth-logout").addEventListener("click", async () => {
-    await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.OAUTH_LOGOUT });
-    await refreshAccountUI();
-    toast($("#toast-root"), "Signed out");
-  });
-  $("#sync-now").addEventListener("click", async () => {
-    const btn = $("#sync-now");
-    btn.disabled = true;
-    btn.textContent = "Syncing…";
-    try {
-      const res = await chrome.runtime.sendMessage({ type: MESSAGE_TYPES.SYNC_NOW });
-      if (!res?.ok) throw new Error(res?.error || "Sync failed");
-      toast($("#toast-root"), `Synced: pushed ${res.pushed}, pulled ${res.pulled}`, "ok");
-    } catch (e) {
-      toast($("#toast-root"), e.message || String(e), "error");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Sync now";
-    }
-  });
 }
 
 async function loadModelOptions() {

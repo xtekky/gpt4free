@@ -10,15 +10,13 @@
  */
 
 import { MESSAGE_TYPES, DEFAULT_SETTINGS } from "../lib/constants.js";
-import { getSettings, getConversations, saveConversations } from "../lib/storage.js";
+import { getSettings } from "../lib/storage.js";
 import {
   chatCompletion, generateImage, listModels, listProviders, checkHealth,
 } from "../lib/g4f-client.js";
-import { signIn, signOut, getSession, isExpired } from "../lib/oauth.js";
-import { syncConversations } from "../lib/secret-sync.js";
 import { startAgent, stopAgent, getAgentState } from "../lib/cdp-agent.js";
 
-/** port.id -> port for streaming fan-out */
+/** port.name -> port for streaming fan-out */
 const streams = new Map();
 /** abort controllers by stream id */
 const aborts = new Map();
@@ -208,12 +206,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
       }
       case MESSAGE_TYPES.GET_PAGE: {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = msg.tabId
+          ? await chrome.tabs.get(msg.tabId).catch(() => null)
+          : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
         sendResponse(await getPageText(tab));
         break;
       }
       case MESSAGE_TYPES.GET_SELECTION: {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const tab = msg.tabId
+          ? await chrome.tabs.get(msg.tabId).catch(() => null)
+          : (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
         sendResponse({ text: await getSelection(tab) });
         break;
       }
@@ -240,61 +242,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case MESSAGE_TYPES.IMAGE: {
         await handleImage(msg);
         sendResponse({ ok: true, started: true });
-        break;
-      }
-
-      /* ---------------- account & cloud sync ---------------- */
-      case MESSAGE_TYPES.OAUTH_START: {
-        try {
-          const session = await signIn();
-          sendResponse({ ok: true, user: session.user });
-        } catch (e) {
-          sendResponse({ ok: false, error: String(e?.message || e) });
-        }
-        break;
-      }
-      case MESSAGE_TYPES.OAUTH_LOGOUT: {
-        try {
-          await signOut();
-          sendResponse({ ok: true });
-        } catch (e) {
-          sendResponse({ ok: false, error: String(e?.message || e) });
-        }
-        break;
-      }
-      case MESSAGE_TYPES.OAUTH_STATUS: {
-        try {
-          const session = await getSession();
-          sendResponse({
-            ok: true,
-            signedIn: !!session && !isExpired(session),
-            user: session?.user
-              ? { id: session.user.id, name: session.user.name, username: session.user.username, avatar: session.user.avatar, tier: session.user.tier }
-              : null,
-          });
-        } catch (e) {
-          sendResponse({ ok: false, error: String(e?.message || e) });
-        }
-        break;
-      }
-      case MESSAGE_TYPES.SYNC_NOW:
-      case MESSAGE_TYPES.SYNC_PUSH:
-      case MESSAGE_TYPES.SYNC_PULL: {
-        try {
-          const settings = await getSettings();
-          const local = await getConversations();
-          const result = await syncConversations(settings, local);
-          if (result.pulledConversations?.length) {
-            // Merge pulled conversations into local storage (newest first).
-            const byId = new Map(local.map((c) => [c.id, c]));
-            for (const c of result.pulledConversations) byId.set(c.id, c);
-            const merged = [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-            await saveConversations(merged);
-          }
-          sendResponse({ ok: true, ...result, pulledConversations: undefined });
-        } catch (e) {
-          sendResponse({ ok: false, error: String(e?.message || e) });
-        }
         break;
       }
 

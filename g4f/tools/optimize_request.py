@@ -19,25 +19,32 @@ _MAX_TOOL_REPEATS = 3  # max times the same tool call may appear before breaking
 # Cap the byte size of any single tool result / function call output embedded
 # in the conversation. Older results are rarely re-read by the model but still
 # consume the full input budget on every turn.
-_TOOL_RESULT_CAP = 4096  # bytes per tool result
+_TOOL_RESULT_CAP = 4000  # ≈1000 tokens per tool result is plenty for context
 _OLD_TOOL_RESULT_CAP = 1200  # stricter cap for results older than 2 turns
+_TOOL_RESULT_HEAD = 1500
+_TOOL_RESULT_TAIL = 1500
+
+# Cap the reasoning kept from *older* assistant turns. The model rarely
+# re-reads its own earlier thinking, but it pays input tokens for it on every
+# subsequent turn. The most recent assistant turn keeps its full reasoning.
+_REASONING_HISTORY_CAP = 1000  # bytes of reasoning kept per older turn
 
 _BLANK_RUN_RE = re.compile(r"\n{3,}")
 _MAX_TURNS = 40  # keep at most this many non-system messages
 
-# Cap on how many bytes of a *single* tool-result message we keep.
-# Anything longer is truncated to head+tail with an omission marker.
-_TOOL_RESULT_CAP = 4000  # ≈1000 tokens per tool result is plenty for context
-_TOOL_RESULT_HEAD = 1500
-_TOOL_RESULT_TAIL = 1500
-
 # ── System prompt condensation ──────────────────────────────────────────────
 # Replaces the verbose Copilot system preamble with a condensed version.
 
+# Matches the Copilot/VS Code preamble in both the old format (…</description>)
+# and the current format (a series of <instructions>-style XML blocks). The
+# greedy run matches through the LAST known closing tag so the whole
+# boilerplate preamble — policies, instructions, tool/notebook/output/memory
+# sections — is replaced by REPLACE_VSC in one go.
 SEARCH_VSC = re.compile(
     r"Follow the user's requirements carefully & to the letter\.\n"
     r"Follow Microsoft content policies\.\n"
-    r"[\s\S]*? simple code examples or demonstrations; debugging </description>",
+    r"[\s\S]*</(?:description|instructions|toolUseInstructions|"
+    r"notebookInstructions|outputFormatting|memoryInstructions)>",
     re.IGNORECASE,
 )
 
@@ -745,9 +752,19 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
         if _is_empty_content(msg) and not msg.get("tool_calls"):
             continue
 
+        # Never collapse tool/function results — each one answers a distinct
+        # tool_call id and providers require the pairing to stay intact.
+        if role in ("tool", "function"):
+            result.append(msg)
+            continue
+
         # Collapse consecutive same-role messages.
         if result and isinstance(result[-1], dict) and result[-1].get("role") == role:
             prev = result[-1]
+            # Keep both when both carry tool calls (distinct calls).
+            if msg.get("tool_calls") and prev.get("tool_calls"):
+                result.append(msg)
+                continue
             # Keep the message that has tool_calls.
             if msg.get("tool_calls") and not prev.get("tool_calls"):
                 result.pop()
@@ -756,7 +773,21 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
             # If previous has tool_calls and this one doesn't, skip this one.
             if prev.get("tool_calls") and not msg.get("tool_calls"):
                 continue
-            # Neither has tool_calls — skip the duplicate.
+            # Neither has tool_calls — merge text content so the latest
+            # message (what the model should respond to) is never lost.
+            prev_content = prev.get("content")
+            msg_content = msg.get("content")
+            if isinstance(prev_content, str) and isinstance(msg_content, str):
+                if msg_content == prev_content:
+                    # Exact duplicate — drop the later copy.
+                    continue
+                if prev_content and msg_content:
+                    prev["content"] = f"{prev_content}\n{msg_content}"
+                elif msg_content:
+                    prev["content"] = msg_content
+            else:
+                # Non-string (multimodal) content — keep the latest message.
+                result[-1] = msg
             continue
 
         # Remove exact duplicates (same role + content hash).
@@ -992,6 +1023,99 @@ def strip_reasoning_echo(messages: Messages) -> int:
                 messages[i] = {"role": "assistant", "content": ""}
             else:
                 msg["content"] = new_content
+
+    return max(0, saved_bytes)
+
+# ── Reasoning length capping ────────────────────────────────────────────────
+
+_THINK_BLOCK_RE = re.compile(r"(<think[^>]*>)([\s\S]*?)(</think>)", re.IGNORECASE)
+_REASONING_BLOCK_RE = re.compile(
+    r"(<reasoning[^>]*>)([\s\S]*?)(</reasoning>)", re.IGNORECASE
+)
+
+def _cap_text(text: str, cap: int) -> str:
+    """Keep head + tail of *text* within *cap* bytes, with an omission marker."""
+    raw = text.encode("utf-8", errors="replace")
+    if len(raw) <= cap:
+        return text
+    head = raw[: cap * 3 // 4].decode("utf-8", errors="replace")
+    tail = raw[-(cap // 4) :].decode("utf-8", errors="replace")
+    return f"{head}…[{len(raw) - cap} chars truncated]…{tail}"
+
+def _cap_reasoning_blocks(text: str) -> str:
+    """Cap the inner length of every reasoning block in *text*."""
+    def _sub(m: re.Match) -> str:
+        inner = m.group(2)
+        if len(inner.encode("utf-8", errors="replace")) <= _REASONING_HISTORY_CAP:
+            return m.group(0)
+        return m.group(1) + _cap_text(inner, _REASONING_HISTORY_CAP) + m.group(3)
+
+    text = _THINK_BLOCK_RE.sub(_sub, text)
+    return _REASONING_BLOCK_RE.sub(_sub, text)
+
+def cap_reasoning_length(messages: Messages) -> int:
+    """Cap the reasoning kept from older assistant turns.
+
+    Only "open" assistant turns keep their full reasoning — the turn being
+    continued (the last message, or followed by tool results the model will
+    react to). Older turns, and turns the user has already moved on from,
+    get their ``<think>``/``<reasoning>`` blocks and ``reasoning_content``
+    fields truncated to ``_REASONING_HISTORY_CAP`` bytes. The model rarely
+    re-reads its own earlier reasoning, but it still pays input tokens for
+    it on every turn — one of the largest avoidable costs in long tool loops.
+
+    Returns the number of bytes saved.
+    """
+    if not messages:
+        return 0
+
+    last_assistant_idx = None
+    for i in range(len(messages) - 1, -1, -1):
+        msg = messages[i]
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            last_assistant_idx = i
+            break
+    if last_assistant_idx is None or last_assistant_idx == 0:
+        return 0
+
+    # The most recent assistant turn keeps full reasoning only while the
+    # turn is still "open": it either ends the conversation (its generation
+    # continues) or is followed by tool results (the model continues from
+    # its own thinking). Once the user has replied, that reasoning is stale
+    # history like any other turn's.
+    following = messages[last_assistant_idx + 1:]
+    turn_open = not following or any(
+        isinstance(m, dict) and m.get("role") in ("tool", "function")
+        for m in following
+    )
+    cap_upto = last_assistant_idx if turn_open else len(messages)
+
+    saved_bytes = 0
+    for i, msg in enumerate(messages):
+        if i >= cap_upto:
+            break
+        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+            continue
+
+        # Cap inline  / <reasoning> blocks in the content.
+        content = msg.get("content")
+        if isinstance(content, str) and content:
+            new_content = _cap_reasoning_blocks(content)
+            if new_content != content:
+                saved_bytes += len(content.encode("utf-8", errors="replace")) - len(
+                    new_content.encode("utf-8", errors="replace")
+                )
+                msg["content"] = new_content
+
+        # Cap the reasoning_content field (passed back for tool-call turns).
+        rc = msg.get("reasoning_content")
+        if isinstance(rc, str) and rc:
+            new_rc = _cap_text(rc, _REASONING_HISTORY_CAP)
+            if new_rc != rc:
+                saved_bytes += len(rc.encode("utf-8", errors="replace")) - len(
+                    new_rc.encode("utf-8", errors="replace")
+                )
+                msg["reasoning_content"] = new_rc
 
     return max(0, saved_bytes)
 
@@ -1276,7 +1400,10 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         logs["system"] = f"condensed system prompt (-{sys_saved} bytes)"
 
     # ── Message-level dedup & reasoning echo removal ──
-    messages, dedup_saved = dedup_messages(messages)
+    # dedup_messages returns a new list — write it back into the caller's
+    # list object so the removals actually reach the provider request.
+    deduped, dedup_saved = dedup_messages(messages)
+    messages[:] = deduped
     if dedup_saved:
         saved_bytes += dedup_saved
         logs["dedup"] = f"removed duplicate/empty messages (-{dedup_saved} bytes)"
@@ -1288,13 +1415,31 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
             "reasoning_echo"
         ] = f"stripped repeated reasoning blocks (-{echo_saved} bytes)"
 
-    # # ── Tool result truncation ──
-    # tool_trunc_saved = _truncate_tool_results(messages)
-    # if tool_trunc_saved:
-    #     saved_bytes += tool_trunc_saved
-    #     logs[
-    #         "tool_trunc"
-    #     ] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
+    # ── Reasoning length ──
+    # Older assistant turns rarely need their full reasoning; cap it to cut
+    # prompt tokens on every subsequent turn.
+    reasoning_saved = cap_reasoning_length(messages)
+    if reasoning_saved:
+        saved_bytes += reasoning_saved
+        logs[
+            "reasoning_cap"
+        ] = f"capped reasoning in older turns (-{reasoning_saved} bytes)"
+
+    # ── Tool-loop detection ──
+    # Drop repeated identical tool calls (and their results) before truncating
+    # the remaining results, so whole duplicate turns disappear at once.
+    loop_saved = break_tool_loop(messages)
+    if loop_saved:
+        saved_bytes += loop_saved
+        logs["tool_loop"] = f"broke repeated tool-call loop (-{loop_saved} bytes)"
+
+    # ── Tool result truncation ──
+    tool_trunc_saved = _truncate_tool_results(messages)
+    if tool_trunc_saved:
+        saved_bytes += tool_trunc_saved
+        logs[
+            "tool_trunc"
+        ] = f"truncated oversized tool results (-{tool_trunc_saved} bytes)"
 
     # ── Strip redundant tool_call fields ──
     # tool_field_saved = _strip_redundant_tool_fields(messages)

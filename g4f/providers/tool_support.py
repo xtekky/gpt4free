@@ -374,7 +374,12 @@ class ToolSupportProvider(AsyncGeneratorProvider):
                 '{"tool_calls": [{"name": "TOOL_NAME", "arguments": {}}]}',
                 "You may include multiple tool calls in the array. The `arguments` value MUST be "
                 "a JSON object matching the tool's parameter schema.",
-                "If no tool is needed, respond normally with plain text. Don't try to call a tool, simply respond only with the JSON object.",
+                "If no tool is needed, respond normally with plain text and do not output any "
+                "JSON tool-call object. Never mix a normal answer with a tool-call JSON in the "
+                "same reply.",
+                "Only request a tool when the task genuinely requires external data, computation, "
+                "or an action you cannot perform yourself — prefer answering directly or with as "
+                "few tool calls as possible.",
                 f"Available tools: {', '.join(tool_names)}",
             ]
             for t in normalized_tools:

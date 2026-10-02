@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "gpt4free — Free AI Assistant",
   "short_name": "g4f",
-  "description": "Chat with free AI models from your browser. Powered by your local gpt4free server — sidebar chat, page context, image generation and more.",
-  "version": "0.1.0",
+  "description": "Chat with free AI models from your browser. Powered by gpt4free — sidebar chat with the full g4f.dev chat, page context, image generation and more.",
+  "version": "0.2.0",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
