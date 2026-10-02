@@ -40,7 +40,10 @@ context, image generation, quick actions — with all conversations stored
 
 ## How it fits together
 
-- **Side panel (default)** — an iframe with `https://g4f.dev/chat/`. A small
+- **Side panel (default)** — an iframe with the chat app. It follows the
+  configured server URL: `g4f.space` serves its chat UI from `g4f.dev`, any
+  other server (e.g. a self-hosted instance) hosts the chat itself under
+  `/chat/`. A small
   postMessage bridge (`g4f-ext:ask` / `g4f-chat:ready`) lets the extension
   inject prompts from context menus and the popup into the embedded chat.
 - **Lite chat** — plain ES-module UI with streaming over a port

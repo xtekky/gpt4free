@@ -20,8 +20,28 @@ import { renderMarkdown } from "../lib/markdown.js";
 import { toast, bindCopyHandlers, escapeHtml } from "../lib/ui.js";
 
 const $ = (sel) => document.querySelector(sel);
-const CHAT_URL = "https://g4f.dev/chat/";
 const EMBED_KEY = "g4fEmbedMode"; // "embed" | "native" (chrome.storage.local)
+
+/**
+ * Chat app URL, derived from the configured server URL: the public
+ * g4f.space API serves its chat UI from g4f.dev, while any other server
+ * (self-hosted instances) hosts the chat itself under /chat/.
+ */
+function getChatUrl() {
+  try {
+    const u = new URL(normalizeBaseUrl(settings?.serverUrl));
+    const host = u.hostname;
+    if (host !== "g4f.space" && !host.endsWith(".g4f.space")) {
+      return u.origin + "/chat/";
+    }
+  } catch { /* fall through to the public default */ }
+  return "https://g4f.dev/chat/";
+}
+
+/** Origin the embedded chat posts messages from. */
+function getChatOrigin() {
+  return new URL(getChatUrl()).origin;
+}
 
 let settings = null;
 let conversation = null;
@@ -111,12 +131,17 @@ async function setMode(mode) {
 function wireEmbedBridge() {
   const frame = $("#chat-frame");
 
+  // Follow the configured server (g4f.space -> g4f.dev, else the server
+  // itself). The iframe's HTML default already points at g4f.dev, so this
+  // only triggers a reload for custom server URLs.
+  if (frame.src !== getChatUrl()) frame.src = getChatUrl();
+
   $("#embed-reload").addEventListener("click", () => {
     embedChatReady = false;
-    frame.src = CHAT_URL; // base URL: never re-run a #q= prompt
+    frame.src = getChatUrl(); // base URL: never re-run a #q= prompt
   });
   $("#embed-open-tab").addEventListener("click", () =>
-    chrome.tabs.create({ url: CHAT_URL })
+    chrome.tabs.create({ url: getChatUrl() })
   );
   $("#mode-toggle").addEventListener("click", () => setMode("native"));
   $("#mode-toggle-native").addEventListener("click", () => setMode("embed"));
@@ -124,23 +149,23 @@ function wireEmbedBridge() {
   $("#open-options-native").addEventListener("click", () => chrome.runtime.openOptionsPage());
 
   // Surface load failures (offline / blocked) without blocking the UI.
-  frame.addEventListener("error", () => showEmbedError("Could not load the g4f.dev chat."));
+  frame.addEventListener("error", () => showEmbedError("Could not load the chat."));
   frame.addEventListener("load", () => {
     embedChatReady = false; // a (re)loaded chat must re-announce
     $("#embed-status").hidden = true;
     // The chat app announces itself once its addons are up.
-    frame.contentWindow?.postMessage({ type: "g4f-ext:hello" }, CHAT_URL);
+    frame.contentWindow?.postMessage({ type: "g4f-ext:hello" }, getChatUrl());
     // Fast path: the chat registers its message listener before its load
     // event, so a direct postMessage usually lands. Must not go through
     // sendToEmbed() here — embedChatReady is still false and it would
     // answer with a #q= reload, looping forever.
     if (pendingEmbedPrompt) {
-      frame.contentWindow?.postMessage({ type: "g4f-ext:ask", prompt: pendingEmbedPrompt }, CHAT_URL);
+      frame.contentWindow?.postMessage({ type: "g4f-ext:ask", prompt: pendingEmbedPrompt }, getChatUrl());
     }
   });
 
   window.addEventListener("message", (event) => {
-    if (event.origin !== "https://g4f.dev") return;
+    if (event.origin !== getChatOrigin()) return;
     const data = event.data || {};
     if (data.type === "g4f-chat:ready") {
       embedChatReady = true;
@@ -153,7 +178,7 @@ function wireEmbedBridge() {
 
 function showEmbedError(message) {
   const el = $("#embed-status");
-  el.textContent = message + " Use ⇆ for the built-in chat or ⧉ to open g4f.dev in a tab.";
+  el.textContent = message + " Use ⇆ for the built-in chat or ⧉ to open the chat in a tab.";
   el.hidden = false;
 }
 
@@ -169,11 +194,11 @@ function sendToEmbed(prompt) {
     // the page's listener exists. Instead, reload the frame with the
     // prompt in the #q= hash — the chat page consumes it on load.
     pendingEmbedPrompt = null;
-    frame.src = CHAT_URL + "#q=" + encodeURIComponent(prompt);
+    frame.src = getChatUrl() + "#q=" + encodeURIComponent(prompt);
     return;
   }
   try {
-    frame.contentWindow?.postMessage({ type: "g4f-ext:ask", prompt }, CHAT_URL);
+    frame.contentWindow?.postMessage({ type: "g4f-ext:ask", prompt }, getChatUrl());
     pendingEmbedPrompt = null;
   } catch {
     pendingEmbedPrompt = prompt;
