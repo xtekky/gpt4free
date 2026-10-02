@@ -454,10 +454,6 @@ def get_shared_browser(
 
         # Wait up to 20 seconds for readiness
         for _ in range(40):
-            if proc.poll() is not None:
-                # Chrome exited right away — likely it handed the profile
-                # over to an already-running instance (singleton) and quit.
-                break
             time.sleep(0.5)
             try:
                 with urllib.request.urlopen(
