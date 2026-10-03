@@ -22,12 +22,16 @@ setting G4F_BROWSER_MODE=extension before starting the server.
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import logging
+import secrets
 import time
 from typing import Dict, List, Optional
+from urllib.parse import quote, urlparse
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import Body, Depends, Form, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 try:  # FastAPI / Starlette
     from starlette.websockets import WebSocketState
@@ -36,6 +40,48 @@ except ImportError:  # pragma: no cover
 
 debug = logging.getLogger("g4f.cdp_relay")
 
+
+# Forwards clicks/inputs/selects in the served HTML copy to the live target.
+_COPY_SCRIPT = r"""
+let busy = false, timer;
+const send = async (body, reload) => {
+  if (busy) return;
+  busy = true;
+  clearTimeout(timer);
+  try {
+    await fetch(location.origin + '/browser/' + encodeURIComponent(T) + '/action', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  } catch {}
+  busy = false;
+  if (reload) location.reload();
+};
+const idx = el => { const t = el.closest('[data-index]'); return t ? [t, +t.dataset.index] : []; };
+const plain = el => el.matches('input[type=checkbox],input[type=radio],input[type=file]');
+document.addEventListener('click', e => {
+  const [el, i] = idx(e.target);
+  if (el === undefined || el.isContentEditable || el.matches('select,textarea,input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button])')) return;
+  e.preventDefault();
+  send({type: 'click', index: i}, true);
+}, true);
+document.addEventListener('submit', e => e.preventDefault(), true);
+document.addEventListener('change', e => {
+  const [el, i] = idx(e.target);
+  if (el && el.matches('select')) send({type: 'select', index: i, value: el.value}, true);
+}, true);
+document.addEventListener('input', e => {
+  const [el, i] = idx(e.target);
+  if (busy || !el || el.matches('select') || plain(el)) return;
+  clearTimeout(timer);
+  timer = setTimeout(() => send({type: 'type', index: i,
+    value: el.isContentEditable ? el.textContent : el.value}, true), 600);
+}, true);
+document.addEventListener('keydown', e => {
+  const [el, i] = idx(e.target);
+  if (e.key !== 'Enter' || !el || !el.matches('input')) return;
+  e.preventDefault();
+  send({type: 'type', index: i, value: el.value, submit: true}, true);
+}, true);
+"""
 AGENT_PATH = "/v1/cdp/agent"  # extension agents connect here
 
 
@@ -92,6 +138,9 @@ class CdpRelay:
         # target_id -> (client_id, tab_id)
         self.targets: Dict[str, tuple] = {}
         self._lock = asyncio.Lock()
+        # target_id -> {title,url,html?} for tabs seen open; closed ones move to `closed`.
+        self.known: Dict[str, dict] = {}
+        self.closed: Dict[str, dict] = {}
         # Zombie reaper: MV3 service workers die after ~30s idle, which can
         # leave sockets that no longer respond. Track liveness via pings.
         self._reaper_task: Optional[asyncio.Task] = None
@@ -145,6 +194,8 @@ class CdpRelay:
             ]
             for tid in dead:
                 del self.targets[tid]
+            for tid in [t for t in self.known if t.rpartition(":")[0] == agent.client_id]:
+                self._mark_closed(tid)
         if not self.agents:
             # Last agent gone: fall back to local browser handling.
             self._set_extension_mode(False)
@@ -178,8 +229,48 @@ class CdpRelay:
 
     # ---------------- CDP facade (used by routes below) ----------------
 
+    def _mark_closed(self, target_id: str) -> None:
+        info = self.known.pop(target_id, None)
+        if info is None:
+            return
+        self.closed[target_id] = {**info, "closed_at": time.time()}
+        while len(self.closed) > 50:
+            del self.closed[next(iter(self.closed))]
+
+    async def evaluate(self, target_id: str, expression: str, timeout: float = 30.0):
+        """Run JS in a target tab via the agent and return the JSON value."""
+        client_id, tab_id = self.split_target(target_id)
+        agent = self.get_agent(client_id)
+        res = await agent.roundtrip(
+            {"type": "cdp", "tabId": tab_id, "method": "Runtime.evaluate",
+             "params": {"expression": expression, "returnByValue": True,
+                        "awaitPromise": True}},
+            timeout=timeout,
+        )
+        out = res.get("result", {})
+        if out.get("exceptionDetails"):
+            raise RuntimeError(str(out["exceptionDetails"].get("text", "evaluation failed")))
+        return out.get("result", {}).get("value")
+
+    async def snapshot(self, target_id: str) -> Optional[str]:
+        """Standalone HTML copy of an open tab (cached); cached copy for closed tabs."""
+        from ..mcp.browser_dom import SNAPSHOT_JS
+
+        try:
+            html = await self.evaluate(target_id, SNAPSHOT_JS)
+        except Exception as e:
+            debug.warning(f"CDP relay: snapshot failed for {target_id}: {e}")
+            html = None
+        if html:
+            info = self.known.get(target_id)
+            if info is not None:
+                info["html"] = html
+            return html
+        return (self.known.get(target_id) or self.closed.get(target_id) or {}).get("html")
+
     async def list_targets(self) -> List[dict]:
         targets = []
+        seen = set()
         for client_id, agent in list(self.agents.items()):
             try:
                 res = await agent.roundtrip({"type": "tabs"}, timeout=5)
@@ -187,10 +278,20 @@ class CdpRelay:
             except Exception as e:
                 debug.warning(f"CDP relay: tabs query failed for {client_id}: {e}")
                 agent.tabs = []
+            else:
+                # Only a successful query proves a tab is gone.
+                prefix = f"{client_id}:"
+                live = {f"{client_id}:{t['tabId']}" for t in agent.tabs}
+                for tid in [k for k in self.known if k.startswith(prefix) and k not in live]:
+                    self._mark_closed(tid)
             for tab in agent.tabs:
+                tid = f"{client_id}:{tab['tabId']}"
+                seen.add(tid)
+                info = self.known.setdefault(tid, {})
+                info.update(title=tab.get("title", ""), url=tab.get("url", ""))
                 targets.append(
                     {
-                        "id": f"{client_id}:{tab['tabId']}",
+                        "id": tid,
                         "type": "page",
                         "title": tab.get("title", ""),
                         "url": tab.get("url", ""),
@@ -217,16 +318,22 @@ class CdpRelay:
     async def close_target(self, target_id: str) -> bool:
         client_id, tab_id = self.targets.get(target_id, (None, None))
         if client_id is None:
-            return False
+            try:
+                client_id, tab_id = self.split_target(target_id)
+            except RuntimeError:
+                return False
         agent = self.agents.get(client_id)
         if not agent:
             return False
+        if target_id in self.known:
+            await self.snapshot(target_id)
         try:
             await agent.roundtrip({"type": "close_tab", "tabId": tab_id}, timeout=5)
         except Exception:
             pass
         async with self._lock:
             self.targets.pop(target_id, None)
+            self._mark_closed(target_id)
         return True
 
     def split_target(self, target_id: str):
@@ -339,6 +446,13 @@ async def cdp_ws_endpoint(ws: WebSocket, target_id: str) -> None:
 def register_cdp_relay(app) -> None:
     """Attach relay routes to the FastAPI app."""
 
+    def _require_debug() -> None:
+        # Checked per request so a later enable_logging() takes effect.
+        from .. import debug as g4f_debug
+
+        if not g4f_debug.logging:
+            raise HTTPException(status_code=404, detail="Not Found")
+
     @app.websocket(AGENT_PATH)
     async def _agent(ws: WebSocket) -> None:
         await agent_endpoint(ws)
@@ -367,3 +481,126 @@ def register_cdp_relay(app) -> None:
     @app.websocket("/v1/cdp/ws/{target_id}")
     async def _cdp(ws: WebSocket, target_id: str) -> None:
         await cdp_ws_endpoint(ws, target_id)
+
+    @app.get("/browser", response_class=HTMLResponse, dependencies=[Depends(_require_debug)])
+    async def _browser_list() -> HTMLResponse:
+        await relay.list_targets()
+        from ..requests.cdp import list_session_targets
+
+        local = await list_session_targets()
+        opened = {t["id"]: t for t in local["open"]}
+        closed = {t["id"]: t for t in local["closed"]}
+        # Relay entries win: extension-mode CDPSessions appear in both.
+        opened.update(relay.known)
+        closed.update(relay.closed)
+        for tid in opened:
+            closed.pop(tid, None)
+
+        def rows(items: dict, label: str) -> str:
+            out = []
+            for tid, info in reversed(list(items.items())):
+                link = f"/browser/{quote(tid, safe='')}/html"
+                has_copy = label == "open" or info.get("html")
+                cell = f'<a href="{link}">html copy</a>' if has_copy else "-"
+                if label == "open":
+                    cell += (
+                        f' <form method=post action="/browser/{quote(tid, safe="")}/close" '
+                        'style=display:inline><button>close</button></form>'
+                    )
+                out.append(
+                    f"<tr><td>{label}</td><td>{html.escape(info.get('title') or '')}</td>"
+                    f"<td>{html.escape(info.get('url') or '')}</td><td>{cell}</td></tr>"
+                )
+            return "".join(out)
+
+        body = (
+            "<!DOCTYPE html><meta charset=utf-8><title>Browser targets</title>"
+            "<style>body{font-family:sans-serif;margin:2em}td,th{padding:4px 12px;"
+            "text-align:left}</style><h1>Browser targets</h1>"
+            "<form method=post action=/browser/new><input name=url type=url required "
+            "placeholder='https://...' size=60> <button>open new target</button></form>"
+            "<table><tr><th>State</th><th>Title</th><th>URL</th><th>Copy</th></tr>"
+            f"{rows(opened, 'open')}{rows(closed, 'closed')}</table>"
+        )
+        return HTMLResponse(body)
+
+    @app.post("/browser/new", dependencies=[Depends(_require_debug)])
+    async def _browser_new(url: str = Form(...)) -> RedirectResponse:
+        if urlparse(url).scheme not in ("http", "https"):
+            raise HTTPException(status_code=400, detail="Only http(s) URLs are supported")
+        from ..image import is_safe_url
+
+        if not await asyncio.get_running_loop().run_in_executor(None, is_safe_url, url):
+            raise HTTPException(status_code=400, detail="Local and network URLs are not allowed")
+        if relay.agents:
+            target = await relay.new_target(url)
+            relay.known.setdefault(target["id"], {}).update(title="", url=url)
+        else:
+            from ..requests.cdp import CDPSession
+
+            session = CDPSession()
+            await session.start()
+            await session.navigate(url)
+        return RedirectResponse("/browser", status_code=303)
+
+    @app.post("/browser/{target_id}/close", dependencies=[Depends(_require_debug)])
+    async def _browser_close(target_id: str) -> RedirectResponse:
+        from ..requests.cdp import _open_sessions
+
+        session = _open_sessions.get(target_id)
+        if session is not None and target_id not in relay.known:
+            await session.close()
+        else:
+            await relay.close_target(target_id)
+        return RedirectResponse("/browser", status_code=303)
+
+    @app.get("/browser/{target_id}/html", response_class=HTMLResponse, dependencies=[Depends(_require_debug)])
+    async def _browser_html(target_id: str) -> HTMLResponse:
+        if target_id in relay.known or target_id in relay.closed:
+            page = await relay.snapshot(target_id)
+        else:
+            from ..requests.cdp import snapshot_session_target
+
+            page = await snapshot_session_target(target_id)
+        if not page:
+            raise HTTPException(status_code=404, detail="No HTML copy available")
+        nonce = secrets.token_urlsafe(16)
+        script = (
+            f'<script nonce="{nonce}">const T={json.dumps(target_id)};{_COPY_SCRIPT}</script>'
+        )
+        page = page.replace("</body>", script + "</body>", 1) if "</body>" in page else page + script
+        return HTMLResponse(
+            page,
+            headers={"Content-Security-Policy": "default-src * data: blob: 'unsafe-inline'; "
+                     f"script-src 'nonce-{nonce}'; object-src 'none'; connect-src 'self'; "
+                     "form-action 'none'"},
+        )
+
+    @app.post("/browser/{target_id}/action", dependencies=[Depends(_require_debug)])
+    async def _browser_action(target_id: str, payload: dict = Body(...)) -> dict:
+        from ..mcp.browser_dom import click_js, select_js, type_js
+
+        try:
+            index = int(payload["index"])
+            kind = payload.get("type")
+            if kind == "click":
+                js = click_js(index)
+            elif kind == "type":
+                js = type_js(index, str(payload.get("value", "")), True, bool(payload.get("submit")))
+            elif kind == "select":
+                js = select_js(index, str(payload.get("value", "")))
+            else:
+                raise HTTPException(status_code=400, detail="Unknown action type")
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid action")
+        if target_id in relay.known:
+            result = await relay.evaluate(target_id, js)
+        else:
+            from ..requests.cdp import _open_sessions
+
+            session = _open_sessions.get(target_id)
+            if session is None or not session.is_alive:
+                raise HTTPException(status_code=409, detail="Target is not open")
+            result = await session.evaluate_js(js)
+        await asyncio.sleep(0.3 if kind == "type" and not payload.get("submit") else 1)  # let the page settle before the copy reloads
+        return {"result": result}

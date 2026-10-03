@@ -1841,6 +1841,123 @@ def _save_screenshot(image_bytes: bytes, url: str) -> str:
         file.write(image_bytes)
     return filepath
 
+async def _browser_eval(arguments: Dict[str, Any], expression: str) -> Any:
+    """Run JS in the relay target ``targetId`` if given, else in the shared CDP tab."""
+    target_id = arguments.get("targetId")
+    if target_id:
+        from ..api.cdp_relay import relay
+        return await relay.evaluate(target_id, expression)
+    session = await _get_shared_cdp_session()
+    return await session.evaluate_js(expression)
+
+_TARGET_PROP = {
+    "type": "string",
+    "description": "Optional /browser target id (e.g. 'extension:123'); defaults to the shared browser tab",
+}
+
+class BrowserSnapshotTool(MCPTool):
+    """Return a script-free HTML copy of the page with data-index on interactive elements."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Get a standalone HTML copy (scripts removed, CSS inlined) of the current browser "
+            "page. Buttons, links, inputs, selects, textareas and contenteditable elements carry "
+            "a data-index attribute usable with browser_click, browser_type and browser_select."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {"type": "object", "properties": {"targetId": _TARGET_PROP}}
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import SNAPSHOT_JS
+        try:
+            return {"html": await _browser_eval(arguments, SNAPSHOT_JS)}
+        except Exception as exc:
+            return {"error": f"Browser snapshot failed: {exc}"}
+
+class BrowserClickTool(MCPTool):
+    """Click an element by data-index."""
+
+    @property
+    def description(self) -> str:
+        return "Click the element with the given data-index (see browser_snapshot)."
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "index": {"type": "integer", "description": "data-index of the element"},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["index"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import click_js
+        try:
+            return await _browser_eval(arguments, click_js(int(arguments["index"])))
+        except Exception as exc:
+            return {"error": f"Browser click failed: {exc}"}
+
+class BrowserTypeTool(MCPTool):
+    """Type text into an input/textarea/contenteditable by data-index."""
+
+    @property
+    def description(self) -> str:
+        return "Set the text of the input, textarea or contenteditable element with the given data-index."
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "index": {"type": "integer", "description": "data-index of the element"},
+                "text": {"type": "string", "description": "Text to enter"},
+                "clear": {"type": "boolean", "description": "Replace existing text (default: true)", "default": True},
+                "submit": {"type": "boolean", "description": "Press Enter / submit the form afterwards (default: false)", "default": False},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["index", "text"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import type_js
+        try:
+            js = type_js(int(arguments["index"]), str(arguments["text"]),
+                         bool(arguments.get("clear", True)), bool(arguments.get("submit", False)))
+            return await _browser_eval(arguments, js)
+        except Exception as exc:
+            return {"error": f"Browser type failed: {exc}"}
+
+class BrowserSelectTool(MCPTool):
+    """Choose an option of a <select> by data-index."""
+
+    @property
+    def description(self) -> str:
+        return "Select an option (by value or visible text) in the <select> with the given data-index."
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "index": {"type": "integer", "description": "data-index of the <select>"},
+                "value": {"type": "string", "description": "Option value or visible text"},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["index", "value"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import select_js
+        try:
+            return await _browser_eval(arguments, select_js(int(arguments["index"]), str(arguments["value"])))
+        except Exception as exc:
+            return {"error": f"Browser select failed: {exc}"}
+
 class BrowserCloseTool(MCPTool):
     """Close the shared CDP browser session."""
 

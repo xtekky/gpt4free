@@ -749,6 +749,43 @@ def _sanitize_cdp_params(params: dict) -> dict:
     return {k: convert(v) for k, v in params.items()}
 
 
+# target_id -> live CDPSession (open) / info dict (closed) for the /browser page.
+_open_sessions: Dict[str, "CDPSession"] = {}
+_closed_sessions: Dict[str, dict] = {}
+
+
+async def _snapshot_session(session: "CDPSession") -> Optional[str]:
+    from ..mcp.browser_dom import SNAPSHOT_JS
+    try:
+        return await asyncio.wait_for(session.evaluate_js(SNAPSHOT_JS), 10)
+    except Exception:
+        return None
+
+
+async def list_session_targets() -> Dict[str, List[dict]]:
+    """All targets of CDPSessions in this process: ``open`` (live) and ``closed``."""
+    opened = []
+    for tid, s in list(_open_sessions.items()):
+        info = {"id": tid, "title": "", "url": ""}
+        if s.is_alive:
+            try:
+                info["url"] = await asyncio.wait_for(s.evaluate_js("location.href"), 3)
+                info["title"] = await asyncio.wait_for(s.evaluate_js("document.title"), 3)
+            except Exception:
+                pass
+        opened.append(info)
+    closed = [{"id": t, **i} for t, i in reversed(list(_closed_sessions.items()))]
+    return {"open": opened, "closed": closed}
+
+
+async def snapshot_session_target(target_id: str) -> Optional[str]:
+    """HTML copy of an open session target, or the cached copy of a closed one."""
+    session = _open_sessions.get(target_id)
+    if session is not None:
+        return await _snapshot_session(session)
+    return (_closed_sessions.get(target_id) or {}).get("html")
+
+
 class CDPSession:
     def __init__(
         self,
@@ -826,6 +863,12 @@ class CDPSession:
         return not self._closing and not self._connection_lost and self.ws is not None and not self.ws.closed
 
     async def start(self):
+        result = await self._start()
+        if self.target_id:
+            _open_sessions[self.target_id] = self
+        return result
+
+    async def _start(self):
         """Connect a CDP target: Android WebView, extension relay or shared Chrome."""
         browser_mode = getattr(BrowserConfig, "browser_mode", None)
         # Extension mode: route through the g4f browser extension relay
@@ -1986,6 +2029,19 @@ return (
         automation target is closed. Fallback sessions (attached to the chat
         UI) only navigate the WebView back to its initial URL.
         """
+        if self.target_id and self.target_id in _open_sessions and self.is_alive:
+            info: dict = {"title": "", "url": "", "closed_at": time.time()}
+            try:
+                info["url"] = await asyncio.wait_for(self.evaluate_js("location.href"), 3)
+                info["title"] = await asyncio.wait_for(self.evaluate_js("document.title"), 3)
+            except Exception:
+                pass
+            info["html"] = await _snapshot_session(self)
+            _closed_sessions[self.target_id] = info
+            while len(_closed_sessions) > 50:
+                del _closed_sessions[next(iter(_closed_sessions))]
+        if self.target_id:
+            _open_sessions.pop(self.target_id, None)
         self._closing = True
 
         if self._via_webview:
