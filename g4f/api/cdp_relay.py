@@ -38,6 +38,8 @@ try:  # FastAPI / Starlette
 except ImportError:  # pragma: no cover
     WebSocketState = None  # type: ignore
 
+from ..config import AppConfig
+
 debug = logging.getLogger("g4f.cdp_relay")
 
 
@@ -541,7 +543,12 @@ def register_cdp_relay(app) -> None:
         )
         return HTMLResponse(body)
 
-    @app.post("/browser/new", dependencies=[Depends(_require_debug)])
+    def _is_not_demo_and_debug() -> bool:
+        _require_debug()
+        if AppConfig.demo:
+            raise HTTPException(status_code=404, detail="Not Found")
+
+    @app.post("/browser/new", dependencies=[Depends(_is_not_demo_and_debug)])
     async def _browser_new(url: str = Form(...)) -> RedirectResponse:
         from ..mcp.browser_dom import debug_js
 
