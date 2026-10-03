@@ -118,6 +118,9 @@ _STUDIO_SCRIPT = r"""
   let dragIndex = null; // index of the step currently being dragged
   let providerName = 'StudioProvider';
   let providerUrl = (document.querySelector('link[rel="canonical"]') || {}).href || location.origin;
+  let editorOpen = false;  // in-panel code editor for the generated .pa.py
+  let editedCode = null;   // user-edited provider code (overrides generateCode())
+  let savedPath = null;    // server path of the last successful save
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const label = a => ({click: 'Click', type: 'Type', select: 'Select', scrape: 'Scrape', wait: 'Wait'}[a.type] || a.type);
@@ -168,7 +171,7 @@ _STUDIO_SCRIPT = r"""
   // --- state persistence (the copy reloads after forwarded actions) ---------
   const storeKey = 'paStudio:' + T;
   const persist = () => {
-    try { sessionStorage.setItem(storeKey, JSON.stringify({actions, name: providerName, url: providerUrl})); } catch {}
+    try { sessionStorage.setItem(storeKey, JSON.stringify({actions, name: providerName, url: providerUrl, code: editedCode, path: savedPath})); } catch {}
   };
   try {
     const saved = JSON.parse(sessionStorage.getItem(storeKey) || 'null');
@@ -176,6 +179,8 @@ _STUDIO_SCRIPT = r"""
       (saved.actions || []).forEach(a => actions.push(a));
       if (saved.name) providerName = saved.name;
       if (saved.url) providerUrl = saved.url;
+      if (saved.code) editedCode = saved.code;
+      if (saved.path) savedPath = saved.path;
     }
   } catch {}
 
@@ -240,6 +245,10 @@ _STUDIO_SCRIPT = r"""
         #pa-studio .row{display:flex;gap:4px;margin:4px 0;flex-wrap:wrap}
         #pa-studio .hint{color:#9ca3af;font-size:10px;margin:4px 0}
         #pa-studio .status{color:#fbbf24;min-height:14px;font-size:10px;word-break:break-all}
+        #pa-studio a{color:#93c5fd}
+        #pa-studio .path{color:#9ca3af;font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        #pa-studio textarea{width:100%;height:240px;background:#0b1220;color:#d1fae5;border:1px solid #374151;
+          border-radius:4px;padding:4px;font:10px/1.4 monospace;white-space:pre;overflow:auto;resize:vertical;box-sizing:border-box}
       </style>
       <h3>PA Provider Studio</h3>
       <div class="row">
@@ -254,11 +263,23 @@ _STUDIO_SCRIPT = r"""
       <div class="row">
         <button id="pa-test" class="primary">▶ Test all</button>
         <button id="pa-save">💾 Save .pa.py</button>
+        <button id="pa-edit">📝 ${editedCode ? 'Edit code •' : 'Edit code'}</button>
         <button id="pa-clear" class="danger">Clear</button>
       </div>
       <div class="row"><input id="pa-name" placeholder="provider name (e.g. MyChat)" value="${esc(providerName)}"></div>
       <div class="row"><input id="pa-url" placeholder="provider url" value="${esc(providerUrl)}"></div>
-      <div class="status" id="pa-status"></div>`;
+      <div class="status" id="pa-status"></div>
+      ${savedPath ? `<div class="row"><a id="pa-open" href="vscode://file/${encodeURI(savedPath).replace(/#/g, '%23').replace(/\?/g, '%3F')}" title="Open in VS Code">📂 Open in editor</a><code class="path" title="${esc(savedPath)}">${esc(savedPath)}</code></div>` : ''}
+      ${editorOpen ? `
+      <div class="editor">
+        <textarea id="pa-code" spellcheck="false">${esc(editedCode ?? generateCode())}</textarea>
+        <div class="row">
+          <button id="pa-code-save" class="primary">💾 Save</button>
+          <button id="pa-code-reset" class="danger">↺ Reset to recorded</button>
+          <button id="pa-code-close">✕ Close</button>
+        </div>
+        <div class="hint">Edit the generated Python code — saving writes this version. Use {prompt} in type steps as a placeholder for the user prompt.</div>
+      </div>` : ''}`;
 
     const steps = $('#pa-steps');
     if (!actions.length) steps.innerHTML = '<div class="hint">No actions recorded yet.</div>';
@@ -351,6 +372,13 @@ _STUDIO_SCRIPT = r"""
     $('#pa-clear').onclick = () => { actions.length = 0; persist(); render(); };
     $('#pa-test').onclick = testAll;
     $('#pa-save').onclick = saveProvider;
+    $('#pa-edit').onclick = () => { editorOpen = !editorOpen; render(); };
+    if (editorOpen) {
+      $('#pa-code-save').onclick = saveProvider;
+      $('#pa-code-reset').onclick = () => { editedCode = null; persist(); render(); };
+      $('#pa-code-close').onclick = () => { editorOpen = false; render(); };
+      $('#pa-code').oninput = e => { editedCode = e.target.value; persist(); };
+    }
     $('#pa-name').onchange = e => { providerName = e.target.value; persist(); };
     $('#pa-url').onchange = e => { providerUrl = e.target.value; persist(); };
   };
@@ -518,11 +546,18 @@ _STUDIO_SCRIPT = r"""
     try {
       const res = await fetch(location.origin + '/browser/' + encodeURIComponent(T) + '/save_provider', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: providerName, code: generateCode()})
+        body: JSON.stringify({name: providerName, code: editedCode ?? generateCode()})
       });
       const data = await res.json();
-      status(data.ok ? `Saved → ${data.path}` : `Save failed: ${data.detail || data.error}`, data.ok ? '#00e676' : '#f87171');
+      if (data.ok) {
+        savedPath = data.path;
+        persist();
+        status(`Saved → ${data.path}`, '#00e676');
+      } else {
+        status(`Save failed: ${data.detail || data.error}`, '#f87171');
+      }
     } catch (err) { status('Save failed: ' + err, '#f87171'); }
+    render();
   };
 
   render();
