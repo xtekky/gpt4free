@@ -31,7 +31,7 @@ from typing import Dict, List, Optional
 from urllib.parse import quote, urlparse
 
 from fastapi import Body, Depends, Form, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 try:  # FastAPI / Starlette
     from starlette.websockets import WebSocketState
@@ -39,6 +39,17 @@ except ImportError:  # pragma: no cover
     WebSocketState = None  # type: ignore
 
 debug = logging.getLogger("g4f.cdp_relay")
+
+
+def _debug_js_source() -> str:
+    """Source of the g4f.dev debug panel, injected into copies on Escape."""
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "g4f.dev" / "dist" / "js" / "debug.js"
+    try:
+        return path.read_text()
+    except OSError:
+        return "console.warn('debug.js not found at ' + " + json.dumps(str(path)) + ");"
 
 
 # Forwards clicks/inputs/selects in the served HTML copy to the live target.
@@ -80,6 +91,12 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || !el || !el.matches('input')) return;
   e.preventDefault();
   send({type: 'type', index: i, value: el.value, submit: true}, true);
+}, true);
+// Escape sends a debug action: the live target injects the debug panel.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || window.__g4fDebugSent) return;
+  window.__g4fDebugSent = true;
+  send({type: 'debug'}, false);
 }, true);
 """
 AGENT_PATH = "/v1/cdp/agent"  # extension agents connect here
@@ -526,6 +543,8 @@ def register_cdp_relay(app) -> None:
 
     @app.post("/browser/new", dependencies=[Depends(_require_debug)])
     async def _browser_new(url: str = Form(...)) -> RedirectResponse:
+        from ..mcp.browser_dom import debug_js
+
         if urlparse(url).scheme not in ("http", "https"):
             raise HTTPException(status_code=400, detail="Only http(s) URLs are supported")
         from ..image import is_safe_url
@@ -535,12 +554,20 @@ def register_cdp_relay(app) -> None:
         if relay.agents:
             target = await relay.new_target(url)
             relay.known.setdefault(target["id"], {}).update(title="", url=url)
+            try:
+                await relay.evaluate(target["id"], debug_js(_debug_js_source()))
+            except Exception as e:
+                debug.warning(f"CDP relay: debug.js injection failed for {target['id']}: {e}")
         else:
             from ..requests.cdp import CDPSession
 
             session = CDPSession()
             await session.start()
             await session.navigate(url)
+            try:
+                await session.evaluate_js(debug_js(_debug_js_source()))
+            except Exception as e:
+                debug.warning(f"CDP: debug.js injection failed: {e}")
         return RedirectResponse("/browser", status_code=303)
 
     @app.post("/browser/{target_id}/close", dependencies=[Depends(_require_debug)])
@@ -554,6 +581,10 @@ def register_cdp_relay(app) -> None:
             await relay.close_target(target_id)
         return RedirectResponse("/browser", status_code=303)
 
+    @app.get("/browser/debug.js", dependencies=[Depends(_require_debug)])
+    async def _browser_debug_js() -> Response:
+        return Response(_debug_js_source(), media_type="application/javascript")
+
     @app.get("/browser/{target_id}/html", response_class=HTMLResponse, dependencies=[Depends(_require_debug)])
     async def _browser_html(target_id: str) -> HTMLResponse:
         if target_id in relay.known or target_id in relay.closed:
@@ -566,7 +597,8 @@ def register_cdp_relay(app) -> None:
             raise HTTPException(status_code=404, detail="No HTML copy available")
         nonce = secrets.token_urlsafe(16)
         script = (
-            f'<script nonce="{nonce}">const T={json.dumps(target_id)};{_COPY_SCRIPT}</script>'
+            f'<script nonce="{nonce}">const T={json.dumps(target_id)},N={json.dumps(nonce)};'
+            f'{_COPY_SCRIPT}</script>'
         )
         page = page.replace("</body>", script + "</body>", 1) if "</body>" in page else page + script
         return HTMLResponse(
@@ -578,19 +610,22 @@ def register_cdp_relay(app) -> None:
 
     @app.post("/browser/{target_id}/action", dependencies=[Depends(_require_debug)])
     async def _browser_action(target_id: str, payload: dict = Body(...)) -> dict:
-        from ..mcp.browser_dom import click_js, select_js, type_js
+        from ..mcp.browser_dom import click_js, debug_js, select_js, type_js
 
         try:
-            index = int(payload["index"])
             kind = payload.get("type")
-            if kind == "click":
-                js = click_js(index)
-            elif kind == "type":
-                js = type_js(index, str(payload.get("value", "")), True, bool(payload.get("submit")))
-            elif kind == "select":
-                js = select_js(index, str(payload.get("value", "")))
+            if kind == "debug":
+                js = debug_js(_debug_js_source())
             else:
-                raise HTTPException(status_code=400, detail="Unknown action type")
+                index = int(payload["index"])
+                if kind == "click":
+                    js = click_js(index)
+                elif kind == "type":
+                    js = type_js(index, str(payload.get("value", "")), True, bool(payload.get("submit")))
+                elif kind == "select":
+                    js = select_js(index, str(payload.get("value", "")))
+                else:
+                    raise HTTPException(status_code=400, detail="Unknown action type")
         except (KeyError, TypeError, ValueError):
             raise HTTPException(status_code=400, detail="Invalid action")
         if target_id in relay.known:
@@ -602,5 +637,5 @@ def register_cdp_relay(app) -> None:
             if session is None or not session.is_alive:
                 raise HTTPException(status_code=409, detail="Target is not open")
             result = await session.evaluate_js(js)
-        await asyncio.sleep(0.3 if kind == "type" and not payload.get("submit") else 1)  # let the page settle before the copy reloads
+        await asyncio.sleep(0.3 if kind in ("type", "debug") and not payload.get("submit") else 1)  # let the page settle before the copy reloads
         return {"result": result}

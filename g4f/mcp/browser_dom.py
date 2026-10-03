@@ -30,6 +30,11 @@ SNAPSHOT_JS = r"""
     else if (live.type === 'checkbox' || live.type === 'radio') el.toggleAttribute('checked', live.checked);
     else el.setAttribute('value', live.value);
   });
+  // Keep hidden textareas (height: 0, overflow: hidden) visible in the copy.
+  doc.querySelectorAll('textarea').forEach(el => {
+    el.style.height = '';
+    el.style.overflow = '';
+  });
   doc.querySelectorAll(%s).forEach(el => el.setAttribute('data-index', index++));
   const pageUrl = new URL(location.href);
   pageUrl.hash = '';
@@ -68,8 +73,9 @@ def type_js(index: int, text: str, clear: bool = True, submit: bool = False) -> 
       const text = %s, clear = %s, submit = %s;
       el.scrollIntoView({block: 'center'});
       el.focus();
+      const exec = (...args) => typeof document.execCommand === 'function' && document.execCommand(...args);
       if (clear) {
-        document.execCommand('selectAll', false, null);
+        exec('selectAll', false, null);
       } else if (el.isContentEditable) {
         const range = document.createRange();
         range.selectNodeContents(el);
@@ -77,11 +83,11 @@ def type_js(index: int, text: str, clear: bool = True, submit: bool = False) -> 
         const sel = getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
-      } else {
+      } else if (el.setSelectionRange) {
         el.setSelectionRange(el.value.length, el.value.length);
       }
       const current = () => el.isContentEditable ? el.innerText : el.value;
-      if (!document.execCommand('insertText', false, text)) {
+      if (!exec('insertText', false, text)) {
         if (el.isContentEditable) {
           // ProseMirror (chatgpt.com) handles text via beforeinput.
           el.dispatchEvent(new InputEvent('beforeinput', {bubbles: true, cancelable: true, data: text, inputType: 'insertText'}));
@@ -115,3 +121,13 @@ def select_js(index: int, value: str) -> str:
       el.dispatchEvent(new Event('change', {bubbles: true}));
       return {ok: true, value: el.value};
     })()""" % json.dumps(value)
+
+def debug_js(source: str) -> str:
+    """Inject a debug script (e.g. the g4f.dev debug panel) into the live target."""
+    return "(() => {" + """
+      if (window.g4fDebug) return {ok: true, already: true};
+      const s = document.createElement('script');
+      s.textContent = %s;
+      (document.head || document.documentElement).appendChild(s);
+      return {ok: true, injected: !!window.g4fDebug};
+    })()""" % json.dumps(source)
