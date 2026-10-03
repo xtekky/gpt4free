@@ -28,6 +28,8 @@ from ..providers.response import (
     Usage,
     ImageResponse,
     FinishReason,
+    Sources,
+    format_link,
 )
 from ..requests import (
     sse_stream,
@@ -115,6 +117,8 @@ def get_oss_headers(
 
 text_models = [
     "qwen3.7-plus",
+    'qwen3.8-max',
+    'qwen3.8-omni-flash'
     "qwen3.7-max",
     "qwen3.6-plus",
     "qwen3.6-max-preview",
@@ -141,6 +145,8 @@ text_models = [
 
 image_models = [
     "qwen3.7-plus",
+    'qwen3.8-max',
+    'qwen3.8-omni-flash'
     "qwen3.7-max",
     "qwen3.6-plus",
     "qwen3.6-27b",
@@ -162,6 +168,8 @@ image_models = [
 
 vision_models = [
     "qwen3.7-plus",
+    'qwen3.8-max',
+    'qwen3.8-omni-flash'
     "qwen3.6-plus",
     "qwen3.6-27b",
     "qwen-latest-series-invite-beta-v16",
@@ -183,6 +191,8 @@ vision_models = [
 
 models = [
     "qwen3.7-plus",
+    'qwen3.8-max',
+    'qwen3.8-omni-flash'
     "qwen3.7-max",
     "qwen3.6-plus",
     "qwen3.6-max-preview",
@@ -275,7 +285,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
-            _token = kwargs.get("token")
+            _token = kwargs.get("token") or kwargs.get("api_key")
             headers = cls._get_headers(_token) if _token else {}
             response = curl_cffi.get(f"{cls.url}/api/models", headers=headers)
             if response.ok:
@@ -415,7 +425,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 "file_class": file_class,
                 "uploadTaskId": str(uuid.uuid4()),
             }
-            debug.log(f"Uploading file: {file_url}")
+            debug.log(f"Uploaded file: {file_name}")
             ImagesCache[image_hash] = file
             files.append(file)
         return files
@@ -720,7 +730,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     cls._midtoken = match.group(1)
                     cls._midtoken_uses = 1
                     debug.log(
-                        f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}. Midtoken: {cls._midtoken}"
+                        f"[Qwen] INFO: New midtoken obtained. Use count: {cls._midtoken_uses}."
                     )
             else:
                 cls._midtoken_uses += 1
@@ -736,16 +746,17 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
-        if not (api_key or kwargs.get("token")):
+        token = kwargs.get("token") or api_key
+        if not token:
             await cls._ensure_auth(kwargs.get("proxy"))
         async with StreamSession(
-            headers=cls._get_headers(kwargs.get("token"))
+            headers=cls._get_headers(token)
         ) as session:
             chat_payload = {
                 "chatId": "",
                 "models": [cls.default_model],
                 "project_id": "",
-                "chat_mode": "normal" if (api_key or kwargs.get("token")) else "guest",
+                "chat_mode": "normal" if token else "guest",
                 "chat_type": "t2t",
                 "timestamp": int(time() * 1000),
             }
@@ -757,6 +768,219 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             ) as resp:
                 await cls.raise_for_status(resp)
                 return await resp.json()
+
+    @staticmethod
+    def _image_urls(value) -> list[str]:
+        """Read the image payloads used by Qwen's image and tool phases."""
+        if isinstance(value, str):
+            if value.startswith(("https://", "http://", "data:image/")):
+                return [value]
+            try:
+                value = json.loads(value)
+            except (ValueError, TypeError):
+                return []
+        if isinstance(value, dict):
+            for key in ("image", "url", "image_url", "file_path"):
+                if isinstance(value.get(key), str) and value[key]:
+                    return [value[key]]
+            for key in ("images", "results", "data"):
+                if key in value:
+                    return Qwen._image_urls(value[key])
+        if isinstance(value, list):
+            return [url for item in value for url in Qwen._image_urls(item)]
+        return []
+
+    @classmethod
+    def _raise_api_error(cls, error):
+        if isinstance(error, dict):
+            code = str(error.get("code") or error.get("errorCode") or "QwenError")
+            details = error.get("details") or error.get("message") or str(error)
+            message = f"{code}: {details}"
+        else:
+            code = "QwenError"
+            message = str(error)
+        if code.lower() in ("unauthorized", "401"):
+            raise MissingAuthError(message)
+        if code in ("RateLimited", "ParallelLimited", "quotaLimited", "429", "402") or re.search(
+            r"\b(?:RateLimited|ParallelLimited|quotaLimited)\b", message
+        ):
+            raise RateLimitError(message)
+        if any(marker in message for marker in ("FAIL_SYS_USER_VALIDATE", "RGV587_ERROR", "/punish")):
+            # Only validation failures enter the existing browser recovery flow.
+            raise RuntimeError(message)
+        raise ResponseError(message)
+
+    @classmethod
+    async def _response_chunks(cls, response):
+        if response.headers.get("content-type", "").startswith("application/json"):
+            payload = await response.json()
+            if not isinstance(payload, dict):
+                raise ResponseError(f"Unexpected Qwen response: {payload}")
+            data = payload.get("data")
+            if payload.get("success") is False or (
+                isinstance(data, dict) and data.get("code")
+            ):
+                error = payload.get("error") or data or payload
+                cls._raise_api_error(error)
+            chunk = {**payload, **data} if isinstance(data, dict) else payload
+            if not any(key in chunk for key in ("choices", "error", "content")):
+                raise ResponseError(f"Unexpected Qwen response: {payload}")
+            if "choices" not in chunk and "content" in chunk:
+                chunk = {**chunk, "choices": [{"message": chunk}]}
+            yield chunk
+        else:
+            async for chunk in sse_stream(response):
+                yield chunk
+
+    @staticmethod
+    def _format_citations(text: str, citations: dict) -> str:
+        def replace(match):
+            url = citations.get(int(match.group(1)))
+            return format_link(url, match.group(1)) if url else match.group(0)
+
+        return re.sub(r"\[\[(\d+)\]\]", replace, text)
+
+    @classmethod
+    async def _read_response(
+        cls, response, conversation: JsonConversation, prompt: str
+    ) -> AsyncResult:
+        usage = {}
+        sources = {}
+        citations = {}
+        answer_buffer = ""
+        images = set()
+        summary = ""
+        thinking_started = False
+        finish_reason = "stop"
+        async for chunk in cls._response_chunks(response):
+            if not isinstance(chunk, dict):
+                continue
+            error = chunk.get("error")
+            if error:
+                cls._raise_api_error(error)
+            if isinstance(chunk.get("usage"), dict) and chunk["usage"]:
+                usage.update(chunk["usage"])
+            created = chunk.get("response.created") or {}
+            info = chunk.get("response.info") or {}
+            response_id = (
+                created.get("response_id")
+                or chunk.get("response_id")
+                or info.get("response_id")
+            )
+            if response_id and response_id != conversation.parent_id:
+                conversation.parent_id = response_id
+                if created.get("chat_id"):
+                    conversation.chat_id = created["chat_id"]
+                yield conversation
+            if info.get("action") == "skip_think":
+                thinking_started = False
+
+            source_lists = [chunk.get("sources")]
+            choices = chunk.get("choices") or []
+            choice = choices[0] if choices and isinstance(choices[0], dict) else {}
+            delta = choice.get("delta") or choice.get("message") or {}
+            if not isinstance(delta, dict):
+                delta = {}
+            phase = delta.get("phase")
+            status = delta.get("status")
+            content = delta.get("content")
+            extra = delta.get("extra") or {}
+            if not isinstance(extra, dict):
+                extra = {}
+            source_lists.append(extra.get("web_search_info"))
+            source_lists.append(extra.get("web_extract_info"))
+            tool_result = extra.get("tool_result")
+            if isinstance(tool_result, dict):
+                docs = tool_result.get("docs")
+                used_id = tool_result.get("used_id")
+                if isinstance(docs, list):
+                    source_lists.append(docs)
+                    if isinstance(used_id, int):
+                        # used_id is the next reference number after this batch.
+                        for index, doc in enumerate(docs, used_id - len(docs)):
+                            if isinstance(doc, dict) and doc.get("url"):
+                                citations[index] = doc["url"]
+            for source_list in source_lists:
+                if isinstance(source_list, list):
+                    for source in source_list:
+                        if isinstance(source, dict):
+                            url = source.get("url") or source.get("link")
+                            if url:
+                                sources[url] = dict(source)
+
+            if status == "error":
+                raise ResponseError(f"Qwen {phase}: {extra.get('error') or content or extra}")
+            if phase == "KeepAlive":
+                continue
+            if phase == "thinking_summary":
+                # These fields are cumulative snapshots, repeated in usage-only events.
+                thought = extra.get("summary_thought") or extra.get("summary_content") or {}
+                value = thought.get("content", []) if isinstance(thought, dict) else thought
+                text = "\n".join(value) if isinstance(value, list) else value
+                if isinstance(text, str) and text and text != summary:
+                    token = text[len(summary):] if text.startswith(summary) else text
+                    summary = text
+                    yield Reasoning(token)
+                if isinstance(content, str) and content:
+                    yield Reasoning(content)
+                thinking_started = status != "finished"
+            else:
+                if phase:
+                    summary = ""
+                    thinking_started = phase in (
+                        "think", "DeepThinking", "image_gen_think", "ResearchPlanning"
+                    )
+                image_phase = phase in (
+                    "image_gen", "image_edit", "image", "image_gen_tool",
+                    "image_edit_tool", "generate_image"
+                )
+                if phase == "tool_call":
+                    function_call = delta.get("function_call") or {}
+                    image_phase = function_call.get("name") in (
+                        "image_gen", "image_edit", "generate_image"
+                    )
+                if image_phase:
+                    # Prefer the display URL over another URL for the same image.
+                    urls = cls._image_urls(extra.get("image_list"))
+                    if not urls:
+                        urls = cls._image_urls(extra.get("tool_result")) or cls._image_urls(content)
+                    for index, url in enumerate(urls):
+                        if not url.startswith(("https://", "http://", "data:image/")):
+                            path = quote(url.replace("\\", "/").lstrip("/"), safe="/")
+                            urls[index] = f"{cls.url}/api/v2/chat/{conversation.chat_id}/{path}"
+                    urls = list(dict.fromkeys(url for url in urls if url not in images))
+                    if urls:
+                        images.update(urls)
+                        yield ImageResponse(urls, prompt, extra)
+                elif isinstance(content, str) and content:
+                    if thinking_started:
+                        yield Reasoning(content)
+                    elif (
+                        phase in (None, "answer", "ReportGeneration", "slides")
+                        and delta.get("role") != "function"
+                    ):
+                        answer_buffer += content
+                        # A reference can be split between SSE chunks (e.g. "[[3" / "7]]").
+                        partial = re.search(r"\[(?:\[\d*\]?)?$", answer_buffer)
+                        boundary = partial.start() if partial else len(answer_buffer)
+                        text, answer_buffer = answer_buffer[:boundary], answer_buffer[boundary:]
+                        if text:
+                            yield cls._format_citations(text, citations)
+                if thinking_started and status == "finished":
+                    thinking_started = False
+
+            if choice.get("finish_reason"):
+                finish_reason = choice["finish_reason"]
+            # A finished tool/image/thinking phase does not finish the whole response.
+            if chunk.get("done") is True or "response.stopped" in chunk:
+                break
+        if answer_buffer:
+            yield cls._format_citations(answer_buffer, citations)
+        if sources:
+            yield Sources(list(sources.values()))
+        if usage:
+            yield Usage.from_dict(usage)
+        yield FinishReason(finish_reason)
 
     @classmethod
     async def create_async_generator(
@@ -794,25 +1018,32 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         """
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
-        enable_thinking = reasoning_effort and reasoning_effort.lower() != "none"
-        thinking_mode: Literal["Auto", "Thinking", "Fast"] = kwargs.get(
-            "thinking_mode", "Auto" if enable_thinking else "Fast"
+        enable_thinking = bool(reasoning_effort and reasoning_effort.lower() != "none")
+        thinking_mode = kwargs.get("thinking_mode") or (
+            "Auto" if enable_thinking else "Fast"
         )
+        modes = {"auto": "Auto", "thinking": "Thinking", "fast": "Fast"}
+        if not isinstance(thinking_mode, str) or thinking_mode.strip().lower() not in modes:
+            raise ValueError("thinking_mode must be Auto, Thinking, or Fast")
+        thinking_mode = modes[thinking_mode.strip().lower()]
+        enable_thinking = thinking_mode != "Fast"
         auto_thinking = thinking_mode == "Auto"
         timeout = kwargs.get("timeout") or 5 * 60
-        token = kwargs.get("token")
+        token = kwargs.get("token") or kwargs.get("api_key")
         if not token:
             await cls._ensure_auth(proxy)
         async with StreamSession(headers=cls._get_headers(token)) as session:
             if token:
-                try:
-                    async with session.get(
-                        "https://chat.qwen.ai/api/v1/auths/", proxy=proxy
-                    ) as user_info_res:
-                        await cls.raise_for_status(user_info_res)
-                        debug.log(await user_info_res.json())
-                except Exception as e:
-                    debug.error(e)
+                async with session.get(
+                    "https://chat.qwen.ai/api/v1/auths/", proxy=proxy
+                ) as user_info_res:
+                    await cls.raise_for_status(user_info_res)
+                    user_info = await user_info_res.json()
+                    if user_info.get("success") is False or user_info.get("error"):
+                        cls._raise_api_error(
+                            user_info.get("error") or user_info.get("data") or user_info
+                        )
+                    debug.log("[Qwen] Authenticated session verified.")
             for attempt in range(5):
                 try:
                     req_headers = await cls._get_req_headers(session, proxy=proxy)
@@ -836,8 +1067,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         ) as resp:
                             await cls.raise_for_status(resp)
                             data = await resp.json()
-                            if not (data.get("success") and data["data"].get("id")):
-                                raise RuntimeError(f"Failed to create chat: {data}")
+                            chat_data = data.get("data") or {}
+                            if not (data.get("success") and chat_data.get("id")):
+                                cls._raise_api_error(data.get("error") or chat_data or data)
                         conversation = JsonConversation(
                             chat_id=data["data"]["id"],
                             cookies={key: value for key, value in resp.cookies.items()},
@@ -867,6 +1099,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                             "thinking_budget": 81920,
                         }
                     )
+                    if "auto_search" in kwargs or chat_type == "search":
+                        feature_config["auto_search"] = kwargs.get("auto_search", True)
 
                     msg_payload = {
                         "stream": stream,
@@ -913,58 +1147,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         cookies=conversation.cookies,
                     ) as resp:
                         await cls.raise_for_status(resp)
-                        if resp.headers.get("content-type", "").startswith(
-                            "application/json"
-                        ):
-                            resp_json = await resp.json()
-                            if resp_json.get("success") is False or resp_json.get(
-                                "data", {}
-                            ).get("code"):
-                                raise RuntimeError(f"Response: {resp_json}")
-                            else:
-                                # cant stream resp after `resp_json = await resp.json()`, so it stick
-                                raise RuntimeError(f"Response: {resp_json}")
-                        # args["cookies"] = merge_cookies(args.get("cookies"), resp)
-                        thinking_started = False
-                        usage = None
-                        async for chunk in sse_stream(resp):
-                            try:
-                                if "response.created" in chunk:
-                                    conversation.parent_id = chunk.get(
-                                        "response.created", {}
-                                    ).get("response_id")
-                                    yield conversation
-                                error = chunk.get("error", {})
-                                if error:
-                                    raise ResponseError(
-                                        f'{error["code"]}: {error["details"]}'
-                                    )
-                                usage = chunk.get("usage", usage)
-                                choices = chunk.get("choices", [])
-                                if not choices:
-                                    continue
-                                delta = choices[0].get("delta", {})
-                                phase = delta.get("phase")
-                                content = delta.get("content")
-                                status = delta.get("status")
-                                extra = delta.get("extra", {})
-                                if phase == "think" and not thinking_started:
-                                    thinking_started = True
-                                elif phase == "answer" and thinking_started:
-                                    thinking_started = False
-                                elif phase == "image_gen" and status == "typing":
-                                    yield ImageResponse(content, prompt, extra)
-                                    continue
-                                elif phase == "image_gen" and status == "finished":
-                                    yield FinishReason("stop")
-                                if content:
-                                    yield Reasoning(
-                                        content
-                                    ) if thinking_started else content
-                            except (json.JSONDecodeError, KeyError, IndexError):
-                                continue
-                        if usage:
-                            yield Usage.from_dict(usage)
+                        async for chunk in cls._read_response(resp, conversation, prompt):
+                            yield chunk
                         return
 
                 except (aiohttp.ClientResponseError, RuntimeError) as e:
@@ -973,14 +1157,9 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         isinstance(e, aiohttp.ClientResponseError) and e.status == 429
                     ) or ("RateLimited" in message)
                     if is_rate_limit:
-                        debug.log(
-                            f"[Qwen] WARNING: Rate limit detected (attempt {attempt + 1}/5). Invalidating current midtoken."
-                        )
-                        cls._midtoken = None
-                        cls._midtoken_uses = 0
-                        conversation = None
-                        await asyncio.sleep(2)
-                        continue
+                        # A quota/concurrency rejection is not a fingerprint error.
+                        # Preserve the server's reason instead of replaying uploads/chats.
+                        raise RateLimitError(message) from e
                     elif (
                         "FAIL_SYS_USER_VALIDATE" in message
                         or "RGV587_ERROR" in message
@@ -999,7 +1178,6 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                         continue
                     else:
                         raise e
-            raise RateLimitError(
-                "The Qwen provider reached the request limit after 5 attempts."
+            raise CloudflareError(
+                "Qwen browser validation failed after 5 recovery attempts."
             )
-        raise RateLimitError("The Qwen provider reached the limit Cloudflare.")

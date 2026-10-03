@@ -1,0 +1,754 @@
+[
+  {
+    "response.created": {
+      "chat_id": "chat_id",
+      "parent_id": "parent_id",
+      "response_id": "response_id",
+      "response_index": "0"
+    }
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "I am creating a simple image"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I will generate a visual representation featuring a blue circle against a white backdrop. This approach directly addresses the user's request for a basic graphic element. I intend to produce this result using an appropriate generation method. The final output will be a clear and straightforward depiction of the specified shape."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 50,
+      "characters": 0,
+      "total_tokens": 1611,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 48,
+        "text_tokens": 50
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "I am creating a simple image"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I will generate a visual representation featuring a blue circle against a white backdrop. This approach directly addresses the user's request for a basic graphic element. I intend to produce this result using an appropriate generation method. The final output will be a clear and straightforward depiction of the specified shape."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": "{\"prompt\": \"A simple"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": "{\"prompt\": \"A simple blue circle on a"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": "{\"prompt\": \"A simple blue circle on a white background"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": "{\"prompt\": \"A simple blue circle on a white background\""
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": "{\"prompt\": \"A simple blue circle on a white background\"}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_gen",
+            "arguments": "{\"prompt\": \"A simple blue circle on a white background\"}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1561,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1631,
+      "input_tokens_details": {
+        "text_tokens": 1561
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 57,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062691
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "function",
+          "content": "",
+          "phase": "image_gen_tool",
+          "status": "finished",
+          "name": "image_gen",
+          "extra": {
+            "function_id": "function_id",
+            "tool_result": [
+              {
+                "image": "https://example.com/original.png"
+              }
+            ],
+            "image_list": [
+              {
+                "image": "https://example.com/display.png"
+              }
+            ],
+            "display_position": "answer"
+          },
+          "function_id": "function_id"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {},
+    "timestamp": 1791062695
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Confirming image generation status"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I have successfully created and displayed the visual content as requested. I will now provide a straightforward confirmation to the user that the task is complete. It is important to avoid including any direct links or markdown syntax in my response. This ensures the interaction remains clean and focused on the successful outcome."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 42,
+      "characters": 0,
+      "total_tokens": 1835,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 42
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "I",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 42,
+      "characters": 0,
+      "total_tokens": 1835,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 42
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " have",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 43,
+      "characters": 0,
+      "total_tokens": 1836,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 43
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " generated the image of",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 47,
+      "characters": 0,
+      "total_tokens": 1840,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 47
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " a simple",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 49,
+      "characters": 0,
+      "total_tokens": 1842,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 49
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " blue circle on a",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 53,
+      "characters": 0,
+      "total_tokens": 1846,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 53
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " white background for you",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 57,
+      "characters": 0,
+      "total_tokens": 1850,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 57
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": ". Let me know",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 61,
+      "characters": 0,
+      "total_tokens": 1854,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 61
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " if you",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 63,
+      "characters": 0,
+      "total_tokens": 1856,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 63
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " need any adjustments or",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 67,
+      "characters": 0,
+      "total_tokens": 1860,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 67
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " anything else!",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1863,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1863,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1793,
+      "output_tokens": 70,
+      "characters": 0,
+      "total_tokens": 1863,
+      "input_tokens_details": {
+        "text_tokens": 1793
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 36,
+        "text_tokens": 70
+      }
+    },
+    "timestamp": 1791062697
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "content": "",
+          "role": "assistant",
+          "status": "finished",
+          "phase": "answer"
+        }
+      }
+    ],
+    "response_id": "response_id"
+  }
+]
