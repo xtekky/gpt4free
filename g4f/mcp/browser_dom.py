@@ -240,11 +240,61 @@ def selector_select_js(selector: str, value: str) -> str:
 
 
 def selector_scrape_js(selector: str, attribute: str = "") -> str:
-    """Read text (or an attribute) from the first element matching *selector*."""
+    """Read an attribute, text or (default) full Markdown from the first
+    element matching *selector*. Without an attribute the element's HTML is
+    converted to Markdown (headings, links, images, lists, code, tables)."""
     return _selector_js(selector, """
       const attr = %s;
-      const value = attr ? (el.getAttribute(attr) ?? (attr === 'href' && el.href) || (attr === 'src' && el.currentSrc) || '') : (el.value ?? el.innerText ?? el.textContent ?? '');
-      return {ok: true, value: String(value).trim(), tag: el.tagName.toLowerCase()};
+      if (attr) {
+        // Parentheses are required: mixing ?? with || in one expression is a
+        // JavaScript SyntaxError ("Unexpected token '||'").
+        const value = el.getAttribute(attr) ?? ((attr === 'href' && el.href) || (attr === 'src' && el.currentSrc) || '');
+        return {ok: true, value: String(value).trim(), tag: el.tagName.toLowerCase()};
+      }
+      // Minimal HTML → Markdown converter (DOM walker, no dependencies).
+      const SKIP = /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|IFRAME|SVG|CANVAS)$/;
+      const BLOCK = /^(P|DIV|SECTION|ARTICLE|HEADER|FOOTER|MAIN|NAV|ASIDE|FIGURE|FIGCAPTION|DL|DT|DD|FORM|FIELDSET|ADDRESS|DETAILS|SUMMARY)$/;
+      const md = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) return node.textContent.replace(/\\s+/g, ' ');
+        if (node.nodeType !== Node.ELEMENT_NODE) return '';
+        const tag = node.tagName;
+        if (SKIP.test(tag)) return '';
+        const inner = [...node.childNodes].map(md).join('');
+        const text = inner.trim();
+        switch (tag) {
+          case 'BR': return '\\n';
+          case 'HR': return '\\n\\n---\\n\\n';
+          case 'H1': case 'H2': case 'H3': case 'H4': case 'H5': case 'H6':
+            return '\\n\\n' + '#'.repeat(+tag[1]) + ' ' + text + '\\n\\n';
+          case 'STRONG': case 'B': return text ? `**${text}**` : '';
+          case 'EM': case 'I': return text ? `*${text}*` : '';
+          case 'DEL': case 'S': return text ? `~~${text}~~` : '';
+          case 'CODE': return node.closest('pre') || !text ? inner : '`' + text + '`';
+          case 'PRE': return '\\n\\n```\\n' + node.textContent.replace(/\\n+$/, '') + '\\n```\\n\\n';
+          case 'A': return text ? `[${text}](${node.href || node.getAttribute('href') || ''})` : '';
+          case 'IMG': return `![${node.getAttribute('alt') || ''}](${node.src || node.getAttribute('src') || ''})`;
+          case 'UL': case 'OL': {
+            const items = [...node.children].filter((c) => c.tagName === 'LI').map((li, i) => {
+              const body = [...li.childNodes].map(md).join('').trim().replace(/\\n{2,}/g, '\\n');
+              return (tag === 'OL' ? (i + 1) + '. ' : '- ') + body;
+            });
+            return items.length ? '\\n\\n' + items.join('\\n') + '\\n\\n' : '';
+          }
+          case 'BLOCKQUOTE': return text ? '\\n\\n' + text.split('\\n').map((l) => '> ' + l).join('\\n') + '\\n\\n' : '';
+          case 'TABLE': {
+            const rows = [...node.querySelectorAll('tr')].map((tr) =>
+              [...tr.children].map((c) => (c.textContent || '').trim().replace(/\\|/g, '\\\\|').replace(/\\n/g, ' ')).join(' | '));
+            if (!rows.length) return '';
+            const rule = rows[0].split('|').map(() => '---').join(' | ');
+            return '\\n\\n' + [rows[0], rule, ...rows.slice(1)].join('\\n') + '\\n\\n';
+          }
+          case 'INPUT': case 'TEXTAREA': case 'SELECT':
+            return node.value ? '\\n\\n' + node.value + '\\n\\n' : '';
+          default: return BLOCK.test(tag) ? '\\n\\n' + text + '\\n\\n' : inner;
+        }
+      };
+      const markdown = md(el).replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();
+      return {ok: true, value: markdown, tag: el.tagName.toLowerCase()};
     """ % json.dumps(attribute or ""))
 
 
