@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import os
@@ -11,7 +12,7 @@ import uuid
 from typing import AsyncIterator
 
 from ...typing import AsyncResult, Messages
-from ...requests import StreamSession
+from ...requests import StreamSession, has_cdp
 from ...requests.raise_for_status import raise_for_status
 from ...errors import MissingAuthError, NoValidHarFileError
 from ...cookies import get_cookies_dir
@@ -58,9 +59,13 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
     token) are read from a HAR capture of chatgpt.com in the cookies dir
     (``~/.g4f/cookies/chatgpt.com.har``): log in on chatgpt.com, open the
     browser DevTools network tab and "Save all as HAR with content" while
-    the chat is open. The proof-of-work and requirements tokens are minted
-    fresh for every request; only the long-lived session credentials come
-    from the HAR. Media upload and image generation are not implemented.
+    the chat is open. When no valid HAR capture is available, the provider
+    opens chatgpt.com in a real browser via CDP instead, waits for the
+    login and captures the same credentials from the browser's own
+    conversation request. The proof-of-work and requirements tokens are
+    minted fresh for every request; only the long-lived session
+    credentials come from the capture. Media upload and image generation
+    are not implemented.
     """
 
     label = "OpenAI ChatGPT"
@@ -125,14 +130,29 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
-        """Yield the auth state read from the HAR capture (see ``_read_har``)."""
+        """Yield the auth state from the HAR capture or a live browser session.
+
+        Without a valid HAR capture (see ``_read_har``), a browser is opened
+        via CDP and the login is awaited (see ``_read_cdp``).
+        """
         try:
             if cls._auth_state is None or time.time() - cls._auth_state_loaded_at > cls._AUTH_STATE_TTL:
                 cls._auth_state = cls._read_har()
                 cls._auth_state_loaded_at = time.time()
         except NoValidHarFileError as e:
             yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-            raise MissingAuthError(f"OpenaiAccount: {e}") from e
+            if not has_cdp:
+                raise MissingAuthError(
+                    f"OpenaiAccount: {e} (browser automation unavailable — install aiohttp)"
+                ) from e
+            debug.log(f"OpenaiAccount: {e} — waiting for login in a CDP browser")
+            try:
+                cls._auth_state = await cls._read_cdp(proxy)
+                cls._auth_state_loaded_at = time.time()
+            except MissingAuthError:
+                raise
+            except Exception as e:
+                raise MissingAuthError(f"OpenaiAccount: browser login failed: {e}") from e
         yield cls._auth_state
 
     @classmethod
@@ -508,10 +528,105 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
                 f" — save a HAR file from a logged-in browser to {get_cookies_dir()}"
             )
         _, headers, cookies = captured
+        return cls._create_auth_result(headers, cookies)
+
+    @classmethod
+    async def _read_cdp(cls, proxy: str = None) -> AuthResult:
+        """Capture the session credentials from a live browser via CDP.
+
+        Opens chatgpt.com in a visible browser window (a login the user has
+        to complete cannot happen headless), waits for the profile button
+        that only exists for authenticated sessions, sends a seed message
+        and intercepts the browser's own "f/conversation" request to copy
+        its authorization header and cookies. Intercepted requests are
+        continued, so the chat the user sees completes normally.
+        """
+        from ...requests.cdp import CDPSession
+
+        async with CDPSession(proxy=proxy, headless=False) as session:
+            await session.call("Network.enable")
+            await session.call(
+                "Fetch.enable",
+                patterns=[{"urlPattern": "*backend-api/f/conversation*", "requestStage": "Request"}],
+            )
+            await session.navigate(cls.url)
+            # Wait for the login (up to 5 minutes, like the nodriver flow):
+            # the profile button only exists for authenticated sessions.
+            deadline = time.time() + 300
+            while not await session.evaluate_js(
+                "!!document.querySelector('[data-testid=\"accounts-profile-button\"]')"
+            ):
+                if time.time() > deadline:
+                    raise MissingAuthError(
+                        "OpenaiAccount: login was not completed in the browser window in time"
+                    )
+                await asyncio.sleep(2)
+            debug.log("OpenaiAccount: Login detected — waiting for the composer")
+            deadline = time.time() + 30
+            reloaded = False
+            while not await session.evaluate_js("!!document.querySelector('#prompt-textarea')"):
+                if time.time() > deadline:
+                    if reloaded:
+                        raise MissingAuthError("OpenaiAccount: chat composer not found in the browser")
+                    # The SPA can get stuck after the login redirect — reload once.
+                    reloaded = True
+                    deadline = time.time() + 60
+                    debug.log("OpenaiAccount: composer not found — reloading the page")
+                    await session.navigate(cls.url)
+                await asyncio.sleep(1)
+            # Trigger a chat so the browser mints the authenticated request.
+            await session.evaluate_js("""
+                (() => {
+                    const editor = document.querySelector('#prompt-textarea');
+                    editor.focus();
+                    document.execCommand('insertText', false, 'Hello');
+                })()
+            """)
+            await asyncio.sleep(1)
+            await session.evaluate_js("""
+                (() => {
+                    const button = document.querySelector('[data-testid="send-button"], [data-composer-submit]');
+                    if (button) button.click();
+                })()
+            """)
+            # Capture the browser's own conversation request (up to 2 minutes).
+            # A queue (not wait_for_event) so requests paused while another
+            # one is processed are never lost.
+            queue: asyncio.Queue = asyncio.Queue()
+            session.add_event_handler("Fetch.requestPaused", queue)
+            headers = None
+            deadline = time.time() + 120
+            while headers is None:
+                try:
+                    paused = await asyncio.wait_for(queue.get(), timeout=30)
+                except asyncio.TimeoutError:
+                    if time.time() > deadline:
+                        raise MissingAuthError(
+                            "OpenaiAccount: no conversation request captured in the browser"
+                        )
+                    continue
+                request = paused.get("request") or {}
+                found = {
+                    key.lower(): value for key, value in (request.get("headers") or {}).items()
+                    if not key.startswith(":")
+                }
+                # The sentinel tokens are single-use, but only the long-lived
+                # credentials are captured — let the browser request pass.
+                await session.call("Fetch.continueRequest", requestId=paused.get("requestId"))
+                if "authorization" in found:
+                    headers = found
+            # Resume requests paused while no one was listening anymore.
+            await session.call("Fetch.disable")
+            cookies = await session.get_cookies([f"{cls.url}/"])
+        return cls._create_auth_result(headers, cookies)
+
+    @classmethod
+    def _create_auth_result(cls, headers: dict, cookies: dict) -> AuthResult:
+        """Build the auth state from captured request headers and cookies."""
         access_token = headers["authorization"].split(" ")[-1]
         expires = cls._get_expires(access_token)
         if expires is not None and time.time() > expires:
-            raise NoValidHarFileError("access token in HAR file is expired — re-capture it")
+            raise NoValidHarFileError("access token is expired — re-capture it")
         proof_token = None
         raw = headers.get("openai-sentinel-proof-token")
         if raw:
@@ -520,7 +635,7 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
                     base64.b64decode(raw.split("gAAAAAB", 1)[-1].encode()).decode()
                 )
             except (ValueError, IndexError):
-                debug.log("OpenaiAccount: Could not decode proof token from HAR")
+                debug.log("OpenaiAccount: Could not decode proof token from capture")
         auth_headers = {name: headers[name] for name in cls._HAR_HEADERS_WHITELIST if name in headers}
         return AuthResult(
             api_key=access_token,

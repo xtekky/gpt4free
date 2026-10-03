@@ -255,17 +255,32 @@ def _terminate_shared_browser():
     _shared_browser_adopted = False
 
 
+def _close_shared_browser_idle():
+    """Close the shared browser gracefully after the idle timeout.
+
+    Only the CDP ``Browser.close`` command is sent — the browser shuts
+    itself down cleanly (no process kill, no profile lock leftovers,
+    no crash-restore prompts on the next launch). Browsers adopted from
+    other processes (not started by g4f) are left untouched.
+    """
+    global _shared_browser_process, _shared_browser_port, _shared_browser_adopted
+    if _shared_browser_port is not None and not _shared_browser_adopted:
+        _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
+    _shared_browser_process = None
+    _shared_browser_port = None
+    _shared_browser_adopted = False
+
 def _schedule_idle_shutdown():
     """Schedule browser termination after idle timeout (call under lock)."""
     global _shared_browser_idle_timer
     if _shared_browser_idle_timer:
         _shared_browser_idle_timer.cancel()
     _shared_browser_idle_timer = threading.Timer(
-        _SHARED_BROWSER_IDLE_TIMEOUT, _terminate_shared_browser
+        _SHARED_BROWSER_IDLE_TIMEOUT, _close_shared_browser_idle
     )
     _shared_browser_idle_timer.daemon = True
     _shared_browser_idle_timer.start()
-    debug.log(f"CDP: Browser idle shutdown scheduled in {_SHARED_BROWSER_IDLE_TIMEOUT}s")
+    debug.log(f"CDP: Browser.close scheduled in {_SHARED_BROWSER_IDLE_TIMEOUT}s (idle)")
 
 
 def _cancel_idle_shutdown():
