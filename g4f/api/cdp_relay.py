@@ -184,13 +184,48 @@ _STUDIO_SCRIPT = r"""
   panel.id = 'pa-studio';
   document.body.appendChild(panel);
 
+  // --- drag the panel by its header (position survives copy reloads) --------
+  let panelPos = null;
+  try { panelPos = JSON.parse(sessionStorage.getItem(storeKey + ':pos') || 'null'); } catch {}
+  const applyPos = () => {
+    if (!panelPos) return;
+    panel.style.left = panelPos.x + 'px';
+    panel.style.top = panelPos.y + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  };
+  applyPos();
+  panel.addEventListener('pointerdown', e => {
+    if (pickMode || !e.target.closest || !e.target.closest('#pa-studio h3')) return;
+    const r = panel.getBoundingClientRect();
+    const offX = e.clientX - r.left, offY = e.clientY - r.top;
+    panelPos = {x: r.left, y: r.top};
+    applyPos();
+    const move = ev => {
+      panelPos = {
+        x: Math.max(0, Math.min(ev.clientX - offX, innerWidth - 40)),
+        y: Math.max(0, Math.min(ev.clientY - offY, innerHeight - 30)),
+      };
+      applyPos();
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move, true);
+      document.removeEventListener('pointerup', up, true);
+      try { sessionStorage.setItem(storeKey + ':pos', JSON.stringify(panelPos)); } catch {}
+    };
+    document.addEventListener('pointermove', move, true);
+    document.addEventListener('pointerup', up, true);
+    e.preventDefault();
+  });
+
   const render = () => {
     panel.innerHTML = `
       <style>
         #pa-studio{position:fixed;right:12px;bottom:12px;width:360px;max-height:70vh;overflow:auto;
           background:#111827;color:#e5e7eb;font:12px/1.5 monospace;border:1px solid #374151;
           border-radius:8px;padding:10px;z-index:2147483647;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-        #pa-studio h3{margin:0 0 8px;font-size:13px;color:#00e676}
+        #pa-studio h3{margin:0 0 8px;font-size:13px;color:#00e676;cursor:move;user-select:none;-webkit-user-select:none;touch-action:none}
+        #pa-studio h3:active{cursor:grabbing}
         #pa-studio button{cursor:pointer;background:#1f2937;color:#e5e7eb;border:1px solid #374151;
           border-radius:4px;padding:3px 8px;font:11px monospace;margin:1px}
         #pa-studio button:hover{background:#374151}
@@ -915,6 +950,8 @@ def register_cdp_relay(app) -> None:
                 cell = f'<a href="{link}">html copy</a>' if has_copy else "-"
                 if label == "open":
                     cell += (
+                        f' <form method=post action="/browser/{quote(tid, safe="")}/debug" '
+                        'style=display:inline><button title="inject / show the debug panel">debug</button></form>'
                         f' <form method=post action="/browser/{quote(tid, safe="")}/close" '
                         'style=display:inline><button>close</button></form>'
                     )
@@ -948,7 +985,10 @@ def register_cdp_relay(app) -> None:
             raise HTTPException(status_code=400, detail="Only http(s) URLs are supported")
         from ..image import is_safe_url
 
-        if not await asyncio.get_running_loop().run_in_executor(None, is_safe_url, url):
+        # Debug-only endpoint: allow local and network URLs (e.g. localhost dev servers).
+        if not await asyncio.get_running_loop().run_in_executor(
+            None, is_safe_url, url, True
+        ):
             raise HTTPException(status_code=400, detail="Local and network URLs are not allowed")
         if relay.agents:
             target = await relay.new_target(url)
@@ -978,6 +1018,28 @@ def register_cdp_relay(app) -> None:
             await session.close()
         else:
             await relay.close_target(target_id)
+        return RedirectResponse("/browser", status_code=303)
+
+    @app.post("/browser/{target_id}/debug", dependencies=[Depends(_require_debug)])
+    async def _browser_debug(target_id: str) -> RedirectResponse:
+        """Clickable handle: inject (or re-show) the debug panel on a target."""
+        from ..mcp.browser_dom import debug_js
+
+        js = debug_js(_debug_js_source())
+        try:
+            if target_id in relay.targets:
+                await relay.evaluate(target_id, js)
+            else:
+                from ..requests.cdp import _open_sessions
+
+                session = _open_sessions.get(target_id)
+                if session is None:
+                    raise HTTPException(status_code=404, detail="Target not found")
+                await session.evaluate_js(js)
+        except HTTPException:
+            raise
+        except Exception as e:
+            debug.warning(f"CDP relay: debug.js injection failed for {target_id}: {e}")
         return RedirectResponse("/browser", status_code=303)
 
     @app.get("/browser/debug.js", dependencies=[Depends(_require_debug)])

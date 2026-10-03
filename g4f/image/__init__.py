@@ -122,8 +122,14 @@ def is_allowed_extension(filename: str) -> Optional[str]:
     return EXTENSIONS_MAP[extension]
 
 
-def is_safe_url(url: str) -> bool:
-    """Return True only for http/https URLs that do not point to private/loopback/reserved addresses."""
+def is_safe_url(url: str, allow_local: bool = False) -> bool:
+    """Return True only for http/https URLs that do not point to private/loopback/reserved addresses.
+
+    Args:
+        url: The URL to check.
+        allow_local: If True, also accept URLs pointing to loopback, private or
+            link-local addresses (e.g. for local debugging tools).
+    """
     if not isinstance(url, str):
         return False
     try:
@@ -141,9 +147,11 @@ def is_safe_url(url: str) -> bool:
 
         if urllib3_parse_url is not None:
             parsed_urllib3 = urllib3_parse_url(url)
-            if parsed_urllib3.host and parsed_urllib3.host != hostname:
+            # urllib3 keeps brackets around IPv6 literals, urlparse().hostname strips them.
+            urllib3_host = parsed_urllib3.host.strip("[]") if parsed_urllib3.host else None
+            if urllib3_host and urllib3_host != hostname:
                 return False
-            hostname = parsed_urllib3.host or hostname
+            hostname = urllib3_host or hostname
 
         if hostname is None:
             return False
@@ -154,6 +162,13 @@ def is_safe_url(url: str) -> bool:
 
         for addr_info in addr_infos:
             addr = ipaddress.ip_address(addr_info[4][0])
+            # NAT64/DNS64 synthetic addresses (RFC 6052): check the embedded IPv4 instead.
+            if addr.version == 6 and addr in ipaddress.ip_network("64:ff9b::/96"):
+                addr = ipaddress.ip_address(addr.packed[12:16])
+            if allow_local:
+                if addr.is_multicast or addr.is_unspecified:
+                    return False
+                continue
             if (
                 addr.is_private
                 or addr.is_loopback
