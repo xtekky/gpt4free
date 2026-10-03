@@ -627,15 +627,58 @@ class Backend_Api(Api):
                 logger.exception(e)
                 return jsonify({"error": {"message": "Failed to retrieve quota"}}), 500
 
-        @app.route("/backend-api/v2/log", methods=["POST"])
-        def add_log():
+        @app.route("/backend-api/v2/log", methods=["GET", "POST"])
+        def handle_log():
             cache_dir = Path(get_cookies_dir()) / ".logging"
-            cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
-            cache_dir.mkdir(parents=True, exist_ok=True)
-            data = {"origin": request.headers.get("origin"), **request.json}
-            with cache_file.open("a" if cache_file.exists() else "w") as f:
-                f.write(f"{json.dumps(data)}\n")
-            return {}
+            if request.method == "POST":
+                cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
+                cache_dir.mkdir(parents=True, exist_ok=True)
+                data = {"origin": request.headers.get("origin"), **(request.json or {})}
+                with cache_file.open("a" if cache_file.exists() else "w") as f:
+                    f.write(f"{json.dumps(data)}\n")
+                return {}
+            
+            # GET: return recent logs
+            limit = int(request.args.get("limit", 100))
+            logs = []
+            if cache_dir.is_dir():
+                today = datetime.date.today()
+                for days_back in range(7):
+                    day_file = cache_dir / f"{today - datetime.timedelta(days=days_back)}.jsonl"
+                    if day_file.exists():
+                        lines = day_file.read_text().splitlines()
+                        for line in reversed(lines):
+                            if line.strip():
+                                try:
+                                    logs.append(json.loads(line))
+                                except json.JSONDecodeError:
+                                    pass
+                                if len(logs) >= limit:
+                                    break
+                    if len(logs) >= limit:
+                        break
+            return jsonify({"logs": logs, "count": len(logs)})
+
+        @app.route("/backend-api/v2/status", methods=["GET"])
+        def get_system_status():
+            try:
+                providers = self.get_providers()
+                working_providers = [p for p in providers if p.get("working")]
+                models = self.get_all_models()
+                ver = self.get_version()
+                return jsonify({
+                    "status": "ok",
+                    "uptime": "active",
+                    "version": ver.get("version"),
+                    "latest_version": ver.get("latest_version"),
+                    "total_providers": len(providers),
+                    "working_providers": len(working_providers),
+                    "total_models": len(models),
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
+            except Exception as e:
+                logger.exception(e)
+                return jsonify({"status": "error", "message": str(e)}), 500
 
         self.routes = {
             "/backend-api/v2/synthesize/<provider>": {

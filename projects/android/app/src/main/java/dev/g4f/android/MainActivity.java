@@ -341,7 +341,7 @@ public class MainActivity extends Activity {
 
     private void loadChatWhenReady() {
         executor.execute(() -> {
-            String url = "http://127.0.0.1:" + PORT + "/chat/";
+            String url = "http://127.0.0.1:" + PORT + "/";
             boolean up = false;
             for (int i = 0; i < 120; i++) {
                 try {

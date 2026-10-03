@@ -153,7 +153,15 @@ class Website:
             },
             "/apps/": {"function": self._apps, "methods": ["GET"]},
             "/apps/<path:filename>": {"function": self._apps, "methods": ["GET"]},
+            "/browser": {"function": self._browser, "methods": ["GET"]},
+            "/browser/": {"function": self._browser, "methods": ["GET"]},
+            "/logs": {"function": self._logs, "methods": ["GET"]},
+            "/logs/": {"function": self._logs, "methods": ["GET"]},
+            "/status": {"function": self._status, "methods": ["GET"]},
+            "/status/": {"function": self._status, "methods": ["GET"]},
+            "/stats": {"function": self._stats, "methods": ["GET"]},
             "/stats/": {"function": self._stats, "methods": ["GET"]},
+            "/providers": {"function": self._providers, "methods": ["GET"]},
             "/providers/": {"function": self._providers, "methods": ["GET"]},
             "/providers/<name>": {"function": self._provider_detail, "methods": ["GET"]},
         }
@@ -179,6 +187,15 @@ class Website:
 
     def _stats(self):
         return render("stats")
+
+    def _status(self):
+        return render("status")
+
+    def _browser(self):
+        return render("browser")
+
+    def _logs(self):
+        return render("logs")
 
     def _get_providers(self):
         """Load all providers and return a list of dicts with their attributes (cached with 300s TTL)."""
