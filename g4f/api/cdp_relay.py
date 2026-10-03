@@ -101,6 +101,398 @@ document.addEventListener('keydown', e => {
   send({type: 'debug'}, false);
 }, true);
 """
+
+# PA provider studio: record click / type / select / scrape actions on the
+# served HTML copy, reorder them, test them against the live target and save
+# the generated .pa.py provider file into the g4f workspace.
+# Injected into /browser/{target_id}/html BEFORE _COPY_SCRIPT so its capture
+# listeners run first and can suppress forwarding while picking elements.
+_STUDIO_SCRIPT = r"""
+(() => {
+  if (window.__paStudio) return;
+  window.__paStudio = true;
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const actions = [];  // {type, selector, value, submit, attribute, wait}
+  let pickMode = null; // null | 'click' | 'type' | 'select' | 'scrape'
+  let dragIndex = null; // index of the step currently being dragged
+  let providerName = 'StudioProvider';
+  let providerUrl = (document.querySelector('link[rel="canonical"]') || {}).href || location.origin;
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const label = a => ({click: 'Click', type: 'Type', select: 'Select', scrape: 'Scrape', wait: 'Wait'}[a.type] || a.type);
+
+  // --- best unique CSS selector for an element -----------------------------
+  const cssPath = el => {
+    if (!(el instanceof Element)) return '';
+    const parts = [];
+    for (let node = el; node && node.nodeType === 1; node = node.parentElement) {
+      if (node.id && document.querySelectorAll('#' + CSS.escape(node.id)).length === 1) {
+        parts.unshift('#' + CSS.escape(node.id));
+        break;
+      }
+      const name = node.getAttribute('name');
+      if (name && document.querySelectorAll(`${node.tagName}[name="${CSS.escape(name)}"]`).length === 1) {
+        parts.unshift(`${node.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`);
+        break;
+      }
+      const testAttr = ['data-testid', 'data-test', 'data-qa'].find(a =>
+        node.getAttribute(a) && document.querySelectorAll(`[${a}="${CSS.escape(node.getAttribute(a))}"]`).length === 1);
+      if (testAttr) {
+        parts.unshift(`[${testAttr}="${node.getAttribute(testAttr)}"]`);
+        break;
+      }
+      let nth = 1, sib = node;
+      while ((sib = sib.previousElementSibling)) nth++;
+      parts.unshift(`${node.tagName.toLowerCase()}:nth-child(${nth})`);
+      if (parts.length >= 6) break;
+      if (parts.length >= 2 && document.querySelectorAll(parts.join(' > ')).length === 1) break;
+    }
+    return parts.join(' > ');
+  };
+
+  // --- outline overlay ------------------------------------------------------
+  let outline;
+  const showOutline = el => {
+    if (!outline) { outline = document.createElement('div'); document.body.appendChild(outline); }
+    const r = el.getBoundingClientRect();
+    Object.assign(outline.style, {
+      position: 'fixed', left: r.left + 'px', top: r.top + 'px',
+      width: r.width + 'px', height: r.height + 'px',
+      border: '2px solid #00e676', background: 'rgba(0,230,118,.12)',
+      pointerEvents: 'none', zIndex: 2147483646, borderRadius: '3px'
+    });
+  };
+  const hideOutline = () => { if (outline) { outline.remove(); outline = null; } };
+
+  // --- state persistence (the copy reloads after forwarded actions) ---------
+  const storeKey = 'paStudio:' + T;
+  const persist = () => {
+    try { sessionStorage.setItem(storeKey, JSON.stringify({actions, name: providerName, url: providerUrl})); } catch {}
+  };
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(storeKey) || 'null');
+    if (saved) {
+      (saved.actions || []).forEach(a => actions.push(a));
+      if (saved.name) providerName = saved.name;
+      if (saved.url) providerUrl = saved.url;
+    }
+  } catch {}
+
+  // --- studio panel ---------------------------------------------------------
+  const panel = document.createElement('div');
+  panel.id = 'pa-studio';
+  document.body.appendChild(panel);
+
+  const render = () => {
+    panel.innerHTML = `
+      <style>
+        #pa-studio{position:fixed;right:12px;bottom:12px;width:360px;max-height:70vh;overflow:auto;
+          background:#111827;color:#e5e7eb;font:12px/1.5 monospace;border:1px solid #374151;
+          border-radius:8px;padding:10px;z-index:2147483647;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+        #pa-studio h3{margin:0 0 8px;font-size:13px;color:#00e676}
+        #pa-studio button{cursor:pointer;background:#1f2937;color:#e5e7eb;border:1px solid #374151;
+          border-radius:4px;padding:3px 8px;font:11px monospace;margin:1px}
+        #pa-studio button:hover{background:#374151}
+        #pa-studio button.primary{background:#065f46;border-color:#10b981}
+        #pa-studio button.danger{color:#f87171}
+        #pa-studio .step{display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px solid #1f2937;cursor:grab}
+        #pa-studio .step:active{cursor:grabbing}
+        #pa-studio .step.dragging{opacity:.35}
+        #pa-studio .step.drop-target{box-shadow:inset 0 2px 0 #00e676}
+        #pa-studio .step code{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#93c5fd}
+        #pa-studio input{background:#0b1220;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font:11px monospace;width:100%;margin:2px 0}
+        #pa-studio .row{display:flex;gap:4px;margin:4px 0;flex-wrap:wrap}
+        #pa-studio .hint{color:#9ca3af;font-size:10px;margin:4px 0}
+        #pa-studio .status{color:#fbbf24;min-height:14px;font-size:10px;word-break:break-all}
+      </style>
+      <h3>PA Provider Studio</h3>
+      <div class="row">
+        <button data-add="click" class="primary">+ Click</button>
+        <button data-add="type">+ Input</button>
+        <button data-add="select">+ Select</button>
+        <button data-add="scrape">+ Scrape</button>
+        <button data-add="wait">+ Wait</button>
+      </div>
+      <div class="hint">${pickMode ? 'Now click the element on the page … (Esc cancels)' : 'Pick an action type, then click the element on the page. Drag steps to reorder.'}</div>
+      <div id="pa-steps"></div>
+      <div class="row">
+        <button id="pa-test" class="primary">▶ Test all</button>
+        <button id="pa-save">💾 Save .pa.py</button>
+        <button id="pa-clear" class="danger">Clear</button>
+      </div>
+      <div class="row"><input id="pa-name" placeholder="provider name (e.g. MyChat)" value="${esc(providerName)}"></div>
+      <div class="row"><input id="pa-url" placeholder="provider url" value="${esc(providerUrl)}"></div>
+      <div class="status" id="pa-status"></div>`;
+
+    const steps = $('#pa-steps');
+    if (!actions.length) steps.innerHTML = '<div class="hint">No actions recorded yet.</div>';
+    actions.forEach((a, i) => {
+      const row = document.createElement('div');
+      row.className = 'step';
+      const detail = a.type === 'wait' ? `${a.wait || 1}s`
+        : a.type === 'type' ? `${esc(a.selector)} = ${esc((a.value || '').slice(0, 24))}`
+        : a.type === 'select' ? `${esc(a.selector)} → ${esc(a.value || '')}`
+        : a.type === 'scrape' ? `${esc(a.selector)}${a.attribute ? '[' + esc(a.attribute) + ']' : ' (text)'}${a.lastValue ? ' → ' + esc(a.lastValue.slice(0, 30)) : ''}`
+        : esc(a.selector);
+      row.innerHTML = `<code>${i + 1}. ${label(a)} ${detail}</code>
+        <button data-up="${i}" title="move up">↑</button>
+        <button data-down="${i}" title="move down">↓</button>
+        <button data-del="${i}" class="danger" title="delete">✕</button>`;
+      steps.appendChild(row);
+      // drag & drop reordering
+      row.draggable = true;
+      row.ondragstart = e => {
+        dragIndex = i;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+        requestAnimationFrame(() => row.classList.add('dragging'));
+      };
+      row.ondragend = () => {
+        dragIndex = null;
+        row.classList.remove('dragging');
+        panel.querySelectorAll('.step').forEach(s => s.classList.remove('drop-target'));
+      };
+      row.ondragover = e => {
+        if (dragIndex === null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (dragIndex !== i) row.classList.add('drop-target');
+      };
+      row.ondragleave = () => row.classList.remove('drop-target');
+      row.ondrop = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        row.classList.remove('drop-target');
+        const from = dragIndex;
+        dragIndex = null;
+        if (from === null || from === i) return;
+        const [moved] = actions.splice(from, 1);
+        actions.splice(i, 0, moved);
+        persist(); render();
+      };
+      if (a.type === 'type' || a.type === 'select' || a.type === 'scrape' || a.type === 'wait') {
+        const inp = document.createElement('input');
+        inp.placeholder = a.type === 'type' ? 'text to type ({prompt} = user message)'
+          : a.type === 'select' ? 'option value'
+          : a.type === 'wait' ? 'seconds'
+          : 'attribute (empty = text)';
+        inp.value = a.type === 'scrape' ? (a.attribute || '') : a.type === 'wait' ? (a.wait || 1) : (a.value || '');
+        inp.onchange = () => {
+          if (a.type === 'scrape') a.attribute = inp.value.trim();
+          else if (a.type === 'wait') a.wait = parseFloat(inp.value) || 1;
+          else a.value = inp.value;
+          persist(); render();
+        };
+        steps.appendChild(inp);
+      }
+      if (a.type === 'type') {
+        const sub = document.createElement('label');
+        sub.style.cssText = 'font-size:10px;color:#9ca3af';
+        sub.innerHTML = `<input type=checkbox ${a.submit ? 'checked' : ''}> press Enter after typing`;
+        sub.querySelector('input').onchange = e => { a.submit = e.target.checked; persist(); };
+        steps.appendChild(sub);
+      }
+    });
+
+    // dropping on empty space below the steps moves the dragged step to the end
+    steps.ondragover = e => { if (dragIndex !== null) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } };
+    steps.ondrop = e => {
+      if (dragIndex === null) return;
+      e.preventDefault();
+      const [moved] = actions.splice(dragIndex, 1);
+      dragIndex = null;
+      actions.push(moved);
+      persist(); render();
+    };
+    panel.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+      const mode = b.dataset.add;
+      if (mode === 'wait') { actions.push({type: 'wait', wait: 1}); persist(); render(); return; }
+      pickMode = mode; render();
+    });
+    panel.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; if (i > 0) [actions[i - 1], actions[i]] = [actions[i], actions[i - 1]]; persist(); render(); });
+    panel.querySelectorAll('[data-down]').forEach(b => b.onclick = () => { const i = +b.dataset.down; if (i < actions.length - 1) [actions[i + 1], actions[i]] = [actions[i], actions[i + 1]]; persist(); render(); });
+    panel.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { actions.splice(+b.dataset.del, 1); persist(); render(); });
+    $('#pa-clear').onclick = () => { actions.length = 0; persist(); render(); };
+    $('#pa-test').onclick = testAll;
+    $('#pa-save').onclick = saveProvider;
+    $('#pa-name').onchange = e => { providerName = e.target.value; persist(); };
+    $('#pa-url').onchange = e => { providerUrl = e.target.value; persist(); };
+  };
+
+  // --- element picking ------------------------------------------------------
+  document.addEventListener('mousemove', e => {
+    if (!pickMode) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el.closest('#pa-studio')) { hideOutline(); return; }
+    showOutline(el);
+  }, true);
+  document.addEventListener('click', e => {
+    if (!pickMode) return;
+    // Let clicks inside the studio panel work normally.
+    if (e.target.closest && e.target.closest('#pa-studio')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const target = e.target;
+    const mode = pickMode;
+    pickMode = null; hideOutline();
+    const selector = cssPath(target);
+    if (!selector) { render(); return; }
+    if (mode === 'click') actions.push({type: 'click', selector});
+    else if (mode === 'type') actions.push({type: 'type', selector, value: ''});
+    else if (mode === 'select') actions.push({type: 'select', selector, value: ''});
+    else if (mode === 'scrape') actions.push({type: 'scrape', selector, attribute: ''});
+    persist(); render();
+  }, true);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && pickMode) {
+      e.stopImmediatePropagation();
+      pickMode = null; hideOutline(); render();
+    }
+  }, true);
+
+  // --- run actions against the live target ---------------------------------
+  const post = body => fetch(location.origin + '/browser/' + encodeURIComponent(T) + '/action', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  }).then(r => r.json());
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  const runAction = async a => {
+    if (a.type === 'wait') { await sleep((parseFloat(a.wait) || 1) * 1000); return {ok: true}; }
+    const body = {selector: a.selector};
+    if (a.type === 'click') return post({...body, type: 'click'});
+    if (a.type === 'type') return post({...body, type: 'type', value: a.value || '', submit: !!a.submit});
+    if (a.type === 'select') return post({...body, type: 'select', value: a.value || ''});
+    if (a.type === 'scrape') return post({...body, type: 'scrape', attribute: a.attribute || ''});
+    return {ok: false, error: 'unknown action'};
+  };
+
+  const status = (msg, cls) => { const el = $('#pa-status'); if (el) { el.textContent = msg; el.style.color = cls || '#fbbf24'; } };
+
+  const testAll = async () => {
+    if (!actions.length) return status('Nothing to test.');
+    status('Running …');
+    for (let i = 0; i < actions.length; i++) {
+      try {
+        const res = await runAction(actions[i]);
+        const inner = res && res.result ? res.result : res;
+        if (!inner || inner.ok === false || (res && res.error))
+          return status(`Step ${i + 1} failed: ${(inner && inner.error) || (res && res.error) || 'error'}`, '#f87171');
+        if (actions[i].type === 'scrape' && inner && inner.value !== undefined)
+          actions[i].lastValue = String(inner.value).slice(0, 200);
+        await sleep(400);
+      } catch (err) { return status(`Step ${i + 1} error: ${err}`, '#f87171'); }
+    }
+    status('All steps OK ✓', '#00e676');
+    persist(); render();
+  };
+
+  // --- generate + save the .pa.py provider ----------------------------------
+  const pyStr = s => JSON.stringify(String(s ?? ''));
+  const pyLit = v => {
+    if (v === undefined || v === null) return 'None';
+    if (typeof v === 'boolean') return v ? 'True' : 'False';
+    if (typeof v === 'number') return String(v);
+    if (typeof v === 'string') return JSON.stringify(v);
+    if (Array.isArray(v)) return '[' + v.map(pyLit).join(', ') + ']';
+    return '{' + Object.entries(v).map(([k, val]) => `${JSON.stringify(k)}: ${pyLit(val)}`).join(', ') + '}';
+  };
+
+  const generateCode = () => {
+    const name = (providerName).replace(/[^A-Za-z0-9_]/g, '') || 'StudioProvider';
+    const startUrl = (document.querySelector('link[rel="canonical"]') || {}).href || location.href;
+    const recorded = actions.map(({lastValue, ...rest}) => rest);
+    return [
+      'from __future__ import annotations',
+      '',
+      'import asyncio',
+      '',
+      'from g4f.typing import AsyncResult, Messages',
+      'from g4f.requests.cdp import CDPSession',
+      'from g4f.mcp.browser_dom import (',
+      '    selector_click_js,',
+      '    selector_exists_js,',
+      '    selector_scrape_js,',
+      '    selector_select_js,',
+      '    selector_type_js,',
+      ')',
+      'from g4f.Provider.base_provider import AsyncGeneratorProvider, ProviderModelMixin',
+      'from g4f.Provider.helper import format_prompt',
+      '',
+      '',
+      `class ${name}(AsyncGeneratorProvider, ProviderModelMixin):`,
+      "    'Recorded with the g4f PA Provider Studio (/browser/<target>/html).'",
+      '',
+      `    label = ${pyStr(name)}`,
+      `    url = ${pyStr(providerUrl)}`,
+      '    working = True',
+      '    supports_stream = True',
+      '',
+      '    default_model = "auto"',
+      '    models = [default_model]',
+      '',
+      `    _start_url = ${pyStr(startUrl)}`,
+      `    _actions = ${pyLit(recorded)}`,
+      '',
+      '    @classmethod',
+      '    async def create_async_generator(cls, model, messages, **kwargs):',
+      '        prompt = format_prompt(messages)',
+      '        session = CDPSession()',
+      '        await session.start()',
+      '        try:',
+      '            await session.navigate(cls._start_url)',
+      '            for action in cls._actions:',
+      '                kind = action["type"]',
+      '                if kind == "wait":',
+      '                    await asyncio.sleep(float(action.get("wait", 1)))',
+      '                    continue',
+      '                selector = action.get("selector", "")',
+      '                await cls._wait(session, selector)',
+      '                if kind == "click":',
+      '                    await session.evaluate_js(selector_click_js(selector))',
+      '                elif kind == "type":',
+      '                    value = str(action.get("value", "")).replace("{prompt}", prompt)',
+      '                    await session.evaluate_js(selector_type_js(selector, value, bool(action.get("submit"))))',
+      '                elif kind == "select":',
+      '                    await session.evaluate_js(selector_select_js(selector, str(action.get("value", ""))))',
+      '                elif kind == "scrape":',
+      '                    result = await session.evaluate_js(selector_scrape_js(selector, str(action.get("attribute", ""))))',
+      '                    value = (result or {}).get("value", "")',
+      '                    if value:',
+      '                        yield value',
+      '                        return',
+      '            await asyncio.sleep(2)',
+      '            text = await session.evaluate_js("document.body ? document.body.innerText : \'\'")',
+      '            yield (text or "").strip() or "No response"',
+      '        finally:',
+      '            await session.close()',
+      '',
+      '    @staticmethod',
+      '    async def _wait(session, selector, timeout=10):',
+      '        for _ in range(timeout * 2):',
+      '            result = await session.evaluate_js(selector_exists_js(selector))',
+      '            if result and result.get("ok"):',
+      '                return',
+      '            await asyncio.sleep(0.5)',
+      '',
+    ].join('\n');
+  };
+
+  const saveProvider = async () => {
+    status('Saving …');
+    try {
+      const res = await fetch(location.origin + '/browser/' + encodeURIComponent(T) + '/save_provider', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: providerName, code: generateCode()})
+      });
+      const data = await res.json();
+      status(data.ok ? `Saved → ${data.path}` : `Save failed: ${data.detail || data.error}`, data.ok ? '#00e676' : '#f87171');
+    } catch (err) { status('Save failed: ' + err, '#f87171'); }
+  };
+
+  render();
+})();
+"""
 AGENT_PATH = "/v1/cdp/agent"  # extension agents connect here
 
 
@@ -605,7 +997,7 @@ def register_cdp_relay(app) -> None:
         nonce = secrets.token_urlsafe(16)
         script = (
             f'<script nonce="{nonce}">const T={json.dumps(target_id)},N={json.dumps(nonce)};'
-            f'{_COPY_SCRIPT}</script>'
+            f'{_STUDIO_SCRIPT}\n{_COPY_SCRIPT}</script>'
         )
         page = page.replace("</body>", script + "</body>", 1) if "</body>" in page else page + script
         return HTMLResponse(
@@ -617,12 +1009,35 @@ def register_cdp_relay(app) -> None:
 
     @app.post("/browser/{target_id}/action", dependencies=[Depends(_require_debug)])
     async def _browser_action(target_id: str, payload: dict = Body(...)) -> dict:
-        from ..mcp.browser_dom import click_js, debug_js, select_js, type_js
+        from ..mcp.browser_dom import (
+            click_js,
+            debug_js,
+            select_js,
+            type_js,
+            selector_click_js,
+            selector_scrape_js,
+            selector_select_js,
+            selector_type_js,
+        )
 
         try:
             kind = payload.get("type")
             if kind == "debug":
                 js = debug_js(_debug_js_source())
+            elif "selector" in payload:
+                # Selector-based actions (PA provider studio): address the
+                # element by CSS selector instead of data-index.
+                selector = str(payload["selector"])
+                if kind == "click":
+                    js = selector_click_js(selector)
+                elif kind == "type":
+                    js = selector_type_js(selector, str(payload.get("value", "")), True, bool(payload.get("submit")))
+                elif kind == "select":
+                    js = selector_select_js(selector, str(payload.get("value", "")))
+                elif kind == "scrape":
+                    js = selector_scrape_js(selector, str(payload.get("attribute", "")))
+                else:
+                    raise HTTPException(status_code=400, detail="Unknown action type")
             else:
                 index = int(payload["index"])
                 if kind == "click":
@@ -646,3 +1061,28 @@ def register_cdp_relay(app) -> None:
             result = await session.evaluate_js(js)
         await asyncio.sleep(0.3 if kind in ("type", "debug") and not payload.get("submit") else 1)  # let the page settle before the copy reloads
         return {"result": result}
+
+    @app.post("/browser/{target_id}/save_provider", dependencies=[Depends(_is_not_demo_and_debug)])
+    async def _browser_save_provider(target_id: str, payload: dict = Body(...)) -> dict:
+        """Save a studio-recorded provider as a ``.pa.py`` file in the workspace."""
+        from ..files import secure_filename
+        from ..mcp.pa_provider import get_workspace_dir
+
+        code = payload.get("code")
+        if not code or not isinstance(code, str):
+            raise HTTPException(status_code=400, detail="Missing provider code")
+        if len(code) > 256 * 1024:
+            raise HTTPException(status_code=413, detail="Provider code too large")
+        name = secure_filename(str(payload.get("name") or "StudioProvider"), max_length=60)
+        name = "".join(c for c in name if c.isalnum() or c == "_").strip("_") or "StudioProvider"
+        target_dir = get_workspace_dir() / "pa-providers"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        path = target_dir / f"{name}.pa.py"
+        counter = 1
+        while path.exists() and path.read_text(encoding="utf-8") != code:
+            path = target_dir / f"{name}_{counter}.pa.py"
+            counter += 1
+            if counter > 100:
+                raise HTTPException(status_code=409, detail="Too many provider files with the same name")
+        path.write_text(code, encoding="utf-8")
+        return {"ok": True, "path": str(path)}

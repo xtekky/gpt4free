@@ -70,6 +70,14 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Chrome user agent used to mask non-Chrome browsers (e.g. Lightpanda, which
+# reports "Lightpanda/1.0"). Kept in sync with the sec-ch-ua version in
+# g4f/requests/defaults.py.
+CHROME_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+)
+
 from pathlib import Path
 
 def get_screenshot_dir(datekey: str = None) -> str:
@@ -1059,6 +1067,50 @@ class CDPSession:
                 await self.call(method)
             except Exception as e:
                 debug.log(f"CDP: {method} not supported by browser-level socket: {e}")
+
+        # Anti-detect: mask the browser in the User-Agent. Lightpanda reports
+        # "Lightpanda/1.0" and ignores Network.setUserAgentOverride entirely;
+        # Emulation.setUserAgentOverride only changes the HTTP header, while
+        # navigator.userAgent needs a defineProperty script (verified live).
+        # Apply both so HTTP requests and JS probes see a Chrome UA.
+        try:
+            user_agent = await self.evaluate_js("navigator.userAgent")
+        except Exception:
+            user_agent = None
+        if user_agent and "Chrome" not in user_agent and "Chromium" not in user_agent:
+            debug.log(f"CDP: masking user agent {user_agent!r} as Chrome")
+            # 1. HTTP-level: every request from this target carries the UA.
+            try:
+                await self.call(
+                    "Emulation.setUserAgentOverride",
+                    userAgent=CHROME_USER_AGENT,
+                    acceptLanguage="en-US,en;q=0.9",
+                    platform=platform.system() + " " + platform.machine() if platform.system() == "Linux" else None,
+                )
+            except Exception as e:
+                debug.log(f"CDP: Emulation.setUserAgentOverride not supported: {e}")
+            # 2. JS-level: navigator.userAgent / appVersion on every new document.
+            try:
+                await self.call(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    source=(
+                        "for (const prop of ['userAgent', 'appVersion', 'vendor']) {"
+                        "Object.defineProperty(navigator, prop, {"
+                        f"get: () => (prop != 'vendor' ? {json.dumps(CHROME_USER_AGENT)} : 'Google Inc.'),"
+                        "configurable: true});}"
+                    ),
+                )
+            except Exception as e:
+                debug.log(f"CDP: Page.addScriptToEvaluateOnNewDocument not supported: {e}")
+            # 3. Current document (the script above only applies to future ones).
+            try:
+                await self.evaluate_js(
+                    "for (const prop of ['userAgent', 'appVersion']) {"
+                    "Object.defineProperty(navigator, prop, {"
+                    f"get: () => {json.dumps(CHROME_USER_AGENT)}, configurable: true}});}}"
+                )
+            except Exception:
+                pass
 
     async def _close_browser_socket(self):
         """Tear down a browser-level socket session (best effort)."""
