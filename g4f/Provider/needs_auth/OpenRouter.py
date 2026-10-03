@@ -18,7 +18,7 @@ class OpenRouterFree(OpenaiTemplate):
     url = "https://openrouter.ai"
     login_url = "https://openrouter.ai/settings/keys"
     base_url = "https://openrouter.ai/api/v1"
-    backup_url = "https://g4f.space/api/openrouter"
+    backup_url = "https://open.g4f.dev/api/v1"
     working = True
     active_by_default = True
 
