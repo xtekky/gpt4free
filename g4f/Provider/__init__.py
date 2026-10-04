@@ -38,6 +38,7 @@ class ProviderLoader:
         "BlackboxPro",
         "CachedSearch",
         "Cerebras",
+        "CheaperInference",
         "Claude",
         "Cloudflare",
         "CohereForAI_C4AI_Command",
@@ -180,6 +181,10 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.Cerebras import Cerebras
 
             return Cerebras
+        elif name == "CheaperInference":
+            from g4f.Provider.needs_auth.CheaperInference import CheaperInference
+
+            return CheaperInference
         elif name == "Claude":
             from g4f.Provider.needs_auth.Claude import Claude
 

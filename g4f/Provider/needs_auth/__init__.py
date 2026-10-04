@@ -6,6 +6,7 @@ from .Azure import Azure
 from .BingCreateImages import BingCreateImages
 from .BlackboxPro import BlackboxPro
 from .Cerebras import Cerebras
+from .CheaperInference import CheaperInference
 from .Claude import Claude
 from .Cohere import Cohere
 from .CopilotAccount import CopilotAccount
