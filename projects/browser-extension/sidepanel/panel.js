@@ -173,8 +173,76 @@ function wireEmbedBridge() {
       embedReadyResolve = null;
       if (pendingEmbedPrompt) sendToEmbed(pendingEmbedPrompt);
     }
+    if (data.type === "g4f-ext:open-auth" && typeof data.url === "string") {
+      openLoginPopup(data.url);
+    }
   });
 }
+
+/* Login popup handoff ------------------------------------------------- */
+/* The embedded chat cannot open windows itself (window.open is suppressed
+ * for cross-origin frames inside the side panel), so it asks us to open
+ * the OAuth login window for it. */
+
+let loginPopupWinId = null;
+
+function openLoginPopup(rawUrl) {
+  let target;
+  try {
+    target = new URL(rawUrl, getChatUrl());
+  } catch {
+    return;
+  }
+  const chatOrigin = new URL(getChatUrl()).origin;
+  const chatHost = new URL(chatOrigin).hostname;
+  const host = target.hostname;
+  const hostOk =
+    host === chatHost ||
+    host === "g4f.dev" ||
+    host === "auth.g4f.space" ||
+    host.endsWith(".g4f.space") ||
+    host.endsWith(".g4f.dev");
+  // https for the public hosts; http only when the chat itself is http
+  // (self-hosted server on localhost).
+  const protoOk = target.protocol === "https:" ||
+    (target.protocol === "http:" && chatOrigin.startsWith("http:"));
+  if (!protoOk || !hostOk) return;
+
+  chrome.windows.create(
+    { url: target.toString(), type: "popup", width: 520, height: 760 },
+    (win) => {
+      if (!win || !win.id) return;
+      loginPopupWinId = win.id;
+      const tabId = win.tabs?.[0]?.id;
+      if (tabId == null) return;
+      // Auto-close the popup once the OAuth callback (?code=…) has been
+      // handled and the session stored.
+      const onUpdated = (tid, info) => {
+        if (tid !== tabId || loginPopupWinId !== win.id) return;
+        const u = info.url || "";
+        if (!u.startsWith(new URL(getChatUrl()).origin + "/") || !u.includes("code=")) return;
+        setTimeout(() => {
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+          if (loginPopupWinId === win.id) {
+            loginPopupWinId = null;
+            chrome.windows.remove(win.id, () => void chrome.runtime.lastError);
+          }
+        }, 2500);
+      };
+      chrome.tabs.onUpdated.addListener(onUpdated);
+    }
+  );
+}
+
+chrome.windows.onRemoved.addListener((winId) => {
+  if (winId !== loginPopupWinId) return;
+  loginPopupWinId = null;
+  // Nudge the embedded chat to re-check its login state.
+  $("#chat-frame")?.contentWindow?.postMessage(
+    { type: "g4f-ext:auth-done" },
+    getChatUrl()
+  );
+});
 
 function showEmbedError(message) {
   const el = $("#embed-status");
