@@ -1,0 +1,2994 @@
+[
+  {
+    "response.created": {
+      "chat_id": "chat_id",
+      "parent_id": "parent_id",
+      "response_id": "response_id",
+      "response_index": "0"
+    }
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Retrieving the latest stable Python release information."
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I am accessing official sources to identify the current version.\nThis process ensures accuracy by relying on up-to-date data rather than internal knowledge.\nThe goal is to provide the most recent release details available today."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 50,
+      "characters": 0,
+      "total_tokens": 1376,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 48,
+        "text_tokens": 50
+      }
+    },
+    "timestamp": 1791066503
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Retrieving the latest stable Python release information.",
+                "Determine the latest stable Python release"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I am accessing official sources to identify the current version.\nThis process ensures accuracy by relying on up-to-date data rather than internal knowledge.\nThe goal is to provide the most recent release details available today.",
+                "I need to identify the most recent stable version of Python available for download. To ensure accuracy, I will consult official sources such as python.org rather than relying solely on general search results. This approach guarantees that the information provided is authoritative and up-to-date. I will then extract the specific version number to answer the user's inquiry effectively."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 144,
+      "characters": 0,
+      "total_tokens": 1470,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 142,
+        "text_tokens": 144
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Retrieving the latest stable Python release information.",
+                "Determine the latest stable Python release"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I am accessing official sources to identify the current version.\nThis process ensures accuracy by relying on up-to-date data rather than internal knowledge.\nThe goal is to provide the most recent release details available today.",
+                "I need to identify the most recent stable version of Python available for download. To ensure accuracy, I will consult official sources such as python.org rather than relying solely on general search results. This approach guarantees that the information provided is authoritative and up-to-date. I will then extract the specific version number to answer the user's inquiry effectively."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 159,
+      "characters": 0,
+      "total_tokens": 1485,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 146,
+        "text_tokens": 159
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 159,
+      "characters": 0,
+      "total_tokens": 1485,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 146,
+        "text_tokens": 159
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 159,
+      "characters": 0,
+      "total_tokens": 1485,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 146,
+        "text_tokens": 159
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 159,
+      "characters": 0,
+      "total_tokens": 1485,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 146,
+        "text_tokens": 159
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 159,
+      "characters": 0,
+      "total_tokens": 1485,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 146,
+        "text_tokens": 159
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 1326,
+      "output_tokens": 159,
+      "characters": 0,
+      "total_tokens": 1485,
+      "input_tokens_details": {
+        "text_tokens": 1326
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 146,
+        "text_tokens": 159
+      }
+    },
+    "timestamp": 1791066505
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "function",
+          "content": "",
+          "phase": "web_search",
+          "status": "finished",
+          "name": "web_search",
+          "extra": {
+            "function_id": "function_id",
+            "tool_result": {
+              "docs": [
+                {
+                  "url": "https://www.python.org/downloads/",
+                  "title": "Download Python",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/source/",
+                  "title": "Python Source Releases",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3140/",
+                  "title": "Python Release Python 3.14.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3130/",
+                  "title": "Python Release Python 3.13.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/windows/",
+                  "title": "Python Releases for Windows",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3120/",
+                  "title": "Python Release Python 3.12.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3147/",
+                  "title": "Python Release Python 3.14.7",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3913/",
+                  "title": "Python Release Python 3.9.13",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3922/",
+                  "title": "Python Release Python 3.9.22",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3128/",
+                  "title": "Python Release Python 3.12.8",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://devguide.python.org/versions/",
+                  "title": "Status of Python versions",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "May 27, 2026"
+                },
+                {
+                  "url": "https://www.python.org/downloads/",
+                  "title": "Download Python",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/source/",
+                  "title": "Python Source Releases",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/doc/versions/",
+                  "title": "Python documentation by version",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/download/releases/",
+                  "title": "Releases",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3140/",
+                  "title": "Python Release Python 3.14.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/windows/",
+                  "title": "Python Releases for Windows",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3130/",
+                  "title": "Python Release Python 3.13.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3120/",
+                  "title": "Python Release Python 3.12.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://docs.python.org/3/whatsnew/index.html",
+                  "title": "What's New in Python",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                }
+              ],
+              "used_id": 21,
+              "tool_call_metrics": {},
+              "tool_observation": ""
+            },
+            "web_search_info": [
+              {
+                "url": "https://www.python.org/downloads/",
+                "title": "Download Python",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/source/",
+                "title": "Python Source Releases",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3140/",
+                "title": "Python Release Python 3.14.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3130/",
+                "title": "Python Release Python 3.13.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/windows/",
+                "title": "Python Releases for Windows",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3120/",
+                "title": "Python Release Python 3.12.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3147/",
+                "title": "Python Release Python 3.14.7",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3913/",
+                "title": "Python Release Python 3.9.13",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3922/",
+                "title": "Python Release Python 3.9.22",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3128/",
+                "title": "Python Release Python 3.12.8",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://devguide.python.org/versions/",
+                "title": "Status of Python versions",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "May 27, 2026"
+              },
+              {
+                "url": "https://www.python.org/downloads/",
+                "title": "Download Python",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/source/",
+                "title": "Python Source Releases",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/doc/versions/",
+                "title": "Python documentation by version",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/download/releases/",
+                "title": "Releases",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3140/",
+                "title": "Python Release Python 3.14.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/windows/",
+                "title": "Python Releases for Windows",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3130/",
+                "title": "Python Release Python 3.13.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3120/",
+                "title": "Python Release Python 3.12.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://docs.python.org/3/whatsnew/index.html",
+                "title": "What's New in Python",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              }
+            ],
+            "display_position": "think"
+          },
+          "function_id": "function_id"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {},
+    "timestamp": 1791066509
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Verifying the latest stable Python release"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I observed conflicting information in the search results regarding the current version number. To ensure absolute accuracy, I decided to directly access the official Python website. This step is necessary to confirm the precise version listed as the latest stable release."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_extractor",
+          "status": "typing",
+          "function_call": {
+            "name": "web_extractor",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3179,
+      "output_tokens": 91,
+      "characters": 0,
+      "total_tokens": 3270,
+      "input_tokens_details": {
+        "text_tokens": 3179
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 78,
+        "text_tokens": 91
+      }
+    },
+    "timestamp": 1791066512
+  },
+  {
+    "response.info": {
+      "action": "keep_alive",
+      "chat_id": "chat_id",
+      "response_id": "response_id",
+      "timestamp": 1791066522
+    }
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "function",
+          "content": "",
+          "phase": "web_extractor",
+          "extra": {
+            "function_id": "function_id",
+            "tool_result": {
+              "tool_observation": "",
+              "tool_call_metrics": {},
+              "web_extract_info": [
+                {
+                  "title": "Download Python | Python.org",
+                  "url": "https://www.python.org/downloads/"
+                }
+              ]
+            },
+            "web_extract_info": [
+              {
+                "title": "Download Python | Python.org",
+                "url": "https://www.python.org/downloads/"
+              }
+            ],
+            "web_extractor_result": "",
+            "display_position": "think"
+          },
+          "status": "finished",
+          "name": "web_extractor",
+          "function_id": "function_id"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {},
+    "timestamp": 1791066525
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Seeking the precise text for the latest stable Python release on python.org"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "The initial extraction failed to capture the main download button text. I am now conducting a more targeted search for the specific phrase \"latest stable Python release.\" This approach aims to locate the accurate information directly from the source website."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3586,
+      "output_tokens": 40,
+      "characters": 0,
+      "total_tokens": 3626,
+      "input_tokens_details": {
+        "text_tokens": 3586
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 27,
+        "text_tokens": 40
+      }
+    },
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3586,
+      "output_tokens": 40,
+      "characters": 0,
+      "total_tokens": 3626,
+      "input_tokens_details": {
+        "text_tokens": 3586
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 27,
+        "text_tokens": 40
+      }
+    },
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3586,
+      "output_tokens": 40,
+      "characters": 0,
+      "total_tokens": 3626,
+      "input_tokens_details": {
+        "text_tokens": 3586
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 27,
+        "text_tokens": 40
+      }
+    },
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3586,
+      "output_tokens": 40,
+      "characters": 0,
+      "total_tokens": 3626,
+      "input_tokens_details": {
+        "text_tokens": 3586
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 27,
+        "text_tokens": 40
+      }
+    },
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3586,
+      "output_tokens": 40,
+      "characters": 0,
+      "total_tokens": 3626,
+      "input_tokens_details": {
+        "text_tokens": 3586
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 27,
+        "text_tokens": 40
+      }
+    },
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3586,
+      "output_tokens": 40,
+      "characters": 0,
+      "total_tokens": 3626,
+      "input_tokens_details": {
+        "text_tokens": 3586
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 27,
+        "text_tokens": 40
+      }
+    },
+    "timestamp": 1791066528
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "function",
+          "content": "",
+          "phase": "web_search",
+          "status": "finished",
+          "name": "web_search",
+          "extra": {
+            "function_id": "function_id",
+            "tool_result": {
+              "docs": [
+                {
+                  "url": "https://www.geeksforgeeks.org/python/download-and-install-python-3-latest-version/",
+                  "title": "Download and Install Python 3 Latest Version",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "Apr 21, 2026"
+                },
+                {
+                  "url": "https://docs.python.org/3/using/windows.html",
+                  "title": "4. Using Python on Windows — Python 3.14.8 documentation",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://gist.github.com/chrisribe/c3bbd8d8ca0e07b9f7bfee7c6ef1c3f9",
+                  "title": "Install latest python version from python.org / atp install",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://stackoverflow.com/questions/70378786/how-to-get-the-version-number-of-the-latest-stable-release-of-python-via-single",
+                  "title": "How to get the version number of the latest stable release ",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "4 years ago"
+                },
+                {
+                  "url": "https://www.digitalocean.com/community/tutorials/install-python-windows-10",
+                  "title": "How to Install Python on Windows",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "Sep 25, 2025"
+                },
+                {
+                  "url": "https://en.wikipedia.org/wiki/History_of_Python",
+                  "title": "History of Python",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.quora.com/How-do-I-install-Python-3-6-on-a-Mac",
+                  "title": "How do I install Python 3.6 on a Mac?",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "5 years ago"
+                },
+                {
+                  "url": "https://pytorch.org/",
+                  "title": "PyTorch.org",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/",
+                  "title": "Download Python",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.geeksforgeeks.org/python/download-and-install-python-3-latest-version/",
+                  "title": "Download and Install Python 3 Latest Version",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "Apr 21, 2026"
+                },
+                {
+                  "url": "https://udeploy.udel.edu/software/python-3-9/",
+                  "title": "Python 3.9 - UDeploy Software Distribution",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://docs.python.org/3/download.html",
+                  "title": "Download — Python 3.14.8 documentation",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.facebook.com/groups/cs50/posts/1435319309948443/",
+                  "title": "Where to download Python 3.7",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "7 years ago"
+                },
+                {
+                  "url": "https://discuss.python.org/t/where-to-download-python-3-11-alpha-1/43710",
+                  "title": "Where to download Python 3.11 alpha 1",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "Jan 20, 2024"
+                },
+                {
+                  "url": "https://cityuseattle.github.io/docs/environment/python/",
+                  "title": "Install Python 3",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://python.en.softonic.com/download",
+                  "title": "Download Python - Free - latest version",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "May 29, 2026"
+                }
+              ],
+              "used_id": 37,
+              "tool_call_metrics": {},
+              "tool_observation": ""
+            },
+            "web_search_info": [
+              {
+                "url": "https://www.geeksforgeeks.org/python/download-and-install-python-3-latest-version/",
+                "title": "Download and Install Python 3 Latest Version",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "Apr 21, 2026"
+              },
+              {
+                "url": "https://docs.python.org/3/using/windows.html",
+                "title": "4. Using Python on Windows — Python 3.14.8 documentation",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://gist.github.com/chrisribe/c3bbd8d8ca0e07b9f7bfee7c6ef1c3f9",
+                "title": "Install latest python version from python.org / atp install",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://stackoverflow.com/questions/70378786/how-to-get-the-version-number-of-the-latest-stable-release-of-python-via-single",
+                "title": "How to get the version number of the latest stable release ",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "4 years ago"
+              },
+              {
+                "url": "https://www.digitalocean.com/community/tutorials/install-python-windows-10",
+                "title": "How to Install Python on Windows",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "Sep 25, 2025"
+              },
+              {
+                "url": "https://en.wikipedia.org/wiki/History_of_Python",
+                "title": "History of Python",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.quora.com/How-do-I-install-Python-3-6-on-a-Mac",
+                "title": "How do I install Python 3.6 on a Mac?",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "5 years ago"
+              },
+              {
+                "url": "https://pytorch.org/",
+                "title": "PyTorch.org",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/",
+                "title": "Download Python",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.geeksforgeeks.org/python/download-and-install-python-3-latest-version/",
+                "title": "Download and Install Python 3 Latest Version",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "Apr 21, 2026"
+              },
+              {
+                "url": "https://udeploy.udel.edu/software/python-3-9/",
+                "title": "Python 3.9 - UDeploy Software Distribution",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://docs.python.org/3/download.html",
+                "title": "Download — Python 3.14.8 documentation",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.facebook.com/groups/cs50/posts/1435319309948443/",
+                "title": "Where to download Python 3.7",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "7 years ago"
+              },
+              {
+                "url": "https://discuss.python.org/t/where-to-download-python-3-11-alpha-1/43710",
+                "title": "Where to download Python 3.11 alpha 1",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "Jan 20, 2024"
+              },
+              {
+                "url": "https://cityuseattle.github.io/docs/environment/python/",
+                "title": "Install Python 3",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://python.en.softonic.com/download",
+                "title": "Download Python - Free - latest version",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "May 29, 2026"
+              }
+            ],
+            "display_position": "think"
+          },
+          "function_id": "function_id"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {},
+    "timestamp": 1791066532
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Verifying the latest Python release version"
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I observed a specific download link for Python 3.14.8 in the search results and decided to cross-reference this information against the official downloads page. To ensure absolute accuracy regarding the current stable release, I am conducting an additional targeted verification step. This process aims to confirm the precise version number before providing the final answer to the user."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 4869,
+      "output_tokens": 136,
+      "characters": 0,
+      "total_tokens": 5005,
+      "input_tokens_details": {
+        "text_tokens": 4869
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 122,
+        "text_tokens": 136
+      }
+    },
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 4869,
+      "output_tokens": 136,
+      "characters": 0,
+      "total_tokens": 5005,
+      "input_tokens_details": {
+        "text_tokens": 4869
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 122,
+        "text_tokens": 136
+      }
+    },
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 4869,
+      "output_tokens": 136,
+      "characters": 0,
+      "total_tokens": 5005,
+      "input_tokens_details": {
+        "text_tokens": 4869
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 122,
+        "text_tokens": 136
+      }
+    },
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 4869,
+      "output_tokens": 136,
+      "characters": 0,
+      "total_tokens": 5005,
+      "input_tokens_details": {
+        "text_tokens": 4869
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 122,
+        "text_tokens": 136
+      }
+    },
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 4869,
+      "output_tokens": 136,
+      "characters": 0,
+      "total_tokens": 5005,
+      "input_tokens_details": {
+        "text_tokens": 4869
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 122,
+        "text_tokens": 136
+      }
+    },
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "web_search",
+          "status": "typing",
+          "function_call": {
+            "name": "web_search",
+            "arguments": ""
+          },
+          "function_id": "function_id",
+          "extra": {
+            "display_position": "think"
+          }
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 4869,
+      "output_tokens": 136,
+      "characters": 0,
+      "total_tokens": 5005,
+      "input_tokens_details": {
+        "text_tokens": 4869
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 122,
+        "text_tokens": 136
+      }
+    },
+    "timestamp": 1791066536
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "function",
+          "content": "",
+          "phase": "web_search",
+          "status": "finished",
+          "name": "web_search",
+          "extra": {
+            "function_id": "function_id",
+            "tool_result": {
+              "docs": [
+                {
+                  "url": "https://www.python.org/downloads/source/",
+                  "title": "Python Source Releases",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/windows/",
+                  "title": "Python Releases for Windows",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/android/",
+                  "title": "Python Releases for Android",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/ios/",
+                  "title": "Python Releases for iOS",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://iw3.math.rutgers.edu/solutions/README.Solutions.html",
+                  "title": "Installation of Python version of Solutions Client programs",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://realpython.com/installing-python/",
+                  "title": "How to Install Python on Your System: A Guide",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "Feb 18, 2026"
+                },
+                {
+                  "url": "https://www.coursehero.com/file/220558777/Python-Releases-for-macOS-Pythonorgpdf/",
+                  "title": "Latest Python 3 Releases for macOS - Download Now!",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "Jun 12, 2023"
+                },
+                {
+                  "url": "https://www.facebook.com/groups/python/posts/1373012243539336/",
+                  "title": "where can i download python for windows 7?",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "3 years ago"
+                },
+                {
+                  "url": "https://www.quora.com/How-do-I-install-Python-3-6-on-a-Mac",
+                  "title": "How do I install Python 3.6 on a Mac?",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": "5 years ago"
+                },
+                {
+                  "url": "https://github.com/ScoopInstaller/Main/blob/master/bucket/python.json",
+                  "title": "Main/bucket/python.json at master · ScoopInstaller/Main",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3140/",
+                  "title": "Python Release Python 3.14.0",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3146/",
+                  "title": "Python Release Python 3.14.6",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/source/",
+                  "title": "Python Source Releases",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/windows/",
+                  "title": "Python Releases for Windows",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3147/",
+                  "title": "Python Release Python 3.14.7",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/latest/python3.14/",
+                  "title": "Python Release Python 3.14.8",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/",
+                  "title": "Download Python",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/downloads/release/python-3145/",
+                  "title": "Python Release Python 3.14.5",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                },
+                {
+                  "url": "https://www.python.org/doc/versions/",
+                  "title": "Python documentation by version",
+                  "snippet": "",
+                  "hostname": "",
+                  "hostlogo": "",
+                  "date": ""
+                }
+              ],
+              "used_id": 56,
+              "tool_call_metrics": {},
+              "tool_observation": ""
+            },
+            "web_search_info": [
+              {
+                "url": "https://www.python.org/downloads/source/",
+                "title": "Python Source Releases",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/windows/",
+                "title": "Python Releases for Windows",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/android/",
+                "title": "Python Releases for Android",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/ios/",
+                "title": "Python Releases for iOS",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://iw3.math.rutgers.edu/solutions/README.Solutions.html",
+                "title": "Installation of Python version of Solutions Client programs",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://realpython.com/installing-python/",
+                "title": "How to Install Python on Your System: A Guide",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "Feb 18, 2026"
+              },
+              {
+                "url": "https://www.coursehero.com/file/220558777/Python-Releases-for-macOS-Pythonorgpdf/",
+                "title": "Latest Python 3 Releases for macOS - Download Now!",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "Jun 12, 2023"
+              },
+              {
+                "url": "https://www.facebook.com/groups/python/posts/1373012243539336/",
+                "title": "where can i download python for windows 7?",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "3 years ago"
+              },
+              {
+                "url": "https://www.quora.com/How-do-I-install-Python-3-6-on-a-Mac",
+                "title": "How do I install Python 3.6 on a Mac?",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": "5 years ago"
+              },
+              {
+                "url": "https://github.com/ScoopInstaller/Main/blob/master/bucket/python.json",
+                "title": "Main/bucket/python.json at master · ScoopInstaller/Main",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3140/",
+                "title": "Python Release Python 3.14.0",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3146/",
+                "title": "Python Release Python 3.14.6",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/source/",
+                "title": "Python Source Releases",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/windows/",
+                "title": "Python Releases for Windows",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3147/",
+                "title": "Python Release Python 3.14.7",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/latest/python3.14/",
+                "title": "Python Release Python 3.14.8",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/",
+                "title": "Download Python",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/downloads/release/python-3145/",
+                "title": "Python Release Python 3.14.5",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              },
+              {
+                "url": "https://www.python.org/doc/versions/",
+                "title": "Python documentation by version",
+                "snippet": "",
+                "hostname": "",
+                "hostlogo": "",
+                "date": ""
+              }
+            ],
+            "display_position": "think"
+          },
+          "function_id": "function_id"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {},
+    "timestamp": 1791066540
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "I am verifying the latest stable Python release through a live web search."
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I consulted the official Python downloads page to identify the current version as 3.14.8.\nThis approach ensures accuracy by relying on real-time data rather than internal knowledge.\nI will now present this verified information along with its source."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 140,
+      "characters": 0,
+      "total_tokens": 6721,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 138,
+        "text_tokens": 140
+      }
+    },
+    "timestamp": 1791066543
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "I am verifying the latest stable Python release through a live web search."
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I consulted the official Python downloads page to identify the current version as 3.14.8.\nThis approach ensures accuracy by relying on real-time data rather than internal knowledge.\nI will now present this verified information along with its source."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 229,
+      "characters": 0,
+      "total_tokens": 6810,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 229
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "Based on a live",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 229,
+      "characters": 0,
+      "total_tokens": 6810,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 229
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " web search of the",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 233,
+      "characters": 0,
+      "total_tokens": 6814,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 233
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " official Python website,",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 237,
+      "characters": 0,
+      "total_tokens": 6818,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 237
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " the latest stable",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 240,
+      "characters": 0,
+      "total_tokens": 6821,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 240
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " Python release listed on",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 244,
+      "characters": 0,
+      "total_tokens": 6825,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 244
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " the downloads page is",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 248,
+      "characters": 0,
+      "total_tokens": 6829,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 248
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " **Python 3",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 252,
+      "characters": 0,
+      "total_tokens": 6833,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 252
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": ".14.",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 256,
+      "characters": 0,
+      "total_tokens": 6837,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 256
+      }
+    },
+    "timestamp": 1791066544
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "8** [[3",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 260,
+      "characters": 0,
+      "total_tokens": 6841,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 260
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "7]]. \n\nThis",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 264,
+      "characters": 0,
+      "total_tokens": 6845,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 264
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " version",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 265,
+      "characters": 0,
+      "total_tokens": 6846,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 265
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " is prominently displayed as",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 269,
+      "characters": 0,
+      "total_tokens": 6850,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 269
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " the \"Latest Python",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 273,
+      "characters": 0,
+      "total_tokens": 6854,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 273
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " 3 Release\"",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 277,
+      "characters": 0,
+      "total_tokens": 6858,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 277
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " across the official download",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 281,
+      "characters": 0,
+      "total_tokens": 6862,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 281
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " pages for Windows,",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 285,
+      "characters": 0,
+      "total_tokens": 6866,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 285
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " macOS",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 286,
+      "characters": 0,
+      "total_tokens": 6867,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 286
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": ", source code,",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 290,
+      "characters": 0,
+      "total_tokens": 6871,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 290
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " and mobile",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 292,
+      "characters": 0,
+      "total_tokens": 6873,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 292
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " platforms [[38",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 296,
+      "characters": 0,
+      "total_tokens": 6877,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 296
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "]]. \n\n**Source",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 300,
+      "characters": 0,
+      "total_tokens": 6881,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 300
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": ":** [Python.org",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 304,
+      "characters": 0,
+      "total_tokens": 6885,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 304
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " Official Downloads Page](",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 308,
+      "characters": 0,
+      "total_tokens": 6889,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 308
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "https://www",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 311,
+      "characters": 0,
+      "total_tokens": 6892,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 311
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": ".python.org/downloads/)",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 315,
+      "characters": 0,
+      "total_tokens": 6896,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 315
+      }
+    },
+    "timestamp": 1791066545
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 315,
+      "characters": 0,
+      "total_tokens": 6896,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 315
+      }
+    },
+    "timestamp": 1791066546
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 6581,
+      "output_tokens": 315,
+      "characters": 0,
+      "total_tokens": 6896,
+      "input_tokens_details": {
+        "text_tokens": 6581
+      },
+      "output_tokens_details": {
+        "reasoning_tokens": 220,
+        "text_tokens": 315
+      }
+    },
+    "timestamp": 1791066546
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "content": "",
+          "role": "assistant",
+          "status": "finished",
+          "phase": "answer"
+        }
+      }
+    ],
+    "response_id": "response_id"
+  }
+]

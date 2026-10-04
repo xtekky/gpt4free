@@ -1,0 +1,704 @@
+[
+  {
+    "response.created": {
+      "chat_id": "chat_id",
+      "parent_id": "parent_id",
+      "response_id": "response_id",
+      "response_index": "0"
+    }
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Modifying the generated image to replace the blue circle with a red square."
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I will apply this specific change while ensuring the white background remains unchanged.\nThe adjustment is focused solely on altering the shape and color of the central element.\nThis approach maintains the overall composition while fulfilling the requested visual update."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 44,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2225,
+      "output_tokens_details": {
+        "reasoning_tokens": 44,
+        "text_tokens": 0
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "Modifying the generated image to replace the blue circle with a red square."
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "I will apply this specific change while ensuring the white background remains unchanged.\nThe adjustment is focused solely on altering the shape and color of the central element.\nThis approach maintains the overall composition while fulfilling the requested visual update."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "typing",
+          "function_call": {
+            "name": "image_edit",
+            "arguments": "{}"
+          },
+          "function_id": "function_id",
+          "extra": {}
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 2181,
+      "output_tokens": 97,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 1510,
+        "text_tokens": 671
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 2278,
+      "output_tokens_details": {
+        "reasoning_tokens": 85,
+        "text_tokens": 11
+      },
+      "image_tokens": 1510
+    },
+    "timestamp": 1791066414
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "function",
+          "content": "",
+          "phase": "image_edit_tool",
+          "status": "finished",
+          "name": "image_edit",
+          "extra": {
+            "function_id": "function_id",
+            "tool_result": [
+              {
+                "image": "https://example.com/display.png"
+              }
+            ],
+            "image_list": [
+              {
+                "image": "https://example.com/display.png"
+              }
+            ],
+            "display_position": "answer"
+          },
+          "function_id": "function_id"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {},
+    "timestamp": 1791066420
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "extra": {
+            "summary_title": {
+              "content": [
+                "I have completed the requested image modification."
+              ]
+            },
+            "summary_thought": {
+              "content": [
+                "The blue circle has been successfully replaced with a red square while preserving the original white background.\nThis adjustment aligns precisely with your specified requirements for color and shape changes.\nThe task is now finalized and ready for your review."
+              ]
+            }
+          },
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 62,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 3985,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 7
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "thinking_summary",
+          "status": "finished"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "I've successfully edited the",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 62,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 3985,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 7
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " image! The blue circle has been replaced with a red square",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 74,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 3997,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 19
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": ", and the white background has been maintained. The",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 84,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 4007,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 29
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " red square is centered in the image, similar",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 93,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 4016,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 38
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " to how the blue circle was positioned. Let me know if",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 105,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 4028,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 50
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": " you need any further adjustments!",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 112,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 4035,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 57
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "role": "assistant",
+          "content": "",
+          "phase": "answer",
+          "status": "typing"
+        }
+      }
+    ],
+    "response_id": "response_id",
+    "usage": {
+      "input_tokens": 3923,
+      "output_tokens": 112,
+      "characters": 0,
+      "input_tokens_details": {
+        "image_tokens": 3020,
+        "text_tokens": 903
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 1152
+      },
+      "total_tokens": 4035,
+      "output_tokens_details": {
+        "reasoning_tokens": 54,
+        "text_tokens": 57
+      },
+      "image_tokens": 3020
+    },
+    "timestamp": 1791066424
+  },
+  {
+    "choices": [
+      {
+        "delta": {
+          "content": "",
+          "role": "assistant",
+          "status": "finished",
+          "phase": "answer"
+        }
+      }
+    ],
+    "response_id": "response_id"
+  }
+]

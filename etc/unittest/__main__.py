@@ -19,6 +19,9 @@ from .mcp import *
 from .tool_support_provider import *
 from .config_provider import *
 from .test_gemini import *
+from .test_qwen_stream import *
+from .test_qwen_auth import *
+from .test_qwen_guest import *
 from .test_deepseek_chunk_log import *
 # from .test_deepseek_stream import *
 from .test_deepseek_upload import *
