@@ -395,8 +395,10 @@ class ProviderLoader:
             cls.loaded[name].headers = {
                 "Content-Type": "application/json",
                 "User-Agent": "opencode/1.18.31 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
-                "x-session-affinity": f"ses_{int(time.time())}",
-                "x-session-id": f"ses_{int(time.time())}",
+                "x-opencode-client": "cli",
+                "x-opencode-project": "global",
+                "x-opencode-session": f"ses_{int(time.time())}",
+                "x-opencode-request": f"msg_{int(time.time())}",
             }
             return cls.loaded[name]
 
@@ -537,7 +539,7 @@ class ProviderLoader:
         else:
             raise ImportError(f"Provider '{name}' not found")
 
-__all__ = __others__ +ProviderLoader.names
+__all__ = __others__ + ProviderLoader.names + ProviderLoader.extra
 
 def __getattr__(name: str):
     if name == "__providers__":

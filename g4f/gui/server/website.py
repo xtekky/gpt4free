@@ -51,7 +51,15 @@ def render(filename="home", download_url: str = GITHUB_URL):
                 return html.replace("{{ v }}", str(latest_version))
             # Web app manifests must be re-fetched promptly, otherwise
             # installability checks keep using a stale cached manifest.
-            max_age = 0 if path.endswith((".webmanifest", ".json")) else 31536000
+            # JS/CSS also revalidate (max-age=0 + ETag 304s): a 1-year cache
+            # pins stale modules after updates, since the ?v= cache-bust
+            # parameter is static for addon modules.
+            if path.endswith((".webmanifest", ".json")):
+                max_age = 0
+            elif path.endswith((".js", ".css")):
+                max_age = 0
+            else:
+                max_age = 31536000
             return send_from_directory(
                 os.path.dirname(path), os.path.basename(path), max_age=max_age
             )
