@@ -9,15 +9,17 @@ import os
 import re
 import uuid
 from time import time
-from typing import Literal, Optional, Dict
-from urllib.parse import quote
+from typing import Any, Dict, Literal, Mapping, Optional, Union
+from urllib.parse import quote, urlparse
+from http.cookies import SimpleCookie
 
-import aiohttp
+from aiohttp import ClientSession
 
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 from .openai.har_file import get_har_files
 from .qwen.cookie_generator import generate_cookies
+from .qwen.session import QwenAuth, cached_auth
 from .. import debug
 from ..cookies import get_cookies_dir
 from ..errors import MissingAuthError, RateLimitError, ResponseError, CloudflareError
@@ -263,6 +265,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
 
     _har_cookies: Optional[dict] = None
     _har_headers: Optional[dict] = None
+    _har_cookie_records: Optional[list] = None
+    _har_from_browser: bool = True
     _har_loaded_at: float = 0.0
     _HAR_TTL: float = 600.0
     _HAR_HEADERS_WHITELIST = [
@@ -280,13 +284,19 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         "version",
         "source",
         "timezone",
+        "authorization",
     ]
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
         if not cls._models_loaded and has_curl_cffi:
             _token = kwargs.get("token") or kwargs.get("api_key")
-            headers = cls._get_headers(_token) if _token else {}
+            auth = kwargs.get("auth_session")
+            # The site's public models route does not trigger an auth refresh.
+            if isinstance(auth, QwenAuth):
+                headers = auth.request_headers(cls._get_headers(use_har=False), f"{cls.url}/api/models")
+            else:
+                headers = cls._get_headers(_token) if _token else {}
             response = curl_cffi.get(f"{cls.url}/api/models", headers=headers)
             if response.ok:
                 models = response.json().get("data", [])
@@ -326,7 +336,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    async def prepare_files(cls, media, session: StreamSession, headers=None) -> list:
+    async def prepare_files(cls, media, session: StreamSession, headers=None, auth=None, proxy=None) -> list:
         if headers is None:
             headers = {}
         files = []
@@ -347,23 +357,17 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             file_size = len(data_bytes)
 
             # Get File Url
-            async with session.post(
-                f"{cls.url}/api/v2/files/getstsToken",
-                json={
+            res_data = await cls._api_json(
+                session, "post", f"{cls.url}/api/v2/files/getstsToken", auth,
+                headers=headers, proxy=proxy, json={
                     "filename": file_name,
                     "filesize": file_size,
                     "filetype": file_type,
                 },
-                headers=headers,
-            ) as r:
-                await raise_for_status(r, "Create file failed")
-                res_data = await r.json()
-                data = res_data.get("data")
-
-                if res_data["success"] is False:
-                    raise RateLimitError(f"{data['code']}:{data['details']}")
-                file_url = data.get("file_url")
-                file_id = data.get("file_id")
+            )
+            data = res_data.get("data") or {}
+            file_url = data.get("file_url")
+            file_id = data.get("file_id")
 
             # Put File into Url
             str_date = datetime.datetime.now(datetime.timezone.utc).strftime(
@@ -468,9 +472,10 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         (cookies, headers) or (None, None) if no matching HAR file exists.
         """
         now = time()
-        if cls._har_cookies is not None and now - cls._har_loaded_at < cls._HAR_TTL:
+        if (cls._har_cookies is not None or cls._har_headers is not None) and (cls._har_from_browser or now - cls._har_loaded_at < cls._HAR_TTL):
             return cls._har_cookies, cls._har_headers
         cls._har_cookies = cls._har_headers = None
+        cls._har_cookie_records = None
         cls._har_loaded_at = now
         try:
             har_files = [
@@ -488,160 +493,157 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             except (OSError, json.JSONDecodeError) as e:
                 debug.log(f"[Qwen] Failed to read HAR file {path}: {e}")
                 continue
-            best_entry, best_score = None, 0
-            for entry in har.get("log", {}).get("entries", []):
-                url = entry.get("request", {}).get("url", "")
-                if "chat.qwen.ai" not in url:
+            best_entry, credential_entry, best_score = None, None, -1
+            for entry in reversed(har.get("log", {}).get("entries", [])):
+                request = entry.get("request", {})
+                url = request.get("url", "")
+                target = urlparse(url)
+                if target.scheme != "https" or target.hostname not in ("chat.qwen.ai", "auth.qwen.ai"):
                     continue
-                score = (
-                    2
-                    if "chat/completions" in url
-                    else (1 if "/api/v2/" in url else 0)
-                )
+                # Fingerprint headers can be richest on a completion request,
+                # while a later auth/API request holds the current credentials.
+                if credential_entry is None:
+                    cookie_header = SimpleCookie()
+                    authorization = ""
+                    for header in request.get("headers", []):
+                        name, value = header.get("name", "").lower(), header.get("value", "")
+                        if name == "cookie":
+                            cookie_header.load(value)
+                        elif name == "authorization":
+                            authorization = value
+                    if (authorization.lower().startswith("bearer ")
+                            or "refresh_token" in cookie_header
+                            or any(c.get("name") == "refresh_token" for c in request.get("cookies", []))):
+                        credential_entry = entry
+                score = 2 if "chat/completions" in url else (1 if "/api/v2/" in url else 0)
                 if score > best_score:
                     best_entry, best_score = entry, score
             if best_entry is None:
                 continue
-            cookies = {}
-            headers = {}
-            for header in best_entry["request"].get("headers", []):
-                name = header.get("name", "")
-                value = header.get("value", "")
-                lower = name.lower()
-                if lower == "cookie":
-                    for part in value.split(";"):
-                        part = part.strip()
-                        if "=" in part:
-                            key, val = part.split("=", 1)
-                            cookies[key.strip()] = val.strip()
-                elif lower in cls._HAR_HEADERS_WHITELIST and not name.startswith(":"):
+            # Keep the token and cookies from the same request/account snapshot.
+            auth_request = (credential_entry or best_entry)["request"]
+            records = auth_request.get("cookies", [])
+            cookies = {c["name"]: c["value"] for c in records if c.get("name") and isinstance(c.get("value"), str)}
+            headers = {
+                h["name"]: h.get("value", "")
+                for h in best_entry["request"].get("headers", [])
+                if h.get("name", "").lower() in cls._HAR_HEADERS_WHITELIST
+                and h["name"].lower() != "authorization"
+            }
+            for header in auth_request.get("headers", []):
+                name, value = header.get("name", ""), header.get("value", "")
+                if name.lower() == "cookie":
+                    parsed = SimpleCookie()
+                    parsed.load(value)
+                    cookies.update({k: v.value for k, v in parsed.items()})
+                elif name.lower() == "authorization":
                     headers[name] = value
-            if cookies:
+            if cookies or any(name.lower() == "authorization" for name in headers):
                 debug.log(
                     f"[Qwen] Using {len(cookies)} cookies and {len(headers)} fingerprint headers from HAR file: {os.path.basename(path)}"
                 )
                 cls._har_cookies = cookies
                 cls._har_headers = headers
+                cls._har_cookie_records = [
+                    c for c in records if c.get("name") and isinstance(c.get("value"), str)
+                ] + [dict(name=k, value=v) for k, v in cookies.items() if k not in {c.get("name") for c in records}]
                 return cookies, headers
             debug.log(f"[Qwen] No cookies found in HAR file: {os.path.basename(path)}")
         return None, None
 
     @classmethod
-    async def _read_cdp(cls, proxy: str = None) -> tuple[dict, dict]:
-        """Capture cookies and fingerprint headers from a live browser via CDP.
-
-        Opens chat.qwen.ai in a visible browser window, sends a seed message
-        and intercepts the browser's own "/api/v2/chats/new" or
-        "/api/v2/chat/completions" request to copy its baxia fingerprint
-        headers (bx-ua, bx-umidtoken) and cookies. Intercepted requests are
-        continued, so the chat the user sees completes normally.
-        """
-        from ..requests.cdp import CDPSession
-
-        async with CDPSession(proxy=proxy, headless=False) as session:
-            await session.call("Network.enable")
-            await session.call(
-                "Fetch.enable",
-                patterns=[{"urlPattern": "*chat.qwen.ai/api/v2/*", "requestStage": "Request"}],
-            )
-            await session.navigate(cls.url)
-            # Guest mode shows the composer right away; waiting also covers
-            # logins, captchas and slow loads (up to 5 minutes).
-            deadline = time() + 300
-            while not await session.evaluate_js("!!document.querySelector('#chat-input, textarea')"):
-                if time() > deadline:
-                    raise MissingAuthError(
-                        "[Qwen] chat composer not found in the browser window in time"
-                    )
-                await asyncio.sleep(2)
-            debug.log("[Qwen] Composer detected — sending a seed message")
-            await session.evaluate_js("""
-                (() => {
-                    const editor = document.querySelector('#chat-input, textarea');
-                    editor.focus();
-                    document.execCommand('insertText', false, 'Hello');
-                })()
-            """)
-            await asyncio.sleep(1)
-            sent = await session.evaluate_js("""
-                (() => {
-                    const button = document.querySelector('#send-message-button');
-                    if (button) { button.click(); return true; }
-                    return false;
-                })()
-            """)
-            if not sent:
-                await session.evaluate_js("""
-                    const editor = document.querySelector('#chat-input, textarea');
-                    editor.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true}));
-                """)
-            # Capture the browser's own chat request (up to 2 minutes).
-            # A queue (not wait_for_event) so requests paused while another
-            # one is processed are never lost.
-            queue: asyncio.Queue = asyncio.Queue()
-            session.add_event_handler("Fetch.requestPaused", queue)
-            headers = None
-            deadline = time() + 120
-            while headers is None:
-                try:
-                    paused = await asyncio.wait_for(queue.get(), timeout=30)
-                except asyncio.TimeoutError:
-                    if time() > deadline:
-                        raise MissingAuthError("[Qwen] no chat request captured in the browser")
-                    # The first send may have been blocked by a captcha —
-                    # retry it while the user completes the challenge.
-                    await session.evaluate_js("""
-                        (() => {
-                            const button = document.querySelector('#send-message-button');
-                            if (button) button.click();
-                        })()
-                    """)
-                    continue
-                request = paused.get("request") or {}
-                url = request.get("url", "")
-                found = {
-                    key: value for key, value in (request.get("headers") or {}).items()
-                    if not key.startswith(":")
-                }
-                # Let the browser request pass so the visible chat completes.
-                await session.call("Fetch.continueRequest", requestId=paused.get("requestId"))
-                if "/api/v2/chats/new" in url or "/api/v2/chat/completions" in url:
-                    headers = found
-            # Resume requests paused while no one was listening anymore.
-            await session.call("Fetch.disable")
-            cookies = await session.get_cookies([f"{cls.url}/"])
-        return cookies, {
-            name: value for name, value in headers.items()
-            if name.lower() in cls._HAR_HEADERS_WHITELIST
-        }
+    async def _read_browser_fingerprint(cls, session, timeout: float = 30) -> dict:
+        """Read initialized Baxia/Fireye SDK values without submitting a chat."""
+        request_url = json.dumps(f"{cls.url}/api/v2/chat/completions")
+        expression = """(async () => {
+            const sdk = window.baxiaCommon;
+            if (!window.baxiaInitialized || typeof sdk?.getUA !== 'function') return null;
+            try {
+                const ua = await sdk.getUA(REQUEST_URL);
+                const valid = value => typeof value === 'string'
+                    && value.length > 0 && !/^default/i.test(value);
+                if (!valid(ua)) return null;
+                const headers = {'bx-ua': ua};
+                if (valid(sdk.version)) headers['bx-v'] = sdk.version;
+                return headers;
+            } catch { return null; }
+        })()""".replace('REQUEST_URL', request_url)
+        deadline = time() + timeout
+        while time() < deadline:
+            headers = await session.evaluate_js(expression)
+            ua = headers.get('bx-ua') if isinstance(headers, dict) else None
+            if isinstance(ua, str) and ua and not ua.lower().startswith('default'):
+                return {k: v for k, v in headers.items()
+                        if k in ('bx-ua', 'bx-v') and isinstance(v, str)}
+            await asyncio.sleep(0.2)
+        raise MissingAuthError("Qwen browser fingerprint SDK was not ready in time.")
 
     @classmethod
-    async def _ensure_auth(cls, proxy: str = None, force_cdp: bool = False) -> None:
+    async def _read_cdp(cls, proxy: str = None) -> tuple[dict, dict]:
+        """Read the current account or guest browser session without creating a chat."""
+        from ..requests.cdp import CDPSession
+
+        async with CDPSession(proxy=proxy) as session:
+            await session.navigate(cls.url)
+            deadline = time() + 300
+            while time() < deadline:
+                # Both guests and signed-in users have a visible composer.
+                # Account credentials are read from the refresh cookie below.
+                if await session.evaluate_js(
+                    """(() => {
+                        const editor = document.querySelector('#chat-input, textarea');
+                        return !!editor && editor.getClientRects().length > 0
+                            && getComputedStyle(editor).visibility !== 'hidden';
+                    })()"""
+                ):
+                    debug.log("[Qwen] Browser interface is ready for session capture.")
+                    break
+                await asyncio.sleep(2)
+            else:
+                raise MissingAuthError("Qwen browser session was not ready in time.")
+            headers = await cls._read_browser_fingerprint(session)
+            # SDK initialization can update cookies. Capture its completed state
+            # from the same browser session without subscribing to network events.
+            records = await session.get_cookies_list([cls.url + '/', 'https://auth.qwen.ai/'])
+            cls._har_cookie_records = records
+            cookies = {c['name']: c['value'] for c in records}
+        return cookies, headers
+
+    @classmethod
+    async def _ensure_auth(cls, proxy: str = None, force_cdp: bool = False, persist: bool = False) -> None:
         """Populate the auth cache from a HAR file, falling back to a live
         browser capture via CDP. Generated cookies are used when both fail.
-        Captured data is saved as a HAR file for reuse across restarts."""
-        cookies, _ = (None, None) if force_cdp else cls._read_har()
-        if cookies:
+        Captured data stays in memory unless persistence is explicitly requested."""
+        cookies, headers = (None, None) if force_cdp else cls._read_har()
+        if cookies or headers:
             return
         if not has_cdp:
+            if force_cdp:
+                raise MissingAuthError("Qwen browser login requires an available CDP browser.")
             debug.log("[Qwen] No HAR file found and no CDP browser available — using generated cookies")
             return
         try:
             debug.log(
                 "[Qwen] Capturing headers and cookies from a CDP browser"
-                " — complete the login or captcha in the browser window"
+                " — waiting for the account or guest interface to be ready"
             )
             cookies, headers = await cls._read_cdp(proxy)
+        except MissingAuthError:
+            raise
         except Exception as e:
+            if force_cdp:
+                raise MissingAuthError("The Qwen browser session could not be read.") from e
             debug.log(f"[Qwen] CDP capture failed: {type(e).__name__}: {e} — using generated cookies")
             return
         cls._har_cookies = cookies
         cls._har_headers = headers
         cls._har_loaded_at = time()
-        cls._save_auth_har(cookies, headers)
+        cls._har_from_browser = True
+        if persist:
+            cls._save_auth_har(cookies, headers)
 
     @classmethod
-    def _save_auth_har(cls, cookies: dict, headers: dict) -> None:
+    def _save_auth_har(cls, cookies: dict, headers: dict, cookie_records=None) -> None:
         """Persist captured auth data as a HAR file in the cookies dir so it
         survives restarts (newest HAR file wins in `_read_har`)."""
         try:
@@ -661,6 +663,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 "method": "POST",
                                 "url": f"{cls.url}/api/v2/chat/completions?chat_id=captured",
                                 "headers": entry_headers,
+                                "cookies": cookie_records if cookie_records is not None else cls._har_cookie_records or [],
                             },
                             "response": {"status": 200},
                         }
@@ -675,8 +678,8 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             debug.log(f"[Qwen] Failed to save auth HAR file: {e}")
 
     @classmethod
-    def _get_headers(cls, token=None):
-        har_cookies, har_headers = (None, None) if token else cls._read_har()
+    def _get_headers(cls, token=None, use_har=True):
+        har_cookies, har_headers = (None, None) if token or not use_har else cls._read_har()
         if har_cookies:
             cookie = "; ".join(f"{key}={value}" for key, value in har_cookies.items())
         else:
@@ -714,6 +717,94 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         return headers
 
     @classmethod
+    async def _auth_context(cls, proxy=None, **kwargs):
+        """Resolve one credential source; never combine an explicit key with a HAR account."""
+        auth = kwargs.get("auth_session")
+        token = kwargs.get("token") or kwargs.get("api_key")
+        refresh = kwargs.get("refresh_token")
+        explicit = token or refresh is not None or kwargs.get("cookies") is not None
+        # Automatic calls reuse HAR/in-memory credentials before opening CDP.
+        # Explicit use_browser=True still requests a fresh browser capture.
+        use_browser = kwargs.get("use_browser", False)
+        persist = kwargs.get("persist_auth", auth is None and not explicit)
+        if auth is not None:
+            if not isinstance(auth, QwenAuth):
+                raise TypeError("auth_session must be a QwenAuth instance")
+            if explicit or use_browser:
+                raise ValueError("Pass auth_session alone, without other login credentials")
+            headers = cls._get_headers(use_har=False)
+            headers.update(auth.fingerprint)
+        else:
+            if use_browser:
+                if explicit:
+                    raise ValueError("use_browser cannot be combined with explicit login credentials")
+                await cls._ensure_auth(proxy, force_cdp=True, persist=persist)
+            elif not explicit:
+                await cls._ensure_auth(proxy, persist=persist)
+            headers = cls._get_headers(token) if token or not explicit else cls._get_headers(use_har=False)
+            if explicit:
+                cookies = kwargs.get("cookies") or {}
+            else:
+                parsed = SimpleCookie()
+                parsed.load(next((v for k, v in headers.items() if k.lower() == "cookie"), ""))
+                cookies = cls._har_cookie_records if parsed and cls._har_cookie_records else {k: v.value for k, v in parsed.items()}
+                bearer = next((v for k, v in headers.items() if k.lower() == "authorization"), "")
+                if bearer.lower().startswith("bearer "):
+                    token = bearer[7:]
+            supplied_headers = kwargs.get("headers") or {}
+            headers.update({k: v for k, v in supplied_headers.items() if k.lower() in cls._HAR_HEADERS_WHITELIST and k.lower() != "authorization"})
+            auth = cached_auth(token, refresh, cookies, headers, proxy)
+        if persist:
+            def save_updated(updated):
+                records = updated.get_cookies()
+                saved_headers = dict(updated.fingerprint)
+                if updated.access_token:
+                    saved_headers["Authorization"] = f"Bearer {updated.access_token}"
+                cls._save_auth_har({c["name"]: c["value"] for c in records}, saved_headers, records)
+            auth.on_update = save_updated
+        else:
+            auth.on_update = None
+        # Per-request credentials keep Bearer tokens away from upload/anti-bot hosts.
+        return auth, {k: v for k, v in headers.items() if k.lower() not in ("authorization", "cookie")}
+
+    @classmethod
+    async def _api_json(
+        cls, session: Union[StreamSession, ClientSession],
+        method: Literal["get", "post"], url: str,
+        auth: Optional[QwenAuth] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        proxy: Optional[str] = None, **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Read JSON, refreshing rejected credentials at most once."""
+        kwargs.setdefault("allow_redirects", False)
+        headers = dict(session.headers if headers is None else headers)
+        for attempt in range(2):
+            if auth:
+                await auth.ensure_valid(session, proxy)
+            token = auth.access_token if auth else None
+            request_headers = auth.request_headers(headers, url) if auth else headers
+            try:
+                async with getattr(session, method)(url, headers=request_headers, proxy=proxy, **kwargs) as response:
+                    if auth:
+                        auth.update_cookies(response, url)
+                    await cls.raise_for_status(response)
+                    try:
+                        payload = await response.json()
+                    except ValueError as error:
+                        raise ResponseError("Qwen returned invalid JSON") from error
+                    if not isinstance(payload, dict):
+                        raise ResponseError("Unexpected Qwen JSON response: expected an object")
+                    cls._check_baxia_response(payload)
+                    if payload.get("success") is False or payload.get("error"):
+                        cls._raise_api_error(payload.get("error") or payload.get("data") or payload)
+                    return payload
+            except MissingAuthError:
+                if attempt == 1 or not auth or not auth.can_refresh:
+                    raise
+                await auth.ensure_valid(session, proxy, rejected_token=token, recover=True)
+        raise MissingAuthError("Qwen authentication failed after two attempts")
+
+    @classmethod
     async def _get_req_headers(cls, session, proxy=None):
         req_headers = session.headers.copy()
         if not any(name.lower() == "bx-umidtoken" for name in req_headers):
@@ -737,37 +828,32 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.log(f"[Qwen] INFO: Reusing midtoken. Use count: {cls._midtoken_uses}")
 
             req_headers["bx-umidtoken"] = cls._midtoken
-            req_headers["bx-v"] = "2.5.37"
+            req_headers.setdefault("bx-v", "2.5.37")
         else:
-            debug.log("[Qwen] INFO: Using bx-umidtoken from HAR file.")
+            debug.log("[Qwen] INFO: Using bx-umidtoken from the current session.")
         # fix error [g4f.errors.CloudflareError:aliyun_waf_aa]
         req_headers["x-request-id"] = str(uuid.uuid4())
         return req_headers
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None, **kwargs) -> dict:
-        token = kwargs.get("token") or api_key
-        if not token:
-            await cls._ensure_auth(kwargs.get("proxy"))
-        async with StreamSession(
-            headers=cls._get_headers(token)
-        ) as session:
+        proxy = kwargs.pop("proxy", None)
+        auth, headers = await cls._auth_context(proxy, api_key=api_key, **kwargs)
+        async with StreamSession(headers=headers) as session:
+            await auth.ensure_valid(session, proxy)
             chat_payload = {
                 "chatId": "",
                 "models": [cls.default_model],
                 "project_id": "",
-                "chat_mode": "normal" if token else "guest",
+                "chat_mode": "normal" if auth.authenticated else "guest",
                 "chat_type": "t2t",
                 "timestamp": int(time() * 1000),
             }
-            async with session.post(
-                f"{cls.url}/api/v2/chats/new",
+            return await cls._api_json(
+                session, "post", f"{cls.url}/api/v2/chats/new", auth,
                 json=chat_payload,
-                headers=await cls._get_req_headers(session, proxy=kwargs.get("proxy")),
-                proxy=kwargs.get("proxy"),
-            ) as resp:
-                await cls.raise_for_status(resp)
-                return await resp.json()
+                headers=await cls._get_req_headers(session, proxy=proxy), proxy=proxy,
+            )
 
     @staticmethod
     def _image_urls(value) -> list[str]:
@@ -791,6 +877,20 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         return []
 
     @classmethod
+    def _check_baxia_response(cls, payload):
+        codes = payload.get("ret")
+        if isinstance(codes, list) and any(
+            isinstance(code, str) and any(marker in code for marker in ("FAIL_SYS_USER_VALIDATE", "RGV587_ERROR"))
+            for code in codes
+        ):
+            # Baxia uses HTTP 200 with a ret/data envelope. Its challenge URL
+            # contains session data and must not be included in an exception.
+            raise CloudflareError(
+                "Qwen browser verification is required (FAIL_SYS_USER_VALIDATE / RGV587_ERROR); "
+                "complete verification in the browser before submitting again."
+            )
+
+    @classmethod
     def _raise_api_error(cls, error):
         if isinstance(error, dict):
             code = str(error.get("code") or error.get("errorCode") or "QwenError")
@@ -799,7 +899,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             code = "QwenError"
             message = str(error)
-        if code.lower() in ("unauthorized", "401"):
+        if code.lower() in ("unauthorized", "invalid token", "401"):
             raise MissingAuthError(message)
         if code in ("RateLimited", "ParallelLimited", "quotaLimited", "429", "402") or re.search(
             r"\b(?:RateLimited|ParallelLimited|quotaLimited)\b", message
@@ -816,6 +916,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             payload = await response.json()
             if not isinstance(payload, dict):
                 raise ResponseError(f"Unexpected Qwen response: {payload}")
+            cls._check_baxia_response(payload)
             data = payload.get("data")
             if payload.get("success") is False or (
                 isinstance(data, dict) and data.get("code")
@@ -1015,6 +1116,18 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
             VideoGeneration = "t2v"
             Txt2Txt = "t2t"
             WebDev = "web_dev"
+
+        Login options (keyword arguments):
+            token / api_key: an access token; expires without a refresh credential.
+            refresh_token: renew access tokens automatically with this account's cookie.
+            cookies: cookie dict or browser/HAR cookie records, from the same account.
+            auth_session: a reusable QwenAuth instance; do not mix credential sources.
+            use_browser: True forces a fresh CDP capture; the default reuses a HAR
+                or cached session and opens CDP only when no saved session exists.
+                Browser capture never sends a seed chat.
+            persist_auth: defaults to True for automatic credential lookup, saving
+                browser captures and refreshed credentials for subsequent calls.
+                Explicit credentials/auth_session require opting in to persistence.
         """
         model_name = cls.get_model(model)
         prompt = get_last_user_message(messages)
@@ -1029,58 +1142,41 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
         enable_thinking = thinking_mode != "Fast"
         auto_thinking = thinking_mode == "Auto"
         timeout = kwargs.get("timeout") or 5 * 60
-        token = kwargs.get("token") or kwargs.get("api_key")
-        if not token:
-            await cls._ensure_auth(proxy)
-        async with StreamSession(headers=cls._get_headers(token)) as session:
-            if token:
-                async with session.get(
-                    "https://chat.qwen.ai/api/v1/auths/", proxy=proxy
-                ) as user_info_res:
-                    await cls.raise_for_status(user_info_res)
-                    user_info = await user_info_res.json()
-                    if user_info.get("success") is False or user_info.get("error"):
-                        cls._raise_api_error(
-                            user_info.get("error") or user_info.get("data") or user_info
-                        )
-                    debug.log("[Qwen] Authenticated session verified.")
-            for attempt in range(5):
-                try:
+        auth, base_headers = await cls._auth_context(proxy, **kwargs)
+        media = list(merge_media(media, messages))
+        for guest_attempt in range(2):
+            emitted = False
+            try:
+                async with StreamSession(headers=base_headers) as session:
+                    await auth.ensure_valid(session, proxy)
+                    if auth.authenticated:
+                        await cls._api_json(session, 'get', f'{cls.url}/api/v1/auths/', auth, proxy=proxy, timeout=30)
+                        debug.log("[Qwen] Authenticated session verified.")
                     req_headers = await cls._get_req_headers(session, proxy=proxy)
                     message_id = str(uuid.uuid4())
                     now = int(time() * 1000)
-                    chat_mode = "normal" if token else "guest"
+                    chat_mode = "normal" if auth.authenticated else "guest"
+                    if conversation is not None and not auth.authenticated:
+                        for name, value in (getattr(conversation, "cookies", None) or {}).items():
+                            if name != "refresh_token":
+                                auth._set_cookie(dict(name=name, value=value, domain="chat.qwen.ai"))
                     if conversation is None:
-                        chat_payload = {
-                            "chatId": "",
-                            "models": [model_name],
-                            "project_id": "",
-                            "chat_type": chat_type,
-                            "chat_mode": chat_mode,
-                            "timestamp": now,
-                        }
-                        async with session.post(
-                            f"{cls.url}/api/v2/chats/new",
-                            json=chat_payload,
-                            headers=req_headers,
-                            proxy=proxy,
-                        ) as resp:
-                            await cls.raise_for_status(resp)
-                            data = await resp.json()
-                            chat_data = data.get("data") or {}
-                            if not (data.get("success") and chat_data.get("id")):
-                                cls._raise_api_error(data.get("error") or chat_data or data)
+                        data = await cls._api_json(
+                            session, 'post', f'{cls.url}/api/v2/chats/new', auth,
+                            headers=req_headers, proxy=proxy, json={
+                                "chatId": "", "models": [model_name], "project_id": "",
+                                "chat_type": chat_type, "chat_mode": chat_mode, "timestamp": now,
+                            },
+                        )
+                        if not (data.get('success') and isinstance(data.get('data'), dict) and data['data'].get('id')):
+                            cls._raise_api_error(data.get('error') or data.get('data') or data)
                         conversation = JsonConversation(
-                            chat_id=data["data"]["id"],
-                            cookies={key: value for key, value in resp.cookies.items()},
-                            parent_id=None,
+                            chat_id=data['data']['id'], parent_id=None,
+                            cookies={} if auth.authenticated else {c['name']: c['value'] for c in auth.get_cookies()},
                         )
                     files = []
-                    media = list(merge_media(media, messages))
                     if media:
-                        files = await cls.prepare_files(
-                            media, session=session, headers=req_headers
-                        )
+                        files = await cls.prepare_files(media, session=session, headers=req_headers, auth=auth, proxy=proxy)
 
                     feature_config = (
                         {
@@ -1101,7 +1197,10 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     )
                     if "auto_search" in kwargs or chat_type == "search":
                         feature_config["auto_search"] = kwargs.get("auto_search", True)
-
+                    _qwen_image_model: Literal["qwen-image-3.0-pro","qwen-image-2.0-pro", ""] = kwargs.get("qwen_image_model", "")
+                    meta_message = {"meta": {"subChatType": chat_type}}
+                    if _qwen_image_model:
+                        meta_message["meta"]["model"] = _qwen_image_model
                     msg_payload = {
                         "stream": stream,
                         "version": "2.1",
@@ -1127,7 +1226,7 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                                 "model": "",
                                 "chat_type": chat_type,
                                 "feature_config": feature_config,
-                                "extra": {"meta": {"subChatType": chat_type}},
+                                "extra": meta_message,
                                 "sub_chat_type": chat_type,
                                 "parent_id": conversation.parent_id,
                             }
@@ -1138,46 +1237,48 @@ class Qwen(AsyncGeneratorProvider, ProviderModelMixin):
                     if aspect_ratio:
                         msg_payload["size"] = aspect_ratio
 
-                    async with session.post(
-                        f"{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}",
-                        json=msg_payload,
-                        headers=req_headers,
-                        proxy=proxy,
-                        timeout=timeout,
-                        cookies=conversation.cookies,
-                    ) as resp:
-                        await cls.raise_for_status(resp)
-                        async for chunk in cls._read_response(resp, conversation, prompt):
-                            yield chunk
-                        return
-
-                except (aiohttp.ClientResponseError, RuntimeError) as e:
-                    message = str(e)
-                    is_rate_limit = (
-                        isinstance(e, aiohttp.ClientResponseError) and e.status == 429
-                    ) or ("RateLimited" in message)
-                    if is_rate_limit:
-                        # A quota/concurrency rejection is not a fingerprint error.
-                        # Preserve the server's reason instead of replaying uploads/chats.
-                        raise RateLimitError(message) from e
-                    elif (
-                        "FAIL_SYS_USER_VALIDATE" in message
-                        or "RGV587_ERROR" in message
-                        or "/punish" in message
-                    ):
-                        # Baxia captcha challenge — wait for the user to solve
-                        # it (or log in) in a CDP browser, then capture and
-                        # save the fresh auth data before retrying.
-                        debug.log(
-                            f"[Qwen] Captcha challenge detected (attempt {attempt + 1}/5) — waiting for login/captcha in a CDP browser"
-                        )
-                        cls._har_cookies = cls._har_headers = None
-                        cls._har_loaded_at = 0.0
-                        await cls._ensure_auth(proxy, force_cdp=True)
-                        conversation = None
-                        continue
-                    else:
-                        raise e
-            raise CloudflareError(
-                "Qwen browser validation failed after 5 recovery attempts."
-            )
+                    url = f"{cls.url}/api/v2/chat/completions?chat_id={conversation.chat_id}"
+                    for attempt in range(2):
+                        await auth.ensure_valid(session, proxy)
+                        snapshot = auth.access_token
+                        emitted = False
+                        try:
+                            async with session.post(
+                                url, json=msg_payload,
+                                headers=auth.request_headers(req_headers, url),
+                                proxy=proxy, timeout=timeout,
+                                allow_redirects=False,
+                            ) as resp:
+                                await cls.raise_for_status(resp)
+                                auth.update_cookies(resp, url)
+                                if not auth.authenticated:
+                                    conversation.cookies = {c['name']: c['value'] for c in auth.get_cookies()}
+                                async for chunk in cls._read_response(resp, conversation, prompt):
+                                    emitted = True
+                                    yield chunk
+                                return
+                        except MissingAuthError:
+                            # A known auth rejection before any output is safe to retry once.
+                            if attempt or emitted or not auth.can_refresh:
+                                raise
+                            await auth.ensure_valid(session, proxy, rejected_token=snapshot, recover=True)
+                        except RuntimeError as error:
+                            if 'RateLimited' in str(error):
+                                raise RateLimitError(str(error)) from error
+                            if any(marker in str(error) for marker in ('FAIL_SYS_USER_VALIDATE', 'RGV587_ERROR', '/punish')):
+                                raise CloudflareError('Qwen browser verification is required; complete it in the browser before submitting again.') from error
+                            raise
+            except RateLimitError as error:
+                if (
+                    guest_attempt or emitted or auth.authenticated
+                    or "you've reached the guest chat limit" not in str(error).lower()
+                ):
+                    raise
+                debug.log("[Qwen] Guest chat limit reached; retrying once with renewed request headers.")
+                cls._midtoken = None
+                conversation = None
+            except ResponseError as error:
+                if guest_attempt or emitted or auth.authenticated or "quota_limit" not in str(error).lower():
+                    raise
+                debug.error(f"[Qwen] {error}")
+                debug.log("[Qwen] Retrying the guest request once.")
