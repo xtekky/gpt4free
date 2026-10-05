@@ -69,6 +69,8 @@ async def poll_images(session, auth, conversation_id, user_message_id, prompt=''
         images, seen = [], set()
         messages = turn_messages(record, user_message_id)
         for message in messages:
+            if message.get('author', {}).get('role') not in ('assistant', 'tool'):
+                continue
             if message.get('status') != 'finished_successfully':
                 continue
             content = message.get('content') or {}

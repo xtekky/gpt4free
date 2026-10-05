@@ -60,7 +60,7 @@ class TestAccessToken(unittest.TestCase):
             self.assertEqual(parse_access_token(value)[0], token)
 
     def test_invalid_tokens_fail_without_leaking_input(self):
-        for token in ('sensitive-invalid-token', 'e30.invalid.signature', jwt({}), jwt({'exp': True}),
+        for token in ('sensitive-invalid-token', 'e30.invalid.signature', 'e30.a.signature', jwt({}), jwt({'exp': True}),
                       jwt({'exp': '2099'}), jwt({'exp': float('inf')}), jwt({'exp': time.time() - 1}),
                       {'accessToken': jwt()}, None):
             with self.subTest(token_type=type(token).__name__):
@@ -131,6 +131,37 @@ class TestTokenImages(unittest.IsolatedAsyncioTestCase):
         images = [image async for image in poll_images(session, AuthResult(headers={}), 'chat', 'requested-user', poll_interval=0)]
         self.assertEqual(len(images), 1)
         self.assertEqual(len(session.calls), 5)
+
+    async def test_poll_ignores_uploaded_image_until_generated_image_finishes(self):
+        for role in ('assistant', 'tool'):
+            with self.subTest(role=role):
+                records = []
+                for status in ('in_progress', 'finished_successfully'):
+                    record = image_record(status)
+                    record['mapping']['user-node']['message'].update(
+                        status='finished_successfully',
+                        content={'content_type': 'multimodal_text', 'parts': [
+                            {'content_type': 'image_asset_pointer', 'asset_pointer': 'file-service://file_uploaded'},
+                        ]},
+                    )
+                    record['mapping']['image-node']['message']['author']['role'] = role
+                    records.append(record)
+
+                class ImageSession(Session):
+                    def get(self, url, **kwargs):
+                        if 'file_uploaded' in url:
+                            raise AssertionError('Uploaded images must not be downloaded as generated results')
+                        return super().get(url, **kwargs)
+
+                session = ImageSession([
+                    *(Response(record) for record in records),
+                    Response({'download_url': 'https://chatgpt.com/generated.png'}),
+                ])
+                images = [image async for image in poll_images(
+                    session, AuthResult(headers={}), 'chat', 'requested-user', poll_interval=0,
+                )]
+                self.assertEqual([image.get_list() for image in images], [['https://chatgpt.com/generated.png']])
+                self.assertEqual(len(session.calls), 3)
 
     async def test_refusal_is_not_empty_success(self):
         record = image_record()
