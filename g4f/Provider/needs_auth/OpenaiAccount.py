@@ -8,6 +8,7 @@ import random
 import time
 import urllib.parse
 import uuid
+from copy import copy
 
 from typing import AsyncIterator
 
@@ -21,6 +22,9 @@ from ..helper import to_string
 from ..openai.har_file import get_har_files
 from ..openai.new import get_config, get_requirements_token
 from ..openai.proofofwork import generate_proof_token
+from ..openai.models import default_image_model, image_models
+from ..openai.auth import AccessTokenAuthMixin
+from ..openai.images import poll_images
 from ...providers.response import (
     JsonConversation,
     FinishReason,
@@ -47,7 +51,7 @@ class Conversation(JsonConversation):
         self.recipient: str = "all"
         self.thoughts_summary: str = ""
 
-class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
+class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixin):
     """ChatGPT account chat driven by a captured browser session (HAR file).
 
     Implements the authenticated "f/conversation" flow observed in a real
@@ -64,8 +68,10 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
     login and captures the same credentials from the browser's own
     conversation request. The proof-of-work and requirements tokens are
     minted fresh for every request; only the long-lived session
-    credentials come from the capture. Media upload and image generation
-    are not implemented.
+    credentials come from the capture. A direct access token can also be
+    supplied through api_key without a HAR capture. Image generation reads
+    completed assets from the requested conversation turn. Media upload
+    is not implemented.
     """
 
     label = "OpenAI ChatGPT"
@@ -78,10 +84,12 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
     supports_system_message = True
 
     default_model = "auto"
+    default_image_model = default_image_model
+    image_models = image_models
     # The backend routes the chat to the account's available model; the
     # names are advertised so model/provider validation passes (see the
     # ChatGPT provider). Unknown slugs are passed through untouched.
-    models = [default_model]
+    models = [default_model, *image_models]
     model_aliases = {
         alias: alias for alias in (
             "gpt-5-2", "gpt-5-1", "gpt-5", "gpt-4.5", "gpt-4.1", "gpt-4.1-mini",
@@ -135,6 +143,10 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
         Without a valid HAR capture (see ``_read_har``), a browser is opened
         via CDP and the login is awaited (see ``_read_cdp``).
         """
+        auth = cls._explicit_auth(kwargs)
+        if auth is not None:
+            yield auth
+            return
         try:
             if cls._auth_state is None or time.time() - cls._auth_state_loaded_at > cls._AUTH_STATE_TTL:
                 cls._auth_state = cls._read_har()
@@ -164,9 +176,9 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def get_quota(cls, **kwargs):
-        auth = cls.get_auth_result()
+        auth = cls._explicit_auth(kwargs) or cls.get_auth_result()
         async with StreamSession(
-            cookies=auth.cookies, headers=auth.headers, impersonate="chrome"
+            cookies=auth.cookies, headers=cls._create_headers(auth), impersonate="chrome"
         ) as session:
             async with session.get(f"{cls.url}/backend-api/me") as response:
                 await raise_for_status(response)
@@ -183,11 +195,24 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
         timeout: int = 360,
         conversation: Conversation = None,
         return_conversation: bool = True,
+        temporary: bool = False,
+        wait_media: bool = True,
+        image_timeout: float = 180,
         **kwargs,
     ) -> AsyncResult:
         model = cls.get_model(model)
+        image_model = model in cls.image_models
+        if image_model and temporary:
+            raise ValueError('ChatGPT image generation requires a regular conversation')
+        if image_model:
+            model = cls.default_model
         if conversation is None:
             conversation = Conversation(model)
+        else:
+            conversation = copy(conversation)
+            conversation.finish_reason = None
+            conversation.recipient = 'all'
+            conversation.thoughts_summary = ''
         expires = getattr(auth_result, "expires", None)
         if expires is not None and time.time() > expires:
             raise MissingAuthError("OpenaiAccount: access token is expired")
@@ -196,10 +221,14 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
             proxy=proxy, impersonate="chrome", timeout=timeout,
             cookies=getattr(auth_result, "cookies", None),
         ) as session:
+            if getattr(auth_result, 'requirements_mode', None) == 'classic':
+                async with session.get(cls.url, headers=headers) as response:
+                    await raise_for_status(response)
             # Sentinel: mint a fresh chat-requirements token for this turn.
             chat_token, proof_token = await cls._get_requirements(session, headers, auth_result)
             # Conversation prepare: registers the turn, returns the conduit token.
-            conduit_token = await cls._prepare_conversation(session, headers, model, conversation)
+            system_hints = ['picture_v2'] if image_model else []
+            conduit_token = await cls._prepare_conversation(session, headers, model, conversation, system_hints, temporary)
             data = {
                 "action": "next",
                 "messages": cls._create_messages(messages, conversation.conversation_id),
@@ -210,7 +239,7 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
                 "timezone": "Europe/Berlin",
                 "conversation_mode": {"kind": "primary_assistant"},
                 "enable_message_followups": True,
-                "system_hints": [],
+                "system_hints": system_hints,
                 "model_response_contracts": [{
                     "id": "photo_upload_action.v1",
                     "protocol_version": 1,
@@ -234,6 +263,10 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
                 "force_parallel_switch": "auto",
                 "local_function_names": ["local.continue_in_work"],
             }
+            if temporary:
+                data['history_and_training_disabled'] = True
+            user_message_id = next((m['id'] for m in reversed(data['messages'])
+                                    if m['author']['role'] == 'user'), None)
             if conversation.conversation_id is not None:
                 data["conversation_id"] = conversation.conversation_id
                 debug.log(f"OpenaiAccount: Use conversation: {conversation.conversation_id}")
@@ -254,8 +287,17 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
                     raise MissingAuthError(f"OpenaiAccount: response status: {response.status}")
                 await raise_for_status(response)
                 async for line in response.iter_lines():
+                    if line.strip() == b'data: [DONE]':
+                        break
                     for chunk in cls._iter_line(line, conversation):
                         yield chunk
+            if image_model and wait_media:
+                auth_result.headers = headers
+                prompt = next((m['content']['parts'][0] for m in reversed(data['messages'])
+                               if m['author']['role'] == 'user'), '')
+                async for image in poll_images(session, auth_result, conversation.conversation_id,
+                                              user_message_id, prompt, timeout=image_timeout, base_url=cls.url):
+                    yield image
         if conversation.finish_reason is None:
             conversation.finish_reason = "stop"
         if return_conversation:
@@ -265,6 +307,19 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def _get_requirements(cls, session: StreamSession, headers: dict, auth_result: AuthResult) -> tuple[str, str]:
         """Mint a fresh chat-requirements token (sentinel prepare/finalize)."""
+        if getattr(auth_result, 'requirements_mode', None) == 'classic':
+            async with session.post(f'{cls.url}/backend-api/sentinel/chat-requirements',
+                                    json={'p': None}, headers=headers) as response:
+                await raise_for_status(response)
+                requirements = await response.json()
+            token = requirements.get('token')
+            if not token:
+                raise RuntimeError('OpenaiAccount: requirements returned no token')
+            proof = generate_proof_token(
+                **(requirements.get('proofofwork') or {'required': False}),
+                user_agent=headers.get('user-agent'), proof_token=getattr(auth_result, 'proof_token', None),
+            )
+            return token, proof
         user_agent = headers.get("user-agent")
         async with session.post(
             cls.requirements_prepare_url,
@@ -318,7 +373,8 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def _prepare_conversation(
-        cls, session: StreamSession, headers: dict, model: str, conversation: Conversation
+        cls, session: StreamSession, headers: dict, model: str, conversation: Conversation,
+        system_hints=None, temporary=False,
     ) -> str:
         """Register the turn with the conversation prepare endpoint."""
         data = {
@@ -331,7 +387,7 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
             "timezone_offset_min": -120,
             "timezone": "Europe/Berlin",
             "conversation_mode": {"kind": "primary_assistant"},
-            "system_hints": [],
+            "system_hints": system_hints or [],
             "model_response_contracts": [{
                 "id": "photo_upload_action.v1",
                 "protocol_version": 1,
@@ -346,6 +402,8 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
             },
             "local_function_names": ["local.continue_in_work"],
         }
+        if temporary:
+            data['history_and_training_disabled'] = True
         if conversation.conversation_id is not None:
             data["conversation_id"] = conversation.conversation_id
         async with session.post(
@@ -438,7 +496,8 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
                     continue
                 patch_path = patch.get("p")
                 if patch_path == "/message/content/parts/0" and conversation.recipient == "all":
-                    buffer += patch.get("v") or ""
+                    if isinstance(patch.get('v'), str):
+                        buffer += patch['v']
                 elif patch_path == "/message/metadata":
                     finish = (patch.get("v") or {}).get("finish_details", {}).get("type")
                     if finish:
@@ -484,6 +543,14 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
             "x-openai-target-path": path,
             "x-openai-target-route": path,
             "x-openai-web-frontend": "core_web",
+        }
+
+    @staticmethod
+    def get_default_headers():
+        return {
+            'accept': 'application/json', 'content-type': 'application/json',
+            'origin': 'https://chatgpt.com', 'referer': 'https://chatgpt.com/',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         }
 
     @classmethod

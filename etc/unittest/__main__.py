@@ -19,6 +19,8 @@ from .mcp import *
 from .tool_support_provider import *
 from .config_provider import *
 from .test_gemini import *
+from .test_chatgpt import *
+from .test_openai_token_images import *
 from .test_qwen_stream import *
 from .test_qwen_auth import *
 from .test_qwen_guest import *
