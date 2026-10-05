@@ -503,7 +503,7 @@ class OpenaiAccount(AsyncAuthedProvider, ProviderModelMixin):
             for entry in har.get("log", {}).get("entries", []):
                 request = entry.get("request", {})
                 url = request.get("url", "")
-                if "chatgpt.com" not in url or "/backend-api/" not in url:
+                if url != cls.conversation_url
                     continue
                 headers = {
                     h["name"].lower(): h["value"]
