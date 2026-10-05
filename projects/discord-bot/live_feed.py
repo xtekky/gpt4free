@@ -10,6 +10,7 @@ interesting events to a designated Discord channel:
 - ⚡  Heavy token usage completions
 - 🚨  Server errors (5xx)
 - 👋  New g4f.dev users
+- 🆕  New models on https://g4f.space/v1
 - 📊  Periodic activity summaries
 
 Configuration is read from environment variables (see bot.py):
@@ -18,6 +19,7 @@ Configuration is read from environment variables (see bot.py):
     G4F_PUBLIC_BASE             — public base URL for Discord-accessible image
                                   links (defaults to G4F_API_BASE)
     G4F_MEMBERS_BASE            — g4f.dev base URL (default: https://g4f.dev)
+    G4F_MODELS_URL              — models endpoint to watch (default: https://g4f.space/v1/models)
     G4F_FEED_POLL_INTERVAL      — seconds between polls (default: 15)
     G4F_HEAVY_TOKEN_THRESHOLD   — token count to flag as "heavy" (default: 10000)
     G4F_FEED_SUMMARY_INTERVAL   — seconds between summaries (default: 3600)
@@ -58,6 +60,7 @@ COLORS = {
     "file_edit": 0xFFC107,
     "heavy": 0xFF8C00,
     "new_user": 0x28A745,
+    "new_model": 0x17A2B8,
     "error": 0xDC3545,
     "summary": 0x6E48AA,
 }
@@ -319,6 +322,7 @@ class LiveFeed(commands.Cog):
         public_base: str,
         members_base: Optional[str],
         errors_url: Optional[str] = "https://g4f.space/api/errors",
+        models_url: Optional[str] = "https://g4f.space/v1/models",
         poll_interval: int = 15,
         heavy_token_threshold: int = 10_000,
         summary_interval: int = 3600,
@@ -331,6 +335,7 @@ class LiveFeed(commands.Cog):
         self.api_key = api_key
         self.members_base = members_base.rstrip("/") if members_base else None
         self.errors_url = errors_url.rstrip("/") if errors_url else None
+        self.models_url = models_url.rstrip("/") if models_url else None
         self.heavy_token_threshold = heavy_token_threshold
         self.max_posts_per_cycle = max_posts_per_cycle
         self._summary_interval = summary_interval
@@ -340,6 +345,8 @@ class LiveFeed(commands.Cog):
         self._seen_user_keys: Set[str] = set()
         self._seen_api_error_ids: Set[int] = set()
         self._initialized_api_errors: bool = False
+        self._seen_model_ids: Set[str] = set()
+        self._initialized_models: bool = False
         self._session: Optional[aiohttp.ClientSession] = None
 
         # Rolling stats for periodic summary
@@ -351,6 +358,7 @@ class LiveFeed(commands.Cog):
             "file_edits": 0,
             "errors": 0,
             "new_users": 0,
+            "new_models": 0,
         }
         self._models: Counter = Counter()
         self._providers: Counter = Counter()
@@ -406,6 +414,12 @@ class LiveFeed(commands.Cog):
                 await self._poll_api_errors()
             except Exception:
                 log.exception("API errors poll failed")
+
+        if self.models_url:
+            try:
+                await self._poll_new_models()
+            except Exception:
+                log.exception("New models poll failed")
 
         if time.time() - self._last_summary >= self._summary_interval:
             await self._post_summary()
@@ -551,6 +565,57 @@ class LiveFeed(commands.Cog):
 
         if len(self._seen_api_error_ids) > 2000:
             self._seen_api_error_ids = set(sorted(self._seen_api_error_ids)[-1000:])
+
+    # ------------------------------------------------------------------
+    # New models polling
+    # ------------------------------------------------------------------
+
+    async def _poll_new_models(self) -> None:
+        """Poll the g4f.space /v1/models endpoint and announce new model ids."""
+        if not self.models_url:
+            return
+        session = self._get_session()
+        try:
+            async with session.get(self.models_url) as resp:
+                if resp.status != 200:
+                    return
+                data = await resp.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return
+
+        models = data.get("data", []) if isinstance(data, dict) else []
+        if not models:
+            return
+
+        current_ids = {
+            str(m.get("id"))
+            for m in models
+            if isinstance(m, dict) and m.get("id") is not None
+        }
+        if not current_ids:
+            return
+
+        if not self._initialized_models:
+            self._seen_model_ids = current_ids
+            self._initialized_models = True
+            log.info("LiveFeed initialized models with %d entries", len(current_ids))
+            return
+
+        new_models = [
+            m
+            for m in models
+            if isinstance(m, dict) and str(m.get("id")) not in self._seen_model_ids
+        ]
+        if not new_models:
+            return
+
+        self._seen_model_ids |= current_ids
+        if len(self._seen_model_ids) > 5000:
+            self._seen_model_ids = set(sorted(self._seen_model_ids)[-2500:])
+
+        for model in new_models:
+            self._stats["new_models"] += 1
+            await self._post_new_model(model)
 
     # ------------------------------------------------------------------
     # Entry dispatch
@@ -821,10 +886,31 @@ class LiveFeed(commands.Cog):
 
         await self._send(embed)
 
+    async def _post_new_model(self, model: dict) -> None:
+        """Post a new model announcement from the g4f.space models endpoint."""
+        model_id = str(model.get("id", "unknown"))
+        owned_by = str(model.get("owned_by", "")).strip()
+        server = str(model.get("server", "")).strip()
+        requests = model.get("requests", 0)
+
+        embed = discord.Embed(
+            title="🆕 New Model Available",
+            description=f"`{model_id}`",
+            color=COLORS["new_model"],
+        )
+        if owned_by and owned_by != "None":
+            embed.add_field(name="Owner", value=owned_by, inline=True)
+        if server and server != "None":
+            embed.add_field(name="Server", value=f"`{server}`", inline=True)
+        if isinstance(requests, int):
+            embed.add_field(name="Requests", value=str(requests), inline=True)
+
+        await self._send(embed)
+
     async def _post_summary(self) -> None:
         """Post a periodic activity summary."""
         s = self._stats
-        if s["requests"] == 0 and s["new_users"] == 0:
+        if s["requests"] == 0 and s["new_users"] == 0 and s["new_models"] == 0:
             return  # nothing happened
 
         embed = discord.Embed(
@@ -840,6 +926,7 @@ class LiveFeed(commands.Cog):
         embed.add_field(name="File edits", value=str(s["file_edits"]), inline=True)
         embed.add_field(name="Errors", value=str(s["errors"]), inline=True)
         embed.add_field(name="New users", value=str(s["new_users"]), inline=True)
+        embed.add_field(name="New models", value=str(s["new_models"]), inline=True)
 
         top_models = self._models.most_common(3)
         if top_models:

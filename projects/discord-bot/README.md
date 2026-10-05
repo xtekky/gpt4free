@@ -149,14 +149,16 @@ The bot can mirror g4f activity into a dedicated Discord channel in real time. E
 | ⚡ Heavy Token Usage | A completion using ≥ `G4F_HEAVY_TOKEN_THRESHOLD` tokens | Shows prompt/completion/total token counts |
 | 🚨 Server Error | Any request returning a `5xx` status | Path, status, duration |
 | 👋 New g4f.dev User | A new user appears in `/members/api/recent-users` | Username, provider, tier, avatar |
+| 🆕 New Model Available | A new model id appears in `G4F_MODELS_URL` (`https://g4f.space/v1/models`) | Model id, owner, server, request count |
 | 📊 Activity Summary | Every `G4F_FEED_SUMMARY_INTERVAL` seconds | Rolling counts + top models/providers |
 
 ### How it works
 
-The `LiveFeed` cog (in `live_feed.py`) polls two sources on a configurable interval (default 15 s):
+The `LiveFeed` cog (in `live_feed.py`) polls three sources on a configurable interval (default 15 s):
 
 1. **`{G4F_API_BASE}/api/logs`** — the g4f API server's request log. The cog remembers the last seen log id and only processes new entries. Image URLs pointing at `/media/` or `/images/` are rewritten to `/thumbnail/` (using `G4F_PUBLIC_BASE`) so Discord can fetch compact previews.
 2. **`{G4F_MEMBERS_BASE}/members/api/recent-users`** — a public endpoint on the g4f.dev members worker that returns the most recently created users. The cog tracks seen `provider:username` keys and announces new ones.
+3. **`G4F_MODELS_URL`** (`https://g4f.space/v1/models`) — the public model list of the g4f.space live channel. The cog tracks seen model ids and announces 🆕 whenever a model id shows up for the first time.
 
 To keep the channel readable, at most `G4F_FEED_MAX_POSTS_PER_CYCLE` embeds are posted per poll cycle (additional events are still counted toward the periodic summary).
 
@@ -185,6 +187,7 @@ G4F_MEMBERS_BASE=https://g4f.dev            # set empty to disable new-user post
 | `G4F_API_KEY` | *(unset)* | Optional API key used to read `/api/logs` on protected g4f API servers. |
 | `G4F_PUBLIC_BASE` | = `G4F_API_BASE` | Public base URL for Discord-accessible image/thumbnail links. |
 | `G4F_MEMBERS_BASE` | `https://g4f.dev` | g4f.dev base URL for new-user posts. Empty = disabled. |
+| `G4F_MODELS_URL` | `https://g4f.space/v1/models` | Models endpoint watched for 🆕 new-model posts. Empty = disabled. |
 | `G4F_FEED_POLL_INTERVAL` | `15` | Seconds between polls. |
 | `G4F_HEAVY_TOKEN_THRESHOLD` | `10000` | Token count that flags a completion as "heavy". |
 | `G4F_FEED_SUMMARY_INTERVAL` | `3600` | Seconds between activity summaries. |

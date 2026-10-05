@@ -35,7 +35,6 @@ from starlette.status import (
     HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-    HTTP_413_REQUEST_ENTITY_TOO_LARGE,
     HTTP_429_TOO_MANY_REQUESTS,
     HTTP_500_INTERNAL_SERVER_ERROR,
     HTTP_502_BAD_GATEWAY,
@@ -45,6 +44,11 @@ try:
     from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
 except ImportError:
     HTTP_422_UNPROCESSABLE_CONTENT = 422
+try:
+    from starlette.status import HTTP_413_CONTENT_TOO_LARGE
+except ImportError:
+    HTTP_413_CONTENT_TOO_LARGE = 413
+
 from starlette.staticfiles import NotModifiedResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
@@ -2663,7 +2667,7 @@ class Api:
             body = await request.body()
             if len(body) > _PROXY_MAX_BODY_SIZE:
                 return ErrorResponse.from_message(
-                    "Request body too large", HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                    "Request body too large", HTTP_413_CONTENT_TOO_LARGE
                 )
             target_url = f"{path}?{request.url.query}" if request.url.query else path
             headers = {
