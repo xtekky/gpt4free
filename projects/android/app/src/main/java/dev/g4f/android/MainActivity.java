@@ -94,6 +94,12 @@ public class MainActivity extends Activity {
         ws.setCacheMode(WebSettings.LOAD_DEFAULT);
         ws.setUserAgentString("Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
 
+        // WebView debugging master switch (manifest meta-data, like
+        // cordova-plugin-debuggable-webview): exposes the DevTools socket
+        // (@webview_devtools_remote_<pid>) for provider automation. Release
+        // builds can set android:value="false" to keep the socket off.
+        WebView.setWebContentsDebuggingEnabled(isWebViewDebugEnabled());
+
         webView.addJavascriptInterface(new ClipboardBridge(), "AndroidClipboard");
         webView.addJavascriptInterface(new AutomationBridge(), "G4FAutomation");
         webView.setWebViewClient(new WebViewClient() {
@@ -199,6 +205,20 @@ public class MainActivity extends Activity {
         return new File(getFilesDir(), APP_DIR);
     }
 
+    /** WebView debugging master switch, read from the {@code WebViewDebug}
+    *  manifest meta-data (cordova-plugin-debuggable-webview pattern).
+    *  Defaults to true — provider automation (CDPSession) needs the
+    *  DevTools socket; set android:value="false" to hard-disable it. */
+    private boolean isWebViewDebugEnabled() {
+        try {
+            android.content.pm.ApplicationInfo info = getPackageManager()
+                .getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
+            return info.metaData == null || info.metaData.getBoolean("WebViewDebug", true);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     // ── Automation WebView management (called from the JS bridge) ──────
 
     /** Create a visible automation WebView in front of the chat UI and start
@@ -232,7 +252,7 @@ public class MainActivity extends Activity {
             container.addView(closeBtn, btnParams);
 
             automationWebViews.put(targetId, aw);
-            if (automationRefCount == 0) {
+            if (automationRefCount == 0 && isWebViewDebugEnabled()) {
                 WebView.setWebContentsDebuggingEnabled(true);
             }
             automationRefCount++;
@@ -253,7 +273,9 @@ public class MainActivity extends Activity {
             if (aw != null) {
                 automationRefCount = Math.max(0, automationRefCount - 1);
                 if (automationRefCount == 0) {
-                    WebView.setWebContentsDebuggingEnabled(false);
+                    // Restore the manifest-configured state instead of
+                    // forcing the DevTools socket off.
+                    WebView.setWebContentsDebuggingEnabled(isWebViewDebugEnabled());
                 }
                 ViewGroup container = (ViewGroup) aw.getParent();
                 if (container != null && container.getParent() instanceof ViewGroup) {

@@ -6,6 +6,8 @@ _PROXY_DROP_REQUEST_HEADERS = {
     "te", "trailer", "transfer-encoding", "upgrade", "host", "content-length",
     "accept-encoding", "cookie", "origin", "referer",
     "x-workspace-secret", "g4f-api-key", "x-secret",
+    "pragma", "user-agent", "cache-control", "accept", "accept-language",
+    "sec-fetch-site", "sec-ch-ua", "sec-ch-ua-platform", "sec-ch-ua-mobile", "sec-fetch-mode", "sec-fetch-dest"
 }
 _PROXY_DROP_RESPONSE_HEADERS = {
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",

@@ -18,6 +18,12 @@
         android:hardwareAccelerated="true"
         android:extractNativeLibs="true">
 
+        <!-- Master switch for WebView remote debugging (DevTools socket
+             @webview_devtools_remote_<pid>, used by provider automation /
+             CDPSession). Set android:value="false" for release builds that
+             should not expose the socket. -->
+        <meta-data android:name="WebViewDebug" android:value="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

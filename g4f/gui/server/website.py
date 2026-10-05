@@ -125,6 +125,9 @@ def render(filename="home", download_url: str = GITHUB_URL):
                 html = html.replace('"../dist/', f'"{dist_url}')
                 html = html.replace('"/dist/', f'"{dist_url}')
                 html = html.replace('"dist/', f'"{dist_url}')
+                html = html.replace("'../dist/", f"'{dist_url}")
+                html = html.replace("'/dist/", f"'{dist_url}")
+                html = html.replace("'dist/", f"'{dist_url}")
         if html is None:
             with open(cache_file, "wb") as f:
                 f.write(response.content)
@@ -173,22 +176,6 @@ class Website:
             "/providers/": {"function": self._providers, "methods": ["GET"]},
             "/providers/<name>": {"function": self._provider_detail, "methods": ["GET"]},
         }
-
-        @app.route("/lib.js", methods=["GET"])
-        def lib_js():
-            return self._sillytavern("lib.js")
-
-        @app.route("/script.js", methods=["GET"])
-        def script_js():
-            return self._sillytavern("script.js")
-
-        @app.route("/lib/<path:filename>", methods=["GET"])
-        def lib_files(filename):
-            return self._sillytavern(f"lib/{filename}")
-
-        @app.route("/scripts/<path:filename>", methods=["GET"])
-        def script_files(filename):
-            return self._sillytavern(f"scripts/{filename}")
 
     def _index(self, filename="home"):
         return render(filename)

@@ -1113,10 +1113,11 @@ class Backend_Api(Api):
         # CORS proxy: forwards requests to /api/https://<target-url> through the
         # server. JSON-only, no cookies, no redirects.
         @app.route(
-            "/api/<path:url>",
+            "/api/https://<path:url>",
             methods=sorted(_PROXY_ALLOWED_METHODS),
         )
         def cors_proxy(url: str):
+            url = f"https://{url}"
             if request.method == "OPTIONS":
                 response = app.response_class("", status=204)
                 response.headers["Access-Control-Allow-Origin"] = "*"

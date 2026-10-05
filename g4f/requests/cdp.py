@@ -640,7 +640,13 @@ def _is_android() -> bool:
         return False
 
 def _enable_webview_debugging() -> bool:
-    """Enable remote debugging for all WebViews in this app (process-wide)."""
+    """Enable remote debugging for all WebViews in this app (process-wide).
+
+    Returns True also when the call itself is not possible (no Chaquopy java
+    bridge) but the app already enabled debugging itself — e.g. via the
+    ``WebViewDebug`` manifest meta-data handled in MainActivity. In that case
+    the DevTools socket exists and attaching is enough.
+    """
     try:
         from java import jclass
 
@@ -648,14 +654,29 @@ def _enable_webview_debugging() -> bool:
         WebView.setWebContentsDebuggingEnabled(True)
         return True
     except Exception as e:
+        # Not fatal: the app may have enabled debugging on its own. Verify
+        # via the DevTools socket instead of failing hard here.
+        if _find_webview_devtools_socket_exists():
+            debug.log(f"CDP: java bridge unavailable ({e}) — DevTools socket already present")
+            return True
         debug.log(f"CDP: failed to enable WebView debugging: {e}")
+        return False
+
+def _find_webview_devtools_socket_exists() -> bool:
+    """Return True when a WebView DevTools abstract socket is reachable."""
+    try:
+        _webview_devtools_request(_find_webview_devtools_socket(), "/json/version", timeout=2.0)
+        return True
+    except Exception:
         return False
 
 def _disable_webview_debugging() -> bool:
     """Disable remote debugging for all WebViews in this app (process-wide).
 
     Called when the last automation target has been closed, so the DevTools
-    socket is not exposed while no automation is running.
+    socket is not exposed while no automation is running. Skipped when the
+    app enables debugging itself via the ``WebViewDebug`` manifest
+    meta-data — in that case the socket stays under app control.
     """
     try:
         from java import jclass
@@ -667,6 +688,16 @@ def _disable_webview_debugging() -> bool:
     except Exception as e:
         debug.log(f"CDP: failed to disable WebView debugging: {e}")
         return False
+
+def _is_control_page(target: dict) -> bool:
+    """Return True when a DevTools target is the app's chat UI page.
+
+    The chat UI is served from the embedded server on the loopback
+    interface — accept both hostnames so a changed home origin
+    (localhost vs 127.0.0.1) still matches.
+    """
+    url = target.get("url", "") if isinstance(target, dict) else ""
+    return "//127.0.0.1" in url or "//localhost" in url
 
 def _find_webview_devtools_socket() -> str:
     """
@@ -1219,7 +1250,7 @@ class CDPSession:
         if not pages:
             raise RuntimeError(f"CDP: no page target in WebView DevTools: {targets}")
         # The app's chat UI acts as the control page for the automation bridge.
-        control = next((t for t in pages if "127.0.0.1" in t.get("url", "")), None)
+        control = next((t for t in pages if _is_control_page(t)), None)
 
         # Prefer a dedicated automation WebView (a new CDP target) created via
         # the app's JS bridge: it is shown in front of the chat UI and keeps
@@ -1333,7 +1364,7 @@ class CDPSession:
                 ]
                 control = next(
                     (t for t in pages if t.get("id") == self._webview_control_id),
-                    next((t for t in pages if "127.0.0.1" in t.get("url", "")), None),
+                    next((t for t in pages if _is_control_page(t)), None),
                 )
             except Exception:
                 pass  # Socket gone — debugging already disabled (last target closed)
