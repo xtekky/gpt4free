@@ -34,6 +34,8 @@ from starlette.status import (
     HTTP_404_NOT_FOUND,
     HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
+    HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+    HTTP_413_REQUEST_ENTITY_TOO_LARGE,
     HTTP_429_TOO_MANY_REQUESTS,
     HTTP_500_INTERNAL_SERVER_ERROR,
     HTTP_502_BAD_GATEWAY,
@@ -501,6 +503,13 @@ async def lifespan(app: FastAPI):
 _LOG_SKIP_PREFIXES = ("/images/", "/media/", "/thumbnail/", "/dist/", "/.well-known/")
 _LOG_SKIP_EXACT = {"/api/logs", "/logs", "/favicon.ico"}
 
+from .constants import (
+    _PROXY_DROP_REQUEST_HEADERS,
+    _PROXY_DROP_RESPONSE_HEADERS,
+    _PROXY_ALLOWED_METHODS,
+    _PROXY_MAX_BODY_SIZE,
+    _PROXY_JSON_CONTENT_TYPES,
+)
 
 def create_app():
     app = FastAPI(lifespan=lifespan)
@@ -2625,6 +2634,91 @@ class Api:
         async def clear_logs():
             _request_log.clear()
             return JSONResponse({"status": "cleared"})
+
+        # CORS proxy: forwards requests to /api/https://<target-url> through the
+        # server. JSON-only, no cookies, no redirects. Registered last so it only
+        # catches paths not matched above.
+        @self.app.api_route(
+            "/api/https://{path:path}",
+            methods=sorted(_PROXY_ALLOWED_METHODS),
+            include_in_schema=False,
+        )
+        async def cors_proxy(path: str, request: Request):
+            import aiohttp
+
+            path = f"https://{path}"
+            if not is_safe_url(path):
+                return ErrorResponse.from_message(
+                    "Invalid or disallowed proxy URL", HTTP_400_BAD_REQUEST
+                )
+            if request.method not in _PROXY_ALLOWED_METHODS:
+                return ErrorResponse.from_message(
+                    "Method not allowed", HTTP_403_FORBIDDEN
+                )
+            content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            if request.method in ("POST", "PUT", "PATCH") and content_type not in _PROXY_JSON_CONTENT_TYPES:
+                return ErrorResponse.from_message(
+                    "Only JSON requests are supported", HTTP_415_UNSUPPORTED_MEDIA_TYPE
+                )
+            body = await request.body()
+            if len(body) > _PROXY_MAX_BODY_SIZE:
+                return ErrorResponse.from_message(
+                    "Request body too large", HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                )
+            target_url = f"{path}?{request.url.query}" if request.url.query else path
+            headers = {
+                key: value
+                for key, value in request.headers.items()
+                if key.lower() not in _PROXY_DROP_REQUEST_HEADERS
+            }
+            timeout = aiohttp.ClientTimeout(total=None, connect=30, sock_read=DEFAULT_TIMEOUT)
+            # Fresh per-request session: no cookie jar is shared, so cookies are
+            # never stored or resent between requests.
+            session = aiohttp.ClientSession(
+                timeout=timeout, cookie_jar=aiohttp.CookieJar(quote_cookie=False), skip_auto_headers=["Cookie"]
+            )
+            try:
+                response = await session.request(
+                    request.method,
+                    target_url,
+                    headers=headers,
+                    data=body if body else None,
+                    allow_redirects=False,
+                )
+            except aiohttp.ClientError as e:
+                await session.close()
+                return ErrorResponse.from_message(
+                    f"Proxy request failed: {e}", HTTP_502_BAD_GATEWAY
+                )
+            except Exception:
+                await session.close()
+                raise
+            response_content_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            if response_content_type and response_content_type not in _PROXY_JSON_CONTENT_TYPES:
+                response.close()
+                await session.close()
+                return ErrorResponse.from_message(
+                    "Only JSON responses are supported", HTTP_415_UNSUPPORTED_MEDIA_TYPE
+                )
+            response_headers = {
+                key: value
+                for key, value in response.headers.items()
+                if key.lower() not in _PROXY_DROP_RESPONSE_HEADERS
+            }
+
+            async def stream_and_close():
+                try:
+                    async for chunk in response.content.iter_any():
+                        yield chunk
+                finally:
+                    response.close()
+                    await session.close()
+
+            return StreamingResponse(
+                stream_and_close(),
+                status_code=response.status,
+                headers=response_headers,
+            )
 
 
 def format_exception(

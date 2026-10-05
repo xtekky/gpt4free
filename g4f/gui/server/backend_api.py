@@ -11,12 +11,21 @@ import asyncio
 import shutil
 import random
 import datetime
+import requests
 from hashlib import sha256
 from functools import lru_cache
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
 from typing import Generator
 from pathlib import Path
+
+from ...api.constants import (
+    _PROXY_DROP_REQUEST_HEADERS,
+    _PROXY_DROP_RESPONSE_HEADERS,
+    _PROXY_ALLOWED_METHODS,
+    _PROXY_MAX_BODY_SIZE,
+    _PROXY_JSON_CONTENT_TYPES,
+)
 
 try:
     from PIL import Image, UnidentifiedImageError
@@ -74,7 +83,7 @@ from ...image import (
     MEDIA_TYPE_MAP,
     is_safe_url as _is_safe_url,
 )
-from ...config import AppConfig
+from ...config import AppConfig, DEFAULT_TIMEOUT
 from ...cookies import get_cookies_dir
 from ...image.copy_images import (
     secure_filename,
@@ -1100,6 +1109,76 @@ class Backend_Api(Api):
                 json.dump(chat_data, f)
             self.chat_cache[share_id] = updated
             return jsonify({"share_id": share_id})
+
+        # CORS proxy: forwards requests to /api/https://<target-url> through the
+        # server. JSON-only, no cookies, no redirects.
+        @app.route(
+            "/api/<path:url>",
+            methods=sorted(_PROXY_ALLOWED_METHODS),
+        )
+        def cors_proxy(url: str):
+            if request.method == "OPTIONS":
+                response = app.response_class("", status=204)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                response.headers["Access-Control-Max-Age"] = "86400"
+                return response
+            if not url.startswith("https://"):
+                return jsonify({"error": {"message": "CORS proxy expects a target URL: /api/https://<url>"}}), 404
+            if not _is_safe_url(url):
+                return jsonify({"error": {"message": "Invalid or disallowed proxy URL"}}), 400
+            if request.method not in _PROXY_ALLOWED_METHODS or request.method == "OPTIONS":
+                return jsonify({"error": {"message": "Method not allowed"}}), 405
+            content_type = request.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            if request.method in ("POST", "PUT", "PATCH") and content_type not in _PROXY_JSON_CONTENT_TYPES:
+                return jsonify({"error": {"message": "Only JSON requests are supported"}}), 415
+            body = request.get_data()
+            if len(body) > _PROXY_MAX_BODY_SIZE:
+                return jsonify({"error": {"message": "Request body too large"}}), 413
+            query_string = request.query_string.decode("latin1")
+            target_url = f"{url}?{query_string}" if query_string else url
+            headers = {
+                key: value
+                for key, value in request.headers.items()
+                if key.lower() not in _PROXY_DROP_REQUEST_HEADERS
+            }
+            try:
+                # No cookie jar: never store or resend cookies between requests.
+                response = requests.request(
+                    request.method,
+                    target_url,
+                    headers=headers,
+                    data=body if body else None,
+                    stream=True,
+                    allow_redirects=False,
+                    timeout=(30, DEFAULT_TIMEOUT),
+                )
+            except requests.RequestException as e:
+                return jsonify({"error": {"message": f"Proxy request failed: {e}"}}), 502
+            response_content_type = response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            if response_content_type and response_content_type not in _PROXY_JSON_CONTENT_TYPES:
+                response.close()
+                return jsonify({"error": {"message": "Only JSON responses are supported"}}), 415
+            response_headers = {
+                key: value
+                for key, value in response.headers.items()
+                if key.lower() not in _PROXY_DROP_RESPONSE_HEADERS
+            }
+
+            def stream_and_close():
+                try:
+                    yield from response.iter_content(chunk_size=64 * 1024)
+                finally:
+                    response.close()
+
+            response_obj = app.response_class(
+                stream_and_close(),
+                status=response.status_code,
+                headers=response_headers,
+            )
+            response_obj.headers["Access-Control-Allow-Origin"] = "*"
+            return response_obj
 
     def handle_synthesize(self, provider: str):
         try:
