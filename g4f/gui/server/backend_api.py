@@ -19,7 +19,7 @@ from werkzeug.exceptions import NotFound
 from typing import Generator
 from pathlib import Path
 
-from ...api.constants import (
+from ...proxy.constants import (
     _PROXY_DROP_REQUEST_HEADERS,
     _PROXY_DROP_RESPONSE_HEADERS,
     _PROXY_ALLOWED_METHODS,

@@ -503,7 +503,7 @@ async def lifespan(app: FastAPI):
 _LOG_SKIP_PREFIXES = ("/images/", "/media/", "/thumbnail/", "/dist/", "/.well-known/")
 _LOG_SKIP_EXACT = {"/api/logs", "/logs", "/favicon.ico"}
 
-from .constants import (
+from ..proxy.constants import (
     _PROXY_DROP_REQUEST_HEADERS,
     _PROXY_DROP_RESPONSE_HEADERS,
     _PROXY_ALLOWED_METHODS,
