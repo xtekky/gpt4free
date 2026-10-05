@@ -118,6 +118,8 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         model = cls.get_model(model)
         prompt = get_last_user_message(messages)
+        if timeout is None:
+            timeout = 180
         if conversation is None:
             conversation = Conversation(model)
 
