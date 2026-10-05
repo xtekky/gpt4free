@@ -14,7 +14,7 @@ import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.webkit.WebBackForwardList;
 import android.webkit.WebSettings;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -101,6 +101,19 @@ public class MainActivity extends Activity {
                 // Patch navigator.clipboard to use the native bridge (reliable
                 // read+write in WebView, no permission quirks)
                 view.evaluateJavascript(CLIPBOARD_PATCH_JS, null);
+                // Once the real chat UI is up, drop the native splash/error
+                // pages (data: URLs) from the back history so navigating back
+                // never shows the loading screen again.
+                if (url != null && url.startsWith("http")) {
+                    WebBackForwardList history = view.copyBackForwardList();
+                    int idx = history.getCurrentIndex();
+                    if (idx > 0) {
+                        String prevUrl = history.getItemAtIndex(idx - 1).getUrl();
+                        if (prevUrl != null && prevUrl.startsWith("data:")) {
+                            view.clearHistory();
+                        }
+                    }
+                }
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
@@ -309,9 +322,8 @@ public class MainActivity extends Activity {
     }
 
     private void startServer() {
-        // Lime boot splash while the Python engine spins up (replaced by the
-        // chat UI once the server answers, or by showError() on failure).
-        showSplash();
+        // Splash is already up (shown once in onCreate); showError() replaces
+        // it on failure and loadChatWhenReady() swaps in the chat UI on success.
 
         // Thread 1: extract assets + start the Python server (blocks forever in app.run)
         executor.execute(() -> {
@@ -474,7 +486,22 @@ public class MainActivity extends Activity {
                 return true;
             }
             if (webView != null && webView.canGoBack()) {
-                webView.goBack();
+                // Skip native splash/error pages (data: URLs) in the back
+                // history so back never lands on the loading screen.
+                WebBackForwardList history = webView.copyBackForwardList();
+                int idx = history.getCurrentIndex();
+                int target = idx - 1;
+                while (target >= 0) {
+                    String u = history.getItemAtIndex(target).getUrl();
+                    if (u == null || !u.startsWith("data:")) break;
+                    target--;
+                }
+                if (target >= 0) {
+                    webView.goBackOrForward(target - idx);
+                } else {
+                    // Nothing but the splash behind us: act like the root
+                    moveTaskToBack(true);
+                }
                 return true;
             }
         }
