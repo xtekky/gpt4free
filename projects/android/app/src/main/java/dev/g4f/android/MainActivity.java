@@ -14,6 +14,7 @@ import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.webkit.WebBackForwardList;
 import android.webkit.WebSettings;
 import android.view.Gravity;
