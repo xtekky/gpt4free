@@ -327,8 +327,17 @@ public class MainActivity extends Activity {
                 }
 
                 Python py = Python.getInstance();
+                // Version comes from the git tag via -PappVersionName / G4F_VERSION
+                // (see app/build.gradle); null lets bootstrap.py use its fallback.
+                String versionName;
+                try {
+                    versionName = getPackageManager()
+                        .getPackageInfo(getPackageName(), 0).versionName;
+                } catch (Exception e) {
+                    versionName = null;
+                }
                 py.getModule("bootstrap").callAttr(
-                    "main", root.getAbsolutePath(), PORT);
+                    "main", root.getAbsolutePath(), PORT, versionName);
             } catch (Exception e) {
                 e.printStackTrace();
                 showError("Server failed to start: " + e);

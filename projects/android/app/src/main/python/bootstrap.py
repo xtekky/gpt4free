@@ -15,7 +15,7 @@ def _log(*args):
     print("[g4f-bootstrap]", *args, flush=True)
 
 
-def main(app_root: str, port: int) -> None:
+def main(app_root: str, port: int, version: str | None = None) -> None:
     _log("starting, app_root=", app_root, "port=", port)
 
     # HOME must be writable for g4f config (~/.g4f). Chaquopy sets it to the
@@ -23,7 +23,9 @@ def main(app_root: str, port: int) -> None:
     if "HOME" not in os.environ or not os.path.isdir(os.environ.get("HOME", "")):
         os.environ["HOME"] = app_root
 
-    os.environ["G4F_VERSION"] = "0.1.0-android"
+    # Version injected from the git tag at build time (MainActivity reads the
+    # manifest versionName set by -PappVersionName / G4F_VERSION).
+    os.environ["G4F_VERSION"] = version or "0.1.0-android"
     os.environ["G4F_API_HOST"] = "127.0.0.1"
     os.environ["G4F_API_PORT"] = str(port)
     os.environ["G4F_NO_VERSION_CHECK"] = "1"
