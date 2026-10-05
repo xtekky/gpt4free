@@ -4,6 +4,7 @@ import importlib
 import json
 import time
 import unittest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from g4f.errors import MissingAuthError, ResponseError
@@ -53,6 +54,53 @@ class Session:
         return next(self.responses)
 
 
+class ChatTransport(Response):
+    """Exercise the real chat generator with a local HTTP/SSE transport."""
+    def __init__(self, token, gate=None, stream_error=None):
+        super().__init__({})
+        self.token, self.gate, self.stream_error = token, gate, stream_error
+        self.cookie_jar = [SimpleNamespace(name='request-cookie', value=token)]
+        self.requests = []
+
+    def check_headers(self, url, kwargs):
+        if kwargs['headers'].get('authorization') != f'Bearer {self.token}':
+            raise AssertionError('Request used another account access token')
+        if '/backend-api/' in url and kwargs['headers'].get('cookie') != f'request-cookie={self.token}':
+            raise AssertionError('Request used another account cookies')
+        self.requests.append(url)
+
+    def get(self, url, **kwargs):
+        self.check_headers(url, kwargs)
+        gate = self.gate
+
+        class HomeResponse(Response):
+            async def __aenter__(self):
+                if gate is not None:
+                    await gate()
+                return self
+
+        return HomeResponse({})
+
+    def post(self, url, **kwargs):
+        self.check_headers(url, kwargs)
+        if url.endswith('/prepare'):
+            return Response({'conduit_token': 'conduit'})
+        if url.endswith('/chat-requirements'):
+            return Response({'token': 'requirements'})
+        return self
+
+    async def iter_lines(self):
+        if self.stream_error == 'timeout':
+            await asyncio.sleep(1)
+        if self.stream_error == 'error':
+            raise RuntimeError('Stream failed')
+        yield b'data: ' + json.dumps({'v': [
+            {'p': '/message/content/parts/0', 'v': 'Reply'},
+            {'p': '/message/metadata', 'v': {'finish_details': {'type': 'stop'}}},
+        ]}).encode()
+        yield b'data: [DONE]'
+
+
 class TestAccessToken(unittest.TestCase):
     def test_plain_and_bearer_tokens(self):
         token = jwt()
@@ -79,6 +127,96 @@ class TestAccessToken(unittest.TestCase):
 
 
 class TestTokenImages(unittest.IsolatedAsyncioTestCase):
+    async def test_direct_token_does_not_change_shared_login_during_stream_or_close(self):
+        cached_token = jwt({'exp': time.time() + 3600, 'account': 'cached'})
+        token = jwt({'exp': time.time() + 3600, 'account': 'request'})
+        headers, cookies = {'authorization': f'Bearer {cached_token}'}, {'cached': 'cookie'}
+        module = importlib.import_module(OpenaiChat.__module__)
+        with patch.object(OpenaiChat, '_api_key', cached_token), \
+             patch.object(OpenaiChat, '_expires', 9999999999), \
+             patch.object(OpenaiChat, '_headers', headers), patch.object(OpenaiChat, '_cookies', cookies), \
+             patch.object(module, 'StreamSession', return_value=ChatTransport(token)):
+            response = OpenaiChat.create_async_generator('auto', [{'role': 'user', 'content': 'hello'}], api_key=token)
+            try:
+                await response.__anext__()
+                self.assertEqual(OpenaiChat._api_key, cached_token)
+                self.assertEqual(OpenaiChat._expires, 9999999999)
+                self.assertIs(OpenaiChat._headers, headers)
+                self.assertIs(OpenaiChat._cookies, cookies)
+            finally:
+                await response.aclose()
+            async def no_login(cls, **kwargs):
+                return
+                yield
+            with patch.object(OpenaiChat, 'login_generator', classmethod(no_login)):
+                auth = [chunk async for chunk in OpenaiChat.on_auth_async()]
+            self.assertEqual(auth[-1].api_key, cached_token)
+
+    async def test_direct_token_stream_failures_leave_shared_login_unchanged(self):
+        module = importlib.import_module(OpenaiChat.__module__)
+        for failure, error in [('error', RuntimeError), ('timeout', asyncio.TimeoutError)]:
+            with self.subTest(failure=failure), \
+                 patch.object(OpenaiChat, '_api_key', None), patch.object(OpenaiChat, '_expires', None), \
+                 patch.object(OpenaiChat, '_headers', None), patch.object(OpenaiChat, '_cookies', None):
+                token = jwt()
+                with patch.object(module, 'StreamSession', return_value=ChatTransport(token, stream_error=failure)):
+                    with self.assertRaises(error):
+                        [chunk async for chunk in OpenaiChat.create_async_generator(
+                            'auto', [{'role': 'user', 'content': 'hello'}], api_key=token, stream_timeout=0.02,
+                        )]
+                self.assertIsNone(OpenaiChat._api_key)
+                self.assertIsNone(OpenaiChat._expires)
+                self.assertIsNone(OpenaiChat._headers)
+                self.assertIsNone(OpenaiChat._cookies)
+
+    async def test_concurrent_direct_tokens_are_kept_on_their_own_requests(self):
+        entered = 0
+        ready = asyncio.Event()
+
+        async def gate():
+            nonlocal entered
+            entered += 1
+            if entered == 2:
+                ready.set()
+            await ready.wait()
+
+        tokens = [jwt({'exp': time.time() + 3600, 'account': account}) for account in ('one', 'two')]
+        transports = [ChatTransport(token, gate=gate) for token in tokens]
+        module = importlib.import_module(OpenaiChat.__module__)
+
+        async def complete(token):
+            return [chunk async for chunk in OpenaiChat.create_async_generator(
+                'auto', [{'role': 'user', 'content': 'hello'}], api_key=token,
+            )]
+
+        with patch.object(module, 'StreamSession', side_effect=transports), \
+             patch.object(OpenaiChat, '_api_key', None), patch.object(OpenaiChat, '_expires', None), \
+             patch.object(OpenaiChat, '_headers', None), patch.object(OpenaiChat, '_cookies', None):
+            results = await asyncio.wait_for(asyncio.gather(*(complete(token) for token in tokens)), timeout=2)
+            for result, transport in zip(results, transports):
+                self.assertIn('Reply', result)
+                self.assertTrue(any(url.endswith('/f/conversation') for url in transport.requests))
+            self.assertIsNone(OpenaiChat._api_key)
+            self.assertIsNone(OpenaiChat._headers)
+
+    async def test_cached_auth_still_works_without_mutating_its_credentials(self):
+        token = jwt()
+        headers = {'authorization': f'Bearer {token}', 'x-test': 'cached'}
+        cookies = {}
+        auth = AuthResult(api_key=token, headers=headers, cookies=cookies)
+        module = importlib.import_module(OpenaiChat.__module__)
+        with patch.object(OpenaiChat, 'get_auth_result', return_value=auth), \
+             patch.object(OpenaiChat, 'on_auth_async', side_effect=AssertionError('Unexpected login')), \
+             patch.object(module, 'StreamSession', return_value=ChatTransport(token)):
+            chunks = [chunk async for chunk in OpenaiChat.create_async_generator(
+                'auto', [{'role': 'user', 'content': 'hello'}],
+            )]
+        self.assertIn('Reply', chunks)
+        self.assertEqual(auth.headers, {'authorization': f'Bearer {token}', 'x-test': 'cached'})
+        self.assertEqual(auth.cookies, {})
+        self.assertIs(auth.headers, headers)
+        self.assertIs(auth.cookies, cookies)
+
     async def test_direct_token_bypasses_cache_for_both_providers(self):
         token = jwt()
         for provider in (OpenaiChat, OpenaiAccount):
