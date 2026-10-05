@@ -176,6 +176,11 @@ function wireEmbedBridge() {
     if (data.type === "g4f-ext:open-auth" && typeof data.url === "string") {
       openLoginPopup(data.url);
     }
+    if (data.type === "g4f-ext:auth-done") {
+      // The login popup stored the session (announced via the shared
+      // localStorage). Close it; onRemoved refreshes the chat's login UI.
+      closeLoginPopup();
+    }
   });
 }
 
@@ -243,6 +248,14 @@ chrome.windows.onRemoved.addListener((winId) => {
     getChatUrl()
   );
 });
+
+/** Close the login popup if it is still open (best-effort). */
+function closeLoginPopup() {
+  if (loginPopupWinId == null) return;
+  const winId = loginPopupWinId;
+  loginPopupWinId = null;
+  chrome.windows.remove(winId, () => void chrome.runtime.lastError);
+}
 
 function showEmbedError(message) {
   const el = $("#embed-status");
