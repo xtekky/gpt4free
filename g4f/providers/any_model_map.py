@@ -86,7 +86,7 @@ model_map = {
     "OpenaiChat": "o3-mini",
     "Airforce": "o3-mini",
     "CopilotApp": "reasoning",
-    "LMArena": "o3-mini",
+    "Arena": "o3-mini",
     "KiloCode": "openai/o3-mini",
     "OpenRouter": "openai/o3-mini:batch",
     "Puter": "openrouter:openai/o3-mini:batch"
@@ -101,7 +101,7 @@ model_map = {
   "o4-mini": {
     "OpenaiChat": "o4-mini",
     "Airforce": "o4-mini",
-    "LMArena": "o4-mini-2025-04-16",
+    "Arena": "o4-mini-2025-04-16",
     "KiloCode": "openai/o4-mini",
     "OpenRouter": "openai/o4-mini:batch",
     "Puter": "openrouter:openai/o4-mini:batch"
@@ -116,7 +116,7 @@ model_map = {
     "OpenaiChat": "gpt-4-1",
     "Airforce": "gpt-4.1",
     "GithubCopilot": "gpt-4.1",
-    "LMArena": "gpt-4.1-2025-04-14",
+    "Arena": "gpt-4.1-2025-04-14",
     "KiloCode": "openai/gpt-4.1",
     "OpenRouter": "openai/gpt-4.1:batch",
     "Puter": "openrouter:openai/gpt-4.1:batch"
@@ -124,7 +124,7 @@ model_map = {
   "gpt-4.1-mini": {
     "OpenaiChat": "gpt-4-1-mini",
     "Airforce": "gpt-4.1-mini",
-    "LMArena": "gpt-4.1-mini-2025-04-14",
+    "Arena": "gpt-4.1-mini-2025-04-14",
     "KiloCode": "openai/gpt-4.1-mini",
     "OpenRouter": "openai/gpt-4.1-mini:batch",
     "ChatGPTLightweight": "gpt-4.1-mini",
@@ -150,7 +150,7 @@ model_map = {
     "Cloudflare": "@cf/openai/gpt-oss-120b",
     "G4FSpace": "srv_mkom688d57c76d8a3542:openai/gpt-oss-120b",
     "HuggingChat": "openai/gpt-oss-120b",
-    "LMArena": "gpt-oss-120b",
+    "Arena": "gpt-oss-120b",
     "KiloCode": "openai/gpt-oss-120b",
     "Ollama": "gpt-oss:120b",
     "Puter": "togetherai:openai/gpt-oss-120b"
@@ -283,7 +283,7 @@ model_map = {
     "GeminiCLI": "gemini-2.5-flash",
     "Airforce": "gemini-2.5-flash",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-2.5-flash",
-    "LMArena": "gemini-2.5-flash",
+    "Arena": "gemini-2.5-flash",
     "KiloCode": "google/gemini-2.5-flash",
     "OpenRouter": "google/gemini-2.5-flash:batch",
     "Puter": "openrouter:google/gemini-2.5-flash-preview"
@@ -293,7 +293,7 @@ model_map = {
     "GeminiPro": "gemini-2.5-pro",
     "GeminiCLI": "gemini-2.5-pro",
     "Airforce": "gemini-2.5-pro",
-    "LMArena": "gemini-2.5-pro",
+    "Arena": "gemini-2.5-pro",
     "KiloCode": "google/gemini-2.5-pro-preview",
     "OpenRouter": "google/gemini-2.5-pro-preview",
     "Puter": [
@@ -309,7 +309,7 @@ model_map = {
     "Gemini": "gemini-3.1-pro",
     "Airforce": "gemini-3.1-pro-preview",
     "GeminiPro": "gemini-3.1-pro",
-    "LMArena": "gemini-3.1-pro-preview",
+    "Arena": "gemini-3.1-pro-preview",
     "KiloCode": "google/gemini-3.1-pro-preview",
     "OpenCode": "gemini-3.1-pro",
     "OpenRouter": "google/gemini-3.1-pro-preview:batch",
@@ -321,7 +321,7 @@ model_map = {
     "Airforce": "gemini-3.1-flash-lite",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.1-flash-lite-preview",
     "GeminiPro": "gemini-3.1-flash-lite",
-    "LMArena": "gemini-3.1-flash-lite",
+    "Arena": "gemini-3.1-flash-lite",
     "KiloCode": "google/gemini-3.1-flash-lite-preview",
     "OpenRouter": "google/gemini-3.1-flash-lite-preview",
     "Puter": "openrouter:google/gemini-3.1-flash-lite:batch"
@@ -333,7 +333,7 @@ model_map = {
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.6-flash",
     "GeminiPro": "gemini-3.6-flash",
     "GithubCopilot": "gemini-3.6-flash",
-    "LMArena": "gemini-3.6-flash",
+    "Arena": "gemini-3.6-flash",
     "KiloCode": "google/gemini-3.6-flash",
     "OpenCode": "gemini-3.6-flash",
     "OpenRouter": "google/gemini-3.6-flash:batch",
@@ -346,7 +346,7 @@ model_map = {
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.7-flash",
     "GeminiPro": "gemini-3.7-flash",
     "GithubCopilot": "gemini-3.7-flash",
-    "LMArena": "gemini-3.7-flash",
+    "Arena": "gemini-3.7-flash",
     "KiloCode": "google/gemini-3.7-flash",
     "OpenCode": "gemini-3.7-flash",
     "OpenRouter": "google/gemini-3.7-flash:batch",
@@ -373,7 +373,7 @@ model_map = {
     "Airforce": "gemini-3.5-flash-lite",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.5-flash-lite",
     "GeminiPro": "gemini-3.5-flash-lite",
-    "LMArena": "gemini-3.5-flash-lite",
+    "Arena": "gemini-3.5-flash-lite",
     "KiloCode": "google/gemini-3.5-flash-lite",
     "OpenCode": "gemini-3.5-flash-lite",
     "OpenRouter": "google/gemini-3.5-flash-lite:batch",
@@ -385,7 +385,7 @@ model_map = {
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.5-flash",
     "GeminiPro": "gemini-3.5-flash",
     "GithubCopilot": "gemini-3.5-flash",
-    "LMArena": "gemini-3.5-flash",
+    "Arena": "gemini-3.5-flash",
     "KiloCode": "google/gemini-3.5-flash",
     "OpenCode": "gemini-3.5-flash",
     "OpenRouter": "google/gemini-3.5-flash:batch",
@@ -475,7 +475,7 @@ model_map = {
     "HuggingChat": "qwq-32b",
     "Airforce": "qwq-32b-preview",
     "Cloudflare": "@cf/qwen/qwq-32b",
-    "LMArena": "qwq-32b",
+    "Arena": "qwq-32b",
     "Puter": [
       "openrouter:qwen/qwq-32b-preview",
       "openrouter:qwen/qwq-32b:free",
@@ -774,7 +774,7 @@ model_map = {
     "Airforce": "mimo-v2.5-pro",
     "G4FSpace": "HuggingChat:XiaomiMiMo/MiMo-V2.5-Pro",
     "HuggingChat": "XiaomiMiMo/MiMo-V2.5-Pro",
-    "LMArena": "mimo-v2.5-pro",
+    "Arena": "mimo-v2.5-pro",
     "KiloCode": "xiaomi/mimo-v2.5-pro",
     "OpenRouter": "xiaomi/mimo-v2.5-pro",
     "Puter": "openrouter:xiaomi/mimo-v2.5-pro"
@@ -794,7 +794,7 @@ model_map = {
     "HuggingFace": "zai-org/GLM-5.1",
     "Airforce": "glm-5.1",
     "HuggingChat": "zai-org/GLM-5.1",
-    "LMArena": "glm-5.1",
+    "Arena": "glm-5.1",
     "KiloCode": "z-ai/glm-5.1",
     "Ollama": "glm-5.1",
     "OpenCode": "glm-5.1",
@@ -806,7 +806,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3.5-397B-A17B",
     "Airforce": "qwen3.5-397b-a17b",
     "HuggingChat": "Qwen/Qwen3.5-397B-A17B",
-    "LMArena": "qwen3.5-397b-a17b",
+    "Arena": "qwen3.5-397b-a17b",
     "KiloCode": "qwen/qwen3.5-397b-a17b",
     "OpenRouter": "qwen/qwen3.5-397b-a17b",
     "Puter": "openrouter:qwen/qwen3.5-397b-a17b",
@@ -846,7 +846,7 @@ model_map = {
   "qwen-3-max": {
     "DeepInfra": "Qwen/Qwen3-Max",
     "Airforce": "qwen3-max-preview",
-    "LMArena": "qwen3-max-2025-09-26",
+    "Arena": "qwen3-max-2025-09-26",
     "KiloCode": "qwen/qwen3-max",
     "OpenRouter": "qwen/qwen3-max",
     "Puter": "openrouter:qwen/qwen3-max",
@@ -854,7 +854,7 @@ model_map = {
   },
   "qwen-3-max-thinking": {
     "DeepInfra": "Qwen/Qwen3-Max-Thinking",
-    "LMArena": "qwen3-max-thinking",
+    "Arena": "qwen3-max-thinking",
     "KiloCode": "qwen/qwen3-max-thinking",
     "OpenRouter": "qwen/qwen3-max-thinking",
     "Puter": "openrouter:qwen/qwen3-max-thinking"
@@ -935,7 +935,7 @@ model_map = {
     "G4FSpace": "srv_mkombumpae45db46dcb8:openai/gpt-oss-20b",
     "Groq": "openai/gpt-oss-20b",
     "HuggingChat": "openai/gpt-oss-20b",
-    "LMArena": "gpt-oss-20b",
+    "Arena": "gpt-oss-20b",
     "Nvidia": "openai/gpt-oss-20b",
     "KiloCode": "openai/gpt-oss-20b",
     "Ollama": "gpt-oss:20b",
@@ -965,7 +965,7 @@ model_map = {
     "Airforce": "minimax-m3",
     "G4FSpace": "srv_mtsj8uzo97d3c0d49960:minimax-z/minimax-m3",
     "HuggingChat": "MiniMaxAI/MiniMax-M3",
-    "LMArena": "minimax-m3",
+    "Arena": "minimax-m3",
     "MiniMax": "MiniMax-M3",
     "KiloCode": "minimax/minimax-m3",
     "Ollama": "minimax-m3",
@@ -996,7 +996,7 @@ model_map = {
   "qwen-3.6-27b": {
     "HuggingFace": "Qwen/Qwen3.6-27B",
     "HuggingChat": "Qwen/Qwen3.6-27B",
-    "LMArena": "qwen3.6-27b",
+    "Arena": "qwen3.6-27b",
     "KiloCode": "qwen/qwen3.6-27b",
     "OpenRouter": "qwen/qwen3.6-27b",
     "Puter": "openrouter:qwen/qwen3.6-27b",
@@ -1039,7 +1039,7 @@ model_map = {
   "qwen-3.5-35b-a3b": {
     "HuggingFace": "Qwen/Qwen3.5-35B-A3B",
     "HuggingChat": "Qwen/Qwen3.5-35B-A3B",
-    "LMArena": "qwen3.5-35b-a3b",
+    "Arena": "qwen3.5-35b-a3b",
     "KiloCode": "qwen/qwen3.5-35b-a3b",
     "OpenRouter": "qwen/qwen3.5-35b-a3b",
     "Puter": "openrouter:qwen/qwen3.5-35b-a3b",
@@ -1122,7 +1122,7 @@ model_map = {
     "HuggingFace": "google/gemma-3-27b-it",
     "GeminiPro": "gemma-3-27b-it",
     "HuggingChat": "google/gemma-3-27b-it",
-    "LMArena": "gemma-3-27b-it",
+    "Arena": "gemma-3-27b-it",
     "KiloCode": "google/gemma-3-27b-it",
     "OpenRouter": "google/gemma-3-27b-it",
     "Puter": "openrouter:google/gemma-3-27b-it"
@@ -1134,7 +1134,7 @@ model_map = {
   "inkling-small": {
     "HuggingFace": "thinkingmachines/Inkling-Small",
     "HuggingChat": "thinkingmachines/Inkling-Small",
-    "LMArena": "inkling-small",
+    "Arena": "inkling-small",
     "KiloCode": "thinkingmachines/inkling-small:free",
     "OpenRouter": "thinkingmachines/inkling-small:free",
     "OpenRouterFree": "thinkingmachines/inkling-small:free",
@@ -1175,7 +1175,7 @@ model_map = {
     "Airforce": "qwen3-30b-a3b",
     "Cloudflare": "qwen3-30b-a3b",
     "HuggingChat": "Qwen/Qwen3-30B-A3B",
-    "LMArena": "qwen3-30b-a3b",
+    "Arena": "qwen3-30b-a3b",
     "KiloCode": "qwen/qwen3-30b-a3b",
     "OpenRouter": "qwen/qwen3-30b-a3b",
     "Puter": "openrouter:qwen/qwen3-30b-a3b"
@@ -1184,7 +1184,7 @@ model_map = {
     "HuggingFace": "XiaomiMiMo/MiMo-V2.5",
     "Airforce": "mimo-v2.5",
     "HuggingChat": "XiaomiMiMo/MiMo-V2.5",
-    "LMArena": "mimo-v2.5",
+    "Arena": "mimo-v2.5",
     "RelayRouter": "mimo-v2.5",
     "KiloCode": "xiaomi/mimo-v2.5",
     "OpenCode": "mimo-v2.5-free",
@@ -1208,7 +1208,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3.5-122B-A10B",
     "Airforce": "qwen3.5-122b-a10b",
     "HuggingChat": "Qwen/Qwen3.5-122B-A10B",
-    "LMArena": "qwen3.5-122b-a10b",
+    "Arena": "qwen3.5-122b-a10b",
     "KiloCode": "qwen/qwen3.5-122b-a10b",
     "OpenRouter": "qwen/qwen3.5-122b-a10b",
     "Puter": "openrouter:qwen/qwen3.5-122b-a10b",
@@ -1230,7 +1230,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3-VL-235B-A22B-Instruct",
     "Airforce": "qwen3-vl-235b-a22b",
     "HuggingChat": "Qwen/Qwen3-VL-235B-A22B-Instruct",
-    "LMArena": "qwen3-vl-235b-a22b-instruct",
+    "Arena": "qwen3-vl-235b-a22b-instruct",
     "KiloCode": "qwen/qwen3-vl-235b-a22b-instruct",
     "OpenRouter": "qwen/qwen3-vl-235b-a22b-instruct",
     "Puter": "openrouter:qwen/qwen3-vl-235b-a22b-instruct"
@@ -1238,7 +1238,7 @@ model_map = {
   "qwen-3.5-27b": {
     "HuggingFace": "Qwen/Qwen3.5-27B",
     "HuggingChat": "Qwen/Qwen3.5-27B",
-    "LMArena": "qwen3.5-27b",
+    "Arena": "qwen3.5-27b",
     "KiloCode": "qwen/qwen3.5-27b",
     "OpenRouter": "qwen/qwen3.5-27b",
     "Puter": "openrouter:qwen/qwen3.5-27b",
@@ -1248,7 +1248,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3-235B-A22B-Instruct-2507",
     "Airforce": "qwen3-235b-a22b-instruct-2507",
     "HuggingChat": "Qwen/Qwen3-235B-A22B-Instruct-2507",
-    "LMArena": "qwen3-235b-a22b-instruct-2507",
+    "Arena": "qwen3-235b-a22b-instruct-2507",
     "KiloCode": "qwen/qwen3-235b-a22b-2507",
     "OpenRouter": "qwen/qwen3-235b-a22b-2507",
     "Puter": "openrouter:qwen/qwen3-235b-a22b-2507"
@@ -1294,7 +1294,7 @@ model_map = {
     "HuggingFace": "stepfun-ai/Step-3.5-Flash",
     "Airforce": "step-3.5-flash",
     "HuggingChat": "stepfun-ai/Step-3.5-Flash",
-    "LMArena": "step-3.5-flash",
+    "Arena": "step-3.5-flash",
     "KiloCode": "stepfun/step-3.5-flash",
     "OpenRouter": "stepfun/step-3.5-flash",
     "Puter": "openrouter:stepfun/step-3.5-flash"
@@ -1354,7 +1354,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3-235B-A22B",
     "Airforce": "qwen3-235b-a22b",
     "HuggingChat": "Qwen/Qwen3-235B-A22B",
-    "LMArena": "qwen3-235b-a22b",
+    "Arena": "qwen3-235b-a22b",
     "KiloCode": "qwen/qwen3-235b-a22b",
     "OpenRouter": "qwen/qwen3-235b-a22b",
     "Puter": "openrouter:qwen/qwen3-235b-a22b"
@@ -1372,7 +1372,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
     "Airforce": "qwen3-coder-480b-a35b",
     "HuggingChat": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
-    "LMArena": "qwen3-coder-480b-a35b-instruct",
+    "Arena": "qwen3-coder-480b-a35b-instruct",
     "Puter": "infron:qwen/qwen3-coder-480b-a35b:priority"
   },
   "aya-expanse-32b": {
@@ -1382,7 +1382,7 @@ model_map = {
   "kimi-k2-0905": {
     "HuggingFace": "moonshotai/Kimi-K2-Instruct-0905",
     "HuggingChat": "moonshotai/Kimi-K2-Instruct-0905",
-    "LMArena": "kimi-k2-0905-preview",
+    "Arena": "kimi-k2-0905-preview",
     "KiloCode": "moonshotai/kimi-k2-0905",
     "OpenRouter": "moonshotai/kimi-k2-0905",
     "Puter": "openrouter:moonshotai/kimi-k2-0905"
@@ -1406,7 +1406,7 @@ model_map = {
   "minimax-m2.5": {
     "HuggingFace": "MiniMaxAI/MiniMax-M2.5",
     "HuggingChat": "MiniMaxAI/MiniMax-M2.5",
-    "LMArena": "minimax-m2.5",
+    "Arena": "minimax-m2.5",
     "KiloCode": "minimax/minimax-m2.5",
     "OpenCode": "minimax-m2.5",
     "OpenRouter": "minimax/minimax-m2.5",
@@ -1435,7 +1435,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3-235B-A22B-Thinking-2507",
     "Airforce": "qwen3-235b-a22b-thinking-2507",
     "HuggingChat": "Qwen/Qwen3-235B-A22B-Thinking-2507",
-    "LMArena": "qwen3-235b-a22b-thinking-2507",
+    "Arena": "qwen3-235b-a22b-thinking-2507",
     "KiloCode": "qwen/qwen3-235b-a22b-thinking-2507",
     "OpenRouter": "qwen/qwen3-235b-a22b-thinking-2507",
     "Puter": "openrouter:qwen/qwen3-235b-a22b-thinking-2507"
@@ -1467,7 +1467,7 @@ model_map = {
     "HuggingFace": "Qwen/Qwen3-Next-80B-A3B-Instruct",
     "Airforce": "qwen3-next-80b-a3b-instruct",
     "HuggingChat": "Qwen/Qwen3-Next-80B-A3B-Instruct",
-    "LMArena": "qwen3-next-80b-a3b-instruct",
+    "Arena": "qwen3-next-80b-a3b-instruct",
     "KiloCode": "qwen/qwen3-next-80b-a3b-instruct",
     "OpenRouter": "qwen/qwen3-next-80b-a3b-instruct",
     "Puter": "openrouter:qwen/qwen3-next-80b-a3b-instruct"
@@ -1477,7 +1477,7 @@ model_map = {
     "Airforce": "glm-4.7",
     "GLM": "GLM-4.7",
     "HuggingChat": "zai-org/GLM-4.7",
-    "LMArena": "glm-4.7",
+    "Arena": "glm-4.7",
     "KiloCode": "z-ai/glm-4.7",
     "OpenRouter": "z-ai/glm-4.7",
     "Puter": "z-ai:z-ai/glm-4.7"
@@ -1493,7 +1493,7 @@ model_map = {
   "qwen-3-vl-235b-a22b-thinking": {
     "HuggingFace": "Qwen/Qwen3-VL-235B-A22B-Thinking",
     "HuggingChat": "Qwen/Qwen3-VL-235B-A22B-Thinking",
-    "LMArena": "qwen3-vl-235b-a22b-thinking",
+    "Arena": "qwen3-vl-235b-a22b-thinking",
     "KiloCode": "qwen/qwen3-vl-235b-a22b-thinking",
     "OpenRouter": "qwen/qwen3-vl-235b-a22b-thinking",
     "Puter": "openrouter:qwen/qwen3-vl-235b-a22b-thinking"
@@ -1510,7 +1510,7 @@ model_map = {
     "HuggingFace": "zai-org/GLM-5",
     "Airforce": "glm-5",
     "HuggingChat": "zai-org/GLM-5",
-    "LMArena": "glm-5",
+    "Arena": "glm-5",
     "KiloCode": "z-ai/glm-5",
     "OpenCode": "glm-5",
     "OpenRouter": "z-ai/glm-5",
@@ -1527,7 +1527,7 @@ model_map = {
     "HuggingFace": "MiniMaxAI/MiniMax-M2",
     "Airforce": "minimax-m2",
     "HuggingChat": "MiniMaxAI/MiniMax-M2",
-    "LMArena": "minimax-m2-preview",
+    "Arena": "minimax-m2-preview",
     "KiloCode": "minimax/minimax-m2",
     "OpenRouter": "minimax/minimax-m2",
     "Puter": "openrouter:minimax/minimax-m2"
@@ -1550,7 +1550,7 @@ model_map = {
     "HuggingFace": "MiniMaxAI/MiniMax-M2.1",
     "Airforce": "minimax-m2.1",
     "HuggingChat": "MiniMaxAI/MiniMax-M2.1",
-    "LMArena": "minimax-m2.1-preview",
+    "Arena": "minimax-m2.1-preview",
     "KiloCode": "minimax/minimax-m2.1",
     "OpenRouter": "minimax/minimax-m2.1",
     "Puter": "openrouter:minimax/minimax-m2.1"

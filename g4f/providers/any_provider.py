@@ -40,7 +40,7 @@ PROVIDERS_LIST_2 = [
     "Qwen",
     "GLM",
     "OpenRouterFree",
-    "LMArena",
+    "Arena",
     "Puter",
     "HuggingFaceMedia",
 ]

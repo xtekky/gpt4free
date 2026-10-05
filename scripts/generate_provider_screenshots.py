@@ -99,7 +99,7 @@ AI_CHAT_PROVIDERS: list[str] = [
     "Yqcloud",
     "TeachAnything",
     "ThebApi",
-    "LMArena",
+    "Arena",
     "Reka",
     "HailuoAI",
 ]

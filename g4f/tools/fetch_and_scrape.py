@@ -16,7 +16,7 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..cookies import get_cookies_dir
+from ..config import get_cache_dir
 from ..providers.response import format_link
 
 
@@ -139,7 +139,7 @@ async def fetch_and_scrape(
     Fetches a URL and returns the scraped text, using caching to avoid redundant downloads.
     """
     try:
-        cache_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
+        cache_dir: Path = Path(get_cache_dir()) / ".scrape_cache" / "fetch_and_scrape"
         cache_dir.mkdir(parents=True, exist_ok=True)
         md5_hash = hashlib.md5(
             url.encode(errors="ignore")

@@ -3,13 +3,12 @@ from __future__ import annotations
 import os
 import json
 from ..image.copy_images import secure_filename
-from ..cookies import get_cookies_dir
-
+from ..config import get_cache_dir
 
 class FileStorage:
     def __init__(self, storage_dir: "str | None" = None):
         if storage_dir is None:
-            storage_dir = os.path.join(get_cookies_dir(), ".models")
+            storage_dir = os.path.join(get_cache_dir(), ".models")
         self.storage_dir = storage_dir
 
     def get_file(self, key: str) -> str:

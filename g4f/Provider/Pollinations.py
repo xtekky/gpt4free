@@ -29,7 +29,7 @@ from ..providers.response import (
 )
 from ..tools.media import render_messages
 from ..tools.auth import AuthManager
-from ..cookies import get_cookies_dir
+from ..config import get_cache_dir
 from ..files import secure_filename
 from ..config import AppConfig
 from .template.OpenaiTemplate import OpenaiTemplate, read_response
@@ -114,7 +114,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
 
         if cls.current_models_endpoint != models_url:
             path = (
-                Path(get_cookies_dir())
+                Path(get_cache_dir())
                 / ".models"
                 / datetime.today().strftime("%Y-%m-%d")
                 / f"{secure_filename(models_url)}.json"

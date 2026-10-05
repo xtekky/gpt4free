@@ -8,7 +8,7 @@ from datetime import date
 
 from ...typing import AsyncResult, Messages, Optional
 from ..base_provider import AsyncGeneratorProvider, AuthFileMixin
-from ...cookies import get_cookies_dir
+from ...config import get_cache_dir
 from ..helper import format_media_prompt
 from .DDGS import DDGS, SearchResults, SearchResultEntry
 from .SearXNG import SearXNG
@@ -91,7 +91,7 @@ class CachedSearch(AsyncGeneratorProvider, AuthFileMixin):
         ).encode(errors="ignore")
         md5_hash = hashlib.md5(json_bytes).hexdigest()
         cache_dir: Path = (
-            Path(get_cookies_dir()) / ".scrape_cache" / "web_search" / f"{date.today()}"
+            Path(get_cache_dir()) / ".scrape_cache" / "web_search" / f"{date.today()}"
         )
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / f"{md5_hash}.cache"

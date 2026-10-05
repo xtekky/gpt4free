@@ -62,7 +62,7 @@ class ProviderLoader:
         "HuggingFace",
         "HuggingFaceMedia",
         "HuggingSpace",
-        "LMArena",
+        "Arena",
         "Local",
         "MarkItDown",
         "MetaAI",
@@ -311,10 +311,10 @@ class ProviderLoader:
             from g4f.Provider.hf_space import HuggingSpace
 
             return HuggingSpace
-        elif name == "LMArena":
-            from g4f.Provider.needs_auth.LMArena import LMArena
+        elif name == "Arena" or name == "LMArena":
+            from g4f.Provider.needs_auth.Arena import Arena
 
-            return LMArena
+            return Arena
         elif name == "Local":
             from g4f.Provider.local import Local
 

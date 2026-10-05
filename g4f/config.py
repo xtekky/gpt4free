@@ -35,6 +35,27 @@ PACKAGE_NAME = "g4f"
 CONFIG_DIR = get_config_dir()
 COOKIES_DIR = CONFIG_DIR / "cookies"
 CUSTOM_COOKIES_DIR = "./har_and_cookies"
+CACHE_DIR = CONFIG_DIR / "cache"
+
+def get_cache_dir() -> str:
+    """
+    Returns the central cache directory used for all caches
+    (model lists, scrape caches, usage logs, etc.).
+    Can be overridden with the `G4F_CACHE_DIR` environment variable.
+    """
+    cache_dir = os.environ.get("G4F_CACHE_DIR")
+    if cache_dir:
+        cache_dir = Path(cache_dir)
+    else:
+        cache_dir = CACHE_DIR
+    if not cache_dir.exists():
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            cache_dir.chmod(0o700)
+        except OSError:
+            pass
+    return str(cache_dir)
+
 ORGANIZATION = "gpt4free"
 GITHUB_REPOSITORY = f"xtekky/gpt4free"
 STATIC_DOMAIN = f"g4f.dev"

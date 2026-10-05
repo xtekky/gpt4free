@@ -20,7 +20,7 @@ from ..github import GithubCopilot
 from .GithubCopilotAPI import GithubCopilotAPI
 from .Grok import Grok
 from .Groq import Groq
-from .LMArena import LMArena
+from .Arena import Arena
 from .MetaAI import MetaAI
 from .MetaAIAccount import MetaAIAccount
 from .MicrosoftDesigner import MicrosoftDesigner

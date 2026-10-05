@@ -10,7 +10,7 @@ from ..providers.types import ProviderType, BaseProvider
 from ..errors import ProviderNotFoundError
 from ..Provider import ProviderUtils
 from ..Provider.template import OpenaiTemplate
-from ..cookies import get_cookies_dir
+from ..config import get_cache_dir
 from ..config import AppConfig
 
 
@@ -106,7 +106,7 @@ class AbstractClientFactory:
         else:
             if not cls._live_providers:
                 path = (
-                    Path(get_cookies_dir())
+                    Path(get_cache_dir())
                     / ".models"
                     / datetime.today().strftime("%Y-%m-%d")
                     / f"providers.json"
@@ -132,11 +132,14 @@ class AbstractClientFactory:
                     and config.get("backupUrl")
                 ):
                     api_key = AppConfig.g4f_api_key
+                base_url = config.get("baseUrl", config.get("backupUrl"))
+                if not base_url:
+                    raise ValueError("No valid base URL found for provider.")
                 return create_custom_provider(
-                    base_url=config.get("baseUrl", config.get("backupUrl"))
+                    base_url=base_url
                     if cls.is_provider_api_key(api_key)
                     or config.get("backupUrl") is None
-                    else config.get("backupUrl", config.get("baseUrl")),
+                    else base_url,
                     backup_url=config.get("backupUrl"),
                     api_key=api_key,
                     name=provider,

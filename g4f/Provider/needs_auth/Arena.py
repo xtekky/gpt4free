@@ -27,7 +27,7 @@ from ...requests.cdp_browser import cdp, CDPTab
 from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import get_args_from_nodriver, raise_for_status, merge_cookies
 from ...requests import StreamSession
-from ...cookies import get_cookies_dir
+from ...config import get_cache_dir
 from ...files import secure_filename
 from ...errors import (
     ModelNotFoundError,
@@ -106,14 +106,14 @@ async def click_trunstile(
     debug.log("Finished clicking trunstile.")
 
 
-class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
-    label = "LMArena"
+class Arena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
+    label = "Arena"
     url = "https://arena.ai"
     screenshot_url = "https://arena.ai/?q=Hello"
     share_url = None
     create_evaluation = "https://arena.ai/nextjs-api/stream/create-evaluation"
     post_to_evaluation = "https://arena.ai/nextjs-api/stream/post-to-evaluation/{id}"
-    models_url = "https://arena.ai/?mode=direct"
+    models_url = "https://arena.ai/text/direct"
     working = True
     active_by_default = True
     use_stream_timeout = False
@@ -135,6 +135,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
     @classmethod
     def load_models(cls, models_data: str):
+        if not isinstance(models_data, list):
+            # e.g. "$undefined" placeholder on pages without model data
+            return
         cls.text_models = {
             model["publicName"]: model["id"]
             for model in models_data
@@ -155,14 +158,14 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             for model in models_data
             if "image" in model["capabilities"]["inputCapabilities"]
         ]
-        cls.models = list(cls.text_models) + list(cls.image_models)
-        cls.default_model = list(cls.text_models.keys())[0]
+        cls.models = ["auto"] + list(cls.text_models) + list(cls.image_models)
+        cls.default_model = "auto"
         cls._models_loaded = True
 
     @classmethod
     def load_models_from_cache(cls):
         models_path = (
-            Path(get_cookies_dir())
+            Path(get_cache_dir())
             / ".models"
             / f"{secure_filename(cls.models_url)}.json"
         )
@@ -195,13 +198,13 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         "initialModelAId"
                     )[0][3:-3]
                     line = line.encode("utf-8").decode("unicode_escape")
-                    models = json.loads(line)
+                    models, _ = json.JSONDecoder().raw_decode(line)
                     cls.load_models(models)
                     cls.live += 1
                     break
                 try:
                     models_path = (
-                        Path(get_cookies_dir())
+                        Path(get_cache_dir())
                         / ".models"
                         / f"{secure_filename(cls.models_url)}.json"
                     )
@@ -337,7 +340,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 );
                                 resolve(token);
                             } catch (e) {
-                                console.error("[LMArena API] reCAPTCHA execute failed:", e);
+                                console.error("[Arena API] reCAPTCHA execute failed:", e);
                                 resolve(null);
                             }
                         });
@@ -390,7 +393,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 debug.log(json_data)
             elif "initialModels" in json_data:
                 models = json_data["initialModels"]
-                cls.load_models(models)
+                if isinstance(models, list):
+                    cls.load_models(models)
             elif "children" in json_data:
                 pars_children(json_data)
 
@@ -559,7 +563,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     ) -> AsyncResult:
         prompt = get_last_user_message(messages)
         cache_file = cls.get_cache_file()
-        args = cls.read_args(kwargs.get("lmarena_args", {}))
+        args = cls.read_args(kwargs.get("arena_args", kwargs.get("lmarena_args", {})))
         _need_clear_cookies = False
         for _ in range(2):
             if args:
@@ -572,6 +576,9 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 await cls.get_models_async()
 
             def get_mode_id(_model):
+                if _model in ("auto", "default"):
+                    # Run in default compare (battle) mode without a model id
+                    return None
                 model_id = None
                 if _model in cls.text_models:
                     model_id = cls.text_models[_model]
@@ -581,7 +588,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     model_id = cls.video_models[_model]
                 elif _model:
                     raise ModelNotFoundError(
-                        f"Model '{_model}' is not supported by LMArena provider."
+                        f"Model '{_model}' is not supported by Arena provider."
                     )
                 return model_id
 
@@ -624,7 +631,8 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             }
             if modelAId:
                 data["modelAId"] = modelAId
-            if modelBId:
+            if mode == "side-by-side" and modelBId:
+                # The site only passes modelBId in side-by-side mode
                 data["modelBId"] = modelBId
             if mode in ["side-by-side", "battle"]:
                 data["modelBMessageId"] = modelBMessageId
@@ -646,7 +654,7 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                                 chunk = json.loads(line[3:])
                                 if chunk == "hasArenaError":
                                     raise ModelNotFoundError(
-                                        "LMArena Beta encountered an error: hasArenaError"
+                                        "Arena encountered an error: hasArenaError"
                                     )
                                 yield chunk
                             elif line.startswith("b0:"):
@@ -695,11 +703,11 @@ class LMArena(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                             elif line.startswith("bd:"):
                                 ...
                             elif line.startswith("a3:"):
-                                raise RuntimeError(f"LMArena: {json.loads(line[3:])}")
+                                raise RuntimeError(f"Arena: {json.loads(line[3:])}")
                             elif line.startswith("b3:"):
                                 ...
                             else:
-                                debug.log(f"LMArena: Unknown line prefix: {line[:2]}")
+                                debug.log(f"Arena: Unknown line prefix: {line[:2]}")
                 break
             except (CloudflareError, MissingAuthError) as error:
                 args = None

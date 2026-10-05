@@ -21,6 +21,7 @@ Usage:
   g4f-go api --port 8080      start the OpenAI-compatible API server
   g4f-go gui                  launch the web GUI
   g4f-go status               show runtime download/install status
+  g4f-go cache clear          remove all cached g4f data (model lists, scrape caches)
   g4f-go install g4f         (re)install the g4f package (network)
   g4f-go bootstrap            refresh the g4f package installation
   g4f-go --version            print version
@@ -62,6 +63,8 @@ func runMain() int {
 	}
 
 	switch args[0] {
+	case "cache":
+		return runCacheCommand(args[1:])
 	case "status":
 		stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
 		fmt.Printf("binary dir: %s\n", binDir)
@@ -177,7 +180,7 @@ func hasSubcommand(args []string) bool {
 		return true
 	}
 	switch args[0] {
-	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap":
+	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap", "cache":
 		return true
 	}
 	if strings.HasPrefix(args[0], "-") {
