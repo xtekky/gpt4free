@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from .OpenaiAPI import OpenaiAPI
+from ..OpenaiTemplate import OpenaiTemplate
 from ...typing import AsyncResult, Messages, Cookies
 from ...requests.raise_for_status import raise_for_status
 from ...cookies import get_cookies, get_cookies_async
 
 
-class Cerebras(OpenaiAPI):
+class Cerebras(OpenaiTemplate):
     label = "Cerebras Inference"
     url = "https://chat.cerebras.ai"
     login_url = "https://cloud.cerebras.ai"
