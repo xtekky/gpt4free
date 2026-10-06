@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..OpenaiTemplate import OpenaiTemplate
+from ..template.OpenaiTemplate import OpenaiTemplate
 from ...typing import AsyncResult, Messages, Cookies
 from ...requests.raise_for_status import raise_for_status
 from ...cookies import get_cookies, get_cookies_async
