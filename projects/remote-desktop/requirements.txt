@@ -1,6 +1,0 @@
-fastapi>=0.110
-uvicorn[standard]>=0.27
-mss>=9.0
-pynput>=1.7
-pillow>=10.0
-qrcode>=7.4

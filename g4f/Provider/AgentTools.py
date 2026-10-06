@@ -44,6 +44,7 @@ from ..providers.response import (
     Reasoning,
     ProviderInfo,
     JsonConversation,
+    RawResponse,
 )
 from ..providers.types import ProviderType
 from ..providers.retry_provider import IterListProvider, RotatedProvider
@@ -430,13 +431,9 @@ def _make_session(key, server, inner_provider, inner_model, loop_messages, kwarg
         "last_activity": time.time(),
     }
 
-def _format_tool_calls_fence(calls: list) -> str:
-    """Render tool calls as a highlighted markdown code fence for the client."""
-    try:
-        body = json.dumps({"tool_calls": calls}, indent=2, ensure_ascii=False, default=str)
-    except (TypeError, ValueError):
-        body = str(calls)
-    return Reasoning(f"\n```json\n{body}\n```\n")
+def _format_tool_calls_fence(calls: list) -> ToolCalls:
+    """Render tool calls as a structured ToolCalls object for the client."""
+    return ToolCalls(calls)
 
 def _append_step_messages(session: dict, calls: list, tool_results: list, content: str) -> None:
     """Append the assistant tool-call message and the tool results."""
@@ -669,7 +666,7 @@ async def _run_background_session(session: dict) -> None:
             content = "".join(content_chunks)
             session["partial"] = content
             parsed_calls = native_calls or None
-            if parsed_calls is None and not session["use_native"] and content and session["tool_names"]:
+            if parsed_calls is None and content and session["tool_names"]:
                 parsed_calls = parse_tool_calls_from_text(content, session["tool_names"])
             openai_calls = normalize_tool_calls(parsed_calls) if parsed_calls else []
             openai_calls = [
@@ -1116,7 +1113,7 @@ class AgentTools(AsyncGeneratorProvider):
 
             # Determine the tool calls for this step.
             parsed_calls = native_calls or None
-            if parsed_calls is None and not use_native and content and tool_names:
+            if parsed_calls is None and content and tool_names:
                 # Emulation fallback: parse the JSON tool-call text format.
                 parsed_calls = parse_tool_calls_from_text(content, tool_names)
 
@@ -1202,6 +1199,14 @@ class AgentTools(AsyncGeneratorProvider):
                 "tool_calls": openai_calls,
             })
             for call, name, result in tool_results:
+                is_err = isinstance(result, dict) and "error" in result
+                yield RawResponse(
+                    type="tool_result",
+                    name=name,
+                    args=call.get("function", {}).get("arguments"),
+                    result=result if not is_err else None,
+                    error=result.get("error") if is_err else None,
+                )
                 loop_messages.append({
                     "role": "tool",
                     "tool_call_id": call.get("id", ""),
@@ -1228,7 +1233,7 @@ class AgentTools(AsyncGeneratorProvider):
                 if session_key:
                     _store_done_session(
                         session_key, server, inner_provider, model, loop_messages,
-                        kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                        kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                         completion_tokens, usage, result=content or None, finish_reason="stop",
                         provider_info=inner_info,
                     )
@@ -1263,7 +1268,7 @@ class AgentTools(AsyncGeneratorProvider):
         if session_key:
             _store_done_session(
                 session_key, server, inner_provider, model, loop_messages,
-                kwargs, media, tool_defs, tool_choice, use_native, tool_names,
+                kwargs, media, api_key, tool_defs, tool_choice, use_native, tool_names,
                 completion_tokens, usage, result=content or None, finish_reason="stop",
                 provider_info=inner_info,
             )

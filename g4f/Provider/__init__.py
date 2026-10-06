@@ -445,7 +445,7 @@ class ProviderLoader:
             cls.loaded[name].active_by_default = True
             cls.loaded[name].supports_native_tools = True
             return cls.loaded[name]
-        elif name == "AgentTools":
+        elif name in ("AgentTools", "agent-tools", "agent_tools", "agent"):
             from g4f.Provider.AgentTools import AgentTools
 
             return AgentTools
