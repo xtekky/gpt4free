@@ -38,7 +38,6 @@ class ProviderLoader:
         "BlackboxPro",
         "CachedSearch",
         "Cerebras",
-        "CheaperInference",
         "Claude",
         "Cloudflare",
         "CohereForAI_C4AI_Command",
@@ -103,6 +102,7 @@ class ProviderLoader:
         "Anthropic",
         "GigaChat",
         "GithubCopilotAPI",
+        "CheaperInference",
         "MiniMax",
         "OpenaiAPI",
         "Cohere",
@@ -134,7 +134,7 @@ class ProviderLoader:
 
             return AnyProvider
         elif name == "AIBadgr":
-            from g4f.Provider.needs_auth.AIBadgr import AIBadgr
+            from g4f.Provider.extra.AIBadgr import AIBadgr
 
             return AIBadgr
         elif name == "Anthropic":
@@ -182,7 +182,7 @@ class ProviderLoader:
 
             return Cerebras
         elif name == "CheaperInference":
-            from g4f.Provider.needs_auth.CheaperInference import CheaperInference
+            from g4f.Provider.extra.CheaperInference import CheaperInference
 
             return CheaperInference
         elif name == "Claude":
@@ -277,7 +277,7 @@ class ProviderLoader:
 
             return GithubCopilot
         elif name == "GithubCopilotAPI":
-            from g4f.Provider.needs_auth.GithubCopilotAPI import GithubCopilotAPI
+            from g4f.Provider.extra.GithubCopilotAPI import GithubCopilotAPI
 
             return GithubCopilotAPI
         elif name == "GoogleAiMode":
@@ -430,7 +430,7 @@ class ProviderLoader:
 
             return AgentTools
         elif name == "OpenaiAPI":
-            from g4f.Provider.needs_auth.OpenaiAPI import OpenaiAPI
+            from g4f.Provider.extra.OpenaiAPI import OpenaiAPI
 
             return OpenaiAPI
         elif name == "OpenaiAccount":
@@ -454,7 +454,7 @@ class ProviderLoader:
 
             return Perplexity
         elif name == "PerplexityApi":
-            from g4f.Provider.needs_auth.PerplexityApi import PerplexityApi
+            from g4f.Provider.extra.PerplexityApi import PerplexityApi
 
             return PerplexityApi
         elif name == "PhindAi":
@@ -494,7 +494,7 @@ class ProviderLoader:
 
             return Reka
         elif name == "Replicate":
-            from g4f.Provider.needs_auth.Replicate import Replicate
+            from g4f.Provider.extra.Replicate import Replicate
 
             return Replicate
         elif name == "SearXNG":
@@ -510,11 +510,11 @@ class ProviderLoader:
 
             return TeachAnything
         elif name == "ThebApi":
-            from g4f.Provider.needs_auth.ThebApi import ThebApi
+            from g4f.Provider.extra.ThebApi import ThebApi
 
             return ThebApi
         elif name == "Together":
-            from g4f.Provider.needs_auth.Together import Together
+            from g4f.Provider.extra.Together import Together
 
             return Together
         elif name == "WhiteRabbitNeo":
@@ -538,7 +538,7 @@ class ProviderLoader:
 
             return gTTS
         elif name == "xAI":
-            from g4f.Provider.needs_auth.xAI import xAI
+            from g4f.Provider.extra.xAI import xAI
 
             return xAI
         else:

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from .OpenaiAPI import OpenaiAPI
+from ..template import OpenaiTemplate
 
 
-class GithubCopilotAPI(OpenaiAPI):
+class GithubCopilotAPI(OpenaiTemplate):
     label = "GitHub Copilot API"
     url = "https://github.com/copilot"
     login_url = "https://aider.chat/docs/llms/github.html"
