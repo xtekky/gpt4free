@@ -709,7 +709,7 @@ def create_app():
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
-
+    
     if AppConfig.gui:
         if not has_a2wsgi:
             raise MissingRequirementsError(
@@ -718,7 +718,7 @@ def create_app():
         gui_app = WSGIMiddleware(
             get_gui_app(AppConfig.demo, AppConfig.timeout, AppConfig.stream_timeout)
         )
-        app.mount("/", gui_app)        
+        app.mount("/", gui_app)
 
     return app
 

@@ -119,11 +119,31 @@ class ProviderLoader:
 
     @classmethod
     def from_name(cls, name: str) -> ProviderType:
+        if not name or not isinstance(name, str):
+            return None
         if name in cls.loaded:
             return cls.loaded[name]
-        provider = cls._load(name)
-        cls.loaded[name] = provider
-        return provider
+        norm_name = name.lower().replace("-", "").replace("_", "")
+        if norm_name in cls.loaded:
+            return cls.loaded[norm_name]
+        try:
+            provider = cls._load(name)
+            cls.loaded[name] = provider
+            cls.loaded[norm_name] = provider
+            return provider
+        except ImportError:
+            if norm_name in ("agent", "agenttools", "agent_tools"):
+                actual_name = "AgentTools"
+            else:
+                lower_map = {p.lower().replace("-", "").replace("_", ""): p for p in cls.names}
+                actual_name = lower_map.get(norm_name)
+            if actual_name and actual_name != name:
+                provider = cls._load(actual_name)
+                cls.loaded[name] = provider
+                cls.loaded[norm_name] = provider
+                return provider
+            from ..errors import ProviderNotFoundError
+            raise ProviderNotFoundError(f"Provider not found: {name}")
 
     @classmethod
     def _load(cls, name: str) -> ProviderType:
@@ -396,7 +416,7 @@ class ProviderLoader:
             cls.loaded[name].__name__ = name
             cls.loaded[name].url = "https://opencode.ai"
             cls.loaded[name].active_by_default = True
-            cls.loaded[name].default_model = "big-pickle"
+            cls.loaded[name].default_model = "space-bunny-free"
             cls.loaded[name].headers = {
                 "Content-Type": "application/json",
                 "User-Agent": "opencode/1.18.31 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
@@ -542,6 +562,12 @@ class ProviderLoader:
 
             return xAI
         else:
+            norm_name = name.lower().replace("-", "").replace("_", "")
+            if norm_name == "agent":
+                return cls.from_name("AgentTools")
+            lower_map = {p.lower().replace("-", "").replace("_", ""): p for p in cls.names}
+            if norm_name in lower_map and lower_map[norm_name] != name:
+                return cls.from_name(lower_map[norm_name])
             raise ImportError(f"Provider '{name}' not found")
 
 __all__ = __others__ + ProviderLoader.names + ProviderLoader.extra
@@ -571,14 +597,22 @@ def __dir__():
 
 
 class _ConvertDict(dict):
+    def _normalize(self, name: str) -> str:
+        return name.lower().replace("-", "").replace("_", "")
+
     def __contains__(self, item):
-        return item in ProviderLoader.names
+        if not isinstance(item, str):
+            return False
+        try:
+            return ProviderLoader.from_name(item) is not None
+        except Exception:
+            return False
 
     def __getitem__(self, item):
         try:
-            return __getattr__(item)
-        except AttributeError:
-            raise KeyError(f"Provider '{item}' not found")
+            return ProviderLoader.from_name(item)
+        except Exception as e:
+            raise KeyError(f"Provider '{item}' not found") from e
 
     def keys(self):
         return ProviderLoader.names

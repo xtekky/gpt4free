@@ -164,6 +164,8 @@ class Website:
             },
             "/apps/": {"function": self._apps, "methods": ["GET"]},
             "/apps/<path:filename>": {"function": self._apps, "methods": ["GET"]},
+            "/agent": {"function": self._agent, "methods": ["GET"]},
+            "/agent/": {"function": self._agent, "methods": ["GET"]},
             "/browser": {"function": self._browser, "methods": ["GET"]},
             "/browser/": {"function": self._browser, "methods": ["GET"]},
             "/logs": {"function": self._logs, "methods": ["GET"]},
@@ -179,6 +181,9 @@ class Website:
 
     def _index(self, filename="home"):
         return render(filename)
+
+    def _agent(self):
+        return render("agent")
 
     def _stats(self):
         return render("stats")

@@ -69,6 +69,17 @@ def get_model_and_provider(
     if isinstance(provider, str):
         provider = convert_to_provider(provider)
 
+    # Check if model string specifies agent-tools or Provider:Model format
+    if isinstance(model, str):
+        if model.startswith("agent-tools") or model.startswith("agent:"):
+            from ..Provider.AgentTools import AgentTools
+            return model, AgentTools
+        if ":" in model and not provider:
+            splited = model.split(":", 1)
+            if splited[0] in ProviderUtils.convert:
+                provider = ProviderUtils.convert[splited[0]]
+                model = splited[1] if len(splited) > 1 else getattr(provider, "default_model", "auto")
+
     if not provider:
         # Check config.yaml custom model routes first
         if isinstance(model, str):
@@ -105,12 +116,7 @@ def get_model_and_provider(
                 model = default
                 provider = model.best_provider
         elif isinstance(model, str):
-            splited = model.split(":")
-            if splited[0] in ProviderUtils.convert:
-                provider = ProviderUtils.convert[splited[0]]
-                model = splited[1] if len(splited) > 1 else getattr(provider, "default_model", "")
-            else:
-                raise ModelNotFoundError(f"Model not found: {model}")
+            provider = default.best_provider
         elif isinstance(model, Model):
             provider = model.best_provider
         else:

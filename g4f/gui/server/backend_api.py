@@ -205,6 +205,42 @@ class Backend_Api(Api):
             task = asyncio.create_task(fetch_providers())
             return jsonify(saved) if saved is not None else await task
 
+        @app.route("/backend-api/v2/webmcp/tools", methods=["GET", "POST"])
+        async def handle_webmcp_tools():
+            """WebMCP API endpoint for listing and executing backend tools."""
+            try:
+                from g4f.mcp.server import MCPServer
+                from g4f.mcp.server import MCPRequest
+
+                mcp_server = MCPServer()
+                if request.method == "GET":
+                    tool_list = mcp_server.get_tool_list()
+                    return jsonify({
+                        "protocol": "WebMCP/1.0",
+                        "status": "ok",
+                        "tools": tool_list
+                    })
+
+                body = request.get_json() or {}
+                method = body.get("method", "tools/call")
+                req_id = body.get("id", int(time.time()))
+                params = body.get("params", {})
+
+                mcp_req = MCPRequest(
+                    jsonrpc="2.0",
+                    id=req_id,
+                    method=method,
+                    params=params,
+                    origin=request.headers.get("origin", "")
+                )
+                resp = await mcp_server.handle_request(mcp_req)
+                if resp.error:
+                    return jsonify({"jsonrpc": "2.0", "id": req_id, "error": resp.error}), 400
+                return jsonify({"jsonrpc": "2.0", "id": req_id, "result": resp.result})
+            except Exception as e:
+                logger.exception(e)
+                return jsonify({"error": {"message": str(e)}}), 500
+
         @app.route("/backend-api/v2/models", methods=["GET"])
         @lru_cache(maxsize=1)
         def jsonify_models():

@@ -10,7 +10,7 @@ from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
 from ..errors import ModelNotFoundError
-from ..Provider import ProviderLoader, G4FSpace
+from ..Provider import ProviderLoader, ProviderUtils, G4FSpace
 from .base_provider import (
     AsyncGeneratorProvider,
     ProviderModelMixin,
@@ -445,6 +445,19 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     providers = [
                         p for p in providers if getattr(p, "supports_native_tools", False)
                     ]
+        elif model and (model.startswith("agent-tools") or model.startswith("agent:")):
+            from ..Provider.AgentTools import AgentTools
+            method = get_async_provider_method(AgentTools)
+            async for chunk in method(
+                model,
+                messages,
+                stream=stream,
+                media=media,
+                api_key=api_key,
+                **kwargs,
+            ):
+                yield chunk
+            return
         elif model in RouterConfig.routes:
             async for chunk in ConfigModelProvider(
                 RouterConfig.routes.get(model)
@@ -453,15 +466,15 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             ):
                 yield chunk
             return
-        elif model in ProviderLoader.names:
-            provider = ProviderLoader.from_name(model)
+        elif model in ProviderUtils.convert:
+            provider = ProviderUtils.convert[model]
             if provider.working and provider.get_parent() not in ignored:
                 model = None
                 providers.append(provider)
         elif model and ":" in model:
-            provider, submodel = model.split(":", maxsplit=1)
-            if provider in ProviderLoader.names:
-                provider = ProviderLoader.from_name(provider)
+            provider_str, submodel = model.split(":", maxsplit=1)
+            if provider_str in ProviderUtils.convert:
+                provider = ProviderUtils.convert[provider_str]
                 method = get_async_provider_method(provider)
                 async for chunk in method(
                     submodel,
