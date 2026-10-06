@@ -11,10 +11,10 @@ from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ToolCalls, Usage
 from ...errors import MissingAuthError
 from ...image import to_bytes, is_accepted_format
-from .OpenaiAPI import OpenaiAPI
+from ..template import OpenaiTemplate
 
 
-class Anthropic(OpenaiAPI):
+class Anthropic(OpenaiTemplate):
     label = "Anthropic API"
     url = "https://console.anthropic.com"
     screenshot_url = "https://anthropic.com"
