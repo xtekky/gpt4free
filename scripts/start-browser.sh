@@ -2,6 +2,7 @@
 
 # Browser selection: chrome (default), chromium, brave, msedge
 BROWSER="chrome"
+DEBUG_PORT=57011
 HEADLESS=0
 for arg in "$@"; do
     case "$arg" in
@@ -31,7 +32,7 @@ BROWSER_FLAGS=(
     --user-data-dir="$HOME/.config/g4f-nodriver"
     --disable-features=IsolateOrigins,site-per-process
     --remote-debugging-host=127.0.0.1
-    --remote-debugging-port=57011
+    --remote-debugging-port=$DEBUG_PORT
 )
 
 if [ "$HEADLESS" -eq 1 ]; then
@@ -142,12 +143,98 @@ fi
 PROC_NAME="$(basename "$BROWSER_BIN")"
 echo "Starting browser: $BROWSER_BIN"
 
+# Check if the remote-debugging port is accepting connections.
+port_open() {
+    if command -v curl &>/dev/null; then
+        curl -s --max-time 2 "http://127.0.0.1:$DEBUG_PORT/json/version" &>/dev/null
+    elif command -v powershell.exe &>/dev/null; then
+        powershell.exe -NoProfile -Command \
+            "try { (New-Object Net.Sockets.TcpClient('127.0.0.1', $DEBUG_PORT)).Close(); exit 0 } catch { exit 1 }" &>/dev/null
+    else
+        (exec 3<>"/dev/tcp/127.0.0.1/$DEBUG_PORT") &>/dev/null
+    fi
+}
+
+# Expose the debug port on the network: 0.0.0.0:9223 -> 127.0.0.1:$DEBUG_PORT
+start_port_forward() {
+    if command -v socat &>/dev/null; then
+        socat tcp-listen:9223,reuseaddr,bind=0.0.0.0,fork tcp:127.0.0.1:$DEBUG_PORT &
+        echo "Forwarding 0.0.0.0:9223 -> 127.0.0.1:$DEBUG_PORT (socat)"
+    elif command -v python &>/dev/null || command -v python3 &>/dev/null; then
+        PYTHON_BIN="$(command -v python3 || command -v python)"
+        "$PYTHON_BIN" - "$DEBUG_PORT" <<'EOF' &
+import socket, sys, threading
+
+DEBUG_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 57011
+LISTEN_PORT = 9223
+
+def pipe(src, dst):
+    try:
+        while True:
+            data = src.recv(65536)
+            if not data:
+                break
+            dst.sendall(data)
+    except OSError:
+        pass
+    finally:
+        for sock in (src, dst):
+            try:
+                sock.close()
+            except OSError:
+                pass
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(("0.0.0.0", LISTEN_PORT))
+server.listen()
+print(f"Forwarding 0.0.0.0:{LISTEN_PORT} -> 127.0.0.1:{DEBUG_PORT} (python)")
+while True:
+    client, _ = server.accept()
+    remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        remote.connect(("127.0.0.1", DEBUG_PORT))
+    except OSError:
+        client.close()
+        continue
+    threading.Thread(target=pipe, args=(client, remote), daemon=True).start()
+    threading.Thread(target=pipe, args=(remote, client), daemon=True).start()
+EOF
+    else
+        echo "Warning: install socat or python to expose port 9223 on the network" >&2
+        return
+    fi
+    echo "Note: allow inbound port 9223 in the Windows Firewall for external access."
+}
+
+# Clean up background forwarders when the script exits.
+trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+start_port_forward
+
 if [[ "$BROWSER_BIN" == *.exe ]]; then
-    # Windows: launch once and exit — the browser manages its own lifecycle
-    rm -f ~/.g4f/cookies/.browser_is_open
-    "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
+    # Windows: relaunch the browser whenever it is closed.
+    while true; do
+        rm -f ~/.g4f/cookies/.browser_is_open
+        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}" &
+        BROWSER_PID=$!
+        # Wait until the debugging port is reachable (browser fully started), max 30s.
+        waited=0
+        until port_open; do
+            sleep 1
+            waited=$((waited + 1))
+            if [ "$waited" -ge 30 ]; then
+                echo "Browser did not open the debug port, retrying..." >&2
+                break
+            fi
+        done
+        echo "Browser running (pid $BROWSER_PID). Close it to restart..."
+        # Wait until the port closes again (browser shut down).
+        while port_open; do sleep 2; done
+        echo "Browser closed, restarting in 3 seconds... (Ctrl+C to stop)"
+        sleep 3
+    done
 else
-    socat tcp-listen:9223,reuseaddr,fork tcp:localhost:57011 &
     # Linux: loop and relaunch if the browser exits
     while true; do
         rm -f ~/.g4f/cookies/.browser_is_open
