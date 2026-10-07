@@ -212,14 +212,33 @@ class InputBridge:
         backend.mouse.scroll(dx, dy)
 
     def _key(self, backend: Backend, event: dict) -> None:
+        action = str(event.get("action", "click")).lower()
+        if action == "combo":
+            self._combo(backend, event)
+            return
         key = resolve_key(backend, event.get("key"))
         if key is None:
             raise ValueError(f"unsupported key {event.get('key')!r}")
-        action = str(event.get("action", "click")).lower()
         if action == "down":
             backend.keyboard.press(key)
         elif action == "up":
             backend.keyboard.release(key)
         else:
             backend.keyboard.press(key)
+            backend.keyboard.release(key)
+
+    def _combo(self, backend: Backend, event: dict) -> None:
+        """Press every key of a shortcut, then release them in reverse order."""
+        names = event.get("keys")
+        if not isinstance(names, (list, tuple)) or not names:
+            raise ValueError("combo requires a non-empty key list")
+        keys = []
+        for name in names:
+            key = resolve_key(backend, name)
+            if key is None:
+                raise ValueError(f"unsupported key {name!r} in combo")
+            keys.append(key)
+        for key in keys:
+            backend.keyboard.press(key)
+        for key in reversed(keys):
             backend.keyboard.release(key)

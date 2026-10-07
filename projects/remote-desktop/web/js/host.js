@@ -19,6 +19,8 @@
     closed: false,
     capture: null,
     quality: new Map(),
+    iceServers: [],
+    iceLogged: false,
   };
 
   //: Encoder caps the host applies per viewer. A viewer on mobile data asks
@@ -211,11 +213,14 @@
   const negotiations = new Map();
 
   function newPeer(viewerId) {
-    const pc = new RTCPeerConnection({ iceServers: [] });
+    const pc = new RTCPeerConnection({ iceServers: state.iceServers, iceCandidatePoolSize: 2 });
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         send({ type: "signal", to: viewerId, data: { kind: "ice", candidate: event.candidate } });
       }
+    };
+    pc.onicecandidateerror = (event) => {
+      log(`peer ${viewerId}: ICE candidate error ${event.errorCode} ${event.errorText || ""}`);
     };
     pc.onconnectionstatechange = () => {
       log(`peer ${viewerId}: ${pc.connectionState}`);
@@ -377,11 +382,30 @@
     $("control-pill").textContent = state.control ? `control: ${state.control}` : "control: nobody";
   }
 
+  /* The relay list decides whether a phone on cellular can reach us at all, so
+     it is fetched before any peer is built and refreshed with the status poll. */
+  function applyIceServers(servers) {
+    if (!Array.isArray(servers)) return;
+    const next = servers.filter((entry) => entry && entry.urls);
+    const changed = JSON.stringify(next) !== JSON.stringify(state.iceServers);
+    state.iceServers = next;
+    if (!state.iceLogged) {
+      state.iceLogged = true;
+      const urls = next.flatMap((entry) => (Array.isArray(entry.urls) ? entry.urls : [entry.urls]));
+      log(urls.length ? `ICE servers: ${urls.join(", ")}` : "ICE servers: none (LAN only)");
+    }
+    if (changed && state.peers.size) {
+      log("ICE configuration changed, rebuilding peers");
+      closeAllPeers();
+    }
+  }
+
   async function refreshStatus() {
     try {
       const response = await fetch("/api/status");
       const data = await response.json();
       state.urls = data.urls || [];
+      applyIceServers(data.ice_servers);
       if (state.room) showRoom(state.room);
       const input = $("input-text");
       if (data.input) {

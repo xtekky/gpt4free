@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
+import hmac
 
 import pytest
 
-from remote_desktop.config import Settings, clamp
+from remote_desktop.config import Settings, clamp, turn_credentials
 
 
 def test_defaults_without_environment(monkeypatch):
@@ -109,3 +112,80 @@ def test_from_args_tolerates_missing_attributes():
     settings = Settings.from_args(argparse.Namespace())
     assert settings.port == 8765
     assert settings.allow_input is True
+
+
+def test_ice_servers_defaults_to_stun_only(monkeypatch):
+    monkeypatch.delenv("RD_ICE_SERVERS", raising=False)
+    monkeypatch.delenv("RD_TURN_URL", raising=False)
+    servers = Settings().ice_servers()
+    assert len(servers) == 1
+    assert servers[0]["urls"] == ["stun:stun.l.google.com:19302"]
+    assert "credential" not in servers[0]
+
+
+def test_ice_servers_adds_turn_with_credentials(monkeypatch):
+    monkeypatch.delenv("RD_ICE_SERVERS", raising=False)
+    monkeypatch.setenv("RD_TURN_URL", "turn:turn.example.com:3478,turns:turn.example.com:5349")
+    monkeypatch.setenv("RD_TURN_SECRET", "s3cret")
+    servers = Settings().ice_servers()
+    assert servers[0]["urls"] == ["stun:stun.l.google.com:19302"]
+    turn = servers[1]
+    assert turn["urls"] == ["turn:turn.example.com:3478", "turns:turn.example.com:5349"]
+    assert turn["username"].split(":")[0].isdigit()
+    assert turn["credential"]
+
+
+def test_ice_servers_without_secret_has_no_credentials(monkeypatch):
+    monkeypatch.delenv("RD_ICE_SERVERS", raising=False)
+    monkeypatch.setenv("RD_TURN_URL", "turn:turn.example.com:3478")
+    monkeypatch.delenv("RD_TURN_SECRET", raising=False)
+    turn = Settings().ice_servers()[1]
+    assert "username" not in turn
+    assert "credential" not in turn
+
+
+def test_ice_servers_json_wins(monkeypatch):
+    monkeypatch.setenv("RD_ICE_SERVERS", '[{"urls": ["turn:custom:3478"], "username": "u", "credential": "c"}]')
+    monkeypatch.setenv("RD_TURN_URL", "turn:ignored:3478")
+    servers = Settings().ice_servers()
+    assert servers == [{"urls": ["turn:custom:3478"], "username": "u", "credential": "c"}]
+
+
+def test_ice_servers_ignores_malformed_json(monkeypatch):
+    monkeypatch.setenv("RD_ICE_SERVERS", "{not json")
+    monkeypatch.delenv("RD_TURN_URL", raising=False)
+    assert Settings().ice_servers()[0]["urls"] == ["stun:stun.l.google.com:19302"]
+
+
+def test_ice_servers_can_be_disabled(monkeypatch):
+    monkeypatch.setenv("RD_ICE_SERVERS", "[]")
+    assert Settings().ice_servers() == []
+
+
+def test_ice_servers_uses_custom_stun(monkeypatch):
+    monkeypatch.delenv("RD_ICE_SERVERS", raising=False)
+    monkeypatch.setenv("RD_STUN_URL", "stun:stun.example.com:3478,stun:stun2.example.com:3478")
+    monkeypatch.delenv("RD_TURN_URL", raising=False)
+    assert Settings().ice_servers() == [
+        {"urls": ["stun:stun.example.com:3478", "stun:stun2.example.com:3478"]}
+    ]
+
+
+def test_turn_credentials_are_time_limited_and_signed():
+    username, credential = turn_credentials("topsecret", 600, now=1_000_000.0)
+    expiry, _, nonce = username.partition(":")
+    assert int(expiry) == 1_000_600
+    assert nonce
+    expected = base64.b64encode(
+        hmac.new(b"topsecret", username.encode("utf-8"), hashlib.sha1).digest()
+    ).decode("ascii")
+    assert credential == expected
+
+
+def test_turn_credentials_change_per_call():
+    assert turn_credentials("s", 60) != turn_credentials("s", 60)
+
+
+def test_clamp_bounds_turn_ttl():
+    assert Settings(turn_ttl=1).clamp().turn_ttl == 60
+    assert Settings(turn_ttl=999_999).clamp().turn_ttl == 86400

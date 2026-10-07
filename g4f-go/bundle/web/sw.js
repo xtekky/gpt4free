@@ -1,5 +1,5 @@
 /* Offline shell for the viewer. The stream itself is always live. */
-const CACHE = "remote-desktop-v1";
+const CACHE = "remote-desktop-v2";
 const ASSETS = [
   "/view",
   "/static/css/app.css",

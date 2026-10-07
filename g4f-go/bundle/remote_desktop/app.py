@@ -151,6 +151,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "auto_control": settings.auto_control,
                 "max_viewers": settings.max_viewers,
                 "urls": share_urls(settings),
+                "ice_servers": settings.ice_servers(),
                 **registry.stats(),
             }
         )

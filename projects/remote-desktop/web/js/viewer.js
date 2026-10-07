@@ -28,6 +28,8 @@
     lastBytes: 0,
     lastBytesAt: 0,
     kbps: 0,
+    iceServers: [],
+    iceLogged: false,
   };
 
   //: Caps per quality level. The viewer only receives, so it asks the host to
@@ -131,11 +133,14 @@
   const pendingIce = [];
 
   function newPeer() {
-    const pc = new RTCPeerConnection({ iceServers: [] });
+    const pc = new RTCPeerConnection({ iceServers: state.iceServers, iceCandidatePoolSize: 2 });
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         send({ type: "signal", to: state.host, data: { kind: "ice", candidate: event.candidate } });
       }
+    };
+    pc.onicecandidateerror = (event) => {
+      console.warn(`ICE candidate error ${event.errorCode} ${event.errorText || ""}`);
     };
     pc.ontrack = (event) => {
       const video = $("screen");
@@ -643,6 +648,25 @@
 
   /* -------------------------------------------------------------------- boot */
 
+  /* Without a relay the phone on cellular only learns its own carrier address
+     and the host's LAN address, so ICE never pairs. Fetch the relay list first. */
+  async function loadIceServers() {
+    try {
+      const response = await fetch("/api/status");
+      const data = await response.json();
+      if (Array.isArray(data.ice_servers)) {
+        state.iceServers = data.ice_servers.filter((entry) => entry && entry.urls);
+      }
+    } catch {
+      state.iceServers = [];
+    }
+    if (!state.iceLogged) {
+      state.iceLogged = true;
+      const urls = state.iceServers.flatMap((entry) => (Array.isArray(entry.urls) ? entry.urls : [entry.urls]));
+      console.info(urls.length ? `ICE servers: ${urls.join(", ")}` : "ICE servers: none (LAN only)");
+    }
+  }
+
   function boot() {
     const video = $("screen");
     video.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -709,9 +733,10 @@
 
     if (state.room) {
       $("room").value = state.room;
-      connect();
+      loadIceServers().then(connect);
     } else {
       showOverlay("Enter the room code shown on the host computer.");
+      loadIceServers();
     }
 
     if ("serviceWorker" in navigator) {

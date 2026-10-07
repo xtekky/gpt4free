@@ -23,7 +23,25 @@
     moved: false,
     drag: false,
     lastTap: 0,
+    quality: params.get("q") || localStorage.getItem("rd-quality") || "auto",
+    hidden: document.hidden,
+    lastBytes: 0,
+    lastBytesAt: 0,
+    kbps: 0,
+    iceServers: [],
+    iceLogged: false,
   };
+
+  //: Caps per quality level. The viewer only receives, so it asks the host to
+  //: re-encode at this level; the width/height here cap the displayed picture.
+  const QUALITY = {
+    low: { label: "low", maxWidth: 854, maxHeight: 480, maxBitrate: 250_000, maxFramerate: 12 },
+    medium: { label: "med", maxWidth: 1280, maxHeight: 720, maxBitrate: 900_000, maxFramerate: 20 },
+    high: { label: "high", maxWidth: 1920, maxHeight: 1080, maxBitrate: 2_500_000, maxFramerate: 30 },
+    auto: { label: "auto", maxWidth: 1280, maxHeight: 720, maxBitrate: 1_200_000, maxFramerate: 24 },
+  };
+
+  const QUALITY_ORDER = ["low", "medium", "high", "auto"];
 
   const log = () => {};
 
@@ -115,11 +133,14 @@
   const pendingIce = [];
 
   function newPeer() {
-    const pc = new RTCPeerConnection({ iceServers: [] });
+    const pc = new RTCPeerConnection({ iceServers: state.iceServers, iceCandidatePoolSize: 2 });
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         send({ type: "signal", to: state.host, data: { kind: "ice", candidate: event.candidate } });
       }
+    };
+    pc.onicecandidateerror = (event) => {
+      console.warn(`ICE candidate error ${event.errorCode} ${event.errorText || ""}`);
     };
     pc.ontrack = (event) => {
       const video = $("screen");
@@ -127,6 +148,7 @@
         video.srcObject = event.streams[0];
         video.play().catch(() => {});
         startFpsMeter();
+        applyQuality();
       }
     };
     pc.onconnectionstatechange = () => {
@@ -209,6 +231,88 @@
     }
     state.pc = null;
     $("screen").srcObject = null;
+  }
+
+  /* --------------------------------------------------------------- bandwidth */
+
+  function qualitySettings() {
+    return QUALITY[state.quality] || QUALITY.auto;
+  }
+
+  /* The viewer only receives, so it cannot cap the bitrate itself: it asks the
+     host to re-encode this stream at the requested level. The CSS cap keeps the
+     picture from being upscaled on a small screen. */
+  function applyQuality() {
+    const settings = qualitySettings();
+    const video = $("screen");
+    video.style.maxWidth = `${settings.maxWidth}px`;
+    video.style.maxHeight = `${settings.maxHeight}px`;
+    video.style.margin = "0 auto";
+    if (state.host) {
+      send({ type: "signal", to: state.host, data: { kind: "quality", level: state.quality } });
+    }
+  }
+
+  function setQuality(level, { announce = true } = {}) {
+    if (!QUALITY[level]) level = "auto";
+    state.quality = level;
+    try {
+      localStorage.setItem("rd-quality", level);
+    } catch {
+      /* private mode */
+    }
+    $("quality-label").textContent = qualitySettings().label;
+    $("btn-quality").classList.toggle("active", level !== "auto");
+    applyQuality();
+    if (announce) flash(`quality: ${qualitySettings().label}`);
+  }
+
+  function cycleQuality() {
+    const index = QUALITY_ORDER.indexOf(state.quality);
+    setQuality(QUALITY_ORDER[(index + 1) % QUALITY_ORDER.length]);
+  }
+
+  /* The host keeps encoding even when nobody is looking, so a hidden tab
+     should stop the download instead of paying for frames it never shows. */
+  function onVisibilityChange() {
+    state.hidden = document.hidden;
+    const video = $("screen");
+    if (state.hidden) {
+      video.pause();
+    } else {
+      video.play().catch(() => {});
+      state.lastBytesAt = 0;
+    }
+  }
+
+  async function sampleBandwidth() {
+    const pc = state.pc;
+    if (!pc || !pc.getStats) return;
+    let bytes = 0;
+    try {
+      const report = await pc.getStats();
+      report.forEach((entry) => {
+        if (entry.type === "inbound-rtp" && entry.kind === "video" && typeof entry.bytesReceived === "number") {
+          bytes += entry.bytesReceived;
+        }
+      });
+    } catch {
+      return;
+    }
+    const now = performance.now();
+    if (state.lastBytesAt && bytes >= state.lastBytes) {
+      const kbps = ((bytes - state.lastBytes) * 8) / (now - state.lastBytesAt);
+      state.kbps = state.kbps ? state.kbps * 0.6 + kbps * 0.4 : kbps;
+      $("fps-pill").textContent = `${Math.round((state.frames * 1000) / Math.max(1, now - state.lastFps))} fps · ${formatRate(state.kbps)}`;
+    }
+    state.lastBytes = bytes;
+    state.lastBytesAt = now;
+  }
+
+  function formatRate(kbps) {
+    if (!kbps) return "--";
+    if (kbps >= 1000) return `${(kbps / 1000).toFixed(1)} Mb/s`;
+    return `${Math.round(kbps)} kb/s`;
   }
 
   /* ------------------------------------------------------------------- input */
@@ -371,6 +475,69 @@
     emit({ type: "key", action: "up", key: event.key });
   }
 
+  /* --------------------------------------------------------------- shortcuts */
+
+  //: One tap shortcuts for the things a phone keyboard cannot do. ``keys`` is
+  //: pressed in order and released in reverse, so modifiers wrap the key.
+  const SHORTCUTS = [
+    { id: "alt-tab", label: "Alt+Tab", keys: ["Alt", "Tab"] },
+    { id: "alt-shift-tab", label: "Alt+Shift+Tab", keys: ["Alt", "Shift", "Tab"] },
+    { id: "win", label: "Win", keys: ["Meta"] },
+    { id: "win-d", label: "Show desktop", keys: ["Meta", "d"] },
+    { id: "win-e", label: "Explorer", keys: ["Meta", "e"] },
+    { id: "win-l", label: "Lock", keys: ["Meta", "l"] },
+    { id: "win-r", label: "Run", keys: ["Meta", "r"] },
+    { id: "win-tab", label: "Task view", keys: ["Meta", "Tab"] },
+    { id: "ctrl-c", label: "Copy", keys: ["Control", "c"] },
+    { id: "ctrl-v", label: "Paste", keys: ["Control", "v"] },
+    { id: "ctrl-x", label: "Cut", keys: ["Control", "x"] },
+    { id: "ctrl-z", label: "Undo", keys: ["Control", "z"] },
+    { id: "ctrl-a", label: "Select all", keys: ["Control", "a"] },
+    { id: "ctrl-s", label: "Save", keys: ["Control", "s"] },
+    { id: "ctrl-f", label: "Find", keys: ["Control", "f"] },
+    { id: "ctrl-w", label: "Close tab", keys: ["Control", "w"] },
+    { id: "ctrl-shift-t", label: "Reopen tab", keys: ["Control", "Shift", "t"] },
+    { id: "ctrl-shift-esc", label: "Task manager", keys: ["Control", "Shift", "Escape"] },
+    { id: "alt-f4", label: "Close window", keys: ["Alt", "F4"] },
+    { id: "alt-left", label: "Back", keys: ["Alt", "ArrowLeft"] },
+    { id: "alt-right", label: "Forward", keys: ["Alt", "ArrowRight"] },
+    { id: "escape", label: "Esc", keys: ["Escape"] },
+    { id: "enter", label: "Enter", keys: ["Enter"] },
+    { id: "tab", label: "Tab", keys: ["Tab"] },
+    { id: "f5", label: "Refresh", keys: ["F5"] },
+    { id: "f11", label: "Fullscreen", keys: ["F11"] },
+    { id: "printscreen", label: "Screenshot", keys: ["PrintScreen"] },
+  ];
+
+  function runShortcut(shortcut) {
+    if (!state.hasControl) {
+      flash("take control first");
+      return;
+    }
+    emit({ type: "key", action: "combo", keys: shortcut.keys });
+    flash(shortcut.label);
+  }
+
+  function buildShortcuts() {
+    const box = $("shortcuts-list");
+    for (const shortcut of SHORTCUTS) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = shortcut.label;
+      button.dataset.shortcut = shortcut.id;
+      button.addEventListener("click", () => runShortcut(shortcut));
+      box.appendChild(button);
+    }
+  }
+
+  function toggleShortcuts(force) {
+    const panel = $("shortcuts");
+    const open = force !== undefined ? force : !panel.classList.contains("open");
+    panel.classList.toggle("open", open);
+    $("btn-shortcuts").classList.toggle("active", open);
+    if (open) showToolbar();
+  }
+
   /* ---------------------------------------------------------------------- ui */
 
   function showOverlay(text) {
@@ -398,6 +565,12 @@
     $("btn-control").classList.toggle("active", state.hasControl);
   }
 
+  function renderStats() {
+    const now = performance.now();
+    const fps = Math.round((state.frames * 1000) / Math.max(1, now - state.lastFps));
+    $("fps-pill").textContent = state.kbps ? `${fps} fps · ${formatRate(state.kbps)}` : `${fps} fps`;
+  }
+
   function startFpsMeter() {
     const video = $("screen");
     if (!video.requestVideoFrameCallback) return;
@@ -405,7 +578,7 @@
       state.frames += 1;
       const now = performance.now();
       if (now - state.lastFps >= 1000) {
-        $("fps-pill").textContent = `${Math.round((state.frames * 1000) / (now - state.lastFps))} fps`;
+        renderStats();
         state.frames = 0;
         state.lastFps = now;
       }
@@ -453,12 +626,12 @@
     $("toolbar").classList.remove("hidden");
     clearTimeout(toolbarTimer);
     toolbarTimer = setTimeout(() => {
-      if (!state.gesture) $("toolbar").classList.add("hidden");
+      if (!state.gesture && !$("shortcuts").classList.contains("open")) $("toolbar").classList.add("hidden");
     }, 4000);
   }
 
   function onStageTap(event) {
-    if (event.target.closest("#toolbar, #keyboard, #hud, #overlay")) return;
+    if (event.target.closest("#toolbar, #keyboard, #shortcuts, #hud, #overlay")) return;
     if ($("toolbar").classList.contains("hidden")) {
       showToolbar();
       return;
@@ -474,6 +647,25 @@
   }
 
   /* -------------------------------------------------------------------- boot */
+
+  /* Without a relay the phone on cellular only learns its own carrier address
+     and the host's LAN address, so ICE never pairs. Fetch the relay list first. */
+  async function loadIceServers() {
+    try {
+      const response = await fetch("/api/status");
+      const data = await response.json();
+      if (Array.isArray(data.ice_servers)) {
+        state.iceServers = data.ice_servers.filter((entry) => entry && entry.urls);
+      }
+    } catch {
+      state.iceServers = [];
+    }
+    if (!state.iceLogged) {
+      state.iceLogged = true;
+      const urls = state.iceServers.flatMap((entry) => (Array.isArray(entry.urls) ? entry.urls : [entry.urls]));
+      console.info(urls.length ? `ICE servers: ${urls.join(", ")}` : "ICE servers: none (LAN only)");
+    }
+  }
 
   function boot() {
     const video = $("screen");
@@ -513,6 +705,9 @@
     });
     $("btn-keyboard").addEventListener("click", () => toggleKeyboard());
     $("close-keyboard").addEventListener("click", () => toggleKeyboard(false));
+    $("btn-shortcuts").addEventListener("click", () => toggleShortcuts());
+    $("close-shortcuts").addEventListener("click", () => toggleShortcuts(false));
+    $("btn-quality").addEventListener("click", cycleQuality);
     $("send-text").addEventListener("click", sendText);
     $("text-input").addEventListener("keydown", (event) => {
       if (event.key === "Enter") sendText();
@@ -524,6 +719,11 @@
     $("toolbar").addEventListener("pointerdown", showToolbar);
     showToolbar();
 
+    buildShortcuts();
+    setQuality(state.quality, { announce: false });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    setInterval(sampleBandwidth, 2000);
+
     document.querySelectorAll("#keyboard .keys button[data-key]").forEach((element) => {
       element.addEventListener("click", () => {
         const key = element.dataset.key;
@@ -533,9 +733,10 @@
 
     if (state.room) {
       $("room").value = state.room;
-      connect();
+      loadIceServers().then(connect);
     } else {
       showOverlay("Enter the room code shown on the host computer.");
+      loadIceServers();
     }
 
     if ("serviceWorker" in navigator) {

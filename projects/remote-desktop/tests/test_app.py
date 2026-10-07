@@ -62,6 +62,28 @@ def test_status_reports_configuration(client):
     assert isinstance(payload["urls"], list) and payload["urls"]
 
 
+def test_status_exposes_ice_servers():
+    settings = make_settings(turn_url="turn:turn.example.com:3478", turn_secret="s3cret")
+    with TestClient(create_app(settings)) as test_client:
+        servers = test_client.get("/api/status").json()["ice_servers"]
+    assert servers[0]["urls"] == ["stun:stun.l.google.com:19302"]
+    assert servers[1]["urls"] == ["turn:turn.example.com:3478"]
+    assert servers[1]["credential"]
+
+
+def test_status_ice_servers_are_fresh_per_request():
+    settings = make_settings(turn_url="turn:turn.example.com:3478", turn_secret="s3cret")
+    with TestClient(create_app(settings)) as test_client:
+        first = test_client.get("/api/status").json()["ice_servers"][1]["username"]
+        second = test_client.get("/api/status").json()["ice_servers"][1]["username"]
+    assert first != second
+
+
+def test_status_without_turn_has_no_relay():
+    with TestClient(create_app(make_settings(turn_url=""))) as test_client:
+        servers = test_client.get("/api/status").json()["ice_servers"]
+    assert all("turn" not in url for entry in servers for url in entry["urls"])
+
 def test_qr_endpoint_returns_svg(client):
     response = client.get("/api/qr.svg", params={"url": "http://192.168.1.5:8765/view?room=ABC123"})
     assert response.status_code == 200
