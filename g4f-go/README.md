@@ -61,9 +61,66 @@ g4f-go script.py [args...]  run a .py file with the bundled Python
 g4f-go api --port 8080      start the OpenAI-compatible API server
 g4f-go gui                  launch the web GUI
 g4f-go status               show runtime download/install status
+g4f-go browser install      install the headless browser (Lightpanda) for this OS
+g4f-go browser serve        run the browser's CDP server in the foreground
 g4f-go install g4f          (re)install the g4f package (network)
 g4f-go help                 show help
 ```
+
+## Headless browser (`browser`)
+
+g4f drives a real browser over CDP for cookie fetching and scraping. `g4f-go`
+can install and manage that browser for you — [Lightpanda](https://github.com/lightpanda-io/browser),
+a small headless CDP browser with no GUI.
+
+```
+g4f-go browser install      # download + verify + install for this OS
+g4f-go browser serve        # run the CDP server in the foreground
+g4f-go browser status       # show install state
+g4f-go browser path         # print the installed binary path
+g4f-go browser uninstall    # remove it
+```
+
+`browser serve` accepts `--host` (default `127.0.0.1`) and `--port` (default
+`9222`; `0` picks a free port). Any other flag is forwarded to
+`lightpanda serve`.
+
+### Automatic startup when headless
+
+g4f runs its browser headless by default (`BrowserConfig.headless = True`).
+When g4f-go runs g4f — or a `.py` script — and headless mode is active, it starts
+the installed browser on a free port and points g4f at it via `G4F_BROWSER_HOST` /
+`G4F_BROWSER_PORT`, then shuts it down when the child process exits:
+
+```
+$ g4f-go client "hello"
+browser: started Lightpanda on 127.0.0.1:64188 (headless)
+...
+```
+
+The automatic startup is skipped when:
+
+- the browser is not installed (`g4f-go browser install` first),
+- `G4F_BROWSER_PORT` is already set (an existing endpoint is reused),
+- `G4F_BROWSER_MODE` is set to something other than `cdp`,
+- headless mode is off — via `--no-headless` or `G4F_BROWSER_HEADLESS=false`.
+
+A PID file (`.autostart.pid`) lets the next run reclaim a browser that outlived
+a hard-killed g4f-go.
+
+### Downloads
+
+Binaries are pinned per platform and verified against a SHA-256 before install:
+
+| OS | Arch | Source |
+|----|------|--------|
+| Linux | amd64, arm64 | `lightpanda-io/browser` release |
+| macOS | amd64, arm64 | `lightpanda-io/browser` release |
+| Windows | amd64 | `qidiai/lightpanda-windows-port` (upstream has no native Windows build) |
+
+Installed into `~/.g4f/browser/` (next to the CPython runtime). The Windows
+package is a zip whose top-level directory is stripped and whose binary is
+`chmod 0755`-ed, since the archive carries no unix permission bits.
 
 ## Bundled modules (`-m`)
 
@@ -123,6 +180,15 @@ bundle/                    extracted embedded Python bundle (remote_desktop, web
 .g4f-runtime/.runtime-ok   stamp: download+extract complete
 .g4f-runtime/.installed    stamp: g4f pip-installed
 .g4f-runtime/.bundle-revision  stamp: extracted bundle revision
+```
+
+The headless browser lives next to it in `~/.g4f/browser/`:
+
+```
+lightpanda(.exe)           browser binary
+VCRUNTIME140*.dll          Windows runtime DLLs (Windows package only)
+.version                   stamp: installed platform + version
+.autostart.pid             PID of the browser g4f-go started (while running)
 ```
 
 ## Limitations
