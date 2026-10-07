@@ -59,7 +59,6 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
         return {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
             "content-type": "application/json",
             "origin": "https://www.teach-anything.com",
             "referer": "https://www.teach-anything.com/",

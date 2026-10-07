@@ -61,12 +61,26 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             from ...tools.run_tools import AuthManager
 
             api_key = AuthManager.load_api_key(cls)
-        if cls.health_url is None and cls.quota_url is None:
-            if cls.backup_url:
-                cls.health_url = f"{cls.backup_url}/models"
-            elif cls.models_needs_auth:
-                cls.health_url = f"{cls.base_url}/models"
-        return await super().get_health(api_key=api_key, **kwargs)
+        if cls.health_url is not None or cls.quota_url is not None:
+            return await super().get_health(api_key=api_key, **kwargs)
+        if not api_key and cls.needs_auth:
+            raise MissingAuthError("API key is required.")
+        # No dedicated endpoint: probe the model listings instead. The backup
+        # URL is tried first because it is the one that works without a key.
+        candidates = []
+        for base in (cls.backup_url, cls.base_url):
+            if base and f"{base}/models" not in candidates:
+                candidates.append(f"{base}/models")
+        if not candidates:
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement get_health method"
+            )
+        result = None
+        for url in candidates:
+            result = await cls.probe_health(url, api_key)
+            if result["ok"]:
+                break
+        return result
 
     @classmethod
     async def test_api_key(cls, api_key: str):

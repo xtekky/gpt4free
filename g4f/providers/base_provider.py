@@ -336,6 +336,25 @@ class AsyncGeneratorProvider(AbstractProvider):
                 return await response.json()
 
     @classmethod
+    async def probe_health(cls, url: str, api_key: Optional[str] = None) -> dict:
+        """GET a single health URL and report the outcome without raising."""
+        async with ClientSession() as session:
+            async with session.get(url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
+                result = {"url": url, "status": response.status, "ok": response.ok}
+                # A model listing is not quota data; skip the (potentially huge)
+                # body so the health payload stays small.
+                if url.rstrip("/").endswith("/models"):
+                    result["quota"] = None
+                else:
+                    try:
+                        result["quota"] = await response.json()
+                    except Exception:
+                        result["quota"] = None
+                if not response.ok:
+                    result["error"] = f"HTTP {response.status}"
+        return result
+
+    @classmethod
     async def get_health(cls, api_key: Optional[str] = None, **kwargs) -> dict:
         """Check provider availability.
 
@@ -351,16 +370,7 @@ class AsyncGeneratorProvider(AbstractProvider):
             )
         if not api_key and cls.needs_auth:
             raise MissingAuthError("API key is required.")
-        async with ClientSession() as session:
-            async with session.get(url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
-                result = {"url": url, "status": response.status, "ok": response.ok}
-                try:
-                    result["quota"] = await response.json()
-                except Exception:
-                    result["quota"] = None
-                if not response.ok:
-                    result["error"] = f"HTTP {response.status}"
-        return result
+        return await cls.probe_health(url, api_key)
 
     @staticmethod
     @abstractmethod

@@ -75,10 +75,8 @@ class ChatGptOss(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "accept": "text/event-stream",
             "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
             "content-type": "application/json",
             "origin": "https://chat-gpt-oss.com",
-            "pragma": "no-cache",
             "referer": "https://chat-gpt-oss.com/",
             "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
             "sec-ch-ua-mobile": "?0",
