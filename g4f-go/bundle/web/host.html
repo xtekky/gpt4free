@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remote Desktop &middot; Host</title>
+<link rel="stylesheet" href="/static/css/app.css">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="wrap">
+  <h1>Remote Desktop &mdash; Host</h1>
+  <p class="muted">Share this screen with a phone. The picture is captured by this browser with
+    <span class="mono">getDisplayMedia()</span> and sent peer-to-peer over WebRTC; the server only relays the handshake.</p>
+
+  <div id="secure-warning" class="banner warn" hidden>
+    Screen capture needs a secure context. Open this page on <span class="mono">http://localhost</span> or
+    <span class="mono">http://127.0.0.1</span>, or serve the app over HTTPS.
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="share" class="primary">Share screen</button>
+      <button id="stop" disabled>Stop sharing</button>
+      <span class="spacer"></span>
+      <span class="pill"><span id="ws-dot" class="dot"></span><span id="ws-text">connecting</span></span>
+    </div>
+    <p id="share-error" class="banner error" hidden></p>
+  </div>
+
+  <div class="card" id="room-card" hidden>
+    <h2>Room code</h2>
+    <div class="room-code" id="room-code">&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</div>
+    <img id="qr" class="qr" alt="QR code linking to the viewer page" hidden>
+    <p class="muted" id="view-url"></p>
+    <div class="row tight">
+      <button id="copy-link" class="ghost">Copy link</button>
+      <button id="copy-code" class="ghost">Copy code</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Session</h2>
+    <div class="row tight">
+      <span class="pill"><span id="viewer-dot" class="dot"></span><span id="viewer-text">0 viewers</span></span>
+      <span class="pill"><span id="input-dot" class="dot"></span><span id="input-text">input unknown</span></span>
+      <span class="pill" id="control-pill">control: nobody</span>
+    </div>
+    <p class="muted" id="capture-info"></p>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script src="/static/js/host.js"></script>
+</body>
+</html>

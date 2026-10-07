@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Remote Desktop">
+  <rect width="512" height="512" rx="96" fill="#0b0f14"/>
+  <rect x="96" y="112" width="320" height="200" rx="18" fill="none" stroke="#3ea6ff" stroke-width="20"/>
+  <path d="M256 312v56" stroke="#3ea6ff" stroke-width="20" stroke-linecap="round"/>
+  <path d="M176 392h160" stroke="#3ea6ff" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="256" cy="212" r="34" fill="#3ddc84"/>
+  <path d="M256 178v-26M256 272v-26M222 212h-26M316 212h-26" stroke="#3ddc84" stroke-width="14" stroke-linecap="round"/>
+</svg>

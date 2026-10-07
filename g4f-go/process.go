@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -34,7 +35,7 @@ func runPython(ctx context.Context, exe string, args []string, extraEnv ...strin
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), extraEnv...)
+	cmd.Env = mergeEnv(os.Environ(), extraEnv...)
 	err := cmd.Run()
 	if err != nil {
 		if ctx.Err() != nil {
@@ -51,6 +52,43 @@ func runPython(ctx context.Context, exe string, args []string, extraEnv ...strin
 // noSignalCtx returns a background context for internal subprocesses (pip)
 // which must not be killed by Ctrl-C handling.
 func noSignalCtx() context.Context { return context.Background() }
+
+// mergeEnv applies KEY=VALUE overrides to base, replacing any existing entry
+// for the same key. Without this, appending a second PYTHONPATH (or PYTHONHOME)
+// would leave the outcome up to the OS, which is not portable.
+func mergeEnv(base []string, extra ...string) []string {
+	if len(extra) == 0 {
+		return base
+	}
+	overridden := make(map[string]bool, len(extra))
+	for _, kv := range extra {
+		if i := strings.IndexByte(kv, '='); i > 0 {
+			overridden[kv[:i]] = true
+		}
+	}
+	out := make([]string, 0, len(base)+len(extra))
+	for _, kv := range base {
+		if i := strings.IndexByte(kv, '='); i > 0 && overridden[kv[:i]] {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return append(out, extra...)
+}
+
+// capturePython runs the interpreter and returns its trimmed stdout. Used for
+// cheap capability probes such as checking whether a module is importable.
+func capturePython(exe string, args []string, extraEnv ...string) (string, error) {
+	cmd := exec.Command(exe, args...)
+	cmd.Env = mergeEnv(os.Environ(), extraEnv...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = io.Discard
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out.String()), nil
+}
 
 // extractZip unpacks a runtime archive into dest with zip-slip protection.
 // The archive has a single top-level directory (e.g. "linux-x64/"); we strip it

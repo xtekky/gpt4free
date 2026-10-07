@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Remote Desktop</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/icon.svg">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="viewer">
+
+<div id="stage"><video id="screen" autoplay playsinline muted></video></div>
+
+<div id="hud">
+  <span class="pill"><span id="ws-dot" class="dot"></span><span id="ws-text">connecting</span></span>
+  <span class="pill" id="fps-pill">-- fps</span>
+  <span class="spacer"></span>
+  <span class="pill" id="control-pill">view only</span>
+</div>
+
+<div id="overlay">
+  <h1>Remote Desktop</h1>
+  <p class="muted" id="overlay-text">Enter the room code shown on the host computer.</p>
+  <div style="width:min(320px, 90vw)">
+    <input id="room" class="code" type="text" inputmode="latin" autocomplete="off"
+           autocapitalize="characters" spellcheck="false" maxlength="6" placeholder="ABC123">
+  </div>
+  <div class="row" style="justify-content:center">
+    <button id="connect" class="primary">Connect</button>
+    <button id="scan" class="ghost" hidden>Scan QR</button>
+  </div>
+  <p class="banner error" id="overlay-error" hidden></p>
+  <p class="muted" style="font-size:12px">Tip: open the link from the host's QR code to skip this step.</p>
+</div>
+
+<div id="keyboard">
+  <div class="row tight">
+    <input id="text-input" type="text" placeholder="Type here, then press Send" autocomplete="off"
+           autocapitalize="sentences" spellcheck="false">
+    <button id="send-text" class="primary">Send</button>
+  </div>
+  <div class="keys">
+    <button data-key="Enter">Enter</button>
+    <button data-key="Backspace">Backspace</button>
+    <button data-key="Tab">Tab</button>
+    <button data-key="Escape">Esc</button>
+    <button data-key="ArrowUp">&uarr;</button>
+    <button data-key="ArrowDown">&darr;</button>
+    <button data-key="ArrowLeft">&larr;</button>
+    <button data-key="ArrowRight">&rarr;</button>
+    <button data-key="Delete">Del</button>
+    <button data-key="Home">Home</button>
+    <button data-key="End">End</button>
+    <button data-key="PageUp">PgUp</button>
+    <button data-key="PageDown">PgDn</button>
+    <button data-key="Control">Ctrl</button>
+    <button data-key="Alt">Alt</button>
+    <button data-key="Shift">Shift</button>
+    <button data-key="Meta">Win</button>
+    <button data-key="F5">F5</button>
+    <button data-key="F11">F11</button>
+    <button id="close-keyboard" class="danger">Hide</button>
+  </div>
+</div>
+
+<div id="toolbar">
+  <button id="btn-control"><span class="glyph">&#9995;</span>Control</button>
+  <button id="btn-keyboard"><span class="glyph">&#9000;</span>Keys</button>
+  <button id="btn-fit"><span class="glyph">&#9635;</span>Fit</button>
+  <button id="btn-fullscreen"><span class="glyph">&#9974;</span>Full</button>
+  <button id="btn-disconnect"><span class="glyph">&#10005;</span>Leave</button>
+</div>
+
+<script src="/static/js/viewer.js"></script>
+</body>
+</html>

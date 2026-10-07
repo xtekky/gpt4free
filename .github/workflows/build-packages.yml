@@ -112,6 +112,15 @@ jobs:
         env:
           G4F_VERSION: ${{ needs.prepare.outputs.version }}
         run: ./fetch-python.sh
+      - name: Verify embedded Python bundle is up to date
+        working-directory: g4f-go
+        run: |
+          ./sync-bundle.sh
+          if ! git diff --quiet -- bundle; then
+            echo "::error::g4f-go/bundle is out of date. Run g4f-go/sync-bundle.sh and commit the result."
+            git --no-pager diff --stat -- bundle
+            exit 1
+          fi
       - name: Cross-compile g4f-go launchers (all platforms)
         working-directory: g4f-go
         env:

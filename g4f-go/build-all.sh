@@ -19,6 +19,10 @@ VERSION="${G4F_VERSION:-0.1.0}"
 OUT="${OUT:-$HERE/dist}"
 mkdir -p "$OUT"
 
+# Refresh the embedded Python bundle (remote_desktop + web assets) so releases
+# always ship the current sources from projects/.
+"$HERE/sync-bundle.sh"
+
 # Optional OS filter: maps the fetch-python.sh platform names onto GOOS.
 WANT_OS="${1:-${OS_ONLY:-}}"
 case "$WANT_OS" in

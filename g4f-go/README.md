@@ -9,6 +9,7 @@ it. No system Python required.
 ```
 g4f-go client "What is gpt4free?"
 g4f-go api --port 8080
+g4f-go -m remote_desktop --port 8000
 ```
 
 ## How it works
@@ -25,6 +26,8 @@ g4f-go api --port 8080
    interpreter, writes a `.installed` stamp, and finally runs your command.
 4. Subsequent runs skip straight to step 3 — the runtime is cached until the
    pinned version changes.
+5. The embedded Python bundle (see below) is extracted into the runtime on
+   first use and refreshed whenever its revision changes.
 
 Downloads go to:
 
@@ -42,22 +45,58 @@ without running gpt4free (useful for wrapping the runtime from other tools).
 go build -o g4f-go .        # linux host build (fast iteration)
 ./build-all.sh              # cross-compile + zip releases for all targets
 ./build-all.sh android      # only the android target
+./sync-bundle.sh            # refresh g4f-go/bundle/ from projects/
 ./fetch-python.sh           # optional: re-pin sizes + sha256 in runtime.json
 ```
 
-The manifest is embedded via `go:embed runtime.json`; the binary builds
-without network access.
+The manifest is embedded via `go:embed runtime.json` and the Python bundle via
+`go:embed all:bundle`; the binary builds without network access.
 
 ## Usage
 
 ```
 g4f-go <g4f args...>        run gpt4free (e.g. g4f-go client "hello")
+g4f-go -m <module> [args...] run a Python module (bundled or installed)
+g4f-go script.py [args...]  run a .py file with the bundled Python
 g4f-go api --port 8080      start the OpenAI-compatible API server
 g4f-go gui                  launch the web GUI
 g4f-go status               show runtime download/install status
 g4f-go install g4f          (re)install the g4f package (network)
 g4f-go help                 show help
 ```
+
+## Bundled modules (`-m`)
+
+`g4f-go -m <module>` runs `python -m <module>` with the downloaded runtime.
+Modules that ship inside the binary are extracted into the runtime first and
+put on `PYTHONPATH`; any other module name is forwarded to the interpreter
+unchanged (so `g4f-go -m pip list` works too).
+
+| Module | Description |
+|---|---|
+| `remote_desktop` | Remote desktop server: shares this screen with a phone through the browser's native screencast API, with QR pairing and an optional input bridge. |
+
+```
+g4f-go -m remote_desktop --port 8000
+g4f-go -m remote_desktop --help
+```
+
+Extra dependencies of a bundled module that are not part of `g4f[slim]`
+(`qrcode`, `pynput` for `remote_desktop`) are pip-installed into the runtime on
+first use. If that install fails, the module still starts with reduced
+functionality (no QR code / no input control).
+
+### Bundle sources
+
+The bundle lives in `g4f-go/bundle/` and is generated from the repository:
+
+```
+./sync-bundle.sh            # projects/remote-desktop -> g4f-go/bundle/
+```
+
+`build-all.sh` and `make all` run it automatically, so releases always ship the
+current sources. Bump `BundleRevision` in `version.go` when the bundle changes
+so existing installations re-extract it.
 
 ## Supported platforms
 
@@ -80,8 +119,10 @@ CPython's own android testbed.
 python-home/bin/python     interpreter (pbs layout)
 python-home/lib/python3.14 stdlib + site-packages (g4f installed here)
 python (launcher)          shell wrapper that sets PYTHONHOME/PYTHONPATH
+bundle/                    extracted embedded Python bundle (remote_desktop, web)
 .g4f-runtime/.runtime-ok   stamp: download+extract complete
 .g4f-runtime/.installed    stamp: g4f pip-installed
+.g4f-runtime/.bundle-revision  stamp: extracted bundle revision
 ```
 
 ## Limitations

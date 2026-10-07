@@ -1,10 +1,14 @@
-.PHONY: all fetch build clean vet test
+.PHONY: all fetch bundle build clean vet test
 
-all: fetch build
+all: fetch bundle build
 
 # Fetch the runtime manifest (validates URLs; runtimes download at first run)
 fetch:
 	./fetch-python.sh
+
+# Refresh the embedded Python bundle from projects/ (remote_desktop + web)
+bundle:
+	./sync-bundle.sh
 
 # Cross-compile launchers for every platform and zip releases into dist/
 build:

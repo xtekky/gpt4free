@@ -17,6 +17,7 @@ func printHelp() {
 
 Usage:
   g4f-go <g4f args...>        run gpt4free (e.g. g4f-go client "hello")
+  g4f-go -m <module> [args...] run a bundled Python module
   g4f-go script.py [args...]  run a .py file with the bundled Python
   g4f-go api --port 8080      start the OpenAI-compatible API server
   g4f-go gui                  launch the web GUI
@@ -26,6 +27,11 @@ Usage:
   g4f-go bootstrap            refresh the g4f package installation
   g4f-go --version            print version
   g4f-go help                 show this help
+
+Bundled modules (g4f-go -m <module>):
+  remote_desktop              remote desktop server (web UI, QR pairing)
+
+  g4f-go -m remote_desktop --port 8000
 
 The CPython runtime downloads on first run (with progress feedback) into
 %s. Set G4F_PYTHON_ONLY=1 to print the interpreter path and exit.
@@ -53,6 +59,24 @@ func runMain() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// `-m <module>` runs a Python module. Modules shipped inside the binary
+	// (see bundle.go) are extracted into the runtime and run from there;
+	// anything else is forwarded to the interpreter as-is.
+	if moduleFlagNeedsValue(args) {
+		fmt.Fprintln(os.Stderr, "g4f-go: -m/--module requires a module name")
+		return 2
+	}
+	if module, rest := parseModuleFlag(args); module != "" {
+		if isBundledModule(module) {
+			return runBundledModule(ctx, binDir, py, module, rest)
+		}
+		code, err := runPython(ctx, py, append([]string{"-m", module}, rest...))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
+		return code
+	}
+
 	switch args[0] {
 	case "help", "--help", "-h":
 		printHelp()
@@ -78,6 +102,11 @@ func runMain() int {
 			fmt.Println("g4f:        installed")
 		} else {
 			fmt.Println("g4f:        not installed (will install on first run)")
+		}
+		if data, berr := os.ReadFile(bundleStampPath(binDir)); berr == nil {
+			fmt.Printf("bundle:     revision %s extracted (%s)\n", strings.TrimSpace(string(data)), bundleDir(binDir))
+		} else {
+			fmt.Println("bundle:     not extracted yet (extracts on first -m use)")
 		}
 		code, err := runPython(ctx, py, []string{"--version"})
 		if err != nil {
