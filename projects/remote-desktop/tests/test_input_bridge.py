@@ -125,6 +125,36 @@ def test_key_unknown_is_ignored(fake_backend):
     bridge = InputBridge(backend=fake_backend)
     assert bridge.handle({"type": "key", "action": "click", "key": "Unidentified"}) is False
 
+def test_combo_presses_in_order_and_releases_in_reverse(fake_backend):
+    bridge = InputBridge(backend=fake_backend)
+    assert bridge.handle({"type": "key", "action": "combo", "keys": ["Alt", "Tab"]}) is True
+    assert fake_backend.keyboard.pressed == ["KEY:alt", "KEY:tab"]
+    assert fake_backend.keyboard.released == ["KEY:tab", "KEY:alt"]
+
+def test_combo_supports_three_keys_and_characters(fake_backend):
+    bridge = InputBridge(backend=fake_backend)
+    assert bridge.handle({"type": "key", "action": "combo", "keys": ["Control", "Shift", "t"]}) is True
+    assert fake_backend.keyboard.pressed == ["KEY:ctrl", "KEY:shift", "t"]
+    assert fake_backend.keyboard.released == ["t", "KEY:shift", "KEY:ctrl"]
+
+def test_combo_rejects_empty_and_missing_keys(fake_backend):
+    bridge = InputBridge(backend=fake_backend)
+    assert bridge.handle({"type": "key", "action": "combo", "keys": []}) is False
+    assert bridge.handle({"type": "key", "action": "combo"}) is False
+    assert bridge.handle({"type": "key", "action": "combo", "keys": "Alt+Tab"}) is False
+    assert fake_backend.keyboard.pressed == []
+
+def test_combo_rejects_unknown_key_without_pressing_anything(fake_backend):
+    bridge = InputBridge(backend=fake_backend)
+    assert bridge.handle({"type": "key", "action": "combo", "keys": ["Alt", "Unidentified"]}) is False
+    assert fake_backend.keyboard.pressed == []
+    assert fake_backend.keyboard.released == []
+
+def test_combo_counts_as_one_event(fake_backend):
+    bridge = InputBridge(backend=fake_backend)
+    bridge.handle({"type": "key", "action": "combo", "keys": ["Meta", "d"]})
+    assert bridge.events == 1
+
 
 def test_text_is_typed(fake_backend):
     bridge = InputBridge(backend=fake_backend)

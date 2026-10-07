@@ -184,12 +184,15 @@ video {
 
 #toolbar button {
   flex: 1;
-  padding: 12px 6px;
-  font-size: 12px;
+  min-width: 0;
+  padding: 10px 4px;
+  font-size: 11px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 #toolbar button.active { border-color: var(--accent); color: var(--accent); }
@@ -226,6 +229,25 @@ video {
 
 #keyboard .keys { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 #keyboard .keys button { padding: 8px 12px; font-size: 13px; }
+
+#shortcuts {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 76px;
+  z-index: 30;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 10px 10px 10px;
+  display: none;
+  max-height: calc(70vh - 76px);
+  overflow: auto;
+}
+
+#shortcuts.open { display: block; }
+
+#shortcuts .keys { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+#shortcuts .keys button { padding: 8px 12px; font-size: 13px; }
 
 #log {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

@@ -137,8 +137,7 @@ class ProviderLoader:
                 cls.loaded[name] = provider
                 cls.loaded[norm_name] = provider
                 return provider
-            from ..errors import ProviderNotFoundError
-            raise ProviderNotFoundError(f"Provider not found: {name}")
+            raise ImportError(f"Provider not found: {name}")
 
     @classmethod
     def _load(cls, name: str) -> ProviderType:

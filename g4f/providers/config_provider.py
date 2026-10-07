@@ -444,16 +444,12 @@ class RouterConfig:
 
 def _resolve_provider(provider_name: str):
     """Resolve a provider name string to a provider class."""
-    from .. import Provider
-    from ..Provider import ProviderUtils
+    from ..Provider import ProviderLoader
 
-    if provider_name in ProviderUtils.convert:
-        return ProviderUtils.convert[provider_name]
-
-    # Try direct attribute lookup on the Provider module
-    provider = getattr(Provider, provider_name, None)
-    if provider is not None:
-        return provider
+    try:
+        return ProviderLoader.from_name(provider_name)
+    except ImportError:
+        pass
 
     raise ValueError(f"Provider not found: {provider_name!r}")
 

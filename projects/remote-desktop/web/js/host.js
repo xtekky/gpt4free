@@ -17,6 +17,17 @@
     urls: [],
     retry: 500,
     closed: false,
+    capture: null,
+    quality: new Map(),
+  };
+
+  //: Encoder caps the host applies per viewer. A viewer on mobile data asks
+  //: for "low" and the host re-encodes instead of pushing a full 1080p stream.
+  const QUALITY = {
+    low: { maxWidth: 854, maxHeight: 480, maxBitrate: 250_000, maxFramerate: 12 },
+    medium: { maxWidth: 1280, maxHeight: 720, maxBitrate: 900_000, maxFramerate: 20 },
+    high: { maxWidth: 1920, maxHeight: 1080, maxBitrate: 2_500_000, maxFramerate: 30 },
+    auto: { maxWidth: 1280, maxHeight: 720, maxBitrate: 1_200_000, maxFramerate: 24 },
   };
 
   const log = (message) => {
@@ -214,6 +225,38 @@
     return pc;
   }
 
+  /* Re-encode the outgoing video for one viewer. The sender is the only side
+     that can cap the bitrate, so the viewer's quality request lands here. */
+  async function applyQuality(viewerId) {
+    const pc = state.peers.get(viewerId);
+    if (!pc) return;
+    const settings = QUALITY[state.quality.get(viewerId)] || QUALITY.auto;
+    for (const sender of pc.getSenders()) {
+      if (!sender.track || sender.track.kind !== "video") continue;
+      const parameters = sender.getParameters();
+      if (!parameters.encodings || !parameters.encodings.length) parameters.encodings = [{}];
+      const encoding = parameters.encodings[0];
+      encoding.maxBitrate = settings.maxBitrate;
+      encoding.maxFramerate = settings.maxFramerate;
+      encoding.scaleResolutionDownBy = scaleFor(sender.track, settings);
+      try {
+        await sender.setParameters(parameters);
+      } catch (error) {
+        log(`quality for ${viewerId} failed: ${error.message}`);
+      }
+    }
+    log(`viewer ${viewerId} quality: ${state.quality.get(viewerId) || "auto"}`);
+  }
+
+  /* Downscaling is what actually shrinks the frame; a bitrate cap alone still
+     pays for full-resolution pixels. */
+  function scaleFor(track, settings) {
+    const { width = 0, height = 0 } = track.getSettings();
+    if (!width || !height) return 1;
+    const scale = Math.max(width / settings.maxWidth, height / settings.maxHeight);
+    return scale > 1 ? Math.min(scale, 4) : 1;
+  }
+
   async function negotiate(viewerId) {
     if (!state.stream) return;
     let pc = state.peers.get(viewerId);
@@ -237,6 +280,7 @@
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      await applyQuality(viewerId);
       send({ type: "signal", to: viewerId, data: { kind: "offer", sdp: pc.localDescription } });
       log(`offer sent to ${viewerId}`);
     } catch (error) {
@@ -263,6 +307,11 @@
     if (!data || typeof data !== "object") return;
     if (data.kind === "request") {
       await offerTo(from);
+      return;
+    }
+    if (data.kind === "quality") {
+      state.quality.set(from, QUALITY[data.level] ? data.level : "auto");
+      await applyQuality(from);
       return;
     }
     let pc = state.peers.get(from);
@@ -294,6 +343,7 @@
     if (!pc) return;
     state.peers.delete(viewerId);
     negotiations.delete(viewerId);
+    state.quality.delete(viewerId);
     try {
       pc.close();
     } catch {

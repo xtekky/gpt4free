@@ -194,6 +194,18 @@ def test_signals_are_relayed_to_a_viewer(client):
             assert relayed["data"]["kind"] == "offer"
 
 
+def test_quality_signal_reaches_the_host(client):
+    with client.websocket_connect("/ws") as host_ws:
+        room = hello(host_ws, "host")["room"]
+        with client.websocket_connect("/ws") as viewer_ws:
+            joined = hello(viewer_ws, "viewer", room)
+            host_ws.receive_json()
+            viewer_ws.send_json({"type": "signal", "to": joined["host"], "data": {"kind": "quality", "level": "low"}})
+            relayed = host_ws.receive_json()
+            assert relayed["from"] == joined["peer"]
+            assert relayed["data"] == {"kind": "quality", "level": "low"}
+
+
 def test_signal_to_unknown_peer_is_dropped(client):
     with client.websocket_connect("/ws") as host_ws:
         hello(host_ws, "host")
