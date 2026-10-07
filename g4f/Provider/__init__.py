@@ -90,6 +90,7 @@ class ProviderLoader:
         "gTTS",
     ]
     extra = [
+        "APIRoute",
         "OpenaiTemplate",
         "OrcaRouter",
         "OpenCode",
@@ -151,6 +152,10 @@ class ProviderLoader:
             from g4f.Provider.extra.AIBadgr import AIBadgr
 
             return AIBadgr
+        elif name == "APIRoute":
+            from g4f.Provider.extra.APIRoute import APIRoute
+
+            return APIRoute
         elif name == "Anthropic":
             from g4f.Provider.needs_auth.Anthropic import Anthropic
 
