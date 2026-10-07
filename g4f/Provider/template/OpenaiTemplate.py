@@ -48,14 +48,25 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             api_key = AuthManager.load_api_key(cls)
         if api_key and cls.models_needs_auth and cls.quota_url is None:
             cls.quota_url = f"{cls.base_url}/models"
-        if cls.quota_url is None:
-            if cls.backup_url is not None:
-                cls.quota_url = f"{cls.backup_url}/chat/completions"
         if cls.quota_url is not None:
             return await super().get_quota(api_key=api_key, **kwargs)
         if not api_key and cls.needs_auth:
             raise MissingAuthError("API key is required.")
         raise NotImplementedError("Quota URL is not defined for this provider.")
+
+    @classmethod
+    async def get_health(cls, api_key: Optional[str] = None, **kwargs) -> dict:
+        """Check provider availability without issuing a chat completion request."""
+        if not api_key:
+            from ...tools.run_tools import AuthManager
+
+            api_key = AuthManager.load_api_key(cls)
+        if cls.health_url is None and cls.quota_url is None:
+            if cls.backup_url:
+                cls.health_url = f"{cls.backup_url}/models"
+            elif cls.models_needs_auth:
+                cls.health_url = f"{cls.base_url}/models"
+        return await super().get_health(api_key=api_key, **kwargs)
 
     @classmethod
     async def test_api_key(cls, api_key: str):

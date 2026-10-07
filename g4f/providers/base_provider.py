@@ -317,6 +317,7 @@ class AsyncGeneratorProvider(AbstractProvider):
     supports_stream = True
     use_stream_timeout = True
     quota_url = None
+    health_url = None
     quota_lock = threading.Lock()
     default_reasoning_effort = "none"
 
@@ -333,6 +334,33 @@ class AsyncGeneratorProvider(AbstractProvider):
             async with session.get(cls.quota_url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
                 await raise_for_status(response)
                 return await response.json()
+
+    @classmethod
+    async def get_health(cls, api_key: Optional[str] = None, **kwargs) -> dict:
+        """Check provider availability.
+
+        Only ever issues a GET against ``health_url`` (falling back to
+        ``quota_url``); never a chat completion request. Upstream HTTP errors
+        are reported in the payload instead of being raised, so the health
+        endpoint itself stays reachable.
+        """
+        url = cls.health_url or cls.quota_url
+        if not url:
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement get_health method"
+            )
+        if not api_key and cls.needs_auth:
+            raise MissingAuthError("API key is required.")
+        async with ClientSession() as session:
+            async with session.get(url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
+                result = {"url": url, "status": response.status, "ok": response.ok}
+                try:
+                    result["quota"] = await response.json()
+                except Exception:
+                    result["quota"] = None
+                if not response.ok:
+                    result["error"] = f"HTTP {response.status}"
+        return result
 
     @staticmethod
     @abstractmethod

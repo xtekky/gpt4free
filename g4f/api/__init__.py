@@ -37,6 +37,7 @@ from starlette.status import (
     HTTP_415_UNSUPPORTED_MEDIA_TYPE,
     HTTP_429_TOO_MANY_REQUESTS,
     HTTP_500_INTERNAL_SERVER_ERROR,
+    HTTP_501_NOT_IMPLEMENTED,
     HTTP_502_BAD_GATEWAY,
 )
 
@@ -1027,6 +1028,42 @@ class Api:
                 logger.exception(e)
                 return ErrorResponse.from_message(
                     "Failed to retrieve provider quota", HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        # health endpoint mirrors the quota endpoint but never issues a chat completion
+        @self.app.get("/api/{provider:path}/health")
+        async def provider_health(
+            provider: str,
+            credentials: Annotated[
+                HTTPAuthorizationCredentials, Depends(Api.security)
+            ] = None,
+        ):
+            try:
+                provider = AbstractClientFactory.create_provider(None, provider)
+            except (ProviderNotFoundError, ValueError):
+                return ErrorResponse.from_message(f"Provider not found: {provider}", 404)
+            if not hasattr(provider, "get_health"):
+                return ErrorResponse.from_message(
+                    "Provider doesn't support get_health", HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            try:
+                if credentials is not None and credentials.credentials != "secret":
+                    usage = await provider.get_health(api_key=credentials.credentials)
+                else:
+                    usage = await provider.get_health()
+                return usage
+            except MissingAuthError:
+                return ErrorResponse.from_message(
+                    "MissingAuthError: Authentication required", HTTP_401_UNAUTHORIZED
+                )
+            except NotImplementedError:
+                return ErrorResponse.from_message(
+                    "Health check not supported", HTTP_501_NOT_IMPLEMENTED
+                )
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_message(
+                    "Failed to retrieve provider health", HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
         @self.app.get(
