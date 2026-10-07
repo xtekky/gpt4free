@@ -584,7 +584,7 @@ def __getattr__(name: str):
             except ImportError:
                 pass
         return providers_list
-    if name in __others__:
+    if name in globals().keys():
         return globals()[name]
     try:
         return ProviderLoader.from_name(name)
