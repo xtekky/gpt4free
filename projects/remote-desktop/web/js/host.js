@@ -1,0 +1,384 @@
+/* Host page: capture the screen with getDisplayMedia() and publish it over WebRTC. */
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+
+  const state = {
+    ws: null,
+    room: null,
+    token: params.get("token") || "",
+    stream: null,
+    peers: new Map(),
+    viewerIds: new Set(),
+    viewers: 0,
+    control: null,
+    urls: [],
+    retry: 500,
+    closed: false,
+  };
+
+  const log = (message) => {
+    const line = `${new Date().toLocaleTimeString()}  ${message}`;
+    const box = $("log");
+    box.textContent = `${line}\n${box.textContent}`.slice(0, 4000);
+  };
+
+  const setDot = (id, cls) => {
+    const dot = $(id);
+    dot.className = `dot ${cls}`;
+  };
+
+  const wsUrl = () => {
+    const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+    return `${scheme}//${location.host}/ws`;
+  };
+
+  const send = (message) => {
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      state.ws.send(JSON.stringify(message));
+      return true;
+    }
+    return false;
+  };
+
+  /* ---------------------------------------------------------------- websocket */
+
+  function connect() {
+    if (state.closed) return;
+    setDot("ws-dot", "warn");
+    $("ws-text").textContent = "connecting";
+
+    const ws = new WebSocket(wsUrl());
+    state.ws = ws;
+
+    ws.onopen = () => {
+      state.retry = 500;
+      setDot("ws-dot", "on");
+      $("ws-text").textContent = "connected";
+      send({ type: "hello", role: "host", token: state.token });
+    };
+
+    ws.onmessage = (event) => {
+      let message;
+      try {
+        message = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      handle(message);
+    };
+
+    ws.onclose = () => {
+      setDot("ws-dot", "off");
+      $("ws-text").textContent = "reconnecting";
+      closeAllPeers();
+      if (state.closed) return;
+      setTimeout(connect, state.retry);
+      state.retry = Math.min(state.retry * 2, 8000);
+    };
+
+    ws.onerror = () => log("websocket error");
+  }
+
+  function handle(message) {
+    switch (message.type) {
+      case "room":
+        state.room = message.room;
+        state.control = message.control;
+        showRoom(message.room);
+        log(`room ${message.room} open`);
+        break;
+      case "viewer-joined":
+        state.viewers = message.viewers;
+        state.control = message.control;
+        state.viewerIds.add(message.peer);
+        log(`viewer ${message.peer} joined (${message.viewers} total)`);
+        updateViewers();
+        updateControl();
+        if (state.stream) offerTo(message.peer);
+        break;
+      case "peer-left":
+        state.viewers = message.viewers;
+        state.control = message.control;
+        state.viewerIds.delete(message.peer);
+        dropPeer(message.peer);
+        log(`${message.role} ${message.peer} left`);
+        updateViewers();
+        updateControl();
+        break;
+      case "signal":
+        onSignal(message.from, message.data);
+        break;
+      case "control":
+        state.control = message.owner;
+        updateControl();
+        log(message.owner ? `control granted to ${message.owner}` : "control released");
+        break;
+      case "error":
+        log(`error: ${message.code} - ${message.message}`);
+        if (message.code === "bad-token") {
+          $("share-error").textContent =
+            "The access token is missing or wrong. Reopen this page from the URL printed in the terminal.";
+          $("share-error").hidden = false;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  /* ------------------------------------------------------------------ capture */
+
+  async function startShare() {
+    $("share-error").hidden = true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      fail("This browser does not support getDisplayMedia(). Use Chrome, Edge or Firefox on the desktop.");
+      return;
+    }
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 30, max: 60 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+        preferCurrentTab: false,
+        surfaceSwitching: "include",
+      });
+    } catch (error) {
+      if (error && error.name === "NotAllowedError") {
+        log("capture cancelled by the user");
+      } else {
+        fail(`Screen capture failed: ${error && error.message ? error.message : error}`);
+      }
+      return;
+    }
+
+    state.stream = stream;
+    const track = stream.getVideoTracks()[0];
+    const settings = track.getSettings ? track.getSettings() : {};
+    $("capture-info").textContent =
+      `Capturing ${settings.width || "?"}x${settings.height || "?"} @ ${Math.round(settings.frameRate || 0)} fps` +
+      (track.label ? ` - ${track.label}` : "");
+    track.addEventListener("ended", () => {
+      log("capture ended by the user");
+      stopShare();
+    });
+
+    $("share").disabled = true;
+    $("stop").disabled = false;
+    log("screen capture started");
+
+    for (const viewerId of state.peers.keys()) offerTo(viewerId);
+    if (state.viewers > 0 && state.peers.size === 0) {
+      log("waiting for viewers to reconnect");
+    }
+  }
+
+  function stopShare() {
+    if (state.stream) {
+      state.stream.getTracks().forEach((track) => track.stop());
+      state.stream = null;
+    }
+    closeAllPeers();
+    $("share").disabled = false;
+    $("stop").disabled = true;
+    $("capture-info").textContent = "";
+    log("screen capture stopped");
+  }
+
+  function fail(message) {
+    $("share-error").textContent = message;
+    $("share-error").hidden = false;
+    log(message);
+  }
+
+  /* ------------------------------------------------------------------ webrtc */
+
+  let signalChain = Promise.resolve();
+  const negotiations = new Map();
+
+  function newPeer(viewerId) {
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        send({ type: "signal", to: viewerId, data: { kind: "ice", candidate: event.candidate } });
+      }
+    };
+    pc.onconnectionstatechange = () => {
+      log(`peer ${viewerId}: ${pc.connectionState}`);
+      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) dropPeer(viewerId);
+    };
+    state.peers.set(viewerId, pc);
+    return pc;
+  }
+
+  async function negotiate(viewerId) {
+    if (!state.stream) return;
+    let pc = state.peers.get(viewerId);
+    if (!pc || pc.connectionState === "closed") pc = newPeer(viewerId);
+
+    const senders = pc.getSenders().map((sender) => sender.track);
+    let added = false;
+    for (const track of state.stream.getTracks()) {
+      if (!senders.includes(track)) {
+        pc.addTrack(track, state.stream);
+        added = true;
+      }
+    }
+
+    // A viewer asks for a stream right after joining, which races with the
+    // offer sent on "viewer-joined". Only one negotiation may be in flight,
+    // and a connected peer with all tracks attached needs no new offer.
+    if (pc.signalingState !== "stable") return;
+    if (!added && pc.connectionState === "connected") return;
+
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      send({ type: "signal", to: viewerId, data: { kind: "offer", sdp: pc.localDescription } });
+      log(`offer sent to ${viewerId}`);
+    } catch (error) {
+      log(`offer to ${viewerId} failed: ${error.message}`);
+      dropPeer(viewerId);
+    }
+  }
+
+  // The state guard above only holds if the previous negotiation has finished,
+  // so offers are queued per viewer instead of running concurrently.
+  function offerTo(viewerId) {
+    const previous = negotiations.get(viewerId) || Promise.resolve();
+    const next = previous.then(() => negotiate(viewerId)).catch(() => {});
+    negotiations.set(viewerId, next);
+    return next;
+  }
+
+  function onSignal(from, data) {
+    signalChain = signalChain.then(() => processSignal(from, data)).catch(() => {});
+    return signalChain;
+  }
+
+  async function processSignal(from, data) {
+    if (!data || typeof data !== "object") return;
+    if (data.kind === "request") {
+      await offerTo(from);
+      return;
+    }
+    let pc = state.peers.get(from);
+    if (!pc) {
+      if (data.kind !== "offer") return;
+      pc = newPeer(from);
+    }
+    try {
+      if (data.kind === "answer") {
+        if (pc.signalingState !== "have-local-offer") return;
+        await pc.setRemoteDescription(data.sdp);
+      } else if (data.kind === "offer") {
+        if (pc.signalingState !== "stable") return;
+        await pc.setRemoteDescription(data.sdp);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        send({ type: "signal", to: from, data: { kind: "answer", sdp: pc.localDescription } });
+      } else if (data.kind === "ice" && data.candidate) {
+        if (!pc.remoteDescription) return;
+        await pc.addIceCandidate(data.candidate);
+      }
+    } catch (error) {
+      log(`signal from ${from} failed: ${error.message}`);
+    }
+  }
+
+  function dropPeer(viewerId) {
+    const pc = state.peers.get(viewerId);
+    if (!pc) return;
+    state.peers.delete(viewerId);
+    negotiations.delete(viewerId);
+    try {
+      pc.close();
+    } catch {
+      /* already closed */
+    }
+  }
+
+  function closeAllPeers() {
+    for (const viewerId of [...state.peers.keys()]) dropPeer(viewerId);
+  }
+
+  /* --------------------------------------------------------------------- ui */
+
+  function showRoom(code) {
+    $("room-card").hidden = false;
+    $("room-code").textContent = code;
+    const base = state.urls.find((url) => !/127\.0\.0\.1|localhost/.test(url)) || state.urls[0] || location.origin;
+    const link = `${base}/view?room=${code}${state.token ? `&token=${encodeURIComponent(state.token)}` : ""}`;
+    $("view-url").textContent = link;
+    const qr = $("qr");
+    qr.src = `/api/qr.svg?url=${encodeURIComponent(link)}`;
+    qr.hidden = false;
+  }
+
+  function updateViewers() {
+    $("viewer-text").textContent = `${state.viewers} viewer${state.viewers === 1 ? "" : "s"}`;
+    setDot("viewer-dot", state.viewers > 0 ? "on" : "");
+  }
+
+  function updateControl() {
+    $("control-pill").textContent = state.control ? `control: ${state.control}` : "control: nobody";
+  }
+
+  async function refreshStatus() {
+    try {
+      const response = await fetch("/api/status");
+      const data = await response.json();
+      state.urls = data.urls || [];
+      if (state.room) showRoom(state.room);
+      const input = $("input-text");
+      if (data.input) {
+        input.textContent = "input injection ready";
+        setDot("input-dot", "on");
+      } else if (data.allow_input) {
+        input.textContent = data.input_error ? "input unavailable" : "input idle";
+        setDot("input-dot", "warn");
+      } else {
+        input.textContent = "input disabled";
+        setDot("input-dot", "off");
+      }
+    } catch (error) {
+      log(`status request failed: ${error.message}`);
+    }
+  }
+
+  /* ------------------------------------------------------------------- boot */
+
+  function boot() {
+    if (!window.isSecureContext) $("secure-warning").hidden = false;
+
+    $("share").addEventListener("click", startShare);
+    $("stop").addEventListener("click", stopShare);
+    $("copy-link").addEventListener("click", () => copy($("view-url").textContent));
+    $("copy-code").addEventListener("click", () => copy($("room-code").textContent));
+
+    window.addEventListener("beforeunload", () => {
+      state.closed = true;
+      stopShare();
+    });
+
+    connect();
+    refreshStatus();
+    setInterval(refreshStatus, 15000);
+    updateViewers();
+    updateControl();
+  }
+
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      log("copied to clipboard");
+    } catch {
+      log("clipboard unavailable");
+    }
+  }
+
+  boot();
+})();
