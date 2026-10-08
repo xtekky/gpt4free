@@ -68,10 +68,13 @@
     const ws = new WebSocket(`${scheme}//${location.host}/ws`);
     state.ws = ws;
 
-    ws.onopen = () => {
+    ws.onopen = async () => {
       state.retry = 500;
       setDot("ws-dot", "on");
       $("ws-text").textContent = "connected";
+      // Refresh first: the credentials are time limited and a reconnect after
+      // an hour would otherwise offer an expired relay login.
+      await loadIceServers();
       send({ type: "hello", role: "viewer", room: state.room, token: state.token });
     };
 
@@ -649,7 +652,9 @@
   /* -------------------------------------------------------------------- boot */
 
   /* Without a relay the phone on cellular only learns its own carrier address
-     and the host's LAN address, so ICE never pairs. Fetch the relay list first. */
+     and the host's LAN address, so ICE never pairs. Fetch the relay list first.
+     The credentials are time limited, so they are refreshed periodically; a
+     peer that is already connected keeps working until it is rebuilt. */
   async function loadIceServers() {
     try {
       const response = await fetch("/api/status");
@@ -733,7 +738,7 @@
 
     if (state.room) {
       $("room").value = state.room;
-      loadIceServers().then(connect);
+      connect();
     } else {
       showOverlay("Enter the room code shown on the host computer.");
       loadIceServers();

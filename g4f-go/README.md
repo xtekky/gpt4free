@@ -154,6 +154,17 @@ g4f-go -m remote_desktop --port 8000
 g4f-go -m remote_desktop --help
 ```
 
+To reach the phone over mobile data (no shared Wi-Fi) the two browsers need a
+relay, because they otherwise only learn their LAN addresses. Point the server
+at a TURN server and it hands time-limited credentials to both pages:
+
+```
+g4f-go -m remote_desktop --turn-url turn:turn.example.com:3478 --turn-secret <shared-secret>
+```
+
+`projects/remote-desktop/deploy/setup-turn.sh` installs and configures coturn
+with the matching `use-auth-secret` setting.
+
 Extra dependencies of a bundled module that are not part of `g4f[slim]`
 (`qrcode`, `pynput` for `remote_desktop`) are pip-installed into the runtime on
 first use. If that install fails, the module still starts with reduced

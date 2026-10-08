@@ -338,21 +338,25 @@ class AsyncGeneratorProvider(AbstractProvider):
     @classmethod
     async def probe_health(cls, url: str, api_key: Optional[str] = None) -> dict:
         """GET a single health URL and report the outcome without raising."""
-        async with ClientSession() as session:
-            async with session.get(url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
-                result = {"url": url, "status": response.status, "ok": response.ok}
-                # A model listing is not quota data; skip the (potentially huge)
-                # body so the health payload stays small.
-                if url.rstrip("/").endswith("/models"):
-                    result["quota"] = None
-                else:
-                    try:
-                        result["quota"] = await response.json()
-                    except Exception:
+        try:
+            async with ClientSession() as session:
+                async with session.get(url, headers={"Authorization": f"Bearer {api_key}"} if api_key else None) as response:
+                    result = {"url": url, "status": response.status, "ok": response.ok}
+                    # A model listing is not quota data; skip the (potentially
+                    # huge) body so the health payload stays small.
+                    if url.rstrip("/").endswith("/models"):
                         result["quota"] = None
-                if not response.ok:
-                    result["error"] = f"HTTP {response.status}"
-        return result
+                    else:
+                        try:
+                            result["quota"] = await response.json()
+                        except Exception:
+                            result["quota"] = None
+                    if not response.ok:
+                        result["error"] = f"HTTP {response.status}"
+            return result
+        except Exception as e:
+            # Unreachable hosts must not turn into a 500 on the health route.
+            return {"url": url, "status": 0, "ok": False, "quota": None, "error": str(e)}
 
     @classmethod
     async def get_health(cls, api_key: Optional[str] = None, **kwargs) -> dict:
