@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Install and configure coturn as the TURN relay for the remote desktop app.
+# Install and configure coturn as an EXTERNAL TURN relay for the remote desktop
+# app.
+#
+# g4f-go ships its own embedded STUN/TURN server (`g4f-go turn serve`), which is
+# started automatically by `g4f-go -m remote_desktop` and needs no root. Use
+# this script only when you want a standalone coturn instance instead, for
+# example to share one relay between several hosts.
 #
 # Run this on the machine that shares its screen:
 #

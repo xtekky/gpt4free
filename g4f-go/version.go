@@ -10,4 +10,4 @@ const PythonVer = "3.14.7"
 // BundleRevision identifies the revision of the embedded Python bundle
 // (g4f-go/bundle, produced by sync-bundle.sh). Bump it whenever the bundle
 // changes so existing installations re-extract it on the next run.
-const BundleRevision = "2"
+const BundleRevision = "3"

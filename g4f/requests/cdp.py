@@ -61,7 +61,7 @@ try:
 except ImportError:
     pass
 
-from ..cookies import BrowserConfig
+from ..cookies import BrowserConfig, read_har_cookies
 from ..files import secure_filename
 from .. import debug
 
@@ -1232,9 +1232,12 @@ class CDPSession:
         # Anti-detect: Inject Stealth Script
         stealth_js = """
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        window.chrome = { runtime: {} };
-        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+        window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: {} };
+        Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
         Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+        Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+        Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+        Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
         const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
         WebGLRenderingContext.prototype.getParameter = function(parameter) {
             if (parameter === 37445) return 'Intel Inc.';
@@ -1302,9 +1305,20 @@ class CDPSession:
         # Enable essential domains — tolerate servers that lack some of them.
         for method in ("Page.enable", "DOM.enable", "Runtime.enable", "Network.enable"):
             try:
+                debug.log(f"CDP: enabling {method}")
                 await self.call(method)
             except Exception as e:
                 debug.log(f"CDP: {method} not supported by browser-level socket: {e}")
+
+        # Load the cookies from the .har files in the cookies directory into
+        # the browser. Lightpanda rejects browser-level cookie commands
+        # (BrowserContextNotLoaded), so this has to run on an attached
+        # session. Its cookie store is per connection, so every session
+        # injects the cookies itself.
+        try:
+            await self.inject_har_cookies()
+        except Exception as e:
+            debug.log(f"CDP: failed to inject .har cookies: {e}")
 
         # Anti-detect: mask the browser in the User-Agent. Lightpanda reports
         # "Lightpanda/1.0" and ignores Network.setUserAgentOverride entirely;
@@ -1327,6 +1341,21 @@ class CDPSession:
                 )
             except Exception as e:
                 debug.log(f"CDP: Emulation.setUserAgentOverride not supported: {e}")
+
+            STEALTH_JS = """
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: {} };
+        Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+        Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+        Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+        Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
+        const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+        WebGLRenderingContext.prototype.getParameter = function(parameter) {
+            if (parameter === 37445) return 'Intel Inc.';
+            if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+            return originalGetParameter.call(this, parameter);
+        };"""
             # 2. JS-level: navigator.userAgent / appVersion on every new document.
             try:
                 await self.call(
@@ -1335,7 +1364,8 @@ class CDPSession:
                         "for (const prop of ['userAgent', 'appVersion', 'vendor']) {"
                         "Object.defineProperty(navigator, prop, {"
                         f"get: () => (prop != 'vendor' ? {json.dumps(CHROME_USER_AGENT)} : 'Google Inc.'),"
-                        "configurable: true});}"
+                        "configurable: true});}" +
+                        STEALTH_JS
                     ),
                 )
             except Exception as e:
@@ -1346,6 +1376,7 @@ class CDPSession:
                     "for (const prop of ['userAgent', 'appVersion']) {"
                     "Object.defineProperty(navigator, prop, {"
                     f"get: () => {json.dumps(CHROME_USER_AGENT)}, configurable: true}});}}"
+                    + STEALTH_JS
                 )
             except Exception:
                 pass
@@ -1817,6 +1848,44 @@ class CDPSession:
             }
             params = {k: v for k, v in params.items() if v is not None}
             await self.call("Network.setCookie", **params)
+
+    async def set_cookies_bulk(self, cookies: List[dict]) -> int:
+        """Set many cookies at once, falling back to one call per cookie.
+
+        ``Network.setCookies`` is a single round trip, which matters on
+        Lightpanda where every command is serialized. Servers that do not
+        implement it (or reject the batch) fall back to ``set_cookies``.
+        """
+        cookies = [c for c in cookies if c.get("name") and c.get("value") is not None]
+        if not cookies:
+            return 0
+        try:
+            await self.call("Network.setCookies", cookies=cookies)
+            return len(cookies)
+        except Exception as e:
+            debug.log(f"CDP: Network.setCookies failed ({e}) — setting cookies individually")
+        count = 0
+        for cookie in cookies:
+            try:
+                await self.set_cookies([cookie])
+                count += 1
+            except Exception as e:
+                debug.log(f"CDP: failed to set cookie {cookie.get('name')!r}: {e}")
+        return count
+
+    async def inject_har_cookies(self, dir_path: Optional[str] = None) -> int:
+        """Load the cookies from the .har files in the cookies directory.
+
+        Returns the number of cookies that were set. Lightpanda keeps its
+        cookie store per connection, so this runs for every session.
+        """
+        cookies = read_har_cookies(dir_path)
+        debug.log(f"CDP: found {len(cookies)} cookies in .har files")
+        if not cookies:
+            return 0
+        count = await self.set_cookies_bulk(cookies)
+        debug.log(f"CDP: injected {count}/{len(cookies)} cookies from .har files")
+        return count
 
     async def get_user_agent(self) -> str:
         """Retrieve the current browser user agent."""

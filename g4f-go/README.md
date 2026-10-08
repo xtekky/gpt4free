@@ -63,6 +63,9 @@ g4f-go gui                  launch the web GUI
 g4f-go status               show runtime download/install status
 g4f-go browser install      install the headless browser (Lightpanda) for this OS
 g4f-go browser serve        run the browser's CDP server in the foreground
+g4f-go turn serve           run the embedded STUN/TURN server in the foreground
+g4f-go turn status          show the configured/running STUN/TURN server
+g4f-go turn credentials     mint TURN REST credentials for a client
 g4f-go install g4f          (re)install the g4f package (network)
 g4f-go help                 show help
 ```
@@ -138,6 +141,72 @@ Installed into `~/.g4f/browser/` (next to the CPython runtime). The Windows
 package is a zip whose top-level directory is stripped and whose binary is
 `chmod 0755`-ed, since the archive carries no unix permission bits.
 
+## STUN/TURN server (`turn`)
+
+g4f-go embeds [pion/turn](https://github.com/pion/turn), so a full STUN/TURN
+relay ships inside the binary — no coturn, no extra process to install:
+
+```
+g4f-go turn serve --public-ip 203.0.113.7
+g4f-go turn status
+g4f-go turn env --json
+```
+
+One server answers STUN Binding requests and TURN allocations on the same
+port (UDP and TCP by default, TLS with `--cert`/`--key` or `--tls-self-signed`).
+Authentication uses the TURN REST scheme (`use-auth-secret` in coturn terms):
+the username carries the expiry and the password is its HMAC-SHA1 digest keyed
+with a shared secret, so nothing is stored server side. The secret is generated
+on first use into `~/.g4f/turn/secret` (mode `0600`) and can be rotated with
+`g4f-go turn secret --new`.
+
+| Flag | Meaning |
+|---|---|
+| `--public-ip <IP>` | address peers should send media to (default: STUN probe, then local IPv4) |
+| `--bind <IP>` | local address to bind (default: all interfaces) |
+| `--port <PORT>` | UDP/TCP port (default `3478`) |
+| `--tls-port <PORT>` | TLS port (default `5349`) |
+| `--realm <REALM>` | authentication realm (default: the public IP) |
+| `--secret <SECRET>` | shared secret (default: the persisted one) |
+| `--min-port` / `--max-port` | relay port range (default `49160`–`49200`) |
+| `--no-tcp` | disable the TCP listener |
+| `--cert` / `--key` / `--tls-self-signed` | TLS listener |
+| `--max-allocations N` | per-IP allocation quota, `0` disables (default `100`) |
+| `--log-level <LEVEL>` | `disable`, `error`, `warn`, `info`, `debug`, `trace` |
+
+Every flag also has an environment variable (`G4F_TURN_PUBLIC_IP`,
+`G4F_TURN_BIND`, `G4F_TURN_PORT`, `G4F_TURN_TLS_PORT`, `G4F_TURN_REALM`,
+`G4F_TURN_SECRET`, `G4F_TURN_MIN_PORT`, `G4F_TURN_MAX_PORT`, `G4F_TURN_QUOTA`,
+`G4F_TURN_CERT`, `G4F_TURN_KEY`); flags win over the environment. `g4f-go turn
+env` prints the `RD_TURN_*` variables that point the remote desktop server at a
+running instance.
+
+`g4f-go turn credentials` mints a username/password pair for a client without
+starting a server, which is handy for testing a relay or for handing
+credentials to a third-party client:
+
+```
+g4f-go turn credentials --ttl 1h --json
+```
+
+`--ttl` accepts Go durations (`1h`, `30m`) as well as bare seconds (`600`), and
+defaults to `G4F_TURN_TTL` or one hour.
+
+### Remote desktop relay
+
+`g4f-go -m remote_desktop` starts the embedded server automatically and passes
+`RD_TURN_URL`, `RD_TURN_SECRET` and `RD_STUN_URL` to the Python process, so
+pairing a phone over mobile data works out of the box. Set
+`G4F_TURN_AUTOSTART=0` to opt out, or set `RD_TURN_URL`/`RD_ICE_SERVERS`
+yourself to use an external relay instead.
+
+Because both sides implement the same TURN REST scheme, credentials minted by
+`remote_desktop.config.turn_credentials()` authenticate against the embedded
+server and vice versa — the shared secret is the only thing that has to match.
+
+`projects/remote-desktop/deploy/setup-turn.sh` remains available for hosts
+that prefer a standalone coturn instance; it is no longer required.
+
 ## Bundled modules (`-m`)
 
 `g4f-go -m <module>` runs `python -m <module>` with the downloaded runtime.
@@ -155,15 +224,17 @@ g4f-go -m remote_desktop --help
 ```
 
 To reach the phone over mobile data (no shared Wi-Fi) the two browsers need a
-relay, because they otherwise only learn their LAN addresses. Point the server
-at a TURN server and it hands time-limited credentials to both pages:
+relay, because they otherwise only learn their LAN addresses. `g4f-go` starts
+its own embedded STUN/TURN server for this (see
+[STUN/TURN server](#stuntturn-server-turn)); to use an external one instead,
+point the server at it and it hands time-limited credentials to both pages:
 
 ```
 g4f-go -m remote_desktop --turn-url turn:turn.example.com:3478 --turn-secret <shared-secret>
 ```
 
 `projects/remote-desktop/deploy/setup-turn.sh` installs and configures coturn
-with the matching `use-auth-secret` setting.
+with the matching `use-auth-secret` setting for that external case.
 
 Extra dependencies of a bundled module that are not part of `g4f[slim]`
 (`qrcode`, `pynput` for `remote_desktop`) are pip-installed into the runtime on

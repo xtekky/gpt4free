@@ -9,7 +9,7 @@ _INTERACTIVE = (
     "[contenteditable=\"true\"],[contenteditable=\"\"],"
     # SVG icons are common click targets (onclick on the <svg> or a wrapper).
     # SVGElement has no .click(), so click_js falls back to dispatchEvent.
-    "svg,div:has(svg),span:has(svg)"
+    "[role=\"button\"], div > svg, span > svg, #g4f-debug-panel"
 )
 
 # Evaluates to a standalone, script-free HTML copy with data-index on interactive elements.
@@ -17,6 +17,8 @@ SNAPSHOT_JS = r"""
 (() => {
   const doc = document.cloneNode(true);
   doc.querySelectorAll('script, noscript, iframe, object, embed').forEach(el => el.remove());
+  doc.querySelectorAll('link\[rel=\"modulepreload\"\], link\[rel=\"preload\"\]').forEach(el => el.remove());
+  for (const el of doc.getElementsByTagName("use")) el.remove();
   doc.querySelectorAll('*').forEach(el => {
     [...el.attributes].forEach(attr => {
       if (/^on/i.test(attr.name)) el.removeAttribute(attr.name);

@@ -24,6 +24,9 @@ Usage:
   g4f-go status               show runtime download/install status
   g4f-go browser install      install the headless browser (Lightpanda) for this OS
   g4f-go browser serve        run the browser's CDP server in the foreground
+  g4f-go turn serve           run the embedded STUN/TURN relay (pion/turn)
+  g4f-go turn status          show the embedded STUN/TURN relay
+  g4f-go turn credentials     mint TURN REST credentials for a client
   g4f-go cache clear          remove all cached g4f data (model lists, scrape caches)
   g4f-go install g4f         (re)install the g4f package (network)
   g4f-go bootstrap            refresh the g4f package installation
@@ -57,6 +60,13 @@ func runMain() int {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		return runBrowserCommand(ctx, args[1:])
+	}
+
+	// `turn` runs the embedded STUN/TURN relay and needs no Python runtime.
+	if args[0] == "turn" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return runTurnCommand(ctx, args[1:])
 	}
 
 	py, err := ensureRuntime()
@@ -230,7 +240,7 @@ func hasSubcommand(args []string) bool {
 		return true
 	}
 	switch args[0] {
-	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap", "cache", "browser":
+	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap", "cache", "browser", "turn":
 		return true
 	}
 	if strings.HasPrefix(args[0], "-") {
