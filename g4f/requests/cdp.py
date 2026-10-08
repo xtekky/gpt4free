@@ -29,6 +29,9 @@ Common features:
     attached with a flat session (Target.attachToTarget, flatten=True).
     Such servers are also shut down through CDP (Browser.close on the
     browser-level socket) instead of a process handle or /json/close.
+  • Lightpanda installed by ``g4f-go browser install`` is detected in the
+    shared config directory and preferred over Chrome whenever headless mode
+    is on (see find_lightpanda_path / lightpanda_auto_start_enabled).
   • Android app: creates dedicated automation WebViews through its DevTools
     socket (browser_mode="webview", auto-detected — no Chrome needed). Each
     target is shown in front of the app UI with a close button; WebView
@@ -153,6 +156,151 @@ def find_chrome_path() -> Optional[str]:
     return None
 
 
+# ──────────────────────────────────────────────────────────────────────
+# Lightpanda — the headless browser installed by `g4f-go browser install`.
+# ──────────────────────────────────────────────────────────────────────
+
+_LIGHTPANDA_BINARY = "lightpanda.exe" if os.name == "nt" else "lightpanda"
+
+
+def get_lightpanda_dir() -> str:
+    """Directory where g4f-go installs the Lightpanda browser."""
+    from ..config import get_config_dir
+
+    return os.path.join(str(get_config_dir()), "browser")
+
+
+def find_lightpanda_path() -> Optional[str]:
+    """Locate the Lightpanda binary installed by ``g4f-go browser install``.
+
+    Mirrors g4f-go's install layout (``<config dir>/browser/lightpanda``) and
+    falls back to a ``lightpanda`` executable on PATH. Override the location
+    with ``G4F_BROWSER_LIGHTPANDA_PATH``.
+    """
+    override = os.environ.get("G4F_BROWSER_LIGHTPANDA_PATH")
+    if override and os.path.exists(override):
+        return override
+    path = os.path.join(get_lightpanda_dir(), _LIGHTPANDA_BINARY)
+    if os.path.exists(path):
+        return path
+    return shutil.which("lightpanda")
+
+
+def lightpanda_auto_start_enabled(headless: bool) -> bool:
+    """Whether the installed Lightpanda should be started for this run.
+
+    Mirrors g4f-go's ``browserAutoStartEnv`` skip conditions: headless mode
+    must be on, no CDP endpoint may be configured (``G4F_BROWSER_PORT``) and
+    the transport must be plain CDP (``G4F_BROWSER_MODE`` unset or ``cdp``).
+    """
+    if not headless:
+        return False
+    if os.environ.get("G4F_BROWSER_PORT"):
+        return False
+    mode = os.environ.get("G4F_BROWSER_MODE")
+    if mode and mode != "cdp":
+        return False
+    return find_lightpanda_path() is not None
+
+
+def _lightpanda_pid_file() -> str:
+    """PID file recording the Lightpanda we started (mirrors g4f-go)."""
+    return os.path.join(get_lightpanda_dir(), ".autostart.pid")
+
+
+def _reap_stale_lightpanda():
+    """Kill a previously auto-started Lightpanda that outlived its parent.
+
+    Only the PID recorded in the pid file is touched, so a Lightpanda the
+    user started themselves is never affected.
+    """
+    pid_file = _lightpanda_pid_file()
+    try:
+        with open(pid_file) as f:
+            pid = int(f.read().strip())
+    except Exception:
+        return
+    try:
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                capture_output=True,
+                timeout=10,
+            )
+        else:
+            os.kill(pid, 15)
+    except Exception:
+        pass
+    try:
+        os.remove(pid_file)
+    except Exception:
+        pass
+
+
+def _start_lightpanda(host: str, timeout: float = 10.0) -> Optional[int]:
+    """Start the installed Lightpanda CDP server on a free port.
+
+    Returns the port it listens on, or None when it could not be started.
+    The process is recorded as the shared browser, so the regular shutdown
+    paths (idle timer, atexit, API lifespan) stop it again.
+    """
+    global _shared_browser_process, _shared_browser_adopted
+
+    exe = find_lightpanda_path()
+    if not exe:
+        return None
+
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+
+    _reap_stale_lightpanda()
+
+    cmd = [exe, "serve", "--host", host, "--port", str(port)]
+    debug.log(f"CDP: Launching Lightpanda: {' '.join(cmd)}")
+    try:
+        _shared_browser_process = subprocess.Popen(
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+    except Exception as e:
+        debug.log(f"CDP: failed to launch Lightpanda: {e}")
+        _shared_browser_process = None
+        return None
+    _shared_browser_adopted = False
+    try:
+        with open(_lightpanda_pid_file(), "w") as f:
+            f.write(str(_shared_browser_process.pid))
+    except Exception:
+        pass
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if _shared_browser_process.poll() is not None:
+            debug.log("CDP: Lightpanda exited during startup")
+            _shared_browser_process = None
+            return None
+        try:
+            with urllib.request.urlopen(
+                f"http://{host}:{port}/json/version", timeout=0.5
+            ) as response:
+                if response.status == 200:
+                    debug.log(f"CDP: Lightpanda ready on port {port}")
+                    return port
+        except Exception:
+            pass
+        time.sleep(0.1)
+
+    debug.log(f"CDP: Lightpanda did not become ready on port {port}")
+    try:
+        _shared_browser_process.kill()
+    except Exception:
+        pass
+    _shared_browser_process = None
+    return None
+
+
 import threading
 import atexit
 
@@ -178,6 +326,10 @@ def _close_browser_via_cdp(host: str, port: int, timeout: float = 5.0) -> bool:
     exposes a single browser-level WebSocket at ``ws://host:port/`` and an
     empty /json/list) are closed through that socket directly — for adopted
     instances this is the only way to shut them down at all.
+
+    Returns False when the server rejected the command (Lightpanda answers
+    ``-32601 'Browser.close' wasn't found`` and keeps running), so callers
+    holding a process handle can kill it instead.
     """
     ws_url = None
     try:
@@ -202,30 +354,87 @@ def _close_browser_via_cdp(host: str, port: int, timeout: float = 5.0) -> bool:
         async with aiohttp.ClientSession() as session:
             async with session.ws_connect(ws_url, timeout=timeout) as ws:
                 await ws.send_str(json.dumps({"id": 1, "method": "Browser.close"}))
-                # Chrome replies and then closes the socket — drain briefly.
+                # Chrome replies and then closes the socket. Servers that do
+                # not implement Browser.close (Lightpanda: -32601) answer with
+                # an error and keep running — report that so the caller can
+                # fall back to killing the process it launched.
+                try:
+                    msg = await asyncio.wait_for(ws.receive(), timeout=timeout)
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        reply = json.loads(msg.data)
+                        if reply.get("error"):
+                            debug.log(
+                                f"CDP: Browser.close rejected by {host}:{port}: "
+                                f"{reply['error']}"
+                            )
+                            return False
+                except asyncio.TimeoutError:
+                    pass
+                except Exception:
+                    pass
+                # Drain whatever else arrives until the socket closes.
                 try:
                     async for _ in ws:
                         pass
                 except Exception:
                     pass
+                return True
 
     try:
-        asyncio.run(asyncio.wait_for(_send_browser_close(), timeout=timeout))
+        closed = asyncio.run(asyncio.wait_for(_send_browser_close(), timeout=timeout))
     except RuntimeError:
         # Called from a thread with a running event loop — use our own.
+        result: List[bool] = []
         thread = threading.Thread(
-            target=lambda: asyncio.run(
-                asyncio.wait_for(_send_browser_close(), timeout=timeout)
+            target=lambda: result.append(
+                asyncio.run(asyncio.wait_for(_send_browser_close(), timeout=timeout))
             ),
             daemon=True,
         )
         thread.start()
         thread.join(timeout + 1)
+        closed = result[0] if result else False
     except Exception as e:
         debug.log(f"CDP: Browser.close via CDP failed: {e}")
         return False
-    debug.log(f"CDP: Browser.close sent via CDP to {host}:{port}")
+    if closed:
+        debug.log(f"CDP: Browser.close sent via CDP to {host}:{port}")
+    return closed
+
+
+def _kill_shared_browser_process():
+    """Kill the browser process we launched, if any. Returns True when killed."""
+    global _shared_browser_process
+    if not _shared_browser_process:
+        return False
+    try:
+        if os.name == "nt":
+            # Kill the whole browser process tree. Terminating only the main
+            # process can leave children (and the profile lock) behind, which
+            # blocks the next launch via singleton handoff.
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(_shared_browser_process.pid)],
+                capture_output=True,
+                timeout=10,
+            )
+        else:
+            _shared_browser_process.terminate()
+    except Exception:
+        pass
+    try:
+        _shared_browser_process.wait(timeout=10)
+    except Exception:
+        try:
+            _shared_browser_process.kill()
+        except Exception:
+            pass
+    _shared_browser_process = None
+    try:
+        os.remove(_lightpanda_pid_file())
+    except Exception:
+        pass
     return True
+
 
 def _terminate_shared_browser():
     """Terminate the shared browser process and reset state."""
@@ -236,29 +445,7 @@ def _terminate_shared_browser():
         # Windows singleton handoff), which otherwise stay open.
         if _shared_browser_port is not None and not _shared_browser_adopted:
             _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
-        if _shared_browser_process:
-            try:
-                if os.name == "nt":
-                    # Kill the whole Chrome process tree. Terminating only the
-                    # main process can leave children (and the profile lock)
-                    # behind, which blocks the next launch via singleton handoff.
-                    subprocess.run(
-                        ["taskkill", "/F", "/T", "/PID", str(_shared_browser_process.pid)],
-                        capture_output=True,
-                        timeout=10,
-                    )
-                else:
-                    _shared_browser_process.terminate()
-            except Exception:
-                pass
-            try:
-                _shared_browser_process.wait(timeout=10)
-            except Exception:
-                try:
-                    _shared_browser_process.kill()
-                except Exception:
-                    pass
-            _shared_browser_process = None
+        _kill_shared_browser_process()
     _shared_browser_port = None
     _shared_browser_adopted = False
 
@@ -270,10 +457,17 @@ def _close_shared_browser_idle():
     itself down cleanly (no process kill, no profile lock leftovers,
     no crash-restore prompts on the next launch). Browsers adopted from
     other processes (not started by g4f) are left untouched.
+
+    Servers that do not implement ``Browser.close`` (Lightpanda answers
+    with ``-32601`` and keeps running) are killed through the process
+    handle we hold instead, so they don't linger forever.
     """
     global _shared_browser_process, _shared_browser_port, _shared_browser_adopted
+    closed = False
     if _shared_browser_port is not None and not _shared_browser_adopted:
-        _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
+        closed = _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
+    if not closed:
+        _kill_shared_browser_process()
     _shared_browser_process = None
     _shared_browser_port = None
     _shared_browser_adopted = False
@@ -471,7 +665,20 @@ def get_shared_browser(
                     _shared_browser_process = None
                 _shared_browser_port = None
 
-        # 2. Check if a browser is already running with CDP remote debugging.
+        # 2. Prefer the Lightpanda browser installed by `g4f-go browser install`
+        # whenever headless mode is on — it is a fraction of Chrome's size and
+        # needs no display. Skipped when a CDP endpoint is configured or the
+        # transport is not plain CDP (mirrors g4f-go's auto-start conditions).
+        # Checked before adopting an already-running browser so the installed
+        # Lightpanda wins, exactly as it does when g4f-go sets G4F_BROWSER_PORT.
+        if lightpanda_auto_start_enabled(headless):
+            port = _start_lightpanda(host)
+            if port is not None:
+                _shared_browser_port = port
+                _last_shared_browser_port = port
+                return port
+
+        # 3. Check if a browser is already running with CDP remote debugging.
         # Probe the port recorded for our own profile first — a browser we
         # started earlier may still be alive (also without psutil).
         running_port = _read_saved_browser_port(host, user_data_dir=None)
@@ -486,7 +693,7 @@ def get_shared_browser(
             _shared_browser_adopted = adopted_external
             return _shared_browser_port
 
-        # 3. Otherwise, launch a new shared Chromium process on a free port
+        # 4. Otherwise, launch a new shared Chromium process on a free port
         chrome_path = find_chrome_path()
         if not chrome_path:
             raise RuntimeError("Google Chrome / Chromium / Edge executable not found.")

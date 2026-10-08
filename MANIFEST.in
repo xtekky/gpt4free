@@ -1,3 +1,4 @@
 recursive-include g4f/Provider/needs_auth/deepseek *
 recursive-include g4f/Provider/glm *
 recursive-include g4f/gui/server *
+include g4f/providers.json

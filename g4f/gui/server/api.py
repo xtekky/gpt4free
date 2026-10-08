@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import os
+import time
 import asyncio
 import threading
+from pathlib import Path
 from typing import Iterator
 from flask import send_from_directory, request
 from inspect import signature
@@ -28,6 +31,7 @@ from ...providers.response import *
 from ...providers.any_model_map import model_map
 from ...providers.any_provider import AnyProvider
 from ...providers.cache import FileStorage
+from ...config import AppConfig
 from ...version import utils as version_utils
 from ...Provider import ProviderLoader
 from ... import Provider
@@ -35,6 +39,11 @@ from ... import debug
 
 logger = logging.getLogger(__name__)
 storage = FileStorage()
+
+# Refresh the packaged providers.json cache after this many seconds.
+PROVIDERS_CACHE_TTL = 5 * 60
+# Set to False when the packaged cache file cannot be written (e.g. read-only install).
+_providers_cache_writable = True
 
 
 class Api:
@@ -118,9 +127,13 @@ class Api:
     @staticmethod
     def get_providers() -> dict[str, str]:
         if not ProviderLoader.ignored:
-            saved = storage.get(f"{version_utils.current_version}/providers")
-            if saved is not None:
-                return saved
+            cached = Api._read_providers_cache()
+            if cached is not None:
+                return cached
+            if not _providers_cache_writable:
+                saved = storage.get(f"{version_utils.current_version}/providers")
+                if saved is not None:
+                    return saved
         result = [
             {
                 "name": provider.__name__,
@@ -144,7 +157,43 @@ class Api:
             if provider.working
         ]
         storage.set(f"{version_utils.current_version}/providers", result)
+        Api._write_providers_cache(result)
         return result
+
+    @staticmethod
+    def _providers_cache_file() -> Path:
+        return Path(__file__).resolve().parents[2] / "providers.json"
+
+    @staticmethod
+    def _write_providers_cache(result: list) -> bool:
+        """Persist the provider list to a JSON file inside the g4f package."""
+        global _providers_cache_writable
+        if not _providers_cache_writable:
+            return False
+        try:
+            with open(Api._providers_cache_file(), "w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2)
+            return True
+        except OSError as e:
+            logger.warning(f"Failed to write providers cache: {e}")
+            _providers_cache_writable = False
+            return False
+
+    @staticmethod
+    def _read_providers_cache() -> list | None:
+        """Read the packaged provider list, returning None when missing or stale."""
+        try:
+            cache_file = Api._providers_cache_file()
+            if not cache_file.exists():
+                return None
+            if AppConfig.dev and not AppConfig.demo:
+                if time.time() - cache_file.stat().st_mtime > PROVIDERS_CACHE_TTL:
+                    return None
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logger.warning(f"Failed to read providers cache: {e}")
+            return None
 
     def get_all_models(self) -> dict[str, list]:
         storage_key = f"{version_utils.current_version}/all_models"

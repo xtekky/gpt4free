@@ -108,6 +108,22 @@ The automatic startup is skipped when:
 A PID file (`.autostart.pid`) lets the next run reclaim a browser that outlived
 a hard-killed g4f-go.
 
+### Automatic startup from Python
+
+The g4f package performs the same detection on its own, so `python -m g4f`,
+`g4f client` and the API server use the installed browser without going through
+g4f-go. When headless mode is on, `g4f.requests.cdp` looks for the binary in
+`~/.g4f/browser/` (the directory `g4f-go browser install` writes to) and starts
+`lightpanda serve` on a free port, preferring it over a locally installed
+Chrome. The same skip conditions apply, plus:
+
+- `G4F_BROWSER_LIGHTPANDA_PATH` overrides the binary location,
+- a `lightpanda` executable on `PATH` is used as a fallback.
+
+The process is stopped again by the regular shutdown paths (idle timer, `atexit`,
+API lifespan). Lightpanda does not implement the CDP `Browser.close` command
+(it answers `-32601`), so g4f kills the process it started instead.
+
 ### Downloads
 
 Binaries are pinned per platform and verified against a SHA-256 before install:

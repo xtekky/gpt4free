@@ -33,7 +33,6 @@ from ...errors import (
     ModelNotFoundError,
     CloudflareError,
     MissingAuthError,
-    MissingRequirementsError,
     RateLimitError,
 )
 from ...providers.response import (
