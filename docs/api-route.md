@@ -33,3 +33,18 @@ does not advertise image generation or infer vision support from model names.
 Requests and prompts are sent to `https://global.api-route.com/v1`.
 See the [API documentation](https://github.com/DennyHo0917/api-route/blob/main/API.md)
 for endpoint, authentication, and model-discovery details.
+
+## Homepage checks
+
+Run the live homepage test without an API key:
+
+```bash
+python -m etc.testing.test_provider_urls APIRoute
+# Check every extra provider's homepage:
+python -m etc.testing.test_provider_urls
+```
+
+The test follows redirects, requires a final HTTP 2xx response, and reports HTTP
+errors and connection failures. It runs separately from the offline unit suite.
+Bot protection or local network restrictions can also cause failures; review the
+reported result before concluding that a provider's homepage has disappeared.
