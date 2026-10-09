@@ -150,7 +150,6 @@ class Perplexity(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "accept": "text/event-stream",
             "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
             "content-type": "application/json",
             "origin": cls.url,
             "referer": referer,

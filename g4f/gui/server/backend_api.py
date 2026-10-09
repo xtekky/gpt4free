@@ -185,7 +185,7 @@ class Backend_Api(Api):
                         "user": request.headers.get("x-user", "error"),
                     }
                 )
-                response.headers["cache-control"] = "no-cache"
+                response.headers["cache-control"] = "no-store"
                 return response
 
         @app.route("/pa/providers", methods=["GET"])
@@ -671,6 +671,35 @@ class Backend_Api(Api):
             except Exception as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": "Failed to retrieve quota"}}), 500
+
+        @app.route("/backend-api/v2/health/<provider>", methods=["GET"])
+        async def get_health(provider: str):
+            try:
+                provider_handler = AbstractClientFactory.create_provider(None, provider)
+            except (ProviderNotFoundError, ValueError) as e:
+                return jsonify({"error": {"message": "Provider not found"}}), 404
+            if not hasattr(provider_handler, "get_health"):
+                return (
+                    jsonify(
+                        {"error": {"message": "Provider doesn't support get_health"}}
+                    ),
+                    500,
+                )
+            request_api_key = request.headers.get("x-api-key")
+            try:
+                result = await provider_handler.get_health(api_key=request_api_key)
+                if result is None:
+                    return jsonify({"error": {"message": "Health information not available"}}), 404
+                response = jsonify(result)
+                response.headers["cache-control"] = "public, max-age=300"
+                return response
+            except MissingAuthError as e:
+                return jsonify({"error": {"message": "Authentication required"}}), 401
+            except NotImplementedError as e:
+                return jsonify({"error": {"message": "Health check not supported"}}), 501
+            except Exception as e:
+                logger.exception(e)
+                return jsonify({"error": {"message": "Failed to retrieve health"}}), 500
 
         @app.route("/backend-api/v2/log", methods=["GET", "POST"])
         def handle_log():

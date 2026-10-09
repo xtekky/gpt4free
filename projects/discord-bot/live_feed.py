@@ -18,7 +18,7 @@ Configuration is read from environment variables (see bot.py):
     G4F_API_BASE                — g4f API base URL (default: http://localhost:8080)
     G4F_PUBLIC_BASE             — public base URL for Discord-accessible image
                                   links (defaults to G4F_API_BASE)
-    G4F_MEMBERS_BASE            — g4f.dev base URL (default: https://g4f.dev)
+    G4F_MEMBERS_BASE            — members API base URL (default: https://auth.g4f.space)
     G4F_MODELS_URL              — models endpoint to watch (default: https://g4f.space/v1/models)
     G4F_FEED_POLL_INTERVAL      — seconds between polls (default: 15)
     G4F_HEAVY_TOKEN_THRESHOLD   — token count to flag as "heavy" (default: 10000)
@@ -33,6 +33,7 @@ import json
 import logging
 import time
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
 from urllib.parse import urlparse
 
@@ -302,6 +303,14 @@ def _format_duration(ms: int) -> str:
         return f"{ms}ms"
     return f"{ms / 1000:.1f}s"
 
+def _parse_iso_timestamp(value: str) -> Optional[datetime]:
+    """Parse an ISO-8601 timestamp (e.g. ``2026-04-13T10:56:40.027Z``)."""
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 # ---------------------------------------------------------------------------
 # LiveFeed cog
@@ -488,6 +497,18 @@ class LiveFeed(commands.Cog):
             return
 
         users = data.get("users", [])
+        if not users:
+            return
+
+        # Skip users whose account is older than the recency window so a
+        # stale/frozen upstream can't trigger a burst of backfill posts.
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=48)
+        users = [
+            u for u in users
+            if (ts := _parse_iso_timestamp(u.get("created_at", ""))) is not None
+            and ts >= cutoff
+        ]
         if not users:
             return
 

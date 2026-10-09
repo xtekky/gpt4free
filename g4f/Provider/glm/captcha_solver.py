@@ -232,12 +232,13 @@ async def _solve_once() -> str:
         # Install the Fetch interceptor before navigating so we catch the
         # initial document request.
         await _intercept_and_fulfill(tab, page_url, html)
-
+        debug.info("Intercept and fulfill setup complete")
         # Apply stealth mitigations before any page script runs.
         await tab.evaluate(STEALTH_INIT_SCRIPT, await_promise=False)
-
+        debug.info("Stealth mitigations applied")
         # Navigate to the intercepted page.
         await tab.get(page_url)
+        debug.info("Navigated to page URL")
 
         # Set the captcha config the same way the z.ai bundle does.
         await tab.evaluate(
@@ -245,6 +246,7 @@ async def _solve_once() -> str:
             f"prefix: {CAPTCHA_CONFIG['prefix']!r}}};",
             await_promise=False,
         )
+        debug.info("Captcha config set on page")
 
         # Wait for the SDK to expose initAliyunCaptcha.
         # The SDK is embedded directly in the HTML, so it should be available
@@ -256,7 +258,9 @@ async def _solve_once() -> str:
                 await_promise=False,
             )
             if ready:
+                debug.info("Aliyun captcha SDK is ready")
                 break
+            debug.info("Waiting for Aliyun captcha SDK to be ready...")
             if waited >= SDK_LOAD_TIMEOUT_MS:
                 raise TimeoutError("Aliyun captcha SDK failed to load")
             await asyncio.sleep(0.5)

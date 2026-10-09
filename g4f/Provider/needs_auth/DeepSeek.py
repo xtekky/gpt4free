@@ -83,7 +83,6 @@ DEEPSEEK_FILE_FAILURE_STATUSES = {
 
 CHAT_HEADER_DEFAULTS = {
     "accept": "*/*",
-    "cache-control": "no-cache",
     "content-type": "application/json",
     "origin": DEEPSEEK_URL,
     "referer": f"{DEEPSEEK_URL}/a/chat/",

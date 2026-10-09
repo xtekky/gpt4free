@@ -226,6 +226,7 @@ def run_api_args(args):
         model=args.model,
         gui=not args.no_gui,
         demo=args.demo,
+        dev=args.debug,
         timeout=args.timeout,
         stream_timeout=args.stream_timeout,
     )

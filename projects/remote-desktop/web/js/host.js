@@ -383,11 +383,14 @@
   }
 
   /* The relay list decides whether a phone on cellular can reach us at all, so
-     it is fetched before any peer is built and refreshed with the status poll. */
+     it is fetched before any peer is built and refreshed with the status poll.
+     Only the URLs are compared: the TURN credentials are re-minted on every
+     request, so comparing them would rebuild the peers on every poll. */
   function applyIceServers(servers) {
     if (!Array.isArray(servers)) return;
     const next = servers.filter((entry) => entry && entry.urls);
-    const changed = JSON.stringify(next) !== JSON.stringify(state.iceServers);
+    const urlsOf = (list) => JSON.stringify(list.map((entry) => entry.urls));
+    const changed = urlsOf(next) !== urlsOf(state.iceServers);
     state.iceServers = next;
     if (!state.iceLogged) {
       state.iceLogged = true;

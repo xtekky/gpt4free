@@ -22,6 +22,11 @@ Usage:
   g4f-go api --port 8080      start the OpenAI-compatible API server
   g4f-go gui                  launch the web GUI
   g4f-go status               show runtime download/install status
+  g4f-go browser install      install the headless browser (Lightpanda) for this OS
+  g4f-go browser serve        run the browser's CDP server in the foreground
+  g4f-go turn serve           run the embedded STUN/TURN relay (pion/turn)
+  g4f-go turn status          show the embedded STUN/TURN relay
+  g4f-go turn credentials     mint TURN REST credentials for a client
   g4f-go cache clear          remove all cached g4f data (model lists, scrape caches)
   g4f-go install g4f         (re)install the g4f package (network)
   g4f-go bootstrap            refresh the g4f package installation
@@ -48,6 +53,20 @@ func runMain() int {
 	if len(args) == 0 {
 		printHelp()
 		return 0
+	}
+
+	// `browser` manages the headless browser itself and needs no Python runtime.
+	if args[0] == "browser" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return runBrowserCommand(ctx, args[1:])
+	}
+
+	// `turn` runs the embedded STUN/TURN relay and needs no Python runtime.
+	if args[0] == "turn" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return runTurnCommand(ctx, args[1:])
 	}
 
 	py, err := ensureRuntime()
@@ -108,6 +127,11 @@ func runMain() int {
 		} else {
 			fmt.Println("bundle:     not extracted yet (extracts on first -m use)")
 		}
+		if exe, berr := installedBrowserBinary(); berr == nil {
+			fmt.Printf("browser:    %s\n", exe)
+		} else {
+			fmt.Println("browser:    not installed (run: g4f-go browser install)")
+		}
 		code, err := runPython(ctx, py, []string{"--version"})
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
@@ -136,6 +160,13 @@ func runMain() int {
 		return 0
 	}
 
+	// When g4f will run headless, make sure a CDP browser is available: start
+	// the installed Lightpanda and point g4f at it.
+	extraEnv, stopBrowser := browserAutoStartEnv(args)
+	if stopBrowser != nil {
+		defer stopBrowser()
+	}
+
 	// If the first argument is a .py file, run it directly with the bundled
 	// Python interpreter (forwarding any remaining args to the script).
 	if strings.HasSuffix(args[0], ".py") {
@@ -143,7 +174,7 @@ func runMain() int {
 			fmt.Fprintln(os.Stderr, "g4f-go:", serr)
 			return 1
 		}
-		code, err := runPython(ctx, py, args)
+		code, err := runPython(ctx, py, args, extraEnv...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
 		}
@@ -155,7 +186,7 @@ func runMain() int {
 	}
 
 	// Default: forward everything to the g4f module.
-	code, err := runPython(ctx, py, append([]string{"-m", "g4f"}, args...))
+	code, err := runPython(ctx, py, append([]string{"-m", "g4f"}, args...), extraEnv...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 	}
@@ -209,7 +240,7 @@ func hasSubcommand(args []string) bool {
 		return true
 	}
 	switch args[0] {
-	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap", "cache":
+	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap", "cache", "browser", "turn":
 		return true
 	}
 	if strings.HasPrefix(args[0], "-") {

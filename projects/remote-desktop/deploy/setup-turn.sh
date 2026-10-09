@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Install and configure coturn as the TURN relay for the remote desktop app.
+# Install and configure coturn as an EXTERNAL TURN relay for the remote desktop
+# app.
+#
+# g4f-go ships its own embedded STUN/TURN server (`g4f-go turn serve`), which is
+# started automatically by `g4f-go -m remote_desktop` and needs no root. Use
+# this script only when you want a standalone coturn instance instead, for
+# example to share one relay between several hosts.
 #
 # Run this on the machine that shares its screen:
 #
@@ -36,6 +42,15 @@ if [[ -z "${EXTERNAL_IP}" ]]; then
 fi
 echo "    external-ip=${EXTERNAL_IP}"
 
+# coturn binds the private address and advertises the public one; without the
+# private half it cannot allocate a relay address on a NATed host.
+PRIVATE_IP="${PRIVATE_IP:-$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -1)}"
+if [[ -z "${PRIVATE_IP}" ]]; then
+  echo "Could not detect the LAN address. Re-run with PRIVATE_IP=192.168.1.10 sudo -E bash $0" >&2
+  exit 1
+fi
+echo "    private-ip=${PRIVATE_IP}"
+
 echo "==> Generating the shared secret"
 if [[ -f "${SECRET_FILE}" ]]; then
   TURN_SECRET="$(cat "${SECRET_FILE}")"
@@ -47,6 +62,7 @@ fi
 
 echo "==> Writing ${CONF}"
 sed -e "s|__EXTERNAL_IP__|${EXTERNAL_IP}|g" \
+    -e "s|__PRIVATE_IP__|${PRIVATE_IP}|g" \
     -e "s|__TURN_SECRET__|${TURN_SECRET}|g" \
     -e "s|__REALM__|${EXTERNAL_IP}|g" \
     "${HERE}/turnserver.conf" > "${CONF}"

@@ -105,8 +105,6 @@ async def create_images(
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "cross-site",
-        "Pragma": "no-cache",
-        "Cache-Control": "no-cache",
         "Referer": "https://designer.microsoft.com/",
     }
 

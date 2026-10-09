@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import datetime
 import os
 import time
 import json
 from typing import Optional, List
+from urllib.parse import urlparse
 
 try:
     from platformdirs import user_config_dir
@@ -290,6 +292,139 @@ def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
         pass
     return cookies_by_domain
 
+
+def _parse_expires(value) -> Optional[float]:
+    """Convert a HAR cookie expiry into seconds since epoch, or None for session cookies."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return None if value < 0 else float(value)
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        seconds = float(value)
+    except ValueError:
+        pass
+    else:
+        return None if seconds < 0 else seconds
+    try:
+        parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed.timestamp()
+
+def _parse_cookie_header(value: str) -> Dict[str, str]:
+    """Parse a `Cookie` request header into a name/value mapping."""
+    cookies = {}
+    for part in value.split(";"):
+        name, sep, cookie_value = part.partition("=")
+        name = name.strip()
+        if sep and name:
+            cookies[name] = cookie_value.strip()
+    return cookies
+
+def _har_cookie(
+    name: str,
+    value: str,
+    domain: Optional[str] = None,
+    path: Optional[str] = None,
+    secure: Optional[bool] = None,
+    http_only: Optional[bool] = None,
+    same_site: Optional[str] = None,
+    expires=None,
+) -> Optional[dict]:
+    """Build a CDP ready cookie object, dropping cookies that are already expired."""
+    if not name or value is None:
+        return None
+    expires_seconds = _parse_expires(expires)
+    if expires_seconds is not None and expires_seconds < time.time():
+        return None
+    cookie = {"name": name, "value": value}
+    if domain:
+        cookie["domain"] = domain
+    cookie["path"] = path or "/"
+    if secure is not None:
+        cookie["secure"] = bool(secure)
+    if http_only is not None:
+        cookie["httpOnly"] = bool(http_only)
+    if same_site in ("Strict", "Lax", "None"):
+        cookie["sameSite"] = same_site
+    if expires_seconds is not None:
+        cookie["expires"] = expires_seconds
+    return cookie
+
+def _get_har_domain(entry: dict) -> Optional[str]:
+    """Return the domain of a HAR entry, falling back to the request URL host."""
+    domain = _get_domain(entry)
+    if domain:
+        return domain
+    host = urlparse(entry.get("request", {}).get("url", "")).hostname
+    return host or None
+
+def _parse_har_cookies(path: str) -> List[dict]:
+    """Parse a HAR file and return all cookies as CDP ready cookie objects."""
+    cookies = {}
+    try:
+        with open(path, "rb") as file:
+            har_file = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError, OSError):
+        return []
+    for entry in har_file.get("log", {}).get("entries", []):
+        request = entry.get("request", {})
+        domain = _get_har_domain(entry)
+        for c in request.get("cookies", []):
+            if not isinstance(c, dict):
+                continue
+            cookie = _har_cookie(
+                c.get("name"),
+                c.get("value"),
+                domain=c.get("domain") or domain,
+                path=c.get("path"),
+                secure=c.get("secure"),
+                http_only=c.get("httpOnly"),
+                same_site=c.get("sameSite"),
+                expires=c.get("expires"),
+            )
+            if cookie:
+                cookies[(cookie["name"], cookie.get("domain"), cookie["path"])] = cookie
+        if request.get("cookies"):
+            continue
+        for header in request.get("headers", []):
+            if header.get("name", "").lower() != "cookie":
+                continue
+            for name, value in _parse_cookie_header(header.get("value", "")).items():
+                cookie = _har_cookie(name, value, domain=domain)
+                if cookie:
+                    cookies[(cookie["name"], cookie.get("domain"), cookie["path"])] = cookie
+    return list(cookies.values())
+
+def read_har_cookies(dir_path: Optional[str] = None) -> List[dict]:
+    """
+    Read all cookies from .har files in a directory as CDP ready cookie objects.
+    """
+    dir_path = dir_path or CookiesConfig.cookies_dir
+    if not os.access(dir_path, os.R_OK):
+        debug.log(f"Read cookies: {dir_path} dir is not readable")
+        return []
+    cookies = {}
+    for root, _, files in os.walk(dir_path):
+        for file in sorted(files):
+            if not file.endswith(".har"):
+                continue
+            path = os.path.join(root, file)
+            har_cookies = _parse_har_cookies(path)
+            debug.info(f"Read {len(har_cookies)} cookies from {path}")   
+            for cookie in har_cookies:
+                cookies[(cookie["name"], cookie.get("domain"), cookie["path"])] = cookie
+        break  # Do not recurse into subdirectories
+    return list(cookies.values())
 
 def _parse_json_cookie_file(path: str) -> Dict[str, Dict[str, str]]:
     """Parse a JSON cookie export file."""

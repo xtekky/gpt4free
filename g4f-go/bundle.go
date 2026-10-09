@@ -187,7 +187,16 @@ func runBundledModule(ctx context.Context, binDir, exe, module string, args []st
 		return 1
 	}
 	ensureModuleDeps(binDir, exe, module)
-	code, err := runPython(ctx, exe, append([]string{"-m", module}, args...), bundleEnv(binDir)...)
+	env := bundleEnv(binDir)
+	if module == "remote_desktop" {
+		// The remote desktop needs a relay to reach a phone on cellular; bring
+		// up the embedded STUN/TURN server unless one is already configured.
+		if turnEnv, stop := remoteDesktopTurnEnv(ctx); len(turnEnv) > 0 {
+			defer stop()
+			env = append(env, turnEnv...)
+		}
+	}
+	code, err := runPython(ctx, exe, append([]string{"-m", module}, args...), env...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 	}

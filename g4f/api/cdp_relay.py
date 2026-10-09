@@ -1101,7 +1101,7 @@ def register_cdp_relay(app) -> None:
             page,
             headers={"Content-Security-Policy": "default-src * data: blob: 'unsafe-inline'; "
                      f"script-src 'nonce-{nonce}'; object-src 'none'; connect-src 'self'; "
-                     "form-action 'none'", "Cache-Control": "no-cache"},
+                     "form-action 'none'", "Cache-Control": "no-store"},
         )
 
     @app.post("/browser/{target_id}/action", dependencies=[Depends(_require_debug)])

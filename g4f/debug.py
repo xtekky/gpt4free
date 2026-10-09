@@ -29,6 +29,12 @@ def log(*text: Any, file: Optional[Any] = None) -> None:
         log_handler(*text, file=file)
 
 
+def info(*text: Any, file: Optional[Any] = None) -> None:
+    """Log an informational message if logging is enabled."""
+    if logging:
+        log_handler(*text, file=file)
+
+
 def error(*error_args: Any, name: Optional[str] = None) -> None:
     """Log an error message to stderr."""
     formatted_errors = [

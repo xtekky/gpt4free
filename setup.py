@@ -107,7 +107,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    package_data={"g4f": []},
+    package_data={"g4f": ["providers.json"]},
     include_package_data=True,
     install_requires=INSTALL_REQUIRE,
     extras_require=EXTRA_REQUIRE,

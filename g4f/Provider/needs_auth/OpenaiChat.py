@@ -127,8 +127,6 @@ DEFAULT_HEADERS = {
 INIT_HEADERS = {
     "accept": "*/*",
     "accept-language": "en-US,en;q=0.8",
-    "cache-control": "no-cache",
-    "pragma": "no-cache",
     "priority": "u=0, i",
     "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
     "sec-ch-ua-arch": '"arm"',

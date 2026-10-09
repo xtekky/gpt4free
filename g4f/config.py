@@ -81,6 +81,7 @@ class AppConfig:
     proxy: Optional[str] = None
     gui: bool = False
     demo: bool = False
+    dev: bool = False
     timeout: int = DEFAULT_TIMEOUT
     stream_timeout: int = DEFAULT_STREAM_TIMEOUT
     disable_custom_api_key: bool = False

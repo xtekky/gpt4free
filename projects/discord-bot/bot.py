@@ -68,7 +68,7 @@ PUBLIC_BASE = os.getenv("G4F_PUBLIC_BASE", API_BASE)
 # Optional API key used to read /api/logs when the g4f API is protected.
 # Prefer G4F_API_KEY; keep G4F_PUBLIC_API_KEY as a backwards-compatible alias.
 FEED_API_KEY = os.getenv("G4F_API_KEY") or os.getenv("G4F_PUBLIC_API_KEY", "")
-MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://g4f.space")
+MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://auth.g4f.space")
 ERRORS_URL = os.getenv("G4F_ERRORS_URL", "https://g4f.space/api/errors")
 MODELS_URL = os.getenv("G4F_MODELS_URL", "https://g4f.space/v1/models")
 FEED_POLL_INTERVAL = int(os.getenv("G4F_FEED_POLL_INTERVAL", "15"))

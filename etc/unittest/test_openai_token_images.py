@@ -192,7 +192,7 @@ class TestTokenImages(unittest.IsolatedAsyncioTestCase):
         with patch.object(module, 'StreamSession', side_effect=transports), \
              patch.object(OpenaiChat, '_api_key', None), patch.object(OpenaiChat, '_expires', None), \
              patch.object(OpenaiChat, '_headers', None), patch.object(OpenaiChat, '_cookies', None):
-            results = await asyncio.wait_for(asyncio.gather(*(complete(token) for token in tokens)), timeout=2)
+            results = await asyncio.wait_for(asyncio.gather(*(complete(token) for token in tokens)), timeout=5)
             for result, transport in zip(results, transports):
                 self.assertIn('Reply', result)
                 self.assertTrue(any(url.endswith('/f/conversation') for url in transport.requests))

@@ -26,7 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-auto-control", action="store_true", help="viewers must request control explicitly")
     parser.add_argument("--open-browser", action="store_true", help="open the host page in the default browser")
     parser.add_argument("--turn-url", help="TURN relay URL(s), comma separated (e.g. turn:turn.example.com:3478)")
-    parser.add_argument("--turn-secret", help="shared secret for time-limited TURN credentials (coturn use-auth-secret)")
+    parser.add_argument("--turn-secret", help="shared secret for time-limited TURN credentials (TURN REST / coturn use-auth-secret)")
     parser.add_argument("--stun-url", help="STUN URL(s), comma separated (empty string disables STUN)")
     return parser
 
