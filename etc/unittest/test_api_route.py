@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -8,6 +9,9 @@ from g4f.Provider import APIRoute, ProviderLoader
 from g4f.client import Client
 from g4f.errors import MissingAuthError
 from g4f.tools.auth import AuthManager
+
+
+OPENAI_TEMPLATE_MODULE = importlib.import_module("g4f.Provider.template.OpenaiTemplate")
 
 
 class TestAPIRoute(unittest.TestCase):
@@ -23,14 +27,14 @@ class TestAPIRoute(unittest.TestCase):
             self.assertEqual(AuthManager.load_api_key(APIRoute), "sk-test-value")
 
     def test_model_discovery_requires_a_key_without_network_io(self):
-        with patch.dict(os.environ, {}, clear=True), patch(
-            "g4f.Provider.template.OpenaiTemplate.requests.get"
+        with patch.dict(os.environ, {}, clear=True), patch.object(
+            OPENAI_TEMPLATE_MODULE.requests, "get"
         ) as get:
             with self.assertRaises(MissingAuthError):
                 APIRoute.get_models()
             get.assert_not_called()
 
-    @patch("g4f.Provider.template.OpenaiTemplate.requests.get")
+    @patch.object(OPENAI_TEMPLATE_MODULE.requests, "get")
     def test_authenticated_model_discovery_keeps_gateway_ids(self, get):
         get.return_value.json.return_value = {
             "data": [{"id": "gpt-6.1-sol"}, {"id": "claude-fable-5-1"}]
@@ -41,8 +45,8 @@ class TestAPIRoute(unittest.TestCase):
         self.assertEqual(get.call_args.kwargs["headers"]["Authorization"], "Bearer sk-test-value")
         self.assertEqual(get.call_args.kwargs["timeout"], 10)
 
-    @patch("g4f.Provider.template.OpenaiTemplate.StreamSession")
-    @patch("g4f.Provider.template.OpenaiTemplate.requests.get")
+    @patch.object(OPENAI_TEMPLATE_MODULE, "StreamSession")
+    @patch.object(OPENAI_TEMPLATE_MODULE.requests, "get")
     def test_client_sends_a_claude_model_through_chat_completions(self, get, session_type):
         get.return_value.json.return_value = {"data": [{"id": "claude-fable-5-1"}]}
         session = MagicMock()
