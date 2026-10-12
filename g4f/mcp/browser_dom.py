@@ -15,15 +15,19 @@ _INTERACTIVE = (
 # Evaluates to a standalone, script-free HTML copy with data-index on interactive elements.
 SNAPSHOT_JS = r"""
 (() => {
-  const doc = document.cloneNode(true);
-  doc.querySelectorAll('script, noscript, iframe, object, embed').forEach(el => el.remove());
-  doc.querySelectorAll('link\[rel=\"modulepreload\"\], link\[rel=\"preload\"\]').forEach(el => el.remove());
-  for (const el of doc.getElementsByTagName("use")) el.remove();
-  doc.querySelectorAll('*').forEach(el => {
-    [...el.attributes].forEach(attr => {
-      if (/^on/i.test(attr.name)) el.removeAttribute(attr.name);
+  function stripDocument(doc) {
+    if (!doc) return doc;
+    doc.querySelectorAll('iframe').forEach(el => {
+      const doc = el.contentDocument || (el.contentWindow && el.contentWindow.document);
+      el.srcdoc = stripDocument(stripDocument(doc).outerHTML);
+      el.src = "";
     });
-  });
+    doc.querySelectorAll('script, noscript, object, embed, audio, noscript, video, template').forEach(el => el.remove());
+    doc.querySelectorAll('link\[rel=\"modulepreload\"\], link\[rel=\"preload\"\]').forEach(el => el.remove());
+    for (const el of doc.getElementsByTagName("use")) el.remove();
+    return doc;
+  }
+  const doc = stripDocument(document.cloneNode(true));
   let index = 0;
   // Live form state is not part of the cloned markup.
   const liveFields = document.querySelectorAll('textarea,input,select');
@@ -303,3 +307,20 @@ def selector_scrape_js(selector: str, attribute: str = "") -> str:
 def selector_exists_js(selector: str) -> str:
     """Check whether an element matches *selector* (used for wait steps)."""
     return "(() => ({ok: !!document.querySelector(%s)}))()" % json.dumps(selector)
+
+
+STEALTH_JS = """
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: {} };
+    Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+    Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+    Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
+    const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+        if (parameter === 37445) return 'Intel Inc.';
+        if (parameter === 37446) return 'Intel Iris OpenGL Engine';
+        return originalGetParameter.call(this, parameter);
+    };
+  """

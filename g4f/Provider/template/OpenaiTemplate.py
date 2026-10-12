@@ -119,9 +119,10 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if api_key is None and cls.api_key is not None:
                     api_key = cls.api_key
                 if (
-                    not api_key
+                    cls.models_needs_auth
+                    and (not api_key
                     or AppConfig.disable_custom_api_key
-                    or not cls.is_provider_api_key(api_key)
+                    or not cls.is_provider_api_key(api_key))
                 ):
                     from ...tools.run_tools import AuthManager
 

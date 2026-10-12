@@ -62,6 +62,7 @@ except ImportError:
     pass
 
 from ..cookies import BrowserConfig, read_har_cookies
+from ..mcp.browser_dom import STEALTH_JS
 from ..files import secure_filename
 from .. import debug
 
@@ -170,6 +171,13 @@ def get_lightpanda_dir() -> str:
     return os.path.join(str(get_config_dir()), "browser")
 
 
+def get_http_cache_dir() -> str:
+    """Directory where Lightpanda stores its HTTP cache."""
+    from ..config import get_config_dir
+
+    return os.path.join(str(get_config_dir()), "cache", "http_cache")
+
+
 def find_lightpanda_path() -> Optional[str]:
     """Locate the Lightpanda binary installed by ``g4f-go browser install``.
 
@@ -258,7 +266,13 @@ def _start_lightpanda(host: str, timeout: float = 10.0) -> Optional[int]:
 
     _reap_stale_lightpanda()
 
-    cmd = [exe, "serve", "--host", host, "--port", str(port)]
+    cmd = [
+        exe, "serve", "--host", host, "--port", str(port),
+        "--block-private-networks",
+        "--load-resources", "iframe",
+        "--http-cache-dir", get_http_cache_dir(),
+        "--user-agent", CHROME_USER_AGENT
+    ]
     debug.log(f"CDP: Launching Lightpanda: {' '.join(cmd)}")
     try:
         _shared_browser_process = subprocess.Popen(
@@ -1230,22 +1244,7 @@ class CDPSession:
             await self.call("Network.setUserAgentOverride", userAgent=clean_ua)
 
         # Anti-detect: Inject Stealth Script
-        stealth_js = """
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: {} };
-        Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
-        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-        Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-        Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
-        Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
-        const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
-        WebGLRenderingContext.prototype.getParameter = function(parameter) {
-            if (parameter === 37445) return 'Intel Inc.';
-            if (parameter === 37446) return 'Intel Iris OpenGL Engine';
-            return originalGetParameter.call(this, parameter);
-        };
-        """
-        await self.call("Page.addScriptToEvaluateOnNewDocument", source=stealth_js)
+        await self.call("Page.addScriptToEvaluateOnNewDocument", source=STEALTH_JS)
 
     async def _start_via_browser_socket(self):
         """
@@ -1334,13 +1333,11 @@ class CDPSession:
             # 1. HTTP-level: every request from this target carries the UA.
             try:
                 await self.call(
-                    "Emulation.setUserAgentOverride",
+                    "Network.setUserAgentOverride",
                     userAgent=CHROME_USER_AGENT,
-                    acceptLanguage="en-US,en;q=0.9",
-                    platform=platform.system() + " " + platform.machine() if platform.system() == "Linux" else None,
                 )
             except Exception as e:
-                debug.log(f"CDP: Emulation.setUserAgentOverride not supported: {e}")
+                debug.log(f"CDP: Network.setUserAgentOverride not supported: {e}")
 
             STEALTH_JS = """
         Object.defineProperty(navigator, 'webdriver', { get: () => undefined });

@@ -285,7 +285,7 @@ class DeepSeek(AsyncAuthedProvider, ProviderModelMixin):
         authorization = None
 
         debug.log("DeepSeekAuth: Starting CDPSession for login...")
-        session = CDPSession(proxy=proxy)
+        session = CDPSession(proxy=proxy, headless=False)
         await session.start()
         try:
             yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or cls.url)
