@@ -43,7 +43,7 @@ Table of contents
   - [Python (pip / from source / partial installs)](#python-pip--from-source--partial-installs)
 - [Running the app](#running-the-app)
   - [GUI (web client)](#gui-web-client)
-  - [FastAPI / Interference API](#fastapi--interference-api)
+  - [FastAPI / Inference API](#fastapi--inference-api)
   - [CLI](#cli)
   - [Optional provider login (desktop in container)](#optional-provider-login-desktop-in-container)
 - [Using the Python client](#using-the-python-client)
@@ -374,7 +374,7 @@ Provider requirements may include:
 
 ---
 
-## Interference API (OpenAI‑compatible)
+## Inference API (OpenAI‑compatible)
 - The Interference API enables OpenAI-like workflows routed through GPT4Free provider selection.
 - Docs: [docs/interference-api.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/interference-api.md)
 - Default endpoint (example slim docker): `http://localhost:1337/v1`
