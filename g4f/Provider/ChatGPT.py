@@ -122,23 +122,103 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
             # A single CDP call cannot outlast the session's 30 second
             # timeout, so a poller interval in the page collects the reply
             # while Python polls for it. The poller reads the last
-            # assistant reply ("ChatGPT hat gesagt:" / "ChatGPT said:")
+            # assistant reply ([data-assistant-markdown]) as markdown
             # and flags itself done once the text stopped growing.
             await session.evaluate_js("""
                 (() => {
+                    const toMarkdown = (root) => {
+                        const blocks = [];
+                        const inline = (node) => {
+                            let out = "";
+                            for (const child of node.childNodes) {
+                                if (child.nodeType === Node.TEXT_NODE) {
+                                    out += child.textContent;
+                                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                                    const tag = child.tagName;
+                                    if (tag === "BR") {
+                                        out += "\\n";
+                                    } else if (tag === "A") {
+                                        out += `[${inline(child)}](${child.getAttribute("href") || ""})`;
+                                    } else if (tag === "STRONG" || tag === "B") {
+                                        out += `**${inline(child)}**`;
+                                    } else if (tag === "EM" || tag === "I") {
+                                        out += `*${inline(child)}*`;
+                                    } else if (tag === "CODE") {
+                                        out += '\\\\`' + child.textContent + '\\\\`';
+                                    } else if (tag === "DEL" || tag === "S") {
+                                        out += `~~${inline(child)}~~`;
+                                    } else {
+                                        out += inline(child);
+                                    }
+                                }
+                            }
+                            return out;
+                        };
+                        const walk = (node) => {
+                            for (const child of node.childNodes) {
+                                if (child.nodeType !== Node.ELEMENT_NODE) continue;
+                                const tag = child.tagName;
+                                if (tag === "P") {
+                                    blocks.push(inline(child));
+                                } else if (/^H[1-6]$/.test(tag)) {
+                                    blocks.push(`${"#".repeat(+tag[1])} ${inline(child)}`);
+                                } else if (tag === "UL" || tag === "OL") {
+                                    let index = 1;
+                                    for (const li of child.children) {
+                                        if (li.tagName !== "LI") continue;
+                                        const marker = tag === "OL" ? `${index++}. ` : "- ";
+                                        const items = [];
+                                        for (const part of li.childNodes) {
+                                            if (part.nodeType === Node.TEXT_NODE) {
+                                                if (part.textContent.trim()) items.push(part.textContent.trim());
+                                            } else if (part.tagName === "P") {
+                                                items.push(inline(part));
+                                            } else if (part.tagName === "UL" || part.tagName === "OL") {
+                                                items.push(null);
+                                                walk({childNodes: [part]});
+                                                items.push(null);
+                                            } else {
+                                                items.push(inline(part));
+                                            }
+                                        }
+                                        const body = items.filter((item) => item !== null).join("\\n");
+                                        blocks.push(marker + body);
+                                    }
+                                } else if (tag === "PRE") {
+                                    const code = child.querySelector("code");
+                                    const language = code ? (code.className.match(/language-([\\w+-]+)/) || [])[1] || "" : "";
+                                    const fence = '\\\\`\\\\`\\\\`';
+                                    blocks.push(fence + language + '\\n' + (code || child).textContent.replace(/\\n$/, "") + '\\n' + fence);
+                                } else if (tag === "BLOCKQUOTE") {
+                                    blocks.push(inline(child).split("\\n").map((line) => `> ${line}`).join("\\n"));
+                                } else if (tag === "TABLE") {
+                                    const rows = [...child.querySelectorAll("tr")].map((tr) =>
+                                        [...tr.children].map((cell) => inline(cell).replace(/\\|/g, "\\\\|").trim())
+                                    );
+                                    if (rows.length) {
+                                        blocks.push(`| ${rows[0].join(" | ")} |`);
+                                        blocks.push(`| ${rows[0].map(() => "---").join(" | ")} |`);
+                                        for (const row of rows.slice(1)) blocks.push(`| ${row.join(" | ")} |`);
+                                    }
+                                } else if (tag === "HR") {
+                                    blocks.push("---");
+                                } else {
+                                    walk(child);
+                                }
+                            }
+                        };
+                        walk(root);
+                        return blocks.filter((block) => block !== null && block.trim()).join("\\n\\n");
+                    };
                     window.__g4fReply = null;
                     window.__g4fDone = false;
                     let lastText = "";
                     let stableSince = 0;
                     window.__g4fPoller = setInterval(() => {
-                        const headings = [...document.querySelectorAll('h4.sr-only')];
-                        const heading = headings.reverse().find(h => /ChatGPT (hat gesagt|said)/.test(h.textContent));
+                        const messages = document.querySelectorAll('div:has([data-conversation-role="assistant"])');
+                        const last = messages[messages.length - 1];
                         let text = "";
-                        if (heading) {
-                            const container = heading.parentElement;
-                            const body = container.querySelector(':scope > div:not(:first-child)');
-                            if (body) text = body.innerText;
-                        }
+                        if (last) text = toMarkdown(last);
                         if (text && text === lastText) {
                             if (!stableSince) stableSince = Date.now();
                             if (Date.now() - stableSince > 1500) {
@@ -164,6 +244,7 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
                 state = await session.evaluate_js(
                     "window.__g4fReply ? {text: window.__g4fReply, done: window.__g4fDone} : null"
                 )
+                print(state)
                 if state:
                     text = state["text"]
                     if len(text) > len(reply):

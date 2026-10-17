@@ -560,6 +560,8 @@ def create_app():
         "x-api-key",
         "x-session-id",
         "x-requested-with",
+        "x-workspace-secret",
+        "x-raw-blob",
     ]
     _cors_expose_headers = [
         "Content-Length",
@@ -2040,14 +2042,33 @@ class Api:
         async def get_secret_conversation_endpoint(
             conversation_id: str, request: Request
         ):
-            """Retrieve a single secret conversation by ID."""
-            from g4f.mcp.pa_provider import get_secret_conversation
+            """Retrieve a single secret conversation by ID.
+
+            End-to-end clients send ``x-raw-blob: true`` to receive the stored
+            ciphertext untouched so they can decrypt it locally.
+            """
+            from g4f.mcp.pa_provider import (
+                get_secret_conversation,
+                get_secret_conversation_blob,
+            )
 
             user_id = request.headers.get("x-user-id", "")
             if not user_id:
                 return ErrorResponse.from_message(
                     "User ID is required (provide x-user-id header)",
                     HTTP_401_UNAUTHORIZED,
+                )
+            if request.headers.get("x-raw-blob", "").lower() == "true":
+                blob = get_secret_conversation_blob(user_id, conversation_id)
+                if blob is None:
+                    return ErrorResponse.from_message(
+                        f"Conversation '{conversation_id}' not found",
+                        HTTP_404_NOT_FOUND,
+                    )
+                return Response(
+                    content=blob,
+                    media_type="application/octet-stream",
+                    headers={"Cache-Control": "no-store"},
                 )
             workspace_secret = request.headers.get("x-workspace-secret", "")
             conv = get_secret_conversation(user_id, conversation_id, workspace_secret or None)

@@ -612,16 +612,37 @@ class MCPServer:
             )
 
         async def handle_secret_conversation_get(request: web.Request) -> web.Response:
-            """Retrieve a single secret conversation by ID."""
-            from .pa_provider import get_secret_conversation
+            """Retrieve a single secret conversation by ID.
+
+            End-to-end clients send ``x-raw-blob: true`` to receive the stored
+            ciphertext untouched so they can decrypt it locally.
+            """
+            from .pa_provider import (
+                get_secret_conversation,
+                get_secret_conversation_blob,
+            )
 
             user_id = request.headers.get("x-user-id", "")
             if not user_id:
                 return web.json_response(
                     {"error": "User ID is required"}, status=401
                 )
-            workspace_secret = request.headers.get("x-workspace-secret", "")
             conv_id = request.match_info.get("conversation_id", "")
+            if request.headers.get("x-raw-blob", "").lower() == "true":
+                blob = get_secret_conversation_blob(user_id, conv_id)
+                if blob is None:
+                    return web.json_response(
+                        {"error": f"Conversation '{conv_id}' not found"}, status=404
+                    )
+                return web.Response(
+                    body=blob,
+                    content_type="application/octet-stream",
+                    headers={
+                        "access-control-allow-origin": "*",
+                        "cache-control": "no-store",
+                    },
+                )
+            workspace_secret = request.headers.get("x-workspace-secret", "")
             conv = get_secret_conversation(user_id, conv_id, workspace_secret or None)
             if conv is None:
                 return web.json_response(

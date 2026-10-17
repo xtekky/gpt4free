@@ -316,6 +316,10 @@ def save_secret_conversation(user_id: str, conversation: dict, workspace_secret:
     *conversation* must contain an ``id`` field.  The conversation is
     written as ``<id>.json`` (encrypted with AES-256-GCM when
     *workspace_secret* is provided) and the index file is updated.
+
+    End-to-end clients encrypt in the browser and send the finished
+    ciphertext as a base64 ``blob`` field; that blob is stored verbatim so
+    the server never sees the plaintext.
     """
     conv_id = conversation.get("id")
     if not conv_id:
@@ -323,13 +327,33 @@ def save_secret_conversation(user_id: str, conversation: dict, workspace_secret:
     conv_dir = get_secret_conversation_dir(user_id)
     safe_id = secure_filename(str(conv_id))
     conv_file = conv_dir / f"{safe_id}.json"
-    if workspace_secret:
+    client_blob = _decode_client_blob(conversation.get("blob"))
+    if client_blob is not None:
+        conv_file.write_bytes(client_blob)
+    elif workspace_secret:
         blob = _encrypt_json_file(conversation, workspace_secret)
         conv_file.write_bytes(blob)
     else:
         conv_file.write_text(json.dumps(conversation, ensure_ascii=False, indent=2), encoding="utf-8")
     _update_secret_conversation_index(user_id, conversation)
-    return {"saved": True, "id": conv_id, "path": str(conv_file.name), "encrypted": bool(workspace_secret)}
+    return {"saved": True, "id": conv_id, "path": str(conv_file.name), "encrypted": bool(workspace_secret or client_blob)}
+
+
+def _decode_client_blob(blob) -> Optional[bytes]:
+    """Decode a base64 ciphertext blob uploaded by an end-to-end client.
+
+    Returns ``None`` when *blob* is absent or not valid base64, so callers
+    fall back to server-side encryption.
+    """
+    if not isinstance(blob, str) or not blob:
+        return None
+    import base64
+
+    try:
+        data = base64.b64decode(blob, validate=True)
+    except Exception:
+        return None
+    return data or None
 
 
 def _update_secret_conversation_index(user_id: str, conversation: dict) -> None:
@@ -345,13 +369,14 @@ def _update_secret_conversation_index(user_id: str, conversation: dict) -> None:
     conv_id = conversation.get("id")
     # Remove existing entry for this conversation
     index = [e for e in index if e.get("id") != conv_id]
-    # Add fresh entry
+    # Add fresh entry. End-to-end uploads carry items_count because their
+    # items stay encrypted client-side and are not visible here.
     entry = {
         "id": conv_id,
         "title": conversation.get("title") or conversation.get("new_title") or "",
         "updated": conversation.get("updated"),
         "added": conversation.get("added"),
-        "items_count": len(conversation.get("items", [])),
+        "items_count": conversation.get("items_count") or len(conversation.get("items", [])),
     }
     index.append(entry)
     # Sort by updated descending
@@ -387,6 +412,23 @@ def get_secret_conversation(user_id: str, conv_id: str, workspace_secret: str = 
     except OSError:
         return None
     return _decrypt_json_file(raw, workspace_secret or "")
+
+
+def get_secret_conversation_blob(user_id: str, conv_id: str) -> Optional[bytes]:
+    """Return the stored ciphertext of a conversation without decrypting it.
+
+    Used by end-to-end clients that decrypt locally, so the plaintext never
+    reaches the server. Returns ``None`` when the conversation is missing.
+    """
+    conv_dir = get_secret_conversation_dir(user_id)
+    safe_id = secure_filename(str(conv_id))
+    conv_file = conv_dir / f"{safe_id}.json"
+    if not conv_file.exists():
+        return None
+    try:
+        return conv_file.read_bytes()
+    except OSError:
+        return None
 
 
 def delete_secret_conversation(user_id: str, conv_id: str) -> bool:
