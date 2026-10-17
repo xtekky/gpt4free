@@ -161,6 +161,7 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
                                 if (tag === "P") {
                                     blocks.push(inline(child));
                                 } else if (/^H[1-6]$/.test(tag)) {
+                                    if (child.textContent.trim().startsWith("ChatGPT")) continue;
                                     blocks.push(`${"#".repeat(+tag[1])} ${inline(child)}`);
                                 } else if (tag === "UL" || tag === "OL") {
                                     let index = 1;
@@ -215,7 +216,7 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
                     let lastText = "";
                     let stableSince = 0;
                     window.__g4fPoller = setInterval(() => {
-                        const messages = document.querySelectorAll('div:has([data-conversation-role="assistant"])');
+                        const messages = document.querySelectorAll('div:has([data-conversation-role="assistant"]), [data-message-role="assistant"]');
                         const last = messages[messages.length - 1];
                         let text = "";
                         if (last) text = toMarkdown(last);
@@ -244,7 +245,6 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
                 state = await session.evaluate_js(
                     "window.__g4fReply ? {text: window.__g4fReply, done: window.__g4fDone} : null"
                 )
-                print(state)
                 if state:
                     text = state["text"]
                     if len(text) > len(reply):
