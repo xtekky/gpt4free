@@ -86,7 +86,7 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
         if conversation is None:
             conversation = Conversation(model)
 
-        async with CDPSession(proxy=proxy) as session:
+        async with CDPSession(proxy=proxy, headless=False) as session:
             if getattr(conversation, "conversation_id", None):
                 # Reopen the existing chat so the reply keeps its context.
                 await session.navigate(f"{cls.url}/c/{conversation.conversation_id}")
@@ -95,14 +95,14 @@ class ChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
             # Wait for the composer to appear, then replace its content
             # with the prompt and submit the form.
             for _ in range(20):
-                if await session.evaluate_js("document.querySelector('.ProseMirror') !== null"):
+                if await session.evaluate_js("document.querySelector('.ProseMirror, [data-mobile-composer-prompt]') !== null"):
                     break
                 await asyncio.sleep(0.5)
             else:
                 raise RuntimeError("ChatGPT: composer did not appear")
             await session.evaluate_js(f"""
                 (() => {{
-                    const editor = document.querySelector('.ProseMirror');
+                    const editor = document.querySelector('.ProseMirror, [data-mobile-composer-prompt]');
                     editor.focus();
                     document.execCommand('selectAll', false, null);
                     document.execCommand('insertText', false, {json.dumps(prompt)});
