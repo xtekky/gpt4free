@@ -53,10 +53,10 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     gen_text_api_endpoint = "https://gen.pollinations.ai/v1/chat/completions"
     gen_text_models_endpoint = "https://gen.pollinations.ai/text/models"
     gen_image_models_endpoint = "https://gen.pollinations.ai/image/models"
-    quota_url = "https://polli.g4f.dev/quota"
+    quota_url = "https://pollinations.g4f.space/quota"
     health_url = "https://gen.pollinations.ai/v1/models"
-    worker_api_endpoint = "https://polli.g4f.dev/v1/chat/completions"
-    worker_models_endpoint = "https://polli.g4f.dev/v1/models"
+    worker_api_endpoint = "https://pollinations.g4f.space/v1/chat/completions"
+    worker_models_endpoint = "https://pollinations.g4f.space/v1/models"
 
     # Models configuration
     default_voice = "alloy"
