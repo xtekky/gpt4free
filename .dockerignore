@@ -1,0 +1,16 @@
+.git
+.github
+generated_media
+g4f.dev
+playground
+projects
+docs
+etc
+build
+dist
+*.egg-info
+__pycache__
+*.pyc
+.venv
+venv
+node_modules

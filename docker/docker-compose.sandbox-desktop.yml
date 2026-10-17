@@ -1,0 +1,25 @@
+# Sandbox desktop: TigerVNC + Xfce + Chrome + noVNC + g4f API in one container.
+# The entrypoint starts Xvnc, Xfce and noVNC automatically and exports DISPLAY,
+# so the API's headed Chrome renders on the noVNC desktop.
+#   docker compose -f docker/docker-compose.sandbox-desktop.yml up -d
+# Desktop: http://localhost:6080/vnc.html  (noVNC -> Xvnc :0)
+# API:     http://localhost:9090
+# Set SANDBOX_DESKTOP=0 in environment to skip the desktop stack.
+services:
+  sandbox-desktop:
+    image: g4f-sandbox:desktop
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-sandbox-desktop
+    container_name: g4f-sandbox-desktop
+    hostname: sandbox
+    init: true
+    shm_size: 2gb
+    ports:
+      - "9090:9090"   # g4f API server (command below)
+      - "5900:5900"   # Xvnc display :0 (direct VNC clients)
+      - "6080:6080"   # noVNC web client (websockify -> 5900)
+    environment:
+      - XDG_RUNTIME_DIR=/tmp/sandbox-runtime
+      # - SANDBOX_DESKTOP=0
+    command: ["python", "-m", "g4f", "api", "--port", "9090"]

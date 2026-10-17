@@ -306,6 +306,19 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             G4F_VERSION=${{ needs.prepare.outputs.version }}
+      - name: Build and push sandbox desktop image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: .
+          file: docker/Dockerfile-sandbox-desktop
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            hlohaus789/g4f:latest-sandbox-desktop
+            hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop
+          labels: ${{ steps.metadata.outputs.labels }}
 
   # Release Creation
   create-release:
@@ -385,6 +398,7 @@ jobs:
             **Docker:**
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}`
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-slim`
+            - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop`
 
             💻 **Having trouble with the .exe from this release?**
             👉 Check out the Windows launcher for GPT4Free instead:

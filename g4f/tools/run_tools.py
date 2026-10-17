@@ -477,9 +477,9 @@ async def async_iter_run_tools(
                 )
                 + f"/{prompt_tokens} tokens ({saved_percent}%)",
             )
-        cached_tokens = usage_dict.get("prompt_tokens_details", usage_dict).get(
+        cached_tokens = usage_dict.get("prompt_tokens_details", {}).get(
             "cached_tokens", 0
-        )
+        ) if usage_dict.get("prompt_tokens_details") else 0
         if cached_tokens > 0:
             debug.log(
                 f"Cached tokens:",

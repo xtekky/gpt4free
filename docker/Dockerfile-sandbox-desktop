@@ -1,0 +1,99 @@
+# Minimal terminal-backend sandbox image WITH a desktop: a slim Python base plus
+# the everyday shell tools it lacks, a TigerVNC + Xfce display stack with noVNC
+# for browser access, headed Google Chrome and the g4f library itself, so a
+# browser, a screen and the g4f API can live INSIDE the sandbox instead of on
+# the gateway host.
+#
+#   docker build -f docker/Dockerfile-sandbox-desktop -t g4f-sandbox:desktop .
+ARG SANDBOX_BASE=python:3.13-slim
+# hadolint ignore=DL3006
+FROM ${SANDBOX_BASE}
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
+ARG TARGETARCH
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    G4F_DIR=/app
+
+# Everyday tools a slim base lacks. Kept to what agents reach for from a shell.
+RUN apt-get -o Acquire::Retries=3 update && \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+        jq ripgrep fd-find tmux less nano vim-tiny zip rsync tree procps htop \
+        file bsdextrautils ca-certificates curl locales sudo && \
+    ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
+    rm -rf /var/lib/apt/lists/*
+
+# Display stack: TigerVNC plus the Xfce components a launcher starts
+# individually, never xfce4-session. noVNC (websockify) bridges the same
+# display to a browser; like Xvnc it is exec'd by the launcher as `pn`, e.g.
+#   websockify --web /usr/share/novnc 6080 localhost:5900
+RUN apt-get -o Acquire::Retries=3 update && \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+        tigervnc-standalone-server novnc websockify \
+        xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
+        dbus-x11 x11-xserver-utils x11-utils x11-xkb-utils xauth fonts-dejavu-core \
+        at-spi2-core libgtk-3-0t64 libnss3 libasound2t64 libxss1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Headed Google Chrome stable, installed straight from Google's own .deb so the
+# browser tools and the dock's Browser icon share one binary and one
+# --user-data-dir. It lands on PATH as google-chrome-stable.
+RUN set -eu; \
+    case "${TARGETARCH:-amd64}" in \
+        amd64) arch=amd64 ;; \
+        arm64) arch=arm64 ;; \
+        *) echo "unsupported TARGETARCH ${TARGETARCH}"; exit 1 ;; \
+    esac; \
+    curl -fsSL -o /tmp/google-chrome.deb \
+        "https://dl.google.com/linux/direct/google-chrome-stable_current_${arch}.deb"; \
+    apt-get -o Acquire::Retries=3 update; \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends /tmp/google-chrome.deb; \
+    rm -f /tmp/google-chrome.deb; \
+    rm -rf /var/lib/apt/lists/*; \
+    google-chrome-stable --version
+
+# g4f itself: the library, the `g4f` CLI and the API server, installed from this
+# checkout so the image carries the same code as the repository.
+WORKDIR ${G4F_DIR}
+COPY requirements.txt ${G4F_DIR}/requirements.txt
+RUN pip install --no-cache-dir -r ${G4F_DIR}/requirements.txt
+COPY setup.py README.md MANIFEST.in ${G4F_DIR}/
+COPY g4f ${G4F_DIR}/g4f
+RUN pip install --no-cache-dir --no-deps ${G4F_DIR} && \
+    python -c "from g4f.client import Client; print('g4f ok')" && \
+    g4f --help >/dev/null
+
+# Pillow: the Screen pane's thumbnail is grabbed INSIDE the sandbox (the X socket
+# and its cookie live here, not on the gateway host). Also used for ad-hoc image work.
+RUN pip install --no-cache-dir "pillow>=10" && python3 -c "from PIL import ImageGrab"
+
+# The container runs as root, so existing docker_image users see no ownership or
+# PATH change. Desktop processes (Xvnc, Xfce, Chrome) are exec'd as the
+# unprivileged `pn` (uid 1000): Chrome refuses to run as root without
+# --no-sandbox and the AT-SPI bus wants a real user session. `pn` may sudo.
+RUN useradd --create-home --uid 1000 --shell /bin/bash pn && \
+    echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudoers.d/pn && \
+    mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && \
+    mkdir -p /tmp/sandbox-runtime && chown pn:pn /tmp/sandbox-runtime && chmod 0700 /tmp/sandbox-runtime
+
+# Runtime dir for dbus/Xvnc; containers have no logind to create it. Both /tmp
+# paths above are fixed by the X11 protocol / seeded per container, never shared.
+ENV XDG_RUNTIME_DIR=/tmp/sandbox-runtime
+# Dockerfile ENV reaches `docker exec` only. When this image is the target of an
+# ssh backend (sshd added on top), a login session gets its environment from PAM,
+# so the runtime dir must also live where pam_env reads it.
+RUN printf 'XDG_RUNTIME_DIR=/tmp/sandbox-runtime\n' >> /etc/environment
+
+# 8080: g4f API server (the image CMD). 5900: Xvnc on display :0.
+# 6080: noVNC web client, served by websockify once the launcher starts it.
+EXPOSE 8080 5900 6080
+
+# Entrypoint seeds /etc/machine-id, starts a system bus, launches the desktop
+# stack (Xvnc + Xfce + noVNC) as `pn` and exports DISPLAY so the API's headed
+# Chrome lands on the noVNC desktop. SANDBOX_DESKTOP=0 skips the desktop.
+COPY docker/sandbox-entrypoint.sh /usr/local/bin/sandbox-entrypoint.sh
+RUN chmod +x /usr/local/bin/sandbox-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]
+CMD ["python", "-m", "g4f", "api", "--port", "8080"]

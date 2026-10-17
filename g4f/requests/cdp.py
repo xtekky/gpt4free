@@ -756,15 +756,19 @@ def get_shared_browser(
             "--hide-crash-restore-bubble",
             # Required for CDP WebSocket connections on Chrome 111+
             "--remote-allow-origins=*",
-        ] + (
-            [
+        ]
+        # Chrome refuses to run as root without --no-sandbox (zygote host
+        # check, crbug.com/638180) — common in Docker containers.
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            cmd.append("--no-sandbox")
+        if disable_web_security:
+            cmd.extend([
                 # Chrome only honors the last --disable-features flag, so all
                 # values must be merged into a single argument.
                 "--disable-features=PrivacySandboxSettings4,IsolateOrigins,site-per-process",
                 "--disable-blink-features=AutomationControlled",
                 "--disable-web-security",
-            ] if disable_web_security else []
-        )
+            ])
         if headless:
             cmd.append("--headless=new")
         if proxy:
