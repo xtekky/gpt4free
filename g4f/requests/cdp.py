@@ -2213,6 +2213,9 @@ setTimeout(() => {
     const sendButton = document.querySelector(sendButtonSelectors.join(', '));
     if (sendButton) {
         sendButton.click();
+        setTimeout(() => {
+            sendButton.click();
+        }, 1000);
     }
 }, 2000);
 
