@@ -47,15 +47,6 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
         "--debug", "-d", action="store_true", help="Enable verbose logging."
     )
 
-    # Deprecated GUI flag but kept for compatibility
-    api_parser.add_argument(
-        "--gui",
-        "-g",
-        default=None,
-        action="store_true",
-        help="(deprecated) Use --no-gui instead.",
-    )
-
     api_parser.add_argument(
         "--no-gui",
         "-ng",
