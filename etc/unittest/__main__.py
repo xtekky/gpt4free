@@ -29,6 +29,7 @@ from .test_deepseek_chunk_log import *
 from .test_deepseek_upload import *
 from .test_auth_retry import *
 from .test_api_route import *
+from .test_onomeo import *
 from .test_lightpanda import *
 # from .test_cdp_parallel import *
 
