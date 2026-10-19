@@ -384,6 +384,14 @@ The provider is independent of that: it is only passed on when one is set.
 - `patch-xfce-menu.py` — inserts the category menus into
   `/etc/xdg/menus/xfce-applications.menu` at build time.
 
+## Fonts
+
+The image installs `fonts-dejavu-core` plus `fonts-noto-core` and
+`fonts-noto-color-emoji`, so CJK, Arabic, Devanagari and emoji render in
+terminals, editors and browser pages instead of showing as boxes. Add more
+Noto packages (for example `fonts-noto-cjk`) to the `apt-get install` list in
+`docker/Dockerfile-sandbox-desktop` if a tool needs them.
+
 ## Adding a tool
 
 1. Add a case to `sandbox-cli.sh` (`ensure_npm` / `ensure_pip` /
