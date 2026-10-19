@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Fabric
+Comment=Fabric AI patterns CLI — installs on first click, then opens in a terminal
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Fabric --command="/usr/local/bin/sandbox-cli fabric"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Assistant;
+Keywords=fabric;patterns;ai;cli;;
+StartupNotify=false

@@ -5,7 +5,8 @@ This module provides:
 1. Safe Python code execution with whitelisted modules and restricted built-ins.
 2. ``.pa.py`` file loading — parse and execute provider-adapter files that define
    custom gpt4free providers.
-3. Workspace management at ``~/.g4f/workspace``.
+3. Workspace management at ``~/.g4f/workspace`` (overridable with the
+   ``G4F_DIR`` environment variable).
 
 A ``.pa.py`` file is a plain Python file that is executed inside a sandbox.
 Inside that sandbox the code may only import from the *whitelisted* module set
@@ -61,6 +62,7 @@ import os as _os
 import sys
 import json
 import re
+import base64
 import hashlib
 import threading
 import time as _time_module
@@ -82,8 +84,16 @@ SECRET_DIR: Path = CONFIG_DIR / "secret"
 
 
 def get_workspace_dir() -> Path:
-    """Return the workspace directory ``~/.g4f/workspace``, creating it if needed."""
-    workspace = Path.home() / ".g4f" / "workspace"
+    """Return the workspace directory, creating it if needed.
+
+    The location defaults to ``~/.g4f/workspace`` and can be overridden with
+    the ``G4F_DIR`` environment variable.
+    """
+    env_dir = _os.environ.get("G4F_DIR", "").strip()
+    if env_dir:
+        workspace = Path(env_dir).expanduser()
+    else:
+        workspace = Path.home() / ".g4f" / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     return workspace
 
@@ -110,7 +120,7 @@ def _migrate_secret_dir(old_secret_ws: Path, new_secret_ws: Path) -> None:
 
 
 def get_user_workspace_dir(user_id: str) -> Path:
-    """Return a per-user workspace subdirectory ``~/.g4f/workspace/users/<user_id>``.
+    """Return a per-user workspace subdirectory ``<workspace>/users/<user_id>``.
 
     The directory is created on demand.  ``user_id`` is sanitised so that
     only alphanumeric characters, ``-`` and ``_`` are kept, preventing path
@@ -347,8 +357,6 @@ def _decode_client_blob(blob) -> Optional[bytes]:
     """
     if not isinstance(blob, str) or not blob:
         return None
-    import base64
-
     try:
         data = base64.b64decode(blob, validate=True)
     except Exception:
@@ -371,12 +379,15 @@ def _update_secret_conversation_index(user_id: str, conversation: dict) -> None:
     index = [e for e in index if e.get("id") != conv_id]
     # Add fresh entry. End-to-end uploads carry items_count because their
     # items stay encrypted client-side and are not visible here.
+    items_count = conversation.get("items_count")
+    if not isinstance(items_count, int):
+        items_count = len(conversation.get("items", []))
     entry = {
         "id": conv_id,
         "title": conversation.get("title") or conversation.get("new_title") or "",
         "updated": conversation.get("updated"),
         "added": conversation.get("added"),
-        "items_count": conversation.get("items_count") or len(conversation.get("items", [])),
+        "items_count": items_count,
     }
     index.append(entry)
     # Sort by updated descending
@@ -458,7 +469,7 @@ def delete_secret_conversation(user_id: str, conv_id: str) -> bool:
 def _get_secret_requests_dir(user_id: str) -> Path:
     """Return the directory for pending secret-sharing requests.
 
-    Stored under ``~/.g4f/workspace/secret/<user_id>/secret_requests/``.
+    Stored under ``<workspace>/secret/<user_id>/secret_requests/``.
     """
     secret_ws = get_secret_workspace_dir(user_id)
     req_dir = secret_ws / "secret_requests"

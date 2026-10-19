@@ -263,9 +263,10 @@ class ChatGPTLightweight(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def _har_paths(cls) -> list:
+        from ..mcp.pa_provider import get_workspace_dir
         paths = []
         seen = set()
-        for dir_path in (CUSTOM_COOKIES_DIR, str(COOKIES_DIR), os.path.expanduser("~/.g4f/workspace")):
+        for dir_path in (CUSTOM_COOKIES_DIR, str(COOKIES_DIR), str(get_workspace_dir())):
             try:
                 if not os.path.isdir(dir_path):
                     continue

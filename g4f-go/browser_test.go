@@ -96,6 +96,22 @@ func TestParseBrowserServeArgs(t *testing.T) {
 	}
 }
 
+func TestBrowserServeArgsUsesUserAgentSuffix(t *testing.T) {
+	args := browserServeArgs("127.0.0.1", 9222)
+	for i, a := range args {
+		if a == "--user-agent" {
+			t.Fatalf("browserServeArgs must not pass --user-agent (Lightpanda rejects Mozilla values): %v", args)
+		}
+		if a == "--user-agent-suffix" {
+			if i+1 >= len(args) || args[i+1] != browserUserAgentSuffix {
+				t.Fatalf("--user-agent-suffix missing its value: %v", args)
+			}
+			return
+		}
+	}
+	t.Fatalf("browserServeArgs is missing --user-agent-suffix: %v", args)
+}
+
 func TestFreePort(t *testing.T) {
 	port, err := freePort()
 	if err != nil {

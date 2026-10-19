@@ -2,7 +2,7 @@
 
 # gpt4free-style OpenClaw route setup
 # Works on: macOS, Linux, Windows (WSL/Git Bash/MSYS2)
-# Usage: curl -fsSL https://raw.githubusercontent.com/xtekky/gpt4free/main/scripts/setup-openclaw.sh | bash -s -- <POLLINATIONS_API_KEY>
+# Usage: curl -fsSL https://raw.githubusercontent.com/xtekky/gpt4free/main/bin/setup-openclaw.sh | bash -s -- <POLLINATIONS_API_KEY>
 
 set -e
 

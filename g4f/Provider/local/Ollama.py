@@ -118,6 +118,16 @@ class Ollama(OpenaiTemplate):
         return quota
 
     @classmethod
+    def get_local_base_url(cls) -> str:
+        host = os.getenv("OLLAMA_HOST", "localhost")
+        port = os.getenv("OLLAMA_PORT", "11434")
+        if "://" not in host:
+            host = f"http://{host}"
+        if ":" not in host.split("://", 1)[1]:
+            host = f"{host}:{port}"
+        return f"{host.rstrip('/')}/v1"
+
+    @classmethod
     def get_models(cls, api_key: str = None, base_url: str = None, **kwargs):
         if not cls.models:
             cls.models = []
@@ -130,9 +140,7 @@ class Ollama(OpenaiTemplate):
                 cls.live += 1
             cls.models = [model["name"] for model in models]
             if base_url is None:
-                host = os.getenv("OLLAMA_HOST", "localhost")
-                port = os.getenv("OLLAMA_PORT", "11434")
-                url = f"http://{host}:{port}/api/tags"
+                url = cls.get_local_base_url().replace("/v1", "/api/tags")
             else:
                 url = base_url.replace("/v1", "/api/tags")
             try:
@@ -161,12 +169,10 @@ class Ollama(OpenaiTemplate):
             cls.get_models(api_key=api_key, base_url=base_url)
         if model in cls.local_models:
             if base_url is None:
-                host = os.getenv("OLLAMA_HOST", "localhost")
-                port = os.getenv("OLLAMA_PORT", "11434")
-                base_url: str = f"http://{host}:{port}/v1"
+                base_url = cls.get_local_base_url()
         else:
             base_url = cls.backup_url
         async for chunk in super().create_async_generator(
-            model, messages, api_key=api_key, base_url=cls.backup_url, **kwargs
+            model, messages, api_key=api_key, base_url=base_url, **kwargs
         ):
             yield chunk

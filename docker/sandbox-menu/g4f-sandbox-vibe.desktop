@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Mistral Vibe
+Comment=Mistral Vibe coding agent — installs on first click, then opens in a terminal
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Mistral Vibe" --command="/usr/local/bin/sandbox-cli vibe"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=vibe;mistral;agent;ai;coding;;
+StartupNotify=false

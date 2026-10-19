@@ -1,40 +1,49 @@
 #!/bin/bash
 # Entrypoint for the sandbox desktop image: fixes up the container basics
 # Chrome needs (non-empty /etc/machine-id, system bus), starts the desktop
-# stack (Xvnc, Xfce, noVNC) as the unprivileged `pn` user, then execs the
-# container command with DISPLAY pointing at the sandbox display — so a
-# headed Chrome launched by the g4f API shows up on the noVNC desktop.
+# stack (Xvnc, Xfce) as the unprivileged `pn` user, then execs the container
+# command with DISPLAY pointing at the sandbox display — so a headed browser
+# launched on the desktop (menu → Install & Open Chrome) or by the g4f API
+# shows up there. The noVNC web client is served by the g4f API itself (see
+# g4f/api/vnc_relay) on its own port, so no websockify process runs here.
 #
 # Env knobs:
 #   SANDBOX_DESKTOP  set to 0 to skip the desktop stack (default: 1)
 #   VNC_DISPLAY      X display for Xvnc   (default: :0)
 #   VNC_GEOMETRY     screen size          (default: 1920x1080)
 #   VNC_RFBPORT      VNC port             (default: 5900)
-#   NOVNC_PORT       noVNC web port       (default: 6080)
 
 set -u
 
-# Non-root callers (e.g. `user: pn`) get no desktop setup, just the command.
-if [ "$(id -u)" != "0" ]; then
-    exec "$@"
-fi
+# Root-only container basics. Chrome reads /etc/machine-id
+# (browser_dm_token_storage) and the slim base ships an empty file; a system
+# bus silences its dbus connection errors. The image runs as `pn` (USER), who
+# has passwordless sudo, so the same setup happens either way.
+as_root() {
+    if [ "$(id -u)" = "0" ]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo -n "$@"
+    else
+        return 1
+    fi
+}
 
-# Chrome reads /etc/machine-id (browser_dm_token_storage) and the slim base
-# ships an empty file; a system bus silences its dbus connection errors.
 if [ ! -s /etc/machine-id ]; then
-    dbus-uuidgen > /etc/machine-id 2>/dev/null || \
-        tr -d '-' < /proc/sys/kernel/random/uuid > /etc/machine-id
+    as_root sh -c 'dbus-uuidgen > /etc/machine-id 2>/dev/null ||
+        tr -d "-" < /proc/sys/kernel/random/uuid > /etc/machine-id' || true
 fi
-dbus-daemon --system --fork 2>/dev/null || true
+as_root dbus-daemon --system --fork 2>/dev/null || true
 
 if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
     export VNC_DISPLAY="${VNC_DISPLAY:-:0}"
     export VNC_GEOMETRY="${VNC_GEOMETRY:-1920x1080}"
     export VNC_RFBPORT="${VNC_RFBPORT:-5900}"
-    export NOVNC_PORT="${NOVNC_PORT:-6080}"
     # Desktop processes run as `pn` (uid 1000): Xvnc and Xfce want a real
     # user session, and Chrome refuses to run as root without --no-sandbox.
-    runuser -u pn -- bash -c '
+    # When the container already runs as `pn` (the image default) no switch is
+    # needed; as root, drop privileges with runuser.
+    desktop_launcher='
         export HOME=/home/pn DISPLAY="$VNC_DISPLAY"
         nohup Xvnc "$VNC_DISPLAY" -rfbport "$VNC_RFBPORT" -localhost no \
             -SecurityTypes None -geometry "$VNC_GEOMETRY" -depth 24 \
@@ -47,9 +56,13 @@ if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
         nohup xfsettingsd >/tmp/xfsettingsd.log 2>&1 &
         nohup xfwm4 >/tmp/xfwm4.log 2>&1 &
         nohup xfce4-panel >/tmp/xfce4-panel.log 2>&1 &
-        nohup xfdesktop4 >/tmp/xfdesktop4.log 2>&1 &
-        nohup websockify --web /usr/share/novnc "$NOVNC_PORT" localhost:"$VNC_RFBPORT" >/tmp/novnc.log 2>&1 &
+        nohup xfdesktop >/tmp/xfdesktop.log 2>&1 &
     '
+    if [ "$(id -u)" = "0" ]; then
+        runuser -u pn -- bash -c "$desktop_launcher"
+    else
+        bash -c "$desktop_launcher"
+    fi
     # Headed Chrome spawned by the container command lands on the display.
     export DISPLAY="$VNC_DISPLAY"
 fi

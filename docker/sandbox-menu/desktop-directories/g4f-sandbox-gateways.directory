@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Directory
+Name=Gateways
+Comment=Local OpenAI-compatible gateways
+Icon=network-server

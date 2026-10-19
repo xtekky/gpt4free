@@ -1,0 +1,340 @@
+# Sandbox desktop menu — install & open desktop tools
+
+Entries behind the sandbox desktop's **Applications** menu
+(`docker/Dockerfile-sandbox-desktop`), grouped into six top-level menus —
+**g4f**, **Browsers**, **Coding Agents**, **Gateways**, **Local AI** and
+**Assistants** — instead of one flat list under Development. Each
+**Install & Open …** item opens a terminal maximized to the sandbox screen,
+without window borders or menubar:
+
+```
+xfce4-terminal --maximize --hide-borders --hide-menubar --command="/usr/local/bin/sandbox-cli <tool>"
+```
+
+A multi-word `--title` must be quoted (`--title="Sandbox Settings"`): the
+desktop-entry `Exec` line is split on whitespace, so an unquoted title makes
+xfce4-terminal treat the second word as an option and refuse to start
+(`Unknown option "Settings"`).
+
+`sandbox-cli` installs tools on **first click** — a vendor install script,
+an npm package, a `pip install --user`, or Google's Chrome `.deb` — then runs
+them in that same terminal (Chrome opens on the desktop instead). The
+ CLI is preinstalled in the image. Node.js 24 and  are also
+preinstalled (from the official  image) for the npm-based tools; the rest is installed on demand.
+
+| Menu entry               | Tool id     | Install recipe              | Binary         |
+|--------------------------|-------------|-----------------------------|----------------|
+| Install & Open OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
+| Install & Open Kilo      | `kilocode`  | npm `@kilocode/cli`         | `kilo`         |
+| Install & Open Antigravity | `antigravity` | antigravity.google install script | `agy`    |
+| Install & Open Gemini    | `gemini-cli`| npm `@google/gemini-cli`    | `gemini`       |
+| Install & Open Qwen      | `qwencode`  | npm `@qwen-code/qwen-code`  | `qwen`         |
+| Install & Open Claude    | `claude-code`| npm `@anthropic-ai/claude-code` | `claude`   |
+| Install & Open Codex     | `codex`     | npm `@openai/codex`         | `codex`        |
+| Install & Open Copilot   | `copilot`   | npm `@github/copilot`       | `copilot`      |
+| Open g4f-go CLI          | `g4f-go`    | preinstalled in the image   | `g4f-go`       |
+| Sandbox Settings         | `settings`  | none (writes a settings file) | —            |
+| Install & Open Cline     | `cline`     | npm `cline`                 | `cline`        |
+| Install & Open Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
+| Install & Open Goose     | `goose`     | block/goose install script  | `goose`        |
+| Install & Open Aider     | `aider`     | pip `aider-chat` (user)     | `aider`        |
+| Install & Open Cursor    | `cursor`    | cursor.com/install script   | `cursor-agent` |
+| Install & Open Chrome    | `chrome`    | Google's Chrome `.deb` (apt)| `start-browser` |
+| Install & Run Lightpanda | `lightpanda`| `g4f-go browser install`    | `g4f-go`       |
+| Install & Open OmniRoute | `omniroute` | npm `omniroute`             | `omniroute`    |
+| Install & Open Ollama    | `ollama`    | ollama.com install script   | `ollama`       |
+| Install & Open Open WebUI| `open-webui`| pip `open-webui`            | `open-webui`   |
+| Install & Open llama.cpp | `llamacpp`  | GitHub release tarball      | `llama-server` |
+| Install & Open LM Studio | `lmstudio`  | lmstudio.ai install script  | `lms`          |
+| Install & Open Jan       | `jan`       | GitHub release AppImage     | `jan`          |
+| Install & Open OpenClaw  | `openclaw`  | openclaw.ai install script  | `openclaw`     |
+| Install & Open Crush     | `crush`     | npm `@charmland/crush`      | `crush`        |
+| Install & Open Continue  | `continue-cli` | npm `@continuedev/cli`   | `cn`           |
+| Install & Open Grok      | `grok`      | x.ai/cli install script     | `grok`         |
+| Install & Open Droid     | `droid`     | app.factory.ai/cli script   | `droid`        |
+| Install & Open OpenHands | `openhands` | install.openhands.dev script| `openhands`    |
+| Install & Open gptme     | `gptme`     | pip `gptme`                 | `gptme`        |
+| Install & Open Plandex   | `plandex`   | plandex.ai install script   | `plandex`      |
+| Install & Open Hermes    | `hermes`    | hermes-agent.nousresearch.com script | `hermes` |
+| Install & Open Kiro      | `kiro`      | cli.kiro.dev install script | `kiro-cli`     |
+| Install & Open Kimi      | `kimi`      | code.kimi.com install script| `kimi`         |
+| Install & Open Roo Code  | `roo`       | Roo-Code CLI install script | `roo`          |
+| Install & Open Auggie    | `auggie`    | npm `@augmentcode/auggie`   | `auggie`       |
+| Install & Open Qoder     | `qoder`     | qoder.com install script    | `qodercli`     |
+| Install & Open iFlow     | `iflow`     | npm `@iflow-ai/iflow-cli`   | `iflow`        |
+| Install & Open Mistral Vibe | `vibe`   | mistral.ai/vibe install script | `vibe`      |
+| Install & Open SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
+| Install & Open Fabric    | `fabric`    | fabric installer script     | `fabric`       |
+| Install & Open LiteLLM   | `litellm`   | pip `litellm[proxy]`        | `litellm`      |
+| Install & Open ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
+| Install & Open LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
+
+Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
+`litellm`) that expose an OpenAI-compatible endpoint, **local AI** runtimes
+(`ollama`, `open-webui`, `llamacpp`, `lmstudio`, `jan`) that serve models on
+the machine itself, and **assistant/agent CLIs** (`openclaw`, `fabric`,
+`sgpt`, `gptme`, `llm`) that live in the terminal. Install scripts land their
+binary in `~/.local/bin`, `~/.kimi-code/bin`, `~/.qoder/bin`,
+`~/.lmstudio/bin` or `/usr/local/bin`, all on `sandbox-cli`'s `PATH`.
+
+Two installers need a package the image does not ship, so `sandbox-cli` pulls
+it in on first click: **Hermes** clones its own checkout and therefore needs
+`git` (`ensure_git`), and **Kiro CLI** unpacks a `.zip` and therefore needs
+`unzip` (`ensure_unzip`). Hermes installs into
+`~/.hermes/hermes-agent/.hermes/bin` and only adds `~/.local/bin` to the shell
+rc, so `ensure_hermes` symlinks `hermes` into `~/.local/bin` itself. It runs
+with `--non-interactive`, which skips the interactive `setup`/`gateway`
+stages. The launcher points Hermes at the g4f API when a model has been chosen
+in **Sandbox Settings**; otherwise run `hermes setup` in the terminal to
+configure a provider by hand.
+
+**SWE-agent** installs through **uv** instead of pip (`ensure_sweagent`),
+because the image's embedded CPython is 3.15 and SWE-agent's pinned
+dependencies ship no wheels for it. `ensure_uv` installs uv from astral.sh on
+first click; `uv tool install --editable --python 3.13` then downloads a
+matching CPython and links the binary into `~/.local/bin`. The install is
+*editable* on purpose: SWE-agent asserts at import time that its `config/`,
+`tools/` and `trajectories/` directories sit next to the package, but its wheel
+does not carry them, so a plain `uv tool install` of the git checkout produces
+a binary that crashes on start. `ensure_sweagent` therefore clones the repo
+into `~/.swe-agent` (via `ensure_git`) and installs from that checkout.
+SWE-agent additionally needs Docker at run time for its sandboxed
+environments.
+
+### Categories
+
+Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
+`Development;`, and one top-level menu per category includes it:
+
+| Menu             | Category          | Entries                                        |
+|------------------|-------------------|------------------------------------------------|
+| **g4f**          | `X-G4F-Core`      | `g4f-go`, `settings`                           |
+| **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
+| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roo`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
+| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`                         |
+| **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `open-webui`, `llamacpp`, `lmstudio`, `jan` |
+| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm` |
+
+The menus are declared by patching the stock
+`/etc/xdg/menus/xfce-applications.menu` at build time
+(`patch-xfce-menu.py`), which inserts the five `<Menu>` blocks just before its
+`<DefaultMergeDirs/>` node. Shipping them as a merged menu file under
+`/etc/xdg/menus/applications-merged/` does **not** work: garcon copies a merged
+file's elements with `g_node_traverse(..., depth=2, G_IN_ORDER)`, which never
+descends to the nested `<Menu>` nodes, so the menus are silently dropped and
+every entry falls through to the catch-all **Other** menu. The patch script is
+idempotent, so re-running it is a no-op.
+
+The menu titles and icons come from the `.directory` files in
+`desktop-directories/`, copied to `/usr/share/desktop-directories/`.
+
+`chrome` is the odd one out: it installs Google's `.deb` through `apt` (the
+package pulls its own runtime libraries) and then starts Chrome on the desktop
+via `start-browser chrome --once`, detached from the launcher terminal (its
+log goes to `/tmp/chrome.log`). `start-browser` (from `bin/start-browser.sh`,
+baked into the image) adds the CDP remote-debugging port (9223 on the network,
+57011 locally) that the g4f automation connects to; `--once` starts Chrome a
+single time instead of the script's default relaunch loop. Nothing about
+Chrome is baked into the image, so a sandbox that never opens it carries none
+of it.
+
+`start-browser` passes `--no-sandbox` when it is asked to (`--no-sandbox`),
+when it runs as root, or when it detects a container (`/.dockerenv`,
+`/run/.containerenv` or `$container`). Chrome refuses to start its sandbox as
+root, and Docker's default seccomp profile blocks the user namespaces its
+zygote needs, so inside the sandbox container Chrome dies with
+`Failed to move to new namespace ... Operation not permitted` even as the
+unprivileged `pn` user. On a host that allows those namespaces, run
+`start-browser chrome` outside the container to keep Chrome's sandbox.
+
+`ensure_chrome` also links the binary into the user's bin so that *any* Chrome
+launch inside the sandbox gets `--no-sandbox`, not just the ones going through
+`start-browser`: it writes `~/.local/bin/google-chrome`, a two-line wrapper
+that execs the real `/usr/bin/google-chrome-stable` with `--no-sandbox`, and
+symlinks `google-chrome-stable` to it. `~/.local/bin` is first on `PATH` (the
+image sets it, and `sandbox-cli` re-prepends it after applying a saved HOME),
+so the shell, `start-browser` and g4f's own browser lookup (`shutil.which` in
+`g4f/requests/cdp.py`) all resolve to the wrapper. The real binary is left
+untouched, and the wrapper is regenerated on every `chrome` menu click, so it
+follows a moved or reinstalled Chrome.
+
+`lightpanda` is the headless counterpart and is likewise **not** baked into
+the image: the entry runs `g4f-go browser install` on first click (downloading
+and sha256-verifying the pinned Lightpanda release into `~/.g4f/browser/`) and
+then `g4f-go browser serve`, which runs the CDP server in the foreground and
+prints its endpoint. The terminal stays open as the server console; Ctrl-C
+stops it. g4f picks the endpoint up automatically when it runs headless, so
+the entry is only needed to pre-install the browser or to run the server
+explicitly. `sandbox-cli install lightpanda` installs without serving.
+
+The g4f-go menu entry opens a terminal with the bundled CLI ready to use. Run
+`g4f-go help` to see commands, or pass a command directly to
+`sandbox-cli g4f-go`, for example `sandbox-cli g4f-go status`.
+
+## Using g4f with OpenCode, Copilot and Hermes
+
+The OpenCode, Copilot and Hermes menu launchers configure their
+OpenAI-compatible provider to use the g4f API at `http://127.0.0.1:8080/v1`
+(or `:9090` when that endpoint is reachable). OpenCode receives an inline
+config, Copilot receives its BYOK environment variables, and Hermes gets its
+`model.*` settings written through `hermes config set` (its config is YAML and
+the image ships no YAML parser). None of the launchers writes credentials to
+disk.
+
+They only repoint the tool's provider like this when a model has actually been
+chosen — through the **Sandbox Settings** menu (or `G4F_SANDBOX_MODEL`). With no
+model set, the launchers leave the tool's own provider/model configuration
+untouched.
+
+Set these environment variables before opening the menu item to override the
+defaults:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `G4F_API_BASE_URL` | detected `http://127.0.0.1:{8080,9090}/v1`, otherwise `http://127.0.0.1:8080/v1` | g4f OpenAI-compatible API base URL |
+| `G4F_API_KEY` | unset | API key sent as a bearer token; set this if the g4f API requires authentication |
+| `G4F_MODEL` | unset  | Model ID passed to the g4f API; used when no model was chosen in the menu |
+| `G4F_PROVIDER` | unset | g4f provider the launchers pin by prefixing the model name; unset lets g4f pick from its own rotation |
+
+The API service must be running and reachable from the desktop container.
+`G4F_API_BASE_URL` should include the `/v1` path.
+
+### OmniRoute gateway
+
+When the local OmniRoute instance is running (default
+`http://localhost:20128`), g4f exposes it both as the `OmniRoute` provider and
+through the API proxy at `/omniroute/*`:
+
+```bash
+curl http://127.0.0.1:8080/omniroute/v1/models
+```
+
+Requests are forwarded to the local instance only; set `OMNIROUTE_BASE_URL`,
+`OMNIROUTE_HOST` or `OMNIROUTE_PORT` to point the provider and proxy elsewhere.
+
+### Ollama gateway
+
+The same proxy is available for a local Ollama server (default
+`http://localhost:11434`). g4f exposes it as the `Ollama` provider and through
+the API proxy at `/ollama/*`:
+
+```bash
+curl http://127.0.0.1:8080/ollama/api/tags
+curl http://127.0.0.1:8080/ollama/v1/models
+```
+
+Set `OLLAMA_BASE_URL`, or `OLLAMA_HOST` / `OLLAMA_PORT`, to point the provider
+and proxy elsewhere. `OLLAMA_HOST` follows the Ollama convention and may carry
+a scheme and port (`http://127.0.0.1:11434`); a bare host works too.
+
+Both proxies are registered before the generic API routes, so gateway paths
+such as `/ollama/v1/chat/completions` reach the gateway instead of being
+captured by g4f's `/{mode}/{provider}/chat/completions` route.
+
+### Choosing a g4f provider
+
+By default the launchers let g4f decide which of its providers answers. Set a
+provider in **Sandbox Settings** (or `G4F_PROVIDER`) to pin one — useful when
+a specific provider is the only one that works, or to compare answers:
+
+```bash
+sandbox-cli settings --provider PollinationsAI
+sandbox-cli settings --provider ""            # back to g4f's own rotation
+```
+
+The provider name is the one g4f uses (`GET /v1/models` lists them, marked
+with `"provider": true`). g4f resolves the provider from the **model name**
+(`"<Provider>:<model>"`), so each launcher prefixes the model it hands to the
+tool:
+
+- **OpenCode** — the model id becomes `g4f/<Provider>:<model>`.
+- **Copilot** — `COPILOT_PROVIDER_MODEL_ID` and `COPILOT_MODEL` become
+  `<Provider>:<model>`.
+- **Hermes** — `model.default` becomes `<Provider>:<model>`.
+
+With no provider set, the model is passed through unchanged and g4f picks from
+its own rotation. An unknown provider name is not recognised as a prefix, so
+g4f treats the whole string as a model name and the request fails with
+`Request execution failed`.
+
+The base URL stays at `…/v1` in every case, so model listing
+(`GET /v1/models`) keeps working. The prefix is only added when a model was
+chosen in the menu; `G4F_PROVIDER` on its own does not repoint a launcher.
+Note also that `G4F_PROVIDER` is read only by the g4f **server** process, so
+exporting it in a launcher does not select a provider for the request — the
+model name is what does.
+
+### Sandbox Settings (model, HOME and provider)
+
+A desktop menu entry cannot export environment variables, so the **Sandbox
+Settings** entry (`g4f` menu) writes the model, HOME and provider to a small
+settings file that the launchers read before they start:
+
+```
+~/.config/g4f-sandbox/env      # G4F_MODEL=…, SANDBOX_HOME=…, G4F_PROVIDER=…
+```
+
+The file lives outside `$HOME` on purpose: changing HOME must not move the
+file that records it. `sandbox-cli settings` prompts for all three values
+(Enter keeps the current one) and prints the result; the same command works
+non-interactively:
+
+```bash
+sandbox-cli settings --show                 # print the saved values
+sandbox-cli settings --model gpt-4o         # set the model, keep the rest
+sandbox-cli settings --home /home/pn/work   # set HOME, keep the rest
+sandbox-cli settings --provider PollinationsAI
+sandbox-cli settings --unset                # back to the defaults
+```
+
+`HOME` applies to **every** menu entry, not just the g4f-aware ones: agents
+keep their config, credentials and caches under `$HOME`, so pointing it at a
+scratch directory gives a throwaway agent profile. The directory is created if
+it does not exist, and the launcher puts its `~/.local/bin`,
+`~/.opencode/bin`, `~/.openclaw/bin`, `~/.kimi-code/bin` and `~/.qoder/bin`
+back on `PATH`.
+
+Precedence, highest first:
+
+1. `G4F_SANDBOX_MODEL` / `G4F_SANDBOX_HOME` / `G4F_SANDBOX_PROVIDER` —
+   explicit environment override
+2. the settings file — what the menu entry saved
+3. `G4F_MODEL` / `$HOME` / `G4F_PROVIDER` — ambient environment, then the
+   built-in defaults
+
+A model counts as chosen only at levels 1 or 2. If neither provides one, the
+g4f-aware launchers do not change the tool's provider/model configuration.
+The provider is independent of that: it is only passed on when one is set.
+
+## Files
+
+- `sandbox-cli.sh` — installed as `/usr/local/bin/sandbox-cli`; also usable by
+  hand: `sandbox-cli list`, `sandbox-cli install <tool>`, `sandbox-cli <tool>`,
+  `sandbox-cli settings`.
+- `g4f-sandbox-*.desktop` — the menu entries, copied to
+  `/usr/share/applications/`.
+- `g4f-sandbox-cli.svg` — shared entry icon (hicolor scalable theme).
+- `desktop-directories/g4f-sandbox-*.directory` — the menu titles and icons,
+  copied to `/usr/share/desktop-directories/`.
+- `patch-xfce-menu.py` — inserts the category menus into
+  `/etc/xdg/menus/xfce-applications.menu` at build time.
+
+## Adding a tool
+
+1. Add a case to `sandbox-cli.sh` (`ensure_npm` / `ensure_pip` /
+   `ensure_script` / `ensure_chrome` / `ensure_lightpanda` + `launch`) and a
+   line to `list_tools`.
+   The saved HOME is applied to every entry automatically; a tool that should
+   also talk to the g4f API calls `configure_g4f` before `launch`.
+2. Copy an existing `.desktop` file, swap the tool id, name, comment and
+   keywords, and set `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` to the category it
+   belongs to.
+3. Rebuild the image.
+
+## Adding a category
+
+1. Add a `.directory` file in `desktop-directories/` (copy an existing one and
+   swap `Name`, `Comment` and `Icon`).
+2. Add the matching `<Menu>` block to `MENUS` in `patch-xfce-menu.py`, using
+   the new `X-G4F-<Cat>` category.
+3. Rebuild the image.

@@ -92,6 +92,13 @@ Table of contents
 
 ---
 
+## Related projects
+- [g4f-go](g4f-go/README.md) – Self-contained Go launcher for g4f (downloads CPython + g4f on demand)
+- [remote_desktop](projects/remote-desktop/) – WebRTC-based remote desktop host/viewer
+- [sandbox-desktop](docker/sandbox-menu/README.md) – TigerVNC + Xfce + noVNC desktop in Docker with preinstalled coding agents ([start script](bin/start-sandbox-desktop.sh), [Dockerfile](docker/Dockerfile-sandbox-desktop))
+
+---
+
 ## Requirements & compatibility
 - Python 3.10+ recommended.
 - Google Chrome/Chromium for providers using browser automation.
@@ -479,6 +486,11 @@ GNU General Public License for more details.
 ---
 
 ## Appendix: Quick commands & examples
+
+Install g4f-go (launcher):
+```bash
+curl -fsSL https://raw.githubusercontent.com/xtekky/gpt4free/main/bin/install.sh | bash
+```
 
 Install (pip):
 ```bash

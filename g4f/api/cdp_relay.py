@@ -718,27 +718,42 @@ class CdpRelay:
         while len(self.closed) > 50:
             del self.closed[next(iter(self.closed))]
 
-    async def evaluate(self, target_id: str, expression: str, timeout: float = 30.0):
-        """Run JS in a target tab via the agent and return the JSON value."""
+    async def call(self, target_id: str, method: str, timeout: float = 30.0, **params) -> dict:
+        """Run any CDP command in a target tab via the agent."""
         client_id, tab_id = self.split_target(target_id)
         agent = self.get_agent(client_id)
         res = await agent.roundtrip(
-            {"type": "cdp", "tabId": tab_id, "method": "Runtime.evaluate",
-             "params": {"expression": expression, "returnByValue": True,
-                        "awaitPromise": True}},
+            {"type": "cdp", "tabId": tab_id, "method": method, "params": params},
             timeout=timeout,
         )
-        out = res.get("result", {})
+        return res.get("result", {})
+
+    async def evaluate(self, target_id: str, expression: str, timeout: float = 30.0):
+        """Run JS in a target tab via the agent and return the JSON value."""
+        out = await self.call(
+            target_id,
+            "Runtime.evaluate",
+            timeout=timeout,
+            expression=expression,
+            returnByValue=True,
+            awaitPromise=True,
+        )
         if out.get("exceptionDetails"):
             raise RuntimeError(str(out["exceptionDetails"].get("text", "evaluation failed")))
         return out.get("result", {}).get("value")
 
     async def snapshot(self, target_id: str) -> Optional[str]:
         """Standalone HTML copy of an open tab (cached); cached copy for closed tabs."""
-        from ..mcp.browser_dom import SNAPSHOT_JS
+        from ..mcp.browser_dom import SNAPSHOT_JS, snapshot_frames
 
         try:
-            html = await self.evaluate(target_id, SNAPSHOT_JS)
+            # Include iframes that contentDocument cannot reach (cross-origin)
+            # by reading their documents from the CDP frame tree.
+            html = await snapshot_frames(
+                lambda method, **params: self.call(target_id, method, **params)
+            )
+            if not html:
+                html = await self.evaluate(target_id, SNAPSHOT_JS)
         except Exception as e:
             debug.warning(f"CDP relay: snapshot failed for {target_id}: {e}")
             html = None

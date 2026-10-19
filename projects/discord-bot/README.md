@@ -86,7 +86,7 @@ The bot integrates g4f's built-in [MCP server](../../g4f/mcp/) so the AI can cal
 | `image_generation` | Generate an image from a prompt | ✅ |
 | `python_execute` | Run Python in a sandboxed environment | ❌ |
 | `apply_patch` | Apply a unified diff patch | ❌ |
-| `file_read` | Read a file from `~/.g4f/workspace` | ❌ |
+| `file_read` | Read a file from the workspace (`~/.g4f/workspace` or `$G4F_DIR`) | ❌ |
 | `file_read_lines` | Read a line range from a workspace file | ❌ |
 | `file_search` | Search files in the workspace | ❌ |
 | `file_write` | Write a file to the workspace | ❌ |

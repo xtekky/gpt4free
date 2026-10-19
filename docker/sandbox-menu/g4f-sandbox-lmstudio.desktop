@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Run LM Studio
+Comment=LM Studio lms CLI and local server daemon
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=LM Studio --command="/usr/local/bin/sandbox-cli lmstudio"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-LocalAI;
+Keywords=lmstudio;lms;local;llm;models;;
+StartupNotify=false

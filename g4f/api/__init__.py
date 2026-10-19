@@ -709,10 +709,26 @@ def create_app():
 
     api = Api(app)
 
+    # Forward /omniroute/* and /ollama/* to locally running gateways. These are
+    # registered before the generic API routes so that paths such as
+    # /ollama/v1/chat/completions are not captured by the
+    # /{mode}/{provider:path}/chat/completions catch-all route.
+    from .omniroute_proxy import register_omniroute_routes
+    from .ollama_proxy import register_ollama_routes
+
+    register_omniroute_routes(app)
+    register_ollama_routes(app)
+
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
-    
+
+    # Optional noVNC desktop: serve the client at /desktop/ and the VNC bridge
+    # on the same port. Opt-in via G4F_VNC_PORT (see vnc_relay).
+    from .vnc_relay import register_vnc_routes
+
+    register_vnc_routes(app)
+
     if AppConfig.gui:
         if not has_a2wsgi:
             raise MissingRequirementsError(
@@ -803,6 +819,21 @@ class Api:
         self._models_cache: dict | None = None
         self._models_cache_time: float = 0.0
         self._screenshot_sem = asyncio.Semaphore(1)
+        self._mcp_server = None
+
+    def get_mcp_server(self):
+        """Lazily create the shared MCP server used by the /mcp route.
+
+        Safe mode is auto-detected via :mod:`g4f.mcp.sandbox`: inside a
+        sandboxed/containerized deployment the server runs in safe mode and
+        the shell/terminal execution tool stays disabled; on a normal host
+        install it is activated.
+        """
+        if self._mcp_server is None:
+            from g4f.mcp.server import MCPServer
+
+            self._mcp_server = MCPServer(github_token=os.environ.get("GITHUB_TOKEN"))
+        return self._mcp_server
 
     security = HTTPBearer(auto_error=False)
     basic_security = HTTPBasic()
@@ -1835,7 +1866,8 @@ class Api:
         async def pa_serve_workspace_file(file_path: str, request: Request):
             """Securely serve a workspace file for browser rendering.
 
-            Only files within ``~/.g4f/workspace`` can be served.  Path
+            Only files within the workspace directory (``~/.g4f/workspace`` by
+            default, overridable with ``G4F_DIR``) can be served.  Path
             traversal (``..``) is blocked.  Only the MIME types listed in
             ``_WORKSPACE_SAFE_TYPES`` are served; all other extensions are
             refused with **403 Forbidden** so that sensitive file types (e.g.
@@ -2696,6 +2728,71 @@ class Api:
         async def clear_logs():
             _request_log.clear()
             return JSONResponse({"status": "cleared"})
+
+        # MCP (Model Context Protocol): expose the g4f MCP server on the API
+        # itself. Point any MCP client at POST /mcp (JSON-RPC 2.0). Sandbox
+        # detection (g4f.mcp.sandbox) decides safe mode and whether the
+        # shell/terminal command execution tool is activated.
+        @self.app.get("/mcp")
+        async def mcp_info():
+            server = self.get_mcp_server()
+            return JSONResponse(
+                {
+                    "protocol": "json-rpc-2.0",
+                    "endpoint": "/mcp",
+                    "server": server.server_info,
+                    "sandboxed": server.sandboxed,
+                    "safe_mode": server.safe_mode,
+                    "shell_execute": server.shell_enabled,
+                    "tools": server.get_tool_list(),
+                },
+                headers={"Cache-Control": "no-store"},
+            )
+
+        @self.app.post("/mcp")
+        async def mcp_handle(request: Request):
+            from g4f.mcp.server import MCPRequest
+
+            server = self.get_mcp_server()
+            try:
+                data = await request.json()
+            except Exception:
+                return JSONResponse(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": None,
+                        "error": {"code": -32700, "message": "Parse error: invalid JSON body"},
+                    },
+                    status_code=HTTP_400_BAD_REQUEST,
+                )
+            if not isinstance(data, dict):
+                return JSONResponse(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": None,
+                        "error": {
+                            "code": -32600,
+                            "message": "Invalid Request: expected a JSON-RPC object",
+                        },
+                    },
+                    status_code=HTTP_400_BAD_REQUEST,
+                )
+            mcp_request = MCPRequest(
+                jsonrpc=data.get("jsonrpc", "2.0"),
+                id=data.get("id"),
+                method=data.get("method"),
+                params=data.get("params"),
+                origin=request.headers.get("origin"),
+                user_id=request.headers.get("x-user-id"),
+                workspace_secret=request.headers.get("x-workspace-secret"),
+            )
+            response = await server.handle_request(mcp_request)
+            body: dict = {"jsonrpc": response.jsonrpc, "id": response.id}
+            if response.result is not None:
+                body["result"] = response.result
+            if response.error is not None:
+                body["error"] = response.error
+            return JSONResponse(body, headers={"access-control-allow-origin": "*"})
 
         # CORS proxy: forwards requests to /api/https://<target-url> through the
         # server. JSON-only, no cookies, no redirects. Registered last so it only

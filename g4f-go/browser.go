@@ -28,6 +28,13 @@ const (
 	browserDefaultPort    = 9222
 )
 
+// browserUserAgentSuffix makes Lightpanda's own user agent ("Lightpanda/1.0")
+// look like a Chrome one. Lightpanda rejects --user-agent outright when the
+// value contains "Mozilla" ("invalid user-agent", fatal at startup), so the
+// suffix flag is the only supported way to shape the UA. Kept in sync with
+// CHROME_USER_AGENT_SUFFIX in g4f/requests/cdp.py.
+const browserUserAgentSuffix = "Chrome/136.0.0.0 Safari/537.36"
+
 // browserSpec describes one platform's Lightpanda download.
 type browserSpec struct {
 	Key     string // manifest-style platform key, e.g. "linux-x64"
@@ -99,6 +106,26 @@ func browserSpecForHost() (*browserSpec, error) {
 
 // browserDir is the install location, next to the downloaded CPython runtime.
 func browserDir() string { return filepath.Join(configDir(), "browser") }
+
+// browserHTTPCacheDir is where Lightpanda keeps its HTTP cache. Mirrors
+// g4f.requests.cdp.get_http_cache_dir().
+func browserHTTPCacheDir() string {
+	return filepath.Join(configDir(), "cache", "http_cache")
+}
+
+// browserServeArgs builds the `lightpanda serve` arguments shared by the
+// foreground command and the automatic headless startup. The extra flags keep
+// the browser from reaching private networks, load iframes (needed by the
+// cookie fetchers) and present a Chrome user agent.
+func browserServeArgs(host string, port int) []string {
+	return []string{
+		"serve", "--host", host, "--port", strconv.Itoa(port),
+		"--block-private-networks",
+		"--load-resources", "iframe",
+		"--http-cache-dir", browserHTTPCacheDir(),
+		"--user-agent-suffix", browserUserAgentSuffix,
+	}
+}
 
 // browserStampPath records which spec is installed, so a version bump
 // re-installs on the next run.
@@ -404,7 +431,7 @@ func runBrowserServe(ctx context.Context, args []string) int {
 	}
 
 	cmd := exec.CommandContext(ctx, exe,
-		append([]string{"serve", "--host", opts.Host, "--port", strconv.Itoa(port)}, opts.Args...)...)
+		append(browserServeArgs(opts.Host, port), opts.Args...)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -534,12 +561,15 @@ Serve flags (anything else is forwarded to `+"`lightpanda serve`"+`):
   --host <HOST>   bind address (default %s)
   --port <PORT>   CDP port (default %d, 0 picks a free port)
 
+Lightpanda always runs with --block-private-networks, --load-resources iframe,
+a Chrome user agent and an HTTP cache under %s.
+
 When g4f runs headless and no CDP endpoint is configured, g4f-go starts the
 installed browser automatically and points g4f at it. Set G4F_BROWSER_PORT to
 use an existing endpoint instead, or G4F_BROWSER_HEADLESS=false to opt out.
 
 Installed to: %s
-`, version, browserDefaultHost, browserDefaultPort, browserDir())
+`, version, browserDefaultHost, browserDefaultPort, browserHTTPCacheDir(), browserDir())
 }
 
 // headlessActive reports whether g4f will run its browser headless. g4f
@@ -613,7 +643,7 @@ func browserAutoStartEnv(args []string) ([]string, func()) {
 		return nil, nil
 	}
 
-	cmd := exec.Command(exe, "serve", "--host", browserDefaultHost, "--port", strconv.Itoa(port))
+	cmd := exec.Command(exe, browserServeArgs(browserDefaultHost, port)...)
 	cmd.Stdout = io.Discard
 	cmd.Stderr = io.Discard
 	if err := cmd.Start(); err != nil {

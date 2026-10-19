@@ -2,7 +2,7 @@
 
 Downloads ``*.pa.py`` files from a GitHub repository (default:
 ``gpt4free/pa-providers``) into the local g4f workspace directory
-(``~/.g4f/workspace``).
+(``~/.g4f/workspace`` by default, overridable with ``G4F_DIR``).
 
 Public API
 ----------
@@ -209,7 +209,8 @@ def run_pa_download(
         force: If ``True``, overwrite existing files.  If ``False``, only
                download files that do not already exist locally.
         timeout: Per-request timeout in seconds.
-        directory: Override target directory (default: ``~/.g4f/workspace``).
+        directory: Override target directory (default: the workspace
+                   directory, ``~/.g4f/workspace`` or ``$G4F_DIR``).
         only: If given, download only this filename (e.g. ``koala.pa.py``).
 
     Returns:

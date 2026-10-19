@@ -88,7 +88,7 @@ flowchart LR
 ## Development
 
 No build step — plain ES modules. Reload the extension after edits
-(`chrome://extensions` → ↻). Icons are regenerated with PIL (see `scripts/`).
+(`chrome://extensions` → ↻). Icons are regenerated with PIL (see `bin/`).
 
 ## Roadmap
 

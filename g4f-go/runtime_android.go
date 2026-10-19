@@ -14,14 +14,14 @@ import (
 // ---------------------------------------------------------------------------
 // Android runtime
 //
-// The python.org Android package ships libpython3.14.so + the stdlib but no
+// The python.org Android package ships libpython3.X.so + the stdlib but no
 // `python` executable — it is meant to be loaded with dlopen from a native
 // app. g4f-go therefore:
 //  1. checks Termux is installed (the `pm list packages` probe below);
 //  2. merges the android tarball into the app's writable dir
 //     (Android filesDir), landing at <dir>/python-home/;
 //  3. builds a tiny C runner (pyandroid_runner.c) with the NDK clang via
-//     Termux, dlopens libpython3.14.so and runs the requested script —
+//     Termux, dlopens libpython3.X.so and runs the requested script —
 //     the same technique CPython's own android.py testbed uses.
 //
 // The launcher path returned to the caller is that C runner binary.
@@ -80,7 +80,7 @@ func androidPythonExecutable(binDir string) (string, error) {
 // androidPythonExe returns the interpreter path for the android layout
 // (the dlopen target inside the runner).
 func androidPythonExe(binDir string) string {
-	return filepath.Join(androidPythonHome(binDir), "lib", "libpython3.14.so")
+	return filepath.Join(androidPythonHome(binDir), "lib", "libpython"+PythonLibVer+".so")
 }
 
 // buildAndroidRunner compiles pyandroid_runner.c against the downloaded
@@ -91,7 +91,7 @@ func buildAndroidRunner(binDir string) error {
 	}
 	home := androidPythonHome(binDir)
 	lib := filepath.Join(home, "lib")
-	include := filepath.Join(home, "include", "python3.14")
+	include := filepath.Join(home, "include", "python"+PythonLibVer)
 	src := filepath.Join(binDir, "pyandroid_runner.c")
 	if _, err := os.Stat(src); err != nil {
 		return fmt.Errorf("pyandroid_runner.c missing: %w", err)
@@ -111,7 +111,7 @@ func buildAndroidRunner(binDir string) error {
 		"-I", include,
 		"-L", lib,
 		"-Wl,-rpath," + lib,
-		"-lpython3.14",
+		"-lpython"+PythonLibVer,
 		"-ldl",
 	}
 	cmd := exec.Command(cc, args...)
@@ -124,7 +124,7 @@ func buildAndroidRunner(binDir string) error {
 }
 
 // C runner source embedded via go:embed below; written to binDir before
-// building. It dlopens libpython3.14.so (PYTHONHOME set by env) and runs a
+// building. It dlopens libpython3.X.so (PYTHONHOME set by env) and runs a
 // script passed as argv[1..].
 const androidRunnerC = `// pyandroid_runner.c — dlopens the downloaded libpython and runs a script,
 // mirroring CPython's own android testbed (main_activity.c).
@@ -148,9 +148,9 @@ typedef int (*Py_RunMain_fn)(void);
 typedef const char *(*Py_GetVersion_fn)(void);
 
 int main(int argc, char **argv) {
-    void *h = dlopen("libpython3.14.so", RTLD_NOW | RTLD_GLOBAL);
+    void *h = dlopen("libpython__PYVER__.so", RTLD_NOW | RTLD_GLOBAL);
     if (!h) {
-        fprintf(stderr, "dlopen libpython3.14.so: %s\n", dlerror());
+        fprintf(stderr, "dlopen libpython__PYVER__.so: %s\n", dlerror());
         return 1;
     }
     PyConfig_InitPythonConfig_fn Init = (PyConfig_InitPythonConfig_fn)dlsym(h, "PyConfig_InitPythonConfig");
@@ -177,7 +177,8 @@ int main(int argc, char **argv) {
 // writeAndroidRunnerSource writes the C helper next to the runtime.
 func writeAndroidRunnerSource(binDir string) error {
 	src := filepath.Join(binDir, "pyandroid_runner.c")
-	if err := os.WriteFile(src, []byte(androidRunnerC), 0o644); err != nil {
+	source := strings.ReplaceAll(androidRunnerC, "__PYVER__", PythonLibVer)
+	if err := os.WriteFile(src, []byte(source), 0o644); err != nil {
 		return err
 	}
 	return nil

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Open WebUI
+Comment=Open WebUI chat interface for the local Ollama server
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Open WebUI --command="/usr/local/bin/sandbox-cli open-webui"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-LocalAI;
+Keywords=open-webui;ollama;chat;ui;local;;
+StartupNotify=false

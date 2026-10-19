@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Shared icon for the sandbox desktop menu entries (g4f brand gradient,
+       terminal prompt glyph). Install as hicolor/scalable/apps/g4f-sandbox-cli.svg -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6e48aa"/>
+      <stop offset="1" stop-color="#4776E6"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#bg)"/>
+  <path d="M40 44 L60 64 L40 84" fill="none" stroke="#f8f9fa" stroke-width="10"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M68 86 L94 86" fill="none" stroke="#f8f9fa" stroke-width="10" stroke-linecap="round"/>
+</svg>

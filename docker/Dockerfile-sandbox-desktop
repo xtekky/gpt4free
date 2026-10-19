@@ -1,82 +1,240 @@
-# Minimal terminal-backend sandbox image WITH a desktop: a slim Python base plus
-# the everyday shell tools it lacks, a TigerVNC + Xfce display stack with noVNC
-# for browser access, headed Google Chrome and the g4f library itself, so a
-# browser, a screen and the g4f API can live INSIDE the sandbox instead of on
-# the gateway host.
+# Minimal terminal-backend sandbox image WITH a desktop: a Python-free slim
+# base plus the everyday shell tools it lacks, a TigerVNC + Xfce display stack
+# served to the browser by the g4f API itself (its custom noVNC routes, /desktop/
+# plus the /desktop/websockify WebSocket bridge, on the API port -- g4f/api/vnc_relay),
+# and g4f-go managing its own CPython plus this checkout's g4f -- so a screen
+# and the g4f API live INSIDE the sandbox instead of on the gateway host.
+# The base carries no interpreter: g4f-go's embedded CPython is the image's
+# only Python, exposed as python3/pip in /usr/local/bin (see below).
+# Neither websockify nor Google Chrome is baked in: the g4f API's own relay
+# bridges the browser to Xvnc, and the desktop menu installs & opens Chrome
+# (and OmniRoute, OpenClaw, ...) on click.
+#
+# Multi-stage: the g4f-go launcher is compiled from source in a throwaway Go
+# stage, so the image never depends on a host-side `./build-all.sh` run and the
+# final image carries no Go toolchain.
 #
 #   docker build -f docker/Dockerfile-sandbox-desktop -t g4f-sandbox:desktop .
-ARG SANDBOX_BASE=python:3.13-slim
+
+ARG GO_BUILDER=golang:1.25-bookworm
+ARG NODE_IMAGE=node:24-bookworm-slim
+ARG SANDBOX_BASE=debian:trixie-slim
+
+# ---------------------------------------------------------------------------
+# Stage 1: g4f-go launcher
+#
+# Compiled from the g4f-go/ sources rather than copied out of the repo's
+# prebuilt dist/ tree, so the binary always matches the checkout. Go
+# cross-compiles, so the stage runs on the build platform and emits a static
+# binary for the target arch. g4f-go/bundle and g4f-go/embed are committed, so
+# a plain `go build` works without sync-bundle.sh or fetch-python.sh.
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM --platform=$BUILDPLATFORM ${GO_BUILDER} AS g4f-go-builder
+
+ARG TARGETOS=linux
+ARG TARGETARCH
+
+WORKDIR /src
+# Dependency layer first: it only invalidates when go.mod/go.sum change.
+COPY g4f-go/go.mod g4f-go/go.sum ./
+RUN go mod download
+COPY g4f-go/ ./
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+        go build -trimpath -ldflags "-s -w" -o /out/g4f-go .
+
+# ---------------------------------------------------------------------------
+# Stage 2: Node.js 24 distribution
+#
+# Staged from the official Node 24 image so the sandbox carries the newest
+# Node.js 24 runtime and npm without depending on Debian's older distro package.
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM ${NODE_IMAGE} AS node-dist
+
+# ---------------------------------------------------------------------------
+# Stage 3: the sandbox desktop image
+# ---------------------------------------------------------------------------
 # hadolint ignore=DL3006
 FROM ${SANDBOX_BASE}
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
-ARG TARGETARCH
-
+# G4F_VERSION gives the local checkout a PEP 440 version (setup.py reads it)
+# and becomes the g4f-go version pin (see the g4f-go step below). The G4F_VNC_*
+# pair switches on the API's custom noVNC routes: /desktop/ serves the client and
+# /desktop/websockify bridges the browser WebSocket to Xvnc, both on the API port.
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     PYTHONUNBUFFERED=1 \
-    G4F_DIR=/app
+    G4F_DIR=/app \
+    G4F_VERSION=0.0.0-dev \
+    G4F_VNC_PORT=5900 \
+    G4F_NOVNC_DIR=/usr/share/novnc \
+    G4F_CONFIG_DIR=/home/pn/.g4f
 
 # Everyday tools a slim base lacks. Kept to what agents reach for from a shell.
+# Node.js 24 is copied below from node-dist because most CLIs in the sandbox
+# desktop menu (docker/sandbox-menu) install through npm.
+# git is in because the Hermes Agent installer clones its own checkout.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
         jq ripgrep fd-find tmux less nano vim-tiny zip rsync tree procps htop \
-        file bsdextrautils ca-certificates curl locales sudo && \
+        file bsdextrautils ca-certificates curl locales sudo git && \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
     rm -rf /var/lib/apt/lists/*
 
+# Node.js 24: newest Node 24 runtime and npm copied from the official node image
+# instead of Debian's older nodejs package.
+COPY --from=node-dist /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-dist /usr/local/include/node /usr/local/include/node
+COPY --from=node-dist /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
+    ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
+    ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack && \
+    node --version && \
+    npm --version
+
 # Display stack: TigerVNC plus the Xfce components a launcher starts
-# individually, never xfce4-session. noVNC (websockify) bridges the same
-# display to a browser; like Xvnc it is exec'd by the launcher as `pn`, e.g.
-#   websockify --web /usr/share/novnc 6080 localhost:5900
+# individually, never xfce4-session. Xvnc is exec'd as `pn`. Neither Debian's
+# `novnc` package nor websockify (pulled in as its dependency) is installed:
+# the client files come from the pinned upstream release below, and the
+# WebSocket -> VNC bridge is the g4f API's own /desktop/websockify route
+# (g4f/api/vnc_relay, same port as the API). libnss3/libasound2/libxss1 are NOT
+# listed: they are Chrome's runtime deps and the menu's Chrome .deb pulls them
+# in itself.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
-        tigervnc-standalone-server novnc websockify \
+        tigervnc-standalone-server \
         xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
         dbus-x11 x11-xserver-utils x11-utils x11-xkb-utils xauth fonts-dejavu-core \
-        at-spi2-core libgtk-3-0t64 libnss3 libasound2t64 libxss1 && \
+        at-spi2-core libgtk-3-0t64 && \
     rm -rf /var/lib/apt/lists/*
 
-# Headed Google Chrome stable, installed straight from Google's own .deb so the
-# browser tools and the dock's Browser icon share one binary and one
-# --user-data-dir. It lands on PATH as google-chrome-stable.
-RUN set -eu; \
-    case "${TARGETARCH:-amd64}" in \
-        amd64) arch=amd64 ;; \
-        arm64) arch=arm64 ;; \
-        *) echo "unsupported TARGETARCH ${TARGETARCH}"; exit 1 ;; \
-    esac; \
-    curl -fsSL -o /tmp/google-chrome.deb \
-        "https://dl.google.com/linux/direct/google-chrome-stable_current_${arch}.deb"; \
-    apt-get -o Acquire::Retries=3 update; \
-    apt-get -o Acquire::Retries=3 install -y --no-install-recommends /tmp/google-chrome.deb; \
-    rm -f /tmp/google-chrome.deb; \
-    rm -rf /var/lib/apt/lists/*; \
-    google-chrome-stable --version
+# noVNC client files, fetched straight from the upstream release (pinned by
+# version + sha256) instead of Debian's `novnc` package, whose dependency chain
+# drags in websockify -- the standalone bridge the API's custom /desktop/ +
+# /desktop/websockify routes replace. The tag tarball's tree is the same noVNC 1.6.0
+# layout Debian packages, so novnc-brand.sh's verified patches below apply
+# unchanged. It ships no index.html (Debian's package didn't either), so
+# docker/novnc-index.html is copied on top by the branding step.
+ARG NOVNC_VERSION=1.6.0
+RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
+        "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.tar.gz" && \
+    echo "5066103959ef4e9b10f37e5a148627360dd8414e4cf8a7db92bdbd022e728aaa  /tmp/novnc.tar.gz" \
+        | sha256sum -c - && \
+    mkdir -p /usr/share/novnc && \
+    tar -xzf /tmp/novnc.tar.gz -C /usr/share/novnc --strip-components=1 && \
+    rm /tmp/novnc.tar.gz && \
+    test -f /usr/share/novnc/vnc.html
 
-# g4f itself: the library, the `g4f` CLI and the API server, installed from this
-# checkout so the image carries the same code as the repository.
+# Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
+# Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
+# Chrome) and local gateways/agents (OmniRoute, OpenClaw).
+# sandbox-cli installs a tool on first click (vendor script / npm / pip / the
+# Chrome .deb) and runs it; the .desktop files land in the panel's Applications
+# menu and the SVG is their shared icon.
+# start-browser launches Chrome with the CDP debug port (9223) the g4f
+# automation uses; the menu runs it with --once so it does not relaunch in a
+# loop. See docker/sandbox-menu/README.md.
+COPY docker/sandbox-menu/sandbox-cli.sh /usr/local/bin/sandbox-cli
+COPY bin/start-browser.sh /usr/local/bin/start-browser
+COPY docker/sandbox-menu/g4f-sandbox-*.desktop /usr/share/applications/
+COPY docker/sandbox-menu/g4f-sandbox-cli.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg
+RUN chmod 0755 /usr/local/bin/sandbox-cli /usr/local/bin/start-browser && \
+    chmod 0644 /usr/share/applications/g4f-sandbox-*.desktop \
+        /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg
+
+# Group the entries into their own top-level menus (g4f, Browsers, Coding
+# Agents, Gateways, Assistants) instead of dumping all 39 into Development.
+# The .directory files name and icon those menus; patch-xfce-menu.py inserts
+# the matching <Menu> blocks into the stock xfce-applications.menu. A merged
+# menu file under applications-merged/ does not work here -- garcon copies
+# merged elements with a depth-2 traversal that never reaches nested <Menu>
+# nodes, so the menus would be dropped. See docker/sandbox-menu/README.md.
+COPY docker/sandbox-menu/desktop-directories/*.directory /usr/share/desktop-directories/
+COPY docker/sandbox-menu/patch-xfce-menu.py /usr/local/bin/patch-xfce-menu.py
+RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
+    chmod 0755 /usr/local/bin/patch-xfce-menu.py && \
+    patch-xfce-menu.py
+
+# noVNC branding. The upstream noVNC tree ships no index.html, so a request to
+# the API's /desktop/ mount would 404; novnc-index.html is a bare full-viewport
+# page that drops straight into the autoconnected client (no header of its
+# own). The g4f branding lives inside the stock client itself:
+# novnc-brand.sh swaps vnc.html's logos (and the icon SVGs) for g4f.svg,
+# repaints the accent palette with the g4f colors, stacks the connect
+# dialog's logo above its button and defaults the client to server-side
+# scaling (resize=remote in defaults.json), leaving the rest of noVNC
+# untouched. It verifies each patch, so a changed noVNC layout fails the build.
+COPY docker/novnc-index.html /usr/share/novnc/index.html
+COPY docker/g4f.svg /usr/share/novnc/g4f.svg
+COPY docker/novnc-brand.sh /usr/local/bin/novnc-brand.sh
+RUN chmod +x /usr/local/bin/novnc-brand.sh && novnc-brand.sh
+
+
+# g4f-go owns the interpreter and the g4f install. The launcher built in the
+# g4f-go-builder stage goes on PATH, then g4f-go materializes its runtime
+# at build time: CPython plus the PyPI g4f (which brings the deps and writes
+# g4f-go's .installed stamp), then THIS checkout's g4f over it -- so the API the
+# sandbox serves is the repository code, incl. g4f/api/vnc_relay. The checkout
+# install stays editable, so the compose bind-mount of the repo (/app) is live.
+# The version pin makes g4f-go treat the overlay as final: its api/gui
+# auto-upgrade would otherwise replace the checkout build with PyPI's next run.
+#
+# The base image ships no Python, so the embedded runtime is the only
+# interpreter in the image. python3/pip in /usr/local/bin are symlinks into it
+# (the pbs layout resolves its prefix through the real interpreter path, so a
+# symlink works and keeps `python3 -m pip install --user` -- what sandbox-cli
+# and the menu's pip tools use -- writing to ~/.local). The runtime lives in
+# /home/pn/.g4f, which the `pn` user owns, so the menu can pip-install into it.
+COPY --from=g4f-go-builder /out/g4f-go /usr/local/bin/g4f-go
 WORKDIR ${G4F_DIR}
-COPY requirements.txt ${G4F_DIR}/requirements.txt
-RUN pip install --no-cache-dir -r ${G4F_DIR}/requirements.txt
-COPY setup.py README.md MANIFEST.in ${G4F_DIR}/
+COPY --chown=1000:1000 setup.py README.md MANIFEST.in ${G4F_DIR}/gpt4free/
 COPY g4f ${G4F_DIR}/g4f
-RUN pip install --no-cache-dir --no-deps ${G4F_DIR} && \
-    python -c "from g4f.client import Client; print('g4f ok')" && \
-    g4f --help >/dev/null
+RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
+    g4f-go -v latest && \
+    g4f-go install setuptools wheel websockets && \
+    g4f-go install --force-reinstall --no-deps -e ${G4F_DIR}/gpt4free/ && \
+    printf '%s\n' "${G4F_VERSION}" \
+        > "${G4F_CONFIG_DIR}/python-embed/.g4f-runtime/.g4f-version" && \
+    g4f-go -m g4f --help && \
+    "${G4F_CONFIG_DIR}/python-embed/python" \
+        -c "import g4f.api.vnc_relay; from g4f.client import Client; print('g4f + vnc relay ok')" && \
+    g4f-go status && \
+    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python3 && \
+    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python && \
+    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip3 && \
+    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip && \
+    python3 -c "import sys; print('python3 ->', sys.executable)" && \
+    pip --version && \
+    chown -R 1000:1000 "${G4F_CONFIG_DIR}"
 
 # Pillow: the Screen pane's thumbnail is grabbed INSIDE the sandbox (the X socket
 # and its cookie live here, not on the gateway host). Also used for ad-hoc image work.
-RUN pip install --no-cache-dir "pillow>=10" && python3 -c "from PIL import ImageGrab"
+# Installed through g4f-go (not the pip symlink) so it lands in the embedded
+# runtime's own site-packages with the launcher's PYTHONHOME/PYTHONNOUSERSITE
+# env, exactly like the g4f install above.
+RUN g4f-go install "pillow>=10" && python3 -c "from PIL import ImageGrab"
 
 # The container runs as root, so existing docker_image users see no ownership or
-# PATH change. Desktop processes (Xvnc, Xfce, Chrome) are exec'd as the
+# PATH change. Desktop processes (Xvnc, Xfce, and the menu's Chrome) run as the
 # unprivileged `pn` (uid 1000): Chrome refuses to run as root without
 # --no-sandbox and the AT-SPI bus wants a real user session. `pn` may sudo.
+# The g4f-go step above already created /home/pn (as root) to hold the runtime,
+# so useradd only warns about the existing home and leaves it root-owned; the
+# chown restores ownership for the unprivileged user.
 RUN useradd --create-home --uid 1000 --shell /bin/bash pn && \
+    chown 1000:1000 /home/pn && \
     echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudoers.d/pn && \
     mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && \
     mkdir -p /tmp/sandbox-runtime && chown pn:pn /tmp/sandbox-runtime && chmod 0700 /tmp/sandbox-runtime
+
+# ~/.local/bin first: sandbox-cli drops a `google-chrome` wrapper there that
+# always passes --no-sandbox (see link_chrome_no_sandbox), and both
+# start-browser and g4f's own browser lookup (shutil.which) must find the
+# wrapper instead of the real /usr/bin binary.
+ENV PATH=/home/pn/.local/bin:${PATH}
 
 # Runtime dir for dbus/Xvnc; containers have no logind to create it. Both /tmp
 # paths above are fixed by the X11 protocol / seeded per container, never shared.
@@ -86,14 +244,18 @@ ENV XDG_RUNTIME_DIR=/tmp/sandbox-runtime
 # so the runtime dir must also live where pam_env reads it.
 RUN printf 'XDG_RUNTIME_DIR=/tmp/sandbox-runtime\n' >> /etc/environment
 
-# 8080: g4f API server (the image CMD). 5900: Xvnc on display :0.
-# 6080: noVNC web client, served by websockify once the launcher starts it.
-EXPOSE 8080 5900 6080
+# 8080: g4f tray application and API server, which also serves the noVNC
+# desktop through its custom routes: /desktop/ for the client, /desktop/websockify for
+# the WebSocket bridge to Xvnc. 5900: Xvnc on display :0.
+EXPOSE 8080 5900
 
 # Entrypoint seeds /etc/machine-id, starts a system bus, launches the desktop
-# stack (Xvnc + Xfce + noVNC) as `pn` and exports DISPLAY so the API's headed
-# Chrome lands on the noVNC desktop. SANDBOX_DESKTOP=0 skips the desktop.
+# stack (Xvnc + Xfce) as `pn` and exports DISPLAY so a browser on the desktop
+# renders inside the sandbox. SANDBOX_DESKTOP=0 skips the desktop.
 COPY docker/sandbox-entrypoint.sh /usr/local/bin/sandbox-entrypoint.sh
 RUN chmod +x /usr/local/bin/sandbox-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]
-CMD ["python", "-m", "g4f", "api", "--port", "8080"]
+USER pn
+# --debug turns on g4f's verbose logging (tray parser in g4f/cli/__init__.py),
+# so `docker logs` shows provider selection, request handling and HAR captures.
+CMD ["g4f-go", "dev", "--port", "8080"]

@@ -36,13 +36,13 @@ This skill covers running gpt4free as a local LLM server with an OpenAI-compatib
 				 - provider: "PollinationsAI"
 					 model: "openai"
 	 ```
-4. Patch your bot config (e.g., OpenClaw) to use `http://localhost:8080/v1` as the base URL (see `scripts/patch-openclaw.py`)
+4. Patch your bot config (e.g., OpenClaw) to use `http://localhost:8080/v1` as the base URL (see `bin/patch-openclaw.py`)
 5. Start your bot and verify it connects to gpt4free
 6. Monitor logs and test with the Python client or CLI
 
 ### References
 - [README.md](../README.md)
 - [docs/config-yaml-routing.md](../docs/config-yaml-routing.md)
-- [scripts/patch-openclaw.py](../scripts/patch-openclaw.py)
-- [scripts/setup-openclaw.sh](../scripts/setup-openclaw.sh)
+- [bin/patch-openclaw.py](../bin/patch-openclaw.py)
+- [bin/setup-openclaw.sh](../bin/setup-openclaw.sh)
 - [g4f/client/__init__.py](../g4f/client/__init__.py)

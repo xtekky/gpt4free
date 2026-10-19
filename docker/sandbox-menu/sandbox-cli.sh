@@ -1,0 +1,994 @@
+#!/usr/bin/env bash
+#
+# sandbox-cli — the installer behind the sandbox desktop's "Install & Open ..."
+# menu entries (docker/sandbox-menu/).
+#
+#   sandbox-cli <tool>          install <tool> if missing, then run it here
+#   sandbox-cli install <tool>  install only, don't run it
+#   sandbox-cli settings        choose the g4f model, HOME and provider
+#   sandbox-cli list            list the tools the desktop menu knows about
+#
+# Each menu item runs:
+#   xfce4-terminal --command="/usr/local/bin/sandbox-cli <tool>"
+# The install happens on FIRST CLICK (vendor install script, npm package,
+# `pip install --user`, or Google's Chrome .deb), so the image stays small;
+# afterwards the CLI starts instantly in the same terminal window (Chrome
+# opens on the desktop instead). nodejs/npm are already in the image for the
+# npm-based tools, everything else is one click. Runs as `pn`.
+
+set -u
+
+# pip --user and the vendor installers write to ~/.local/bin, ~/.opencode/bin,
+# ~/.openclaw/bin, ~/.kimi-code/bin, ~/.qoder/bin or ~/.lmstudio/bin, which are
+# not on PATH inside a bare terminal.
+if [ -n "${HOME:-}" ]; then
+    PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.openclaw/bin:$HOME/.kimi-code/bin:$HOME/.qoder/bin:$HOME/.lmstudio/bin:$PATH"
+fi
+export PATH
+
+ANTIGRAVITY_INSTALLER="https://antigravity.google/cli/install.sh"
+OPENCODE_INSTALLER="https://opencode.ai/v2/install"
+GOOSE_INSTALLER="https://github.com/block/goose/releases/download/stable/download_cli.sh"
+CURSOR_INSTALLER="https://cursor.com/install"
+OPENCLAW_INSTALLER="https://openclaw.ai/install.sh"
+# Google publishes per-architecture .deb files; append the dpkg arch (amd64,
+# arm64) to this prefix. The .deb pulls its own Chrome runtime libraries.
+CHROME_DEB_BASE="https://dl.google.com/linux/direct/google-chrome-stable_current"
+# Vendor install scripts whose binaries land on PATH (~/.local/bin or
+# /usr/local/bin, both searched above).
+GROK_INSTALLER="https://x.ai/cli/install.sh"
+DROID_INSTALLER="https://app.factory.ai/cli"
+OPENHANDS_INSTALLER="https://install.openhands.dev/install.sh"
+PLANDEX_INSTALLER="https://plandex.ai/install.sh"
+FABRIC_INSTALLER="https://raw.githubusercontent.com/danielmiessler/fabric/main/scripts/installer/install.sh"
+HERMES_INSTALLER="https://hermes-agent.nousresearch.com/install.sh"
+KIRO_INSTALLER="https://cli.kiro.dev/install"
+KIMI_INSTALLER="https://code.kimi.com/kimi-code/install.sh"
+ROO_INSTALLER="https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh"
+QODER_INSTALLER="https://qoder.com/install"
+VIBE_INSTALLER="https://mistral.ai/vibe/install.sh"
+UV_INSTALLER="https://astral.sh/uv/install.sh"
+# Local model runtimes and their web UIs.
+OLLAMA_INSTALLER="https://ollama.com/install.sh"
+LMSTUDIO_INSTALLER="https://lmstudio.ai/install.sh"
+# llama.cpp publishes per-build tarballs; the release tag is resolved at install
+# time (see ensure_llamacpp) and the arch suffix appended to this prefix.
+LLAMACPP_RELEASE_BASE="https://github.com/ggml-org/llama.cpp/releases/download"
+# Jan ships a Linux AppImage; the release tag is resolved at install time.
+JAN_RELEASE_BASE="https://github.com/janhq/jan/releases/download"
+
+INSTALL_ONLY=0
+
+have() { command -v "$1" >/dev/null 2>&1; }
+log()  { printf '==> %s\n' "$*"; }
+
+# True when something accepts connections on 127.0.0.1:<port>.
+port_open() {
+    if have curl; then
+        curl -s --max-time 1 "http://127.0.0.1:$1/json/version" >/dev/null 2>&1
+    else
+        (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1
+    fi
+}
+
+die() {
+    printf '\nsandbox-cli: error: %s\n' "$*" >&2
+    # Menu entries open a fresh terminal that closes on exit; hold it so an
+    # install failure stays readable.
+    if [ -t 0 ]; then
+        printf 'Press Enter to close...'
+        read -r _ || true
+    fi
+    exit 1
+}
+
+# Menu installs run as `pn`, which has passwordless sudo in the image.
+as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo -n "$@" || die "need root privileges for: $*"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Sandbox settings (g4f model, g4f provider + HOME)
+#
+# A desktop menu entry cannot export environment variables, so the launchers
+# read their overrides from a small settings file that the "Sandbox Settings"
+# menu entry writes. The file deliberately lives outside $HOME: changing HOME
+# must not move the file that records it.
+#
+# Precedence, highest first:
+#   G4F_SANDBOX_MODEL / G4F_SANDBOX_HOME / G4F_SANDBOX_PROVIDER
+#                                          explicit environment override
+#   the settings file                      what the menu entry saved
+#   G4F_MODEL / $HOME / G4F_PROVIDER       ambient environment, then defaults
+#
+# HOME applies to every menu entry (see apply_sandbox_home): agents keep their
+# config, credentials and caches under $HOME, so pointing it at a scratch
+# directory gives a throwaway profile.
+#
+# A model only reaches the g4f-aware launchers when one was actually chosen —
+# G4F_SANDBOX_MODEL, or G4F_MODEL in the settings file. With no model set, the
+# launchers leave the tool's own provider/model configuration alone instead of
+# forcing it onto the g4f API. The provider is optional: with none set, g4f
+# picks from its own rotation. When one is set, the launchers pin it by
+# prefixing the model name ("<provider>:<model>"), which is how g4f resolves a
+# provider for a request; G4F_PROVIDER itself is read only by the g4f server.
+# ---------------------------------------------------------------------------
+real_home() {
+    local home
+    home="$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)"
+    [ -n "$home" ] || home="${HOME:-/home/pn}"
+    printf '%s' "$home"
+}
+
+SANDBOX_ENV_FILE="${G4F_SANDBOX_ENV:-$(real_home)/.config/g4f-sandbox/env}"
+SANDBOX_MODEL=""
+SANDBOX_HOME=""
+SANDBOX_PROVIDER=""
+# 1 once a model was chosen (G4F_SANDBOX_MODEL, or the settings file), else 0.
+SANDBOX_MODEL_SET=0
+
+load_sandbox_settings() {
+    SANDBOX_MODEL=""
+    SANDBOX_HOME=""
+    SANDBOX_PROVIDER=""
+    SANDBOX_MODEL_SET=0
+    [ -f "$SANDBOX_ENV_FILE" ] || return 0
+    local line key value
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in ''|'#'*) continue ;; esac
+        key="${line%%=*}"
+        value="${line#*=}"
+        case "$key" in
+            G4F_MODEL)
+                SANDBOX_MODEL="$value"
+                [ -n "$value" ] && SANDBOX_MODEL_SET=1 ;;
+            SANDBOX_HOME) SANDBOX_HOME="$value" ;;
+            G4F_PROVIDER) SANDBOX_PROVIDER="$value" ;;
+        esac
+    done < "$SANDBOX_ENV_FILE"
+}
+
+save_sandbox_settings() { # <model> <home> <provider>
+    local dir
+    dir="$(dirname "$SANDBOX_ENV_FILE")"
+    mkdir -p "$dir" || die "cannot create $dir"
+    {
+        printf '# g4f sandbox settings — written by: sandbox-cli settings\n'
+        printf '# Read by the menu launchers (HOME) and the g4f-aware ones\n'
+        printf '# (OpenCode, Copilot, Hermes).\n'
+        printf 'G4F_MODEL=%s\n' "$1"
+        printf 'SANDBOX_HOME=%s\n' "$2"
+        printf 'G4F_PROVIDER=%s\n' "$3"
+    } > "$SANDBOX_ENV_FILE" || die "cannot write $SANDBOX_ENV_FILE"
+}
+
+show_sandbox_settings() {
+    printf 'settings file: %s\n' "$SANDBOX_ENV_FILE"
+    if [ -f "$SANDBOX_ENV_FILE" ]; then
+        printf 'G4F_MODEL:     %s\n' "${SANDBOX_MODEL:-(unset)}"
+        printf 'HOME:          %s\n' "${SANDBOX_HOME:-(unset)}"
+        printf 'G4F_PROVIDER:  %s\n' "${SANDBOX_PROVIDER:-(unset)}"
+    else
+        printf 'G4F_MODEL:     %s (default)\n' "${G4F_MODEL:-(unset)}"
+        printf 'HOME:          %s (default)\n' "$(real_home)"
+        printf 'G4F_PROVIDER:  %s (default)\n' "${G4F_PROVIDER:-(unset)}"
+    fi
+}
+
+validate_sandbox_home() { # <dir>
+    case "$1" in
+        /*) ;;
+        *) die "HOME must be an absolute path: $1" ;;
+    esac
+    mkdir -p "$1" 2>/dev/null || true
+    [ -w "$1" ] && return 0
+    # A path outside the user's own tree (e.g. /opt/agent-home) needs root.
+    # Create it as root, then hand it to the invoking user so the agents can
+    # actually write their config there.
+    log "creating $1 as root (needs sudo)..."
+    as_root mkdir -p "$1" || die "cannot create HOME directory: $1"
+    as_root chown "$(id -u):$(id -g)" "$1" \
+        || die "cannot take ownership of HOME directory: $1"
+    [ -w "$1" ] || die "HOME directory is not writable: $1"
+}
+
+prompt_sandbox_settings() {
+    local model home provider answer
+    model="${SANDBOX_MODEL:-${G4F_MODEL:-auto}}"
+    home="${SANDBOX_HOME:-$(real_home)}"
+    provider="${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}"
+    printf 'g4f sandbox settings — press Enter to keep the value in brackets.\n\n'
+    printf 'Model passed to the g4f API (G4F_MODEL).\n'
+    read -r -p "  model [$model]: " answer || true
+    [ -n "$answer" ] && model="$answer"
+    printf '\nHOME used by every menu entry (agents keep their config here).\n'
+    read -r -p "  HOME [$home]: " answer || true
+    [ -n "$answer" ] && home="$answer"
+    printf '\ng4f provider the g4f-aware launchers pin (G4F_PROVIDER).\n'
+    printf 'It is sent as "<provider>:<model>"; Enter keeps it, clear it with:\n'
+    printf '  sandbox-cli settings --provider ""\n'
+    read -r -p "  provider [${provider:-none}]: " answer || true
+    [ -n "$answer" ] && provider="$answer"
+    printf '\n'
+    validate_sandbox_home "$home"
+    save_sandbox_settings "$model" "$home" "$provider"
+    load_sandbox_settings
+    show_sandbox_settings
+}
+
+settings_usage() {
+    cat <<'EOF'
+usage: sandbox-cli settings                    ask for model, HOME and provider
+       sandbox-cli settings --show             print the saved settings
+       sandbox-cli settings --model <id>       set the model (keeps the rest)
+       sandbox-cli settings --home <dir>       set HOME (keeps the rest)
+       sandbox-cli settings --provider <name>  set the g4f provider
+       sandbox-cli settings --unset            drop the file and use the defaults
+
+HOME applies to every menu entry. The g4f-aware launchers (OpenCode, Copilot,
+Hermes) additionally read the model and provider; the environment variables
+G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME and G4F_SANDBOX_PROVIDER override them.
+Those launchers only repoint the tool at the g4f provider once a model is set,
+so with no model saved they keep the tool's own provider and model.
+EOF
+}
+
+run_settings() {
+    local model="" home="" provider="" set_model=0 set_home=0 set_provider=0
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --show|show)
+                show_sandbox_settings
+                return 0 ;;
+            --unset|unset)
+                rm -f "$SANDBOX_ENV_FILE" || die "cannot remove $SANDBOX_ENV_FILE"
+                log "cleared $SANDBOX_ENV_FILE"
+                return 0 ;;
+            --model)
+                [ $# -ge 2 ] || die "--model needs a value"
+                model="$2"; set_model=1; shift 2 ;;
+            --home)
+                [ $# -ge 2 ] || die "--home needs a value"
+                home="$2"; set_home=1; shift 2 ;;
+            --provider)
+                [ $# -ge 2 ] || die "--provider needs a value"
+                provider="$2"; set_provider=1; shift 2 ;;
+            -h|--help|help)
+                settings_usage
+                return 0 ;;
+            *)
+                die "unknown settings option \"$1\" — run: sandbox-cli settings --help" ;;
+        esac
+    done
+    if [ "$set_model" = 1 ] || [ "$set_home" = 1 ] || [ "$set_provider" = 1 ]; then
+        [ "$set_model" = 1 ] || model="${SANDBOX_MODEL:-${G4F_MODEL:-auto}}"
+        [ "$set_home" = 1 ] || home="${SANDBOX_HOME:-$(real_home)}"
+        [ "$set_provider" = 1 ] || provider="${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}"
+        validate_sandbox_home "$home"
+        save_sandbox_settings "$model" "$home" "$provider"
+        load_sandbox_settings
+        show_sandbox_settings
+        return 0
+    fi
+    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--home/--provider/--show)"
+    prompt_sandbox_settings
+}
+
+load_sandbox_settings
+
+# HOME is a per-menu-entry setting, so it is applied for every tool, not just
+# the g4f-aware ones: agents keep their config, credentials and caches under
+# $HOME, and a scratch HOME gives a throwaway profile. The PATH entries added
+# at the top of this script were derived from the original HOME, so they are
+# re-prepended here.
+apply_sandbox_home() {
+    local home="${G4F_SANDBOX_HOME:-${SANDBOX_HOME:-}}"
+    [ -n "$home" ] || return 0
+    # A HOME saved before it existed (or created by root) would make every
+    # agent fail on its first write, so make sure it is there and ours.
+    if [ ! -d "$home" ] || [ ! -w "$home" ]; then
+        validate_sandbox_home "$home"
+    fi
+    export HOME="$home"
+    PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.openclaw/bin:$HOME/.kimi-code/bin:$HOME/.qoder/bin:$PATH"
+    export PATH
+}
+
+ensure_node() {
+    have npm && return 0
+    log "installing Node.js + npm (first run)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq nodejs npm || die "could not install nodejs/npm"
+    have npm || die "npm not found after installing nodejs/npm"
+}
+
+# Some vendor installers (Kiro CLI) unpack a .zip; the image ships zip but not
+# unzip, so pull it in on demand.
+ensure_unzip() {
+    have unzip && return 0
+    log "installing unzip (needed by the installer)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq unzip || die "could not install unzip"
+    have unzip || die "unzip not found after installing it"
+}
+
+# Hermes clones its own checkout, so it needs git; the image ships none.
+ensure_git() {
+    have git && return 0
+    log "installing git (needed by the installer)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq git || die "could not install git"
+    have git || die "git not found after installing it"
+}
+
+ensure_npm() { # <npm package> <binary>
+    have "$2" && return 0
+    ensure_node
+    log "installing $1 (npm install -g)..."
+    as_root npm install -g --no-fund --no-audit "$1" || die "npm install $1 failed"
+    have "$2" || die "$2 not on PATH after installing $1"
+}
+
+ensure_pip() { # <pypi package> <binary>
+    have "$2" && return 0
+    log "installing $1 (pip install --user)..."
+    python3 -m pip install --user --quiet "$1" || die "pip install $1 failed"
+    have "$2" || die "$2 not on PATH after installing $1"
+}
+
+# uv is the only Python toolchain here that can pick an interpreter version:
+# the image's embedded CPython is 3.15, which is too new for SWE-agent, whose
+# pinned dependencies ship no wheels for it. uv downloads a matching CPython
+# on demand.
+ensure_uv() {
+    have uv && return 0
+    log "installing uv (needed to pick a Python version)..."
+    curl -fsSL "$UV_INSTALLER" | sh || die "uv install failed"
+    have uv || die "uv not on PATH after installing it"
+}
+
+# SWE-agent ships its config/, tools/ and trajectories/ directories next to the
+# package and asserts they exist at import time, but its wheel does not carry
+# them -- a plain `uv tool install` of the git checkout installs a package that
+# crashes on start. An editable install of a real clone keeps the repo layout,
+# so the assertions hold.
+ensure_sweagent() {
+    have sweagent && return 0
+    ensure_uv
+    ensure_git
+    local repo="$HOME/.swe-agent"
+    if [ ! -d "$repo/.git" ]; then
+        log "cloning SWE-agent into $repo..."
+        rm -rf "$repo"
+        git clone --depth 1 https://github.com/SWE-agent/SWE-agent.git "$repo" ||
+            die "could not clone SWE-agent"
+    fi
+    log "installing SWE-agent (uv tool install --editable)..."
+    uv tool install --force --editable --python 3.13 "$repo" ||
+        die "uv tool install SWE-agent failed"
+    have sweagent || die "sweagent not on PATH after installing it"
+}
+
+# The real Chrome binary, ignoring the ~/.local/bin wrapper installed below
+# (which would otherwise make `command -v google-chrome` succeed on its own).
+chrome_real_bin() {
+    local p
+    for p in /usr/bin/google-chrome-stable /usr/bin/google-chrome \
+             /opt/google/chrome/google-chrome; do
+        [ -x "$p" ] && { printf '%s\n' "$p"; return 0; }
+    done
+    return 1
+}
+
+# Chrome refuses to start its sandbox inside the container: Docker's default
+# seccomp profile blocks the user namespaces its zygote needs, so it dies with
+# "Failed to move to new namespace ... Operation not permitted" even as the
+# unprivileged `pn` user. Put a wrapper named `google-chrome` in the user's bin
+# that always passes --no-sandbox. ~/.local/bin comes first on PATH, so the
+# shell, start-browser and g4f's own browser lookup all pick it up, while the
+# real binary stays untouched.
+link_chrome_no_sandbox() {
+    local real bin
+    real="$(chrome_real_bin)" || die "google-chrome not found after install"
+    bin="$HOME/.local/bin/google-chrome"
+    mkdir -p "$HOME/.local/bin" || die "cannot create $HOME/.local/bin"
+    cat > "$bin" <<EOF
+#!/bin/sh
+# Generated by sandbox-cli: Chrome's sandbox cannot run in this container.
+exec "$real" --no-sandbox "\$@"
+EOF
+    chmod 0755 "$bin" || die "cannot make $bin executable"
+    ln -sf google-chrome "$HOME/.local/bin/google-chrome-stable"
+    log "linked $bin -> $real (--no-sandbox)"
+}
+
+ensure_chrome() {
+    if ! chrome_real_bin >/dev/null; then
+        install_chrome_deb
+    fi
+    link_chrome_no_sandbox
+}
+
+install_chrome_deb() {
+    local arch deb_url
+    arch="$(dpkg --print-architecture || true)"
+    case "$arch" in
+        amd64) deb_url="${CHROME_DEB_BASE}_amd64.deb" ;;
+        arm64) deb_url="${CHROME_DEB_BASE}_arm64.deb" ;;
+        aarch64) deb_url="${CHROME_DEB_BASE}_arm64.deb" ;;
+        *) deb_url="${CHROME_DEB_BASE}_amd64.deb" ;;
+    esac
+    log "installing Google Chrome (apt install of ${deb_url##*/}) on first run..."
+    local tmp
+    tmp="$(mktemp --suffix=.deb)" || die "cannot create temp file for Chrome .deb"
+    curl -fsSL -o "$tmp" "$deb_url" || die "failed to download Google Chrome .deb"
+    as_root apt-get -qq update || die "apt-get update failed"
+    as_root apt-get install -y -qq "$tmp" || die "failed to install Google Chrome .deb"
+    rm -f "$tmp"
+    chrome_real_bin >/dev/null || die "google-chrome not found after installing the .deb"
+}
+
+ensure_lightpanda() {
+    have g4f-go || die "g4f-go is not installed"
+    g4f-go browser path >/dev/null 2>&1 && return 0
+    log "installing Lightpanda (g4f-go browser install)..."
+    g4f-go browser install || die "Lightpanda install failed"
+    g4f-go browser path >/dev/null 2>&1 || die "Lightpanda not installed after g4f-go browser install"
+}
+
+ensure_script() { # <install script url> <binary> <label>
+    have "$2" && return 0
+    log "installing $3..."
+    curl -fsSL "$1" | bash || die "$3 install script failed"
+    have "$2" || die "$2 not on PATH after the $3 install"
+}
+
+# Hermes installs into ~/.hermes/hermes-agent/.hermes/bin and only adds
+# ~/.local/bin to the shell rc, so link the binary there for the next run.
+ensure_hermes() {
+    have hermes && return 0
+    ensure_git
+    log "installing Hermes Agent (Nous Research)..."
+    curl -fsSL "$HERMES_INSTALLER" | bash -s -- --non-interactive \
+        || die "Hermes Agent install script failed"
+    local bin="$HOME/.hermes/hermes-agent/.hermes/bin/hermes"
+    if [ -x "$bin" ]; then
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$bin" "$HOME/.local/bin/hermes"
+    fi
+    have hermes || die "hermes not on PATH after the Hermes Agent install"
+}
+
+# Ollama's installer needs a real init system or falls back to a manual start;
+# it also wants `zstd` to unpack its payload, which the slim image lacks.
+ensure_ollama() {
+    have ollama && return 0
+    have zstd || {
+        log "installing zstd (needed by the Ollama installer)..."
+        as_root apt-get update -qq || die "apt-get update failed"
+        as_root apt-get install -y -qq zstd || die "could not install zstd"
+    }
+    log "installing Ollama..."
+    curl -fsSL "$OLLAMA_INSTALLER" | sh || die "Ollama install script failed"
+    have ollama || die "ollama not on PATH after the install"
+}
+
+# LM Studio's installer drops the `lms` CLI into ~/.lmstudio/bin (already on
+# PATH above) and, on a machine without a desktop session, only the daemon.
+ensure_lmstudio() {
+    have lms && return 0
+    log "installing LM Studio (lms CLI + daemon)..."
+    curl -fsSL "$LMSTUDIO_INSTALLER" | sh || die "LM Studio install script failed"
+    have lms || die "lms not on PATH after the LM Studio install"
+}
+
+# llama.cpp ships prebuilt tarballs per release build; the tag is resolved from
+# the GitHub API so the entry does not pin a build that later disappears.
+ensure_llamacpp() {
+    have llama-server && return 0
+    local arch tag url dir
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        arm64|aarch64) arch="arm64" ;;
+        *) arch="x64" ;;
+    esac
+    tag="$(curl -fsSL "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=1" \
+        | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+    [ -n "$tag" ] || die "could not resolve the latest llama.cpp release"
+    url="$LLAMACPP_RELEASE_BASE/$tag/llama-$tag-bin-ubuntu-$arch.tar.gz"
+    log "installing llama.cpp ($tag, $arch)..."
+    dir="$HOME/.llama.cpp"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    curl -fsSL "$url" | tar -xz -C "$dir" --strip-components=1 \
+        || die "could not download llama.cpp ($url)"
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$dir/llama-server" "$HOME/.local/bin/llama-server"
+    ln -sf "$dir/llama-cli" "$HOME/.local/bin/llama-cli"
+    have llama-server || die "llama-server not on PATH after the install"
+}
+
+# Jan is an Electron desktop app shipped as an AppImage; the tag is resolved
+# from the GitHub API and the AppImage unpacked into ~/.local (no FUSE in the
+# container, so it is extracted rather than mounted).
+ensure_jan() {
+    have jan && return 0
+    local tag url dir
+    tag="$(curl -fsSL "https://api.github.com/repos/janhq/jan/releases/latest" \
+        | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+    [ -n "$tag" ] || die "could not resolve the latest Jan release"
+    url="$JAN_RELEASE_BASE/$tag/Jan_${tag#v}_amd64.AppImage"
+    log "installing Jan ($tag)..."
+    dir="$HOME/.local/opt/jan"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    curl -fsSL -o "$dir/jan.AppImage" "$url" || die "could not download Jan ($url)"
+    chmod +x "$dir/jan.AppImage"
+    ( cd "$dir" && ./jan.AppImage --appimage-extract >/dev/null 2>&1 ) \
+        || die "could not unpack the Jan AppImage"
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$dir/squashfs-root/AppRun" "$HOME/.local/bin/jan"
+    have jan || die "jan not on PATH after the install"
+}
+
+# Open WebUI is a pip package that serves a browser UI and talks to Ollama.
+ensure_openwebui() {
+    have open-webui && return 0
+    ensure_pip open-webui open-webui
+}
+
+configure_g4f() {
+    local base_url api_key port
+    api_key="${G4F_API_KEY:-}"
+    base_url="${G4F_API_BASE_URL:-}"
+    if [ -z "$base_url" ]; then
+        for port in 8080 9090; do
+            if curl -fsS --connect-timeout 1 --max-time 2 \
+                -H "Authorization: Bearer $api_key" \
+                "http://127.0.0.1:$port/v1" >/dev/null 2>&1; then
+                base_url="http://127.0.0.1:$port/v1"
+                break
+            fi
+        done
+        if [ -z "$base_url" ]; then
+            base_url="http://127.0.0.1:8080/v1"
+            log "g4f API was not detected; using $base_url (set G4F_API_BASE_URL to override)"
+        fi
+    fi
+    base_url="${base_url%/}"
+    export G4F_API_BASE_URL="$base_url"
+    export G4F_API_KEY="$api_key"
+    # Model and provider come from the settings file (menu → Sandbox Settings);
+    # G4F_SANDBOX_MODEL / G4F_SANDBOX_PROVIDER override it. Only a model that
+    # was actually chosen is exported: with none set, G4F_MODEL is left as the
+    # caller had it and the launchers do not touch the tool's own provider.
+    if [ -n "${G4F_SANDBOX_MODEL:-}" ]; then
+        SANDBOX_MODEL_SET=1
+    fi
+    if [ "$SANDBOX_MODEL_SET" = 1 ]; then
+        export G4F_MODEL="${G4F_SANDBOX_MODEL:-${SANDBOX_MODEL:-${G4F_MODEL:-}}}"
+    fi
+    # g4f resolves the provider from the model name itself ("Provider:model"),
+    # so every launcher carries it in the model id. G4F_PROVIDER is only read by
+    # the g4f server process, so exporting it here would not select anything.
+    # The provider is optional: with none set, g4f picks from its own rotation.
+    local provider="${G4F_SANDBOX_PROVIDER:-${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}}"
+    G4F_PROVIDER_MODEL="${G4F_MODEL:-}"
+    if [ -n "$provider" ] && [ "$SANDBOX_MODEL_SET" = 1 ]; then
+        case "$G4F_PROVIDER_MODEL" in
+            "$provider":*) ;;
+            *) G4F_PROVIDER_MODEL="$provider:$G4F_PROVIDER_MODEL" ;;
+        esac
+    fi
+    export G4F_PROVIDER_MODEL
+}
+
+configure_opencode_g4f() {
+    # Only repoint OpenCode at the g4f provider when a model was chosen in the
+    # menu. Otherwise leave the user's own OpenCode config/provider intact.
+    [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
+    local previous config
+    previous="${OPENCODE_CONFIG_CONTENT:-}"
+    [ -n "$previous" ] || previous='{}'
+    if ! config=$(jq -cn \
+        --argjson previous "$previous" \
+        --arg base_url "$G4F_API_BASE_URL" \
+        --arg api_key "$G4F_API_KEY" \
+        --arg model "$G4F_PROVIDER_MODEL" '
+        def merge($left; $right):
+            if ($left | type) == "object" and ($right | type) == "object" then
+                reduce ($right | keys_unsorted[]) as $key ($left;
+                    .[$key] = if has($key) then merge(.[$key]; $right[$key]) else $right[$key] end)
+            else
+                $right
+            end;
+        merge($previous; {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+                "g4f": {
+                    "npm": "@ai-sdk/openai-compatible",
+                    "name": "g4f",
+                    "options": {
+                        "baseURL": $base_url,
+                        "apiKey": $api_key
+                    },
+                    "models": {
+                        ($model): {"name": $model}
+                    }
+                }
+            },
+            "model": ("g4f/" + $model)
+        })' 2>/dev/null); then
+        die "OPENCODE_CONFIG_CONTENT must contain valid JSON to enable the g4f provider"
+    fi
+    export OPENCODE_CONFIG_CONTENT="$config"
+}
+
+configure_copilot_g4f() {
+    # As with OpenCode: only BYOK the g4f provider when a model was chosen.
+    [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
+    export COPILOT_PROVIDER_TYPE=openai
+    export COPILOT_PROVIDER_BASE_URL="$G4F_API_BASE_URL"
+    export COPILOT_PROVIDER_API_KEY="$G4F_API_KEY"
+    export COPILOT_PROVIDER_MODEL_ID="$G4F_PROVIDER_MODEL"
+    export COPILOT_MODEL="$G4F_PROVIDER_MODEL"
+}
+
+# Hermes has no environment-variable provider override, so its config file is
+# written through `hermes config set` (the supported path; the file is YAML and
+# the image ships no YAML parser). `model.provider custom` + `model.base_url`
+# point Hermes at the g4f API and `model.key_env` names the variable holding
+# the bearer token. The provider travels in the model name ("Provider:model"),
+# which g4f resolves itself; a request body `extra_body.provider` is ignored by
+# the server, and the base URL stays at /v1 so model listing keeps working.
+configure_hermes_g4f() {
+    [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
+    log "pointing Hermes at the g4f API ($G4F_API_BASE_URL)"
+    hermes config set model.provider custom >/dev/null \
+        || die "could not configure Hermes (model.provider)"
+    hermes config set model.base_url "$G4F_API_BASE_URL" >/dev/null \
+        || die "could not configure Hermes (model.base_url)"
+    hermes config set model.default "$G4F_PROVIDER_MODEL" >/dev/null \
+        || die "could not configure Hermes (model.default)"
+    hermes config set model.key_env G4F_API_KEY >/dev/null \
+        || die "could not configure Hermes (model.key_env)"
+    # Drop a provider left behind by an earlier version of this launcher, which
+    # wrote it to extra_body where g4f never read it.
+    hermes config unset model.extra_body.provider >/dev/null 2>&1 || true
+}
+
+launch() { # <label> <command...>
+    if [ "$INSTALL_ONLY" = 1 ]; then
+        log "$1 is installed and ready"
+        exit 0
+    fi
+    shift
+    exec "$@"
+}
+
+run_tool() {
+    # The saved HOME applies to every entry, g4f-aware or not.
+    apply_sandbox_home
+    case "$1" in
+        opencode)
+            ensure_script "$OPENCODE_INSTALLER" opencode "OpenCode"
+            if [ "$INSTALL_ONLY" = 0 ]; then
+                configure_g4f
+                configure_opencode_g4f
+            fi
+            launch OpenCode opencode "${@:2}" ;;
+        kilocode)
+            ensure_npm @kilocode/cli kilo
+            launch "Kilo Code" kilo "${@:2}" ;;
+        antigravity)
+            ensure_script "$ANTIGRAVITY_INSTALLER" agy "Antigravity CLI"
+            launch "Antigravity CLI" agy "${@:2}" ;;
+        gemini-cli)
+            ensure_npm @google/gemini-cli gemini
+            launch "Gemini CLI" gemini "${@:2}" ;;
+        qwencode)
+            ensure_npm @qwen-code/qwen-code qwen
+            launch "Qwen Code" qwen "${@:2}" ;;
+        claude-code)
+            ensure_npm @anthropic-ai/claude-code claude
+            launch "Claude Code" claude "${@:2}" ;;
+        codex)
+            ensure_npm @openai/codex codex
+            launch Codex codex "${@:2}" ;;
+        copilot)
+            ensure_npm @github/copilot copilot
+            if [ "$INSTALL_ONLY" = 0 ]; then
+                configure_g4f
+                configure_copilot_g4f
+            fi
+            launch "GitHub Copilot" copilot "${@:2}" ;;
+        g4f-go)
+            have g4f-go || die "g4f-go is not installed"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "g4f-go is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch "g4f-go" g4f-go "${@:2}"
+            fi
+            log "g4f-go is preinstalled. Run 'g4f-go help' to see available commands."
+            exec bash -i ;;
+        cline)
+            ensure_npm cline cline
+            launch Cline cline "${@:2}" ;;
+        amp)
+            ensure_npm @ampcode/cli amp
+            launch Amp amp "${@:2}" ;;
+        goose)
+            ensure_script "$GOOSE_INSTALLER" goose "Goose"
+            launch Goose goose "${@:2}" ;;
+        aider)
+            ensure_pip aider-chat aider
+            launch Aider aider "${@:2}" ;;
+        cursor)
+            ensure_script "$CURSOR_INSTALLER" cursor-agent "Cursor CLI"
+            launch "Cursor CLI" cursor-agent "${@:2}" ;;
+        chrome)
+            ensure_chrome
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Google Chrome is installed and ready"
+                exit 0
+            fi
+            # Chrome is a GUI app: open it on the desktop via start-browser
+            # (debug port + port forward, --once = no relaunch loop), detached,
+            # so the launcher terminal can close while the browser keeps running.
+            log "opening Google Chrome on the desktop"
+            nohup setsid /usr/local/bin/start-browser chrome --once \
+                >/tmp/chrome.log 2>&1 &
+            # start-browser exits as soon as Chrome does, so a crash would
+            # otherwise close this terminal before the reason is readable.
+            # Wait for the CDP port (or the process) and report the log.
+            local waited=0
+            while [ "$waited" -lt 20 ]; do
+                port_open 57011 && break
+                pgrep -f "remote-debugging-port=57011" >/dev/null 2>&1 || break
+                sleep 1
+                waited=$((waited + 1))
+            done
+            if port_open 57011; then
+                log "Chrome is running on the desktop (CDP on 127.0.0.1:57011)"
+                exit 0
+            fi
+            printf '\nChrome did not start. Last lines of /tmp/chrome.log:\n\n' >&2
+            tail -n 20 /tmp/chrome.log >&2 2>/dev/null || true
+            die "Chrome failed to start (see /tmp/chrome.log)" ;;
+        lightpanda)
+            ensure_lightpanda
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Lightpanda is installed and ready"
+                exit 0
+            fi
+            # Not baked into the image: installed on first click, then served
+            # here in the foreground. g4f-go browser serve prints the CDP
+            # endpoint and keeps running, so the terminal stays open as the
+            # server console (Ctrl-C stops it). g4f picks the endpoint up
+            # automatically when it runs headless.
+            log "starting the Lightpanda CDP server (Ctrl-C to stop)"
+            launch Lightpanda g4f-go browser serve "${@:2}" ;;
+        omniroute)
+            ensure_npm omniroute omniroute
+            launch OmniRoute omniroute "${@:2}" ;;
+        ollama)
+            ensure_ollama
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Ollama is installed and ready"
+                exit 0
+            fi
+            # `ollama serve` is the daemon; the terminal stays open as its
+            # console (Ctrl-C stops it). The API is on 127.0.0.1:11434 and g4f
+            # reaches it through the /ollama proxy route.
+            log "starting the Ollama server (Ctrl-C to stop)"
+            launch Ollama ollama serve "${@:2}" ;;
+        open-webui)
+            ensure_openwebui
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Open WebUI is installed and ready"
+                exit 0
+            fi
+            # Talks to the Ollama daemon on the default port; the browser UI is
+            # served on 8080, so keep it off the g4f API port.
+            export OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
+            log "starting Open WebUI on http://127.0.0.1:3000 (Ctrl-C to stop)"
+            launch "Open WebUI" open-webui serve --port 3000 "${@:2}" ;;
+        llamacpp)
+            ensure_llamacpp
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "llama.cpp is installed and ready"
+                exit 0
+            fi
+            # llama-server exposes an OpenAI-compatible API on 8080 by default;
+            # move it to 11435 so it does not collide with the g4f API.
+            log "starting llama-server on http://127.0.0.1:11435 (Ctrl-C to stop)"
+            launch "llama.cpp" llama-server --port 11435 "${@:2}" ;;
+        lmstudio)
+            ensure_lmstudio
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "LM Studio is installed and ready"
+                exit 0
+            fi
+            log "starting the LM Studio daemon (Ctrl-C to stop)"
+            launch "LM Studio" lms server start "${@:2}" ;;
+        jan)
+            ensure_jan
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Jan is installed and ready"
+                exit 0
+            fi
+            # Jan is a GUI app: open it on the desktop, detached, so the
+            # launcher terminal can close while the app keeps running.
+            log "opening Jan on the desktop"
+            nohup setsid jan >/tmp/jan.log 2>&1 &
+            exit 0 ;;
+        openclaw)
+            ensure_script "$OPENCLAW_INSTALLER" openclaw "OpenClaw"
+            launch OpenClaw openclaw "${@:2}" ;;
+        crush)
+            ensure_npm @charmland/crush crush
+            launch Crush crush "${@:2}" ;;
+        continue-cli)
+            ensure_npm @continuedev/cli cn
+            launch "Continue CLI" cn "${@:2}" ;;
+        grok)
+            ensure_script "$GROK_INSTALLER" grok "Grok Build CLI"
+            launch "Grok Build CLI" grok "${@:2}" ;;
+        droid)
+            ensure_script "$DROID_INSTALLER" droid "Factory Droid"
+            launch "Factory Droid" droid "${@:2}" ;;
+        openhands)
+            ensure_script "$OPENHANDS_INSTALLER" openhands "OpenHands CLI"
+            launch "OpenHands CLI" openhands "${@:2}" ;;
+        gptme)
+            ensure_pip gptme gptme
+            launch gptme gptme "${@:2}" ;;
+        plandex)
+            ensure_script "$PLANDEX_INSTALLER" plandex "Plandex"
+            launch Plandex plandex "${@:2}" ;;
+        hermes)
+            ensure_hermes
+            if [ "$INSTALL_ONLY" = 0 ]; then
+                configure_g4f
+                configure_hermes_g4f
+            fi
+            launch "Hermes Agent" hermes "${@:2}" ;;
+        kiro)
+            ensure_unzip
+            ensure_script "$KIRO_INSTALLER" kiro-cli "Kiro CLI"
+            launch "Kiro CLI" kiro-cli "${@:2}" ;;
+        kimi)
+            ensure_script "$KIMI_INSTALLER" kimi "Kimi Code"
+            launch "Kimi Code" kimi "${@:2}" ;;
+        roo)
+            ensure_script "$ROO_INSTALLER" roo "Roo Code CLI"
+            launch "Roo Code CLI" roo "${@:2}" ;;
+        auggie)
+            ensure_npm @augmentcode/auggie auggie
+            launch Auggie auggie "${@:2}" ;;
+        qoder)
+            ensure_script "$QODER_INSTALLER" qodercli "Qoder CLI"
+            launch "Qoder CLI" qodercli "${@:2}" ;;
+        iflow)
+            ensure_npm @iflow-ai/iflow-cli iflow
+            launch "iFlow CLI" iflow "${@:2}" ;;
+        vibe)
+            ensure_script "$VIBE_INSTALLER" vibe "Mistral Vibe"
+            launch "Mistral Vibe" vibe "${@:2}" ;;
+        sweagent)
+            ensure_sweagent
+            launch "SWE-agent" sweagent "${@:2}" ;;
+        fabric)
+            ensure_script "$FABRIC_INSTALLER" fabric "Fabric"
+            launch Fabric fabric "${@:2}" ;;
+        litellm)
+            ensure_pip 'litellm[proxy]' litellm
+            launch "LiteLLM gateway" litellm "${@:2}" ;;
+        sgpt)
+            ensure_pip shell-gpt sgpt
+            launch ShellGPT sgpt "${@:2}" ;;
+        llm)
+            ensure_pip llm llm
+            launch "LLM CLI" llm "${@:2}" ;;
+        *)
+            die "unknown tool \"$1\" — run: sandbox-cli list" ;;
+    esac
+}
+
+usage() {
+    cat <<'EOF'
+usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop tool
+       sandbox-cli install <tool>     install only, don't run it
+       sandbox-cli settings           choose the g4f model, HOME and provider
+       sandbox-cli list               list the tools behind the desktop menu
+       sandbox-cli help               this help
+
+Installs go to /usr/local (npm -g via sudo), ~/.local (pip --user and the
+vendor install scripts) or wherever the installer puts them; the CLI then
+runs in this terminal. The HOME saved in the sandbox settings applies to
+every entry.
+EOF
+}
+
+list_tools() {
+    # Grouped like the desktop menu (see docker/sandbox-menu/README.md).
+    printf '%s\n' "g4f"
+    printf '  %-13s %s\n' \
+        g4f-go      "g4f Go launcher CLI (preinstalled)" \
+        settings    "g4f model, HOME and provider for the launchers"
+    printf '%s\n' "Browsers"
+    printf '  %-13s %s\n' \
+        chrome      "Google Chrome browser" \
+        lightpanda  "Lightpanda headless browser (CDP server)"
+    printf '%s\n' "Coding Agents"
+    printf '  %-13s %s\n' \
+        opencode    "OpenCode coding agent" \
+        kilocode    "Kilo Code terminal agent" \
+        antigravity "Antigravity CLI by Google" \
+        gemini-cli  "Google Gemini CLI" \
+        qwencode    "Qwen Code CLI" \
+        claude-code "Anthropic Claude Code" \
+        codex       "OpenAI Codex CLI" \
+        copilot     "GitHub Copilot CLI" \
+        cline       "Cline terminal agent" \
+        amp         "Amp by Sourcegraph" \
+        goose       "Goose by Block" \
+        aider       "Aider pair-programming CLI" \
+        cursor      "Cursor CLI" \
+        crush       "Crush agent by Charm" \
+        continue-cli "Continue CLI agent" \
+        grok        "xAI Grok Build CLI" \
+        droid       "Factory Droid agent" \
+        openhands   "OpenHands coding agent" \
+        plandex     "Plandex coding agent" \
+        hermes      "Hermes Agent by Nous Research" \
+        kiro        "Kiro CLI by AWS" \
+        kimi        "Kimi Code by Moonshot AI" \
+        roo         "Roo Code CLI" \
+        auggie      "Auggie by Augment Code" \
+        qoder       "Qoder CLI" \
+        iflow       "iFlow CLI" \
+        vibe        "Mistral Vibe" \
+        sweagent    "SWE-agent by Princeton"
+    printf '%s\n' "Gateways"
+    printf '  %-13s %s\n' \
+        omniroute   "OmniRoute AI router/gateway" \
+        litellm     "LiteLLM AI gateway"
+    printf '%s\n' "Local AI"
+    printf '  %-13s %s\n' \
+        ollama      "Ollama local model server" \
+        open-webui  "Open WebUI for Ollama" \
+        llamacpp    "llama.cpp llama-server" \
+        lmstudio    "LM Studio (lms CLI + daemon)" \
+        jan         "Jan desktop app"
+    printf '%s\n' "Assistants"
+    printf '  %-13s %s\n' \
+        openclaw    "OpenClaw CLI" \
+        fabric      "Fabric AI patterns CLI" \
+        sgpt        "ShellGPT shell assistant" \
+        gptme       "gptme terminal agent" \
+        llm         "LLM CLI by Simon Willison"
+}
+
+case "${1:-}" in
+    ""|help|-h|--help)
+        usage ;;
+    list)
+        list_tools ;;
+    settings)
+        shift
+        run_settings "$@" ;;
+    install)
+        [ $# -ge 2 ] || die "usage: sandbox-cli install <tool>"
+        INSTALL_ONLY=1
+        run_tool "$2" ;;
+    *)
+        tool="$1"
+        shift
+        run_tool "$tool" "$@" ;;
+esac

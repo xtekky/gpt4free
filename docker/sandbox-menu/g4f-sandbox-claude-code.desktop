@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Claude
+Comment=Anthropic Claude Code — installs on first click, then opens in a terminal
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Claude --command="/usr/local/bin/sandbox-cli claude-code"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=claude;anthropic;ai;agent;coding;;
+StartupNotify=false

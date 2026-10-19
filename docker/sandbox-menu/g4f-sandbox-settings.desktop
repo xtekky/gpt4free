@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Sandbox Settings
+Comment=Choose the g4f model, HOME and provider used by the menu entries
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Sandbox Settings" --command="/usr/local/bin/sandbox-cli settings"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=g4f;settings;model;home;provider;environment;;
+StartupNotify=false

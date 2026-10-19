@@ -5,11 +5,13 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 - WebScrapeTool: Web page scraping and content extraction
 - ImageGenerationTool: Image generation using various AI providers
 - PythonExecuteTool: Safe Python code execution with whitelisted modules
-- FileReadTool: Read files from the ~/.g4f/workspace directory (supports startLine/endLine)
+- ShellExecuteTool: Shell/terminal command execution (host mode only —
+  disabled automatically when safe mode is active, e.g. inside sandboxes)
+- FileReadTool: Read files from the workspace directory (supports startLine/endLine)
 - FileSearchTool: Search files and file contents in the workspace
-- FileWriteTool: Write files to the ~/.g4f/workspace directory
-- FileListTool: List files in the ~/.g4f/workspace directory
-- FileDeleteTool: Delete files from the ~/.g4f/workspace directory
+- FileWriteTool: Write files to the workspace directory
+- FileListTool: List files in the workspace directory
+- FileDeleteTool: Delete files from the workspace directory
 - BrowserNavigateTool / BrowserEvaluateTool / BrowserScreenshotTool / BrowserCloseTool:
   Browser automation over a shared Chrome DevTools Protocol session that is
   closed automatically after an idle period
@@ -388,7 +390,7 @@ class PythonExecuteTool(MCPTool):
 
     Executes the supplied code snippet inside a restricted sandbox where only
     a curated list of modules may be imported and file-system access is limited
-    to the ``~/.g4f/workspace`` directory.  The value assigned to the ``result``
+    to the workspace directory.  The value assigned to the ``result``
     variable (if any) is returned along with captured stdout/stderr.
     """
 
@@ -397,7 +399,7 @@ class PythonExecuteTool(MCPTool):
         return (
             "Execute a Python code snippet safely. Only whitelisted modules may "
             "be imported (math, json, re, datetime, asyncio, aiohttp, g4f, …). "
-            "File access is restricted to the ~/.g4f/workspace directory. "
+            "File access is restricted to the workspace directory. "
             "Assign the value you want back to a variable named 'result'. "
             "Returns stdout, stderr, and the value of 'result'."
         )
@@ -487,13 +489,153 @@ class PythonExecuteTool(MCPTool):
             return {"error": f"Execution error: {exc}"}
 
 
-class FileReadTool(MCPTool):
-    """Read a file from the ``~/.g4f/workspace`` directory."""
+#: Maximum wall-clock seconds a single shell command may run.
+SHELL_MAX_TIMEOUT = 60.0
+#: Default wall-clock seconds before a shell command is killed.
+SHELL_DEFAULT_TIMEOUT = 30.0
+#: Maximum characters kept from shell stdout / stderr each.
+SHELL_MAX_OUTPUT = 40_000
+
+
+class ShellExecuteTool(MCPTool):
+    """Shell / terminal command execution tool (host mode only).
+
+    Runs a shell command on the host and returns stdout, stderr and the exit
+    code.  The tool is only activated outside sandboxes: when safe mode is
+    active (auto-enabled inside detected containers/sandboxes) the server
+    does not register this tool at all, and execution is refused as a second
+    line of defense.
+    """
 
     @property
     def description(self) -> str:
         return (
-            "Read the text content of a file inside the ~/.g4f/workspace directory. "
+            "Execute a shell/terminal command and return stdout, stderr and "
+            "the exit code. The working directory defaults to the workspace "
+            "directory. Only available outside sandboxes: the tool is "
+            "disabled automatically when safe mode is active."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "The shell/terminal command to execute",
+                },
+                "cwd": {
+                    "type": "string",
+                    "description": (
+                        "Optional working directory, relative to the "
+                        "workspace directory (default: workspace root)"
+                    ),
+                },
+                "timeout": {
+                    "type": "number",
+                    "description": (
+                        "Wall-clock seconds to allow before the command is "
+                        f"killed (max {SHELL_MAX_TIMEOUT:.0f}s; "
+                        f"default {SHELL_DEFAULT_TIMEOUT:.0f}s)"
+                    ),
+                },
+            },
+            "required": ["command"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        if self.safe_mode:
+            return {
+                "error": (
+                    "shell_execute is disabled in safe mode "
+                    "(sandboxed environment detected)"
+                )
+            }
+
+        command = arguments.get("command", "")
+        if not command or not str(command).strip():
+            return {"error": "command parameter is required"}
+
+        timeout = SHELL_DEFAULT_TIMEOUT
+        requested_timeout = arguments.get("timeout")
+        if requested_timeout is not None:
+            try:
+                timeout = min(max(float(requested_timeout), 0.1), SHELL_MAX_TIMEOUT)
+            except (TypeError, ValueError):
+                return {"error": "timeout must be a number"}
+
+        # Resolve the working directory inside the workspace
+        workspace = get_workspace_dir().resolve()
+        cwd = workspace
+        rel_cwd = arguments.get("cwd")
+        if rel_cwd:
+            candidate = (workspace / str(rel_cwd)).resolve()
+            if candidate != workspace and workspace not in candidate.parents:
+                return {"error": "Access outside the workspace is not allowed"}
+            if not candidate.is_dir():
+                return {"error": f"Directory not found: {rel_cwd}"}
+            cwd = candidate
+
+        try:
+            process = await asyncio.create_subprocess_shell(
+                str(command),
+                cwd=str(cwd),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.DEVNULL,
+            )
+        except (OSError, ValueError) as exc:
+            return {"error": f"Failed to start command: {exc}"}
+
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            try:
+                process.kill()
+                await process.wait()
+            except OSError:
+                pass
+            return {
+                "error": f"Command timed out after {timeout:g}s and was killed",
+                "command": str(command),
+                "timed_out": True,
+            }
+        except Exception as exc:
+            try:
+                process.kill()
+                await process.wait()
+            except OSError:
+                pass
+            return {"error": f"Command execution failed: {exc}"}
+
+        def _decode(data: Optional[bytes]) -> str:
+            text = (data or b"").decode("utf-8", errors="replace")
+            if len(text) > SHELL_MAX_OUTPUT:
+                omitted = len(text) - SHELL_MAX_OUTPUT
+                text = text[:SHELL_MAX_OUTPUT] + f"\n… [{omitted} characters truncated]"
+            return text
+
+        return {
+            "command": str(command),
+            "cwd": str(cwd),
+            "exit_code": process.returncode,
+            "stdout": _decode(stdout),
+            "stderr": _decode(stderr),
+        }
+
+
+class FileReadTool(MCPTool):
+    """Read a file from the workspace directory."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Read the text content of a file inside the workspace directory. "
             "Provide a relative path from the workspace root. "
             "Optionally specify startLine and endLine (1-based) to read only a range of lines."
         )
@@ -586,12 +728,12 @@ class FileReadTool(MCPTool):
 
 
 class FileListTool(MCPTool):
-    """List files and directories inside the ``~/.g4f/workspace`` directory."""
+    """List files and directories inside the workspace directory."""
 
     @property
     def description(self) -> str:
         return (
-            "List files and directories inside the ~/.g4f/workspace directory. "
+            "List files and directories inside the workspace directory. "
             "Optionally provide a subdirectory path relative to the workspace root. "
             "Returns names, types, and sizes."
         )
@@ -676,12 +818,12 @@ class FileListTool(MCPTool):
 
 
 class FileDeleteTool(MCPTool):
-    """Delete a file from the ``~/.g4f/workspace`` directory."""
+    """Delete a file from the workspace directory."""
 
     @property
     def description(self) -> str:
         return (
-            "Delete a file from the ~/.g4f/workspace directory. "
+            "Delete a file from the workspace directory. "
             "Provide a relative path from the workspace root. "
             "Only files can be deleted; directories are not removed."
         )
@@ -727,12 +869,12 @@ class FileDeleteTool(MCPTool):
 
 
 class CreateDirectoryTool(MCPTool):
-    """Create a directory (and all parents) inside the ``~/.g4f/workspace`` directory."""
+    """Create a directory (and all parents) inside the workspace directory."""
 
     @property
     def description(self) -> str:
         return (
-            "Create a new directory structure in the ~/.g4f/workspace. "
+            "Create a new directory structure in the workspace. "
             "Will recursively create all directories in the path, like mkdir -p. "
             "You do not need to use this tool before using create_file, that tool will automatically create the needed directories."
         )
@@ -772,12 +914,12 @@ class CreateDirectoryTool(MCPTool):
 
 
 class CreateFileTool(MCPTool):
-    """Create a new file inside the ``~/.g4f/workspace`` directory."""
+    """Create a new file inside the workspace directory."""
 
     @property
     def description(self) -> str:
         return (
-            "Create a new file in the ~/.g4f/workspace with the specified content. "
+            "Create a new file in the workspace with the specified content. "
             "The directory will be created if it does not already exist. "
             "Never use this tool to edit a file that already exists."
         )
@@ -838,12 +980,12 @@ class CreateFileTool(MCPTool):
 
 
 class FileWriteTool(MCPTool):
-    """Write (or create) a file inside the ``~/.g4f/workspace`` directory."""
+    """Write (or create) a file inside the workspace directory."""
 
     @property
     def description(self) -> str:
         return (
-            "Write text content to a file inside the ~/.g4f/workspace directory. "
+            "Write text content to a file inside the workspace directory. "
             "Creates parent directories as needed. Overwrites the file if it already exists. "
             "Provide a relative path from the workspace root and the content to write."
         )
@@ -910,12 +1052,12 @@ class FileWriteTool(MCPTool):
 
 
 class ReplaceStringInFileTool(MCPTool):
-    """Replace an exact string in a file inside the ``~/.g4f/workspace`` directory."""
+    """Replace an exact string in a file inside the workspace directory."""
 
     @property
     def description(self) -> str:
         return (
-            "Replace an exact string in a file inside the ~/.g4f/workspace directory. "
+            "Replace an exact string in a file inside the workspace directory. "
             "Provide the relative file path, the exact old string, and the new string. "
             "Only the first occurrence is replaced. Returns whether a replacement was made."
         )
@@ -1059,7 +1201,7 @@ class FileSearchGlobTool(MCPTool):
     @property
     def description(self) -> str:
         return (
-            "Search for files in the ~/.g4f/workspace by glob pattern. "
+            "Search for files in the workspace by glob pattern. "
             "Returns the paths of matching files. "
             "Examples: **/*.py to match all Python files; src/** to match all files under src/."
         )
@@ -1121,7 +1263,7 @@ class GrepSearchTool(MCPTool):
     @property
     def description(self) -> str:
         return (
-            "Do a fast text search in the ~/.g4f/workspace files. "
+            "Do a fast text search in the workspace files. "
             "Supports exact string or regex patterns. "
             "Use includePattern to restrict to specific file types. "
             "Returns matching file paths and line snippets."
@@ -1850,6 +1992,21 @@ async def _browser_eval(arguments: Dict[str, Any], expression: str) -> Any:
     session = await _get_shared_cdp_session()
     return await session.evaluate_js(expression)
 
+async def _browser_snapshot(arguments: Dict[str, Any]) -> Optional[str]:
+    """Snapshot the relay target or shared tab, including cross-origin frames."""
+    from .browser_dom import SNAPSHOT_JS, snapshot_frames
+
+    target_id = arguments.get("targetId")
+    if target_id:
+        from ..api.cdp_relay import relay
+        html = await snapshot_frames(
+            lambda method, **params: relay.call(target_id, method, **params)
+        )
+        return html or await relay.evaluate(target_id, SNAPSHOT_JS)
+    session = await _get_shared_cdp_session()
+    html = await snapshot_frames(session.call)
+    return html or await session.evaluate_js(SNAPSHOT_JS)
+
 _TARGET_PROP = {
     "type": "string",
     "description": "Optional /browser target id (e.g. 'extension:123'); defaults to the shared browser tab",
@@ -1871,9 +2028,8 @@ class BrowserSnapshotTool(MCPTool):
         return {"type": "object", "properties": {"targetId": _TARGET_PROP}}
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .browser_dom import SNAPSHOT_JS
         try:
-            return {"html": await _browser_eval(arguments, SNAPSHOT_JS)}
+            return {"html": await _browser_snapshot(arguments)}
         except Exception as exc:
             return {"error": f"Browser snapshot failed: {exc}"}
 
@@ -1983,7 +2139,7 @@ class NotebookCreateTool(MCPTool):
     @property
     def description(self) -> str:
         return (
-            "Create a markdown notebook (.md file) in the ~/.g4f/workspace/notebooks directory. "
+            "Create a markdown notebook (.md file) in the workspace/notebooks directory. "
             "Notebooks are plain markdown files that can be listed with notebook_list and read "
             "with file_read. The name is normalized (spaces become dashes, .md appended)."
         )
@@ -2065,7 +2221,7 @@ class NotebookListTool(MCPTool):
     @property
     def description(self) -> str:
         return (
-            "List markdown notebooks (.md files) in the ~/.g4f/workspace/notebooks directory. "
+            "List markdown notebooks (.md files) in the workspace/notebooks directory. "
             "Returns notebook names, paths, sizes and modification times sorted by newest first."
         )
 

@@ -16,7 +16,10 @@ from ..errors import RetryProviderError, RetryNoProviderError
 
 def _resolve_model(provider: Type[BaseProvider], model: str) -> str:
     alias = model or getattr(provider, "default_model", None)
-    if getattr(provider, "model_aliases", None):
+    # Only consult the alias map for an explicitly requested model.  Looking
+    # up an empty model would replace a provider's default_model with "" and
+    # make providers such as GeminiPro send a request without a model.
+    if model and getattr(provider, "model_aliases", None):
         alias = provider.model_aliases.get(model, model)
     if isinstance(alias, list):
         alias = random.choice(alias)

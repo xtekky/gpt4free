@@ -4,11 +4,17 @@
 BROWSER="chrome"
 DEBUG_PORT=57011
 HEADLESS=0
+ONCE=0
+NO_SANDBOX=0
 for arg in "$@"; do
     case "$arg" in
         --headless) HEADLESS=1 ;;
+        --once|--no-loop) ONCE=1 ;;
+        --no-sandbox) NO_SANDBOX=1 ;;
         -h|--help)
-            echo "Usage: $0 [chrome|chromium|brave|msedge] [--headless]"
+            echo "Usage: $0 [chrome|chromium|brave|msedge] [--headless] [--once] [--no-sandbox]"
+            echo "  --once  start the browser a single time, no relaunch loop (Linux)"
+            echo "  --no-sandbox  disable the browser sandbox (implied when running as root)"
             exit 0
             ;;
         -*) echo "Unknown argument: $arg" >&2; exit 1 ;;
@@ -34,6 +40,19 @@ BROWSER_FLAGS=(
     --remote-debugging-host=127.0.0.1
     --remote-debugging-port=$DEBUG_PORT
 )
+
+# Chrome refuses to run its sandbox as root, so only disable it when requested,
+# when running as root, or inside a container: Docker's default seccomp profile
+# blocks the user namespaces Chrome's zygote needs, so Chrome dies with
+# "Failed to move to new namespace ... Operation not permitted" even as a
+# non-root user.
+in_container() {
+    [ -f /.dockerenv ] || [ -f /run/.containerenv ] || [ -n "${container:-}" ]
+}
+
+if [ "$NO_SANDBOX" -eq 1 ] || [ "$(id -u)" -eq 0 ] || in_container; then
+    BROWSER_FLAGS+=(--no-sandbox)
+fi
 
 if [ "$HEADLESS" -eq 1 ]; then
     BROWSER_FLAGS+=(--headless=new)
@@ -215,7 +234,6 @@ start_port_forward
 if [[ "$BROWSER_BIN" == *.exe ]]; then
     # Windows: relaunch the browser whenever it is closed.
     while true; do
-        rm -f ~/.g4f/cookies/.browser_is_open
         "$BROWSER_BIN" "${BROWSER_FLAGS[@]}" &
         BROWSER_PID=$!
         # Wait until the debugging port is reachable (browser fully started), max 30s.
@@ -235,9 +253,12 @@ if [[ "$BROWSER_BIN" == *.exe ]]; then
         sleep 3
     done
 else
-    # Linux: loop and relaunch if the browser exits
+    # Linux: loop and relaunch if the browser exits (--once starts it a single time)
+    if [ "$ONCE" -eq 1 ]; then
+        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
+        exit 0
+    fi
     while true; do
-        rm -f ~/.g4f/cookies/.browser_is_open
         "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
         sleep 5
     done

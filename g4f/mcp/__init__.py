@@ -6,17 +6,27 @@ through the Model Context Protocol standard, allowing AI assistants to access:
 - Web scraping capabilities
 - Image generation using various providers
 - Safe Python code execution
-- Workspace file management (read, write, list, delete) at ~/.g4f/workspace
+- Shell / terminal command execution (host mode only — disabled automatically
+  when safe mode is active, e.g. inside detected sandboxes/containers)
+- Workspace file management (read, write, list, delete) in the workspace
+  directory (``~/.g4f/workspace`` by default, overridable with ``G4F_DIR``)
 - .pa.py custom provider loading and execution
 """
 
 from .server import MCPServer
+from .sandbox import (
+    detect_sandbox,
+    get_sandbox_reasons,
+    safe_mode_enabled,
+    shell_tool_enabled,
+)
 from .tools import (
     MarkItDownTool,
     TextToAudioTool,
     WebSearchTool,
     ImageGenerationTool,
     PythonExecuteTool,
+    ShellExecuteTool,
     FileReadTool,
     FileListTool,
     FileDeleteTool,
@@ -49,6 +59,7 @@ __all__ = [
     "ImageGenerationTool",
     # New tools
     "PythonExecuteTool",
+    "ShellExecuteTool",
     "FileReadTool",
     "FileListTool",
     "FileDeleteTool",
@@ -60,6 +71,11 @@ __all__ = [
     "GithubRepoTool",
     "GithubTextSearchTool",
     "TokenOptimizerTool",
+    # Sandbox detection / safe mode
+    "detect_sandbox",
+    "get_sandbox_reasons",
+    "safe_mode_enabled",
+    "shell_tool_enabled",
     # PA provider system
     "execute_safe_code",
     "load_pa_provider",

@@ -9,6 +9,11 @@ from typing import Optional
 def get_config_dir() -> Path:
     """Get platform-appropriate config directory."""
 
+    import os
+    config_dir = os.environ.get("G4F_CONFIG_DIR")
+    if config_dir:
+        return Path(config_dir)
+
     def get_fallback_config_dir() -> Path:
         if sys.platform == "win32":
             return (

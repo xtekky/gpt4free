@@ -30,6 +30,8 @@ Usage:
   g4f-go cache clear          remove all cached g4f data (model lists, scrape caches)
   g4f-go install g4f         (re)install the g4f package (network)
   g4f-go bootstrap            refresh the g4f package installation
+  g4f-go -v <version> <cmd>   pin the g4f package version (e.g. g4f-go -v 1.5.0 api)
+  g4f-go -v latest            stop pinning (track the latest g4f release)
   g4f-go --version            print version
   g4f-go help                 show this help
 
@@ -53,6 +55,16 @@ func runMain() int {
 	if len(args) == 0 {
 		printHelp()
 		return 0
+	}
+
+	// `-v <version>` pins the g4f package version. Strip it here so the pin
+	// works in front of any subcommand; a bare `-v` still prints the
+	// g4f-go version (handled by the switch below).
+	pin, args := g4fPin(binDir, args)
+	if len(args) == 0 {
+		// `g4f-go -v <version>` without a command: make sure that exact
+		// g4f version is installed.
+		return runPinOnly(binDir, pin)
 	}
 
 	// `browser` manages the headless browser itself and needs no Python runtime.
@@ -122,6 +134,11 @@ func runMain() int {
 		} else {
 			fmt.Println("g4f:        not installed (will install on first run)")
 		}
+		if pin != "" {
+			fmt.Printf("g4f pin:    %s (.g4f-runtime/.g4f-version)\n", pin)
+		} else {
+			fmt.Println("g4f pin:    none (tracking the latest release)")
+		}
 		if data, berr := os.ReadFile(bundleStampPath(binDir)); berr == nil {
 			fmt.Printf("bundle:     revision %s extracted (%s)\n", strings.TrimSpace(string(data)), bundleDir(binDir))
 		} else {
@@ -145,10 +162,15 @@ func runMain() int {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
 		}
+		if code == 0 {
+			// Keep the -v pin in sync with an explicit pip passthrough
+			// (`install g4f` unpins, `install g4f==X.Y.Z` pins).
+			syncPinWithInstallSpec(binDir, args)
+		}
 		return code
 	case "bootstrap":
 		// Refresh the embedded package installation (e.g. after updating g4f-go).
-		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", "g4f[slim]"}, pipEnv(binDir)...)
+		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", g4fSpec(pin)}, pipEnv(binDir)...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
 		}
@@ -181,7 +203,7 @@ func runMain() int {
 		return code
 	}
 
-	if err := ensureG4FPackage(binDir, py, args); err != nil {
+	if err := ensureG4FPackage(binDir, py, args, pin); err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 	}
 
@@ -193,22 +215,45 @@ func runMain() int {
 	return code
 }
 
-// ensureG4FPackage handles first-install and selected auto-upgrade flows for
-// the g4f package inside the prepared runtime.
-func ensureG4FPackage(binDir, py string, args []string) error {
+// runPinOnly handles `g4f-go -v <version>` with no command: make sure the
+// pinned g4f version is installed and report the effective pin.
+func runPinOnly(binDir, pin string) int {
+	py, err := ensureRuntime()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		return 1
+	}
+	if err := ensureG4FPackage(binDir, py, nil, pin); err != nil {
+		fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		return 1
+	}
+	if pin != "" {
+		fmt.Printf("g4f pinned to %s\n", pin)
+	} else {
+		fmt.Println("g4f version pin cleared (tracking the latest release)")
+	}
+	return 0
+}
+
+// ensureG4FPackage handles first-install, pin enforcement and selected
+// auto-upgrade flows for the g4f package inside the prepared runtime. A
+// non-empty pin (from -v or a previous run) installs exactly that version;
+// a pinned install never auto-upgrades.
+func ensureG4FPackage(binDir, py string, args []string, pin string) error {
 	// On Termux we use the system python (no downloaded runtime), so skip
 	// the downloaded-runtime g4f install/upgrade logic that targets
 	// binDir/python-home.
 	if IsTermuxSystem() {
 		return nil
 	}
-	if !g4fIsInstalled(binDir) {
-		// First call: install g4f.
+	if needsInstall(binDir, pin) {
+		// First call, or the pin changed: (re)install g4f.
 		start := time.Now()
-		return installG4F(binDir, py, start)
+		return installG4F(binDir, py, pin, start)
 	}
-	if len(args) > 0 && isUpgradeCommand(args[0]) {
-		// Subsequent call with gui/api/dev: upgrade g4f.
+	if pin == "" && len(args) > 0 && isUpgradeCommand(args[0]) {
+		// Subsequent call with gui/api/dev: upgrade g4f. Skipped while a
+		// version is pinned — pinning means "stay on this version".
 		start := time.Now()
 		return upgradeG4F(binDir, py, start)
 	}

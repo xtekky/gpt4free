@@ -68,8 +68,8 @@ The workflow handles all dependencies automatically, but for local development:
 Key files for customization:
 
 - `g4f_cli.py` - Entry point for executable builds
-- `scripts/build-nuitka.sh` - Nuitka build script for all platforms
-- `scripts/build-deb.sh` - Debian package build script
+- `bin/build-nuitka.sh` - Nuitka build script for all platforms
+- `bin/build-deb.sh` - Debian package build script
 - `winget/manifests/` - WinGet package manifest templates
 - `.github/workflows/build-packages.yml` - Main workflow configuration
 

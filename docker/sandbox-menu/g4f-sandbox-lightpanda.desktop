@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Run Lightpanda
+Comment=Lightpanda headless browser — installs on first click, then serves CDP
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Lightpanda --command="/usr/local/bin/sandbox-cli lightpanda"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Browser;
+Keywords=lightpanda;browser;headless;cdp;automation;;
+StartupNotify=false

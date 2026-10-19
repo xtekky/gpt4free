@@ -67,8 +67,34 @@ g4f-go turn serve           run the embedded STUN/TURN server in the foreground
 g4f-go turn status          show the configured/running STUN/TURN server
 g4f-go turn credentials     mint TURN REST credentials for a client
 g4f-go install g4f          (re)install the g4f package (network)
+g4f-go -v <version> <cmd>   pin the g4f package version (e.g. g4f-go -v 1.5.0 api)
+g4f-go -v latest            stop pinning (track the latest g4f release)
 g4f-go help                 show help
 ```
+
+## Pinning the g4f version (`-v`)
+
+By default `g4f-go` installs the latest `g4f` release on first run and
+auto-upgrades it for `api`/`gui`. `-v <version>` pins it to an exact release
+instead:
+
+```
+g4f-go -v 1.5.0 client "hello"   run a command with g4f 1.5.0
+g4f-go -v 1.5.0 api --port 8080  the pin works in front of any subcommand
+g4f-go -v 1.5.0                  just (re)install the pinned version
+g4f-go -v latest                 drop the pin again
+```
+
+The pin is persisted in
+`~/.g4f/python-embed/.g4f-runtime/.g4f-version`, so later runs without `-v`
+keep using that version — including the automatic upgrades that `api`/`gui`
+would otherwise trigger. Passing `-v` again replaces the pin (a changed pin
+reinstalls g4f on the next run), `-v latest` clears it, and `g4f-go status`
+shows the active pin. A bare `-v` (no version) still prints the g4f-go
+version, as does `--version`.
+
+An explicit `g4f-go install g4f` (unpinned) or `g4f-go install g4f==X.Y.Z`
+updates the stored pin to match what was installed.
 
 ## Headless browser (`browser`)
 
@@ -87,6 +113,26 @@ g4f-go browser uninstall    # remove it
 `browser serve` accepts `--host` (default `127.0.0.1`) and `--port` (default
 `9222`; `0` picks a free port). Any other flag is forwarded to
 `lightpanda serve`.
+
+Both `browser serve` and the automatic startup always pass the same extra
+flags, matching what the Python package uses:
+
+```
+--block-private-networks
+--load-resources iframe
+--http-cache-dir <config dir>/cache/http_cache
+--user-agent-suffix "Chrome/136.0.0.0 Safari/537.36"
+```
+
+The suffix makes Lightpanda's own user agent (`Lightpanda/1.0`) look like
+Chrome's, and the cache directory is shared with
+`g4f.requests.cdp.get_http_cache_dir()`.
+
+Lightpanda 1.0.0 rejects `--user-agent` outright when the value contains
+`Mozilla` (`invalid user-agent`, fatal at startup), so the suffix flag is the
+only supported way to shape the UA. The full Chrome UA is still applied per
+target over CDP (`Network.setUserAgentOverride` plus a `navigator.userAgent`
+override), which is what sites actually see.
 
 ### Automatic startup when headless
 
@@ -277,6 +323,7 @@ python (launcher)          shell wrapper that sets PYTHONHOME/PYTHONPATH
 bundle/                    extracted embedded Python bundle (remote_desktop, web)
 .g4f-runtime/.runtime-ok   stamp: download+extract complete
 .g4f-runtime/.installed    stamp: g4f pip-installed
+.g4f-runtime/.g4f-version  stamp: g4f version pinned via -v (absent: latest)
 .g4f-runtime/.bundle-revision  stamp: extracted bundle revision
 ```
 

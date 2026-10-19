@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from g4f.mcp.server import MCPServer, MCPRequest
 from g4f.mcp.tools import (
     WebSearchTool,
     ImageGenerationTool,
     PythonExecuteTool,
+    ShellExecuteTool,
     FileReadTool,
     FileListTool,
     FileDeleteTool,
@@ -332,9 +335,18 @@ class TestSafeMode(unittest.IsolatedAsyncioTestCase):
         # Tools that don't use safe_mode should not be affected
         self.assertFalse(server.tools["file_read"].safe_mode)
 
-    def test_server_default_not_safe(self):
-        """MCPServer defaults to safe_mode=False."""
+    def test_server_auto_detects_sandbox(self):
+        """MCPServer() defaults to auto-detection (sandbox => safe mode)."""
+        from g4f.mcp.sandbox import safe_mode_enabled
+
         server = MCPServer()
+        self.assertEqual(server.safe_mode, safe_mode_enabled())
+        self.assertEqual(server.safe_mode, server.tools["python_execute"].safe_mode)
+        self.assertEqual(server.safe_mode, server.tools["file_list"].safe_mode)
+
+    def test_server_explicit_unsafe_mode(self):
+        """MCPServer(safe_mode=False) keeps safe mode off."""
+        server = MCPServer(safe_mode=False)
         self.assertFalse(server.safe_mode)
         self.assertFalse(server.tools["python_execute"].safe_mode)
         self.assertFalse(server.tools["file_list"].safe_mode)
@@ -639,6 +651,46 @@ class Provider:
         self.assertIs(r1, r2)
 
 
+class TestWorkspaceDirOverride(unittest.TestCase):
+    """Tests for the G4F_DIR workspace override."""
+
+    def test_default_workspace(self):
+        from g4f.mcp.pa_provider import get_workspace_dir
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("G4F_DIR", None)
+            self.assertEqual(
+                get_workspace_dir(), Path.home() / ".g4f" / "workspace"
+            )
+
+    def test_env_override(self):
+        from g4f.mcp.pa_provider import get_workspace_dir
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "custom-workspace"
+            with mock.patch.dict(os.environ, {"G4F_DIR": str(target)}):
+                workspace = get_workspace_dir()
+            self.assertEqual(workspace, target)
+            self.assertTrue(workspace.is_dir())
+
+    def test_env_override_expands_user(self):
+        from g4f.mcp.pa_provider import get_workspace_dir
+
+        with mock.patch.dict(os.environ, {"G4F_DIR": "~/g4f-dir-test"}):
+            workspace = get_workspace_dir()
+        self.assertEqual(workspace, Path.home() / "g4f-dir-test")
+        self.assertTrue(workspace.is_dir())
+        workspace.rmdir()
+
+    def test_blank_env_override_falls_back(self):
+        from g4f.mcp.pa_provider import get_workspace_dir
+
+        with mock.patch.dict(os.environ, {"G4F_DIR": "   "}):
+            self.assertEqual(
+                get_workspace_dir(), Path.home() / ".g4f" / "workspace"
+            )
+
+
 class TestWorkspaceFileServing(unittest.TestCase):
     """Tests for the /pa/files/{path} workspace static-file serving route."""
 
@@ -770,3 +822,284 @@ class TestWorkspaceFileServing(unittest.TestCase):
             src,
             "Route must extract netloc from request.url (ASGI scope), not Host header",
         )
+
+
+class TestSandboxDetection(unittest.TestCase):
+    """Tests for g4f.mcp.sandbox detection and its environment overrides."""
+
+    _ENV_KEYS = ("G4F_SANDBOX", "G4F_MCP_SAFE_MODE", "G4F_MCP_SHELL")
+
+    def setUp(self):
+        self._saved = {key: os.environ.get(key) for key in self._ENV_KEYS}
+        for key in self._ENV_KEYS:
+            os.environ.pop(key, None)
+
+    def tearDown(self):
+        for key, value in self._saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    def test_detect_sandbox_returns_bool(self):
+        from g4f.mcp.sandbox import detect_sandbox
+
+        self.assertIsInstance(detect_sandbox(), bool)
+
+    def test_safe_mode_follows_detection(self):
+        from g4f.mcp.sandbox import detect_sandbox, safe_mode_enabled
+
+        self.assertEqual(safe_mode_enabled(), detect_sandbox())
+
+    def test_shell_is_inverse_of_safe_mode(self):
+        from g4f.mcp.sandbox import safe_mode_enabled, shell_tool_enabled
+
+        self.assertEqual(shell_tool_enabled(), not safe_mode_enabled())
+
+    def test_env_override_forces_sandbox(self):
+        from g4f.mcp.sandbox import detect_sandbox, get_sandbox_reasons
+
+        os.environ["G4F_SANDBOX"] = "1"
+        self.assertTrue(detect_sandbox())
+        self.assertTrue(get_sandbox_reasons())
+
+    def test_env_override_forces_no_sandbox(self):
+        from g4f.mcp.sandbox import (
+            detect_sandbox,
+            safe_mode_enabled,
+            shell_tool_enabled,
+        )
+
+        os.environ["G4F_SANDBOX"] = "0"
+        self.assertFalse(detect_sandbox())
+        self.assertFalse(safe_mode_enabled())
+        self.assertTrue(shell_tool_enabled())
+
+    def test_env_override_forces_safe_mode(self):
+        from g4f.mcp.sandbox import safe_mode_enabled, shell_tool_enabled
+
+        os.environ["G4F_SANDBOX"] = "0"
+        os.environ["G4F_MCP_SAFE_MODE"] = "1"
+        self.assertTrue(safe_mode_enabled())
+        self.assertFalse(shell_tool_enabled())
+
+    def test_env_override_activates_shell_in_sandbox(self):
+        from g4f.mcp.sandbox import shell_tool_enabled
+
+        os.environ["G4F_SANDBOX"] = "1"
+        os.environ["G4F_MCP_SHELL"] = "1"
+        self.assertTrue(shell_tool_enabled())
+
+
+class TestShellExecuteTool(unittest.IsolatedAsyncioTestCase):
+    """Tests for the shell/terminal command execution tool (host mode)."""
+
+    async def test_schema(self):
+        tool = ShellExecuteTool()
+        self.assertIsNotNone(tool.description)
+        schema = tool.input_schema
+        self.assertEqual(schema["type"], "object")
+        self.assertIn("command", schema["properties"])
+        self.assertIn("command", schema["required"])
+
+    async def test_missing_command(self):
+        tool = ShellExecuteTool()
+        result = await tool.execute({})
+        self.assertIn("error", result)
+
+    async def test_safe_mode_blocks_execution(self):
+        """In safe mode the tool refuses to run any command."""
+        tool = ShellExecuteTool(safe_mode=True)
+        result = await tool.execute({"command": "echo hi"})
+        self.assertIn("error", result)
+        self.assertIn("safe mode", result["error"])
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell required")
+    async def test_simple_command(self):
+        tool = ShellExecuteTool()
+        result = await tool.execute({"command": "echo hello-shell"})
+        self.assertNotIn("error", result)
+        self.assertEqual(result["exit_code"], 0)
+        self.assertIn("hello-shell", result["stdout"])
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell required")
+    async def test_exit_code_propagated(self):
+        tool = ShellExecuteTool()
+        result = await tool.execute({"command": "exit 3"})
+        self.assertNotIn("error", result)
+        self.assertEqual(result["exit_code"], 3)
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell required")
+    async def test_stderr_captured(self):
+        tool = ShellExecuteTool()
+        result = await tool.execute({"command": "echo err >&2"})
+        self.assertNotIn("error", result)
+        self.assertIn("err", result["stderr"])
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell required")
+    async def test_timeout_kills_command(self):
+        tool = ShellExecuteTool()
+        result = await tool.execute({"command": "sleep 10", "timeout": 0.5})
+        self.assertIn("error", result)
+        self.assertIn("timed out", result["error"])
+        self.assertTrue(result.get("timed_out"))
+
+    async def test_invalid_timeout(self):
+        tool = ShellExecuteTool()
+        result = await tool.execute({"command": "echo hi", "timeout": "not-a-number"})
+        self.assertIn("error", result)
+
+    async def test_cwd_traversal_blocked(self):
+        """cwd outside the workspace is rejected."""
+        tool = ShellExecuteTool()
+        result = await tool.execute({"command": "echo hi", "cwd": "../../.."})
+        self.assertIn("error", result)
+
+
+class TestMCPServerShellActivation(unittest.TestCase):
+    """The shell tool is activated on hosts and disabled inside sandboxes."""
+
+    _ENV_KEYS = ("G4F_SANDBOX", "G4F_MCP_SAFE_MODE", "G4F_MCP_SHELL")
+
+    def setUp(self):
+        self._saved = {key: os.environ.get(key) for key in self._ENV_KEYS}
+        for key in self._ENV_KEYS:
+            os.environ.pop(key, None)
+
+    def tearDown(self):
+        for key, value in self._saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    def test_safe_mode_disables_shell(self):
+        """An explicit safe_mode=True never registers shell_execute."""
+        server = MCPServer(safe_mode=True)
+        self.assertFalse(server.shell_enabled)
+        self.assertNotIn("shell_execute", server.tools)
+
+    def test_sandboxed_disables_shell(self):
+        """Inside a detected sandbox the shell tool stays disabled."""
+        os.environ["G4F_SANDBOX"] = "1"
+        server = MCPServer()
+        self.assertTrue(server.sandboxed)
+        self.assertTrue(server.safe_mode)
+        self.assertFalse(server.shell_enabled)
+        self.assertNotIn("shell_execute", server.tools)
+
+    def test_host_activates_shell(self):
+        """Outside sandboxes the shell/terminal execution tool is activated."""
+        os.environ["G4F_SANDBOX"] = "0"
+        server = MCPServer()
+        self.assertFalse(server.sandboxed)
+        self.assertFalse(server.safe_mode)
+        self.assertTrue(server.shell_enabled)
+        self.assertIn("shell_execute", server.tools)
+
+    def test_tool_list_reflects_shell_state(self):
+        os.environ["G4F_SANDBOX"] = "0"
+        server = MCPServer()
+        names = [tool["name"] for tool in server.get_tool_list()]
+        self.assertIn("shell_execute", names)
+
+    def test_server_info_reports_mode(self):
+        os.environ["G4F_SANDBOX"] = "1"
+        server = MCPServer()
+        self.assertTrue(server.server_info["safe_mode"])
+        self.assertTrue(server.server_info["sandboxed"])
+
+    def test_shell_call_while_disabled_explains_error(self):
+        """Calling shell_execute in safe mode returns a helpful error."""
+        import asyncio
+
+        server = MCPServer(safe_mode=True)
+        response = asyncio.run(
+            server.handle_request(
+                MCPRequest(
+                    jsonrpc="2.0",
+                    id=1,
+                    method="tools/call",
+                    params={"name": "shell_execute", "arguments": {"command": "echo hi"}},
+                )
+            )
+        )
+        self.assertIsNotNone(response.error)
+        self.assertIn("disabled", response.error["message"])
+
+
+class TestMCPApiRoute(unittest.TestCase):
+    """Tests for the /mcp JSON-RPC route mounted on the g4f API."""
+
+    def setUp(self):
+        try:
+            import fastapi  # noqa: F401
+            import uvicorn  # noqa: F401
+            from fastapi.testclient import TestClient
+            import g4f.api
+        except (ImportError, RuntimeError) as exc:
+            self.skipTest(f"fastapi TestClient unavailable: {exc}")
+        self.client = TestClient(g4f.api.create_app())
+
+    def _rpc(self, payload):
+        return self.client.post("/mcp", json=payload)
+
+    def test_get_mcp_info(self):
+        response = self.client.get("/mcp")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["endpoint"], "/mcp")
+        self.assertIn("server", data)
+        self.assertIn("safe_mode", data)
+        self.assertIn("sandboxed", data)
+        self.assertIn("shell_execute", data)
+        self.assertIsInstance(data["tools"], list)
+        tool_names = [tool["name"] for tool in data["tools"]]
+        self.assertIn("web_search", tool_names)
+
+    def test_initialize(self):
+        response = self._rpc({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 1)
+        self.assertEqual(data["result"]["protocolVersion"], "2024-11-05")
+        self.assertIn("tools", data["result"]["capabilities"])
+
+    def test_tools_list(self):
+        response = self._rpc({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        tool_names = [tool["name"] for tool in data["result"]["tools"]]
+        self.assertIn("python_execute", tool_names)
+
+    def test_ping(self):
+        response = self._rpc({"jsonrpc": "2.0", "id": 3, "method": "ping", "params": {}})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["id"], 3)
+
+    def test_invalid_json_body(self):
+        response = self.client.post(
+            "/mcp", content=b"{not json", headers={"content-type": "application/json"}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"]["code"], -32700)
+
+    def test_non_object_body_rejected(self):
+        response = self._rpc([{"jsonrpc": "2.0", "id": 1, "method": "ping"}])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"]["code"], -32600)
+
+    def test_unknown_method(self):
+        response = self._rpc({"jsonrpc": "2.0", "id": 4, "method": "no_such_method"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["error"]["code"], -32601)
+
+    def test_shell_execute_follows_sandbox_state(self):
+        """In this (likely sandboxed) test environment the shell tool must
+        not be advertised unless the environment allows it."""
+        from g4f.mcp.sandbox import shell_tool_enabled
+
+        response = self.client.get("/mcp")
+        data = response.json()
+        tool_names = [tool["name"] for tool in data["tools"]]
+        self.assertEqual("shell_execute" in tool_names, shell_tool_enabled())

@@ -1,9 +1,10 @@
-# Sandbox desktop: TigerVNC + Xfce + Chrome + noVNC + g4f API in one container.
-# The entrypoint starts Xvnc, Xfce and noVNC automatically and exports DISPLAY,
-# so the API's headed Chrome renders on the noVNC desktop.
+# Sandbox desktop: TigerVNC + Xfce + noVNC + g4f API in one container.
+# The entrypoint starts Xvnc and Xfce automatically and exports DISPLAY, so a
+# browser opened from the desktop menu (Install & Open Chrome) renders there.
 #   docker compose -f docker/docker-compose.sandbox-desktop.yml up -d
-# Desktop: http://localhost:6080/vnc.html  (noVNC -> Xvnc :0)
-# API:     http://localhost:9090
+# Desktop: http://localhost:9090/desktop/  (g4f-branded noVNC client -> Xvnc :0,
+#          served by the g4f API itself; index.html embeds it full-viewport)
+# API:     http://localhost:9090        (same server and port as the desktop)
 # Set SANDBOX_DESKTOP=0 in environment to skip the desktop stack.
 services:
   sandbox-desktop:
@@ -16,10 +17,13 @@ services:
     init: true
     shm_size: 2gb
     ports:
-      - "9090:9090"   # g4f API server (command below)
+      - "9090:9090"   # g4f API server + noVNC desktop (custom routes /desktop/, /desktop/websockify)
       - "5900:5900"   # Xvnc display :0 (direct VNC clients)
-      - "6080:6080"   # noVNC web client (websockify -> 5900)
+    volumes:
+      - ../:/app/gpt4free
     environment:
       - XDG_RUNTIME_DIR=/tmp/sandbox-runtime
       # - SANDBOX_DESKTOP=0
-    command: ["python", "-m", "g4f", "api", "--port", "9090"]
+    # --debug turns on g4f's verbose logging, so `docker compose logs` shows
+    # provider selection, request handling and HAR captures.
+    command: ["g4f-go", "dev", "--port", "9090"]

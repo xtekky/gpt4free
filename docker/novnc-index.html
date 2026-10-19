@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>g4f Sandbox Desktop</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='%236e48aa'/%3E%3Ctext x='256' y='330' font-family='Arial' font-size='194' font-weight='900' fill='%23f8f9fa' text-anchor='middle'%3EG4F%3C/text%3E%3C/svg%3E">
+    <style>
+        html, body { height: 100%; margin: 0; background: #000; }
+        iframe { display: block; width: 100%; height: 100%; border: 0; }
+    </style>
+</head>
+<body>
+    <!-- Stock noVNC client, autoconnected, filling the page (no header of its
+         own). resize=remote asks the VNC server to resize the desktop to the
+         browser window (server-side scaling) instead of scaling the framebuffer
+         client-side; Xvnc supports the ExtendedDesktopSize extension. The g4f
+         branding lives inside the client itself: docker/novnc-brand.sh swaps
+         the noVNC logos for g4f.svg and applies the g4f colors at image build. -->
+    <iframe src="vnc.html?autoconnect=1&amp;resize=remote&amp;reconnect=true"
+            allowfullscreen title="g4f sandbox desktop (noVNC)"></iframe>
+</body>
+</html>

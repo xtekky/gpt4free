@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Optional
 
 _INTERACTIVE = (
     "button,textarea,a,input,select,"
@@ -13,21 +14,43 @@ _INTERACTIVE = (
 )
 
 # Evaluates to a standalone, script-free HTML copy with data-index on interactive elements.
-SNAPSHOT_JS = r"""
+# ``frames`` maps an iframe's document-order index to the HTML of the frame it
+# hosts. CDP can read cross-origin frames (see ``snapshot_frames``), which
+# contentDocument cannot; those documents are embedded through ``srcdoc``.
+_SNAPSHOT_JS = r"""
 (() => {
-  function stripDocument(doc) {
+  const frameHtml = %s;
+  function stripDocument(doc, frames, liveDoc) {
     if (!doc) return doc;
-    doc.querySelectorAll('iframe').forEach(el => {
-      const doc = el.contentDocument || (el.contentWindow && el.contentWindow.document);
-      el.srcdoc = stripDocument(stripDocument(doc).outerHTML);
-      el.src = "";
+    const liveFrames = liveDoc ? liveDoc.querySelectorAll('iframe') : [];
+    doc.querySelectorAll('iframe').forEach((el, index) => {
+      let html = frames && frames[index];
+      // Cloned iframes have no contentDocument, so read the content from
+      // the matching live frame (same-origin documents only).
+      const live = liveFrames[index];
+      const frameDoc = live && (live.contentDocument || (live.contentWindow && live.contentWindow.document));
+      if (typeof html !== 'string' && frameDoc) {
+        const stripped = stripDocument(frameDoc.cloneNode(true), null, frameDoc);
+        html = '<!DOCTYPE html>\n' + stripped.documentElement.outerHTML;
+      }
+      // Frames that are out-of-process have no contentDocument. Keep the
+      // author-provided srcdoc as a last resort when CDP is unavailable.
+      if (typeof html !== 'string') {
+        const srcdoc = el.getAttribute('srcdoc');
+        if (srcdoc !== null) {
+          const srcdocDoc = new DOMParser().parseFromString(srcdoc, 'text/html');
+          html = '<!DOCTYPE html>\n' + stripDocument(srcdocDoc, null, null).documentElement.outerHTML;
+        }
+      }
+      if (typeof html === 'string') el.srcdoc = html;
+      el.removeAttribute('src');
     });
     doc.querySelectorAll('script, noscript, object, embed, audio, noscript, video, template').forEach(el => el.remove());
     doc.querySelectorAll('link\[rel=\"modulepreload\"\], link\[rel=\"preload\"\]').forEach(el => el.remove());
     for (const el of doc.getElementsByTagName("use")) el.remove();
     return doc;
   }
-  const doc = stripDocument(document.cloneNode(true));
+  const doc = stripDocument(document.cloneNode(true), frameHtml, document);
   let index = 0;
   // Live form state is not part of the cloned markup.
   const liveFields = document.querySelectorAll('textarea,input,select');
@@ -60,7 +83,85 @@ SNAPSHOT_JS = r"""
   }
   return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
 })()
-""" % json.dumps(_INTERACTIVE)
+"""
+
+
+def snapshot_js(frames=None) -> str:
+    """Return the snapshot script, optionally embedding frame documents.
+
+    ``frames`` maps a document-order iframe index of the frame being captured
+    to the already-stripped HTML of that iframe's document. The values come
+    from CDP's frame tree, so cross-origin iframes can be included too.
+    """
+    return _SNAPSHOT_JS % (
+        json.dumps(frames or {}),
+        json.dumps(_INTERACTIVE),
+    )
+
+
+# Default snapshot for a single document (same-origin iframes only).
+SNAPSHOT_JS = snapshot_js()
+
+
+async def snapshot_frames(call) -> Optional[str]:
+    """Capture a page through CDP, including out-of-process iframe documents.
+
+    ``call`` is an async CDP command dispatcher with the signature
+    ``await call(method, **params)`` for the target page. Each frame is
+    snapshotted in its own execution context and embedded into its parent's
+    ``<iframe srcdoc>``. Returns ``None`` when the frame APIs are unavailable,
+    so callers can fall back to plain :data:`SNAPSHOT_JS`.
+    """
+    try:
+        frame_tree = (await call("Page.getFrameTree")).get("frameTree")
+    except Exception:
+        return None
+    if not frame_tree:
+        return None
+
+    async def capture(node, root=False):
+        child_frames = {}
+        # Page.getFrameTree lists child frames in document order, which is the
+        # same order as the parent document's <iframe> elements.
+        for index, child in enumerate(node.get("childFrames") or []):
+            try:
+                child_html = await capture(child)
+            except Exception:
+                continue
+            if isinstance(child_html, str):
+                child_frames[index] = child_html
+        return await _evaluate_in_frame(
+            call, node.get("frame", {}).get("id"), snapshot_js(child_frames), root
+        )
+
+    try:
+        return await capture(frame_tree, root=True)
+    except Exception:
+        return None
+
+
+async def _evaluate_in_frame(call, frame_id: str, expression: str, root: bool = False) -> Optional[str]:
+    """Evaluate *expression* in a CDP frame and return its value."""
+    params = {
+        "expression": expression,
+        "returnByValue": True,
+        "awaitPromise": True,
+    }
+    if not root:
+        world = await call(
+            "Page.createIsolatedWorld",
+            frameId=frame_id,
+            worldName="g4f-snapshot",
+        )
+        context_id = world.get("executionContextId")
+        if context_id is None:
+            return None
+        params["contextId"] = context_id
+    result = await call("Runtime.evaluate", **params)
+    if result.get("exceptionDetails"):
+        raise RuntimeError(str(result["exceptionDetails"].get("text", "evaluation failed")))
+    return result.get("result", {}).get("value")
+
 
 _FIND = (
     "const els = [...document.querySelectorAll(%s)];"

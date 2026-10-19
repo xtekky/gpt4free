@@ -22,13 +22,21 @@ const embedEmptyPlaceholder = "EMPTY_PYTHON_RUNTIME"
 // The variable is declared in the build-tagged files runtime_<os>.go.
 // The placeholder file lets `go build` succeed before fetch-python.sh runs.
 
-// installDir is the fixed user-level runtime location: ~/.g4f/python-embed.
-// This keeps the executable fully relocatable and shares one runtime across
-// all g4f-go binaries/versions on the machine. On Android it is overridden
-// to the app's own writable directory (see runtime_android.go).
+// installDir is the fixed user-level runtime location: ~/.g4f/python-embed,
+// or $G4F_CONFIG_DIR/python-embed when that override is set (mirrors
+// g4f.config.get_config_dir()). This keeps the executable fully relocatable
+// and shares one runtime across all g4f-go binaries/versions on the machine.
+// On Android it is overridden to the app's own writable directory (see
+// runtime_android.go).
 func installDir() string {
 	if d := androidInstallDir(); d != "" {
 		return d
+	}
+	if isPortable() {
+		return portablePythonEmbedDir()
+	}
+	if d := os.Getenv("G4F_CONFIG_DIR"); d != "" {
+		return filepath.Join(d, "python-embed")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -117,26 +125,36 @@ func g4fIsInstalled(binDir string) bool {
 }
 
 // installG4F installs the g4f Python package into the downloaded runtime and
-// writes the .installed stamp. Uses the bundled pip (ensurepip wheels in
-// pbs installs, bootstrapped via `python -m ensurepip`) so no network access
-// is required after the runtime was downloaded.
-func installG4F(binDir, exe string, start time.Time) error {
-	fmt.Printf("Installing gpt4free into the Python runtime...\n")
+// writes the .installed stamp. A non-empty pin installs exactly that version
+// ("g4f[slim]==<pin>") and records it next to the stamp; an empty pin installs
+// the latest release and clears any previous pin. Uses the bundled pip
+// (ensurepip wheels in pbs installs, bootstrapped via `python -m ensurepip`)
+// so no network access is required after the runtime was downloaded.
+func installG4F(binDir, exe, pin string, start time.Time) error {
+	spec := g4fSpec(pin)
+	if pin != "" {
+		fmt.Printf("Installing gpt4free %s (pinned) into the Python runtime...\n", pin)
+	} else {
+		fmt.Printf("Installing gpt4free into the Python runtime...\n")
+	}
 	if err := ensurePip(binDir, exe); err != nil {
 		return err
 	}
 	code, err := runPython(noSignalCtx(), exe, []string{
 		"-m", "pip", "install",
-		"--no-input", "g4f[slim]",
+		"--no-input", spec,
 	}, pipEnv(binDir)...)
 	if err != nil || code != 0 {
-		return fmt.Errorf("pip install g4f failed (exit %d): %w", code, err)
+		return fmt.Errorf("pip install %s failed (exit %d): %w", spec, code, err)
 	}
 	stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
 	if err := os.MkdirAll(filepath.Dir(stamp), 0o755); err != nil {
 		return err
 	}
 	if err := os.WriteFile(stamp, []byte("g4f installed"), 0o644); err != nil {
+		return err
+	}
+	if err := writePinnedG4FVersion(binDir, pin); err != nil {
 		return err
 	}
 	fmt.Printf("gpt4free installed in %.1fs\n", time.Since(start).Seconds())
@@ -193,7 +211,7 @@ func pipEnv(binDir string) []string {
 	home := pythonHome(binDir)
 	lib := filepath.Join(home, "Lib", "site-packages")
 	if runtime.GOOS != "windows" {
-		lib = filepath.Join(home, "lib", "python3.14", "site-packages")
+		lib = filepath.Join(home, "lib", "python"+PythonLibVer, "site-packages")
 	}
 	return []string{
 		"PYTHONHOME=" + home,

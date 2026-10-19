@@ -95,7 +95,7 @@ func downloadRuntime(binDir, cachePath string, spec *RuntimeSpec) error {
 		fmt.Printf("runtime: cached download incomplete, re-downloading\n")
 	}
 
-	fmt.Printf("runtime: downloading CPython %s (%s)\n", "3.14.7", humanBytes(spec.Size))
+	fmt.Printf("runtime: downloading CPython %s (%s)\n", PythonVer, humanBytes(spec.Size))
 	fmt.Printf("  %s\n", spec.URL)
 	start := time.Now()
 

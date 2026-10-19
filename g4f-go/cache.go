@@ -7,9 +7,17 @@ import (
 	"runtime"
 )
 
-// configDir mirrors g4f.config.get_config_dir(): ~/.g4f when it exists,
-// otherwise the platform config location, falling back to ~/.g4f.
+// configDir mirrors g4f.config.get_config_dir(): G4F_CONFIG_DIR when set,
+// ~/.g4f when it exists, otherwise the platform config location, falling
+// back to ~/.g4f. In portable mode, it uses a directory next to the
+// executable.
 func configDir() string {
+	if isPortable() {
+		return portableBaseDir()
+	}
+	if d := os.Getenv("G4F_CONFIG_DIR"); d != "" {
+		return d
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "."

@@ -46,6 +46,9 @@ def get_api_parser(exit_on_error: bool = True) -> ArgumentParser:
     api_parser.add_argument(
         "--debug", "-d", action="store_true", help="Enable verbose logging."
     )
+    api_parser.add_argument(
+        "--version", "-v", action="store_true", help="Show version and exit."
+    )
 
     api_parser.add_argument(
         "--no-gui",
@@ -203,6 +206,12 @@ def run_api_args(args):
     """
     Runs the API server using the parsed CLI arguments.
     """
+    if getattr(args, "version", False):
+        from ..version import utils
+        version = utils.current_version or "unknown"
+        print(f"g4f {version}")
+        sys.exit(0)
+
     from g4f.api import AppConfig, run_api
     from ..requests import BrowserConfig
     from .. import cookies
@@ -304,7 +313,12 @@ def get_mcp_parser(exit_on_error: bool = True) -> ArgumentParser:
     mcp_parser.add_argument(
         "--safe",
         action="store_true",
-        help="Enable safe mode: module allowlist cannot be overridden and workspace root cannot be listed.",
+        help=(
+            "Force safe mode: module allowlist cannot be overridden and workspace "
+            "root cannot be listed. Safe mode is auto-enabled when a sandbox or "
+            "container is detected; the shell/terminal execution tool is only "
+            "activated outside sandboxes."
+        ),
     )
     return mcp_parser
 
@@ -320,7 +334,8 @@ def run_mcp_args(args):
         host=args.host,
         port=args.port,
         origin=args.origin,
-        safe=args.safe,
+        # None (auto-detect) unless --safe was passed
+        safe=True if args.safe else None,
     )
 
 
@@ -449,7 +464,7 @@ def get_pa_parser(exit_on_error: bool = True) -> ArgumentParser:
     pa_parser.add_argument(
         "--dir",
         default=None,
-        help="Target directory (default: ~/.g4f/workspace).",
+        help="Target directory (default: ~/.g4f/workspace, or $G4F_DIR when set).",
     )
     pa_parser.add_argument(
         "--timeout",
@@ -499,7 +514,14 @@ def main():
     Handles selecting: api / gui / client / mcp
     """
     parser = argparse.ArgumentParser(
-        description="Run gpt4free", exit_on_error=False, add_help=False
+        prog="g4f", description="Run gpt4free", exit_on_error=False, add_help=False
+    )
+    parser.add_argument(
+        "--version",
+        "-v",
+        "-V",
+        action="store_true",
+        help="Show version and exit.",
     )
     parser.add_argument(
         "--install-autocomplete",
@@ -507,6 +529,12 @@ def main():
         help="Install Bash autocompletion for g4f CLI.",
     )
     args, remaining = parser.parse_known_args()
+    if getattr(args, "version", False):
+        from ..version import utils
+        version = utils.current_version or "unknown"
+        print(f"g4f {version}")
+        sys.exit(0)
+
     if args.install_autocomplete:
         generate_autocomplete()
         return
@@ -517,7 +545,7 @@ def main():
     mode_parser.add_argument(
         "mode",
         nargs="?",
-        choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa", "test"],
+        choices=["api", "gui", "client", "mcp", "auth", "dev", "systray", "tray", "pa", "test", "version"],
         default="api",
         help="Mode to run g4f in (default: api).",
     )
@@ -590,6 +618,11 @@ def main():
                     print(chunk)
             import asyncio
             asyncio.run(run())
+        elif args.mode == "version":
+            from ..version import utils
+            version = utils.current_version or "unknown"
+            print(f"g4f {version}")
+            sys.exit(0)
         else:
             # No mode provided
             raise argparse.ArgumentError(
@@ -608,7 +641,7 @@ def main():
 
 def generate_autocomplete():
     # Top-level commands and their subcommands/options
-    commands = ["api", "gui", "client", "mcp", "auth", "pa"]
+    commands = ["api", "gui", "client", "mcp", "auth", "pa", "version"]
     auth_providers = ["gemini-cli", "antigravity", "qwencode", "github-copilot"]
     auth_subcommands = ["status", "login"]
     # Options for each command
@@ -640,11 +673,12 @@ def generate_autocomplete():
         "--no-access-log",
         "--browser-port",
         "--browser-host",
+        "--version",
     ]
     gui_args = ["--debug"]
     client_args = ["--debug"]
     mcp_args = ["--debug", "--http", "--host", "--port", "--origin", "--safe"]
-    global_args = ["--install-autocomplete"]
+    global_args = ["--install-autocomplete", "--version"]
     bash_completion_script = f"""
 _g4f_completions() {{
     local cur prev words cword

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import importlib
 import unittest
 
+import g4f.Provider as Provider
 from g4f.client import AsyncClient, ChatCompletion, ChatCompletionChunk
-from g4f.providers.retry_provider import IterListProvider
+from g4f.providers.retry_provider import IterListProvider, _resolve_model
+from g4f.Provider import ProviderLoader
 from .mocks import (
     YieldProviderMock,
     RaiseExceptionProviderMock,
@@ -12,6 +15,27 @@ from .mocks import (
 )
 
 DEFAULT_MESSAGES = [{"role": "user", "content": "Hello"}]
+
+
+class TestResolveModel(unittest.TestCase):
+    def test_keeps_default_model_for_empty_model(self):
+        class ProviderMock:
+            default_model = "default-model"
+            model_aliases = {"alias": "alias-target"}
+
+        self.assertEqual(_resolve_model(ProviderMock, ""), "default-model")
+        self.assertEqual(_resolve_model(ProviderMock, "alias"), "alias-target")
+        self.assertEqual(_resolve_model(ProviderMock, "unknown"), "unknown")
+
+
+class TestProviderLoader(unittest.TestCase):
+    def test_submodule_does_not_shadow_provider_class(self):
+        # Importing g4f.Provider.ChatGPT sets the module as a package attribute;
+        # accessing the provider must still return the provider class.
+        importlib.import_module("g4f.Provider.ChatGPT")
+        provider = getattr(Provider, "ChatGPT")
+        self.assertTrue(getattr(provider, "working", False))
+        self.assertIs(provider, ProviderLoader.from_name("ChatGPT"))
 
 
 class TestIterListProvider(unittest.IsolatedAsyncioTestCase):

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Open g4f-go CLI
+Comment=Open a terminal with the bundled g4f-go CLI
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=g4f-go --command="/usr/local/bin/sandbox-cli g4f-go"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=g4f;g4f-go;cli;ai;coding;;
+StartupNotify=false

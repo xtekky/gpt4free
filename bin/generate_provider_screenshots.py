@@ -3,10 +3,10 @@
 Generate screenshots for all G4F providers via the g4f.space/screenshot endpoint.
 
 Usage:
-    python scripts/generate_provider_screenshots.py
-    python scripts/generate_provider_screenshots.py --output screenshots.json
-    python scripts/generate_provider_screenshots.py --query "what is python"
-    python scripts/generate_provider_screenshots.py --download-dir ./screenshots
+    python bin/generate_provider_screenshots.py
+    python bin/generate_provider_screenshots.py --output screenshots.json
+    python bin/generate_provider_screenshots.py --query "what is python"
+    python bin/generate_provider_screenshots.py --download-dir ./screenshots
 
 What it does:
   1. Collects all provider URLs from g4f.Provider

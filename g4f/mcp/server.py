@@ -6,6 +6,12 @@ The server exposes tools for:
 - Web search
 - Web scraping
 - Image generation
+- Shell / terminal command execution (host mode only)
+
+Sandbox detection (see :mod:`g4f.mcp.sandbox`) decides safe mode: inside a
+detected container/sandbox the server starts in safe mode and the
+shell/terminal execution tool stays disabled; on a normal host install the
+``shell_execute`` tool is activated.
 """
 
 from __future__ import annotations
@@ -26,12 +32,14 @@ from ..cookies import read_cookie_files
 from ..image import EXTENSIONS_MAP
 from ..image.copy_images import get_media_dir, copy_media, get_source_url
 
+from .sandbox import detect_sandbox, safe_mode_enabled, shell_tool_enabled
 from .tools import (
     MarkItDownTool,
     TextToAudioTool,
     WebSearchTool,
     ImageGenerationTool,
     PythonExecuteTool,
+    ShellExecuteTool,
     FileReadTool,
     FileListTool,
     FileDeleteTool,
@@ -87,14 +95,19 @@ class MCPServer:
     allowing AI assistants to utilize web search, scraping, and image generation.
     """
 
-    def __init__(self, safe_mode: bool = False, github_token: Optional[str] = None):
+    def __init__(self, safe_mode: Optional[bool] = None, github_token: Optional[str] = None):
         """Initialize MCP server with available tools
 
         Args:
             safe_mode: When ``True`` the server starts in safe mode, where
                 callers cannot expand the Python sandbox module allowlist and
-                listing the workspace root directory is blocked.
+                listing the workspace root directory is blocked.  When
+                ``None`` (default) safe mode is auto-enabled when the process
+                runs inside a detected sandbox/container.
         """
+        self.sandboxed = detect_sandbox()
+        if safe_mode is None:
+            safe_mode = safe_mode_enabled()
         self.safe_mode = safe_mode
         self.github_token = github_token
         self.tools = {
@@ -126,13 +139,23 @@ class MCPServer:
             "notebook_create": NotebookCreateTool(),
             "notebook_list": NotebookListTool(),
         }
+        # Shell / terminal command execution is only activated outside
+        # sandboxes: safe mode (explicit or auto-detected) keeps it disabled.
+        self.shell_enabled = not safe_mode and shell_tool_enabled()
+        if self.shell_enabled:
+            self.tools["shell_execute"] = ShellExecuteTool()
+        description = (
+            "MCP server providing web search, scraping, image generation, "
+            "safe Python execution, and workspace file management capabilities"
+        )
+        if self.shell_enabled:
+            description += ", plus shell/terminal command execution (host mode)"
         self.server_info = {
             "name": "gpt4free-mcp-server",
             "version": "1.0.0",
-            "description": (
-                "MCP server providing web search, scraping, image generation, "
-                "safe Python execution, and workspace file management capabilities"
-            ),
+            "description": description,
+            "sandboxed": self.sandboxed,
+            "safe_mode": self.safe_mode,
         }
 
     def get_tool_list(self) -> List[Dict[str, Any]]:
@@ -182,12 +205,18 @@ class MCPServer:
                     tool_arguments.setdefault("workspace_secret", request.workspace_secret)
 
                 if tool_name not in self.tools:
+                    message = f"Tool not found: {tool_name}"
+                    if tool_name == "shell_execute" and self.safe_mode:
+                        message = (
+                            "Tool 'shell_execute' is disabled: the server runs in "
+                            "safe mode (sandboxed environment detected)"
+                        )
                     return MCPResponse(
                         jsonrpc="2.0",
                         id=request.id,
                         error={
                             "code": -32601,
-                            "message": f"Tool not found: {tool_name}",
+                            "message": message,
                         },
                     )
 
@@ -499,7 +528,8 @@ class MCPServer:
         async def handle_pa_file(request: web.Request) -> web.Response:
             """Securely serve a workspace file for browser rendering.
 
-            Only files within ``~/.g4f/workspace`` are served.  Path traversal
+            Only files within the workspace directory (``~/.g4f/workspace`` by
+            default, overridable with ``G4F_DIR``) are served.  Path traversal
             is blocked.  Only the MIME types in ``_WORKSPACE_SAFE_TYPES`` are
             allowed — ``.py``, ``.env``, and other sensitive types return 403.
             HTML files are served with a ``Content-Security-Policy: sandbox``
@@ -829,7 +859,7 @@ def main(
     host: str = "0.0.0.0",
     port: int = 8765,
     origin: Optional[str] = None,
-    safe: bool = False,
+    safe: Optional[bool] = None,
 ):
     """Main entry point for MCP server
 
@@ -837,10 +867,18 @@ def main(
         http: If True, use HTTP transport instead of stdio
         host: Host to bind HTTP server to (only used when http=True)
         port: Port to bind HTTP server to (only used when http=True)
-        safe: If True, start in safe mode — callers cannot override the module
-            allowlist for Python execution and workspace root listing is blocked.
+        safe: True forces safe mode, False forces it off; ``None`` (default)
+            auto-detects sandboxing — inside a container/sandbox safe mode is
+            enabled automatically and the shell/terminal execution tool stays
+            disabled, on a normal host install it is activated.
     """
     server = MCPServer(safe_mode=safe, github_token=os.environ.get("GITHUB_TOKEN"))
+    sys.stderr.write(
+        f"Safe mode: {'enabled' if server.safe_mode else 'disabled'}"
+        f" (sandboxed: {'yes' if server.sandboxed else 'no'})"
+        f" | shell_execute: {'active' if server.shell_enabled else 'disabled'}\n"
+    )
+    sys.stderr.flush()
     if http:
         asyncio.run(server.run_http(host, port, origin))
     else:

@@ -71,7 +71,33 @@ def get_git_version() -> str | None:
             ["git", "describe", "--tags", "--abbrev=0"], text=True, stderr=PIPE
         ).strip()
     except (CalledProcessError, FileNotFoundError):
-        return None
+        pass
+
+    try:
+        git_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".git")
+        packed_refs = os.path.join(git_dir, "packed-refs")
+        if os.path.isfile(packed_refs):
+            with open(packed_refs, "r", encoding="utf-8") as f:
+                tags = []
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("#") or not line:
+                        continue
+                    parts = line.split()
+                    if len(parts) == 2 and parts[1].startswith("refs/tags/"):
+                        tag = parts[1].removeprefix("refs/tags/")
+                        if not tag.endswith("^{}"):
+                            tags.append(tag)
+                if tags:
+                    return tags[-1]
+        tags_dir = os.path.join(git_dir, "refs", "tags")
+        if os.path.isdir(tags_dir):
+            tag_files = sorted(os.listdir(tags_dir))
+            if tag_files:
+                return tag_files[-1]
+    except Exception:
+        pass
+    return None
 
 
 class VersionUtils:
@@ -84,12 +110,34 @@ class VersionUtils:
         """
         Returns the current installed version of g4f from:
         - debug override
-        - package metadata
         - environment variable (Docker)
+        - package metadata
         - git tags
         """
         if debug.version:
             return debug.version
+
+        version_env = environ.get("G4F_VERSION")
+        if version_env:
+            return version_env
+
+        try:
+            from importlib.metadata import (
+                version as get_package_version,
+                PackageNotFoundError,
+            )
+
+            pkg_version = get_package_version(PACKAGE_NAME)
+            if pkg_version and not pkg_version.startswith("0.0.0"):
+                return pkg_version
+        except ImportError:
+            pass
+        except PackageNotFoundError:
+            pass
+
+        git_version = get_git_version()
+        if git_version:
+            return git_version
 
         try:
             from importlib.metadata import (
@@ -98,18 +146,8 @@ class VersionUtils:
             )
 
             return get_package_version(PACKAGE_NAME)
-        except ImportError:
+        except (ImportError, PackageNotFoundError):
             pass
-        except PackageNotFoundError:
-            pass
-
-        version_env = environ.get("G4F_VERSION")
-        if version_env:
-            return version_env
-
-        git_version = get_git_version()
-        if git_version:
-            return git_version
 
         return None
 
@@ -164,3 +202,8 @@ class VersionUtils:
 
 # Singleton instance
 utils = VersionUtils()
+__version__ = utils.current_version
+
+if __name__ == "__main__":
+    v = utils.current_version or "unknown"
+    print(f"g4f {v}")

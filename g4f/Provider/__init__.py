@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import types
+
 from ..providers.types import BaseProvider, ProviderType
 from ..providers.retry_provider import RetryProvider, IterListProvider, RotatedProvider, ProviderCircuitBreaker
 from ..providers.base_provider import AsyncProvider, AsyncGeneratorProvider
@@ -68,6 +70,7 @@ class ProviderLoader:
         "KiloCode",
         "LLM7",
         "Ollama",
+        "OmniRoute",
         "OpenAIFM",
         "OpenRouterFree",
         "ChatGPT",
@@ -402,29 +405,18 @@ class ProviderLoader:
             from g4f.Provider.local.Ollama import Ollama
 
             return Ollama
+        elif name == "OmniRoute":
+            from g4f.Provider.local.OmniRoute import OmniRoute
+
+            return OmniRoute
         elif name == "OpenAIFM":
             from g4f.Provider.audio.OpenAIFM import OpenAIFM
 
             return OpenAIFM
         elif name == "OpenCode":
-            import time
-            from ..client.factory import AbstractClientFactory
-            cls.loaded[name] = AbstractClientFactory.create_provider(
-                None, "https://opencode.ai/zen/v1"
-            )
-            cls.loaded[name].__name__ = name
-            cls.loaded[name].url = "https://opencode.ai"
-            cls.loaded[name].active_by_default = True
-            cls.loaded[name].default_model = "space-bunny-free"
-            cls.loaded[name].headers = {
-                "Content-Type": "application/json",
-                "User-Agent": "opencode/1.18.31 ai-sdk/provider-utils/4.0.23 runtime/bun/1.3.14",
-                "x-opencode-client": "cli",
-                "x-opencode-project": "global",
-                "x-opencode-session": f"ses_{int(time.time())}",
-                "x-opencode-request": f"msg_{int(time.time())}",
-            }
-            return cls.loaded[name]
+            from g4f.Provider.OpenCode import OpenCode
+
+            return OpenCode
 
         elif name == "OpenRouter":
             from g4f.Provider.needs_auth.OpenRouter import OpenRouter
@@ -583,11 +575,18 @@ def __getattr__(name: str):
             except ImportError:
                 pass
         return providers_list
-    if name in globals().keys():
-        return globals()[name]
+    value = globals().get(name)
+    # Importing a provider submodule (e.g. g4f.Provider.ChatGPT) sets the
+    # module object as a package attribute, shadowing the provider class of
+    # the same name.  Prefer the class from ProviderLoader so callers always
+    # get a provider, and fall back to the module only if it is not a provider.
+    if value is not None and not isinstance(value, types.ModuleType):
+        return value
     try:
         return ProviderLoader.from_name(name)
     except ImportError as e:
+        if value is not None:
+            return value
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'") from e
 
 

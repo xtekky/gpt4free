@@ -19,7 +19,7 @@ log = logging.getLogger("g4f-discord.mcp")
 
 # Tools that are safe to expose to Discord users by default.
 # File/python/patch tools are excluded by default since they operate on the
-# bot's local ~/.g4f/workspace directory.
+# bot's local workspace directory (~/.g4f/workspace or $G4F_DIR).
 SAFE_DEFAULT_TOOLS = {
     "web_search",
     "web_scrape",

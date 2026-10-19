@@ -6,6 +6,8 @@ from typing import Union, Optional, Coroutine
 
 from . import debug, version
 
+__version__ = version.utils.current_version
+
 from .models import Model
 from .client import Client, AsyncClient, ClientFactory, create_custom_provider
 from .typing import Messages, CreateResult, AsyncResult, ImageType

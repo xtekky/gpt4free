@@ -82,6 +82,11 @@ CHROME_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
 )
 
+# Lightpanda refuses --user-agent values containing "Mozilla" (fatal "invalid
+# user-agent" at startup), so its UA is shaped with --user-agent-suffix
+# instead. Kept in sync with browserUserAgentSuffix in g4f-go/browser.go.
+CHROME_USER_AGENT_SUFFIX = "Chrome/136.0.0.0 Safari/537.36"
+
 from pathlib import Path
 
 def get_screenshot_dir(datekey: str = None) -> str:
@@ -271,7 +276,7 @@ def _start_lightpanda(host: str, timeout: float = 10.0) -> Optional[int]:
         "--block-private-networks",
         "--load-resources", "iframe",
         "--http-cache-dir", get_http_cache_dir(),
-        "--user-agent", CHROME_USER_AGENT
+        "--user-agent-suffix", CHROME_USER_AGENT_SUFFIX
     ]
     debug.log(f"CDP: Launching Lightpanda: {' '.join(cmd)}")
     try:
@@ -1034,7 +1039,15 @@ _closed_sessions: Dict[str, dict] = {}
 
 
 async def _snapshot_session(session: "CDPSession") -> Optional[str]:
-    from ..mcp.browser_dom import SNAPSHOT_JS
+    from ..mcp.browser_dom import SNAPSHOT_JS, snapshot_frames
+    try:
+        # Read iframe documents through the CDP frame tree so cross-origin
+        # frames are embedded as srcdoc too.
+        html = await asyncio.wait_for(snapshot_frames(session.call), 10)
+        if html:
+            return html
+    except Exception:
+        pass
     try:
         return await asyncio.wait_for(session.evaluate_js(SNAPSHOT_JS), 10)
     except Exception:
@@ -1324,15 +1337,16 @@ class CDPSession:
             debug.log(f"CDP: failed to inject .har cookies: {e}")
 
         # Anti-detect: mask the browser in the User-Agent. Lightpanda reports
-        # "Lightpanda/1.0" and ignores Network.setUserAgentOverride entirely;
-        # Emulation.setUserAgentOverride only changes the HTTP header, while
-        # navigator.userAgent needs a defineProperty script (verified live).
-        # Apply both so HTTP requests and JS probes see a Chrome UA.
+        # "Lightpanda/1.0" (plus the --user-agent-suffix we pass) and ignores
+        # Network.setUserAgentOverride entirely; Emulation.setUserAgentOverride
+        # only changes the HTTP header, while navigator.userAgent needs a
+        # defineProperty script (verified live). Apply both so HTTP requests
+        # and JS probes see a Chrome UA.
         try:
             user_agent = await self.evaluate_js("navigator.userAgent")
         except Exception:
             user_agent = None
-        if user_agent and "Chrome" not in user_agent and "Chromium" not in user_agent:
+        if user_agent and not user_agent.startswith("Mozilla/"):
             debug.log(f"CDP: masking user agent {user_agent!r} as Chrome")
             # 1. HTTP-level: every request from this target carries the UA.
             try:
