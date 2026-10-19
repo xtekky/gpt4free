@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Antigravity
 Comment=Antigravity CLI (Google) — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Antigravity --command="/usr/local/bin/sandbox-cli antigravity"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Antigravity --icon=g4f-sandbox-antigravity --command="/usr/local/bin/sandbox-cli antigravity"
+Icon=g4f-sandbox-antigravity
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=antigravity;google;agy;ai;agent;coding;

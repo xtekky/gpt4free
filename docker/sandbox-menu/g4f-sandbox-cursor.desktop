@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Cursor
 Comment=Cursor CLI — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Cursor --command="/usr/local/bin/sandbox-cli cursor"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Cursor --icon=g4f-sandbox-cursor --command="/usr/local/bin/sandbox-cli cursor"
+Icon=g4f-sandbox-cursor
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=cursor;ai;agent;coding;;

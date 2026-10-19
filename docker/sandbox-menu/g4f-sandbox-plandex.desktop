@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Plandex
 Comment=Plandex coding agent — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Plandex --command="/usr/local/bin/sandbox-cli plandex"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Plandex --icon=g4f-sandbox-plandex --command="/usr/local/bin/sandbox-cli plandex"
+Icon=g4f-sandbox-plandex
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=plandex;agent;ai;coding;;

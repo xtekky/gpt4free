@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Gemini
 Comment=Google Gemini CLI — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Gemini --command="/usr/local/bin/sandbox-cli gemini-cli"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Gemini --icon=g4f-sandbox-gemini-cli --command="/usr/local/bin/sandbox-cli gemini-cli"
+Icon=g4f-sandbox-gemini-cli
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=gemini;google;ai;agent;coding;;

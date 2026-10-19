@@ -18,62 +18,87 @@ import sys
 MENU_PATH = "/etc/xdg/menus/xfce-applications.menu"
 ANCHOR = "    <DefaultMergeDirs/>"
 
-MENUS = """    <Menu>
+MENUS = [
+    (
+        "g4f",
+        """    <Menu>
         <Name>g4f</Name>
         <Directory>g4f-sandbox-g4f.directory</Directory>
         <Include>
             <Category>X-G4F-Core</Category>
         </Include>
     </Menu>
-
-    <Menu>
+""",
+    ),
+    (
+        "Browsers",
+        """    <Menu>
         <Name>Browsers</Name>
         <Directory>g4f-sandbox-browsers.directory</Directory>
         <Include>
             <Category>X-G4F-Browser</Category>
         </Include>
     </Menu>
-
-    <Menu>
+""",
+    ),
+    (
+        "Coding Agents",
+        """    <Menu>
         <Name>Coding Agents</Name>
         <Directory>g4f-sandbox-coding-agents.directory</Directory>
         <Include>
             <Category>X-G4F-Agent</Category>
         </Include>
     </Menu>
-
-    <Menu>
+""",
+    ),
+    (
+        "Gateways",
+        """    <Menu>
         <Name>Gateways</Name>
         <Directory>g4f-sandbox-gateways.directory</Directory>
         <Include>
             <Category>X-G4F-Gateway</Category>
         </Include>
     </Menu>
-
-    <Menu>
+""",
+    ),
+    (
+        "Local AI",
+        """    <Menu>
         <Name>Local AI</Name>
         <Directory>g4f-sandbox-local-ai.directory</Directory>
         <Include>
             <Category>X-G4F-LocalAI</Category>
         </Include>
     </Menu>
-
-    <Menu>
+""",
+    ),
+    (
+        "Assistants",
+        """    <Menu>
         <Name>Assistants</Name>
         <Directory>g4f-sandbox-assistants.directory</Directory>
         <Include>
             <Category>X-G4F-Assistant</Category>
         </Include>
     </Menu>
-
-"""
-
+""",
+    ),
+]
 
 def main() -> int:
     with open(MENU_PATH, encoding="utf-8") as fh:
         src = fh.read()
 
-    if "<Name>Coding Agents</Name>" in src:
+    # Each menu is checked separately so an already-patched file still gains
+    # menus added in a later release.
+    missing = [
+        (name, xml)
+        for name, xml in MENUS
+        if f"<Name>{name}</Name>" not in src
+    ]
+    if not missing:
         print(f"{MENU_PATH}: already patched")
         return 0
 
@@ -81,10 +106,11 @@ def main() -> int:
         print(f"{MENU_PATH}: anchor {ANCHOR!r} not found", file=sys.stderr)
         return 1
 
+    block = "\n".join(xml.rstrip("\n") for _, xml in missing) + "\n\n"
     with open(MENU_PATH, "w", encoding="utf-8") as fh:
-        fh.write(src.replace(ANCHOR, MENUS + ANCHOR, 1))
+        fh.write(src.replace(ANCHOR, block + ANCHOR, 1))
 
-    print(f"{MENU_PATH}: patched")
+    print(f"{MENU_PATH}: patched ({', '.join(name for name, _ in missing)})")
     return 0
 
 

@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Kiro
 Comment=Kiro CLI by AWS — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Kiro --command="/usr/local/bin/sandbox-cli kiro"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Kiro --icon=g4f-sandbox-kiro --command="/usr/local/bin/sandbox-cli kiro"
+Icon=g4f-sandbox-kiro
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=kiro;aws;agent;ai;coding;;

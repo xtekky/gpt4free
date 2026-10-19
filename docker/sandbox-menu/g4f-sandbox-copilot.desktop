@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Copilot
 Comment=GitHub Copilot CLI with g4f — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Copilot --command="/usr/local/bin/sandbox-cli copilot"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Copilot --icon=g4f-sandbox-copilot --command="/usr/local/bin/sandbox-cli copilot"
+Icon=g4f-sandbox-copilot
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=copilot;github;ai;agent;coding;;

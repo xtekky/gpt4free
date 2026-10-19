@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Kimi
 Comment=Kimi Code by Moonshot AI — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Kimi --command="/usr/local/bin/sandbox-cli kimi"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Kimi --icon=g4f-sandbox-kimi --command="/usr/local/bin/sandbox-cli kimi"
+Icon=g4f-sandbox-kimi
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=kimi;moonshot;agent;ai;coding;;

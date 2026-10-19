@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open LiteLLM
 Comment=LiteLLM AI gateway (OpenAI-compatible proxy) — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=LiteLLM --command="/usr/local/bin/sandbox-cli litellm"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=LiteLLM --icon=g4f-sandbox-litellm --command="/usr/local/bin/sandbox-cli litellm"
+Icon=g4f-sandbox-litellm
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Gateway;
 Keywords=litellm;gateway;proxy;router;ai;llm;;

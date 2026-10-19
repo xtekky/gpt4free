@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open ShellGPT
 Comment=ShellGPT (sgpt) shell assistant — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=ShellGPT --command="/usr/local/bin/sandbox-cli sgpt"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=ShellGPT --icon=g4f-sandbox-sgpt --command="/usr/local/bin/sandbox-cli sgpt"
+Icon=g4f-sandbox-sgpt
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Assistant;
 Keywords=sgpt;shellgpt;shell;assistant;ai;;

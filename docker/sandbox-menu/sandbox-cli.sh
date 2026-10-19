@@ -6,6 +6,7 @@
 #   sandbox-cli <tool>          install <tool> if missing, then run it here
 #   sandbox-cli install <tool>  install only, don't run it
 #   sandbox-cli settings        choose the g4f model, HOME and provider
+#   sandbox-cli reset           clear the saved settings, back to the defaults
 #   sandbox-cli list            list the tools the desktop menu knows about
 #
 # Each menu item runs:
@@ -71,14 +72,17 @@ port_open() {
     fi
 }
 
+# Menu entries open a fresh terminal that closes on exit; hold it so the
+# output of a one-shot command stays readable.
+hold_open() {
+    [ -t 0 ] || return 0
+    printf '\nPress Enter to close...'
+    read -r _ || true
+}
+
 die() {
     printf '\nsandbox-cli: error: %s\n' "$*" >&2
-    # Menu entries open a fresh terminal that closes on exit; hold it so an
-    # install failure stays readable.
-    if [ -t 0 ]; then
-        printf 'Press Enter to close...'
-        read -r _ || true
-    fi
+    hold_open
     exit 1
 }
 
@@ -276,6 +280,58 @@ run_settings() {
     fi
     [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--home/--provider/--show)"
     prompt_sandbox_settings
+}
+
+reset_usage() {
+    cat <<'EOF'
+usage: sandbox-cli reset            clear the saved settings (asks first)
+       sandbox-cli reset --yes      clear them without asking
+       sandbox-cli reset --show     print what would be cleared
+
+Drops the settings file written by "sandbox-cli settings", so the launchers
+fall back to the ambient environment and the built-in defaults (G4F_MODEL,
+$HOME, G4F_PROVIDER). Only that file is removed — installed tools, agent
+configs and the g4f runtime are left alone.
+EOF
+}
+
+run_reset() {
+    local assume_yes=0
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --yes|-y|yes)
+                assume_yes=1; shift ;;
+            --show|show)
+                show_sandbox_settings
+                return 0 ;;
+            -h|--help|help)
+                reset_usage
+                return 0 ;;
+            *)
+                die "unknown reset option \"$1\" — run: sandbox-cli reset --help" ;;
+        esac
+    done
+    if [ ! -f "$SANDBOX_ENV_FILE" ]; then
+        log "no settings file at $SANDBOX_ENV_FILE — nothing to reset"
+        hold_open
+        return 0
+    fi
+    if [ "$assume_yes" = 0 ]; then
+        [ -t 0 ] || die "sandbox-cli reset needs a terminal (or use --yes)"
+        printf 'This removes %s and restores the default model, HOME and provider.\n' \
+            "$SANDBOX_ENV_FILE"
+        local answer
+        read -r -p "Reset the sandbox settings? [y/N]: " answer || true
+        case "$answer" in
+            y|Y|yes|YES) ;;
+            *) log "kept $SANDBOX_ENV_FILE"; hold_open; return 0 ;;
+        esac
+    fi
+    rm -f "$SANDBOX_ENV_FILE" || die "cannot remove $SANDBOX_ENV_FILE"
+    load_sandbox_settings
+    log "cleared $SANDBOX_ENV_FILE"
+    show_sandbox_settings
+    hold_open
 }
 
 load_sandbox_settings
@@ -905,6 +961,7 @@ usage() {
 usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop tool
        sandbox-cli install <tool>     install only, don't run it
        sandbox-cli settings           choose the g4f model, HOME and provider
+       sandbox-cli reset              clear the saved settings, back to the defaults
        sandbox-cli list               list the tools behind the desktop menu
        sandbox-cli help               this help
 
@@ -920,7 +977,8 @@ list_tools() {
     printf '%s\n' "g4f"
     printf '  %-13s %s\n' \
         g4f-go      "g4f Go launcher CLI (preinstalled)" \
-        settings    "g4f model, HOME and provider for the launchers"
+        settings    "g4f model, HOME and provider for the launchers" \
+        reset       "clear the saved settings, back to the defaults"
     printf '%s\n' "Browsers"
     printf '  %-13s %s\n' \
         chrome      "Google Chrome browser" \
@@ -983,6 +1041,9 @@ case "${1:-}" in
     settings)
         shift
         run_settings "$@" ;;
+    reset)
+        shift
+        run_reset "$@" ;;
     install)
         [ $# -ge 2 ] || die "usage: sandbox-cli install <tool>"
         INSTALL_ONLY=1

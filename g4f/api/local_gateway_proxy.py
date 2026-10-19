@@ -218,13 +218,18 @@ class LocalGatewayProxy:
 
         ``routes`` holds ``(route_path, methods, target_path)`` tuples; the
         target path is forwarded relative to the gateway root. Used for the
-        OmniRoute dashboard, whose assets are requested from ``/``.
+        OmniRoute dashboard, whose assets are requested from ``/``. Path
+        parameters in ``route_path`` (e.g. ``{path:path}``) are substituted
+        into ``target_path``.
         """
         for route_path, methods, target_path in routes:
 
             def make_handler(target: str):
                 async def handler(request: Request):
-                    return await self.forward(request, target)
+                    path = target
+                    for name, value in request.path_params.items():
+                        path = path.replace(f"{{{name}}}", str(value))
+                    return await self.forward(request, path)
 
                 return handler
 

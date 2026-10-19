@@ -1,5 +1,9 @@
 # Sandbox desktop menu — install & open desktop tools
 
+![](home.png)
+
+![](sandbox.png)
+
 Entries behind the sandbox desktop's **Applications** menu
 (`docker/Dockerfile-sandbox-desktop`), grouped into six top-level menus —
 **g4f**, **Browsers**, **Coding Agents**, **Gateways**, **Local AI** and
@@ -8,7 +12,7 @@ Entries behind the sandbox desktop's **Applications** menu
 without window borders or menubar:
 
 ```
-xfce4-terminal --maximize --hide-borders --hide-menubar --command="/usr/local/bin/sandbox-cli <tool>"
+xfce4-terminal --maximize --hide-borders --hide-menubar --icon=g4f-sandbox-<tool> --command="/usr/local/bin/sandbox-cli <tool>"
 ```
 
 A multi-word `--title` must be quoted (`--title="Sandbox Settings"`): the
@@ -22,6 +26,8 @@ them in that same terminal (Chrome opens on the desktop instead). The
  CLI is preinstalled in the image. Node.js 24 and  are also
 preinstalled (from the official  image) for the npm-based tools; the rest is installed on demand.
 
+![](agents.png)
+
 | Menu entry               | Tool id     | Install recipe              | Binary         |
 |--------------------------|-------------|-----------------------------|----------------|
 | Install & Open OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
@@ -34,6 +40,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open Copilot   | `copilot`   | npm `@github/copilot`       | `copilot`      |
 | Open g4f-go CLI          | `g4f-go`    | preinstalled in the image   | `g4f-go`       |
 | Sandbox Settings         | `settings`  | none (writes a settings file) | —            |
+| Reset Sandbox Settings   | `reset`     | none (removes the settings file) | —         |
 | Install & Open Cline     | `cline`     | npm `cline`                 | `cline`        |
 | Install & Open Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
 | Install & Open Goose     | `goose`     | block/goose install script  | `goose`        |
@@ -106,9 +113,10 @@ environments.
 Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 `Development;`, and one top-level menu per category includes it:
 
+
 | Menu             | Category          | Entries                                        |
 |------------------|-------------------|------------------------------------------------|
-| **g4f**          | `X-G4F-Core`      | `g4f-go`, `settings`                           |
+| **g4f**          | `X-G4F-Core`      | `g4f-go`, `settings`, `reset`                  |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
 | **Coding Agents**| `X-G4F-Agent`     | `opencode`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roo`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`                         |
@@ -117,7 +125,7 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
-(`patch-xfce-menu.py`), which inserts the five `<Menu>` blocks just before its
+(`patch-xfce-menu.py`), which inserts the six `<Menu>` blocks just before its
 `<DefaultMergeDirs/>` node. Shipping them as a merged menu file under
 `/etc/xdg/menus/applications-merged/` does **not** work: garcon copies a merged
 file's elements with `g_node_traverse(..., depth=2, G_IN_ORDER)`, which never
@@ -127,6 +135,36 @@ idempotent, so re-running it is a no-op.
 
 The menu titles and icons come from the `.directory` files in
 `desktop-directories/`, copied to `/usr/share/desktop-directories/`.
+
+### Entry icons
+
+Every entry names its own icon and hands the same name to the terminal, so the
+menu row and the window it opens carry the same mark:
+
+```
+Exec=xfce4-terminal ... --title=Aider --icon=g4f-sandbox-aider --command="/usr/local/bin/sandbox-cli aider"
+Icon=g4f-sandbox-aider
+```
+
+`fetch-icons.py` materializes those names in the hicolor theme at build time,
+pulling each mark from the tool's own site — a direct logo asset where the
+vendor publishes one, otherwise its favicon, otherwise its GitHub avatar. It
+runs after the Pillow install because GTK icon themes load only `png`, `svg`
+and `xpm`, so the JPEG sources (GitHub avatars, some favicons) are converted to
+128x128 PNGs; SVGs are kept as SVG but rejected when they are not roughly
+square, which is what keeps wordmarks such as aider.chat's 200x60 logo out.
+`gtk-update-icon-cache` then refreshes the hicolor cache.
+
+A tool whose sources are all unreachable falls back to the shared
+`g4f-sandbox-cli.svg` instead of failing the build, and the build log lists
+which ones did. `g4f-go`, `settings` and `reset` are g4f's own entries and
+always use that shared icon.
+
+The image also installs `librsvg2-common` explicitly: it is only a *Recommends*
+of `xfdesktop4`/`adwaita-icon-theme`, and the build uses
+`--no-install-recommends`. Without it the gdk-pixbuf SVG loader is missing and
+GTK cannot render any SVG icon at all — neither the per-tool ones nor the
+Adwaita symbolic icons the category `.directory` files name.
 
 `chrome` is the odd one out: it installs Google's `.deb` through `apt` (the
 package pulls its own runtime libraries) and then starts Chrome on the desktop
@@ -212,6 +250,14 @@ curl http://127.0.0.1:8080/omniroute/v1/models
 Requests are forwarded to the local instance only; set `OMNIROUTE_BASE_URL`,
 `OMNIROUTE_HOST` or `OMNIROUTE_PORT` to point the provider and proxy elsewhere.
 
+OmniRoute serves its dashboard and its own API from the gateway root rather than
+from a sub-path, so g4f also registers those paths (`/dashboard`, `/_next/*`,
+`/api/*`, `/healthz`, ...) and forwards them to the same local instance. That
+lets the OmniRoute dashboard be opened at `http://127.0.0.1:8080/dashboard`
+without a second port. Because those routes are registered before g4f's own
+`/api/*` handlers, OmniRoute's `/api/*` paths take precedence while the
+OmniRoute instance is configured; g4f's own API stays reachable under `/v1/*`.
+
 ### Ollama gateway
 
 The same proxy is available for a local Ollama server (default
@@ -287,6 +333,18 @@ sandbox-cli settings --provider PollinationsAI
 sandbox-cli settings --unset                # back to the defaults
 ```
 
+The **Reset Sandbox Settings** entry (`g4f` menu) is the same reset behind a
+menu item: it asks for confirmation, then removes the settings file so every
+launcher falls back to the ambient environment and the built-in defaults. It
+touches nothing else — installed tools, agent configs and the g4f runtime stay
+as they are. Non-interactively:
+
+```bash
+sandbox-cli reset            # asks before removing the file
+sandbox-cli reset --yes      # no prompt
+sandbox-cli reset --show     # print what would be cleared
+```
+
 `HOME` applies to **every** menu entry, not just the g4f-aware ones: agents
 keep their config, credentials and caches under `$HOME`, so pointing it at a
 scratch directory gives a throwaway agent profile. The directory is created if
@@ -310,10 +368,17 @@ The provider is independent of that: it is only passed on when one is set.
 
 - `sandbox-cli.sh` — installed as `/usr/local/bin/sandbox-cli`; also usable by
   hand: `sandbox-cli list`, `sandbox-cli install <tool>`, `sandbox-cli <tool>`,
-  `sandbox-cli settings`.
+  `sandbox-cli settings`, `sandbox-cli reset`.
 - `g4f-sandbox-*.desktop` — the menu entries, copied to
-  `/usr/share/applications/`.
-- `g4f-sandbox-cli.svg` — shared entry icon (hicolor scalable theme).
+  `/usr/share/applications/`. Each names its own `g4f-sandbox-<tool>` icon and
+  passes it to `xfce4-terminal` as `--icon`.
+- `g4f-sandbox-cli.svg` — the shared icon, used by the `g4f-go`, `settings` and
+  `reset` entries and as the fallback for any tool whose icon sources are
+  unreachable.
+- `fetch-icons.py` — installed as `/usr/local/bin/fetch-icons.py`; fetches and
+  normalizes the per-tool icons into the hicolor theme at build time. Run it by
+  hand with `--dest <dir>` to inspect the result, or `--only <tool>` to retry a
+  single tool.
 - `desktop-directories/g4f-sandbox-*.directory` — the menu titles and icons,
   copied to `/usr/share/desktop-directories/`.
 - `patch-xfce-menu.py` — inserts the category menus into
@@ -328,8 +393,13 @@ The provider is independent of that: it is only passed on when one is set.
    also talk to the g4f API calls `configure_g4f` before `launch`.
 2. Copy an existing `.desktop` file, swap the tool id, name, comment and
    keywords, and set `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` to the category it
-   belongs to.
-3. Rebuild the image.
+   belongs to. Set `Icon=g4f-sandbox-<tool>` and add the matching
+   `--icon=g4f-sandbox-<tool>` to the `Exec` line.
+3. Add the tool id to `ICONS` in `fetch-icons.py` with its candidate URLs, best
+   first (a direct logo asset, then `google("<domain>")`, then
+   `github("<org>")`). A tool with no vendor site goes into `SHARED` instead and
+   keeps `g4f-sandbox-cli`.
+4. Rebuild the image.
 
 ## Adding a category
 

@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Grok
 Comment=xAI Grok Build CLI — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Grok --command="/usr/local/bin/sandbox-cli grok"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Grok --icon=g4f-sandbox-grok --command="/usr/local/bin/sandbox-cli grok"
+Icon=g4f-sandbox-grok
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=grok;xai;agent;ai;coding;;

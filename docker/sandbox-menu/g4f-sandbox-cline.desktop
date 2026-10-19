@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Cline
 Comment=Cline terminal agent — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Cline --command="/usr/local/bin/sandbox-cli cline"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Cline --icon=g4f-sandbox-cline --command="/usr/local/bin/sandbox-cli cline"
+Icon=g4f-sandbox-cline
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=cline;ai;agent;coding;;

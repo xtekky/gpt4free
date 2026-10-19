@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Hermes
 Comment=Hermes Agent by Nous Research — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Hermes --command="/usr/local/bin/sandbox-cli hermes"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Hermes --icon=g4f-sandbox-hermes --command="/usr/local/bin/sandbox-cli hermes"
+Icon=g4f-sandbox-hermes
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=hermes;nous;agent;ai;coding;;

@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Jan
 Comment=Jan desktop app for local models — installs on first click, then opens on the desktop
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Jan --command="/usr/local/bin/sandbox-cli jan"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Jan --icon=g4f-sandbox-jan --command="/usr/local/bin/sandbox-cli jan"
+Icon=g4f-sandbox-jan
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-LocalAI;
 Keywords=jan;local;llm;models;desktop;;

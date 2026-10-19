@@ -3,8 +3,8 @@ Version=1.0
 Type=Application
 Name=Install & Open Crush
 Comment=Crush agentic coding by Charm — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Crush --command="/usr/local/bin/sandbox-cli crush"
-Icon=g4f-sandbox-cli
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Crush --icon=g4f-sandbox-crush --command="/usr/local/bin/sandbox-cli crush"
+Icon=g4f-sandbox-crush
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;
 Keywords=crush;charm;agent;ai;coding;;
