@@ -4,6 +4,10 @@ generated_media
 g4f.dev
 playground
 projects
+# The sandbox desktop image ships the Remote Desktop app icon (the file the
+# web app's manifest names) as the menu entry's icon, so that one file has to
+# stay in the build context.
+!projects/remote-desktop/web/icon.svg
 docs
 etc
 build

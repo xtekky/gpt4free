@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Run Proxy Server
+Comment=mitmproxy HTTP(S) proxy — installs on first click, then serves on 127.0.0.1:8081
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Proxy Server" --icon=g4f-sandbox-proxy --command="/usr/local/bin/sandbox-cli proxy"
+Icon=g4f-sandbox-proxy
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Gateway;
+Keywords=proxy;mitmproxy;http;https;intercept;inspect;debug;network;;
+StartupNotify=false

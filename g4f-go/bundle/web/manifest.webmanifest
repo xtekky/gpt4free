@@ -2,15 +2,15 @@
   "name": "Remote Desktop",
   "short_name": "RemoteDesk",
   "description": "View and control a desktop from your phone using native browser screen capture.",
-  "start_url": "/view",
-  "scope": "/",
+  "start_url": "/remote_desktop/view",
+  "scope": "/remote_desktop/",
   "display": "fullscreen",
   "orientation": "any",
   "background_color": "#0b0f14",
   "theme_color": "#0b0f14",
   "icons": [
     {
-      "src": "/static/icon.svg",
+      "src": "/remote_desktop/static/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

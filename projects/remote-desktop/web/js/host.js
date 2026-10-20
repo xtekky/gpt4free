@@ -45,7 +45,7 @@
 
   const wsUrl = () => {
     const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-    return `${scheme}//${location.host}/ws`;
+    return `${scheme}//${location.host}/remote_desktop/ws`;
   };
 
   const send = (message) => {
@@ -369,7 +369,7 @@
     const link = `${base}/view?room=${code}${state.token ? `&token=${encodeURIComponent(state.token)}` : ""}`;
     $("view-url").textContent = link;
     const qr = $("qr");
-    qr.src = `/api/qr.svg?url=${encodeURIComponent(link)}`;
+    qr.src = `/remote_desktop/api/qr.svg?url=${encodeURIComponent(link)}`;
     qr.hidden = false;
   }
 
@@ -405,7 +405,7 @@
 
   async function refreshStatus() {
     try {
-      const response = await fetch("/api/status");
+      const response = await fetch("/remote_desktop/api/status");
       const data = await response.json();
       state.urls = data.urls || [];
       applyIceServers(data.ice_servers);

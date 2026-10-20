@@ -96,10 +96,14 @@ class LocalGatewayProxy:
         prefix: str,
         root_url: Callable[[], str],
         label: Optional[str] = None,
+        target_prefix: str = "",
     ) -> None:
         self.prefix = "/" + prefix.strip("/")
         self.root_url = root_url
         self.label = label or prefix.strip("/")
+        #: Path the target serves the same content under. Empty means the
+        #: target's root corresponds to the proxy prefix.
+        self.target_prefix = "/" + target_prefix.strip("/") if target_prefix.strip("/") else ""
 
     def _rewrite_location(self, location: str, root_url: str) -> str:
         """Keep redirects inside the proxy prefix."""
@@ -118,7 +122,8 @@ class LocalGatewayProxy:
 
     async def forward(self, request: Request, path: str):
         root_url = self.root_url()
-        target_url = f"{root_url}/{path}" if path else f"{root_url}/"
+        target_path = f"{self.target_prefix}/{path}" if path else (self.target_prefix or "")
+        target_url = f"{root_url}{target_path}" if target_path else f"{root_url}/"
         if request.url.query:
             target_url = f"{target_url}?{request.url.query}"
 
@@ -134,6 +139,10 @@ class LocalGatewayProxy:
             for key, value in request.headers.items()
             if key.lower() not in _DROP_REQUEST_HEADERS
         }
+        # Standard reverse-proxy headers: the target may need the origin the
+        # browser actually used, e.g. to build share links that stay reachable.
+        headers["x-forwarded-host"] = request.headers.get("host", "")
+        headers["x-forwarded-proto"] = request.url.scheme
         timeout = aiohttp.ClientTimeout(total=None, connect=5, sock_read=None)
         session = aiohttp.ClientSession(timeout=timeout, auto_decompress=False)
         try:

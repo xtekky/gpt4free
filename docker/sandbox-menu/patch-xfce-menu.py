@@ -85,6 +85,17 @@ MENUS = [
     </Menu>
 """,
     ),
+    (
+        "Chat UIs",
+        """    <Menu>
+        <Name>Chat UIs</Name>
+        <Directory>g4f-sandbox-chat-uis.directory</Directory>
+        <Include>
+            <Category>X-G4F-ChatUI</Category>
+        </Include>
+    </Menu>
+""",
+    ),
 ]
 
 def main() -> int:

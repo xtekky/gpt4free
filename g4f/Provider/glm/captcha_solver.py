@@ -59,18 +59,6 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
 )
 
-# Stealth init script — hides automation signals from the captcha SDK.
-# Identical to the TS reference.
-STEALTH_INIT_SCRIPT = """
-Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: {} };
-Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
-Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
-Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
-"""
-
 # In-process cache for the solved captcha token.
 _cached_token: dict = {"verify_param": None, "expires_at": 0.0}
 # Serialises concurrent solves so we never launch more than one browser solve
@@ -233,9 +221,6 @@ async def _solve_once() -> str:
         # initial document request.
         await _intercept_and_fulfill(tab, page_url, html)
         debug.info("Intercept and fulfill setup complete")
-        # Apply stealth mitigations before any page script runs.
-        await tab.evaluate(STEALTH_INIT_SCRIPT, await_promise=False)
-        debug.info("Stealth mitigations applied")
         # Navigate to the intercepted page.
         await tab.get(page_url)
         debug.info("Navigated to page URL")

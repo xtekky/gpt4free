@@ -62,6 +62,7 @@ except ImportError:
     pass
 
 from ..cookies import BrowserConfig, read_har_cookies
+from ..requests.defaults import CHROME_VERSION
 from ..mcp.browser_dom import STEALTH_JS
 from ..files import secure_filename
 from .. import debug
@@ -78,14 +79,14 @@ logger = logging.getLogger(__name__)
 # reports "Lightpanda/1.0"). Kept in sync with the sec-ch-ua version in
 # g4f/requests/defaults.py.
 CHROME_USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+    f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    f"(KHTML, like Gecko) Chrome/{CHROME_VERSION}.0.0.0 Safari/537.36"
 )
 
 # Lightpanda refuses --user-agent values containing "Mozilla" (fatal "invalid
 # user-agent" at startup), so its UA is shaped with --user-agent-suffix
 # instead. Kept in sync with browserUserAgentSuffix in g4f-go/browser.go.
-CHROME_USER_AGENT_SUFFIX = "Chrome/136.0.0.0 Safari/537.36"
+CHROME_USER_AGENT_SUFFIX = f"Chrome/{CHROME_VERSION}.0.0.0 Safari/537.36"
 
 from pathlib import Path
 
@@ -1357,20 +1358,6 @@ class CDPSession:
             except Exception as e:
                 debug.log(f"CDP: Network.setUserAgentOverride not supported: {e}")
 
-            STEALTH_JS = """
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: {} };
-        Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
-        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-        Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-        Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
-        Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
-        const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
-        WebGLRenderingContext.prototype.getParameter = function(parameter) {
-            if (parameter === 37445) return 'Intel Inc.';
-            if (parameter === 37446) return 'Intel Iris OpenGL Engine';
-            return originalGetParameter.call(this, parameter);
-        };"""
             # 2. JS-level: navigator.userAgent / appVersion on every new document.
             try:
                 await self.call(

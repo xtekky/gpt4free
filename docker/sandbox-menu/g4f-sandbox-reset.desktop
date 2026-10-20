@@ -2,10 +2,10 @@
 Version=1.0
 Type=Application
 Name=Reset Sandbox Settings
-Comment=Clear the saved g4f model, HOME and provider and go back to the defaults
+Comment=Clear the saved g4f model, HOME, provider and proxy and go back to the defaults
 Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Reset Sandbox Settings" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli reset"
 Icon=g4f-sandbox-cli
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Core;
-Keywords=g4f;settings;reset;clear;defaults;model;home;provider;;
+Keywords=g4f;settings;reset;clear;defaults;model;home;provider;proxy;;
 StartupNotify=false

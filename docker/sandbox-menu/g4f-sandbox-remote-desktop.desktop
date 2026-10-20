@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Open Remote Desktop
+Comment=Share this sandbox screen with a phone over WebRTC (QR pairing)
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Remote Desktop" --icon=g4f-sandbox-remote-desktop --command="/usr/local/bin/sandbox-cli remote-desktop"
+Icon=g4f-sandbox-remote-desktop
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=remote;desktop;webrtc;screen;share;qr;phone;;
+StartupNotify=false

@@ -5,9 +5,10 @@
 #
 #   sandbox-cli <tool>          install <tool> if missing, then run it here
 #   sandbox-cli install <tool>  install only, don't run it
-#   sandbox-cli settings        choose the g4f model, HOME and provider
+#   sandbox-cli settings        choose the g4f model, HOME, provider and proxy
 #   sandbox-cli reset           clear the saved settings, back to the defaults
 #   sandbox-cli list            list the tools the desktop menu knows about
+#   sandbox-cli urls            print the public URLs served by the g4f API
 #
 # Each menu item runs:
 #   xfce4-terminal --command="/usr/local/bin/sandbox-cli <tool>"
@@ -57,6 +58,27 @@ LMSTUDIO_INSTALLER="https://lmstudio.ai/install.sh"
 LLAMACPP_RELEASE_BASE="https://github.com/ggml-org/llama.cpp/releases/download"
 # Jan ships a Linux AppImage; the release tag is resolved at install time.
 JAN_RELEASE_BASE="https://github.com/janhq/jan/releases/download"
+# Chat UIs. LobeChat publishes a Linux AppImage per release (tag resolved at
+# install time, x64 only); Msty Studio serves a stable "latest" AppImage URL
+# (x64 only). LibreChat is not packaged: it is cloned and built from source
+# (see ensure_librechat) and needs MongoDB, which the image does not ship.
+LOBECHAT_RELEASE_BASE="https://github.com/lobehub/lobehub/releases/download"
+MSTY_APPIMAGE_URL="https://next-assets.msty.studio/app/latest/linux/MstyStudio_x86_64.AppImage"
+LIBRECHAT_REPO="https://github.com/danny-avila/LibreChat.git"
+# MongoDB publishes no trixie build of mongodb-org-server, so the server comes
+# from the bookworm repository (the .deb is self-contained) or, on arm64, from
+# the ubuntu2404 tarball -- fastdl serves no aarch64 debian12 tarball.
+MONGODB_APT_BASE="https://repo.mongodb.org/apt/debian"
+MONGODB_APT_DIST="bookworm/mongodb-org/8.0"
+MONGODB_GPG_URL="https://pgp.mongodb.com/server-8.0.asc"
+MONGODB_TARBALL_BASE="https://fastdl.mongodb.org/linux"
+MONGODB_VERSION="8.0.34"
+# The tunnel entry ("Install & Run Tunnel Client") is backed by Cloudflare's
+# cloudflared: `cloudflared tunnel --url <target>` opens a public HTTPS URL
+# (trycloudflare.com) for a local port with no account and no config file. The
+# per-architecture static binary is fetched from the latest release over HTTPS;
+# the arch suffix is appended at install time (see ensure_cloudflared).
+CLOUDFLARED_RELEASE_BASE="https://github.com/cloudflare/cloudflared/releases/latest/download"
 
 INSTALL_ONLY=0
 
@@ -95,6 +117,28 @@ as_root() {
     fi
 }
 
+# True when something accepts a TCP connection on 127.0.0.1:<port>. Unlike
+# port_open this makes no HTTP request, so it also works for non-HTTP services
+# such as the bundled MongoDB.
+tcp_open() {
+    (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1
+}
+
+# Set KEY=value in an env-style file: replace the line when the key is already
+# there (commented out or not), append it otherwise.
+set_env_var() { # <file> <key> <value>
+    local file="$1" key="$2" value="$3" tmp
+    tmp="$(mktemp)" || die "could not create a temporary file"
+    if grep -qE "^[[:space:]]*#?[[:space:]]*${key}=" "$file"; then
+        sed -E "0,/^[[:space:]]*#?[[:space:]]*${key}=/s|^[[:space:]]*#?[[:space:]]*${key}=.*|${key}=${value}|" \
+            "$file" >"$tmp" || die "could not update $key in $file"
+    else
+        cat "$file" >"$tmp"
+        printf '%s=%s\n' "$key" "$value" >>"$tmp"
+    fi
+    mv "$tmp" "$file" || die "could not write $file"
+}
+
 # ---------------------------------------------------------------------------
 # Sandbox settings (g4f model, g4f provider + HOME)
 #
@@ -104,14 +148,23 @@ as_root() {
 # must not move the file that records it.
 #
 # Precedence, highest first:
-#   G4F_SANDBOX_MODEL / G4F_SANDBOX_HOME / G4F_SANDBOX_PROVIDER
-#                                          explicit environment override
+#   G4F_SANDBOX_MODEL / G4F_SANDBOX_HOME / G4F_SANDBOX_PROVIDER /
+#   G4F_SANDBOX_PROXY                      explicit environment override
 #   the settings file                      what the menu entry saved
-#   G4F_MODEL / $HOME / G4F_PROVIDER       ambient environment, then defaults
+#   G4F_MODEL / $HOME / G4F_PROVIDER / G4F_PROXY
+#                                          ambient environment, then defaults
 #
 # HOME applies to every menu entry (see apply_sandbox_home): agents keep their
 # config, credentials and caches under $HOME, so pointing it at a scratch
 # directory gives a throwaway profile.
+#
+# PROXY applies to every menu entry too (see apply_sandbox_proxy): it is
+# exported as G4F_PROXY (read by g4f itself) and as the conventional
+# HTTP_PROXY/HTTPS_PROXY/ALL_PROXY variables (read by the agents and the tools
+# they shell out to). It typically points at the local "Install & Run Proxy
+# Server" entry (mitmproxy on 127.0.0.1:8081); loopback stays direct. The
+# proxy's CA is trusted at the same time (see trust_proxy_ca), and OpenCode's
+# background server is told about both (see configure_opencode_service).
 #
 # A model only reaches the g4f-aware launchers when one was actually chosen —
 # G4F_SANDBOX_MODEL, or G4F_MODEL in the settings file. With no model set, the
@@ -129,9 +182,22 @@ real_home() {
 }
 
 SANDBOX_ENV_FILE="${G4F_SANDBOX_ENV:-$(real_home)/.config/g4f-sandbox/env}"
+# mitmproxy signs the HTTPS traffic it intercepts with its own CA. The CA lives
+# in a fixed confdir under the real home (not $HOME): the per-entry HOME
+# setting must not move it, or a tool launched with another HOME would not find
+# the certificate the proxy is using. The path is also exported to the tools
+# (see apply_sandbox_proxy), so a custom location works the same way.
+PROXY_CA_DIR="${G4F_SANDBOX_MITM_DIR:-$(real_home)/.config/g4f-sandbox/mitmproxy}"
+PROXY_CA_CERT="$PROXY_CA_DIR/mitmproxy-ca-cert.pem"
+PROXY_CA_BUNDLE="$PROXY_CA_DIR/ca-bundle.pem"
+# The system trust store, used as the base of the bundle the tools are pointed
+# at: mitmproxy's CA is appended to it rather than replacing it, so direct
+# (NO_PROXY) connections keep working.
+SYSTEM_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
 SANDBOX_MODEL=""
 SANDBOX_HOME=""
 SANDBOX_PROVIDER=""
+SANDBOX_PROXY=""
 # 1 once a model was chosen (G4F_SANDBOX_MODEL, or the settings file), else 0.
 SANDBOX_MODEL_SET=0
 
@@ -139,6 +205,7 @@ load_sandbox_settings() {
     SANDBOX_MODEL=""
     SANDBOX_HOME=""
     SANDBOX_PROVIDER=""
+    SANDBOX_PROXY=""
     SANDBOX_MODEL_SET=0
     [ -f "$SANDBOX_ENV_FILE" ] || return 0
     local line key value
@@ -152,21 +219,23 @@ load_sandbox_settings() {
                 [ -n "$value" ] && SANDBOX_MODEL_SET=1 ;;
             SANDBOX_HOME) SANDBOX_HOME="$value" ;;
             G4F_PROVIDER) SANDBOX_PROVIDER="$value" ;;
+            SANDBOX_PROXY) SANDBOX_PROXY="$value" ;;
         esac
     done < "$SANDBOX_ENV_FILE"
 }
 
-save_sandbox_settings() { # <model> <home> <provider>
+save_sandbox_settings() { # <model> <home> <provider> <proxy>
     local dir
     dir="$(dirname "$SANDBOX_ENV_FILE")"
     mkdir -p "$dir" || die "cannot create $dir"
     {
         printf '# g4f sandbox settings — written by: sandbox-cli settings\n'
-        printf '# Read by the menu launchers (HOME) and the g4f-aware ones\n'
+        printf '# Read by the menu launchers (HOME, proxy) and the g4f-aware ones\n'
         printf '# (OpenCode, Copilot, Hermes).\n'
         printf 'G4F_MODEL=%s\n' "$1"
         printf 'SANDBOX_HOME=%s\n' "$2"
         printf 'G4F_PROVIDER=%s\n' "$3"
+        printf 'SANDBOX_PROXY=%s\n' "$4"
     } > "$SANDBOX_ENV_FILE" || die "cannot write $SANDBOX_ENV_FILE"
 }
 
@@ -176,10 +245,12 @@ show_sandbox_settings() {
         printf 'G4F_MODEL:     %s\n' "${SANDBOX_MODEL:-(unset)}"
         printf 'HOME:          %s\n' "${SANDBOX_HOME:-(unset)}"
         printf 'G4F_PROVIDER:  %s\n' "${SANDBOX_PROVIDER:-(unset)}"
+        printf 'PROXY:         %s\n' "${SANDBOX_PROXY:-(unset)}"
     else
         printf 'G4F_MODEL:     %s (default)\n' "${G4F_MODEL:-(unset)}"
         printf 'HOME:          %s (default)\n' "$(real_home)"
         printf 'G4F_PROVIDER:  %s (default)\n' "${G4F_PROVIDER:-(unset)}"
+        printf 'PROXY:         %s (default)\n' "${G4F_PROXY:-(unset)}"
     fi
 }
 
@@ -201,10 +272,11 @@ validate_sandbox_home() { # <dir>
 }
 
 prompt_sandbox_settings() {
-    local model home provider answer
-    model="${SANDBOX_MODEL:-${G4F_MODEL:-auto}}"
+    local model home provider proxy answer
+    model="${SANDBOX_MODEL:-${G4F_MODEL:-}}"
     home="${SANDBOX_HOME:-$(real_home)}"
     provider="${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}"
+    proxy="${SANDBOX_PROXY:-${G4F_PROXY:-}}"
     printf 'g4f sandbox settings — press Enter to keep the value in brackets.\n\n'
     printf 'Model passed to the g4f API (G4F_MODEL).\n'
     read -r -p "  model [$model]: " answer || true
@@ -217,32 +289,42 @@ prompt_sandbox_settings() {
     printf '  sandbox-cli settings --provider ""\n'
     read -r -p "  provider [${provider:-none}]: " answer || true
     [ -n "$answer" ] && provider="$answer"
+    printf '\nProxy used by every menu entry (HTTP_PROXY/HTTPS_PROXY and G4F_PROXY).\n'
+    printf 'Point it at the Proxy Server entry, e.g. http://127.0.0.1:8081.\n'
+    printf 'Enter keeps it, clear it with:\n'
+    printf '  sandbox-cli settings --proxy ""\n'
+    read -r -p "  proxy [${proxy:-none}]: " answer || true
+    [ -n "$answer" ] && proxy="$answer"
     printf '\n'
     validate_sandbox_home "$home"
-    save_sandbox_settings "$model" "$home" "$provider"
+    save_sandbox_settings "$model" "$home" "$provider" "$proxy"
     load_sandbox_settings
     show_sandbox_settings
 }
 
 settings_usage() {
     cat <<'EOF'
-usage: sandbox-cli settings                    ask for model, HOME and provider
+usage: sandbox-cli settings                    ask for model, HOME, provider and proxy
        sandbox-cli settings --show             print the saved settings
        sandbox-cli settings --model <id>       set the model (keeps the rest)
        sandbox-cli settings --home <dir>       set HOME (keeps the rest)
        sandbox-cli settings --provider <name>  set the g4f provider
+       sandbox-cli settings --proxy <url>      set the HTTP(S) proxy
        sandbox-cli settings --unset            drop the file and use the defaults
 
-HOME applies to every menu entry. The g4f-aware launchers (OpenCode, Copilot,
-Hermes) additionally read the model and provider; the environment variables
-G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME and G4F_SANDBOX_PROVIDER override them.
+HOME and PROXY apply to every menu entry. The g4f-aware launchers (OpenCode,
+Copilot, Hermes) additionally read the model and provider; the environment
+variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME, G4F_SANDBOX_PROVIDER and
+G4F_SANDBOX_PROXY override them. PROXY is exported as G4F_PROXY (for g4f) and
+as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents), with loopback kept direct.
 Those launchers only repoint the tool at the g4f provider once a model is set,
 so with no model saved they keep the tool's own provider and model.
 EOF
 }
 
 run_settings() {
-    local model="" home="" provider="" set_model=0 set_home=0 set_provider=0
+    local model="" home="" provider="" proxy=""
+    local set_model=0 set_home=0 set_provider=0 set_proxy=0
     while [ $# -gt 0 ]; do
         case "$1" in
             --show|show)
@@ -261,6 +343,9 @@ run_settings() {
             --provider)
                 [ $# -ge 2 ] || die "--provider needs a value"
                 provider="$2"; set_provider=1; shift 2 ;;
+            --proxy)
+                [ $# -ge 2 ] || die "--proxy needs a value"
+                proxy="$2"; set_proxy=1; shift 2 ;;
             -h|--help|help)
                 settings_usage
                 return 0 ;;
@@ -268,17 +353,19 @@ run_settings() {
                 die "unknown settings option \"$1\" — run: sandbox-cli settings --help" ;;
         esac
     done
-    if [ "$set_model" = 1 ] || [ "$set_home" = 1 ] || [ "$set_provider" = 1 ]; then
-        [ "$set_model" = 1 ] || model="${SANDBOX_MODEL:-${G4F_MODEL:-auto}}"
+    if [ "$set_model" = 1 ] || [ "$set_home" = 1 ] || [ "$set_provider" = 1 ] \
+        || [ "$set_proxy" = 1 ]; then
+        [ "$set_model" = 1 ] || model="${SANDBOX_MODEL:-${G4F_MODEL:-}}"
         [ "$set_home" = 1 ] || home="${SANDBOX_HOME:-$(real_home)}"
         [ "$set_provider" = 1 ] || provider="${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}"
+        [ "$set_proxy" = 1 ] || proxy="${SANDBOX_PROXY:-${G4F_PROXY:-}}"
         validate_sandbox_home "$home"
-        save_sandbox_settings "$model" "$home" "$provider"
+        save_sandbox_settings "$model" "$home" "$provider" "$proxy"
         load_sandbox_settings
         show_sandbox_settings
         return 0
     fi
-    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--home/--provider/--show)"
+    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--home/--provider/--proxy/--show)"
     prompt_sandbox_settings
 }
 
@@ -352,6 +439,64 @@ apply_sandbox_home() {
     export HOME="$home"
     PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.openclaw/bin:$HOME/.kimi-code/bin:$HOME/.qoder/bin:$PATH"
     export PATH
+}
+
+# mitmproxy signs the HTTPS traffic it intercepts with its own CA, which no
+# tool trusts by default: without it every intercepted HTTPS request fails with
+# "unable to verify the first certificate" (OpenCode logs exactly that for its
+# update check and for models.opencode.ai). Point the tools at a bundle that
+# holds the system CAs plus mitmproxy's, and install the CA into the system
+# store so anything that reads it directly (curl, Python, Chrome) works too.
+#
+# The bundle is rebuilt on every launch: mitmproxy regenerates its CA when the
+# confdir is recreated, and a stale bundle would silently break TLS again.
+# Every failure here is non-fatal — a proxy that has not run yet simply has no
+# CA to trust, and the launcher must still start the tool. as_root is
+# deliberately not used: it dies (and waits for Enter) on failure, which would
+# turn a missing CA into a launcher that never starts.
+trust_proxy_ca() {
+    [ -r "$PROXY_CA_CERT" ] || return 0
+    local bundle="$PROXY_CA_BUNDLE"
+    if ! { cat "$SYSTEM_CA_BUNDLE" 2>/dev/null || :; cat "$PROXY_CA_CERT"; } > "$bundle" 2>/dev/null; then
+        log "could not write the proxy CA bundle at $bundle; HTTPS through the proxy may fail"
+        return 0
+    fi
+    export NODE_EXTRA_CA_CERTS="$bundle"
+    export SSL_CERT_FILE="$bundle" REQUESTS_CA_BUNDLE="$bundle" CURL_CA_BUNDLE="$bundle"
+    export GIT_SSL_CAINFO="$bundle" AWS_CA_BUNDLE="$bundle"
+    # The system store is what Chrome and the other GUI apps read. Installing
+    # the CA there is idempotent: the anchor is overwritten in place and
+    # update-ca-certificates rebuilds the store from the anchors, so repeated
+    # launches do not pile up copies. update-ca-certificates lives in /usr/sbin,
+    # which is not on the PATH the menu entries run with.
+    local anchor="/usr/local/share/ca-certificates/g4f-sandbox-proxy.crt"
+    [ -f "$anchor" ] && cmp -s "$PROXY_CA_CERT" "$anchor" && return 0
+    if [ "$(id -u)" -eq 0 ]; then
+        install -m 0644 "$PROXY_CA_CERT" "$anchor" 2>/dev/null || return 0
+        /usr/sbin/update-ca-certificates >/dev/null 2>&1 || :
+    elif sudo -n install -m 0644 "$PROXY_CA_CERT" "$anchor" 2>/dev/null; then
+        sudo -n /usr/sbin/update-ca-certificates >/dev/null 2>&1 || :
+    else
+        log "could not install the proxy CA into the system store; GUI apps may not trust the proxy"
+    fi
+}
+
+# PROXY is the other per-menu-entry setting that applies to every tool: it is
+# exported both as G4F_PROXY, which g4f itself reads for its own requests, and
+# as the conventional HTTP_PROXY/HTTPS_PROXY/ALL_PROXY variables, which the
+# agents and the tools they shell out to honour. The typical value is the local
+# "Install & Run Proxy Server" entry (mitmproxy on 127.0.0.1:8081). Loopback is
+# added to NO_PROXY so the launchers can still reach the g4f API and the other
+# local servers directly instead of looping back through the proxy.
+apply_sandbox_proxy() {
+    local proxy="${G4F_SANDBOX_PROXY:-${SANDBOX_PROXY:-${G4F_PROXY:-}}}"
+    [ -n "$proxy" ] || return 0
+    export G4F_PROXY="$proxy"
+    export HTTP_PROXY="$proxy" HTTPS_PROXY="$proxy" ALL_PROXY="$proxy"
+    export http_proxy="$proxy" https_proxy="$proxy" all_proxy="$proxy"
+    local no_proxy="${NO_PROXY:-${no_proxy:-127.0.0.1,localhost,::1}}"
+    export NO_PROXY="$no_proxy" no_proxy="$no_proxy"
+    trust_proxy_ca
 }
 
 ensure_node() {
@@ -496,6 +641,32 @@ ensure_lightpanda() {
     g4f-go browser path >/dev/null 2>&1 || die "Lightpanda not installed after g4f-go browser install"
 }
 
+# Remote Desktop is a bundled g4f-go module (`g4f-go -m remote_desktop`):
+# g4f-go extracts it into its own runtime and pip-installs the extra packages
+# it needs there on first use -- qrcode (the pairing QR SVG) and pynput
+# (pointer and keyboard injection). Installing them here up front makes a
+# failure visible in this terminal instead of leaving a server that silently
+# has no QR code and no input control. `python3` is the embedded interpreter,
+# so the probe looks at the same site-packages g4f-go does (PYTHONNOUSERSITE
+# mirrors its runtime env).
+#
+# pynput's wheel metadata pulls in `evdev` on Linux, a C extension that needs
+# kernel headers and a compiler the slim image does not carry, so a plain
+# `pip install pynput` fails to build it. The sandbox session is X11, where
+# pynput talks to the server through python-xlib instead of evdev, so pynput is
+# installed without its dependencies and python-xlib is pulled explicitly.
+ensure_remote_desktop() {
+    have g4f-go || die "g4f-go is not installed"
+    if have python3 && PYTHONNOUSERSITE=1 python3 -c \
+        'import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(m) for m in ("qrcode", "pynput", "Xlib")) else 1)' \
+        2>/dev/null; then
+        return 0
+    fi
+    log "installing Remote Desktop dependencies (qrcode, python-xlib, pynput)..."
+    g4f-go install qrcode python-xlib || die "could not install qrcode/python-xlib"
+    g4f-go install --no-deps pynput || die "could not install pynput"
+}
+
 ensure_script() { # <install script url> <binary> <label>
     have "$2" && return 0
     log "installing $3..."
@@ -590,10 +761,264 @@ ensure_jan() {
     have jan || die "jan not on PATH after the install"
 }
 
-# Open WebUI is a pip package that serves a browser UI and talks to Ollama.
-ensure_openwebui() {
-    have open-webui && return 0
-    ensure_pip open-webui open-webui
+# Electron desktop apps (LobeChat, Msty Studio) link against NSS/NSPR and
+# ALSA, which the slim image does not carry. Chrome's .deb pulls the same
+# libraries in, but these entries never install Chrome, so they are installed
+# here on first click.
+ensure_electron_libs() {
+    have ldconfig || return 0
+    if ldconfig -p 2>/dev/null | grep -q "libnss3.so" \
+        && ldconfig -p 2>/dev/null | grep -q "libasound.so.2"; then
+        return 0
+    fi
+    log "installing the Electron runtime libraries (NSS, ALSA)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq libnss3 libnspr4 libasound2t64 \
+        || die "could not install the Electron runtime libraries"
+}
+
+# LobeChat (lobehub) ships an Electron desktop app as an AppImage. Like Jan it
+# is unpacked rather than mounted (no FUSE in the container) and the AppRun is
+# symlinked onto PATH. The release only carries an x64 AppImage.
+ensure_lobechat() {
+    have lobechat && return 0
+    local tag url dir
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) ;;
+        *) die "LobeChat publishes no Linux AppImage for $(dpkg --print-architecture); only x64 is available" ;;
+    esac
+    ensure_electron_libs
+    tag="$(curl -fsSL "https://api.github.com/repos/lobehub/lobehub/releases/latest" \
+        | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+    [ -n "$tag" ] || die "could not resolve the latest LobeChat release"
+    url="$LOBECHAT_RELEASE_BASE/$tag/LobeHub-${tag#v}.AppImage"
+    log "installing LobeChat ($tag)..."
+    dir="$HOME/.local/opt/lobechat"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    curl -fsSL -o "$dir/lobechat.AppImage" "$url" \
+        || die "could not download LobeChat ($url)"
+    chmod +x "$dir/lobechat.AppImage"
+    ( cd "$dir" && ./lobechat.AppImage --appimage-extract >/dev/null 2>&1 ) \
+        || die "could not unpack the LobeChat AppImage"
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$dir/squashfs-root/AppRun" "$HOME/.local/bin/lobechat"
+    have lobechat || die "lobechat not on PATH after the install"
+}
+
+# Msty Studio is the current Msty desktop app (the old msty.app download URLs
+# are dead). It serves a stable "latest" AppImage URL, so no release lookup is
+# needed; x64 only, like LobeChat.
+ensure_msty() {
+    have msty && return 0
+    local dir
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) ;;
+        *) die "Msty Studio publishes no Linux AppImage for $(dpkg --print-architecture); only x64 is available" ;;
+    esac
+    ensure_electron_libs
+    log "installing Msty Studio..."
+    dir="$HOME/.local/opt/msty"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    curl -fsSL -o "$dir/msty.AppImage" "$MSTY_APPIMAGE_URL" \
+        || die "could not download Msty Studio ($MSTY_APPIMAGE_URL)"
+    chmod +x "$dir/msty.AppImage"
+    ( cd "$dir" && ./msty.AppImage --appimage-extract >/dev/null 2>&1 ) \
+        || die "could not unpack the Msty Studio AppImage"
+    mkdir -p "$HOME/.local/bin"
+    # Msty's AppRun cannot be used directly: its APPDIR detection walks up the
+    # tree looking for a file named after the first argument, so passing any
+    # argument resolves APPDIR to an empty string and it then tries to exec
+    # "/mstystudio". It also lacks the --no-sandbox fail-safe that LobeChat's
+    # AppRun has, which is needed where unprivileged user namespaces are
+    # unavailable (containers, hardened hosts).
+    cat > "$HOME/.local/bin/msty" <<'MSTY_WRAPPER'
+#!/bin/bash
+appdir="$HOME/.local/opt/msty/squashfs-root"
+export APPDIR="$appdir"
+no_sandbox=()
+if ! unshare -Ur true 2>/dev/null; then
+    no_sandbox=(--no-sandbox)
+fi
+exec "$appdir/AppRun" "${no_sandbox[@]}" "$@"
+MSTY_WRAPPER
+    chmod +x "$HOME/.local/bin/msty"
+    have msty || die "msty not on PATH after the install"
+}
+
+# LibreChat is not packaged: it is a Node monorepo that needs MongoDB and a
+# full frontend build. The checkout lives in ~/.librechat, the database in
+# ~/.librechat-data (started by ensure_librechat, kept running by run_tool).
+LIBRECHAT_DIR_NAME=".librechat"
+LIBRECHAT_DATA_DIR_NAME=".librechat-data"
+LIBRECHAT_PORT="3080"
+
+# MongoDB publishes no trixie build of mongodb-org-server, so the server is
+# taken from the bookworm repository (the .deb is self-contained and runs on
+# trixie) or, on arm64, from the ubuntu2404 tarball. The mongosh shell comes
+# from the same repository and is only used to verify the server is up.
+ensure_mongodb() {
+    have mongod && return 0
+    local arch dist
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        arm64|aarch64) arch="arm64" ;;
+        *) arch="amd64" ;;
+    esac
+    if [ "$arch" = "amd64" ]; then
+        log "installing MongoDB ($MONGODB_VERSION, apt)..."
+        as_root mkdir -p /usr/share/keyrings
+        # apt (>= 2.4, trixie ships 3.x) reads ASCII-armored keys directly, so
+        # the .asc is used as-is; the image carries no gpg to dearmor it.
+        curl -fsSL -o /tmp/mongodb-server-8.0.asc "$MONGODB_GPG_URL" \
+            || die "could not download the MongoDB signing key"
+        as_root install -m 0644 /tmp/mongodb-server-8.0.asc \
+            /usr/share/keyrings/mongodb-server-8.0.asc \
+            || die "could not install the MongoDB signing key"
+        printf 'deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.asc ] %s %s main\n' \
+            "$MONGODB_APT_BASE" "$MONGODB_APT_DIST" \
+            | as_root tee /etc/apt/sources.list.d/mongodb-org-8.0.list >/dev/null
+        as_root apt-get update -qq || die "apt-get update failed"
+        as_root apt-get install -y -qq mongodb-org-server mongodb-mongosh \
+            || die "could not install mongodb-org-server"
+    else
+        # fastdl serves no aarch64 debian12 tarball, so arm64 uses the
+        # ubuntu2404 build; it is a static server binary and runs on trixie.
+        log "installing MongoDB ($MONGODB_VERSION, tarball)..."
+        dist="$HOME/.local/opt/mongodb"
+        rm -rf "$dist"
+        mkdir -p "$dist"
+        curl -fsSL "$MONGODB_TARBALL_BASE/mongodb-linux-$arch-ubuntu2404-$MONGODB_VERSION.tgz" \
+            | tar -xz -C "$dist" --strip-components=1 \
+            || die "could not download the MongoDB tarball"
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$dist/bin/mongod" "$HOME/.local/bin/mongod"
+    fi
+    have mongod || die "mongod not on PATH after the install"
+}
+
+# Start the bundled MongoDB on 127.0.0.1:27017 if nothing answers there yet.
+# The data directory lives outside the checkout so a re-clone keeps the data.
+start_mongodb() {
+    local data="$HOME/$LIBRECHAT_DATA_DIR_NAME"
+    if tcp_open 27017; then
+        log "MongoDB is already running on 127.0.0.1:27017"
+        return 0
+    fi
+    mkdir -p "$data"
+    log "starting MongoDB on 127.0.0.1:27017 (data in $data)"
+    nohup setsid mongod --dbpath "$data" --bind_ip 127.0.0.1 --port 27017 \
+        >/tmp/mongod.log 2>&1 &
+    local i
+    for i in $(seq 1 30); do
+        tcp_open 27017 && return 0
+        sleep 1
+    done
+    die "MongoDB did not start; see /tmp/mongod.log"
+}
+
+# LibreChat's .env: keep the upstream defaults and only pin what the sandbox
+# needs (the local MongoDB, the port, and the g4f endpoint when a model was
+# chosen). CREDS_KEY/CREDS_IV are left blank on purpose -- LibreChat generates
+# them into .env.temp on first start.
+write_librechat_env() {
+    local env="$HOME/$LIBRECHAT_DIR_NAME/.env"
+    [ -f "$env" ] || cp "$HOME/$LIBRECHAT_DIR_NAME/.env.example" "$env" \
+        || die "could not create the LibreChat .env"
+    set_env_var "$env" MONGO_URI "mongodb://127.0.0.1:27017/LibreChat"
+    set_env_var "$env" PORT "$LIBRECHAT_PORT"
+    set_env_var "$env" HOST "127.0.0.1"
+    # The sandbox runs exactly one LibreChat process, so the scheduler's
+    # replica check can be asserted instead of leaving its write routes off.
+    set_env_var "$env" SCHEDULES_SINGLE_PROCESS "true"
+    if [ "$SANDBOX_MODEL_SET" = 1 ]; then
+        set_env_var "$env" G4F_API_BASE_URL "$G4F_API_BASE_URL"
+        set_env_var "$env" G4F_API_KEY "$G4F_API_KEY"
+        set_env_var "$env" G4F_MODEL "$G4F_PROVIDER_MODEL"
+    fi
+}
+
+# LibreChat reads custom OpenAI-compatible endpoints from librechat.yaml. The
+# g4f endpoint is written there (and pointed at the sandbox's g4f API) only
+# when a model was chosen in Sandbox Settings; otherwise the upstream example
+# is copied so the file LibreChat expects exists, and the user's own
+# configuration is left alone.
+write_librechat_yaml() {
+    local dir yaml
+    dir="$HOME/$LIBRECHAT_DIR_NAME"
+    yaml="$dir/librechat.yaml"
+    if [ "$SANDBOX_MODEL_SET" != 1 ]; then
+        [ -f "$yaml" ] || cp "$dir/librechat.example.yaml" "$yaml" \
+            || die "could not create the LibreChat librechat.yaml"
+        return 0
+    fi
+    cat >"$yaml" <<EOF
+# Written by sandbox-cli from the Sandbox Settings model/provider.
+version: 1.2.8
+cache: true
+endpoints:
+  custom:
+    - name: "g4f"
+      apiKey: "${G4F_API_KEY}"
+      baseURL: "${G4F_API_BASE_URL}"
+      models:
+        default: ["${G4F_PROVIDER_MODEL}"]
+        fetch: false
+      titleConvo: true
+      titleModel: "${G4F_PROVIDER_MODEL}"
+      modelDisplayLabel: "g4f"
+EOF
+}
+
+ensure_librechat() {
+    ensure_node
+    ensure_git
+    ensure_mongodb
+    local dir="$HOME/$LIBRECHAT_DIR_NAME"
+    if [ ! -d "$dir/.git" ]; then
+        log "cloning LibreChat into $dir..."
+        rm -rf "$dir"
+        git clone --depth 1 "$LIBRECHAT_REPO" "$dir" \
+            || die "could not clone LibreChat"
+    fi
+    if [ ! -d "$dir/node_modules" ] || [ ! -d "$dir/client/dist" ]; then
+        # `npm run reinstall` builds the workspace packages and the frontend;
+        # it is the documented first-run step and needs a large heap.
+        log "building LibreChat (npm run reinstall, this takes a while)..."
+        ( cd "$dir" && NODE_OPTIONS="--max-old-space-size=8192" npm run reinstall ) \
+            || die "the LibreChat build failed"
+    fi
+    have mongod || die "mongod not on PATH after the install"
+}
+
+# mitmproxy is the "Install & Run Proxy Server" entry: a debugging HTTP(S)
+# proxy installed with pip --user. The console binary is `mitmproxy` (the other
+# two, mitmdump/mitmweb, come with the same package).
+ensure_mitmproxy() {
+    have mitmproxy && return 0
+    ensure_pip mitmproxy mitmproxy
+}
+
+# The "Install & Run Tunnel Client" entry is backed by Cloudflare's
+# cloudflared. The static binary is architecture-specific, so append the dpkg
+# arch (amd64/arm64) to the release prefix and drop it in ~/.local/bin, which
+# is already first on PATH. `cloudflared tunnel --url <target>` then opens a
+# public https://<random>.trycloudflare.com URL with no account or config.
+ensure_cloudflared() {
+    have cloudflared && return 0
+    local arch
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        arm64|aarch64) arch="arm64" ;;
+        *) arch="amd64" ;;
+    esac
+    local url="$CLOUDFLARED_RELEASE_BASE/cloudflared-linux-$arch"
+    log "installing cloudflared ($arch, the tunnel client)..."
+    mkdir -p "$HOME/.local/bin"
+    curl -fsSL -o "$HOME/.local/bin/cloudflared" "$url" \
+        || die "could not download cloudflared ($url)"
+    chmod 0755 "$HOME/.local/bin/cloudflared" \
+        || die "cannot make cloudflared executable"
+    have cloudflared || die "cloudflared not on PATH after the install"
 }
 
 configure_g4f() {
@@ -683,6 +1108,42 @@ configure_opencode_g4f() {
     export OPENCODE_CONFIG_CONTENT="$config"
 }
 
+# OpenCode does its network traffic in a persistent background server
+# (`opencode serve --service`) that the CLI only talks to over loopback. The
+# server is started once and reused by every later invocation, and it does not
+# inherit the CLI's environment, so the proxy variables exported for the CLI
+# never reach the process that actually makes the requests: the CLI looks
+# proxied while the server keeps connecting directly. OpenCode stores the
+# server's environment in its own service config, so the proxy and CA variables
+# are written there and the server is restarted when they change. With no proxy
+# configured the variables are removed again, so turning the setting off takes
+# effect as well.
+configure_opencode_service() {
+    have opencode || return 0
+    local before after name value
+    before=$(opencode service get 2>/dev/null) || return 0
+    local -a vars=(
+        HTTP_PROXY HTTPS_PROXY NO_PROXY
+        NODE_EXTRA_CA_CERTS SSL_CERT_FILE REQUESTS_CA_BUNDLE CURL_CA_BUNDLE
+        GIT_SSL_CAINFO AWS_CA_BUNDLE
+    )
+    if [ -n "${G4F_PROXY:-}" ]; then
+        for name in "${vars[@]}"; do
+            value=$(printenv "$name" 2>/dev/null) || continue
+            opencode service set env "$name" "$value" >/dev/null 2>&1 || true
+        done
+    else
+        for name in "${vars[@]}"; do
+            opencode service unset env "$name" >/dev/null 2>&1 || true
+        done
+    fi
+    after=$(opencode service get 2>/dev/null) || return 0
+    [ "$before" = "$after" ] && return 0
+    log "restarting the OpenCode background server to apply the proxy settings"
+    opencode service restart >/dev/null 2>&1 \
+        || log "could not restart the OpenCode background server; it may still use the previous proxy settings"
+}
+
 configure_copilot_g4f() {
     # As with OpenCode: only BYOK the g4f provider when a model was chosen.
     [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
@@ -716,24 +1177,53 @@ configure_hermes_g4f() {
     hermes config unset model.extra_body.provider >/dev/null 2>&1 || true
 }
 
+# The addresses the sandbox serves through the g4f API: the two gateway
+# proxies (Ollama, OmniRoute) and the Remote Desktop page. Printed by
+# "sandbox-cli urls" and echoed by every install & start entry (see launch),
+# so they are visible without digging through the docs.
+public_urls() {
+    printf '%s\n' "Public Urls:"
+    printf '  %s\n' \
+        "http://localhost:8080/ollama/v1/models" \
+        "http://localhost:8080/omniroute/v1/models" \
+        "http://localhost:8080/omniroute" \
+        "http://localhost:8080/remote_desktop"
+}
+
 launch() { # <label> <command...>
     if [ "$INSTALL_ONLY" = 1 ]; then
         log "$1 is installed and ready"
         exit 0
     fi
+    public_urls
     shift
     exec "$@"
 }
 
 run_tool() {
-    # The saved HOME applies to every entry, g4f-aware or not.
+    # The saved HOME and PROXY apply to every entry, g4f-aware or not.
     apply_sandbox_home
+    apply_sandbox_proxy
     case "$1" in
+        remote-desktop)
+            ensure_remote_desktop
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Remote Desktop is installed and ready"
+                exit 0
+            fi
+            # `g4f-go -m remote_desktop` runs the bundled server from its own
+            # runtime and brings up the embedded STUN/TURN relay. The terminal
+            # stays open as its console (Ctrl-C stops it); the banner prints
+            # the host page and the phone URL. Open the host page on this
+            # desktop, press Share, then scan the QR code from the phone.
+            log "starting the Remote Desktop server (Ctrl-C to stop)"
+            launch "Remote Desktop" g4f-go -m remote_desktop "${@:2}" ;;
         opencode)
             ensure_script "$OPENCODE_INSTALLER" opencode "OpenCode"
             if [ "$INSTALL_ONLY" = 0 ]; then
                 configure_g4f
                 configure_opencode_g4f
+                configure_opencode_service
             fi
             launch OpenCode opencode "${@:2}" ;;
         kilocode)
@@ -832,6 +1322,39 @@ run_tool() {
         omniroute)
             ensure_npm omniroute omniroute
             launch OmniRoute omniroute "${@:2}" ;;
+        proxy)
+            ensure_mitmproxy
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "mitmproxy is installed and ready"
+                exit 0
+            fi
+            # mitmproxy's console UI is the proxy itself; the terminal stays
+            # open as its console (Ctrl-C stops it). Listen on 8081, not the
+            # default 8080, so it does not collide with the g4f API. Point the
+            # Sandbox Settings PROXY at http://127.0.0.1:8081 to route the menu
+            # entries through it.
+            #
+            # confdir is pinned to PROXY_CA_DIR so the CA lands where
+            # trust_proxy_ca looks for it; mitmproxy's default (~/.mitmproxy)
+            # would leave the tools trusting a certificate that does not exist.
+            log "starting mitmproxy on 127.0.0.1:8081 (Ctrl-C to stop)"
+            launch "Proxy Server" mitmproxy \
+                --set confdir="$PROXY_CA_DIR" \
+                --listen-host 127.0.0.1 --listen-port 8081 "${@:2}" ;;
+        tunnel)
+            ensure_cloudflared
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "the tunnel client (cloudflared) is installed and ready"
+                exit 0
+            fi
+            # One-click tunnel: expose a local port on a public HTTPS URL. The
+            # target defaults to the g4f API (the docs' phone/GUI guide uses
+            # it); override it with TUNNEL_TARGET or extra arguments, e.g.
+            #   sandbox-cli tunnel --url http://127.0.0.1:3000
+            local target="${TUNNEL_TARGET:-http://127.0.0.1:8080}"
+            log "opening a public tunnel to $target (Ctrl-C to stop)"
+            launch "Tunnel Client" cloudflared tunnel --url "$target" \
+                --no-autoupdate "${@:2}" ;;
         ollama)
             ensure_ollama
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -843,17 +1366,6 @@ run_tool() {
             # reaches it through the /ollama proxy route.
             log "starting the Ollama server (Ctrl-C to stop)"
             launch Ollama ollama serve "${@:2}" ;;
-        open-webui)
-            ensure_openwebui
-            if [ "$INSTALL_ONLY" = 1 ]; then
-                log "Open WebUI is installed and ready"
-                exit 0
-            fi
-            # Talks to the Ollama daemon on the default port; the browser UI is
-            # served on 8080, so keep it off the g4f API port.
-            export OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
-            log "starting Open WebUI on http://127.0.0.1:3000 (Ctrl-C to stop)"
-            launch "Open WebUI" open-webui serve --port 3000 "${@:2}" ;;
         llamacpp)
             ensure_llamacpp
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -882,6 +1394,41 @@ run_tool() {
             # launcher terminal can close while the app keeps running.
             log "opening Jan on the desktop"
             nohup setsid jan >/tmp/jan.log 2>&1 &
+            exit 0 ;;
+        librechat)
+            ensure_librechat
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "LibreChat is installed and ready"
+                exit 0
+            fi
+            # LibreChat is a web app: MongoDB first, then the Node server in
+            # the foreground so the terminal stays open as its console.
+            configure_g4f
+            write_librechat_env
+            write_librechat_yaml
+            start_mongodb
+            log "starting LibreChat on http://127.0.0.1:$LIBRECHAT_PORT (Ctrl-C to stop)"
+            cd "$HOME/$LIBRECHAT_DIR_NAME" || die "LibreChat checkout is missing"
+            launch LibreChat npm run backend "${@:2}" ;;
+        lobechat)
+            ensure_lobechat
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "LobeChat is installed and ready"
+                exit 0
+            fi
+            # Electron GUI app: open it on the desktop, detached, so the
+            # launcher terminal can close while the app keeps running.
+            log "opening LobeChat on the desktop"
+            nohup setsid lobechat >/tmp/lobechat.log 2>&1 &
+            exit 0 ;;
+        msty)
+            ensure_msty
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Msty Studio is installed and ready"
+                exit 0
+            fi
+            log "opening Msty Studio on the desktop"
+            nohup setsid msty >/tmp/msty.log 2>&1 &
             exit 0 ;;
         openclaw)
             ensure_script "$OPENCLAW_INSTALLER" openclaw "OpenClaw"
@@ -960,31 +1507,34 @@ usage() {
     cat <<'EOF'
 usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop tool
        sandbox-cli install <tool>     install only, don't run it
-       sandbox-cli settings           choose the g4f model, HOME and provider
+       sandbox-cli settings           choose the g4f model, HOME, provider and proxy
        sandbox-cli reset              clear the saved settings, back to the defaults
        sandbox-cli list               list the tools behind the desktop menu
+       sandbox-cli urls               print the public URLs served by the g4f API
        sandbox-cli help               this help
 
 Installs go to /usr/local (npm -g via sudo), ~/.local (pip --user and the
 vendor install scripts) or wherever the installer puts them; the CLI then
-runs in this terminal. The HOME saved in the sandbox settings applies to
-every entry.
+runs in this terminal. The HOME and PROXY saved in the sandbox settings apply
+to every entry.
 EOF
 }
 
 list_tools() {
     # Grouped like the desktop menu (see docker/sandbox-menu/README.md).
     printf '%s\n' "g4f"
-    printf '  %-13s %s\n' \
-        g4f-go      "g4f Go launcher CLI (preinstalled)" \
-        settings    "g4f model, HOME and provider for the launchers" \
-        reset       "clear the saved settings, back to the defaults"
+    printf '  %-15s %s\n' \
+        g4f-go          "g4f Go launcher CLI (preinstalled)" \
+        remote-desktop  "share this sandbox screen with a phone (WebRTC)" \
+        settings        "g4f model, HOME and provider for the launchers" \
+        reset           "clear the saved settings, back to the defaults" \
+        urls            "public URLs served by the g4f API"
     printf '%s\n' "Browsers"
-    printf '  %-13s %s\n' \
+    printf '  %-15s %s\n' \
         chrome      "Google Chrome browser" \
         lightpanda  "Lightpanda headless browser (CDP server)"
     printf '%s\n' "Coding Agents"
-    printf '  %-13s %s\n' \
+    printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
         kilocode    "Kilo Code terminal agent" \
         antigravity "Antigravity CLI by Google" \
@@ -1014,18 +1564,24 @@ list_tools() {
         vibe        "Mistral Vibe" \
         sweagent    "SWE-agent by Princeton"
     printf '%s\n' "Gateways"
-    printf '  %-13s %s\n' \
+    printf '  %-15s %s\n' \
         omniroute   "OmniRoute AI router/gateway" \
-        litellm     "LiteLLM AI gateway"
+        litellm     "LiteLLM AI gateway" \
+        proxy       "mitmproxy HTTP(S) proxy server" \
+        tunnel      "Tunnel client (public HTTPS URL via cloudflared)"
     printf '%s\n' "Local AI"
-    printf '  %-13s %s\n' \
+    printf '  %-15s %s\n' \
         ollama      "Ollama local model server" \
-        open-webui  "Open WebUI for Ollama" \
         llamacpp    "llama.cpp llama-server" \
         lmstudio    "LM Studio (lms CLI + daemon)" \
         jan         "Jan desktop app"
+    printf '%s\n' "Chat UIs"
+    printf '  %-15s %s\n' \
+        librechat   "LibreChat web UI (Node + MongoDB)" \
+        lobechat    "LobeChat desktop app" \
+        msty        "Msty Studio desktop app"
     printf '%s\n' "Assistants"
-    printf '  %-13s %s\n' \
+    printf '  %-15s %s\n' \
         openclaw    "OpenClaw CLI" \
         fabric      "Fabric AI patterns CLI" \
         sgpt        "ShellGPT shell assistant" \
@@ -1038,6 +1594,9 @@ case "${1:-}" in
         usage ;;
     list)
         list_tools ;;
+    urls)
+        public_urls
+        hold_open ;;
     settings)
         shift
         run_settings "$@" ;;

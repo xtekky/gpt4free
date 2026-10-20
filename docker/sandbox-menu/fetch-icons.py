@@ -45,9 +45,11 @@ UA = (
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
 
-# Entries that are g4f's own (the bundled CLI, the sandbox settings) have no
-# vendor site, so they keep the shared g4f-sandbox-cli.svg.
-SHARED = {"g4f-go", "settings", "reset"}
+# Entries that are g4f's own (the bundled CLI, the sandbox settings, the remote
+# desktop) have no vendor site for this script to fetch. The g4f-go, settings
+# and reset entries keep the shared g4f-sandbox-cli.svg; remote-desktop ships
+# its own icon, copied from projects/remote-desktop/web/icon.svg at build time.
+SHARED = {"g4f-go", "settings", "reset", "remote-desktop"}
 
 
 def google(domain: str) -> str:
@@ -101,15 +103,20 @@ ICONS: dict[str, list[str]] = {
     # Gateways
     "omniroute": [google("omniroute.online")],
     "litellm": [google("litellm.ai")],
+    "proxy": [google("mitmproxy.org")],
+    "tunnel": [google("cloudflare.com")],
     # Local AI
     "ollama": ["https://ollama.com/public/ollama.png", google("ollama.com")],
-    "open-webui": [google("openwebui.com")],
     "llamacpp": [
         "https://github.com/ggml-org/llama.cpp/raw/master/media/"
         "llama1-icon-transparent.png"
     ],
     "lmstudio": [google("lmstudio.ai")],
     "jan": [google("jan.ai")],
+    # Chat UIs
+    "librechat": [google("librechat.ai")],
+    "lobechat": [google("lobehub.com")],
+    "msty": [google("msty.ai")],
     # Assistants
     "openclaw": ["https://openclaw.ai/favicon.svg"],
     "fabric": [github("danielmiessler")],

@@ -402,21 +402,17 @@ jobs:
 
             **Docker sandboxed AI tools sets (one-click install, 100+ different AI tools):**
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop` — a full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click "Install & Open" menu for 100+ different AI tools: coding agents (OpenCode, Copilot CLI, Hermes, Aider, …), chat UIs, image/audio/video tools and gateways.
-            - Desktop + API: `http://localhost:9090/desktop/` — API: `http://localhost:9090`
+            - Desktop + API: `http://localhost:8080/desktop/` — API: `http://localhost:8080`
             - Mount your own app at `/app/gpt4free` and persist agent settings:
               ```bash
               docker run -d --name g4f-sandbox-desktop \
-                -p 9090:9090 -p 5900:5900 --shm-size="2gb" \
+                -p 8080:8080 -p 5900:5900 --shm-size="2gb" \
                 -v ${PWD}:/app/gpt4free \
                 -v ${PWD}/sandbox-home/.config:/home/pn/.config \
                 -v ${PWD}/sandbox-home/.local:/home/pn/.local \
                 hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop
               ```
             - Docs: [docker/sandbox-menu/README.md](https://github.com/xtekky/gpt4free/blob/main/docker/sandbox-menu/README.md)
-
-            💻 **Having trouble with the .exe from this release?**
-            👉 Check out the Windows launcher for GPT4Free instead:
-            🔗 [https://github.com/gpt4free/g4f.exe](https://github.com/gpt4free/g4f.exe) 🚀
           draft: false
           prerelease: false
           files: ./release/flat/*

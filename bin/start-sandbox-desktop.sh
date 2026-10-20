@@ -4,8 +4,8 @@
 #
 # Launches the TigerVNC + Xfce + noVNC + g4f desktop environment inside Docker.
 # The desktop and API server are accessible via browser (noVNC) and direct VNC:
-#   Desktop (browser): http://localhost:9090/desktop/
-#   API server:        http://localhost:9090/
+#   Desktop (browser): http://localhost:8080/desktop/
+#   API server:        http://localhost:8080/
 #   VNC direct:        localhost:5900
 #
 # Usage:
@@ -13,7 +13,7 @@
 #   ./bin/start-desktop.sh -d           start in background (detached)
 #   ./bin/start-desktop.sh --build      rebuild image before starting
 #   ./bin/start-desktop.sh --pull       pull prebuilt image from Docker Hub
-#   ./bin/start-desktop.sh --port 8080  use custom port (default: 9090)
+#   ./bin/start-desktop.sh --port 8080  use custom port (default: 8080)
 #   ./bin/start-desktop.sh stop         stop the sandbox container
 #   ./bin/start-desktop.sh status       check container status
 #   ./bin/start-desktop.sh shell        open interactive bash shell in container
@@ -33,7 +33,7 @@ REMOTE_IMAGE="hlohaus789/g4f:latest-sandbox-desktop"
 IMAGE="${G4F_SANDBOX_IMAGE:-$LOCAL_IMAGE}"
 CONTAINER_NAME="g4f-sandbox-desktop"
 
-PORT="${PORT:-9090}"
+PORT="${PORT:-8080}"
 VNC_PORT="${VNC_PORT:-5900}"
 DETACH=0
 BUILD=0
@@ -279,7 +279,7 @@ case "$ACTION" in
         fi
 
         # Run with compose if possible and no custom port/image overrides
-        if has_compose && [ -f "$COMPOSE_FILE" ] && [ "$USE_COMPOSE" -eq 1 ] && [ "$PORT" = "9090" ] && [ "$VNC_PORT" = "5900" ] && [ "$IMAGE" = "$LOCAL_IMAGE" ]; then
+        if has_compose && [ -f "$COMPOSE_FILE" ] && [ "$USE_COMPOSE" -eq 1 ] && [ "$PORT" = "8080" ] && [ "$VNC_PORT" = "5900" ] && [ "$IMAGE" = "$LOCAL_IMAGE" ]; then
             COMPOSE_ARGS=("-f" "$COMPOSE_FILE" "up")
             if [ "$DETACH" -eq 1 ]; then
                 COMPOSE_ARGS+=("-d")

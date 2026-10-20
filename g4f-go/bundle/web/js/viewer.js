@@ -65,7 +65,7 @@
     $("ws-text").textContent = "connecting";
 
     const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${scheme}//${location.host}/ws`);
+    const ws = new WebSocket(`${scheme}//${location.host}/remote_desktop/ws`);
     state.ws = ws;
 
     ws.onopen = async () => {
@@ -657,7 +657,7 @@
      peer that is already connected keeps working until it is rebuilt. */
   async function loadIceServers() {
     try {
-      const response = await fetch("/api/status");
+      const response = await fetch("/remote_desktop/api/status");
       const data = await response.json();
       if (Array.isArray(data.ice_servers)) {
         state.iceServers = data.ice_servers.filter((entry) => entry && entry.urls);
@@ -745,7 +745,7 @@
     }
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/remote_desktop/sw.js").catch(() => {});
     }
   }
 

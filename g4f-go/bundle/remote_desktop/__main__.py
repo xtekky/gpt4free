@@ -8,7 +8,7 @@ import sys
 import threading
 import webbrowser
 
-from .app import create_app, share_urls
+from .app import BASE_PATH, create_app, share_urls
 from .config import Settings
 
 
@@ -36,7 +36,7 @@ def print_banner(settings: Settings) -> None:
     print()
     print("  Remote Desktop is running")
     print("  " + "-" * 46)
-    print(f"  Host page (this computer) : http://127.0.0.1:{settings.port}/host")
+    print(f"  Host page (this computer) : http://127.0.0.1:{settings.port}{BASE_PATH}")
     for url in urls:
         print(f"  Phone (same Wi-Fi)        : {url}/view")
     if settings.token:
@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     print_banner(settings)
 
     if settings.open_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(f"http://127.0.0.1:{settings.port}/host")).start()
+        threading.Timer(1.0, lambda: webbrowser.open(f"http://127.0.0.1:{settings.port}{BASE_PATH}")).start()
 
     uvicorn.run(app, host=settings.host, port=settings.port, log_level=settings.log_level)
     return 0

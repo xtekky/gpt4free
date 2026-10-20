@@ -34,7 +34,7 @@ const bundleStampName = ".bundle-revision"
 // runtime but that are not part of the g4f[slim] install. They are installed
 // on demand the first time the module is used.
 var bundledModuleDeps = map[string][]string{
-	"remote_desktop": {"qrcode", "pynput"},
+	"remote_desktop": {"qrcode", "pynput", "evdev-binary", "python-xlib"},
 }
 
 // bundleDir is where the embedded bundle is extracted inside the runtime dir.
@@ -171,7 +171,7 @@ func ensureModuleDeps(binDir, exe, module string) {
 		fmt.Fprintf(os.Stderr, "g4f-go: warning: %v\n", err)
 		return
 	}
-	args := append([]string{"-m", "pip", "install", "--no-input"}, missing...)
+	args := append([]string{"-m", "pip", "install", "--no-input", "--no-deps"}, missing...)
 	code, err := runPython(noSignalCtx(), exe, args, env...)
 	if err != nil || code != 0 {
 		fmt.Fprintf(os.Stderr, "g4f-go: warning: could not install %s (exit %d): %v\n",

@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
 
+#: Path prefix the whole app is served under. The g4f API proxies this exact
+#: prefix to the standalone server, so absolute URLs work in both setups.
+BASE_PATH = "/remote_desktop"
+
 #: How often idle rooms are swept.
 PRUNE_INTERVAL = 30.0
 
@@ -63,12 +67,24 @@ def local_addresses() -> list[str]:
     return sorted(addresses)
 
 
-def share_urls(settings: Settings) -> list[str]:
-    """URLs a phone can open to reach this server."""
+def share_urls(
+    settings: Settings,
+    forwarded_host: str = "",
+    forwarded_proto: str = "",
+) -> list[str]:
+    """URLs a phone can open to reach this server.
+
+    ``forwarded_host``/``forwarded_proto`` come from the reverse proxy in front
+    of the app (the g4f API), so a proxied host page advertises the address the
+    phone can actually reach instead of the server's own LAN address.
+    """
     if settings.public_url:
-        return [settings.public_url.rstrip("/")]
+        return [f"{settings.public_url.rstrip('/')}{BASE_PATH}"]
+    if forwarded_host:
+        scheme = forwarded_proto or "http"
+        return [f"{scheme}://{forwarded_host}{BASE_PATH}"]
     hosts = local_addresses() or ["127.0.0.1"]
-    return [f"http://{address}:{settings.port}" for address in hosts]
+    return [f"http://{address}:{settings.port}{BASE_PATH}" for address in hosts]
 
 
 def qr_svg(payload: str) -> bytes:
@@ -117,30 +133,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.bridge = bridge
 
     if WEB_ROOT.is_dir():
-        app.mount("/static", StaticFiles(directory=str(WEB_ROOT)), name="static")
+        app.mount(
+            f"{BASE_PATH}/static",
+            StaticFiles(directory=str(WEB_ROOT)),
+            name="static",
+        )
 
     @app.get("/", include_in_schema=False)
     async def index() -> RedirectResponse:
-        return RedirectResponse("/host")
+        return RedirectResponse(BASE_PATH)
 
-    @app.get("/host", include_in_schema=False)
+    @app.get(BASE_PATH, include_in_schema=False)
     async def host_page() -> FileResponse:
         return FileResponse(WEB_ROOT / "host.html")
 
-    @app.get("/view", include_in_schema=False)
+    @app.get(f"{BASE_PATH}/view", include_in_schema=False)
     async def view_page() -> FileResponse:
         return FileResponse(WEB_ROOT / "view.html")
 
-    @app.get("/manifest.webmanifest", include_in_schema=False)
+    @app.get(f"{BASE_PATH}/manifest.webmanifest", include_in_schema=False)
     async def manifest() -> FileResponse:
         return FileResponse(WEB_ROOT / "manifest.webmanifest", media_type="application/manifest+json")
 
-    @app.get("/sw.js", include_in_schema=False)
+    @app.get(f"{BASE_PATH}/sw.js", include_in_schema=False)
     async def service_worker() -> FileResponse:
         return FileResponse(WEB_ROOT / "sw.js", media_type="application/javascript")
 
-    @app.get("/api/status")
-    async def status() -> JSONResponse:
+    @app.get(f"{BASE_PATH}/api/status")
+    async def status(request: Request) -> JSONResponse:
         return JSONResponse(
             {
                 "version": __version__,
@@ -150,19 +170,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "allow_input": settings.allow_input,
                 "auto_control": settings.auto_control,
                 "max_viewers": settings.max_viewers,
-                "urls": share_urls(settings),
+                "urls": share_urls(
+                    settings,
+                    request.headers.get("x-forwarded-host", ""),
+                    request.headers.get("x-forwarded-proto", ""),
+                ),
                 "ice_servers": settings.ice_servers(),
                 **registry.stats(),
             }
         )
 
-    @app.get("/api/qr.svg", include_in_schema=False)
+    @app.get(f"{BASE_PATH}/api/qr.svg", include_in_schema=False)
     async def qr(url: str) -> Response:
         if len(url) > 512:
             raise HTTPException(status_code=400, detail="url too long")
         return Response(content=qr_svg(url), media_type="image/svg+xml")
 
-    @app.websocket("/ws")
+    @app.websocket(f"{BASE_PATH}/ws")
     async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.accept()
         connection = Connection(websocket)

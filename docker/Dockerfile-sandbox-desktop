@@ -135,7 +135,8 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
 
 # Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
-# Chrome) and local gateways/agents (OmniRoute, OpenClaw).
+# Chrome), local gateways/agents (OmniRoute, OpenClaw) and chat UIs
+# (LibreChat, LobeChat, Msty Studio).
 # sandbox-cli installs a tool on first click (vendor script / npm / pip / the
 # Chrome .deb) and runs it; the .desktop files land in the panel's Applications
 # menu. Each entry names its own icon (g4f-sandbox-<tool>) and passes it to
@@ -148,14 +149,19 @@ COPY docker/sandbox-menu/sandbox-cli.sh /usr/local/bin/sandbox-cli
 COPY bin/start-browser.sh /usr/local/bin/start-browser
 COPY docker/sandbox-menu/g4f-sandbox-*.desktop /usr/share/applications/
 COPY docker/sandbox-menu/g4f-sandbox-cli.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg
+# Remote Desktop is g4f's own entry, so it is not one of fetch-icons.py's
+# vendor downloads: it ships the app icon the web app itself uses (the same
+# file the manifest names), installed under the menu entry's icon name.
+COPY projects/remote-desktop/web/icon.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
 COPY docker/sandbox-menu/fetch-icons.py /usr/local/bin/fetch-icons.py
 RUN chmod 0755 /usr/local/bin/sandbox-cli /usr/local/bin/start-browser /usr/local/bin/fetch-icons.py && \
     chmod 0644 /usr/share/applications/g4f-sandbox-*.desktop \
-        /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg
+        /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg \
+        /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
 
 # Group the entries into their own top-level menus (g4f, Browsers, Coding
-# Agents, Gateways, Local AI, Assistants) instead of dumping all 45 into
-# Development.
+# Agents, Gateways, Local AI, Chat UIs, Assistants) instead of dumping all 48
+# into Development.
 # The .directory files name and icon those menus; patch-xfce-menu.py inserts
 # the matching <Menu> blocks into the stock xfce-applications.menu. A merged
 # menu file under applications-merged/ does not work here -- garcon copies

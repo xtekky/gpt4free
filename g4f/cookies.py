@@ -479,13 +479,19 @@ def read_cookie_files(
     CookiesConfig.cookies.clear()
 
     # Load cookies from files
-    for path in har_files:
+    for path in sorted(
+        [f for f in har_files],
+        key=lambda f: os.path.getmtime(f)
+    ):
         for domain, cookies in _parse_har_file(path).items():
             if not domains_filter or domain in domains_filter:
                 CookiesConfig.cookies[domain] = cookies
                 debug.log(f"Cookies added: {len(cookies)} from {domain}")
 
-    for path in json_files:
+    for path in sorted(
+        [f for f in json_files],
+        key=lambda f: os.path.getmtime(f)
+    ):
         for domain, cookies in _parse_json_cookie_file(path).items():
             if not domains_filter or domain in domains_filter:
                 CookiesConfig.cookies[domain] = cookies

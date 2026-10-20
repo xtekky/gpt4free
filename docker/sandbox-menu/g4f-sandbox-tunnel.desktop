@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Run Tunnel Client
+Comment=Tunnel client — expose a local port on a public HTTPS URL, installs on first click
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Tunnel Client" --icon=g4f-sandbox-tunnel --command="/usr/local/bin/sandbox-cli tunnel"
+Icon=g4f-sandbox-tunnel
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Gateway;
+Keywords=tunnel;cloudflared;public;url;https;webhook;share;expose;;
+StartupNotify=false

@@ -715,9 +715,11 @@ def create_app():
     # /{mode}/{provider:path}/chat/completions catch-all route.
     from .omniroute_proxy import register_omniroute_routes
     from .ollama_proxy import register_ollama_routes
+    from .remote_desktop_proxy import register_remote_desktop_routes
 
     register_omniroute_routes(app)
     register_ollama_routes(app)
+    register_remote_desktop_routes(app)
 
     api.register_routes()
     api.register_authorization()

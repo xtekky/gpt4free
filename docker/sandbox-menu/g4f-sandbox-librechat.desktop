@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open LibreChat
+Comment=LibreChat chat UI — clones and builds on first click, then serves on port 3080
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=LibreChat --icon=g4f-sandbox-librechat --command="/usr/local/bin/sandbox-cli librechat"
+Icon=g4f-sandbox-librechat
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-ChatUI;
+Keywords=librechat;chat;ui;web;openai;;
+StartupNotify=false

@@ -159,14 +159,14 @@ the tool list and the settings.
 
 ```bash
 docker run -d --name g4f-sandbox-desktop \
-  -p 9090:9090 -p 5900:5900 \
+  -p 8080:8080 -p 5900:5900 \
   --shm-size="2gb" \
   -v ${PWD}:/app/gpt4free \
   -v ${PWD}/sandbox-home/.config:/home/pn/.config \
   -v ${PWD}/sandbox-home/.local:/home/pn/.local \
   hlohaus789/g4f:latest-sandbox-desktop
 ```
-- Desktop (browser): http://localhost:9090/desktop/ · API: http://localhost:9090/ · Direct VNC: `localhost:5900`
+- Desktop (browser): http://localhost:8080/desktop/ · API: http://localhost:8080/ · Direct VNC: `localhost:5900`
 - `-v ${PWD}:/app/gpt4free` mounts your app into the sandbox at the path the
   image's editable g4f install points at, so the API serves your code and the
   agents can edit it. Mount at `/app/gpt4free`, not `/app`.

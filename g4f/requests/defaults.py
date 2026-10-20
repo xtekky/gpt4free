@@ -5,6 +5,7 @@ try:
 except ImportError:
     has_brotli = False
 
+CHROME_VERSION = "152"
 DEFAULT_HEADERS = {
     "accept": "*/*",
     "accept-encoding": "gzip, deflate" + (", br" if has_brotli else ""),
@@ -16,7 +17,7 @@ DEFAULT_HEADERS = {
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "user-agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{CHROME_VERSION}.0.0.0 Safari/537.36",
 }
 WEBVIEW_HAEDERS = {
     "Accept": "*/*",

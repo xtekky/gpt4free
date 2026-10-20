@@ -25,6 +25,7 @@ import os
 from typing import Optional, Tuple
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import RedirectResponse
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,10 @@ def register_vnc_routes(app: FastAPI) -> None:
                 pass
 
     if os.path.isdir(novnc_dir):
+        @app.api_route("/desktop", methods=["GET"])
+        async def serve_desktop():
+            return RedirectResponse(url="/desktop/")
+
         from fastapi.staticfiles import StaticFiles
 
         app.mount(

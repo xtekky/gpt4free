@@ -1,11 +1,12 @@
 /* Offline shell for the viewer. The stream itself is always live. */
-const CACHE = "remote-desktop-v2";
+const BASE = "/remote_desktop";
+const CACHE = "remote-desktop-v3";
 const ASSETS = [
-  "/view",
-  "/static/css/app.css",
-  "/static/js/viewer.js",
-  "/static/icon.svg",
-  "/manifest.webmanifest",
+  `${BASE}/view`,
+  `${BASE}/static/css/app.css`,
+  `${BASE}/static/js/viewer.js`,
+  `${BASE}/static/icon.svg`,
+  `${BASE}/manifest.webmanifest`,
 ];
 
 self.addEventListener("install", (event) => {
@@ -26,7 +27,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
-  if (url.pathname.startsWith("/ws") || url.pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith(`${BASE}/ws`) || url.pathname.startsWith(`${BASE}/api/`)) return;
 
   event.respondWith(
     fetch(request)
@@ -35,6 +36,6 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/view")))
+      .catch(() => caches.match(request).then((cached) => cached || caches.match(`${BASE}/view`)))
   );
 });

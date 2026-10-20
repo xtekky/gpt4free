@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Public URLs
+Comment=Print the public URLs served by the g4f API (Ollama, OmniRoute, Remote Desktop)
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Public URLs" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli urls"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=g4f;urls;public;ollama;omniroute;remote;desktop;api;;
+StartupNotify=false
