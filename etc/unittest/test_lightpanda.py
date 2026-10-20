@@ -385,9 +385,8 @@ class TestLightpandaAutoStart(unittest.TestCase):
     def test_user_agent_is_masked_as_chrome(self):
         """Lightpanda's own UA must be replaced by a full Chrome one.
 
-        The serve command only passes --user-agent-suffix (Lightpanda rejects
-        --user-agent values containing "Mozilla"), so the full UA has to come
-        from the CDP-level override.
+        The serve command passes no user-agent flag, so the full UA has to
+        come from the CDP-level override.
         """
         async def scenario():
             session = CDPSession(host="127.0.0.1", port=None, headless=True)

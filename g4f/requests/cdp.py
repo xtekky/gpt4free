@@ -83,11 +83,6 @@ CHROME_USER_AGENT = (
     f"(KHTML, like Gecko) Chrome/{CHROME_VERSION}.0.0.0 Safari/537.36"
 )
 
-# Lightpanda refuses --user-agent values containing "Mozilla" (fatal "invalid
-# user-agent" at startup), so its UA is shaped with --user-agent-suffix
-# instead. Kept in sync with browserUserAgentSuffix in g4f-go/browser.go.
-CHROME_USER_AGENT_SUFFIX = f"Chrome/{CHROME_VERSION}.0.0.0 Safari/537.36"
-
 from pathlib import Path
 
 def get_screenshot_dir(datekey: str = None) -> str:
@@ -277,7 +272,6 @@ def _start_lightpanda(host: str, timeout: float = 10.0) -> Optional[int]:
         "--block-private-networks",
         "--load-resources", "iframe",
         "--http-cache-dir", get_http_cache_dir(),
-        "--user-agent-suffix", CHROME_USER_AGENT_SUFFIX
     ]
     debug.log(f"CDP: Launching Lightpanda: {' '.join(cmd)}")
     try:
@@ -1337,12 +1331,12 @@ class CDPSession:
         except Exception as e:
             debug.log(f"CDP: failed to inject .har cookies: {e}")
 
-        # Anti-detect: mask the browser in the User-Agent. Lightpanda reports
-        # "Lightpanda/1.0" (plus the --user-agent-suffix we pass) and ignores
-        # Network.setUserAgentOverride entirely; Emulation.setUserAgentOverride
-        # only changes the HTTP header, while navigator.userAgent needs a
-        # defineProperty script (verified live). Apply both so HTTP requests
-        # and JS probes see a Chrome UA.
+        # Anti-detect: mask the browser in the User-Agent. The g4f-copilot
+        # Lightpanda fork already reports a Chrome UA, but older builds report
+        # "Lightpanda/1.0" and ignore Network.setUserAgentOverride entirely;
+        # Emulation.setUserAgentOverride only changes the HTTP header, while
+        # navigator.userAgent needs a defineProperty script (verified live).
+        # Apply both so HTTP requests and JS probes see a Chrome UA.
         try:
             user_agent = await self.evaluate_js("navigator.userAgent")
         except Exception:
