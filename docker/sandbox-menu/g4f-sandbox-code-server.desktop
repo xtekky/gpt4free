@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open VS Code Web
+Comment=code-server (VS Code Web) — installs on first click, then serves on port 8602
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="VS Code Web" --icon=g4f-sandbox-code-server --command="/usr/local/bin/sandbox-cli code-server"
+Icon=g4f-sandbox-code-server
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Editor;
+Keywords=vscode;code-server;web;editor;ide;;
+StartupNotify=false

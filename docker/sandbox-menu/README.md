@@ -5,9 +5,10 @@
 ![](sandbox.png)
 
 Entries behind the sandbox desktop's **Applications** menu
-(`docker/Dockerfile-sandbox-desktop`), grouped into seven top-level menus —
+(`docker/Dockerfile-sandbox-desktop`), grouped into eight top-level menus —
 **g4f**, **Browsers**, **Coding Agents**, **Gateways**, **Local AI**,
-**Chat UIs** and **Assistants** — instead of one flat list under Development.
+**Chat UIs**, **Editors** and **Assistants** — instead of one flat list under
+Development.
 Each **Install & Open …** item opens a terminal maximized to the sandbox
 screen, without window borders or menubar:
 
@@ -58,6 +59,9 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open LibreChat | `librechat` | git clone + `npm run reinstall` + MongoDB | `npm` |
 | Install & Open LobeChat  | `lobechat`  | GitHub release AppImage     | `lobechat`     |
 | Install & Open Msty Studio | `msty`    | vendor "latest" AppImage    | `msty`         |
+| Install & Open SillyTavern | `sillytavern` | git clone + `npm install` | `node`       |
+| Install & Open Open WebUI Computer | `cptr` | pip `cptr` (user)     | `cptr`         |
+| Install & Open VS Code Web | `code-server` | code-server.dev install script | `code-server` |
 | Install & Open OpenClaw  | `openclaw`  | openclaw.ai install script  | `openclaw`     |
 | Install & Open Crush     | `crush`     | npm `@charmland/crush`      | `crush`        |
 | Install & Open Continue  | `continue-cli` | npm `@continuedev/cli`   | `cn`           |
@@ -69,7 +73,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open Hermes    | `hermes`    | hermes-agent.nousresearch.com script | `hermes` |
 | Install & Open Kiro      | `kiro`      | cli.kiro.dev install script | `kiro-cli`     |
 | Install & Open Kimi      | `kimi`      | code.kimi.com install script| `kimi`         |
-| Install & Open Roo Code  | `roo`       | Roo-Code CLI install script | `roo`          |
+| Install & Open Roomote   | `roomote`   | get.roomote.dev install script | `roomote`      |
 | Install & Open Auggie    | `auggie`    | npm `@augmentcode/auggie`   | `auggie`       |
 | Install & Open Qoder     | `qoder`     | qoder.com install script    | `qodercli`     |
 | Install & Open iFlow     | `iflow`     | npm `@iflow-ai/iflow-cli`   | `iflow`        |
@@ -81,6 +85,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Run Tunnel Client | `tunnel` | GitHub release `cloudflared` | `cloudflared`  |
 | Install & Open ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
 | Install & Open LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
+| Install assistant-ui     | `assistant-ui` | npx `setup-agent` (no install) | `npx`      |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
 `litellm`) that expose an OpenAI-compatible endpoint, together with a
@@ -88,8 +93,10 @@ debugging **proxy server** (`proxy`, mitmproxy) and a **tunnel** entry
 (`tunnel`, Cloudflare's cloudflared) that publishes a local port on a
 public HTTPS URL, **local AI** runtimes
 (`ollama`, `llamacpp`, `lmstudio`, `jan`) that serve models on
-the machine itself, **chat UIs** (`librechat`, `lobechat`, `msty`) that put a
-chat front end on top of the g4f API, and **assistant/agent CLIs**
+the machine itself, **chat UIs** (`librechat`, `lobechat`, `msty`,
+`sillytavern`, `cptr`) that put a chat front end on top of the g4f API,
+a browser **editor** (`code-server`, VS Code Web served by code-server),
+and **assistant/agent CLIs**
 (`openclaw`, `fabric`, `sgpt`, `gptme`, `llm`) that live in the terminal.
 Install scripts land their
 binary in `~/.local/bin`, `~/.kimi-code/bin`, `~/.qoder/bin`,
@@ -119,6 +126,28 @@ into `~/.swe-agent` (via `ensure_git`) and installs from that checkout.
 SWE-agent additionally needs Docker at run time for its sandboxed
 environments.
 
+**Roomote** is the one entry that is not a CLI: `get.roomote.dev` is a host
+installer that runs as root, installs Docker when it is missing, writes
+`/opt/roomote` and starts a Compose stack from published GHCR images, leaving
+the `roomote` management CLI in `/usr/local/bin`. `ensure_roomote` pipes it
+through `as_root` with `--tls-mode internal`, so Caddy serves a self-signed
+certificate and the install needs no public DNS or ACME round trip. The image
+has no init system, so the systemd unit the installer writes is inert here and
+the stack is started directly; the menu entry prints the first-admin `/setup`
+link (`roomote setup-url`) and then follows the service logs.
+
+**assistant-ui** is the one entry that installs nothing: it runs
+`npx setup-agent https://setup.assistant-ui.com/Q2Exyx6AidfK`, a thin Statewire
+client whose setup is shared live between the browser that opened the URL and
+the coding agent installing the products. The CLI prints the setup's
+instructions and current state, then the agent drives it from the same shell
+(`stream`, `wait start`, `plan`, `add-step`, `step`, `done`). It is meant for a
+coding agent, so when none is detected it offers to start one — which is why
+the entry opens a terminal rather than installing a binary. The URL is the
+browser's link to its agent, not one setup: a finished setup stays on it and
+the browser's next one replaces it. `sandbox-cli install assistant-ui` only
+checks that `npx` is available.
+
 ### Categories
 
 Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
@@ -129,15 +158,16 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 |------------------|-------------------|------------------------------------------------|
 | **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
-| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roo`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
+| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
-| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`        |
-| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm` |
+| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr` |
+| **Editors**      | `X-G4F-Editor`    | `code-server` |
+| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `assistant-ui` |
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
-(`patch-xfce-menu.py`), which inserts the seven `<Menu>` blocks just before its
+(`patch-xfce-menu.py`), which inserts the eight `<Menu>` blocks just before its
 `<DefaultMergeDirs/>` node. Shipping them as a merged menu file under
 `/etc/xdg/menus/applications-merged/` does **not** work: garcon copies a merged
 file's elements with `g_node_traverse(..., depth=2, G_IN_ORDER)`, which never

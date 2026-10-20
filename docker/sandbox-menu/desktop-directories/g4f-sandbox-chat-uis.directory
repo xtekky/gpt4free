@@ -2,4 +2,4 @@
 Type=Directory
 Name=Chat UIs
 Comment=Self-hosted chat front ends for the g4f API
-Icon=applications-internet-symbolic
+Icon=chat-message-new-symbolic

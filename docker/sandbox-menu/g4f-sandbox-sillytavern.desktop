@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open SillyTavern
+Comment=SillyTavern chat UI — clones and npm-installs on first click, then serves on port 8601
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=SillyTavern --icon=g4f-sandbox-sillytavern --command="/usr/local/bin/sandbox-cli sillytavern"
+Icon=g4f-sandbox-sillytavern
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-ChatUI;
+Keywords=sillytavern;chat;ui;web;roleplay;;
+StartupNotify=false

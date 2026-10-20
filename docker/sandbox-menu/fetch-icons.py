@@ -94,7 +94,7 @@ ICONS: dict[str, list[str]] = {
     "hermes": [google("nousresearch.com")],
     "kiro": [google("kiro.dev")],
     "kimi": [google("kimi.com")],
-    "roo": [google("roocode.com")],
+    "roomote": [google("roomote.dev")],
     "auggie": [google("augmentcode.com")],
     "qoder": [google("qoder.com")],
     "iflow": [google("iflow.cn")],
@@ -117,12 +117,17 @@ ICONS: dict[str, list[str]] = {
     "librechat": [google("librechat.ai")],
     "lobechat": [google("lobehub.com")],
     "msty": [google("msty.ai")],
+    "sillytavern": [github("SillyTavern")],
+    "cptr": [github("open-webui"), google("openwebui.com")],
+    # Editors
+    "code-server": [google("coder.com"), github("coder")],
     # Assistants
     "openclaw": ["https://openclaw.ai/favicon.svg"],
     "fabric": [github("danielmiessler")],
     "sgpt": [github("TheR1D")],
     "gptme": ["https://gptme.org/media/icon.svg"],
     "llm": [github("simonw")],
+    "assistant-ui": [google("assistant-ui.com"), github("assistant-ui")],
 }
 
 

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Roomote
+Comment=Roomote self-hosted coding agent — installs on first click, then opens in a terminal
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Roomote" --icon=g4f-sandbox-roomote --command="/usr/local/bin/sandbox-cli roomote"
+Icon=g4f-sandbox-roomote
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=roomote;roocode;agent;ai;coding;;
+StartupNotify=false

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install assistant-ui
+Comment=assistant-ui setup (npx setup-agent) — opens in a terminal and drives the install
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="assistant-ui" --icon=g4f-sandbox-assistant-ui --command="/usr/local/bin/sandbox-cli assistant-ui"
+Icon=g4f-sandbox-assistant-ui
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Assistant;
+Keywords=assistant-ui;assistant;ui;setup;setup-agent;react;;
+StartupNotify=false

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Xfconf channel defaults for xfce4-panel. Installed as
+  /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml, so xfconfd
+  serves these values for properties the user's own channel does not set.
+  Only the Applications button (the applicationsmenu plugin, plugin-1 of the
+  panel's default layout in /etc/xdg/xfce4/panel/default.xml, which already
+  carries the icon for fresh homes) is pieced in here: it covers homes saved
+  by an older image, whose panel channel exists without a button-icon.
+  Anything the user sets in the panel gets written to their own channel and
+  takes precedence over this file.
+-->
+<channel name="xfce4-panel" version="1.0">
+  <property name="plugins" type="empty">
+    <property name="plugin-1" type="string" value="applicationsmenu">
+      <property name="button-icon" type="string" value="g4f-sandbox-applications"/>
+    </property>
+  </property>
+</channel>

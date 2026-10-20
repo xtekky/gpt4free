@@ -135,8 +135,9 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
 
 # Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
-# Chrome), local gateways/agents (OmniRoute, OpenClaw) and chat UIs
-# (LibreChat, LobeChat, Msty Studio).
+# Chrome), local gateways/agents (OmniRoute, OpenClaw), chat UIs (LibreChat,
+# LobeChat, Msty Studio, SillyTavern, Open WebUI Computer) and VS Code Web
+# (code-server).
 # sandbox-cli installs a tool on first click (vendor script / npm / pip / the
 # Chrome .deb) and runs it; the .desktop files land in the panel's Applications
 # menu. Each entry names its own icon (g4f-sandbox-<tool>) and passes it to
@@ -159,9 +160,44 @@ RUN chmod 0755 /usr/local/bin/sandbox-cli /usr/local/bin/start-browser /usr/loca
         /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg \
         /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
 
+# The Applications button (the applicationsmenu plugin, plugin-1 of the panel's
+# stock layout) carries the g4f mark instead of Xfce's stock icon. docker/g4f.svg
+# is the same logo the noVNC client gets branded with below; new homes get the
+# icon seeded into /etc/xdg/xfce4/panel/default.xml, and homes saved by an older
+# image (their panel channel exists without a button-icon) pick it up through
+# the xfconf channel default next to the menu files. Anything a user sets in
+# the panel later is written to their own xfconf channel and wins.
+# The visible stock categories name icons this stripped image does not ship
+# (Internet, Development, Accessories, Settings), so they showed the menu's
+# generic fallback; point them at symbolic marks Adwaita does carry (the same
+# style the g4f submenus use). Empty categories are hidden by garcon, so the
+# rest of them stays stock.
+COPY docker/g4f.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-applications.svg
+COPY docker/sandbox-menu/panel-defaults.xfconf.xml /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>|<property name="plugin-1" type="string" value="applicationsmenu">\n      <property name="button-icon" type="string" value="g4f-sandbox-applications"/>\n    </property>|' \
+        /etc/xdg/xfce4/panel/default.xml && \
+    grep -q 'name="button-icon" type="string" value="g4f-sandbox-applications"' \
+        /etc/xdg/xfce4/panel/default.xml && \
+    sed -i 's|^Icon=applications-internet$|Icon=web-browser-symbolic|' \
+        /usr/share/desktop-directories/xfce-network.directory && \
+    sed -i 's|^Icon=applications-development$|Icon=applications-engineering-symbolic|' \
+        /usr/share/desktop-directories/xfce-development.directory && \
+    sed -i 's|^Icon=applications-accessories$|Icon=applications-utilities-symbolic|' \
+        /usr/share/desktop-directories/xfce-accessories.directory && \
+    sed -i 's|^Icon=preferences-desktop$|Icon=preferences-system-symbolic|' \
+        /usr/share/desktop-directories/xfce-settings.directory && \
+    grep -q '^Icon=web-browser-symbolic$' /usr/share/desktop-directories/xfce-network.directory && \
+    grep -q '^Icon=applications-engineering-symbolic$' /usr/share/desktop-directories/xfce-development.directory && \
+    grep -q '^Icon=applications-utilities-symbolic$' /usr/share/desktop-directories/xfce-accessories.directory && \
+    grep -q '^Icon=preferences-system-symbolic$' /usr/share/desktop-directories/xfce-settings.directory && \
+    grep -q 'name="button-icon" type="string" value="g4f-sandbox-applications"' \
+        /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml && \
+    chmod 0644 /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-applications.svg \
+        /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+
 # Group the entries into their own top-level menus (g4f, Browsers, Coding
-# Agents, Gateways, Local AI, Chat UIs, Assistants) instead of dumping all 48
-# into Development.
+# Agents, Gateways, Local AI, Chat UIs, Editors, Assistants) instead of
+# dumping all 51 into Development.
 # The .directory files name and icon those menus; patch-xfce-menu.py inserts
 # the matching <Menu> blocks into the stock xfce-applications.menu. A merged
 # menu file under applications-merged/ does not work here -- garcon copies

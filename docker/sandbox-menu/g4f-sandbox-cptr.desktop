@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Open WebUI Computer
+Comment=Open WebUI Computer — pip-installs on first click, then serves files, terminal, git, editor and AI on port 8000
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Open WebUI Computer" --icon=g4f-sandbox-cptr --command="/usr/local/bin/sandbox-cli cptr"
+Icon=g4f-sandbox-cptr
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-ChatUI;
+Keywords=openwebui;computer;cptr;web;files;terminal;editor;;
+StartupNotify=false

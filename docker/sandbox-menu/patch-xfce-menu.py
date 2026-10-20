@@ -96,6 +96,17 @@ MENUS = [
     </Menu>
 """,
     ),
+    (
+        "Editors",
+        """    <Menu>
+        <Name>Editors</Name>
+        <Directory>g4f-sandbox-editors.directory</Directory>
+        <Include>
+            <Category>X-G4F-Editor</Category>
+        </Include>
+    </Menu>
+""",
+    ),
 ]
 
 def main() -> int:

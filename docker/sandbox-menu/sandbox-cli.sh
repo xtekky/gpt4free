@@ -46,10 +46,18 @@ FABRIC_INSTALLER="https://raw.githubusercontent.com/danielmiessler/fabric/main/s
 HERMES_INSTALLER="https://hermes-agent.nousresearch.com/install.sh"
 KIRO_INSTALLER="https://cli.kiro.dev/install"
 KIMI_INSTALLER="https://code.kimi.com/kimi-code/install.sh"
-ROO_INSTALLER="https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/apps/cli/install.sh"
+# Roomote is a self-hosted service, not a CLI: its installer needs root, brings
+# up Docker plus a Compose stack under /opt/roomote and drops the `roomote`
+# management CLI in /usr/local/bin (see ensure_roomote).
+ROOMOTE_INSTALLER="https://get.roomote.dev"
 QODER_INSTALLER="https://qoder.com/install"
 VIBE_INSTALLER="https://mistral.ai/vibe/install.sh"
 UV_INSTALLER="https://astral.sh/uv/install.sh"
+# assistant-ui's setup-agent drives a setup that is shared live between the
+# browser that opened this URL and the agent installing the products. The URL
+# is the browser's link to its agent, not one setup: a finished setup stays on
+# it and the browser's next one replaces it.
+ASSISTANT_UI_SETUP_URL="https://setup.assistant-ui.com/Q2Exyx6AidfK"
 # Local model runtimes and their web UIs.
 OLLAMA_INSTALLER="https://ollama.com/install.sh"
 LMSTUDIO_INSTALLER="https://lmstudio.ai/install.sh"
@@ -73,6 +81,22 @@ MONGODB_APT_DIST="bookworm/mongodb-org/8.0"
 MONGODB_GPG_URL="https://pgp.mongodb.com/server-8.0.asc"
 MONGODB_TARBALL_BASE="https://fastdl.mongodb.org/linux"
 MONGODB_VERSION="8.0.34"
+# SillyTavern is a Node web app without an upstream package: it is cloned and
+# served with npm (see ensure_sillytavern). The port is moved off SillyTavern's
+# default 8000 so a running Open WebUI Computer (cptr, also 8000) does not
+# collide with it.
+SILLYTAVERN_REPO="https://github.com/SillyTavern/SillyTavern.git"
+SILLYTAVERN_DIR_NAME=".sillytavern"
+SILLYTAVERN_PORT="8601"
+# Open WebUI Computer (cptr) is pip-installable: one local server that serves
+# files, terminal, git, editor and AI to any browser, on its documented
+# default port 8000.
+CPTR_PORT="8000"
+# code-server (VS Code in the browser) ships a vendor install script; the
+# standalone method keeps the install under ~/.local. Its default port 8080 is
+# the g4f API's, so it listens on 8602 instead (see the code-server case).
+CODE_SERVER_INSTALLER="https://code-server.dev/install.sh"
+CODE_SERVER_PORT="8602"
 # The tunnel entry ("Install & Run Tunnel Client") is backed by Cloudflare's
 # cloudflared: `cloudflared tunnel --url <target>` opens a public HTTPS URL
 # (trycloudflare.com) for a local port with no account and no config file. The
@@ -674,6 +698,20 @@ ensure_script() { # <install script url> <binary> <label>
     have "$2" || die "$2 not on PATH after the $3 install"
 }
 
+# Roomote's installer is a host installer: it runs as root, installs Docker if
+# it is missing, writes /opt/roomote and starts a Compose stack. The sandbox
+# image has no init system, so the systemd unit it writes is inert here and the
+# stack is started directly instead. `--tls-mode internal` keeps Caddy on a
+# self-signed certificate, so the install needs no public DNS or ACME round
+# trip; the printed /setup link is reachable through the sandbox's own URLs.
+ensure_roomote() {
+    have roomote && return 0
+    log "installing Roomote (self-hosted coding agent)..."
+    curl -fsSL "$ROOMOTE_INSTALLER" | as_root bash -s -- --tls-mode internal \
+        || die "Roomote install script failed"
+    have roomote || die "roomote not on PATH after the Roomote install"
+}
+
 # Hermes installs into ~/.hermes/hermes-agent/.hermes/bin and only adds
 # ~/.local/bin to the shell rc, so link the binary there for the next run.
 ensure_hermes() {
@@ -989,6 +1027,73 @@ ensure_librechat() {
             || die "the LibreChat build failed"
     fi
     have mongod || die "mongod not on PATH after the install"
+}
+
+# SillyTavern is a Node web app with no upstream package: the checkout lives
+# in ~/.sillytavern, `npm install` fetches the dependencies. If no config.yaml
+# exists yet, the checkout's default/config.yaml is copied to the repo root --
+# the path server.js reads (./config.yaml; the config/ directory also seen in
+# older releases is not used) -- and the port there is moved off SillyTavern's
+# default 8000 so a running Open WebUI Computer (also 8000) does not collide
+# with it, and the startup browser launch is turned off: the launcher terminal
+# is the console and nothing guarantees a desktop browser is installed.
+ensure_sillytavern() {
+    ensure_node
+    ensure_git
+    local dir="$HOME/$SILLYTAVERN_DIR_NAME" config
+    if [ ! -d "$dir/.git" ]; then
+        log "cloning SillyTavern into $dir..."
+        rm -rf "$dir"
+        git clone --depth 1 "$SILLYTAVERN_REPO" "$dir" \
+            || die "could not clone SillyTavern"
+    fi
+    if [ ! -d "$dir/node_modules" ]; then
+        log "installing SillyTavern's dependencies (npm install)..."
+        ( cd "$dir" && npm install --no-fund --no-audit ) \
+            || die "the SillyTavern npm install failed"
+    fi
+    config="$dir/config.yaml"
+    if [ ! -f "$config" ]; then
+        cp "$dir/default/config.yaml" "$config" \
+            || die "could not create the SillyTavern config.yaml"
+    fi
+    if grep -q '^port: 8000$' "$config"; then
+        sed -i "s/^port: 8000$/port: $SILLYTAVERN_PORT/" "$config" \
+            || die "could not set the SillyTavern port"
+    fi
+    sed -i '/^browserLaunch:/,/^[a-zA-Z]/{s/^  enabled: true/  enabled: false/}' \
+        "$config" || die "could not disable SillyTavern's browser launch"
+}
+
+# Open WebUI Computer ("cptr") is pip-installable: one local server that
+# serves files, terminal, git, editor and AI to any browser on port 8000 --
+# the machine it runs on, not a copy of it.
+ensure_cptr() {
+    ensure_pip cptr cptr
+}
+
+# code-server (VS Code in the browser) ships its own vendor installer. Explicit
+# --method standalone skips the deb/package-manager path (and its systemctl
+# step): the release tarball is unarchived into $prefix/lib/code-server-* and
+# symlinked into $prefix/bin, which ~/.local/bin already covers on PATH; the
+# fallback link below catches an installer revision without the symlink.
+ensure_code_server() {
+    have code-server && return 0
+    log "installing code-server (vendor install script, ~/.local)..."
+    curl -fsSL "$CODE_SERVER_INSTALLER" | \
+        bash -s -- --method standalone --prefix "$HOME/.local" \
+        || die "the code-server install script failed"
+    if ! have code-server; then
+        local candidate found=""
+        for candidate in "$HOME"/.local/lib/code-server-*/bin/code-server; do
+            [ -x "$candidate" ] && found="$candidate" && break
+        done
+        [ -n "$found" ] || die "code-server not on PATH after the install"
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$found" "$HOME/.local/bin/code-server" \
+            || die "cannot link code-server"
+    fi
+    have code-server || die "code-server not on PATH after the install"
 }
 
 # mitmproxy is the "Install & Run Proxy Server" entry: a debugging HTTP(S)
@@ -1430,6 +1535,41 @@ run_tool() {
             log "opening Msty Studio on the desktop"
             nohup setsid msty >/tmp/msty.log 2>&1 &
             exit 0 ;;
+        sillytavern)
+            ensure_sillytavern
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "SillyTavern is installed and ready"
+                exit 0
+            fi
+            # SillyTavern is a web app: the Node server runs in the foreground
+            # so the terminal stays open as its console (Ctrl-C stops it).
+            log "starting SillyTavern on http://127.0.0.1:$SILLYTAVERN_PORT (Ctrl-C to stop)"
+            cd "$HOME/$SILLYTAVERN_DIR_NAME" || die "SillyTavern checkout is missing"
+            launch SillyTavern node server.js "${@:2}" ;;
+        cptr)
+            ensure_cptr
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Open WebUI Computer is installed and ready"
+                exit 0
+            fi
+            # cptr serves the machine it runs on — files, terminal, git,
+            # editor and AI — to any browser; the terminal stays open as its
+            # console (Ctrl-C stops it).
+            log "starting Open WebUI Computer on http://127.0.0.1:$CPTR_PORT (Ctrl-C to stop)"
+            launch "Open WebUI Computer" cptr run "${@:2}" ;;
+        code-server)
+            ensure_code_server
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "code-server is installed and ready"
+                exit 0
+            fi
+            # code-server serves VS Code Web; the terminal stays open as its
+            # console (Ctrl-C stops it). Listen on 8602, not the default
+            # 8080, so it does not collide with the g4f API. --auth none keeps
+            # the local loopback session free of a login prompt.
+            log "starting code-server on http://127.0.0.1:$CODE_SERVER_PORT (Ctrl-C to stop)"
+            launch "VS Code Web" code-server --auth none \
+                --bind-addr "127.0.0.1:$CODE_SERVER_PORT" "${@:2}" ;;
         openclaw)
             ensure_script "$OPENCLAW_INSTALLER" openclaw "OpenClaw"
             launch OpenClaw openclaw "${@:2}" ;;
@@ -1468,9 +1608,19 @@ run_tool() {
         kimi)
             ensure_script "$KIMI_INSTALLER" kimi "Kimi Code"
             launch "Kimi Code" kimi "${@:2}" ;;
-        roo)
-            ensure_script "$ROO_INSTALLER" roo "Roo Code CLI"
-            launch "Roo Code CLI" roo "${@:2}" ;;
+        roomote)
+            ensure_roomote
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Roomote is installed and ready"
+                exit 0
+            fi
+            # Roomote is a web app: the installer already started the Compose
+            # stack, so print the first-admin setup link and keep the terminal
+            # open as its console (`roomote logs` follows the services).
+            log "Roomote setup link:"
+            as_root roomote setup-url || true
+            log "following the Roomote logs (Ctrl-C to stop)"
+            as_root roomote logs "${@:2}" ;;
         auggie)
             ensure_npm @augmentcode/auggie auggie
             launch Auggie auggie "${@:2}" ;;
@@ -1498,6 +1648,22 @@ run_tool() {
         llm)
             ensure_pip llm llm
             launch "LLM CLI" llm "${@:2}" ;;
+        assistant-ui)
+            ensure_node
+            have npx || die "npx is not on PATH"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "assistant-ui's setup-agent is ready (runs through npx)"
+                exit 0
+            fi
+            # setup-agent is a thin Statewire client, not an installer: it
+            # prints the setup's instructions and current state, then the
+            # agent drives it from this shell (stream, wait, plan, add-step,
+            # step, done). It is meant for a coding agent, so with none
+            # detected it offers to start one -- which is why this entry opens
+            # a terminal instead of installing anything itself.
+            log "starting the assistant-ui setup (Ctrl-C to stop)"
+            launch "assistant-ui" npx --yes setup-agent \
+                "$ASSISTANT_UI_SETUP_URL" "${@:2}" ;;
         *)
             die "unknown tool \"$1\" — run: sandbox-cli list" ;;
     esac
@@ -1557,7 +1723,7 @@ list_tools() {
         hermes      "Hermes Agent by Nous Research" \
         kiro        "Kiro CLI by AWS" \
         kimi        "Kimi Code by Moonshot AI" \
-        roo         "Roo Code CLI" \
+        roomote     "Roomote self-hosted coding agent" \
         auggie      "Auggie by Augment Code" \
         qoder       "Qoder CLI" \
         iflow       "iFlow CLI" \
@@ -1579,14 +1745,20 @@ list_tools() {
     printf '  %-15s %s\n' \
         librechat   "LibreChat web UI (Node + MongoDB)" \
         lobechat    "LobeChat desktop app" \
-        msty        "Msty Studio desktop app"
+        msty        "Msty Studio desktop app" \
+        sillytavern "SillyTavern web UI for role-play chats" \
+        cptr        "Open WebUI Computer (files + terminal + AI)"
+    printf '%s\n' "Editors"
+    printf '  %-15s %s\n' \
+        code-server "VS Code Web (code-server)"
     printf '%s\n' "Assistants"
     printf '  %-15s %s\n' \
         openclaw    "OpenClaw CLI" \
         fabric      "Fabric AI patterns CLI" \
         sgpt        "ShellGPT shell assistant" \
         gptme       "gptme terminal agent" \
-        llm         "LLM CLI by Simon Willison"
+        llm         "LLM CLI by Simon Willison" \
+        assistant-ui "assistant-ui setup (setup-agent)"
 }
 
 case "${1:-}" in
