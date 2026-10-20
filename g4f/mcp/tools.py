@@ -71,6 +71,10 @@ class MCPTool(ABC):
         """
         pass
 
+    def is_hidden_file(self, file: str) -> bool:
+        """Check if a file is hidden"""
+        return any((self.safe_mode and part.startswith(".")) or part in ["__pycache__", ".git"] for part in str(file).replace("\\", "/").split("/"))
+
 
 class WebSearchTool(MCPTool):
     """Web search tool using gpt4free's search capabilities"""
@@ -761,7 +765,7 @@ class FileListTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir, get_secret_workspace_dir, is_hidden_file
+        from .pa_provider import get_workspace_dir, get_secret_workspace_dir
 
         rel_path = arguments.get("path", "") or ""
         recursive = bool(arguments.get("recursive", False))
@@ -781,14 +785,13 @@ class FileListTool(MCPTool):
                 return {"error": f"Directory not found: {rel_path or '/'}"}
             if not target.is_dir():
                 return {"error": f"Path is not a directory: {rel_path}"}
-
             entries = []
             skipped = 0
             iterator = target.rglob("*") if recursive else target.iterdir()
             for entry in sorted(iterator):
                 try:
                     rel = str(entry.relative_to(workspace))
-                    if self.safe_mode and is_hidden_file(rel):
+                    if self.is_hidden_file(rel):
                         continue
                     if self.safe_mode and target == workspace:
                         if entry.name != "pa-providers" and (not entry.is_file() or entry.suffix.lower() != ".md"):
@@ -1225,7 +1228,7 @@ class FileSearchGlobTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir, get_secret_workspace_dir, is_hidden_file
+        from .pa_provider import get_workspace_dir, get_secret_workspace_dir
 
         pattern = arguments.get("query", "")
         max_results = int(arguments.get("maxResults", 50))
@@ -1244,7 +1247,7 @@ class FileSearchGlobTool(MCPTool):
                     continue
                 rel = entry.relative_to(workspace)
                 rel_str = rel.as_posix()
-                if self.safe_mode and is_hidden_file(rel_str):
+                if self.is_hidden_file(rel_str):
                     continue
                 if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(
                     entry.name, pattern
@@ -1297,7 +1300,7 @@ class GrepSearchTool(MCPTool):
         }
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .pa_provider import get_workspace_dir, get_secret_workspace_dir, is_hidden_file
+        from .pa_provider import get_workspace_dir, get_secret_workspace_dir
 
         pattern = arguments.get("query", "")
         is_regexp = bool(arguments.get("isRegexp", False))
@@ -1325,7 +1328,7 @@ class GrepSearchTool(MCPTool):
                 if not entry.is_file():
                     continue
                 rel_str = entry.relative_to(workspace).as_posix()
-                if self.safe_mode and is_hidden_file(rel_str):
+                if self.is_hidden_file(rel_str):
                     continue
                 if include_pattern and not fnmatch.fnmatch(rel_str, include_pattern):
                     continue
