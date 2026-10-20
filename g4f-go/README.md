@@ -99,8 +99,11 @@ updates the stored pin to match what was installed.
 ## Headless browser (`browser`)
 
 g4f drives a real browser over CDP for cookie fetching and scraping. `g4f-go`
-can install and manage that browser for you — [Lightpanda](https://github.com/lightpanda-io/browser),
-a small headless CDP browser with no GUI.
+can install and manage that browser for you — the
+[g4f-copilot/browser](https://github.com/g4f-copilot/browser) build of
+[Lightpanda](https://github.com/lightpanda-io/browser), a small headless CDP
+browser with no GUI that ships a Chrome-impersonating fingerprint out of the
+box.
 
 ```
 g4f-go browser install      # download + verify + install for this OS
@@ -121,18 +124,16 @@ flags, matching what the Python package uses:
 --block-private-networks
 --load-resources iframe
 --http-cache-dir <config dir>/cache/http_cache
---user-agent-suffix "Chrome/136.0.0.0 Safari/537.36"
 ```
 
-The suffix makes Lightpanda's own user agent (`Lightpanda/1.0`) look like
-Chrome's, and the cache directory is shared with
-`g4f.requests.cdp.get_http_cache_dir()`.
+The cache directory is shared with `g4f.requests.cdp.get_http_cache_dir()`.
 
-Lightpanda 1.0.0 rejects `--user-agent` outright when the value contains
-`Mozilla` (`invalid user-agent`, fatal at startup), so the suffix flag is the
-only supported way to shape the UA. The full Chrome UA is still applied per
-target over CDP (`Network.setUserAgentOverride` plus a `navigator.userAgent`
-override), which is what sites actually see.
+No user-agent flag is passed. The g4f-copilot build already sends a full
+Chrome UA (`Mozilla/5.0 (Windows NT 10.0; Win64; x64) ... Chrome/152.0.0.0
+Safari/537.36`) together with matching `Sec-Ch-Ua` client hints, and
+`--user-agent-suffix` would append a second `Chrome/152.0.0.0 Safari/537.36`
+to it. `g4f/requests/cdp.py` still passes the suffix, which is harmless there
+because it masks the UA over CDP anyway.
 
 ### Automatic startup when headless
 
@@ -179,13 +180,19 @@ Binaries are pinned per platform and verified against a SHA-256 before install:
 
 | OS | Arch | Source |
 |----|------|--------|
-| Linux | amd64, arm64 | `lightpanda-io/browser` release |
-| macOS | amd64, arm64 | `lightpanda-io/browser` release |
+| Linux | amd64, arm64 | `g4f-copilot/browser` release (zip) |
 | Windows | amd64 | `qidiai/lightpanda-windows-port` (upstream has no native Windows build) |
 
-Installed into `~/.g4f/browser/` (next to the CPython runtime). The Windows
-package is a zip whose top-level directory is stripped and whose binary is
-`chmod 0755`-ed, since the archive carries no unix permission bits.
+Installed into `~/.g4f/browser/` (next to the CPython runtime). The zips are
+unpacked with their top-level directory stripped (the Windows package has one,
+the Linux zips are flat) and the binary is `chmod 0755`-ed, since the archives
+carry no unix permission bits.
+
+The Linux amd64 build links against `libc_v8.so`, which is not part of the
+release zip. `g4f-go browser install` downloads the matching
+`lightpanda-io/zig-v8-fork` library into the same directory and rewrites the
+binary's ELF `RUNPATH` to `$ORIGIN`, because the shipped value points at the
+build machine's absolute path. The Linux arm64 build is self-contained.
 
 ## STUN/TURN server (`turn`)
 

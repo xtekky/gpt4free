@@ -2,6 +2,8 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -96,20 +98,27 @@ func TestParseBrowserServeArgs(t *testing.T) {
 	}
 }
 
-func TestBrowserServeArgsUsesUserAgentSuffix(t *testing.T) {
+func TestBrowserServeArgsUsesForkFingerprint(t *testing.T) {
 	args := browserServeArgs("127.0.0.1", 9222)
-	for i, a := range args {
-		if a == "--user-agent" {
-			t.Fatalf("browserServeArgs must not pass --user-agent (Lightpanda rejects Mozilla values): %v", args)
-		}
-		if a == "--user-agent-suffix" {
-			if i+1 >= len(args) || args[i+1] != browserUserAgentSuffix {
-				t.Fatalf("--user-agent-suffix missing its value: %v", args)
-			}
-			return
+	for _, a := range args {
+		// The fork already sends a full Chrome UA; adding the suffix would
+		// duplicate it, and --user-agent conflicts with the suffix flag.
+		if a == "--user-agent" || a == "--user-agent-suffix" {
+			t.Fatalf("browserServeArgs must not shape the UA (the fork already sends Chrome): %v", args)
 		}
 	}
-	t.Fatalf("browserServeArgs is missing --user-agent-suffix: %v", args)
+	for _, want := range []string{"serve", "--block-private-networks", "--load-resources", "iframe", "--http-cache-dir"} {
+		found := false
+		for _, a := range args {
+			if a == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("browserServeArgs is missing %q: %v", want, args)
+		}
+	}
 }
 
 func TestFreePort(t *testing.T) {
@@ -217,6 +226,151 @@ func TestExtractBrowserZipRejectsTraversal(t *testing.T) {
 	if err := extractBrowserZip(archive, out, "lightpanda.exe"); err == nil {
 		t.Error("expected traversal to be rejected")
 	}
+}
+
+func TestExtractBrowserZipFlatLayout(t *testing.T) {
+	dir := t.TempDir()
+	archive := filepath.Join(dir, "lightpanda.zip")
+
+	f, err := os.Create(archive)
+	if err != nil {
+		t.Fatalf("create archive: %v", err)
+	}
+	zw := zip.NewWriter(f)
+	w, err := zw.Create("lightpanda")
+	if err != nil {
+		t.Fatalf("create entry: %v", err)
+	}
+	if _, err := w.Write([]byte("ELF fake")); err != nil {
+		t.Fatalf("write entry: %v", err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("close zip: %v", err)
+	}
+	f.Close()
+
+	out := filepath.Join(dir, "out")
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		t.Fatalf("mkdir out: %v", err)
+	}
+	if err := extractBrowserZip(archive, out, "lightpanda"); err != nil {
+		t.Fatalf("extractBrowserZip: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "lightpanda"))
+	if err != nil {
+		t.Fatalf("read binary: %v", err)
+	}
+	if string(got) != "ELF fake" {
+		t.Errorf("binary = %q, want %q", got, "ELF fake")
+	}
+	if runtime.GOOS != "windows" {
+		fi, err := os.Stat(filepath.Join(out, "lightpanda"))
+		if err != nil {
+			t.Fatalf("stat binary: %v", err)
+		}
+		if fi.Mode().Perm()&0o111 == 0 {
+			t.Errorf("binary mode = %v, want executable", fi.Mode().Perm())
+		}
+	}
+}
+
+// TestPatchBrowserRunpath builds a minimal ELF64 with a DT_RUNPATH pointing at
+// a build-machine path and checks that it is rewritten to $ORIGIN in place.
+func TestPatchBrowserRunpath(t *testing.T) {
+	const oldPath = "/home/builder/.lp-cache/prebuilt-v8/v0.5.9"
+	image := buildTestELF(oldPath)
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "lightpanda")
+	if err := os.WriteFile(path, image, 0o755); err != nil {
+		t.Fatalf("write elf: %v", err)
+	}
+
+	off, size, err := elfRunpath(image)
+	if err != nil {
+		t.Fatalf("elfRunpath: %v", err)
+	}
+	if off < 0 {
+		t.Fatal("elfRunpath found no RUNPATH")
+	}
+	if got := string(image[off : off+size-1]); got != oldPath {
+		t.Fatalf("RUNPATH = %q, want %q", got, oldPath)
+	}
+
+	if err := patchBrowserRunpath(path); err != nil {
+		t.Fatalf("patchBrowserRunpath: %v", err)
+	}
+	patched, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read patched: %v", err)
+	}
+	off, size, err = elfRunpath(patched)
+	if err != nil {
+		t.Fatalf("elfRunpath(patched): %v", err)
+	}
+	if got := string(patched[off : off+size-1]); got != "$ORIGIN" {
+		t.Errorf("patched RUNPATH = %q, want %q", got, "$ORIGIN")
+	}
+	if len(patched) != len(image) {
+		t.Errorf("patch changed file size: %d -> %d", len(image), len(patched))
+	}
+
+	// Patching twice must be a no-op.
+	if err := patchBrowserRunpath(path); err != nil {
+		t.Fatalf("second patchBrowserRunpath: %v", err)
+	}
+	again, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read twice-patched: %v", err)
+	}
+	if !bytes.Equal(again, patched) {
+		t.Error("second patch modified the file")
+	}
+}
+
+func TestElfRunpathRejectsNonELF(t *testing.T) {
+	if _, _, err := elfRunpath([]byte("not an elf at all, but long enough to pass the length check....")); err == nil {
+		t.Error("expected an error for a non-ELF file")
+	}
+}
+
+// buildTestELF returns a little-endian ELF64 image with a .dynamic section
+// holding a single DT_RUNPATH entry and a .dynstr section holding its value.
+func buildTestELF(runpath string) []byte {
+	const (
+		shoff     = 0x100
+		shnum     = 3
+		shentsize = 64
+		dynOff    = 0x200
+		dynSize   = 32 // DT_RUNPATH + DT_NULL
+		strOff    = 0x300
+	)
+	strSize := len(runpath) + 1
+	img := make([]byte, strOff+strSize)
+
+	copy(img, []byte{0x7f, 'E', 'L', 'F', 2, 1, 1, 0})
+	le := binary.LittleEndian
+	le.PutUint64(img[0x28:], shoff)
+	le.PutUint16(img[0x3a:], shentsize)
+	le.PutUint16(img[0x3c:], shnum)
+
+	// Section 1: .dynamic (SHT_DYNAMIC), linked to section 2.
+	le.PutUint32(img[shoff+1*shentsize+4:], 6)
+	le.PutUint64(img[shoff+1*shentsize+0x18:], dynOff)
+	le.PutUint64(img[shoff+1*shentsize+0x20:], dynSize)
+	le.PutUint32(img[shoff+1*shentsize+0x28:], 2)
+
+	// Section 2: .dynstr (SHT_STRTAB).
+	le.PutUint32(img[shoff+2*shentsize+4:], 3)
+	le.PutUint64(img[shoff+2*shentsize+0x18:], strOff)
+	le.PutUint64(img[shoff+2*shentsize+0x20:], uint64(strSize))
+
+	le.PutUint64(img[dynOff:], 29) // DT_RUNPATH
+	le.PutUint64(img[dynOff+8:], 0)
+	le.PutUint64(img[dynOff+16:], 0) // DT_NULL
+
+	copy(img[strOff:], runpath)
+	return img
 }
 
 func TestBrowserDirUnderConfigDir(t *testing.T) {

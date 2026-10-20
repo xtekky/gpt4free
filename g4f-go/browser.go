@@ -2,8 +2,10 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -18,22 +20,22 @@ import (
 	"time"
 )
 
-// Lightpanda is the headless browser g4f drives over CDP. Upstream publishes
-// native binaries for Linux and macOS only; Windows is served by the community
-// port qidiai/lightpanda-windows-port, which is pinned separately below.
+// Lightpanda is the headless browser g4f drives over CDP. g4f-go installs the
+// g4f-copilot/browser fork, which ships a Chrome-impersonating default
+// fingerprint (Chrome/152 UA plus matching client hints) and self-contained
+// Linux zips. Upstream lightpanda-io/browser publishes no Windows build, so
+// Windows keeps using the community port qidiai/lightpanda-windows-port.
 const (
-	browserVersion        = "1.0.0"
+	browserVersion        = "v0.1.0"
 	browserWindowsVersion = "portable-v0.2.5"
 	browserDefaultHost    = "127.0.0.1"
 	browserDefaultPort    = 9222
 )
 
-// browserUserAgentSuffix makes Lightpanda's own user agent ("Lightpanda/1.0")
-// look like a Chrome one. Lightpanda rejects --user-agent outright when the
-// value contains "Mozilla" ("invalid user-agent", fatal at startup), so the
-// suffix flag is the only supported way to shape the UA. Kept in sync with
-// CHROME_USER_AGENT_SUFFIX in g4f/requests/cdp.py.
-const browserUserAgentSuffix = "Chrome/136.0.0.0 Safari/537.36"
+// browserV8Version is the zig-v8-fork release the Linux x64 build links
+// against. The binary records libc_v8.so as a DT_NEEDED entry, so the shared
+// library has to sit next to it (see patchBrowserRunpath).
+const browserV8Version = "v0.5.9"
 
 // browserSpec describes one platform's Lightpanda download.
 type browserSpec struct {
@@ -44,48 +46,49 @@ type browserSpec struct {
 	SHA256  string
 	Archive bool   // true when the download is a zip instead of a bare binary
 	Binary  string // executable name inside the install directory
+	// Lib is a shared library the binary needs next to it, downloaded
+	// separately and verified on its own.
+	Lib *browserLib
+}
+
+// browserLib is a companion shared library shipped outside the release zip.
+type browserLib struct {
+	Name   string // file name inside the install directory
+	URL    string
+	Size   int64
+	SHA256 string
 }
 
 // browserSpecForHost returns the pinned download for the current OS/arch.
 func browserSpecForHost() (*browserSpec, error) {
-	base := "https://github.com/lightpanda-io/browser/releases/download/" + browserVersion + "/"
+	base := "https://github.com/g4f-copilot/browser/releases/download/" + browserVersion + "/"
 	switch runtime.GOOS {
 	case "linux":
 		switch runtime.GOARCH {
 		case "amd64":
 			return &browserSpec{
 				Key: "linux-x64", Version: browserVersion,
-				URL:    base + "lightpanda-x86_64-linux",
-				Size:   188268424,
-				SHA256: "aa5a4b8ed53d1e38b3c73f5b2647d0a84a82e6744557f45f9a9c85858aa031c3",
-				Binary: "lightpanda",
+				URL:     base + "lightpanda.zip",
+				Size:    71155619,
+				SHA256:  "d0c82aa314fa58ed9a64ef773e0c23cde79321214d0110bcdcf7e749b74e553c",
+				Archive: true,
+				Binary:  "lightpanda",
+				Lib: &browserLib{
+					Name: "libc_v8.so",
+					URL: "https://github.com/lightpanda-io/zig-v8-fork/releases/download/" +
+						browserV8Version + "/libc_v8_15.5.35.13_linux_x86_64.so",
+					Size:   80223768,
+					SHA256: "e9dd2fab029d235a945e3d0fa82e9f120e6a46961ed434672fee5cf9741bce88",
+				},
 			}, nil
 		case "arm64":
 			return &browserSpec{
 				Key: "linux-arm64", Version: browserVersion,
-				URL:    base + "lightpanda-aarch64-linux",
-				Size:   192757248,
-				SHA256: "69791924bcee43b13b224af4c845622c5fe66fdbc1b8143bfaa39ca8f85244f5",
-				Binary: "lightpanda",
-			}, nil
-		}
-	case "darwin":
-		switch runtime.GOARCH {
-		case "amd64":
-			return &browserSpec{
-				Key: "darwin-x64", Version: browserVersion,
-				URL:    base + "lightpanda-x86_64-macos",
-				Size:   94122817,
-				SHA256: "e510299683b37a203912eac0ee00732224b2ef9b07fe58e69c467f5255be45e2",
-				Binary: "lightpanda",
-			}, nil
-		case "arm64":
-			return &browserSpec{
-				Key: "darwin-arm64", Version: browserVersion,
-				URL:    base + "lightpanda-aarch64-macos",
-				Size:   90354360,
-				SHA256: "955440053a84754dd64c62f970449a56a2b350cdf43ea5f2e809a73047b8173d",
-				Binary: "lightpanda",
+				URL:     base + "lightpanda-arm64.zip",
+				Size:    56096169,
+				SHA256:  "be56a5105fa275357060e588de48e76db2945f9a233b5f88b531459dfa55e7c2",
+				Archive: true,
+				Binary:  "lightpanda",
 			}, nil
 		}
 	case "windows":
@@ -116,14 +119,19 @@ func browserHTTPCacheDir() string {
 // browserServeArgs builds the `lightpanda serve` arguments shared by the
 // foreground command and the automatic headless startup. The extra flags keep
 // the browser from reaching private networks, load iframes (needed by the
-// cookie fetchers) and present a Chrome user agent.
+// cookie fetchers) and cache HTTP responses.
+//
+// No --user-agent/--user-agent-suffix is passed: the g4f-copilot fork already
+// sends a full Chrome UA (Chrome/152 on Windows) plus matching client hints,
+// and --user-agent-suffix would append a second "Chrome/152.0.0.0 Safari/537.36"
+// to it. g4f/requests/cdp.py still passes the suffix, which is harmless there
+// because it masks the UA over CDP anyway.
 func browserServeArgs(host string, port int) []string {
 	return []string{
 		"serve", "--host", host, "--port", strconv.Itoa(port),
 		"--block-private-networks",
 		"--load-resources", "iframe",
 		"--http-cache-dir", browserHTTPCacheDir(),
-		"--user-agent-suffix", browserUserAgentSuffix,
 	}
 }
 
@@ -176,7 +184,7 @@ func installBrowser(force bool) error {
 	want := spec.Key + " " + spec.Version
 
 	if !force && browserInstalledVersion() == want {
-		if fi, err := os.Stat(exe); err == nil && !fi.IsDir() {
+		if fi, err := os.Stat(exe); err == nil && !fi.IsDir() && browserLibInstalled(dir, spec) {
 			fmt.Printf("browser: already installed (%s)\n", exe)
 			return nil
 		}
@@ -196,7 +204,7 @@ func installBrowser(force bool) error {
 	defer os.Remove(tmpName)
 
 	start := time.Now()
-	if err := downloadBrowser(tmp, spec); err != nil {
+	if err := downloadBrowser(tmp, spec.URL, spec.Size); err != nil {
 		tmp.Close()
 		return err
 	}
@@ -205,7 +213,7 @@ func installBrowser(force bool) error {
 	}
 	fmt.Printf("browser: downloaded %s in %s\n", humanBytes(spec.Size), time.Since(start).Round(time.Second))
 
-	if err := verifyBrowserDownload(tmpName, spec); err != nil {
+	if err := verifyBrowserDownload(tmpName, spec.Size, spec.SHA256); err != nil {
 		return err
 	}
 
@@ -224,6 +232,15 @@ func installBrowser(force bool) error {
 		return err
 	}
 
+	if spec.Lib != nil {
+		if err := installBrowserLib(dir, spec); err != nil {
+			return err
+		}
+		if err := patchBrowserRunpath(exe); err != nil {
+			return err
+		}
+	}
+
 	out, err := exec.Command(exe, "version").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("installed binary failed to run: %v (%s)", err, strings.TrimSpace(string(out)))
@@ -238,8 +255,8 @@ func installBrowser(force bool) error {
 }
 
 // downloadBrowser streams the pinned release into f with live progress.
-func downloadBrowser(f *os.File, spec *browserSpec) error {
-	resp, err := (&http.Client{}).Get(spec.URL)
+func downloadBrowser(f *os.File, url string, size int64) error {
+	resp, err := (&http.Client{}).Get(url)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
@@ -249,7 +266,7 @@ func downloadBrowser(f *os.File, spec *browserSpec) error {
 	}
 	total := resp.ContentLength
 	if total <= 0 {
-		total = spec.Size
+		total = size
 	}
 	if _, err := copyWithProgress(f, resp.Body, total, time.Now()); err != nil {
 		return fmt.Errorf("download interrupted: %w", err)
@@ -258,22 +275,22 @@ func downloadBrowser(f *os.File, spec *browserSpec) error {
 }
 
 // verifyBrowserDownload checks the pinned size and sha256.
-func verifyBrowserDownload(path string, spec *browserSpec) error {
+func verifyBrowserDownload(path string, size int64, sha string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if spec.Size > 0 {
+	if size > 0 {
 		fi, err := f.Stat()
 		if err != nil {
 			return err
 		}
-		if fi.Size() != spec.Size {
-			return fmt.Errorf("size mismatch: got %d, expected %d", fi.Size(), spec.Size)
+		if fi.Size() != size {
+			return fmt.Errorf("size mismatch: got %d, expected %d", fi.Size(), size)
 		}
 	}
-	if spec.SHA256 == "" {
+	if sha == "" {
 		return nil
 	}
 	h := sha256.New()
@@ -281,16 +298,174 @@ func verifyBrowserDownload(path string, spec *browserSpec) error {
 		return err
 	}
 	got := hex.EncodeToString(h.Sum(nil))
-	if !strings.EqualFold(got, spec.SHA256) {
-		return fmt.Errorf("sha256 mismatch: got %s, want %s", got, spec.SHA256)
+	if !strings.EqualFold(got, sha) {
+		return fmt.Errorf("sha256 mismatch: got %s, want %s", got, sha)
 	}
 	fmt.Println("browser: sha256 verified")
 	return nil
 }
 
-// extractBrowserZip unpacks the Windows portable zip into dir. The archive has
-// a single top-level directory which is stripped, so lightpanda.exe lands
-// directly in dir next to the runtime DLLs it needs.
+// installBrowserLib downloads the companion shared library the binary links
+// against and places it next to the executable.
+func installBrowserLib(dir string, spec *browserSpec) error {
+	lib := spec.Lib
+	target := filepath.Join(dir, lib.Name)
+	if fi, err := os.Stat(target); err == nil && !fi.IsDir() && fi.Size() == lib.Size {
+		return nil
+	}
+	fmt.Printf("browser: fetching %s\n", lib.Name)
+	fmt.Printf("  %s\n", lib.URL)
+
+	tmp, err := os.CreateTemp(dir, ".download-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+
+	if err := downloadBrowser(tmp, lib.URL, lib.Size); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := verifyBrowserDownload(tmpName, lib.Size, lib.SHA256); err != nil {
+		return err
+	}
+	os.Remove(target)
+	if err := os.Rename(tmpName, target); err != nil {
+		return err
+	}
+	return os.Chmod(target, 0o755)
+}
+
+// browserLibInstalled reports whether the spec's companion library is present.
+func browserLibInstalled(dir string, spec *browserSpec) bool {
+	if spec.Lib == nil {
+		return true
+	}
+	fi, err := os.Stat(filepath.Join(dir, spec.Lib.Name))
+	return err == nil && !fi.IsDir()
+}
+
+// patchBrowserRunpath rewrites the ELF RUNPATH of the installed binary to
+// $ORIGIN so the loader finds libc_v8.so next to the executable. The release
+// binary records the absolute path of the build machine, which does not exist
+// on user systems. The new value is written in place over the old one, which
+// is safe because the string table entry is not referenced by any symbol.
+func patchBrowserRunpath(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	off, size, err := elfRunpath(data)
+	if err != nil {
+		return err
+	}
+	if off < 0 {
+		return nil
+	}
+	const want = "$ORIGIN"
+	if size < len(want)+1 {
+		return fmt.Errorf("RUNPATH entry too small for %s", want)
+	}
+	cur := data[off : off+size]
+	if i := bytes.IndexByte(cur, 0); i >= 0 && string(cur[:i]) == want {
+		return nil
+	}
+	for i := range cur {
+		cur[i] = 0
+	}
+	copy(cur, want)
+	if err := os.WriteFile(path, data, 0o755); err != nil {
+		return err
+	}
+	fmt.Println("browser: patched RUNPATH to $ORIGIN")
+	return nil
+}
+
+// elfRunpath locates the DT_RUNPATH string in an ELF64 image, returning its
+// file offset and the size of the string table slot. off is -1 when the binary
+// has no RUNPATH.
+func elfRunpath(data []byte) (off, size int, err error) {
+	if len(data) < 64 || !bytes.Equal(data[:4], []byte{0x7f, 'E', 'L', 'F'}) {
+		return 0, 0, fmt.Errorf("not an ELF file")
+	}
+	if data[4] != 2 {
+		return 0, 0, fmt.Errorf("unsupported ELF class %d", data[4])
+	}
+	var le binary.ByteOrder = binary.LittleEndian
+	if data[5] == 2 {
+		le = binary.BigEndian
+	}
+	shoff := le.Uint64(data[0x28:])
+	shentsize := int(le.Uint16(data[0x3a:]))
+	shnum := int(le.Uint16(data[0x3c:]))
+	if shoff == 0 || shentsize == 0 || shnum == 0 {
+		return 0, 0, fmt.Errorf("ELF has no section headers")
+	}
+
+	type section struct {
+		typ, link uint32
+		off, size uint64
+	}
+	sections := make([]section, 0, shnum)
+	for i := 0; i < shnum; i++ {
+		base := int(shoff) + i*shentsize
+		if base+64 > len(data) {
+			return 0, 0, fmt.Errorf("truncated section header table")
+		}
+		sections = append(sections, section{
+			typ:  le.Uint32(data[base+4:]),
+			off:  le.Uint64(data[base+0x18:]),
+			size: le.Uint64(data[base+0x20:]),
+			link: le.Uint32(data[base+0x28:]),
+		})
+	}
+
+	const (
+		shtDynamic = 6
+		dtNull     = 0
+		dtRunpath  = 29
+	)
+	for _, s := range sections {
+		if s.typ != shtDynamic || s.link >= uint32(len(sections)) {
+			continue
+		}
+		strtab := sections[s.link]
+		if s.off+s.size > uint64(len(data)) || strtab.off+strtab.size > uint64(len(data)) {
+			return 0, 0, fmt.Errorf("truncated dynamic section")
+		}
+		dyn := data[s.off : s.off+s.size]
+		for i := 0; i+16 <= len(dyn); i += 16 {
+			tag := le.Uint64(dyn[i:])
+			if tag == dtNull {
+				break
+			}
+			if tag != dtRunpath {
+				continue
+			}
+			val := le.Uint64(dyn[i+8:])
+			if val >= strtab.size {
+				return 0, 0, fmt.Errorf("RUNPATH offset out of range")
+			}
+			start := strtab.off + val
+			end := strtab.off + strtab.size
+			n := bytes.IndexByte(data[start:end], 0)
+			if n < 0 {
+				return 0, 0, fmt.Errorf("unterminated RUNPATH string")
+			}
+			return int(start), n + 1, nil
+		}
+	}
+	return -1, 0, nil
+}
+
+// extractBrowserZip unpacks a release zip into dir. The Windows portable zip
+// has a single top-level directory which is stripped, so lightpanda.exe lands
+// directly in dir next to the runtime DLLs it needs; the Linux zips are flat
+// and contain just the executable.
 func extractBrowserZip(path, dir, binary string) error {
 	zr, err := zip.OpenReader(path)
 	if err != nil {
@@ -561,8 +736,9 @@ Serve flags (anything else is forwarded to `+"`lightpanda serve`"+`):
   --host <HOST>   bind address (default %s)
   --port <PORT>   CDP port (default %d, 0 picks a free port)
 
-Lightpanda always runs with --block-private-networks, --load-resources iframe,
-a Chrome user agent and an HTTP cache under %s.
+Lightpanda always runs with --block-private-networks, --load-resources iframe
+and an HTTP cache under %s. The g4f-copilot build already sends a Chrome user
+agent, so no UA flag is passed.
 
 When g4f runs headless and no CDP endpoint is configured, g4f-go starts the
 installed browser automatically and points g4f at it. Set G4F_BROWSER_PORT to
