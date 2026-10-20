@@ -159,6 +159,9 @@ func installedBrowserBinary() (string, error) {
 	if fi, err := os.Stat(exe); err != nil || fi.IsDir() {
 		return "", fmt.Errorf("browser not installed (run: g4f-go browser install)")
 	}
+	if !browserLibInstalled(browserDir(), spec) {
+		return "", fmt.Errorf("browser is missing %s (run: g4f-go browser install)", spec.Lib.Name)
+	}
 	return exe, nil
 }
 
@@ -653,6 +656,14 @@ func browserStatus() int {
 		}
 	} else {
 		fmt.Println("binary:      not installed (run: g4f-go browser install)")
+	}
+	if spec.Lib != nil {
+		lib := filepath.Join(browserDir(), spec.Lib.Name)
+		if fi, err := os.Stat(lib); err == nil && !fi.IsDir() {
+			fmt.Printf("library:     %s (%s)\n", lib, humanBytes(fi.Size()))
+		} else {
+			fmt.Printf("library:     %s missing (run: g4f-go browser install)\n", spec.Lib.Name)
+		}
 	}
 	if v := browserInstalledVersion(); v != "" {
 		fmt.Printf("stamp:       %s\n", v)
