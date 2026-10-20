@@ -33,6 +33,7 @@ jobs:
     - name: Install requirements
       run: |
         pip install -r requirements.txt
+        pip install httpx
     - name: Run tests
       run: python -m etc.unittest
       timeout-minutes: 30
