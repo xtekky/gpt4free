@@ -29,6 +29,7 @@ from .test_deepseek_chunk_log import *
 from .test_deepseek_upload import *
 from .test_auth_retry import *
 from .test_api_route import *
+from .test_opper import *
 try:
     from .test_domain_router import *
 except ImportError:

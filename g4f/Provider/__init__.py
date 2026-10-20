@@ -106,6 +106,7 @@ class ProviderLoader:
         "OpenaiAPI",
         "Cohere",
         "OpenRouter",
+        "Opper",
         "PerplexityApi",
         "PhindAi",
         "Replicate",
@@ -426,6 +427,10 @@ class ProviderLoader:
             from g4f.Provider.needs_auth.OpenRouter import OpenRouterFree
 
             return OpenRouterFree
+        elif name == "Opper":
+            from g4f.Provider.extra.Opper import Opper
+
+            return Opper
         elif name == "OrcaRouter":
             from ..client.factory import AbstractClientFactory
             cls.loaded[name] = AbstractClientFactory.create_provider(
