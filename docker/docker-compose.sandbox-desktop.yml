@@ -5,6 +5,9 @@
 # Desktop: http://localhost:8080/desktop/  (g4f-branded noVNC client -> Xvnc :0,
 #          served by the g4f API itself; index.html embeds it full-viewport)
 # API:     http://localhost:8080        (same server and port as the desktop)
+# Apps:    http://g4f.g4f.local/  (also <port>.g4f.local, e.g.
+#          http://20128.g4f.local/) — the entrypoint seeds /etc/hosts from
+#          g4f/api/domain_router.py, so no extra_hosts are needed here.
 # Set SANDBOX_DESKTOP=0 in environment to skip the desktop stack.
 services:
   sandbox-desktop:
@@ -19,6 +22,7 @@ services:
     ports:
       - "8080:8080"   # g4f API server + noVNC desktop (custom routes /desktop/, /desktop/websockify)
       - "5900:5900"   # Xvnc display :0 (direct VNC clients)
+      - "8602:8602"
     volumes:
       - ../:/app/gpt4free
     environment:

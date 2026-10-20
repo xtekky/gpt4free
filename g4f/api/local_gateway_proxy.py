@@ -98,7 +98,10 @@ class LocalGatewayProxy:
         label: Optional[str] = None,
         target_prefix: str = "",
     ) -> None:
-        self.prefix = "/" + prefix.strip("/")
+        # An empty prefix means "serve the target at the root of this server":
+        # used by the host-based router (see g4f/api/domain_router.py), which
+        # forwards requests itself and only needs forward()/target_prefix.
+        self.prefix = "/" + prefix.strip("/") if prefix.strip("/") else ""
         self.root_url = root_url
         self.label = label or prefix.strip("/")
         #: Path the target serves the same content under. Empty means the
@@ -107,6 +110,9 @@ class LocalGatewayProxy:
 
     def _rewrite_location(self, location: str, root_url: str) -> str:
         """Keep redirects inside the proxy prefix."""
+        if not self.prefix:
+            # Root-mounted proxy: the target's own paths are already correct.
+            return location
         if location.startswith(self.prefix):
             return location
         if location.startswith("/"):

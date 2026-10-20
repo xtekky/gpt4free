@@ -32,6 +32,9 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Menu entry               | Tool id     | Install recipe              | Binary         |
 |--------------------------|-------------|-----------------------------|----------------|
 | Install & Open OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
+| Install & Open Oh My Pi  | `omp`       | omp.sh install script + `omp plugin install pi-freeflow` | `omp` |
+| Install & Open Pi        | `pi`        | pi.dev install script + `pi install npm:pi-freeflow` | `pi` |
+| Install & Run Freeflow API | `pi-freeflow` | Pi/OMP package, daemon on port 28180 | `node` |
 | Install & Open Kilo      | `kilocode`  | npm `@kilocode/cli`         | `kilo`         |
 | Install & Open Antigravity | `antigravity` | antigravity.google install script | `agy`    |
 | Install & Open Gemini    | `gemini-cli`| npm `@google/gemini-cli`    | `gemini`       |
@@ -44,6 +47,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Sandbox Settings         | `settings`  | none (writes a settings file) | —            |
 | Reset Sandbox Settings   | `reset`     | none (removes the settings file) | —         |
 | Public URLs              | `urls`      | none (prints the g4f API URLs) | —           |
+| Host Names               | `hosts`     | none (prints the `/etc/hosts` entries) | —    |
 | Install & Open Cline     | `cline`     | npm `cline`                 | `cline`        |
 | Install & Open Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
 | Install & Open Goose     | `goose`     | block/goose install script  | `goose`        |
@@ -88,8 +92,8 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install assistant-ui     | `assistant-ui` | npx `setup-agent` (no install) | `npx`      |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
-`litellm`) that expose an OpenAI-compatible endpoint, together with a
-debugging **proxy server** (`proxy`, mitmproxy) and a **tunnel** entry
+`litellm`, `pi-freeflow`) that expose an OpenAI-compatible endpoint, together
+with a debugging **proxy server** (`proxy`, mitmproxy) and a **tunnel** entry
 (`tunnel`, Cloudflare's cloudflared) that publishes a local port on a
 public HTTPS URL, **local AI** runtimes
 (`ollama`, `llamacpp`, `lmstudio`, `jan`) that serve models on
@@ -109,9 +113,10 @@ it in on first click: **Hermes** clones its own checkout and therefore needs
 `~/.hermes/hermes-agent/.hermes/bin` and only adds `~/.local/bin` to the shell
 rc, so `ensure_hermes` symlinks `hermes` into `~/.local/bin` itself. It runs
 with `--non-interactive`, which skips the interactive `setup`/`gateway`
-stages. The launcher points Hermes at the g4f API when a model has been chosen
-in **Sandbox Settings**; otherwise run `hermes setup` in the terminal to
-configure a provider by hand.
+stages. The launcher always registers a `g4f` model alias (model `auto`) with
+Hermes and, when a model has been chosen in **Sandbox Settings**, also points
+the default `model.*` settings at g4f; otherwise run `hermes setup` in the
+terminal to configure another provider by hand.
 
 **SWE-agent** installs through **uv** instead of pip (`ensure_sweagent`),
 because the image's embedded CPython is 3.15 and SWE-agent's pinned
@@ -148,6 +153,32 @@ browser's link to its agent, not one setup: a finished setup stays on it and
 the browser's next one replaces it. `sandbox-cli install assistant-ui` only
 checks that `npx` is available.
 
+**pi-freeflow** is an extension for Pi and Oh My Pi (OMP), not a standalone
+CLI, and its 35 free models (OpenCode Zen, KiloCode Gateway, Cline, OVHcloud)
+reach the menu three ways:
+
+- **Oh My Pi** (`omp`) installs the prebuilt OMP binary and adds the extension
+  with `omp plugin install pi-freeflow`.
+- **Pi** (`pi`) installs Pi's managed CLI and adds the package with
+  `pi install npm:pi-freeflow`; the installer puts `pi` under `~/.pi/agent/bin`,
+  so the launcher links it into `~/.local/bin`.
+- **Freeflow API** (`pi-freeflow`, under Gateways) runs the extension's own
+  daemon in the foreground on `127.0.0.1:28180`, without an agent UI: an
+  OpenAI-compatible `/v1/models` and `/v1/chat/completions` endpoint. The entry
+  prints the base URL, the bearer token (`~/.pi/agent/token`, shared with the
+  OMP/Pi sessions) and a ready-to-paste models command.
+
+Both agent entries open the host's model picker at `/model → freeflow`; relays
+are added with `/freeflow add`. The shared daemon writes
+`~/.pi/agent/pi-freeflow.log` and normally retires about ten seconds after its
+last client. The API entry copies the package out of `node_modules` (Node
+refuses to type-strip files there) and stretches that lease-less grace window,
+so it stays up until Ctrl-C. If OMP or Pi already owns the port, the entry
+instead attaches as a client and renews that daemon's lease, so the endpoint
+survives the agent session too. It is loopback-only: expose it with the Tunnel
+entry (`sandbox-cli tunnel --url http://127.0.0.1:28180`) and keep the bearer
+token in the client.
+
 ### Categories
 
 Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
@@ -158,8 +189,8 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 |------------------|-------------------|------------------------------------------------|
 | **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
-| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
-| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `proxy`, `tunnel`      |
+| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
+| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
 | **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr` |
 | **Editors**      | `X-G4F-Editor`    | `code-server` |
@@ -199,10 +230,10 @@ square, which is what keeps wordmarks such as aider.chat's 200x60 logo out.
 
 A tool whose sources are all unreachable falls back to the shared
 `g4f-sandbox-cli.svg` instead of failing the build, and the build log lists
-which ones did. `g4f-go`, `settings` and `reset` are g4f's own entries and
-always use that shared icon. `remote-desktop` is g4f's own too, but it ships a
-dedicated icon: the build copies the app icon the web app itself uses
-(`projects/remote-desktop/web/icon.svg`) to
+which ones did. `g4f-go`, `settings`, `reset`, `urls` and `hosts` are g4f's own
+entries and always use that shared icon. `remote-desktop` is g4f's own too, but
+it ships a dedicated icon: the build copies the app icon the web app itself
+uses (`projects/remote-desktop/web/icon.svg`) to
 `g4f-sandbox-remote-desktop.svg` in the hicolor theme, so it is not one of
 `fetch-icons.py`'s vendor downloads.
 
@@ -272,20 +303,26 @@ Open the host page on this desktop, press **Share**, then scan the QR code from
 the phone; extra `remote_desktop` flags pass through, for example
 `sandbox-cli remote-desktop --port 8765 --open-browser`.
 
-## Using g4f with OpenCode, Copilot and Hermes
+## Using g4f with OpenCode, Copilot, Hermes and LibreChat
 
-The OpenCode, Copilot and Hermes menu launchers configure their
+The OpenCode, Copilot, Hermes and LibreChat menu launchers configure an
 OpenAI-compatible provider to use the g4f API at `http://127.0.0.1:8080/v1`
 (or `:9090` when that endpoint is reachable). OpenCode receives an inline
-config, Copilot receives its BYOK environment variables, and Hermes gets its
-`model.*` settings written through `hermes config set` (its config is YAML and
-the image ships no YAML parser). None of the launchers writes credentials to
-disk.
+config, Copilot receives its BYOK environment variables, Hermes gets an alias
+(and, when a model is chosen, its `model.*` settings) written through
+`hermes config set` (its config is YAML and the image ships no YAML parser),
+and LibreChat gets a custom endpoint in `librechat.yaml`.
 
-They only repoint the tool's provider like this when a model has actually been
-chosen — through the **Sandbox Settings** menu (or `G4F_SANDBOX_MODEL`). With no
-model set, the launchers leave the tool's own provider/model configuration
-untouched.
+OpenCode, Hermes and LibreChat always register the g4f provider with model
+`auto`, so it is available in the model picker even before anything is chosen.
+A model chosen through **Sandbox Settings** (or `G4F_SANDBOX_MODEL`) is
+registered as well and becomes the tool's default; with no model chosen, the
+tool keeps its own default model. Copilot is the exception: its BYOK variables
+only take effect together with `COPILOT_MODEL`, so the g4f provider and the
+chosen model are applied as a pair. OpenCode, Copilot and Hermes keep
+credentials in the environment. LibreChat's `librechat.yaml` is generated on
+every launch and embeds the endpoint and key, so change the model/provider in
+**Sandbox Settings** rather than editing that file.
 
 Set these environment variables before opening the menu item to override the
 defaults:
@@ -294,8 +331,8 @@ defaults:
 |----------|---------|---------|
 | `G4F_API_BASE_URL` | detected `http://127.0.0.1:{8080,9090}/v1`, otherwise `http://127.0.0.1:8080/v1` | g4f OpenAI-compatible API base URL |
 | `G4F_API_KEY` | unset | API key sent as a bearer token; set this if the g4f API requires authentication |
-| `G4F_MODEL` | unset  | Model ID passed to the g4f API; used when no model was chosen in the menu |
-| `G4F_PROVIDER` | unset | g4f provider the launchers pin by prefixing the model name; unset lets g4f pick from its own rotation |
+| `G4F_MODEL` | unset  | Model ID registered with the g4f-aware tools and used as their default when saved in **Sandbox Settings**; setting it only in the environment does not select it |
+| `G4F_PROVIDER` | unset | g4f provider the launchers pin by prefixing a model chosen in **Sandbox Settings**; unset lets g4f pick from its own rotation |
 
 The API service must be running and reachable from the desktop container.
 `G4F_API_BASE_URL` should include the `/v1` path.
@@ -303,61 +340,100 @@ The API service must be running and reachable from the desktop container.
 ### OmniRoute gateway
 
 When the local OmniRoute instance is running (default
-`http://localhost:20128`), g4f exposes it both as the `OmniRoute` provider and
-through the API proxy at `/omniroute/*`:
+`http://localhost:20128`), g4f exposes it as the `OmniRoute` provider and
+forwards the `omniroute.g4f.local` hostname to it:
 
 ```bash
-curl http://127.0.0.1:8080/omniroute/v1/models
+curl http://omniroute.g4f.local/v1/models
 ```
 
 Requests are forwarded to the local instance only; set `OMNIROUTE_BASE_URL`,
-`OMNIROUTE_HOST` or `OMNIROUTE_PORT` to point the provider and proxy elsewhere.
+`OMNIROUTE_HOST` or `OMNIROUTE_PORT` to point the provider and the hostname
+elsewhere.
 
-OmniRoute serves its dashboard and its own API from the gateway root rather than
-from a sub-path, so g4f also registers those paths (`/dashboard`, `/_next/*`,
-`/api/*`, `/healthz`, ...) and forwards them to the same local instance. That
-lets the OmniRoute dashboard be opened at `http://127.0.0.1:8080/dashboard`
-without a second port. Because those routes are registered before g4f's own
-`/api/*` handlers, OmniRoute's `/api/*` paths take precedence while the
-OmniRoute instance is configured; g4f's own API stays reachable under `/v1/*`.
+OmniRoute serves its dashboard and its own API from the gateway root rather
+than from a sub-path, which is why it is reached by hostname instead of a path
+prefix: the dashboard is at `http://omniroute.g4f.local/dashboard` and its
+`/api/*`, `/_next/*` and `/healthz` paths are forwarded unchanged. g4f's own
+API keeps its paths (`/v1/*`, `/api/*`) on `g4f.g4f.local`.
 
 ### Ollama gateway
 
-The same proxy is available for a local Ollama server (default
-`http://localhost:11434`). g4f exposes it as the `Ollama` provider and through
-the API proxy at `/ollama/*`:
+The same applies to a local Ollama server (default `http://localhost:11434`).
+g4f exposes it as the `Ollama` provider and forwards the `ollama.g4f.local`
+hostname to it:
 
 ```bash
-curl http://127.0.0.1:8080/ollama/api/tags
-curl http://127.0.0.1:8080/ollama/v1/models
+curl http://ollama.g4f.local/api/tags
+curl http://ollama.g4f.local/v1/models
 ```
 
 Set `OLLAMA_BASE_URL`, or `OLLAMA_HOST` / `OLLAMA_PORT`, to point the provider
-and proxy elsewhere. `OLLAMA_HOST` follows the Ollama convention and may carry
-a scheme and port (`http://127.0.0.1:11434`); a bare host works too.
+and the hostname elsewhere. `OLLAMA_HOST` follows the Ollama convention and may
+carry a scheme and port (`http://127.0.0.1:11434`); a bare host works too.
 
-Both proxies are registered before the generic API routes, so gateway paths
-such as `/ollama/v1/chat/completions` reach the gateway instead of being
-captured by g4f's `/{mode}/{provider}/chat/completions` route.
+Both hostnames are served by the domain router (see below), which forwards to
+the fixed local ports only, so gateway paths such as
+`/v1/chat/completions` reach the gateway instead of being captured by g4f's
+`/{mode}/{provider}/chat/completions` route.
 
-### Public URLs
+The **Public URLs** entry (`sandbox-cli urls`) prints the hostname list, and
+**Host Names** (`sandbox-cli hosts`) prints the `/etc/hosts` entries the host
+needs for them. The noVNC desktop lives at `desktop.g4f.local` on the same
+port.
 
-The addresses the sandbox serves through the g4f API are printed by
-`sandbox-cli urls` (also the **Public URLs** entry in the `g4f` menu) and
-echoed by every **Install & Open …** entry right before the tool starts:
+### Domain routing
 
+Every app in the menu is reachable by hostname through the same g4f API port,
+which is what the **Public URLs** entry (`sandbox-cli urls`) lists:
+
+| Hostname | App | Port form |
+|----------|-----|-----------|
+| `g4f.g4f.local` | g4f API / GUI | `8080.g4f.local` |
+| `omniroute.g4f.local` | OmniRoute (dashboard + API) | `20128.g4f.local` |
+| `ollama.g4f.local` | Ollama | `11434.g4f.local` |
+| `litellm.g4f.local` | LiteLLM gateway | `4000.g4f.local` |
+| `librechat.g4f.local` | LibreChat | `3080.g4f.local` |
+| `sillytavern.g4f.local` | SillyTavern | `8601.g4f.local` |
+| `cptr.g4f.local` | Open WebUI Computer | `8000.g4f.local` |
+| `code-server.g4f.local` | code-server | `8602.g4f.local` |
+| `llamacpp.g4f.local` | llama.cpp server | `11435.g4f.local` |
+| `lmstudio.g4f.local` | LM Studio | `1234.g4f.local` |
+| `remote-desktop.g4f.local` | Remote Desktop | `8765.g4f.local` |
+| `desktop.g4f.local` | noVNC desktop | — |
+| `pi-freeflow.g4f.local` | pi-freeflow | `28180.g4f.local` |
+
+The hostname form exists because some apps cannot be served from a sub-path:
+they emit absolute URLs, or their client derives its WebSocket URL from the
+page origin (the noVNC client at `desktop.g4f.local` connects to
+`ws://desktop.g4f.local/websockify`, which the router maps to the relay at
+`/desktop/websockify`).
+
+Inside the container the names are seeded into `/etc/hosts` by the entrypoint,
+derived from the router's own registry (`g4f/api/domain_router.py`), so they
+cannot drift from the code. On the host, add the same names once — the
+**Host Names** entry (`sandbox-cli hosts`) prints the full block, ready to
+paste:
+
+```bash
+# Linux / macOS
+sandbox-cli hosts | sed -n '/^127\.0\.0\.1/p' | sudo tee -a /etc/hosts
 ```
-Public Urls:
-  http://localhost:8080/ollama/v1/models
-  http://localhost:8080/omniroute/v1/models
-  http://localhost:8080/omniroute
-  http://localhost:8080/remote_desktop
-```
 
-The first two are the gateway proxies above, `/omniroute` is the OmniRoute
-dashboard, and `/remote_desktop` is the Remote Desktop page. The list is
-static — it assumes the g4f API on its default port `8080`; the noVNC desktop
-lives at `/desktop/` on the same port.
+or use a wildcard resolver such as `dnsmasq` (`address=/g4f.local/127.0.0.1`).
+Only the hostnames in the table are routed, and only to the fixed local ports
+they name, so the router is not an open proxy. `<port>.g4f.local` accepts 4 to
+8 digits and is resolved against the same table.
+
+Two environment variables control it:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `G4F_DOMAIN_ROUTER` | `1` | set to `0` to disable host routing (and the `/etc/hosts` seeding) |
+| `G4F_DOMAIN_SUFFIX` | `g4f.local` | suffix used for the hostnames, e.g. `g4f.test` |
+
+The per-app target can be redirected with the same variables the providers use
+(`OMNIROUTE_BASE_URL`, `OLLAMA_HOST`, `LITELLM_PORT`, ...).
 
 ### Proxy server (mitmproxy)
 
@@ -411,9 +487,10 @@ The terminal stays open as cloudflared's console and prints the public URL
 
 ### Choosing a g4f provider
 
-By default the launchers let g4f decide which of its providers answers. Set a
-provider in **Sandbox Settings** (or `G4F_PROVIDER`) to pin one — useful when
-a specific provider is the only one that works, or to compare answers:
+The g4f-aware launchers always register the provider with model `auto`, so by
+default g4f decides which of its providers answers. Set a provider in
+**Sandbox Settings** (or `G4F_PROVIDER`) to pin one — useful when a specific
+provider is the only one that works, or to compare answers:
 
 ```bash
 sandbox-cli settings --provider PollinationsAI
@@ -422,13 +499,17 @@ sandbox-cli settings --provider ""            # back to g4f's own rotation
 
 The provider name is the one g4f uses (`GET /v1/models` lists them, marked
 with `"provider": true`). g4f resolves the provider from the **model name**
-(`"<Provider>:<model>"`), so each launcher prefixes the model it hands to the
-tool:
+(`"<Provider>:<model>"`), so each launcher prefixes a model chosen in
+**Sandbox Settings**:
 
-- **OpenCode** — the model id becomes `g4f/<Provider>:<model>`.
+- **OpenCode** — the model id becomes `g4f/<Provider>:<model>`; the always
+  registered `auto` model stays `g4f/auto`.
 - **Copilot** — `COPILOT_PROVIDER_MODEL_ID` and `COPILOT_MODEL` become
   `<Provider>:<model>`.
-- **Hermes** — `model.default` becomes `<Provider>:<model>`.
+- **Hermes** — `model.default` becomes `<Provider>:<model>`; the `g4f` alias
+  always points at the unprefixed `auto` model.
+- **LibreChat** — the chosen model is listed first in the g4f endpoint, with
+  `auto` kept after it.
 
 With no provider set, the model is passed through unchanged and g4f picks from
 its own rotation. An unknown provider name is not recognised as a prefix, so
@@ -436,11 +517,12 @@ g4f treats the whole string as a model name and the request fails with
 `Request execution failed`.
 
 The base URL stays at `…/v1` in every case, so model listing
-(`GET /v1/models`) keeps working. The prefix is only added when a model was
-chosen in the menu; `G4F_PROVIDER` on its own does not repoint a launcher.
-Note also that `G4F_PROVIDER` is read only by the g4f **server** process, so
-exporting it in a launcher does not select a provider for the request — the
-model name is what does.
+(`GET /v1/models`) keeps working. The prefix is only added for a model chosen in
+the menu; the always-registered `auto` model is never prefixed, and
+`G4F_PROVIDER` on its own does not repoint a launcher. Note also that
+`G4F_PROVIDER` is read only by the g4f **server** process, so exporting it in a
+launcher does not select a provider for the request — the model name is what
+does.
 
 ### Sandbox Settings (model, HOME, provider and proxy)
 
@@ -530,20 +612,22 @@ Precedence, highest first:
    then the built-in defaults
 
 A model counts as chosen only at levels 1 or 2. If neither provides one, the
-g4f-aware launchers do not change the tool's provider/model configuration.
-The provider is independent of that: it is only passed on when one is set.
+g4f-aware launchers still register the g4f provider with model `auto`, but
+leave the tool's own default model alone. The provider is independent of that:
+it is only passed on when a model is chosen.
 
 ## Files
 
 - `sandbox-cli.sh` — installed as `/usr/local/bin/sandbox-cli`; also usable by
   hand: `sandbox-cli list`, `sandbox-cli install <tool>`, `sandbox-cli <tool>`,
-  `sandbox-cli settings`, `sandbox-cli reset`.
+  `sandbox-cli settings`, `sandbox-cli reset`, `sandbox-cli urls`,
+  `sandbox-cli hosts`.
 - `g4f-sandbox-*.desktop` — the menu entries, copied to
   `/usr/share/applications/`. Each names its own `g4f-sandbox-<tool>` icon and
   passes it to `xfce4-terminal` as `--icon`.
-- `g4f-sandbox-cli.svg` — the shared icon, used by the `g4f-go`, `settings` and
-  `reset` entries and as the fallback for any tool whose icon sources are
-  unreachable.
+- `g4f-sandbox-cli.svg` — the shared icon, used by the `g4f-go`, `settings`,
+  `reset`, `urls` and `hosts` entries and as the fallback for any tool whose
+  icon sources are unreachable.
 - `fetch-icons.py` — installed as `/usr/local/bin/fetch-icons.py`; fetches and
   normalizes the per-tool icons into the hicolor theme at build time. Run it by
   hand with `--dest <dir>` to inspect the result, or `--only <tool>` to retry a

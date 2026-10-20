@@ -298,6 +298,38 @@ class TestSafeCodeExecution(unittest.TestCase):
         r = execute_safe_code("import subprocess")
         self.assertFalse(r.success)
 
+    def test_blocked_import_is_not_resolved_from_workspace(self):
+        """A blocked stdlib module must not be loaded from a workspace copy.
+
+        The workspace contains a virtualenv with stdlib sources (e.g.
+        ``.venv/lib/python3.14/subprocess.py``); the recursive workspace
+        search must never turn those into an importable module.
+        """
+        from g4f.mcp.pa_provider import _load_workspace_module
+
+        workspace = get_workspace_dir()
+        for name in ("subprocess", "socket", "pathlib", "shutil"):
+            self.assertIsNone(
+                _load_workspace_module(name, workspace, None),
+                f"'{name}' must not be loadable as a workspace module",
+            )
+
+    def test_workspace_module_import_still_works(self):
+        """Genuine workspace modules remain importable in the sandbox."""
+        from g4f.mcp import pa_provider
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            (workspace / "unittest_ws_helper.py").write_text("VALUE = 41\n")
+            with mock.patch.object(
+                pa_provider, "get_workspace_dir", return_value=workspace
+            ):
+                r = execute_safe_code(
+                    "import unittest_ws_helper\nresult = unittest_ws_helper.VALUE + 1"
+                )
+        self.assertTrue(r.success, r.error)
+        self.assertEqual(r.result, 42)
+
     def test_allowed_math(self):
         r = execute_safe_code("import math\nresult = math.pi")
         self.assertTrue(r.success)
@@ -370,6 +402,9 @@ class TestSafeMode(unittest.IsolatedAsyncioTestCase):
         providers = workspace / "pa-providers"
         markdown = workspace / "unittest_safe_mode.md"
         other = workspace / "unittest_safe_mode.txt"
+        # Only remove pa-providers if this test created it: it is a real
+        # workspace directory that may already hold user data.
+        created_providers = not providers.exists()
         providers.mkdir(exist_ok=True)
         markdown.write_text("# test")
         other.write_text("test")
@@ -384,7 +419,8 @@ class TestSafeMode(unittest.IsolatedAsyncioTestCase):
         finally:
             markdown.unlink(missing_ok=True)
             other.unlink(missing_ok=True)
-            providers.rmdir()
+            if created_providers:
+                providers.rmdir()
 
     async def test_file_list_safe_mode_allows_subdir(self):
         """In safe mode, listing a subdirectory is still allowed."""

@@ -11,7 +11,12 @@ from .base_provider import get_async_provider_method
 from .. import debug
 from ..tools.auth import AuthManager
 from ..config import AppConfig
-from ..errors import RetryProviderError, RetryNoProviderError
+from ..errors import (
+    RetryProviderError,
+    RetryNoProviderError,
+    MissingAuthError,
+    NoValidHarFileError,
+)
 
 
 def _resolve_model(provider: Type[BaseProvider], model: str) -> str:
@@ -19,8 +24,11 @@ def _resolve_model(provider: Type[BaseProvider], model: str) -> str:
     # Only consult the alias map for an explicitly requested model.  Looking
     # up an empty model would replace a provider's default_model with "" and
     # make providers such as GeminiPro send a request without a model.
-    if model and getattr(provider, "model_aliases", None):
-        alias = provider.model_aliases.get(model, model)
+    aliases = getattr(provider, "model_aliases", None) or getattr(
+        provider, "models_aliases", None
+    )
+    if model and aliases:
+        alias = aliases.get(model, model)
     if isinstance(alias, list):
         alias = random.choice(alias)
     return alias
@@ -70,6 +78,18 @@ class RotatedProvider(BaseRetryProvider):
         self.providers = providers
         if shuffle:
             random.shuffle(self.providers)
+
+        # Keep providers that are not cooling down first, without disturbing
+        # the intelligent order the caller supplied inside each group.
+        available = []
+        cooling_down = []
+        for provider in self.providers:
+            name = getattr(provider, "__name__", str(provider))
+            if ProviderCircuitBreaker.is_available(name):
+                available.append(provider)
+            else:
+                cooling_down.append(provider)
+        self.providers = available + cooling_down
 
         self.current_index = 0
         self.last_provider: Type[BaseProvider] = None
@@ -136,9 +156,12 @@ class RotatedProvider(BaseRetryProvider):
                             started = True
                 if started:
                     provider.live += 1
+                    ProviderCircuitBreaker.record_success(provider.__name__)
                     return  # Success
             except Exception as e:
                 provider.live -= 1
+                if not isinstance(e, (MissingAuthError, NoValidHarFileError)):
+                    ProviderCircuitBreaker.record_failure(provider.__name__)
                 exceptions[provider.__name__] = e
                 debug.error(f"{provider.__name__} failed: {e}")
                 if started:

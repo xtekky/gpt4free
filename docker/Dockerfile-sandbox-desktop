@@ -252,6 +252,8 @@ RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
     g4f-go -m g4f --help && \
     "${G4F_CONFIG_DIR}/python-embed/python" \
         -c "import g4f.api.vnc_relay; from g4f.client import Client; print('g4f + vnc relay ok')" && \
+    "${G4F_CONFIG_DIR}/python-embed/python" \
+        -c "from g4f.api.domain_router import hosts_entries; print('domain router ok:', len(hosts_entries()), 'hosts')" && \
     g4f-go status && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python3 && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python && \

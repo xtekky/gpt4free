@@ -46,10 +46,11 @@ UA = (
 )
 
 # Entries that are g4f's own (the bundled CLI, the sandbox settings, the remote
-# desktop) have no vendor site for this script to fetch. The g4f-go, settings
-# and reset entries keep the shared g4f-sandbox-cli.svg; remote-desktop ships
-# its own icon, copied from projects/remote-desktop/web/icon.svg at build time.
-SHARED = {"g4f-go", "settings", "reset", "remote-desktop"}
+# desktop) have no vendor site for this script to fetch. The g4f-go, settings,
+# reset, urls and hosts entries keep the shared g4f-sandbox-cli.svg;
+# remote-desktop ships its own icon, copied from
+# projects/remote-desktop/web/icon.svg at build time.
+SHARED = {"g4f-go", "settings", "reset", "urls", "hosts", "remote-desktop"}
 
 
 def google(domain: str) -> str:
@@ -70,6 +71,9 @@ ICONS: dict[str, list[str]] = {
     "lightpanda": [google("lightpanda.io")],
     # Coding agents
     "opencode": ["https://opencode.ai/favicon.svg"],
+    "omp": [google("omp.sh"), github("can1357")],
+    "pi": ["https://pi.dev/logo-auto.svg"],
+    "pi-freeflow": [github("trefeon"), "https://pi.dev/logo-auto.svg"],
     "kilocode": [google("kilocode.ai")],
     "antigravity": [google("antigravity.google")],
     "gemini-cli": [

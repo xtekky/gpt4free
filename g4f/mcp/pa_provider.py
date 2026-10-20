@@ -57,6 +57,7 @@ Typical layout of a ``.pa.py`` file::
 
 from __future__ import annotations
 
+import importlib.util
 import io
 import os as _os
 import sys
@@ -765,6 +766,12 @@ def _exec_in_thread(
         sys.setrecursionlimit(prev)
 
 
+#: Cache of workspace modules loaded by :func:`_load_workspace_module`.
+#: Kept separate from :data:`sys.modules` so sandboxed imports can never
+#: resolve to a module the host process already imported.
+_WORKSPACE_MODULE_CACHE: Dict[str, types.ModuleType] = {}
+
+
 def _load_workspace_module(
     name: str,
     workspace: Path,
@@ -783,8 +790,11 @@ def _load_workspace_module(
     first so sibling modules are found quickly, then the entire workspace is
     searched recursively as a fallback.
 
-    The loaded module is cached in :data:`sys.modules` so subsequent imports
-    return the same object.
+    The loaded module is cached in :data:`_WORKSPACE_MODULE_CACHE` so
+    subsequent imports return the same object.  The real :data:`sys.modules`
+    is deliberately *not* used: it holds every module the host process has
+    already imported, and returning one of those would hand sandboxed code a
+    module that is not in :data:`SAFE_MODULES` (e.g. ``subprocess``).
 
     Args:
         name: Top-level module name (e.g. ``"freegpt_wasm_signer"``).
@@ -797,6 +807,16 @@ def _load_workspace_module(
     # Only handle simple top-level names (no dots).
     if "." in name:
         return None
+
+    # Never resolve a name that the interpreter can already import: the
+    # recursive search below would otherwise find stdlib / site-packages
+    # sources inside the workspace (e.g. ``.venv/lib/python3.14/subprocess.py``)
+    # and load them, bypassing the SAFE_MODULES allowlist.
+    try:
+        if importlib.util.find_spec(name) is not None:
+            return None
+    except (ImportError, AttributeError, ValueError):
+        pass
 
     # Build search directories: __file__ dir first, then workspace root
     search_dirs: List[Path] = []
@@ -834,8 +854,8 @@ def _load_workspace_module(
         return None
 
     # Return cached module if already loaded
-    if name in sys.modules:
-        return sys.modules[name]
+    if name in _WORKSPACE_MODULE_CACHE:
+        return _WORKSPACE_MODULE_CACHE[name]
 
     # Read and execute the module source in a sandbox
     code = source_path.read_text(encoding="utf-8")
@@ -877,7 +897,7 @@ def _load_workspace_module(
     finally:
         sys.setrecursionlimit(prev_depth)
 
-    sys.modules[name] = module
+    _WORKSPACE_MODULE_CACHE[name] = module
     return module
 
 

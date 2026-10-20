@@ -541,7 +541,16 @@ def create_app():
             "https://g4f.dev",
             "https://g4f.space",
         ]
-        cors_regex = r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$"
+        # The sandbox reaches its apps through hostnames such as
+        # omniroute.g4f.local (see g4f/api/domain_router.py), so those origins
+        # are allowed alongside localhost.
+        from .domain_router import domain_suffix
+
+        _suffix = re.escape(domain_suffix())
+        cors_regex = (
+            r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?$"
+            rf"|^https?://([a-z0-9-]+\.)?{_suffix}(:[0-9]+)?$"
+        )
 
     # When allow_credentials=True, the "*" wildcard is not permitted by the
     # CORS spec for allow_headers / expose_headers — browsers reject the
@@ -709,16 +718,11 @@ def create_app():
 
     api = Api(app)
 
-    # Forward /omniroute/* and /ollama/* to locally running gateways. These are
-    # registered before the generic API routes so that paths such as
-    # /ollama/v1/chat/completions are not captured by the
-    # /{mode}/{provider:path}/chat/completions catch-all route.
-    from .omniroute_proxy import register_omniroute_routes
-    from .ollama_proxy import register_ollama_routes
+    # Forward /remote_desktop/* to the locally running Remote Desktop server.
+    # Registered before the generic API routes so that its paths are not
+    # captured by the /{mode}/{provider:path}/chat/completions catch-all route.
     from .remote_desktop_proxy import register_remote_desktop_routes
 
-    register_omniroute_routes(app)
-    register_ollama_routes(app)
     register_remote_desktop_routes(app)
 
     api.register_routes()
@@ -730,6 +734,13 @@ def create_app():
     from .vnc_relay import register_vnc_routes
 
     register_vnc_routes(app)
+
+    # Host-based routing for the sandbox: <app>.g4f.local and <port>.g4f.local
+    # reach the sandbox apps through this API. Registered last so the rewritten
+    # paths hit the proxies and routes that already exist.
+    from .domain_router import register_domain_router
+
+    register_domain_router(app)
 
     if AppConfig.gui:
         if not has_a2wsgi:

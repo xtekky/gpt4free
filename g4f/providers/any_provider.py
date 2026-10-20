@@ -9,6 +9,7 @@ from ..typing import AsyncResult, Messages, MediaListType, Union
 from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
+from ..providers.provider_router import ProviderRouter
 from ..errors import ModelNotFoundError
 from ..Provider import ProviderLoader, ProviderUtils, G4FSpace
 from .base_provider import (
@@ -409,7 +410,8 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         **kwargs,
     ) -> AsyncResult:
         providers = []
-        if not model or model == cls.default_model or model == "default":
+        is_auto = not model or model == cls.default_model or model == "default"
+        if is_auto:
             model = ""
             has_image = False
             has_audio = False
@@ -419,32 +421,29 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                         has_audio = True
                         break
                     has_image = True
-            # Do not override provider selection just because tools are present.
-            # Tool calling is an API-level feature; routing should be based on model/media.
             if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 if kwargs.get("audio", {}).get("language") is None:
                     providers = [
-                        __getattr__("PollinationsAudio"),
-                        __getattr__("OpenAIFM"),
-                        __getattr__("Gemini"),
+                        ProviderLoader.from_name("PollinationsAudio"),
+                        ProviderLoader.from_name("OpenAIFM"),
+                        ProviderLoader.from_name("Gemini"),
                     ]
                 else:
                     providers = [
-                        __getattr__("PollinationsAudio"),
-                        __getattr__("OpenAIFM"),
-                        __getattr__("EdgeTTS"),
-                        __getattr__("gTTS"),
+                        ProviderLoader.from_name("PollinationsAudio"),
+                        ProviderLoader.from_name("OpenAIFM"),
+                        ProviderLoader.from_name("EdgeTTS"),
+                        ProviderLoader.from_name("gTTS"),
                     ]
             elif has_audio:
-                providers = [__getattr__("Pollinations"), __getattr__("MarkItDown")]
+                providers = [ProviderLoader.from_name("Pollinations"), ProviderLoader.from_name("MarkItDown")]
             elif has_image:
                 providers = models.default_vision.best_provider.get_providers()
             else:
-                providers = models.default.best_provider.get_providers()
-                if kwargs.get("tools"):
-                    providers = [
-                        p for p in providers if getattr(p, "supports_native_tools", False)
-                    ]
+                providers = list(models.default.best_provider.get_providers())
+                # Configured API keys and cached logins are also candidates
+                # for auto; rank() decides whether they beat the free set.
+                providers.extend(ProviderRouter.authed_providers(api_key))
         elif model and (model.startswith("agent-tools") or model.startswith("agent:")):
             from ..Provider.AgentTools import AgentTools
             method = get_async_provider_method(AgentTools)
@@ -492,59 +491,49 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                     model = cls.model_aliases[model]
             if model in cls.model_map:
                 for provider, alias in cls.model_map[model].items():
-                    if provider not in ProviderLoader.names or provider in ProviderLoader.ignored:
+                    if (
+                        provider not in ProviderLoader.names
+                        or provider in ProviderLoader.ignored
+                    ):
                         continue
                     try:
                         provider_cls = ProviderLoader.from_name(provider)
-                        if provider_cls.model_aliases is None:
-                            provider_cls.model_aliases = {}
-                        if model not in provider_cls.model_aliases:
-                            provider_cls.model_aliases[model] = alias
+                        aliases = getattr(provider_cls, "model_aliases", None) or getattr(
+                            provider_cls, "models_aliases", None
+                        ) or {}
+                        if model not in aliases:
+                            provider_cls.model_aliases = {**aliases, model: alias}
                         providers.append(provider_cls)
                     except KeyError:
                         pass
-        if not providers:
-            def _safe_getattr(p):
-                try:
-                    return ProviderLoader.from_name(p)
-                except ImportError:
-                    return None
-
-            for provider in [
-                _safe_getattr(p) for p in PROVIDERS_LIST_2 + PROVIDERS_LIST_3
-            ]:
-                if provider is None or not provider.working:
-                    continue
-                try:
-                    provider_models = provider.get_models()
-                    if inspect.isawaitable(provider_models):
-                        provider_models = await provider_models
-                    if model in provider_models:
-                        providers.append(provider)
-                    elif (
-                        provider.model_aliases is not None
-                        and model in provider.model_aliases
-                    ):
-                        providers.append(provider)
-                except Exception as e:
-                    debug.error(
-                        f"Error checking provider {provider.__name__} for model {model}:",
-                        e,
-                    )
-        providers = [
-            provider
-            for provider in providers
-            if provider.working and provider.get_parent() not in ignored
-        ]
-        providers = list(
-            {provider.__name__: provider for provider in providers}.values()
+            # The map is generated at import time and cannot know the model
+            # catalogue of keyed gateways (Anthropic, APIRoute, xAI, ...).
+            # Probe configured/static providers for an additional match.
+            known = {provider.__name__ for provider in providers}
+            providers.extend(
+                await ProviderRouter.discover(
+                    model,
+                    api_key=api_key,
+                    exclude=known,
+                    ignored=ignored,
+                )
+            )
+        if not providers and not is_auto and model:
+            # Last resort for a model missing from every static list: let free
+            # providers fetch their catalogue and look for it.
+            providers = await ProviderRouter.discover(
+                model,
+                api_key=api_key,
+                ignored=ignored,
+                broad=True,
+            )
+        providers = ProviderRouter.rank(
+            providers,
+            model=model,
+            has_tools=bool(kwargs.get("tools")),
+            api_key=api_key,
+            ignored=ignored,
         )
-
-        # Free-first routing: if no api_key is provided, prioritize providers that
-        # don't require auth before trying auth-gated providers.
-        has_api_key = bool(api_key) or bool(kwargs.get("api_key"))
-        if not has_api_key:
-            providers.sort(key=lambda p: bool(getattr(p, "needs_auth", False)))
 
         if len(providers) == 0 and cls.add_g4f_space:
             async for chunk in G4FSpace.create_async_generator(
@@ -561,7 +550,7 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             f"{cls.__name__}: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"
         )
 
-        async for chunk in RotatedProvider(providers, not model).create_async_generator(
+        async for chunk in RotatedProvider(providers, False).create_async_generator(
             model, messages, stream=stream, media=media, api_key=api_key, **kwargs
         ):
             yield chunk

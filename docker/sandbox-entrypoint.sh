@@ -35,6 +35,27 @@ if [ ! -s /etc/machine-id ]; then
 fi
 as_root dbus-daemon --system --fork 2>/dev/null || true
 
+# Host-based routing: <app>.g4f.local and <port>.g4f.local reach the sandbox
+# apps through the g4f API on port 8080 (see g4f/api/domain_router.py). The
+# entries are derived from the router's own registry so they cannot drift.
+# Hosts outside the container need the same names (see the sandbox README).
+if [ "${G4F_DOMAIN_ROUTER:-1}" != "0" ]; then
+    suffix=$(python3 - <<'PY' 2>/dev/null || true
+from g4f.api.domain_router import domain_suffix, hosts_entries
+
+with open("/tmp/g4f-domain-hosts", "w") as fh:
+    fh.write("# g4f sandbox domain routing\n")
+    fh.write("\n".join(hosts_entries()) + "\n")
+print(domain_suffix())
+PY
+)
+    if [ -n "$suffix" ] && [ -s /tmp/g4f-domain-hosts ]; then
+        # Drop a previous block (the container may be restarted in place).
+        as_root sh -c "grep -v -e '# g4f sandbox domain routing' -e '\\.${suffix}\$' /etc/hosts > /tmp/g4f-hosts.keep && cat /tmp/g4f-hosts.keep > /etc/hosts && rm -f /tmp/g4f-hosts.keep" || true
+        as_root sh -c 'cat /tmp/g4f-domain-hosts >> /etc/hosts' || true
+    fi
+fi
+
 if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
     export VNC_DISPLAY="${VNC_DISPLAY:-:0}"
     export VNC_GEOMETRY="${VNC_GEOMETRY:-1920x1080}"

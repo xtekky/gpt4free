@@ -9,6 +9,7 @@
 #   sandbox-cli reset           clear the saved settings, back to the defaults
 #   sandbox-cli list            list the tools the desktop menu knows about
 #   sandbox-cli urls            print the public URLs served by the g4f API
+#   sandbox-cli hosts           print the /etc/hosts entries for the app domains
 #
 # Each menu item runs:
 #   xfce4-terminal --command="/usr/local/bin/sandbox-cli <tool>"
@@ -30,6 +31,16 @@ export PATH
 
 ANTIGRAVITY_INSTALLER="https://antigravity.google/cli/install.sh"
 OPENCODE_INSTALLER="https://opencode.ai/v2/install"
+# pi-freeflow is an extension for Pi and Oh My Pi (OMP), not a standalone CLI:
+# the OMP and Pi entries install their host and add the extension to it, and
+# the API entry runs the extension's own daemon on 28180. OMP ships a prebuilt
+# binary from its installer, so the sandbox needs no Bun toolchain for it.
+OMP_INSTALLER="https://omp.sh/install"
+PI_INSTALLER="https://pi.dev/install.sh"
+PI_FREEFLOW_PLUGIN="pi-freeflow"
+# The shared pi-freeflow proxy listens on 28180. Its port can be moved with
+# PI_FREEFLOW_PORT; keep the URL this entry prints in step with the daemon.
+FREEFLOW_PORT="${PI_FREEFLOW_PORT:-28180}"
 GOOSE_INSTALLER="https://github.com/block/goose/releases/download/stable/download_cli.sh"
 CURSOR_INSTALLER="https://cursor.com/install"
 OPENCLAW_INSTALLER="https://openclaw.ai/install.sh"
@@ -190,13 +201,15 @@ set_env_var() { # <file> <key> <value>
 # proxy's CA is trusted at the same time (see trust_proxy_ca), and OpenCode's
 # background server is told about both (see configure_opencode_service).
 #
-# A model only reaches the g4f-aware launchers when one was actually chosen —
-# G4F_SANDBOX_MODEL, or G4F_MODEL in the settings file. With no model set, the
-# launchers leave the tool's own provider/model configuration alone instead of
-# forcing it onto the g4f API. The provider is optional: with none set, g4f
-# picks from its own rotation. When one is set, the launchers pin it by
-# prefixing the model name ("<provider>:<model>"), which is how g4f resolves a
-# provider for a request; G4F_PROVIDER itself is read only by the g4f server.
+# The g4f-aware launchers always register a g4f provider that offers the
+# "auto" model, so the API is reachable from the tool's model picker even
+# before anything is chosen. A model chosen through G4F_SANDBOX_MODEL or the
+# settings file is registered and used as the tool's default too; with no model
+# chosen, the tool keeps its own default model. The provider is optional: with
+# none set, g4f picks from its own rotation. When one is set and a model was
+# chosen, the launchers pin it by prefixing the model name
+# ("<provider>:<model>"), which is how g4f resolves a provider for a request;
+# G4F_PROVIDER itself is read only by the g4f server.
 # ---------------------------------------------------------------------------
 real_home() {
     local home
@@ -224,6 +237,9 @@ SANDBOX_PROVIDER=""
 SANDBOX_PROXY=""
 # 1 once a model was chosen (G4F_SANDBOX_MODEL, or the settings file), else 0.
 SANDBOX_MODEL_SET=0
+# The model every g4f provider registration exposes even when no model was
+# chosen: g4f's "auto" lets the server pick a provider and model itself.
+G4F_AUTO_MODEL="auto"
 
 load_sandbox_settings() {
     SANDBOX_MODEL=""
@@ -337,12 +353,14 @@ usage: sandbox-cli settings                    ask for model, HOME, provider and
        sandbox-cli settings --unset            drop the file and use the defaults
 
 HOME and PROXY apply to every menu entry. The g4f-aware launchers (OpenCode,
-Copilot, Hermes) additionally read the model and provider; the environment
-variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME, G4F_SANDBOX_PROVIDER and
-G4F_SANDBOX_PROXY override them. PROXY is exported as G4F_PROXY (for g4f) and
-as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents), with loopback kept direct.
-Those launchers only repoint the tool at the g4f provider once a model is set,
-so with no model saved they keep the tool's own provider and model.
+Copilot, Hermes, LibreChat) additionally read the model and provider; the
+environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME, G4F_SANDBOX_PROVIDER
+and G4F_SANDBOX_PROXY override them. PROXY is exported as G4F_PROXY (for g4f)
+and as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents), with loopback kept
+direct. The launchers always register the g4f provider with the "auto" model; a
+saved model is also registered and becomes the tool's default, while without
+one the tool keeps its own default model. Copilot only applies its BYOK
+provider when a model is set.
 EOF
 }
 
@@ -728,6 +746,145 @@ ensure_hermes() {
     have hermes || die "hermes not on PATH after the Hermes Agent install"
 }
 
+# Oh My Pi (OMP) is the host that pi-freeflow plugs into. The installer fetches
+# a prebuilt binary into $PI_INSTALL_DIR (default ~/.local/bin, already first on
+# PATH), so the sandbox needs no Bun toolchain of its own.
+ensure_omp() {
+    have omp && return 0
+    log "installing Oh My Pi (OMP)..."
+    curl -fsSL "$OMP_INSTALLER" | bash || die "the OMP install script failed"
+    have omp || die "omp not on PATH after the OMP install"
+}
+
+# Pi's installer manages its own runtime under ~/.pi/agent/bin and only tells
+# the shell to prepend that directory, so link the binary into ~/.local/bin
+# (already on PATH here) for the next click and for the menu entries.
+ensure_pi() {
+    have pi && return 0
+    log "installing Pi..."
+    curl -fsSL "$PI_INSTALLER" | sh || die "the Pi install script failed"
+    local bin="$HOME/.pi/agent/bin/pi"
+    if [ -x "$bin" ]; then
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$bin" "$HOME/.local/bin/pi"
+    fi
+    have pi || die "pi not on PATH after the Pi install"
+}
+
+# pi-freeflow is a Pi/OMP extension rather than a CLI. On OMP it is a plugin;
+# `omp plugin list` is the cheap probe -- installing it again succeeds, but
+# re-downloads the npm tarball on every click. Listing needs no network, so an
+# offline click still starts OMP.
+ensure_pi_freeflow_omp() {
+    have omp || die "omp is not installed"
+    omp plugin list 2>/dev/null | grep -q "$PI_FREEFLOW_PLUGIN" && return 0
+    log "installing the pi-freeflow plugin (35 free models)..."
+    omp plugin install "$PI_FREEFLOW_PLUGIN" \
+        || die "omp plugin install $PI_FREEFLOW_PLUGIN failed"
+}
+
+# On Pi the same package is a user package: `pi install` adds it to settings
+# and keeps the checkout under ~/.pi/agent. It accepts the npm source form the
+# project documents, and a second run is a no-op ("up to date").
+ensure_pi_freeflow_pi() {
+    have pi || die "pi is not installed"
+    pi list 2>/dev/null | grep -q "$PI_FREEFLOW_PLUGIN" && return 0
+    log "installing the pi-freeflow package (35 free models)..."
+    pi install "npm:$PI_FREEFLOW_PLUGIN" \
+        || die "pi install npm:$PI_FREEFLOW_PLUGIN failed"
+}
+
+# Where the installed extension's sources live. OMP plugins and Pi packages
+# both land in a node_modules tree (hence the copy below, see
+# start_freeflow_api); either one is enough to run the shared daemon.
+pi_freeflow_package_dir() {
+    local dir
+    for dir in \
+        "$HOME/.omp/plugins/node_modules/$PI_FREEFLOW_PLUGIN" \
+        "$HOME/.pi/agent/npm/node_modules/$PI_FREEFLOW_PLUGIN"; do
+        [ -f "$dir/src/daemon.ts" ] && { printf '%s\n' "$dir"; return 0; }
+    done
+    return 1
+}
+
+# The API entry only needs the extension sources, not a full agent host: reuse
+# an OMP plugin or Pi package when one is already installed, otherwise install
+# the lighter Pi package (npm, no extra binary download).
+ensure_freeflow_api() {
+    pi_freeflow_package_dir >/dev/null && return 0
+    ensure_pi
+    ensure_pi_freeflow_pi
+}
+
+# Print what a client needs: the OpenAI-compatible base URL and the bearer
+# token the daemon writes next to its other data files.
+show_freeflow_access() {
+    local token_file="$HOME/.pi/agent/token" token
+    token="$(cat "$token_file" 2>/dev/null || true)"
+    printf '\n  Base URL: http://127.0.0.1:%s/v1\n' "$FREEFLOW_PORT"
+    printf '  API key:  %s\n' "${token:-(not written yet: $token_file)}"
+    printf '  Models:   curl -s -H "Authorization: Bearer $(cat %s)" http://127.0.0.1:%s/v1/models\n\n' \
+        "$token_file" "$FREEFLOW_PORT"
+}
+
+# Keep a daemon another session started alive: attach this shell as a client
+# and refresh the lease every ten seconds (the daemon drops a lease after 30s).
+# Ctrl-C stops the refresh, and the daemon retires on its normal grace window.
+hold_freeflow_lease() {
+    local token_file="$HOME/.pi/agent/token" token id
+    id="sandbox-api-$$"
+    log "holding the daemon open as a client (Ctrl-C to stop)"
+    while :; do
+        token="$(cat "$token_file" 2>/dev/null || true)"
+        if [ -n "$token" ]; then
+            curl -fsS --max-time 2 \
+                -H "Authorization: Bearer $token" \
+                -H 'content-type: application/json' \
+                -d "{\"id\":\"$id\"}" \
+                "http://127.0.0.1:$FREEFLOW_PORT/_client/attach" >/dev/null 2>&1 || true
+        fi
+        sleep 10
+    done
+}
+
+# Run the extension's own detached-daemon entry in the foreground so its log
+# stays readable (Ctrl-C stops it). Node refuses to type-strip files under a
+# node_modules path, so the package is copied to a normal directory first;
+# undici is the one runtime dependency and is linked from next to the source.
+# The daemon otherwise retires ~10s after its last client session ends, so the
+# lease-less grace window is stretched: this entry *is* the client of record.
+start_freeflow_api() {
+    local src dir token_file pid i
+    src="$(pi_freeflow_package_dir)" \
+        || die "pi-freeflow is not installed; run: sandbox-cli install pi-freeflow"
+    dir="$HOME/.local/share/pi-freeflow-daemon"
+    rm -rf "$dir"
+    mkdir -p "$dir" || die "cannot create $dir"
+    cp -a "$src/." "$dir/" || die "could not copy pi-freeflow to $dir"
+    mkdir -p "$dir/node_modules"
+    [ -d "$(dirname "$src")/undici" ] \
+        || die "undici is missing next to $src; reinstall pi-freeflow"
+    ln -sfn "$(dirname "$src")/undici" "$dir/node_modules/undici" \
+        || die "could not link undici into $dir"
+
+    token_file="$HOME/.pi/agent/token"
+    log "starting the pi-freeflow API on http://127.0.0.1:$FREEFLOW_PORT (Ctrl-C to stop)"
+    PI_FREEFLOW_DAEMON_GRACE_MS=31536000000 \
+        node --experimental-strip-types "$dir/src/daemon.ts" &
+    pid=$!
+    for i in $(seq 1 40); do
+        [ -s "$token_file" ] && break
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 0.5
+    done
+    if ! kill -0 "$pid" 2>/dev/null; then
+        wait "$pid" 2>/dev/null || true
+        die "the pi-freeflow daemon failed to start (see $HOME/.pi/agent/pi-freeflow.log)"
+    fi
+    show_freeflow_access
+    wait "$pid"
+}
+
 # Ollama's installer needs a real init system or falls back to a manual start;
 # it also wants `zstd` to unpack its payload, which the slim image lacks.
 ensure_ollama() {
@@ -956,9 +1113,9 @@ start_mongodb() {
 }
 
 # LibreChat's .env: keep the upstream defaults and only pin what the sandbox
-# needs (the local MongoDB, the port, and the g4f endpoint when a model was
-# chosen). CREDS_KEY/CREDS_IV are left blank on purpose -- LibreChat generates
-# them into .env.temp on first start.
+# needs (the local MongoDB, the port, and the g4f endpoint). CREDS_KEY/CREDS_IV
+# are left blank on purpose -- LibreChat generates them into .env.temp on first
+# start. G4F_MODEL is only written when a model was chosen in Sandbox Settings.
 write_librechat_env() {
     local env="$HOME/$LIBRECHAT_DIR_NAME/.env"
     [ -f "$env" ] || cp "$HOME/$LIBRECHAT_DIR_NAME/.env.example" "$env" \
@@ -969,26 +1126,28 @@ write_librechat_env() {
     # The sandbox runs exactly one LibreChat process, so the scheduler's
     # replica check can be asserted instead of leaving its write routes off.
     set_env_var "$env" SCHEDULES_SINGLE_PROCESS "true"
+    set_env_var "$env" G4F_API_BASE_URL "$G4F_API_BASE_URL"
+    set_env_var "$env" G4F_API_KEY "$G4F_API_KEY"
     if [ "$SANDBOX_MODEL_SET" = 1 ]; then
-        set_env_var "$env" G4F_API_BASE_URL "$G4F_API_BASE_URL"
-        set_env_var "$env" G4F_API_KEY "$G4F_API_KEY"
         set_env_var "$env" G4F_MODEL "$G4F_PROVIDER_MODEL"
     fi
 }
 
 # LibreChat reads custom OpenAI-compatible endpoints from librechat.yaml. The
-# g4f endpoint is written there (and pointed at the sandbox's g4f API) only
-# when a model was chosen in Sandbox Settings; otherwise the upstream example
-# is copied so the file LibreChat expects exists, and the user's own
-# configuration is left alone.
+# g4f endpoint is always written there (with model "auto") and pointed at the
+# sandbox's g4f API, so it is available in LibreChat's model picker. A model
+# chosen in Sandbox Settings is added to the list and put first; only then does
+# it become LibreChat's default model.
 write_librechat_yaml() {
-    local dir yaml
+    local dir yaml default_models title_model
     dir="$HOME/$LIBRECHAT_DIR_NAME"
     yaml="$dir/librechat.yaml"
-    if [ "$SANDBOX_MODEL_SET" != 1 ]; then
-        [ -f "$yaml" ] || cp "$dir/librechat.example.yaml" "$yaml" \
-            || die "could not create the LibreChat librechat.yaml"
-        return 0
+    default_models="\"$G4F_AUTO_MODEL\""
+    title_model="$G4F_AUTO_MODEL"
+    if [ "$SANDBOX_MODEL_SET" = 1 ]; then
+        title_model="$G4F_PROVIDER_MODEL"
+        [ "$G4F_PROVIDER_MODEL" = "$G4F_AUTO_MODEL" ] \
+            || default_models="\"$G4F_PROVIDER_MODEL\", \"$G4F_AUTO_MODEL\""
     fi
     cat >"$yaml" <<EOF
 # Written by sandbox-cli from the Sandbox Settings model/provider.
@@ -1000,10 +1159,10 @@ endpoints:
       apiKey: "${G4F_API_KEY}"
       baseURL: "${G4F_API_BASE_URL}"
       models:
-        default: ["${G4F_PROVIDER_MODEL}"]
+        default: [${default_models}]
         fetch: false
       titleConvo: true
-      titleModel: "${G4F_PROVIDER_MODEL}"
+      titleModel: "${title_model}"
       modelDisplayLabel: "g4f"
 EOF
 }
@@ -1149,8 +1308,8 @@ configure_g4f() {
     export G4F_API_KEY="$api_key"
     # Model and provider come from the settings file (menu → Sandbox Settings);
     # G4F_SANDBOX_MODEL / G4F_SANDBOX_PROVIDER override it. Only a model that
-    # was actually chosen is exported: with none set, G4F_MODEL is left as the
-    # caller had it and the launchers do not touch the tool's own provider.
+    # was actually chosen is exported and used as the tools' default; with none
+    # set, the launchers register the g4f provider with G4F_AUTO_MODEL instead.
     if [ -n "${G4F_SANDBOX_MODEL:-}" ]; then
         SANDBOX_MODEL_SET=1
     fi
@@ -1162,20 +1321,24 @@ configure_g4f() {
     # the g4f server process, so exporting it here would not select anything.
     # The provider is optional: with none set, g4f picks from its own rotation.
     local provider="${G4F_SANDBOX_PROVIDER:-${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}}"
-    G4F_PROVIDER_MODEL="${G4F_MODEL:-}"
-    if [ -n "$provider" ] && [ "$SANDBOX_MODEL_SET" = 1 ]; then
-        case "$G4F_PROVIDER_MODEL" in
-            "$provider":*) ;;
-            *) G4F_PROVIDER_MODEL="$provider:$G4F_PROVIDER_MODEL" ;;
-        esac
+    G4F_PROVIDER_MODEL="$G4F_AUTO_MODEL"
+    if [ "$SANDBOX_MODEL_SET" = 1 ]; then
+        G4F_PROVIDER_MODEL="$G4F_MODEL"
+        if [ -n "$provider" ]; then
+            case "$G4F_PROVIDER_MODEL" in
+                "$provider":*) ;;
+                *) G4F_PROVIDER_MODEL="$provider:$G4F_PROVIDER_MODEL" ;;
+            esac
+        fi
     fi
-    export G4F_PROVIDER_MODEL
+    export G4F_AUTO_MODEL G4F_PROVIDER_MODEL
 }
 
 configure_opencode_g4f() {
-    # Only repoint OpenCode at the g4f provider when a model was chosen in the
-    # menu. Otherwise leave the user's own OpenCode config/provider intact.
-    [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
+    # Always register the g4f provider so its "auto" model is available in the
+    # OpenCode model picker. Only a model chosen in Sandbox Settings is added
+    # to the model list and made the default; otherwise OpenCode keeps its own
+    # default model.
     local previous config
     previous="${OPENCODE_CONFIG_CONTENT:-}"
     [ -n "$previous" ] || previous='{}'
@@ -1183,7 +1346,9 @@ configure_opencode_g4f() {
         --argjson previous "$previous" \
         --arg base_url "$G4F_API_BASE_URL" \
         --arg api_key "$G4F_API_KEY" \
-        --arg model "$G4F_PROVIDER_MODEL" '
+        --arg auto "$G4F_AUTO_MODEL" \
+        --arg model "$G4F_PROVIDER_MODEL" \
+        --argjson selected "$SANDBOX_MODEL_SET" '
         def merge($left; $right):
             if ($left | type) == "object" and ($right | type) == "object" then
                 reduce ($right | keys_unsorted[]) as $key ($left;
@@ -1191,7 +1356,9 @@ configure_opencode_g4f() {
             else
                 $right
             end;
-        merge($previous; {
+        ({($auto): {"name": $auto}}
+         + (if $selected == 1 then {($model): {"name": $model}} else {} end)) as $models |
+        merge($previous; ({
             "$schema": "https://opencode.ai/config.json",
             "provider": {
                 "g4f": {
@@ -1201,13 +1368,10 @@ configure_opencode_g4f() {
                         "baseURL": $base_url,
                         "apiKey": $api_key
                     },
-                    "models": {
-                        ($model): {"name": $model}
-                    }
+                    "models": $models
                 }
-            },
-            "model": ("g4f/" + $model)
-        })' 2>/dev/null); then
+            }
+        } + (if $selected == 1 then {"model": ("g4f/" + $model)} else {} end)))' 2>/dev/null); then
         die "OPENCODE_CONFIG_CONTENT must contain valid JSON to enable the g4f provider"
     fi
     export OPENCODE_CONFIG_CONTENT="$config"
@@ -1250,7 +1414,10 @@ configure_opencode_service() {
 }
 
 configure_copilot_g4f() {
-    # As with OpenCode: only BYOK the g4f provider when a model was chosen.
+    # Copilot's BYOK variables only take effect together with COPILOT_MODEL, so
+    # the g4f provider cannot be registered without also selecting a model.
+    # Keep the whole set gated on a model chosen in Sandbox Settings; otherwise
+    # Copilot keeps its own provider and default model.
     [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
     export COPILOT_PROVIDER_TYPE=openai
     export COPILOT_PROVIDER_BASE_URL="$G4F_API_BASE_URL"
@@ -1261,38 +1428,98 @@ configure_copilot_g4f() {
 
 # Hermes has no environment-variable provider override, so its config file is
 # written through `hermes config set` (the supported path; the file is YAML and
-# the image ships no YAML parser). `model.provider custom` + `model.base_url`
-# point Hermes at the g4f API and `model.key_env` names the variable holding
-# the bearer token. The provider travels in the model name ("Provider:model"),
-# which g4f resolves itself; a request body `extra_body.provider` is ignored by
-# the server, and the base URL stays at /v1 so model listing keeps working.
+# the image ships no YAML parser). A `model_aliases.g4f` alias always registers
+# the g4f endpoint (model "auto") for the /model picker without changing the
+# default. When a model has been chosen, the global `model.*` settings are
+# pointed at g4f as well, so that model becomes the default. The provider
+# travels in the model name ("Provider:model"), which g4f resolves itself; a
+# request body `extra_body.provider` is ignored by the server, and the base URL
+# stays at /v1 so model listing keeps working.
 configure_hermes_g4f() {
-    [ "$SANDBOX_MODEL_SET" = 1 ] || return 0
-    log "pointing Hermes at the g4f API ($G4F_API_BASE_URL)"
-    hermes config set model.provider custom >/dev/null \
-        || die "could not configure Hermes (model.provider)"
-    hermes config set model.base_url "$G4F_API_BASE_URL" >/dev/null \
-        || die "could not configure Hermes (model.base_url)"
-    hermes config set model.default "$G4F_PROVIDER_MODEL" >/dev/null \
-        || die "could not configure Hermes (model.default)"
-    hermes config set model.key_env G4F_API_KEY >/dev/null \
-        || die "could not configure Hermes (model.key_env)"
+    log "registering the g4f API with Hermes ($G4F_API_BASE_URL)"
+    hermes config set model_aliases.g4f.model "$G4F_AUTO_MODEL" >/dev/null \
+        || die "could not configure Hermes (model_aliases.g4f.model)"
+    hermes config set model_aliases.g4f.provider custom >/dev/null \
+        || die "could not configure Hermes (model_aliases.g4f.provider)"
+    hermes config set model_aliases.g4f.base_url "$G4F_API_BASE_URL" >/dev/null \
+        || die "could not configure Hermes (model_aliases.g4f.base_url)"
+    hermes config set model_aliases.g4f.key_env G4F_API_KEY >/dev/null \
+        || die "could not configure Hermes (model_aliases.g4f.key_env)"
+    if [ "$SANDBOX_MODEL_SET" = 1 ]; then
+        log "pointing Hermes at the g4f model $G4F_PROVIDER_MODEL"
+        hermes config set model.provider custom >/dev/null \
+            || die "could not configure Hermes (model.provider)"
+        hermes config set model.base_url "$G4F_API_BASE_URL" >/dev/null \
+            || die "could not configure Hermes (model.base_url)"
+        hermes config set model.default "$G4F_PROVIDER_MODEL" >/dev/null \
+            || die "could not configure Hermes (model.default)"
+        hermes config set model.key_env G4F_API_KEY >/dev/null \
+            || die "could not configure Hermes (model.key_env)"
+    fi
     # Drop a provider left behind by an earlier version of this launcher, which
     # wrote it to extra_body where g4f never read it.
     hermes config unset model.extra_body.provider >/dev/null 2>&1 || true
 }
 
-# The addresses the sandbox serves through the g4f API: the two gateway
-# proxies (Ollama, OmniRoute) and the Remote Desktop page. Printed by
-# "sandbox-cli urls" and echoed by every install & start entry (see launch),
-# so they are visible without digging through the docs.
+# The addresses the sandbox serves through the g4f API: every app is reachable
+# by hostname (<app>.g4f.local, or the port form <port>.g4f.local) on the same
+# g4f API port. Printed by "sandbox-cli urls" and echoed by every install &
+# start entry (see launch), so they are visible without digging through the
+# docs. The names are seeded into the container's /etc/hosts by the entrypoint
+# (see g4f/api/domain_router.py); the host needs the same names, which
+# "sandbox-cli hosts" prints.
 public_urls() {
-    printf '%s\n' "Public Urls:"
+    printf '%s\n' "Public Urls (g4f API port, e.g. 8080):"
     printf '  %s\n' \
-        "http://localhost:8080/ollama/v1/models" \
-        "http://localhost:8080/omniroute/v1/models" \
-        "http://localhost:8080/omniroute" \
-        "http://localhost:8080/remote_desktop"
+        "http://g4f.g4f.local/ (also http://8080.g4f.local/)" \
+        "http://omniroute.g4f.local/ (also http://20128.g4f.local/)" \
+        "http://ollama.g4f.local/ (also http://11434.g4f.local/)" \
+        "http://litellm.g4f.local/ (also http://4000.g4f.local/)" \
+        "http://librechat.g4f.local/ (also http://3080.g4f.local/)" \
+        "http://sillytavern.g4f.local/ (also http://8601.g4f.local/)" \
+        "http://cptr.g4f.local/ (also http://8000.g4f.local/)" \
+        "http://code-server.g4f.local/ (also http://8602.g4f.local/)" \
+        "http://llamacpp.g4f.local/ (also http://11435.g4f.local/)" \
+        "http://lmstudio.g4f.local/ (also http://1234.g4f.local/)" \
+        "http://remote-desktop.g4f.local/ (also http://8765.g4f.local/)" \
+        "http://desktop.g4f.local/ (noVNC desktop)" \
+        "http://pi-freeflow.g4f.local/ (also http://28180.g4f.local/)"
+    printf '%s\n' "Run \"sandbox-cli hosts\" for the /etc/hosts entries these names need."
+}
+
+# The /etc/hosts entries the host needs so the *.g4f.local names resolve to the
+# published g4f API port. Derived from the router's own registry when python3
+# and g4f are importable, so the list cannot drift from the code.
+hosts_entries() {
+    local suffix="${G4F_DOMAIN_SUFFIX:-g4f.local}"
+    if have python3; then
+        python3 -c "
+from g4f.api.domain_router import hosts_entries
+print('\n'.join(hosts_entries()))
+" 2>/dev/null && return 0
+    fi
+    printf '127.0.0.1 %s\n' \
+        "g4f.$suffix" "omniroute.$suffix" "ollama.$suffix" "litellm.$suffix" \
+        "librechat.$suffix" "sillytavern.$suffix" "cptr.$suffix" \
+        "code-server.$suffix" "llamacpp.$suffix" "lmstudio.$suffix" \
+        "remote-desktop.$suffix" "desktop.$suffix" "pi-freeflow.$suffix" \
+        "1234.$suffix" "3080.$suffix" "4000.$suffix" "8000.$suffix" \
+        "8080.$suffix" "8601.$suffix" "8602.$suffix" "8765.$suffix" \
+        "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
+}
+
+# Print the /etc/hosts block for the host, ready to paste (see the "Host Names"
+# menu entry).
+print_hosts() {
+    local suffix="${G4F_DOMAIN_SUFFIX:-g4f.local}"
+    printf '%s\n' "Host names for the *.${suffix} app domains"
+    printf '\n%s\n' "Add these lines to /etc/hosts on the machine running the browser:"
+    printf '\n'
+    hosts_entries | sed 's/^/  /'
+    printf '\n%s\n' "Or resolve the whole suffix with a wildcard resolver, e.g. dnsmasq:"
+    printf '  %s\n' "address=/${suffix}/127.0.0.1"
+    printf '\n%s\n' "The names point at 127.0.0.1, so use them on the host that"
+    printf '%s\n' "publishes the g4f API port (docker compose port mapping)."
 }
 
 launch() { # <label> <command...>
@@ -1331,6 +1558,46 @@ run_tool() {
                 configure_opencode_service
             fi
             launch OpenCode opencode "${@:2}" ;;
+        omp)
+            ensure_omp
+            ensure_pi_freeflow_omp
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Oh My Pi is installed and ready (run: omp, then /model -> freeflow)"
+                exit 0
+            fi
+            # pi-freeflow registers the free-model catalog as the "freeflow"
+            # provider inside OMP; the model picker in the TUI is where a model
+            # is chosen, so no --model is forced here.
+            log "starting Oh My Pi (Ctrl-C to stop)"
+            log "pick a free model with /model -> freeflow"
+            launch "Oh My Pi" omp "${@:2}" ;;
+        pi)
+            ensure_pi
+            ensure_pi_freeflow_pi
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Pi is installed and ready (run: pi, then /model -> freeflow)"
+                exit 0
+            fi
+            log "starting Pi (Ctrl-C to stop)"
+            log "pick a free model with /model -> freeflow"
+            launch Pi pi "${@:2}" ;;
+        pi-freeflow)
+            ensure_freeflow_api
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "pi-freeflow is installed and ready (run: sandbox-cli pi-freeflow)"
+                exit 0
+            fi
+            # An OMP/Pi session may already own the shared port. Its daemon
+            # serves the same catalog and token, so report it instead of
+            # failing to bind a second one.
+            if curl -fsS --max-time 2 "http://127.0.0.1:$FREEFLOW_PORT/health" 2>/dev/null \
+                | grep -q '"service":"pi-freeflow"'; then
+                log "pi-freeflow is already serving on http://127.0.0.1:$FREEFLOW_PORT/v1"
+                show_freeflow_access
+                hold_freeflow_lease
+                exit 0
+            fi
+            start_freeflow_api ;;
         kilocode)
             ensure_npm @kilocode/cli kilo
             launch "Kilo Code" kilo "${@:2}" ;;
@@ -1468,7 +1735,7 @@ run_tool() {
             fi
             # `ollama serve` is the daemon; the terminal stays open as its
             # console (Ctrl-C stops it). The API is on 127.0.0.1:11434 and g4f
-            # reaches it through the /ollama proxy route.
+            # reaches it through the ollama.g4f.local hostname.
             log "starting the Ollama server (Ctrl-C to stop)"
             launch Ollama ollama serve "${@:2}" ;;
         llamacpp)
@@ -1677,6 +1944,7 @@ usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop to
        sandbox-cli reset              clear the saved settings, back to the defaults
        sandbox-cli list               list the tools behind the desktop menu
        sandbox-cli urls               print the public URLs served by the g4f API
+       sandbox-cli hosts              print the /etc/hosts entries for the app domains
        sandbox-cli help               this help
 
 Installs go to /usr/local (npm -g via sudo), ~/.local (pip --user and the
@@ -1694,7 +1962,8 @@ list_tools() {
         remote-desktop  "share this sandbox screen with a phone (WebRTC)" \
         settings        "g4f model, HOME and provider for the launchers" \
         reset           "clear the saved settings, back to the defaults" \
-        urls            "public URLs served by the g4f API"
+        urls            "public URLs served by the g4f API" \
+        hosts           "host /etc/hosts entries for the app domains"
     printf '%s\n' "Browsers"
     printf '  %-15s %s\n' \
         chrome      "Google Chrome browser" \
@@ -1702,6 +1971,8 @@ list_tools() {
     printf '%s\n' "Coding Agents"
     printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
+        omp         "Oh My Pi (OMP) coding agent" \
+        pi          "Pi coding agent" \
         kilocode    "Kilo Code terminal agent" \
         antigravity "Antigravity CLI by Google" \
         gemini-cli  "Google Gemini CLI" \
@@ -1733,6 +2004,7 @@ list_tools() {
     printf '  %-15s %s\n' \
         omniroute   "OmniRoute AI router/gateway" \
         litellm     "LiteLLM AI gateway" \
+        pi-freeflow "Freeflow API on port 28180 (35 free models)" \
         proxy       "mitmproxy HTTP(S) proxy server" \
         tunnel      "Tunnel client (public HTTPS URL via cloudflared)"
     printf '%s\n' "Local AI"
@@ -1768,6 +2040,9 @@ case "${1:-}" in
         list_tools ;;
     urls)
         public_urls
+        hold_open ;;
+    hosts)
+        print_hosts
         hold_open ;;
     settings)
         shift

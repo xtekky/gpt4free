@@ -272,6 +272,7 @@ case "$ACTION" in
         printf '  Image:       %s\n' "$IMAGE"
         printf '  Desktop URL: http://localhost:%s/desktop/\n' "$PORT"
         printf '  API Server:  http://localhost:%s/\n' "$PORT"
+        printf '  App domains: http://g4f.g4f.local/ (also <port>.g4f.local)\n'
         printf '  VNC Display: localhost:%s\n\n' "$VNC_PORT"
 
         if [ "$NO_DESKTOP" -eq 1 ]; then

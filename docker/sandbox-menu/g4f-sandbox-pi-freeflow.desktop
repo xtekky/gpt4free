@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Run Freeflow API
+Comment=Freeflow API — serves pi-freeflow's 35 free models as an OpenAI-compatible endpoint on 127.0.0.1:28180
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Freeflow API" --icon=g4f-sandbox-pi-freeflow --command="/usr/local/bin/sandbox-cli pi-freeflow"
+Icon=g4f-sandbox-pi-freeflow
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Gateway;
+Keywords=pi;freeflow;api;openai;free;models;gateway;;
+StartupNotify=false
