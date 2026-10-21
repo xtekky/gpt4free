@@ -126,6 +126,7 @@ ICONS: dict[str, list[str]] = {
     "cptr": [github("open-webui"), google("openwebui.com")],
     # Editors
     "code-server": [google("coder.com"), github("coder")],
+    "kate": [google("kate-editor.org"), github("KDE")],
     # Assistants
     "openclaw": ["https://openclaw.ai/favicon.svg"],
     "fabric": [github("danielmiessler")],

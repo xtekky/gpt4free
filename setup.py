@@ -32,6 +32,7 @@ EXTRA_REQUIRE = {
         "flask[async]",  # gui
         "fastapi",  # api
         "uvicorn",  # api
+        "websockets",  # api websocket routes
         "python-multipart",
         "a2wsgi",
         "setuptools",
@@ -55,6 +56,7 @@ EXTRA_REQUIRE = {
         "flask[async]",  # gui
         "fastapi",  # api
         "uvicorn",  # api
+        "websockets",  # api websocket routes
         "python-multipart",
         "a2wsgi",
         "pypdf2",
@@ -69,7 +71,7 @@ EXTRA_REQUIRE = {
         "cairosvg",
         "beautifulsoup4",
     ],
-    "api": ["loguru", "fastapi", "uvicorn", "python-multipart", "a2wsgi", "PyYAML"],
+    "api": ["loguru", "fastapi", "uvicorn", "websockets", "python-multipart", "a2wsgi", "PyYAML"],
     "gui": [
         "werkzeug",
         "flask[async]",

@@ -66,6 +66,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open SillyTavern | `sillytavern` | git clone + `npm install` | `node`       |
 | Install & Open Open WebUI Computer | `cptr` | pip `cptr` (user)     | `cptr`         |
 | Install & Open VS Code Web | `code-server` | code-server.dev install script | `code-server` |
+| Install & Open Kate      | `kate`      | apt `kate` (Debian)         | `kate`         |
 | Install & Open OpenClaw  | `openclaw`  | openclaw.ai install script  | `openclaw`     |
 | Install & Open Crush     | `crush`     | npm `@charmland/crush`      | `crush`        |
 | Install & Open Continue  | `continue-cli` | npm `@continuedev/cli`   | `cn`           |
@@ -90,7 +91,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Run Tunnel Client | `tunnel` | GitHub release `cloudflared` | `cloudflared`  |
 | Install & Open ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
 | Install & Open LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
-| Install assistant-ui     | `assistant-ui` | npx `assistant-ui@latest create` + `npm install` | `npm`      |
+| Install & Open assistant-ui | `assistant-ui` | npx `assistant-ui@latest create` + `npm install` | `npm`      |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
 `litellm`, `pi-freeflow`) that expose an OpenAI-compatible endpoint, together
@@ -101,8 +102,8 @@ traces and prompts, **local AI** runtimes
 (`ollama`, `llamacpp`, `lmstudio`, `jan`) that serve models on
 the machine itself, **chat UIs** (`librechat`, `lobechat`, `msty`,
 `sillytavern`, `cptr`, `assistant-ui`) that put a chat front end on top of the
-g4f API, a browser **editor** (`code-server`, VS Code Web served by code-server),
-and **assistant/agent CLIs**
+g4f API, browser and desktop **editors** (`code-server`, VS Code Web served by
+code-server, and the KDE **Kate** text editor), and **assistant/agent CLIs**
 (`openclaw`, `fabric`, `sgpt`, `gptme`, `llm`) that live in the terminal.
 Install scripts land their
 binary in `~/.local/bin`, `~/.kimi-code/bin`, `~/.qoder/bin`,
@@ -149,18 +150,26 @@ the upstream CLI (`npx assistant-ui@latest create`, see
 downloads the starter template — a Next.js app with the AI SDK chat route —
 into `~/.assistant-ui`, and `npm install` pulls its dependencies. The launcher
 then writes the g4f endpoint into the app: `.env.local` gets `G4F_API_BASE_URL`,
-`G4F_API_KEY` and `G4F_MODEL`, and `app/api/chat/route.ts` is replaced with a
-route that talks to the g4f API through the OpenAI provider pointed at it. The
+`G4F_API_KEY` and `G4F_MODEL`, `app/api/chat/route.ts` is replaced with a
+route that talks to the g4f API through the OpenAI provider pointed at it, and
+`next.config.ts` gets the sandbox host names in `allowedDevOrigins`. The
 g4f API speaks the OpenAI protocol and serves `/v1/chat/completions`, so the
 route uses the provider's chat model (its default model speaks the Responses
 API instead, which g4f does not serve). The app therefore needs no provider
 key, and the default model is the g4f **"auto"** model, which lets g4f pick the
 provider and the model itself. A model chosen in **Sandbox Settings** replaces
-it (`G4F_MODEL`, with the provider prefix g4f resolves itself). The route is
-written once: a marker comment keeps later launches from overwriting edits
-made in the app. The dev server runs in the foreground on
+it (`G4F_MODEL`, with the provider prefix g4f resolves itself). The route and
+the config are written once: a marker comment keeps later launches from
+overwriting edits made in the app. The dev server runs in the foreground on
 `http://127.0.0.1:3000` (also `http://assistant-ui.g4f.local/`), and the
 terminal stays open as its console.
+
+The `allowedDevOrigins` entry is what makes the `assistant-ui.g4f.local` URL
+usable: Next.js blocks dev-only resources (`_next` chunks, the HMR websocket)
+whose `Origin` is not listed, and the browser sends the host name it was
+reached through. Without it the page loads but its chunks and the HMR socket
+come back `403 Unauthorized`. The list is derived from `G4F_DOMAIN_SUFFIX`, so
+a renamed suffix keeps working.
 
 **pi-freeflow** is an extension for Pi and Oh My Pi (OMP), not a standalone
 CLI, and its 35 free models (OpenCode Zen, KiloCode Gateway, Cline, OVHcloud)
@@ -202,7 +211,7 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
 | **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr`, `assistant-ui` |
-| **Editors**      | `X-G4F-Editor`    | `code-server` |
+| **Editors**      | `X-G4F-Editor`    | `code-server`, `kate` |
 | **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm` |
 
 The menus are declared by patching the stock
@@ -449,6 +458,22 @@ Two environment variables control it:
 
 The per-app target can be redirected with the same variables the providers use
 (`OMNIROUTE_BASE_URL`, `OLLAMA_HOST`, `LITELLM_PORT`, ...).
+
+#### Multicast discovery (mDNS)
+
+**Multicast Discovery:** When a device (like a printer, a Mac, or a Linux box)
+joins a network, it announces its name (e.g., `printer.local`) to the local
+subnet using multicast traffic (`224.0.0.251` or `ff02::fb`).
+
+The `*.g4f.local` names are ordinary unicast hostnames, not mDNS names: they
+are resolved from `/etc/hosts` (or a wildcard resolver such as `dnsmasq`), so
+they work without any multicast traffic and without a responder on the
+network. That is deliberate — mDNS only reaches the local link, is blocked by
+many container and VPN setups, and would let any device on the subnet claim a
+name such as `g4f.local`. If you do want the sandbox to be discoverable by
+name from other machines, publish an mDNS record for the host that runs the
+g4f API (for example with `avahi-publish -a -R g4f.local <host-ip>` on Linux,
+or Bonjour on macOS) and keep the `/etc/hosts` entries as the fallback.
 
 ### Proxy server (mitmproxy)
 
