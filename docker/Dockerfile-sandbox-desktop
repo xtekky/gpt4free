@@ -323,4 +323,4 @@ ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]
 USER pn
 # --debug turns on g4f's verbose logging (tray parser in g4f/cli/__init__.py),
 # so `docker logs` shows provider selection, request handling and HAR captures.
-CMD ["g4f-go", "dev", "--port", "8080"]
+CMD ["g4f-go", "api", "--port", "8080", "--debug"]
