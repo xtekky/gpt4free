@@ -85,21 +85,23 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
 | Install & Open Fabric    | `fabric`    | fabric installer script     | `fabric`       |
 | Install & Open LiteLLM   | `litellm`   | pip `litellm[proxy]`        | `litellm`      |
+| Install & Open Langfuse CLI | `langfuse` | npm `@langfuse/cli`      | `langfuse`     |
 | Install & Run Proxy Server | `proxy`   | pip `mitmproxy`             | `mitmproxy`    |
 | Install & Run Tunnel Client | `tunnel` | GitHub release `cloudflared` | `cloudflared`  |
 | Install & Open ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
 | Install & Open LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
-| Install assistant-ui     | `assistant-ui` | npx `setup-agent` (no install) | `npx`      |
+| Install assistant-ui     | `assistant-ui` | npx `assistant-ui@latest create` + `npm install` | `npm`      |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
 `litellm`, `pi-freeflow`) that expose an OpenAI-compatible endpoint, together
-with a debugging **proxy server** (`proxy`, mitmproxy) and a **tunnel** entry
+with a debugging **proxy server** (`proxy`, mitmproxy), a **tunnel** entry
 (`tunnel`, Cloudflare's cloudflared) that publishes a local port on a
-public HTTPS URL, **local AI** runtimes
+public HTTPS URL, and the **Langfuse CLI** (`langfuse`) for inspecting LLM
+traces and prompts, **local AI** runtimes
 (`ollama`, `llamacpp`, `lmstudio`, `jan`) that serve models on
 the machine itself, **chat UIs** (`librechat`, `lobechat`, `msty`,
-`sillytavern`, `cptr`) that put a chat front end on top of the g4f API,
-a browser **editor** (`code-server`, VS Code Web served by code-server),
+`sillytavern`, `cptr`, `assistant-ui`) that put a chat front end on top of the
+g4f API, a browser **editor** (`code-server`, VS Code Web served by code-server),
 and **assistant/agent CLIs**
 (`openclaw`, `fabric`, `sgpt`, `gptme`, `llm`) that live in the terminal.
 Install scripts land their
@@ -141,17 +143,24 @@ has no init system, so the systemd unit the installer writes is inert here and
 the stack is started directly; the menu entry prints the first-admin `/setup`
 link (`roomote setup-url`) and then follows the service logs.
 
-**assistant-ui** is the one entry that installs nothing: it runs
-`npx setup-agent https://setup.assistant-ui.com/Q2Exyx6AidfK`, a thin Statewire
-client whose setup is shared live between the browser that opened the URL and
-the coding agent installing the products. The CLI prints the setup's
-instructions and current state, then the agent drives it from the same shell
-(`stream`, `wait start`, `plan`, `add-step`, `step`, `done`). It is meant for a
-coding agent, so when none is detected it offers to start one — which is why
-the entry opens a terminal rather than installing a binary. The URL is the
-browser's link to its agent, not one setup: a finished setup stays on it and
-the browser's next one replaces it. `sandbox-cli install assistant-ui` only
-checks that `npx` is available.
+**assistant-ui** is a chat front end for the g4f API: the app is created with
+the upstream CLI (`npx assistant-ui@latest create`, see
+[the installation docs](https://www.assistant-ui.com/docs/installation)), which
+downloads the starter template — a Next.js app with the AI SDK chat route —
+into `~/.assistant-ui`, and `npm install` pulls its dependencies. The launcher
+then writes the g4f endpoint into the app: `.env.local` gets `G4F_API_BASE_URL`,
+`G4F_API_KEY` and `G4F_MODEL`, and `app/api/chat/route.ts` is replaced with a
+route that talks to the g4f API through the OpenAI provider pointed at it. The
+g4f API speaks the OpenAI protocol and serves `/v1/chat/completions`, so the
+route uses the provider's chat model (its default model speaks the Responses
+API instead, which g4f does not serve). The app therefore needs no provider
+key, and the default model is the g4f **"auto"** model, which lets g4f pick the
+provider and the model itself. A model chosen in **Sandbox Settings** replaces
+it (`G4F_MODEL`, with the provider prefix g4f resolves itself). The route is
+written once: a marker comment keeps later launches from overwriting edits
+made in the app. The dev server runs in the foreground on
+`http://127.0.0.1:3000` (also `http://assistant-ui.g4f.local/`), and the
+terminal stays open as its console.
 
 **pi-freeflow** is an extension for Pi and Oh My Pi (OMP), not a standalone
 CLI, and its 35 free models (OpenCode Zen, KiloCode Gateway, Cline, OVHcloud)
@@ -190,11 +199,11 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 | **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
 | **Coding Agents**| `X-G4F-Agent`     | `opencode`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
-| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `pi-freeflow`, `proxy`, `tunnel`      |
+| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
-| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr` |
+| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr`, `assistant-ui` |
 | **Editors**      | `X-G4F-Editor`    | `code-server` |
-| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `assistant-ui` |
+| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm` |
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
@@ -409,6 +418,12 @@ page origin (the noVNC client at `desktop.g4f.local` connects to
 `ws://desktop.g4f.local/websockify`, which the router maps to the relay at
 `/desktop/websockify`).
 
+WebSocket connections are forwarded for every hostname in the table, not just
+the ones with a path-prefix proxy: `ws://litellm.g4f.local/...` reaches the
+same endpoint on the target app as the matching HTTP request would, so apps
+that stream over a socket (LiteLLM, code-server, LibreChat, ...) work through
+their hostname too.
+
 Inside the container the names are seeded into `/etc/hosts` by the entrypoint,
 derived from the router's own registry (`g4f/api/domain_router.py`), so they
 cannot drift from the code. On the host, add the same names once — the
@@ -484,6 +499,52 @@ sandbox-cli tunnel --url http://127.0.0.1:3000
 
 The terminal stays open as cloudflared's console and prints the public URL
 (Ctrl-C closes the tunnel).
+
+### Langfuse tracing
+
+The **Install & Open Langfuse CLI** entry (`Gateways` menu) installs the
+official [Langfuse CLI](https://github.com/langfuse/langfuse-cli) from npm on
+first click and opens it in the terminal:
+
+```bash
+sandbox-cli langfuse              # install on first run, then open the CLI
+sandbox-cli install langfuse      # install only
+sandbox-cli langfuse api prompts list
+```
+
+The CLI talks to Langfuse Cloud by default. Point it at another instance with
+the usual environment variables, which `sandbox-cli` passes through:
+
+```bash
+export LANGFUSE_PUBLIC_KEY=pk-lf-...
+export LANGFUSE_SECRET_KEY=sk-lf-...
+export LANGFUSE_HOST=https://cloud.langfuse.com   # or your self-hosted URL
+sandbox-cli langfuse api traces list
+```
+
+The g4f API can also send its own traces to Langfuse. Install the optional
+extra and set the same credentials before starting the server:
+
+```bash
+pip install "g4f[tracing]"        # installs the langfuse SDK
+export LANGFUSE_PUBLIC_KEY=pk-lf-...
+export LANGFUSE_SECRET_KEY=sk-lf-...
+python -m g4f --port 8080
+```
+
+Every `/v1/chat/completions`, `/v1/responses` and `/v1/messages` request then
+becomes one Langfuse generation carrying the model, provider, sampling
+parameters, token usage and the assistant output. Streaming responses are
+accumulated and reported once the stream ends. Tracing is inert unless both
+credentials are present, so the server runs unchanged without Langfuse.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `LANGFUSE_PUBLIC_KEY` | – | Required, enables tracing together with the secret key |
+| `LANGFUSE_SECRET_KEY` | – | Required, enables tracing together with the public key |
+| `LANGFUSE_HOST` / `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` | Langfuse instance to send traces to |
+| `G4F_LANGFUSE_TRACING` | `1` | Set to `0` to keep the SDK installed but stop sending traces |
+| `G4F_LANGFUSE_TAGS` | – | Comma-separated tags added to every trace |
 
 ### Choosing a g4f provider
 

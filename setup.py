@@ -91,6 +91,7 @@ EXTRA_REQUIRE = {
         "pillow",
         "cairosvg",
     ],
+    "tracing": ["langfuse"],
 }
 
 DESCRIPTION = (

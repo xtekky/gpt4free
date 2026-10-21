@@ -107,6 +107,7 @@ ICONS: dict[str, list[str]] = {
     # Gateways
     "omniroute": [google("omniroute.online")],
     "litellm": [google("litellm.ai")],
+    "langfuse": [google("langfuse.com"), github("langfuse")],
     "proxy": [google("mitmproxy.org")],
     "tunnel": [google("cloudflare.com")],
     # Local AI

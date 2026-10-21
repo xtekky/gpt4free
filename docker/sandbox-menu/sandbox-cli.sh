@@ -64,11 +64,15 @@ ROOMOTE_INSTALLER="https://get.roomote.dev"
 QODER_INSTALLER="https://qoder.com/install"
 VIBE_INSTALLER="https://mistral.ai/vibe/install.sh"
 UV_INSTALLER="https://astral.sh/uv/install.sh"
-# assistant-ui's setup-agent drives a setup that is shared live between the
-# browser that opened this URL and the agent installing the products. The URL
-# is the browser's link to its agent, not one setup: a finished setup stays on
-# it and the browser's next one replaces it.
-ASSISTANT_UI_SETUP_URL="https://setup.assistant-ui.com/Q2Exyx6AidfK"
+# assistant-ui has no package of its own: its CLI creates the app (see
+# https://www.assistant-ui.com/docs/installation). The app lives in
+# ~/.assistant-ui, its chat route is pointed at the sandbox's g4f API -- which
+# speaks the OpenAI protocol -- so it needs no provider key, and the g4f
+# "auto" model lets g4f pick the provider and the model itself. The port can
+# be moved with ASSISTANT_UI_PORT; keep the URL this entry prints in step with
+# the host router, which reads the same variable.
+ASSISTANT_UI_DIR_NAME=".assistant-ui"
+ASSISTANT_UI_PORT="${ASSISTANT_UI_PORT:-3000}"
 # Local model runtimes and their web UIs.
 OLLAMA_INSTALLER="https://ollama.com/install.sh"
 LMSTUDIO_INSTALLER="https://lmstudio.ai/install.sh"
@@ -271,7 +275,7 @@ save_sandbox_settings() { # <model> <home> <provider> <proxy>
     {
         printf '# g4f sandbox settings — written by: sandbox-cli settings\n'
         printf '# Read by the menu launchers (HOME, proxy) and the g4f-aware ones\n'
-        printf '# (OpenCode, Copilot, Hermes).\n'
+        printf '# (OpenCode, Copilot, Hermes, LibreChat, assistant-ui).\n'
         printf 'G4F_MODEL=%s\n' "$1"
         printf 'SANDBOX_HOME=%s\n' "$2"
         printf 'G4F_PROVIDER=%s\n' "$3"
@@ -353,14 +357,14 @@ usage: sandbox-cli settings                    ask for model, HOME, provider and
        sandbox-cli settings --unset            drop the file and use the defaults
 
 HOME and PROXY apply to every menu entry. The g4f-aware launchers (OpenCode,
-Copilot, Hermes, LibreChat) additionally read the model and provider; the
-environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME, G4F_SANDBOX_PROVIDER
-and G4F_SANDBOX_PROXY override them. PROXY is exported as G4F_PROXY (for g4f)
-and as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents), with loopback kept
-direct. The launchers always register the g4f provider with the "auto" model; a
-saved model is also registered and becomes the tool's default, while without
-one the tool keeps its own default model. Copilot only applies its BYOK
-provider when a model is set.
+Copilot, Hermes, LibreChat, assistant-ui) additionally read the model and
+provider; the environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME,
+G4F_SANDBOX_PROVIDER and G4F_SANDBOX_PROXY override them. PROXY is exported as
+G4F_PROXY (for g4f) and as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents),
+with loopback kept direct. The launchers always register the g4f provider with
+the "auto" model; a saved model is also registered and becomes the tool's
+default, while without one the tool keeps its own default model. Copilot only
+applies its BYOK provider when a model is set.
 EOF
 }
 
@@ -1231,6 +1235,31 @@ ensure_cptr() {
     ensure_pip cptr cptr
 }
 
+# assistant-ui is installed with its own CLI, which creates the app instead of
+# adding a package: `npx assistant-ui@latest create` downloads the starter
+# template (a Next.js app with the AI SDK chat route) and installs it. The app
+# lives in ~/.assistant-ui; the CLI runs through npx, so nothing is installed
+# globally. The g4f endpoint is written into the app afterwards (see
+# write_assistant_ui_env and write_assistant_ui_route).
+ensure_assistant_ui() {
+    ensure_node
+    have npx || die "npx is not on PATH"
+    local dir="$HOME/$ASSISTANT_UI_DIR_NAME"
+    if [ ! -f "$dir/package.json" ]; then
+        log "creating the assistant-ui app in $dir (npx assistant-ui@latest create)..."
+        rm -rf "$dir"
+        ( cd "$HOME" && npx --yes assistant-ui@latest create \
+            "$ASSISTANT_UI_DIR_NAME" -t minimal --use-npm --no-skills ) \
+            || die "could not create the assistant-ui app"
+    fi
+    [ -f "$dir/package.json" ] || die "the assistant-ui app was not created"
+    if [ ! -d "$dir/node_modules" ]; then
+        log "installing the assistant-ui dependencies (npm install, this takes a while)..."
+        ( cd "$dir" && npm install --no-fund --no-audit ) \
+            || die "the assistant-ui npm install failed"
+    fi
+}
+
 # code-server (VS Code in the browser) ships its own vendor installer. Explicit
 # --method standalone skips the deb/package-manager path (and its systemctl
 # step): the release tarball is unarchived into $prefix/lib/code-server-* and
@@ -1461,6 +1490,82 @@ configure_hermes_g4f() {
     hermes config unset model.extra_body.provider >/dev/null 2>&1 || true
 }
 
+# The assistant-ui app reads its model settings from .env.local. Only three
+# values are needed: the g4f endpoint, the key the endpoint expects (the
+# sandbox API does not check it) and the model. The model is the g4f "auto"
+# model, which lets g4f pick the provider itself, unless a model was chosen
+# in Sandbox Settings -- then that model (with its provider prefix) is used.
+write_assistant_ui_env() {
+    local env="$HOME/$ASSISTANT_UI_DIR_NAME/.env.local"
+    [ -f "$env" ] || printf '# Written by sandbox-cli.\n' >"$env" \
+        || die "could not create $env"
+    set_env_var "$env" G4F_API_BASE_URL "$G4F_API_BASE_URL"
+    set_env_var "$env" G4F_API_KEY "$G4F_API_KEY"
+    set_env_var "$env" G4F_MODEL "$G4F_PROVIDER_MODEL"
+}
+
+# The chat route of the generated app is replaced with one that talks to the
+# g4f API: the endpoint speaks the OpenAI protocol, so the default provider
+# is a baseURL swap on createOpenAI. The route is written once -- a marker
+# comment keeps later launches from overwriting edits made in the app.
+write_assistant_ui_route() {
+    local route="$HOME/$ASSISTANT_UI_DIR_NAME/app/api/chat/route.ts"
+    mkdir -p "$(dirname "$route")" || die "could not create the chat route directory"
+    if grep -q "sandbox-cli" "$route" 2>/dev/null; then
+        return 0
+    fi
+    cat >"$route" <<'ROUTE'
+// Written by sandbox-cli: the sandbox's g4f API is the model provider.
+// https://www.assistant-ui.com/docs/installation
+import { createOpenAI } from "@ai-sdk/openai";
+import { frontendTools } from "@assistant-ui/ai-sdk";
+import {
+  type JSONSchema7,
+  streamText,
+  convertToModelMessages,
+  type UIMessage,
+} from "ai";
+
+export const maxDuration = 30;
+
+// The g4f API speaks the OpenAI protocol, so the default provider is a
+// baseURL swap. It serves /v1/chat/completions, so the chat model is used
+// (the provider's default model speaks the Responses API instead). The "auto"
+// model lets g4f choose the provider and the model itself; G4F_MODEL in
+// .env.local overrides it.
+const g4f = createOpenAI({
+  baseURL: process.env.G4F_API_BASE_URL ?? "http://127.0.0.1:8080/v1",
+  apiKey: process.env.G4F_API_KEY ?? "g4f",
+});
+
+export async function POST(req: Request) {
+  const {
+    messages,
+    system,
+    tools,
+  }: {
+    messages: UIMessage[];
+    system?: string;
+    tools?: Record<string, { description?: string; parameters: JSONSchema7 }>;
+  } = await req.json();
+
+  const aiSDKTools = { ...frontendTools(tools ?? {}) };
+  const result = streamText({
+    abortSignal: req.signal,
+    model: g4f.chat(process.env.G4F_MODEL ?? "auto"),
+    messages: await convertToModelMessages(messages, { tools: aiSDKTools }),
+    tools: aiSDKTools,
+    ...(system === undefined ? {} : { system }),
+  });
+
+  return result.toUIMessageStreamResponse({
+    onError: (error) =>
+      error instanceof Error ? error.message : String(error),
+  });
+}
+ROUTE
+}
+
 # The addresses the sandbox serves through the g4f API: every app is reachable
 # by hostname (<app>.g4f.local, or the port form <port>.g4f.local) on the same
 # g4f API port. Printed by "sandbox-cli urls" and echoed by every install &
@@ -1479,6 +1584,7 @@ public_urls() {
         "http://sillytavern.g4f.local/ (also http://8601.g4f.local/)" \
         "http://cptr.g4f.local/ (also http://8000.g4f.local/)" \
         "http://code-server.g4f.local/ (also http://8602.g4f.local/)" \
+        "http://assistant-ui.g4f.local/ (also http://$ASSISTANT_UI_PORT.g4f.local/)" \
         "http://llamacpp.g4f.local/ (also http://11435.g4f.local/)" \
         "http://lmstudio.g4f.local/ (also http://1234.g4f.local/)" \
         "http://remote-desktop.g4f.local/ (also http://8765.g4f.local/)" \
@@ -1501,11 +1607,12 @@ print('\n'.join(hosts_entries()))
     printf '127.0.0.1 %s\n' \
         "g4f.$suffix" "omniroute.$suffix" "ollama.$suffix" "litellm.$suffix" \
         "librechat.$suffix" "sillytavern.$suffix" "cptr.$suffix" \
-        "code-server.$suffix" "llamacpp.$suffix" "lmstudio.$suffix" \
+        "code-server.$suffix" "assistant-ui.$suffix" \
+        "llamacpp.$suffix" "lmstudio.$suffix" \
         "remote-desktop.$suffix" "desktop.$suffix" "pi-freeflow.$suffix" \
-        "1234.$suffix" "3080.$suffix" "4000.$suffix" "8000.$suffix" \
-        "8080.$suffix" "8601.$suffix" "8602.$suffix" "8765.$suffix" \
-        "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
+        "1234.$suffix" "$ASSISTANT_UI_PORT.$suffix" "3080.$suffix" "4000.$suffix" \
+        "8000.$suffix" "8080.$suffix" "8601.$suffix" "8602.$suffix" \
+        "8765.$suffix" "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
 }
 
 # Print the /etc/hosts block for the host, ready to paste (see the "Host Names"
@@ -1909,6 +2016,9 @@ run_tool() {
         litellm)
             ensure_pip 'litellm[proxy]' litellm
             launch "LiteLLM gateway" litellm "${@:2}" ;;
+        langfuse)
+            ensure_npm @langfuse/cli langfuse
+            launch "Langfuse CLI" langfuse "${@:2}" ;;
         sgpt)
             ensure_pip shell-gpt sgpt
             launch ShellGPT sgpt "${@:2}" ;;
@@ -1916,21 +2026,22 @@ run_tool() {
             ensure_pip llm llm
             launch "LLM CLI" llm "${@:2}" ;;
         assistant-ui)
-            ensure_node
-            have npx || die "npx is not on PATH"
+            ensure_assistant_ui
             if [ "$INSTALL_ONLY" = 1 ]; then
-                log "assistant-ui's setup-agent is ready (runs through npx)"
+                log "assistant-ui is installed and ready"
                 exit 0
             fi
-            # setup-agent is a thin Statewire client, not an installer: it
-            # prints the setup's instructions and current state, then the
-            # agent drives it from this shell (stream, wait, plan, add-step,
-            # step, done). It is meant for a coding agent, so with none
-            # detected it offers to start one -- which is why this entry opens
-            # a terminal instead of installing anything itself.
-            log "starting the assistant-ui setup (Ctrl-C to stop)"
-            launch "assistant-ui" npx --yes setup-agent \
-                "$ASSISTANT_UI_SETUP_URL" "${@:2}" ;;
+            # The app is a web app: the Next.js dev server runs in the
+            # foreground so the terminal stays open as its console. Its chat
+            # route talks to the g4f API on the loopback interface, so the
+            # chat needs no provider key.
+            configure_g4f
+            write_assistant_ui_env
+            write_assistant_ui_route
+            log "starting assistant-ui on http://127.0.0.1:$ASSISTANT_UI_PORT (Ctrl-C to stop)"
+            cd "$HOME/$ASSISTANT_UI_DIR_NAME" || die "the assistant-ui app is missing"
+            launch "assistant-ui" npm run dev -- \
+                --port "$ASSISTANT_UI_PORT" --hostname 127.0.0.1 "${@:2}" ;;
         *)
             die "unknown tool \"$1\" — run: sandbox-cli list" ;;
     esac
@@ -2004,6 +2115,7 @@ list_tools() {
     printf '  %-15s %s\n' \
         omniroute   "OmniRoute AI router/gateway" \
         litellm     "LiteLLM AI gateway" \
+        langfuse    "Langfuse LLM observability CLI" \
         pi-freeflow "Freeflow API on port 28180 (35 free models)" \
         proxy       "mitmproxy HTTP(S) proxy server" \
         tunnel      "Tunnel client (public HTTPS URL via cloudflared)"
@@ -2019,7 +2131,8 @@ list_tools() {
         lobechat    "LobeChat desktop app" \
         msty        "Msty Studio desktop app" \
         sillytavern "SillyTavern web UI for role-play chats" \
-        cptr        "Open WebUI Computer (files + terminal + AI)"
+        cptr        "Open WebUI Computer (files + terminal + AI)" \
+        assistant-ui "assistant-ui web UI (Next.js, backed by the g4f API)"
     printf '%s\n' "Editors"
     printf '  %-15s %s\n' \
         code-server "VS Code Web (code-server)"
@@ -2029,8 +2142,7 @@ list_tools() {
         fabric      "Fabric AI patterns CLI" \
         sgpt        "ShellGPT shell assistant" \
         gptme       "gptme terminal agent" \
-        llm         "LLM CLI by Simon Willison" \
-        assistant-ui "assistant-ui setup (setup-agent)"
+        llm         "LLM CLI by Simon Willison"
 }
 
 case "${1:-}" in
