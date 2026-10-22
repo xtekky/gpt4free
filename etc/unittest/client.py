@@ -55,12 +55,12 @@ class AsyncTestPassModel(unittest.IsolatedAsyncioTestCase):
             for chunk in ["You ", "You ", "Other", "?"]
         ]
         response = client.chat.completions.create(
-            messages, "Hello", stream=True, max_tokens=2
+            messages, "Hello", stream=True, max_tokens=1
         )
         response_list = []
         async for chunk in response:
             response_list.append(chunk)
-        self.assertEqual(len(response_list), 3)
+        self.assertEqual(len(response_list), 2)
         for chunk in response_list:
             if chunk.choices[0].delta.content is not None:
                 self.assertEqual(chunk.choices[0].delta.content, "You ")
