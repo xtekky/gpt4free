@@ -447,6 +447,7 @@ Repository: https://github.com/xtekky/gpt4free
 
 ## Security, privacy & takedown policy
 - Do not store or share sensitive credentials. Use per-provider recommended security practices.
+- Conversations are stored locally on your device by default; server/cloud synchronization (Secret Storage) is strictly opt-in and client-side encrypted.
 - If your site appears in the project’s links and you want it removed, send proof of ownership to https://g4f.dev/community and it will be removed promptly.
 - For production, secure the server with HTTPS, authentication, and firewall rules. Limit access to provider credentials and cookie/HAR storage.
 

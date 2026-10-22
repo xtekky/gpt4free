@@ -772,8 +772,8 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
 
     * Drops empty/whitespace-only messages (except the system prompt).
     * Removes exact duplicate messages (same role + content), keeping first.
-    * Collapses consecutive same-role messages, keeping the one with
-      tool_calls or more content.
+    * Collapses consecutive same-role messages that are true duplicates,
+      keeping the one with tool_calls.
 
     Returns (messages, bytes_saved).
     """
@@ -807,7 +807,11 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
         if _is_empty_content(msg) and not msg.get("tool_calls"):
             continue
 
-        # Collapse consecutive same-role messages.
+        sig = _msg_signature(msg)
+
+        # Collapse consecutive same-role messages, but only when they are true
+        # duplicates. Distinct consecutive messages (e.g. several user turns)
+        # each carry information and must be preserved.
         if result and isinstance(result[-1], dict) and result[-1].get("role") == role:
             prev = result[-1]
             # Keep the message that has tool_calls.
@@ -818,11 +822,11 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
             # If previous has tool_calls and this one doesn't, skip this one.
             if prev.get("tool_calls") and not msg.get("tool_calls"):
                 continue
-            # Neither has tool_calls — skip the duplicate.
-            continue
+            # Neither has tool_calls — only drop a true duplicate.
+            if sig[1] and sig == _msg_signature(prev):
+                continue
 
         # Remove exact duplicates (same role + content hash).
-        sig = _msg_signature(msg)
         if sig[1] and sig in seen:
             continue
         seen.add(sig)
