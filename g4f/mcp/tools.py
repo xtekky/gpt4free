@@ -30,6 +30,7 @@ import time
 import urllib.parse
 
 from .. import debug
+from ..har import sanitize_har_text
 from aiohttp import ClientSession
 
 
@@ -705,7 +706,10 @@ class FileReadTool(MCPTool):
                 return {"error": f"Path is not a file: {rel_path}"}
 
             if start_line is not None or end_line is not None:
-                lines = target.read_text(encoding="utf-8").splitlines(True)
+                text = target.read_text(encoding="utf-8")
+                if target.suffix.lower() == ".har":
+                    text = sanitize_har_text(text)
+                lines = text.splitlines(True)
                 total_lines = len(lines)
                 s = (start_line - 1) if start_line is not None else 0
                 e = end_line if end_line is not None else total_lines
@@ -722,6 +726,8 @@ class FileReadTool(MCPTool):
                 }
 
             content = target.read_text(encoding="utf-8")
+            if target.suffix.lower() == ".har":
+                content = sanitize_har_text(content)
             return {
                 "path": rel_path,
                 "content": content,

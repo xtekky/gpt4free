@@ -66,10 +66,23 @@ if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
     # needed; as root, drop privileges with runuser.
     desktop_launcher='
         export HOME=/home/pn DISPLAY="$VNC_DISPLAY"
+        num="${VNC_DISPLAY#:}"
+        # A restarted container keeps /tmp, so the previous run leaves the X lock
+        # and socket behind. Xvnc then refuses to start ("Server is already active
+        # for display 0"), the Xfce clients fail with "cannot open display", and
+        # the desktop is gone even though the entrypoint did run. Drop the
+        # leftovers unless a live Xvnc still owns them.
+        lock="/tmp/.X${num}-lock"
+        if [ -e "$lock" ]; then
+            # Xvnc writes the pid space-padded ("%10d"), so strip the blanks.
+            pid=$(tr -d " \n" < "$lock" 2>/dev/null || true)
+            if [ -z "$pid" ] || ! tr "\0" " " < "/proc/$pid/cmdline" 2>/dev/null | grep -q Xvnc; then
+                rm -f "$lock" "/tmp/.X11-unix/X${num}"
+            fi
+        fi
         nohup Xvnc "$VNC_DISPLAY" -rfbport "$VNC_RFBPORT" -localhost no \
             -SecurityTypes None -geometry "$VNC_GEOMETRY" -depth 24 \
             -nolisten tcp >/tmp/vnc.log 2>&1 &
-        num="${VNC_DISPLAY#:}"
         for _ in $(seq 1 50); do
             [ -S "/tmp/.X11-unix/X$num" ] && break
             sleep 0.2

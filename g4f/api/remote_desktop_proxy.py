@@ -60,6 +60,7 @@ _proxy = LocalGatewayProxy(
     remote_desktop_root_url,
     label="Remote desktop",
     target_prefix=ROOT_PATH,
+    app="remote-desktop",
 )
 
 

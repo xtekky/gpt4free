@@ -59,6 +59,7 @@ except ImportError:
 from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
 from .config import AppConfig, COOKIES_DIR, CUSTOM_COOKIES_DIR
+from .har import load_har
 from . import debug
 
 
@@ -272,8 +273,7 @@ def _parse_har_file(path: str) -> Dict[str, Dict[str, str]]:
     """Parse a HAR file and return cookies by domain."""
     cookies_by_domain = {}
     try:
-        with open(path, "rb") as file:
-            har_file = json.load(file)
+        har_file = load_har(path)
         debug.log(f"Read .har file: {path}")
 
         for entry in har_file.get("log", {}).get("entries", []):
@@ -372,8 +372,7 @@ def _parse_har_cookies(path: str) -> List[dict]:
     """Parse a HAR file and return all cookies as CDP ready cookie objects."""
     cookies = {}
     try:
-        with open(path, "rb") as file:
-            har_file = json.load(file)
+        har_file = load_har(path)
     except (json.JSONDecodeError, FileNotFoundError, OSError):
         return []
     for entry in har_file.get("log", {}).get("entries", []):

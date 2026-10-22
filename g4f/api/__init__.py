@@ -302,15 +302,8 @@ def _save_request_har(request: Request, entry: dict) -> None:
         request_entry = {
             "method": entry.get("method"),
             "url": str(request.url),
-            "httpVersion": "HTTP/1.1",
             "headers": _headers_to_har(req_headers),
-            "queryString": [
-                {"name": name, "value": value}
-                for name, value in request.query_params.items()
-            ],
             "cookies": [],
-            "headersSize": -1,
-            "bodySize": len(req_text),
         }
         if entry.get("request_body") is not None:
             request_entry["postData"] = {
@@ -328,23 +321,12 @@ def _save_request_har(request: Request, entry: dict) -> None:
                         "request": request_entry,
                         "response": {
                             "status": entry.get("status"),
-                            "statusText": "",
-                            "httpVersion": "HTTP/1.1",
                             "headers": _headers_to_har(resp_headers),
                             "content": {
                                 "size": len(resp_text),
                                 "mimeType": resp_headers.get("content-type", ""),
                                 "text": resp_text,
                             },
-                            "redirectURL": "",
-                            "headersSize": -1,
-                            "bodySize": len(resp_text),
-                        },
-                        "cache": {},
-                        "timings": {
-                            "send": 0,
-                            "wait": entry.get("duration_ms", 0),
-                            "receive": 0,
                         },
                     }
                 ],

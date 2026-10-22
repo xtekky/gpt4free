@@ -22,6 +22,10 @@ ports they name, so the router cannot be used as an open proxy. The suffix
 defaults to ``g4f.local`` and can be changed with ``G4F_DOMAIN_SUFFIX``; set
 ``G4F_DOMAIN_ROUTER=0`` to disable the router entirely.
 
+An app that is not running yet is installed and started on demand by
+``sandbox-cli`` (see :mod:`g4f.api.sandbox_apps`); set
+``G4F_DOMAIN_AUTOSTART=0`` to disable that.
+
 The names must resolve to the g4f API inside the container; the sandbox
 entrypoint seeds ``/etc/hosts`` from :func:`hosts_entries` (see
 ``docker/sandbox-entrypoint.sh``).
@@ -282,6 +286,7 @@ class DomainRouterMiddleware:
                 route.root_url,
                 label=route.label,
                 target_prefix=route.target_prefix,
+                app=route.name,
             )
             self._proxies[route.name] = proxy
         return proxy

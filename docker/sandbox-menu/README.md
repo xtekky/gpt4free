@@ -455,6 +455,31 @@ Two environment variables control it:
 |----------|---------|---------|
 | `G4F_DOMAIN_ROUTER` | `1` | set to `0` to disable host routing (and the `/etc/hosts` seeding) |
 | `G4F_DOMAIN_SUFFIX` | `g4f.local` | suffix used for the hostnames, e.g. `g4f.test` |
+| `G4F_DOMAIN_AUTOSTART` | `1` | set to `0` to stop apps from being installed and started on demand |
+
+#### Install & run on demand
+
+Opening a hostname for an app that was never installed does not dead-end in a
+proxy error: the router starts the app for you. When a request reaches
+`<app>.g4f.local` and nothing listens on the app's port, the g4f API runs
+`sandbox-cli <app>` in the background — the same install-and-run flow as the
+desktop menu entry — and answers the request with `503` and a `Retry-After`
+header while the install runs:
+
+```json
+{"error": {"message": "LiteLLM is starting", "type": "litellm_starting",
+           "detail": "\"sandbox-cli litellm\" is installing and starting LiteLLM in the background; retry in a few seconds."}}
+```
+
+The request is retried automatically once the app accepts connections within a
+few seconds (so a fast start is invisible to the browser); otherwise reload the
+page. The install keeps running either way, and its output is in
+`/tmp/g4f-autostart-<app>.log`. Only one install per app runs at a time, and
+only the apps in the table above that `sandbox-cli` knows how to install are
+started — `g4f` (the API itself) and `desktop` (the noVNC client, part of the
+image) are never started this way. Outside the sandbox image, where
+`sandbox-cli` does not exist, the hook does nothing and the proxy keeps
+answering its usual `502` "is not running".
 
 The per-app target can be redirected with the same variables the providers use
 (`OMNIROUTE_BASE_URL`, `OLLAMA_HOST`, `LITELLM_PORT`, ...).

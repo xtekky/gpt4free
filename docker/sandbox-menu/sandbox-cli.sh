@@ -18,6 +18,11 @@
 # afterwards the CLI starts instantly in the same terminal window (Chrome
 # opens on the desktop instead). nodejs/npm are already in the image for the
 # npm-based tools, everything else is one click. Runs as `pn`.
+#
+# The g4f API runs the same command for the apps it serves by hostname: a
+# request to <app>.g4f.local for an app that is not running starts
+# `sandbox-cli <app>` in the background (see g4f/api/sandbox_apps.py), so the
+# hostname works without opening the menu first.
 
 set -u
 

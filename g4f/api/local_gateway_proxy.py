@@ -23,6 +23,8 @@ import aiohttp
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from .sandbox_apps import ensure_app_running, is_starting, starting_response
+
 logger = logging.getLogger(__name__)
 
 _METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
@@ -115,6 +117,7 @@ class LocalGatewayProxy:
         root_url: Callable[[], str],
         label: Optional[str] = None,
         target_prefix: str = "",
+        app: Optional[str] = None,
     ) -> None:
         # An empty prefix means "serve the target at the root of this server":
         # used by the host-based router (see g4f/api/domain_router.py), which
@@ -122,6 +125,9 @@ class LocalGatewayProxy:
         self.prefix = "/" + prefix.strip("/") if prefix.strip("/") else ""
         self.root_url = root_url
         self.label = label or prefix.strip("/")
+        #: Name of the sandbox app behind this proxy, used to install and start
+        #: it on demand (see g4f/api/sandbox_apps.py). ``None`` disables that.
+        self.app = app
         #: Path the target serves the same content under. Empty means the
         #: target's root corresponds to the proxy prefix.
         self.target_prefix = "/" + target_prefix.strip("/") if target_prefix.strip("/") else ""
@@ -144,7 +150,7 @@ class LocalGatewayProxy:
             )
         return location
 
-    async def forward(self, request: Request, path: str):
+    async def forward(self, request: Request, path: str, retry: bool = True):
         root_url = self.root_url()
         target_path = f"{self.target_prefix}/{path}" if path else (self.target_prefix or "")
         target_url = f"{root_url}{target_path}" if target_path else f"{root_url}/"
@@ -180,6 +186,13 @@ class LocalGatewayProxy:
         except (aiohttp.ClientError, OSError) as e:
             await session.close()
             logger.warning("%s proxy: %s is not reachable: %s", self.label, root_url, e)
+            if self.app and retry and await ensure_app_running(
+                self.app, self.label, self.root_url
+            ):
+                # The app came up while we waited: serve the request after all.
+                return await self.forward(request, path, retry=False)
+            if self.app and is_starting(self.app):
+                return starting_response(self.app, self.label)
             return JSONResponse(
                 {
                     "error": {
@@ -228,7 +241,7 @@ class LocalGatewayProxy:
             response.raw_headers.append((b"set-cookie", cookie.encode("latin-1")))
         return response
 
-    async def forward_websocket(self, websocket: WebSocket, path: str) -> None:
+    async def forward_websocket(self, websocket: WebSocket, path: str, retry: bool = True) -> None:
         """Relay a WebSocket connection to the gateway's matching endpoint."""
         root_url = self.root_url()
         target_path = f"{self.target_prefix}/{path}" if path else (self.target_prefix or "")
@@ -261,6 +274,13 @@ class LocalGatewayProxy:
         except (aiohttp.ClientError, OSError) as e:
             logger.warning("%s proxy: %s is not reachable: %s", self.label, target_url, e)
             await session.close()
+            if self.app and retry:
+                # Start the app and give it a moment, then retry the handshake
+                # once; a browser that reconnects after the "starting" close
+                # finds the app up.
+                if await ensure_app_running(self.app, self.label, self.root_url):
+                    await self.forward_websocket(websocket, path, retry=False)
+                    return
             # Accept first: a close frame can only follow a completed handshake.
             await websocket.accept()
             await websocket.close(code=1011)

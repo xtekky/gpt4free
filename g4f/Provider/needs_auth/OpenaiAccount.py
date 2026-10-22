@@ -17,6 +17,7 @@ from ...requests import StreamSession, has_cdp
 from ...requests.raise_for_status import raise_for_status
 from ...errors import MissingAuthError, NoValidHarFileError
 from ...cookies import get_cookies_dir
+from ...har import load_har
 from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ..helper import to_string
 from ..openai.har_file import get_har_files
@@ -562,11 +563,10 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
         """
         captured = None
         for path in get_har_files():
-            with open(path, "rb") as file:
-                try:
-                    har = json.load(file)
-                except json.JSONDecodeError:
-                    continue
+            try:
+                har = load_har(path)
+            except (json.JSONDecodeError, OSError):
+                continue
             for entry in har.get("log", {}).get("entries", []):
                 request = entry.get("request", {})
                 url = request.get("url", "")

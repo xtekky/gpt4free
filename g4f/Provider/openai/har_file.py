@@ -17,6 +17,7 @@ except ImportError:
 from ...requests import StreamSession
 from ...cookies import get_cookies_dir
 from ...errors import NoValidHarFileError
+from ...har import strip_har_binary
 from ... import debug
 
 arkose_url = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
@@ -71,6 +72,7 @@ def readHAR(request_config: RequestConfig):
             except json.JSONDecodeError:
                 # Error: not a HAR file!
                 continue
+            strip_har_binary(harFile)
             for v in harFile["log"]["entries"]:
                 v_headers = get_headers(v)
                 if arkose_url == v["request"]["url"]:

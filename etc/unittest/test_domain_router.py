@@ -187,6 +187,7 @@ class TestDomainRouterDispatch(unittest.IsolatedAsyncioTestCase):
         # A route without a path proxy is forwarded by a root-mounted
         # LocalGatewayProxy; the target is unreachable here, so the proxy
         # answers with its own 502 payload instead of reaching the inner app.
+        # Autostart is off, so nothing tries to install and start the app.
         inner = _RecordingApp()
         middleware = DomainRouterMiddleware(inner)
         scope = _http_scope("litellm.g4f.local")
@@ -195,7 +196,8 @@ class TestDomainRouterDispatch(unittest.IsolatedAsyncioTestCase):
         async def send(message):
             sent.append(message)
 
-        await middleware(scope, _receive, send)
+        with patch.dict(os.environ, {"G4F_DOMAIN_AUTOSTART": "0"}):
+            await middleware(scope, _receive, send)
         self.assertEqual(inner.scopes, [])
         self.assertEqual(sent[0]["status"], 502)
 
