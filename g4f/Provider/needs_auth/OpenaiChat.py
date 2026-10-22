@@ -111,7 +111,6 @@ _RE_MWEB_MARKER = re.compile(r'<\?[^>]*>')
 
 DEFAULT_HEADERS = {
     "accept": "*/*",
-    "accept-encoding": "gzip, deflate, br, zstd",
     "accept-language": "en-US,en;q=0.8",
     "referer": "https://chatgpt.com/",
     "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',

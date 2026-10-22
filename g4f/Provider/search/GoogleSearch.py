@@ -42,24 +42,27 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
             await session.click_button_by_text()
             # debug.log(f"Google Search: Clicking accept button if present...")
 
-            # Wait for Google search results page to load
+            # Wait for Google search results page to load and extract them.
+            # A present <h3> alone is not enough: the page can contain result
+            # titles that are not organic results (e.g. "People also ask"), so
+            # only stop once the extraction actually returned entries.
+            results = None
             for _ in range(10):
-                has_results = None
                 try:
-                    has_results = await session.evaluate_js(
-                        "document.querySelectorAll('h3').length > 0"
-                    )
+                    results = await cls._read_search_results(session)
                 except Exception as e:
-                    debug.log(f"Google Search: Error checking for results: {e}")
-                if not has_results:
-                    debug.log(f"Google Search: No results yet, retrying...")
-                    await asyncio.sleep(1)
-                    continue
+                    debug.log(f"Google Search: Error reading results: {e}")
+                    results = None
+                if results:
+                    break
+                debug.log("Google Search: No results yet, retrying...")
+                await asyncio.sleep(1)
 
-                # Extract search results from the DOM
-                yield SearchResults(await cls._read_search_results(session))
-                yield f'\n\nSource: {format_link(search_url, "Google Search")}'
-                break
+            if not results:
+                raise RuntimeError("No search results found.")
+
+            yield SearchResults(results)
+            yield f'\n\nSource: {format_link(search_url, "Google Search")}'
         finally:
             await session.close()
 
@@ -67,18 +70,53 @@ class GoogleSearch(AsyncGeneratorProvider, ProviderModelMixin):
         return await session.evaluate_js("""
             (() => {
                 const results = [];
-                const boxes = document.querySelectorAll('[data-snhf="0"]')
+                const seen = new Set();
+                const pushResult = (linkEl, titleEl, snippetEl) => {
+                    if (!linkEl || !linkEl.href) return;
+                    const title = ((titleEl && titleEl.innerText) || linkEl.innerText || '').trim();
+                    if (!title) return;
+                    let link;
+                    try {
+                        link = new URL(linkEl.href, location.origin);
+                    } catch (e) {
+                        return;
+                    }
+                    link.searchParams.delete("srsltid");
+                    const url = link.toString();
+                    if (seen.has(url)) return;
+                    seen.add(url);
+                    const snippet = snippetEl
+                        ? snippetEl.innerText.replace('...Read more', '...').trim()
+                        : undefined;
+                    results.push({ title, link: url, snippet });
+                };
+
+                // Current Google SERP markup: organic result boxes carry
+                // data-snhf="0" and the snippet follows in the next sibling.
+                const boxes = document.querySelectorAll('[data-snhf="0"]');
                 boxes.forEach(box => {
                     const linkEl = box.querySelector('a');
-                    const title = linkEl.querySelector('h3') ? linkEl.querySelector('h3').innerText : '';
-                    const link = linkEl.href  ? new URL(linkEl.href || '/') : null;
-                    if (link) link.searchParams.delete("srsltid")
-                    const snippetEl = box.nextElementSibling;
-                    const snippet = snippetEl ? snippetEl.innerText.replace('...Read more', '...') : undefined;
-                    if (title && link) {
-                        results.push({ title, link: link.toString(), snippet });
-                    }
+                    const titleEl = box.querySelector('h3') || (linkEl && linkEl.querySelector('h3'));
+                    const snippetEl = box.nextElementSibling || box.querySelector('[data-sncf]');
+                    pushResult(linkEl, titleEl, snippetEl);
                 });
+
+                // Fallback for markup changes (and consent/alternate layouts):
+                // derive results from the result titles themselves.
+                if (!results.length) {
+                    document.querySelectorAll('h3').forEach(titleEl => {
+                        const linkEl = titleEl.closest('a')
+                            || (titleEl.parentElement && titleEl.parentElement.closest('a'));
+                        if (!linkEl) return;
+                        const container = titleEl.closest('div.g')
+                            || titleEl.closest('[data-snhf="0"]');
+                        const snippetEl = container
+                            ? (container.querySelector('[data-sncf]')
+                                || container.querySelector('div.VwiC3b'))
+                            : (titleEl.parentElement && titleEl.parentElement.nextElementSibling);
+                        pushResult(linkEl, titleEl, snippetEl);
+                    });
+                }
                 return results;
             })()
             """)

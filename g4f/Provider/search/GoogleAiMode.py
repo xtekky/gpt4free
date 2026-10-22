@@ -95,13 +95,9 @@ for (const text of getTextNodes(rootElement)) {
 }
 allTexts;""");
                 if result:
-                    first = True
                     for text in result:
-                        if first:
-                            first = False
-                            debug.log(f"Google AI Mode: {text}")
-                        else:
-                            yield text
+                        debug.log(f"Google AI Mode: {text}")
+                        yield text
                     return
             raise RuntimeError("No AI mode results found.")
         finally:

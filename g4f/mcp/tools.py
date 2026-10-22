@@ -2123,6 +2123,190 @@ class BrowserSelectTool(MCPTool):
         except Exception as exc:
             return {"error": f"Browser select failed: {exc}"}
 
+class BrowserClickSelectorTool(MCPTool):
+    """Click the element matching a CSS selector."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Click the first element matching a CSS selector. Unlike browser_click this "
+            "does not depend on data-index values from browser_snapshot, so it stays "
+            "stable when the number of elements on the page changes."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "selector": {"type": "string", "description": "CSS selector of the element to click"},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["selector"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import selector_click_js
+        selector = str(arguments.get("selector", "")).strip()
+        if not selector:
+            return {"error": "selector parameter is required"}
+        try:
+            return await _browser_eval(arguments, selector_click_js(selector))
+        except Exception as exc:
+            return {"error": f"Browser click by selector failed: {exc}"}
+
+class BrowserTypeSelectorTool(MCPTool):
+    """Type text into the element matching a CSS selector."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Set the text of the input, textarea or contenteditable element matching a CSS "
+            "selector. Same semantics as browser_type, but addressed by selector."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "selector": {"type": "string", "description": "CSS selector of the input element"},
+                "text": {"type": "string", "description": "Text to enter"},
+                "clear": {"type": "boolean", "description": "Replace existing text (default: true)", "default": True},
+                "submit": {"type": "boolean", "description": "Press Enter / submit the form afterwards (default: false)", "default": False},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["selector", "text"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import selector_type_js
+        selector = str(arguments.get("selector", "")).strip()
+        if not selector:
+            return {"error": "selector parameter is required"}
+        try:
+            js = selector_type_js(
+                selector,
+                str(arguments.get("text", "")),
+                bool(arguments.get("clear", True)),
+                bool(arguments.get("submit", False)),
+            )
+            return await _browser_eval(arguments, js)
+        except Exception as exc:
+            return {"error": f"Browser type by selector failed: {exc}"}
+
+class BrowserSelectSelectorTool(MCPTool):
+    """Choose a <select> option in the element matching a CSS selector."""
+
+    @property
+    def description(self) -> str:
+        return "Select an option (by value or visible text) in the <select> matching a CSS selector."
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "selector": {"type": "string", "description": "CSS selector of the <select> element"},
+                "value": {"type": "string", "description": "Option value or visible text"},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["selector", "value"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import selector_select_js
+        selector = str(arguments.get("selector", "")).strip()
+        if not selector:
+            return {"error": "selector parameter is required"}
+        try:
+            return await _browser_eval(
+                arguments, selector_select_js(selector, str(arguments.get("value", "")))
+            )
+        except Exception as exc:
+            return {"error": f"Browser select by selector failed: {exc}"}
+
+class BrowserScrapeTool(MCPTool):
+    """Read text, an attribute or Markdown from the element matching a selector."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Read content from the first element matching a CSS selector. Without an "
+            "attribute the element is converted to Markdown (headings, links, images, "
+            "lists, code, tables); pass attribute to read a single attribute such as "
+            "'href' or 'src'."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "selector": {"type": "string", "description": "CSS selector of the element to read"},
+                "attribute": {"type": "string", "description": "Optional attribute to read instead of the element content"},
+                "maxChars": {"type": "number", "description": "Maximum number of characters to return (default: 8000)", "default": 8000},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["selector"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import selector_scrape_js
+        selector = str(arguments.get("selector", "")).strip()
+        if not selector:
+            return {"error": "selector parameter is required"}
+        try:
+            result = await _browser_eval(
+                arguments,
+                selector_scrape_js(selector, str(arguments.get("attribute") or "")),
+            )
+        except Exception as exc:
+            return {"error": f"Browser scrape failed: {exc}"}
+        if not isinstance(result, dict):
+            result = {"ok": True, "value": result}
+        max_chars = int(arguments.get("maxChars", 8000))
+        value = result.get("value")
+        if isinstance(value, str) and len(value) > max_chars:
+            result["value"] = value[:max_chars]
+            result["truncated"] = True
+            result["totalChars"] = len(value)
+        result["selector"] = selector
+        return result
+
+class BrowserExistsTool(MCPTool):
+    """Check whether an element matching a selector exists."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Check whether at least one element matches the given CSS selector. Useful "
+            "for verifying page state or polling after an action."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "selector": {"type": "string", "description": "CSS selector to test"},
+                "targetId": _TARGET_PROP,
+            },
+            "required": ["selector"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .browser_dom import selector_exists_js
+        selector = str(arguments.get("selector", "")).strip()
+        if not selector:
+            return {"error": "selector parameter is required"}
+        try:
+            result = await _browser_eval(arguments, selector_exists_js(selector))
+        except Exception as exc:
+            return {"error": f"Browser exists check failed: {exc}"}
+        exists = bool(result.get("ok")) if isinstance(result, dict) else bool(result)
+        return {"selector": selector, "exists": exists}
+
 class BrowserCloseTool(MCPTool):
     """Close the shared CDP browser session."""
 

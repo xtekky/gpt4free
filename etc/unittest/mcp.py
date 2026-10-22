@@ -1162,6 +1162,48 @@ class TestMCPServerShellActivation(unittest.TestCase):
         self.assertIn("disabled", response.error["message"])
 
 
+class TestBrowserSelectorTools(unittest.IsolatedAsyncioTestCase):
+    """Tests for the selector-based browser tools."""
+
+    TOOL_NAMES = (
+        "browser_click_selector",
+        "browser_type_selector",
+        "browser_select_selector",
+        "browser_scrape",
+        "browser_exists",
+    )
+
+    def test_tools_registered(self):
+        server = MCPServer()
+        for name in self.TOOL_NAMES:
+            self.assertIn(name, server.tools)
+            self.assertIn("selector", server.tools[name].input_schema["properties"])
+
+    async def test_selector_is_required(self):
+        server = MCPServer()
+        for name in self.TOOL_NAMES:
+            result = await server.tools[name].execute({})
+            self.assertIn("error", result, name)
+
+    def test_selector_js_helpers(self):
+        from g4f.mcp.browser_dom import (
+            selector_click_js,
+            selector_exists_js,
+            selector_scrape_js,
+            selector_select_js,
+            selector_type_js,
+        )
+
+        for js in (
+            selector_click_js("#submit"),
+            selector_type_js("#query", "hello", True, False),
+            selector_select_js("#lang", "en"),
+            selector_scrape_js("main", "href"),
+            selector_exists_js(".result"),
+        ):
+            self.assertIn("document.querySelector", js)
+
+
 class TestMCPApiRoute(unittest.TestCase):
     """Tests for the /mcp JSON-RPC route mounted on the g4f API."""
 

@@ -197,7 +197,6 @@ class GLM(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             "user-agent": GLM_USER_AGENT,
             "x-region": "overseas",
             "accept": "*/*",
-            # "accept-encoding": "gzip, deflate, br, zstd",
             "connection": "keep-alive",
             "host": "chat.z.ai",
             "origin": GLM_BASE_URL,
