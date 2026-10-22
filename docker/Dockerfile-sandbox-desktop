@@ -270,6 +270,14 @@ RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
 # env, exactly like the g4f install above.
 RUN g4f-go install "pillow>=10" && python3 -c "from PIL import ImageGrab"
 
+# Animated g4f terminal wallpaper. The entrypoint opens it in a maximized
+# xfce4-terminal at desktop start; the g4f-sandbox-wallpaper menu entry can
+# reopen it later. Pure stdlib Python (truecolour ANSI nebula, stars, orbits
+# and a shimmering g4f emblem), so it needs nothing beyond the runtime above.
+COPY docker/g4f-livewall /usr/local/bin/g4f-livewall
+RUN chmod 0755 /usr/local/bin/g4f-livewall && \
+    python3 -c "compile(open('/usr/local/bin/g4f-livewall').read(), 'g4f-livewall', 'exec')"
+
 # Per-tool menu icons. Every g4f-sandbox-*.desktop names g4f-sandbox-<tool> and
 # hands the same name to xfce4-terminal as --icon, so the menu row and the
 # window it opens share the vendor's mark. fetch-icons.py pulls each mark from

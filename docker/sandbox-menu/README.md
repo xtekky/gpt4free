@@ -21,6 +21,11 @@ desktop-entry `Exec` line is split on whitespace, so an unquoted title makes
 xfce4-terminal treat the second word as an option and refuse to start
 (`Unknown option "Settings"`).
 
+The **g4f Live Wallpaper** entry runs `docker/g4f-livewall`, a self-contained
+truecolour ANSI animation (drifting nebula, stars, orbits and a shimmering g4f
+emblem). The desktop entrypoint also opens it at startup; set
+`G4F_WALLPAPER=0` to skip it.
+
 `sandbox-cli` installs tools on **first click** — a vendor install script,
 an npm package, a `pip install --user`, or Google's Chrome `.deb` — then runs
 them in that same terminal (Chrome opens on the desktop instead). The
@@ -48,6 +53,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Reset Sandbox Settings   | `reset`     | none (removes the settings file) | —         |
 | Public URLs              | `urls`      | none (prints the g4f API URLs) | —           |
 | Host Names               | `hosts`     | none (prints the `/etc/hosts` entries) | —    |
+| g4f Live Wallpaper       | `wallpaper` | none (runs `/usr/local/bin/g4f-livewall`) | —  |
 | Install & Open Cline     | `cline`     | npm `cline`                 | `cline`        |
 | Install & Open Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
 | Install & Open Goose     | `goose`     | block/goose install script  | `goose`        |

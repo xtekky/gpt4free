@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=g4f Live Wallpaper
+Comment=Animated g4f terminal background (stars, orbits and a neon emblem)
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="g4f Live Wallpaper" --icon=g4f-sandbox-applications --command="/usr/local/bin/g4f-livewall"
+Icon=g4f-sandbox-applications
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=g4f;wallpaper;background;animation;terminal;stars;;
+StartupNotify=false

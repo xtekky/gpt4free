@@ -9,6 +9,7 @@
 #
 # Env knobs:
 #   SANDBOX_DESKTOP  set to 0 to skip the desktop stack (default: 1)
+#   G4F_WALLPAPER    set to 0 to skip the animated g4f wallpaper (default: 1)
 #   VNC_DISPLAY      X display for Xvnc   (default: :0)
 #   VNC_GEOMETRY     screen size          (default: 1920x1080)
 #   VNC_RFBPORT      VNC port             (default: 5900)
@@ -91,6 +92,14 @@ if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
         nohup xfwm4 >/tmp/xfwm4.log 2>&1 &
         nohup xfce4-panel >/tmp/xfce4-panel.log 2>&1 &
         nohup xfdesktop >/tmp/xfdesktop.log 2>&1 &
+        if [ "${G4F_WALLPAPER:-1}" = "1" ]; then
+            nohup xfce4-terminal --disable-server --maximize \
+                --hide-menubar --hide-borders --hide-scrollbar \
+                --title="g4f live wallpaper" \
+                --icon=g4f-sandbox-applications \
+                --command=/usr/local/bin/g4f-livewall \
+                >/tmp/g4f-livewall.log 2>&1 &
+        fi
     '
     if [ "$(id -u)" = "0" ]; then
         runuser -u pn -- bash -c "$desktop_launcher"
