@@ -2866,6 +2866,9 @@ class Api:
                 workspace_secret=request.headers.get("x-workspace-secret"),
             )
             response = await server.handle_request(mcp_request)
+            if response is None:
+                # JSON-RPC notification: no response body is expected.
+                return Response(status_code=202)
             body: dict = {"jsonrpc": response.jsonrpc, "id": response.id}
             if response.result is not None:
                 body["result"] = response.result

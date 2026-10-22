@@ -274,17 +274,17 @@ class Website:
                     models_list = ", ".join(p["models"][:5]) if isinstance(p["models"], list) else ""
                     if len(p["models"]) > 5:
                         models_list += f" (+{len(p['models']) - 5} more)"
-                    models_html = f"<div class='provider-details'><strong>Models:</strong> {models_list}</div>"
+                    models_html = f"<div class='provider-details'><strong>Models:</strong> <span class='notranslate'>{models_list}</span></div>"
                 else:
                     models_html = "<div class='provider-details'><em>No specific models</em></div>"
 
-                url_html = f"<div class='provider-url'>{p['url']}</div>" if p["url"] else ""
+                url_html = f"<div class='provider-url notranslate'>{p['url']}</div>" if p["url"] else ""
                 auth_html = "<div class='provider-details'><strong>Auth:</strong> Required</div>" if p["needs_auth"] else ""
                 working_html = "<div class='provider-details'><strong>Status:</strong> Working</div>" if p["working"] else ""
 
                 cards_html += f"""
                 <div class="provider-card" onclick="window.location.href='/providers/{p['name']}'">
-                    <div class="provider-name">{p['name']}</div>
+                    <div class="provider-name notranslate">{p['name']}</div>
                     {url_html}
                     {models_html}
                     {auth_html}
@@ -355,7 +355,7 @@ class Website:
             pass
 
         if models:
-            models_html = "<ul class='model-list'>" + "".join(
+            models_html = "<ul class='model-list notranslate'>" + "".join(
                 f"<li>{escape(str(m))}</li>" for m in models
             ) + "</ul>"
         else:
@@ -363,19 +363,33 @@ class Website:
 
         # Build params list HTML
         if p["params"]:
-            params_html = "<pre>" + escape(str(p["params"])) + "</pre>"
+            params_html = "<pre class='notranslate'>" + escape(str(p["params"])) + "</pre>"
         else:
             params_html = "<p><em>None</em></p>"
 
+        def _yes_no(value: bool, yes_icon: str = "✅", no_icon: str = "❌") -> str:
+            """Render a boolean cell. The icon stays untranslated, the word
+            ("Yes"/"No") is a separate text node so it can be translated."""
+            if value:
+                return f"<span class='notranslate'>{yes_icon}</span> Yes"
+            return f"<span class='notranslate'>{no_icon}</span> No"
+
         # Build attributes table
+        if p["url"]:
+            url_cell = (
+                f'<a href="{escape(p["url"])}" target="_blank" class="notranslate">'
+                f"{escape(p['url'])}</a>"
+            )
+        else:
+            url_cell = "<span>N/A</span>"
         attrs_html = f"""
         <table class="attr-table">
-            <tr><th>URL</th><td><a href="{escape(p['url'] or '')}" target="_blank">{escape(p['url'] or 'N/A')}</a></td></tr>
-            <tr><th>Working</th><td>{'✅ Yes' if p['working'] else '❌ No'}</td></tr>
-            <tr><th>Needs Auth</th><td>{'🔒 Yes' if p['needs_auth'] else '🔓 No'}</td></tr>
-            <tr><th>Supports Stream</th><td>{'✅ Yes' if p['supports_stream'] else '❌ No'}</td></tr>
-            <tr><th>Supports Message History</th><td>{'✅ Yes' if p['supports_message_history'] else '❌ No'}</td></tr>
-            <tr><th>Supports System Message</th><td>{'✅ Yes' if p['supports_system_message'] else '❌ No'}</td></tr>
+            <tr><th>URL</th><td>{url_cell}</td></tr>
+            <tr><th>Working</th><td>{_yes_no(p['working'])}</td></tr>
+            <tr><th>Needs Auth</th><td>{_yes_no(p['needs_auth'], '🔒', '🔓')}</td></tr>
+            <tr><th>Supports Stream</th><td>{_yes_no(p['supports_stream'])}</td></tr>
+            <tr><th>Supports Message History</th><td>{_yes_no(p['supports_message_history'])}</td></tr>
+            <tr><th>Supports System Message</th><td>{_yes_no(p['supports_system_message'])}</td></tr>
         </table>
         """
 
@@ -406,7 +420,7 @@ class Website:
             <img src="/screenshot/{quote_plus(screenshot_url)}.webp" data-src="{create_url}" alt="{escape(p['name'])} logo" class="provider-logo"
                  style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
             <img src="{logo_url}" alt="{escape(p['name'])} logo" class="provider-logo" style="max-width:100%;border-radius:8px;border:1px solid var(--card-border)" />
-            <p class="screenshot-caption">Load screenshot from {escape(p['url'] or 'N/A')}</p>
+            <p class="screenshot-caption"><span>Load screenshot from</span> <span class="notranslate">{escape(p['url'] or 'N/A')}</span></p>
         </div>
         <script>
             const img = document.querySelector('img[data-src="{create_url}"]');
@@ -480,21 +494,26 @@ class Website:
         </script>
         """
 
-        detail_html = f"""
-        <div class="detail-header">
-            <h1>{escape(p['name'])}</h1>
-            <p class="detail-subtitle">Provider #{idx + 1} of {len(providers)}</p>
-        </div>
-
-        <div class="nav-prev-next">
+        def _nav_prev_next(extra_class: str = "") -> str:
+            return f"""
+        <div class="nav-prev-next {extra_class}">
             <a href="/providers/{escape(prev_p['name'])}" class="nav-btn nav-prev">
-                ← {escape(prev_p['name'])}
+                <span class="notranslate">←</span> <span class="notranslate">{escape(prev_p['name'])}</span>
             </a>
             <a href="/providers/" class="nav-btn nav-back">All Providers</a>
             <a href="/providers/{escape(next_p['name'])}" class="nav-btn nav-next">
-                {escape(next_p['name'])} →
+                <span class="notranslate">{escape(next_p['name'])}</span> <span class="notranslate">→</span>
             </a>
         </div>
+        """
+
+        detail_html = f"""
+        <div class="detail-header">
+            <h1 class="notranslate">{escape(p['name'])}</h1>
+            <p class="detail-subtitle" data-tpl="Provider #{{0}} of {{1}}" data-a0="{idx + 1}" data-a1="{len(providers)}">Provider #{idx + 1} of {len(providers)}</p>
+        </div>
+
+        {_nav_prev_next()}
 
         <div class="detail-grid">
             <div class="detail-card">
@@ -508,7 +527,7 @@ class Website:
         </div>
 
         <div class="detail-card detail-models">
-            <h2>Models ({len(p['models'])})</h2>
+            <h2 data-tpl="Models ({{0}})" data-a0="{len(p['models'])}">Models ({len(p['models'])})</h2>
             {models_html}
         </div>
 
@@ -517,15 +536,7 @@ class Website:
             {params_html}
         </div>
 
-        <div class="nav-prev-next" style="margin-top:2rem">
-            <a href="/providers/{escape(prev_p['name'])}" class="nav-btn nav-prev">
-                ← {escape(prev_p['name'])}
-            </a>
-            <a href="/providers/" class="nav-btn nav-back">All Providers</a>
-            <a href="/providers/{escape(next_p['name'])}" class="nav-btn nav-next">
-                {escape(next_p['name'])} →
-            </a>
-        </div>
+        {_nav_prev_next("nav-prev-next-bottom")}
         """
 
         # Read the template and inject detail content

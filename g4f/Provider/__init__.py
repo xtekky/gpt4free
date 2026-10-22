@@ -96,7 +96,6 @@ class ProviderLoader:
         "APIRoute",
         "OpenaiTemplate",
         "OrcaRouter",
-        "OpenCode",
         "AIBadgr",
         "Anthropic",
         "GigaChat",
@@ -413,11 +412,6 @@ class ProviderLoader:
             from g4f.Provider.audio.OpenAIFM import OpenAIFM
 
             return OpenAIFM
-        elif name == "OpenCode":
-            from g4f.Provider.OpenCode import OpenCode
-
-            return OpenCode
-
         elif name == "OpenRouter":
             from g4f.Provider.needs_auth.OpenRouter import OpenRouter
 

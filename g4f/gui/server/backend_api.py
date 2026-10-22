@@ -231,9 +231,12 @@ class Backend_Api(Api):
                     id=req_id,
                     method=method,
                     params=params,
-                    origin=request.headers.get("origin", "")
+                    origin=request.headers.get("origin", ""),
+                    legacy_result=True,
                 )
                 resp = await mcp_server.handle_request(mcp_req)
+                if resp is None:
+                    return "", 202
                 if resp.error:
                     return jsonify({"jsonrpc": "2.0", "id": req_id, "error": resp.error}), 400
                 return jsonify({"jsonrpc": "2.0", "id": req_id, "result": resp.result})
