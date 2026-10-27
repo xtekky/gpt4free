@@ -101,6 +101,7 @@ class ProviderLoader:
         "GigaChat",
         "GithubCopilotAPI",
         "CheaperInference",
+        "Onomeo",
         "MiniMax",
         "OpenaiAPI",
         "Cohere",
@@ -408,6 +409,10 @@ class ProviderLoader:
             from g4f.Provider.local.OmniRoute import OmniRoute
 
             return OmniRoute
+        elif name == "Onomeo":
+            from g4f.Provider.extra.Onomeo import Onomeo
+
+            return Onomeo
         elif name == "OpenAIFM":
             from g4f.Provider.audio.OpenAIFM import OpenAIFM
 

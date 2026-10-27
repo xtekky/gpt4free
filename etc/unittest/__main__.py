@@ -38,6 +38,7 @@ try:
 except ImportError:
     pass
 from .test_provider_routing import *
+from .test_onomeo import *
 from .test_lightpanda import *
 from .test_har import *
 from .test_langfuse_tracing import *
