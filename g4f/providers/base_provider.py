@@ -281,7 +281,7 @@ class AbstractProvider(BaseProvider):
             )
             args += ","
 
-        return f"g4f.Provider.{cls.__name__} supports: ({args}\n)"
+        return f"({args}\n)"
 
 
 class AsyncProvider(AbstractProvider):
