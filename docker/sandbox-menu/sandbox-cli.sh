@@ -92,6 +92,12 @@ JAN_RELEASE_BASE="https://github.com/janhq/jan/releases/download"
 # (see ensure_librechat) and needs MongoDB, which the image does not ship.
 LOBECHAT_RELEASE_BASE="https://github.com/lobehub/lobehub/releases/download"
 MSTY_APPIMAGE_URL="https://next-assets.msty.studio/app/latest/linux/MstyStudio_x86_64.AppImage"
+# Cindy is an Electron desktop agent published as a regional Debian package.
+# The tag is resolved from the GitHub API and the package is unpacked into a
+# user-owned prefix by the installer shipped in the release itself.
+CINDY_REPO="https://github.com/makecindy/cindy"
+CINDY_REGION="${CINDY_REGION:-global}"
+CINDY_PREFIX="${CINDY_PREFIX:-$HOME/.local/opt/cindy}"
 LIBRECHAT_REPO="https://github.com/danny-avila/LibreChat.git"
 # MongoDB publishes no trixie build of mongodb-org-server, so the server comes
 # from the bookworm repository (the .deb is self-contained) or, on arm64, from
@@ -1051,6 +1057,167 @@ MSTY_WRAPPER
     have msty || die "msty not on PATH after the install"
 }
 
+# Cindy's user installer unpacks the .deb with bsdtar (libarchive-tools on
+# Debian); the image does not ship it because it is only needed here.
+ensure_bsdtar() {
+    have bsdtar && return 0
+    log "installing libarchive-tools (needed by the Cindy installer)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq libarchive-tools \
+        || die "could not install libarchive-tools"
+    have bsdtar || die "bsdtar not on PATH after installing libarchive-tools"
+}
+
+# Write a stable ~/.local/bin/cindy launcher. The packaged app runs on Electron
+# and containers/hardened hosts without unprivileged user namespaces need
+# --no-sandbox; the AppImage entries make the same fail-safe.
+write_cindy_launcher() {
+    mkdir -p "$HOME/.local/bin"
+    {
+        printf '#!/bin/bash\nprefix=%q\n' "$CINDY_PREFIX"
+        cat <<'CINDY_LAUNCHER'
+args=()
+if ! unshare -Ur true 2>/dev/null; then
+    args+=(--no-sandbox)
+fi
+exec "$prefix/launch" "${args[@]}" "$@"
+CINDY_LAUNCHER
+    } > "$HOME/.local/bin/cindy"
+    chmod +x "$HOME/.local/bin/cindy"
+}
+
+# Install the official Linux package when there is no source checkout. The
+# release's own install-user.sh extracts the .deb into a user-owned prefix (no
+# apt/dpkg, no root) and writes $CINDY_PREFIX/launch.
+ensure_cindy_release() {
+    have cindy && return 0
+    local arch tag url tmp sha
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) arch=x64 ;;
+        arm64|aarch64) arch=arm64 ;;
+        *) die "Cindy publishes no Linux build for $(dpkg --print-architecture)" ;;
+    esac
+    case "$CINDY_REGION" in
+        global|cn) ;;
+        *) die "CINDY_REGION must be global or cn" ;;
+    esac
+    ensure_electron_libs
+    ensure_bsdtar
+    tag="$(curl -fsSL "https://api.github.com/repos/makecindy/cindy/releases/latest" \
+        | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+    [ -n "$tag" ] || die "could not resolve the latest Cindy release"
+    url="$CINDY_REPO/releases/download/$tag/cindy-${tag#v}-linux-$arch-$CINDY_REGION.deb"
+    log "installing Cindy ($tag, $CINDY_REGION)..."
+    tmp="$(mktemp -d)"
+    if ! curl -fL --retry 2 -o "$tmp/cindy.deb" "$url"; then
+        rm -rf "$tmp"
+        die "could not download Cindy ($url)"
+    fi
+    sha="$(sha256sum "$tmp/cindy.deb" | cut -d' ' -f1)"
+    if ! curl -fsSL -o "$tmp/install-user.sh" \
+        "https://raw.githubusercontent.com/makecindy/cindy/$tag/apps/desktop/resources/linux/install-user.sh"; then
+        rm -rf "$tmp"
+        die "could not download the Cindy installer"
+    fi
+    if ! bash "$tmp/install-user.sh" --install "$tmp/cindy.deb" "$sha" "$CINDY_PREFIX"; then
+        rm -rf "$tmp"
+        die "Cindy installation failed"
+    fi
+    rm -rf "$tmp"
+    write_cindy_launcher
+    have cindy || die "cindy not on PATH after the install"
+}
+
+# Cindy keeps providers in its own SQLite database and has no CLI for adding
+# one. The sandbox ships a local g4f API, so the app is opened once with a
+# local-mode session, its database is seeded with a "g4f" custom provider and
+# the app is closed again; the caller then launches it normally.
+cindy_user_data_dir() {
+    case "$CINDY_REGION" in
+        cn) printf '%s\n' "$HOME/.config/Cindy" ;;
+        *) printf '%s\n' "$HOME/.config/CindyGlobal" ;;
+    esac
+}
+
+cindy_db_query() { # <db> <sql>
+    CINDY_DB="$1" CINDY_SQL="$2" python3 - <<'CINDY_SQL'
+import os, sqlite3, sys
+try:
+    con = sqlite3.connect("file:%s?mode=ro" % os.environ["CINDY_DB"], uri=True)
+    con.execute(os.environ["CINDY_SQL"]).fetchall()
+except Exception:
+    sys.exit(1)
+CINDY_SQL
+}
+
+provision_cindy() {
+    local profile db base_url pid i
+    profile="$(cindy_user_data_dir)"
+    db="$profile/cindy-local-v1.db"
+    mkdir -p "$profile"
+    if [ ! -f "$profile/app-session.json" ]; then
+        printf '{\n  "activeMode": "local"\n}\n' > "$profile/app-session.json"
+    fi
+    if cindy_db_query "$db" \
+        "select 1 from custom_providers where id = 'g4f'"; then
+        log "Cindy already has the local g4f provider"
+        return 0
+    fi
+    configure_g4f
+    base_url="$G4F_API_BASE_URL"
+    log "adding the local g4f provider to Cindy..."
+    nohup setsid cindy >/tmp/cindy-provision.log 2>&1 &
+    pid=$!
+    i=0
+    while [ "$i" -lt 120 ]; do
+        if cindy_db_query "$db" "select 1 from custom_providers limit 1"; then
+            break
+        fi
+        sleep 1
+        i=$((i + 1))
+    done
+    if [ "$i" -ge 120 ]; then
+        log "Cindy's provider database did not appear; open Cindy once, then run this again"
+        return 0
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null || true
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 1
+        done
+        kill -9 "$pid" 2>/dev/null || true
+    fi
+    CINDY_DB="$db" CINDY_G4F_URL="$base_url" python3 - <<'CINDY_SQL' \
+        || log "could not write Cindy's g4f provider; open Cindy once, then run this again"
+import json, os, sqlite3, time
+runtimes = {
+    "codex": {
+        "baseUrl": os.environ["CINDY_G4F_URL"],
+        "models": [
+            {"id": "default", "name": "g4f default", "defaultEnabled": True},
+            {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "defaultEnabled": True},
+            {"id": "deepseek-v4.1-flash", "name": "DeepSeek V4.1 Flash", "defaultEnabled": True},
+            {"id": "kimi-k3", "name": "Kimi K3", "defaultEnabled": True},
+        ],
+        "wireProtocol": "openai-chat",
+        "modelsUrl": os.environ["CINDY_G4F_URL"] + "/models",
+    }
+}
+now = int(time.time() * 1000)
+con = sqlite3.connect(os.environ["CINDY_DB"])
+con.execute(
+    "insert or replace into custom_providers"
+    " (id, name, runtimes, auth, sort_order, created_at, updated_at)"
+    " values (?, ?, ?, ?, ?, ?, ?)",
+    ("g4f", "g4f", json.dumps(runtimes), json.dumps({"method": "none"}), 0, now, now),
+)
+con.commit()
+con.close()
+CINDY_SQL
+    log "Cindy now has the g4f provider ($base_url)"
+}
+
 # Kate is the KDE text editor and the one editor the menu installs from the
 # distribution instead of a vendor script: Debian ships it as `kate`, and apt
 # pulls its KDE/Qt runtime in with it. The binary lands in /usr/bin, already on
@@ -1778,6 +1945,16 @@ run_tool() {
         codex)
             ensure_npm @openai/codex codex
             launch Codex codex "${@:2}" ;;
+        cindy)
+            ensure_cindy_release
+            provision_cindy
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Cindy is installed and ready"
+                exit 0
+            fi
+            log "opening Cindy on the desktop"
+            nohup setsid cindy >/tmp/cindy.log 2>&1 &
+            exit 0 ;;
         copilot)
             ensure_npm @github/copilot copilot
             if [ "$INSTALL_ONLY" = 0 ]; then
@@ -2149,6 +2326,7 @@ list_tools() {
     printf '%s\n' "Coding Agents"
     printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
+        cindy       "Cindy desktop AI agent" \
         omp         "Oh My Pi (OMP) coding agent" \
         pi          "Pi coding agent" \
         kilocode    "Kilo Code terminal agent" \

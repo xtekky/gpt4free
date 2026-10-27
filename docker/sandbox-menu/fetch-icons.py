@@ -83,6 +83,7 @@ ICONS: dict[str, list[str]] = {
     "qwencode": [google("qwen.ai")],
     "claude-code": [google("claude.ai")],
     "codex": [google("openai.com")],
+    "cindy": [google("cindy.app"), github("makecindy")],
     "copilot": ["https://github.githubassets.com/favicons/favicon.svg"],
     "cline": [google("cline.bot")],
     "amp": [google("ampcode.com")],

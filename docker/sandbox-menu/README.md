@@ -37,6 +37,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Menu entry               | Tool id     | Install recipe              | Binary         |
 |--------------------------|-------------|-----------------------------|----------------|
 | Install & Open OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
+| Install & Open Cindy     | `cindy`     | GitHub release Debian package, unpacked by its user installer; adds the g4f provider on first run | `cindy` |
 | Install & Open Oh My Pi  | `omp`       | omp.sh install script + `omp plugin install pi-freeflow` | `omp` |
 | Install & Open Pi        | `pi`        | pi.dev install script + `pi install npm:pi-freeflow` | `pi` |
 | Install & Run Freeflow API | `pi-freeflow` | Pi/OMP package, daemon on port 28180 | `node` |
