@@ -8,6 +8,7 @@ werkzeug
 pillow
 fastapi
 uvicorn
+websockets
 flask[async]
 brotli
 beautifulsoup4

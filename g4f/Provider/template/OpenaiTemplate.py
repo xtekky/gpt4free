@@ -143,7 +143,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                         )
                     if base_url.startswith(SPACE_URL) and not api_key:
                         api_key = AppConfig.g4f_space_api_key
-                    elif cls.models_needs_auth and not api_key:
+                    elif cls.needs_auth and cls.models_needs_auth and not api_key:
                         raise MissingAuthError("API key is required.")
                 elif (
                     not base_url.startswith(SPACE_URL)

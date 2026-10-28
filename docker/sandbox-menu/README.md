@@ -21,6 +21,11 @@ desktop-entry `Exec` line is split on whitespace, so an unquoted title makes
 xfce4-terminal treat the second word as an option and refuse to start
 (`Unknown option "Settings"`).
 
+The **g4f Live Wallpaper** entry runs `docker/g4f-livewall`, a self-contained
+truecolour ANSI animation (drifting nebula, stars, orbits and a shimmering g4f
+emblem). The desktop entrypoint also opens it at startup; set
+`G4F_WALLPAPER=0` to skip it.
+
 `sandbox-cli` installs tools on **first click** — a vendor install script,
 an npm package, a `pip install --user`, or Google's Chrome `.deb` — then runs
 them in that same terminal (Chrome opens on the desktop instead). The
@@ -32,6 +37,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Menu entry               | Tool id     | Install recipe              | Binary         |
 |--------------------------|-------------|-----------------------------|----------------|
 | Install & Open OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
+| Install & Open Cindy     | `cindy`     | GitHub release Debian package, unpacked by its user installer; adds the g4f provider on first run | `cindy` |
 | Install & Open Oh My Pi  | `omp`       | omp.sh install script + `omp plugin install pi-freeflow` | `omp` |
 | Install & Open Pi        | `pi`        | pi.dev install script + `pi install npm:pi-freeflow` | `pi` |
 | Install & Run Freeflow API | `pi-freeflow` | Pi/OMP package, daemon on port 28180 | `node` |
@@ -48,6 +54,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Reset Sandbox Settings   | `reset`     | none (removes the settings file) | —         |
 | Public URLs              | `urls`      | none (prints the g4f API URLs) | —           |
 | Host Names               | `hosts`     | none (prints the `/etc/hosts` entries) | —    |
+| g4f Live Wallpaper       | `wallpaper` | none (runs `/usr/local/bin/g4f-livewall`) | —  |
 | Install & Open Cline     | `cline`     | npm `cline`                 | `cline`        |
 | Install & Open Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
 | Install & Open Goose     | `goose`     | block/goose install script  | `goose`        |
@@ -66,6 +73,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open SillyTavern | `sillytavern` | git clone + `npm install` | `node`       |
 | Install & Open Open WebUI Computer | `cptr` | pip `cptr` (user)     | `cptr`         |
 | Install & Open VS Code Web | `code-server` | code-server.dev install script | `code-server` |
+| Install & Open Kate      | `kate`      | apt `kate` (Debian)         | `kate`         |
 | Install & Open OpenClaw  | `openclaw`  | openclaw.ai install script  | `openclaw`     |
 | Install & Open Crush     | `crush`     | npm `@charmland/crush`      | `crush`        |
 | Install & Open Continue  | `continue-cli` | npm `@continuedev/cli`   | `cn`           |
@@ -85,22 +93,24 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
 | Install & Open Fabric    | `fabric`    | fabric installer script     | `fabric`       |
 | Install & Open LiteLLM   | `litellm`   | pip `litellm[proxy]`        | `litellm`      |
+| Install & Open Langfuse CLI | `langfuse` | npm `@langfuse/cli`      | `langfuse`     |
 | Install & Run Proxy Server | `proxy`   | pip `mitmproxy`             | `mitmproxy`    |
 | Install & Run Tunnel Client | `tunnel` | GitHub release `cloudflared` | `cloudflared`  |
 | Install & Open ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
 | Install & Open LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
-| Install assistant-ui     | `assistant-ui` | npx `setup-agent` (no install) | `npx`      |
+| Install & Open assistant-ui | `assistant-ui` | npx `assistant-ui@latest create` + `npm install` | `npm`      |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
 `litellm`, `pi-freeflow`) that expose an OpenAI-compatible endpoint, together
-with a debugging **proxy server** (`proxy`, mitmproxy) and a **tunnel** entry
+with a debugging **proxy server** (`proxy`, mitmproxy), a **tunnel** entry
 (`tunnel`, Cloudflare's cloudflared) that publishes a local port on a
-public HTTPS URL, **local AI** runtimes
+public HTTPS URL, and the **Langfuse CLI** (`langfuse`) for inspecting LLM
+traces and prompts, **local AI** runtimes
 (`ollama`, `llamacpp`, `lmstudio`, `jan`) that serve models on
 the machine itself, **chat UIs** (`librechat`, `lobechat`, `msty`,
-`sillytavern`, `cptr`) that put a chat front end on top of the g4f API,
-a browser **editor** (`code-server`, VS Code Web served by code-server),
-and **assistant/agent CLIs**
+`sillytavern`, `cptr`, `assistant-ui`) that put a chat front end on top of the
+g4f API, browser and desktop **editors** (`code-server`, VS Code Web served by
+code-server, and the KDE **Kate** text editor), and **assistant/agent CLIs**
 (`openclaw`, `fabric`, `sgpt`, `gptme`, `llm`) that live in the terminal.
 Install scripts land their
 binary in `~/.local/bin`, `~/.kimi-code/bin`, `~/.qoder/bin`,
@@ -141,17 +151,32 @@ has no init system, so the systemd unit the installer writes is inert here and
 the stack is started directly; the menu entry prints the first-admin `/setup`
 link (`roomote setup-url`) and then follows the service logs.
 
-**assistant-ui** is the one entry that installs nothing: it runs
-`npx setup-agent https://setup.assistant-ui.com/Q2Exyx6AidfK`, a thin Statewire
-client whose setup is shared live between the browser that opened the URL and
-the coding agent installing the products. The CLI prints the setup's
-instructions and current state, then the agent drives it from the same shell
-(`stream`, `wait start`, `plan`, `add-step`, `step`, `done`). It is meant for a
-coding agent, so when none is detected it offers to start one — which is why
-the entry opens a terminal rather than installing a binary. The URL is the
-browser's link to its agent, not one setup: a finished setup stays on it and
-the browser's next one replaces it. `sandbox-cli install assistant-ui` only
-checks that `npx` is available.
+**assistant-ui** is a chat front end for the g4f API: the app is created with
+the upstream CLI (`npx assistant-ui@latest create`, see
+[the installation docs](https://www.assistant-ui.com/docs/installation)), which
+downloads the starter template — a Next.js app with the AI SDK chat route —
+into `~/.assistant-ui`, and `npm install` pulls its dependencies. The launcher
+then writes the g4f endpoint into the app: `.env.local` gets `G4F_API_BASE_URL`,
+`G4F_API_KEY` and `G4F_MODEL`, `app/api/chat/route.ts` is replaced with a
+route that talks to the g4f API through the OpenAI provider pointed at it, and
+`next.config.ts` gets the sandbox host names in `allowedDevOrigins`. The
+g4f API speaks the OpenAI protocol and serves `/v1/chat/completions`, so the
+route uses the provider's chat model (its default model speaks the Responses
+API instead, which g4f does not serve). The app therefore needs no provider
+key, and the default model is the g4f **"auto"** model, which lets g4f pick the
+provider and the model itself. A model chosen in **Sandbox Settings** replaces
+it (`G4F_MODEL`, with the provider prefix g4f resolves itself). The route and
+the config are written once: a marker comment keeps later launches from
+overwriting edits made in the app. The dev server runs in the foreground on
+`http://127.0.0.1:3000` (also `http://assistant-ui.g4f.local/`), and the
+terminal stays open as its console.
+
+The `allowedDevOrigins` entry is what makes the `assistant-ui.g4f.local` URL
+usable: Next.js blocks dev-only resources (`_next` chunks, the HMR websocket)
+whose `Origin` is not listed, and the browser sends the host name it was
+reached through. Without it the page loads but its chunks and the HMR socket
+come back `403 Unauthorized`. The list is derived from `G4F_DOMAIN_SUFFIX`, so
+a renamed suffix keeps working.
 
 **pi-freeflow** is an extension for Pi and Oh My Pi (OMP), not a standalone
 CLI, and its 35 free models (OpenCode Zen, KiloCode Gateway, Cline, OVHcloud)
@@ -190,11 +215,11 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 | **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
 | **Coding Agents**| `X-G4F-Agent`     | `opencode`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
-| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `pi-freeflow`, `proxy`, `tunnel`      |
+| **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
-| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr` |
-| **Editors**      | `X-G4F-Editor`    | `code-server` |
-| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `assistant-ui` |
+| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr`, `assistant-ui` |
+| **Editors**      | `X-G4F-Editor`    | `code-server`, `kate` |
+| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm` |
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
@@ -409,6 +434,12 @@ page origin (the noVNC client at `desktop.g4f.local` connects to
 `ws://desktop.g4f.local/websockify`, which the router maps to the relay at
 `/desktop/websockify`).
 
+WebSocket connections are forwarded for every hostname in the table, not just
+the ones with a path-prefix proxy: `ws://litellm.g4f.local/...` reaches the
+same endpoint on the target app as the matching HTTP request would, so apps
+that stream over a socket (LiteLLM, code-server, LibreChat, ...) work through
+their hostname too.
+
 Inside the container the names are seeded into `/etc/hosts` by the entrypoint,
 derived from the router's own registry (`g4f/api/domain_router.py`), so they
 cannot drift from the code. On the host, add the same names once — the
@@ -431,9 +462,50 @@ Two environment variables control it:
 |----------|---------|---------|
 | `G4F_DOMAIN_ROUTER` | `1` | set to `0` to disable host routing (and the `/etc/hosts` seeding) |
 | `G4F_DOMAIN_SUFFIX` | `g4f.local` | suffix used for the hostnames, e.g. `g4f.test` |
+| `G4F_DOMAIN_AUTOSTART` | `1` | set to `0` to stop apps from being installed and started on demand |
+
+#### Install & run on demand
+
+Opening a hostname for an app that was never installed does not dead-end in a
+proxy error: the router starts the app for you. When a request reaches
+`<app>.g4f.local` and nothing listens on the app's port, the g4f API runs
+`sandbox-cli <app>` in the background — the same install-and-run flow as the
+desktop menu entry — and answers the request with `503` and a `Retry-After`
+header while the install runs:
+
+```json
+{"error": {"message": "LiteLLM is starting", "type": "litellm_starting",
+           "detail": "\"sandbox-cli litellm\" is installing and starting LiteLLM in the background; retry in a few seconds."}}
+```
+
+The request is retried automatically once the app accepts connections within a
+few seconds (so a fast start is invisible to the browser); otherwise reload the
+page. The install keeps running either way, and its output is in
+`/tmp/g4f-autostart-<app>.log`. Only one install per app runs at a time, and
+only the apps in the table above that `sandbox-cli` knows how to install are
+started — `g4f` (the API itself) and `desktop` (the noVNC client, part of the
+image) are never started this way. Outside the sandbox image, where
+`sandbox-cli` does not exist, the hook does nothing and the proxy keeps
+answering its usual `502` "is not running".
 
 The per-app target can be redirected with the same variables the providers use
 (`OMNIROUTE_BASE_URL`, `OLLAMA_HOST`, `LITELLM_PORT`, ...).
+
+#### Multicast discovery (mDNS)
+
+**Multicast Discovery:** When a device (like a printer, a Mac, or a Linux box)
+joins a network, it announces its name (e.g., `printer.local`) to the local
+subnet using multicast traffic (`224.0.0.251` or `ff02::fb`).
+
+The `*.g4f.local` names are ordinary unicast hostnames, not mDNS names: they
+are resolved from `/etc/hosts` (or a wildcard resolver such as `dnsmasq`), so
+they work without any multicast traffic and without a responder on the
+network. That is deliberate — mDNS only reaches the local link, is blocked by
+many container and VPN setups, and would let any device on the subnet claim a
+name such as `g4f.local`. If you do want the sandbox to be discoverable by
+name from other machines, publish an mDNS record for the host that runs the
+g4f API (for example with `avahi-publish -a -R g4f.local <host-ip>` on Linux,
+or Bonjour on macOS) and keep the `/etc/hosts` entries as the fallback.
 
 ### Proxy server (mitmproxy)
 
@@ -484,6 +556,52 @@ sandbox-cli tunnel --url http://127.0.0.1:3000
 
 The terminal stays open as cloudflared's console and prints the public URL
 (Ctrl-C closes the tunnel).
+
+### Langfuse tracing
+
+The **Install & Open Langfuse CLI** entry (`Gateways` menu) installs the
+official [Langfuse CLI](https://github.com/langfuse/langfuse-cli) from npm on
+first click and opens it in the terminal:
+
+```bash
+sandbox-cli langfuse              # install on first run, then open the CLI
+sandbox-cli install langfuse      # install only
+sandbox-cli langfuse api prompts list
+```
+
+The CLI talks to Langfuse Cloud by default. Point it at another instance with
+the usual environment variables, which `sandbox-cli` passes through:
+
+```bash
+export LANGFUSE_PUBLIC_KEY=pk-lf-...
+export LANGFUSE_SECRET_KEY=sk-lf-...
+export LANGFUSE_HOST=https://cloud.langfuse.com   # or your self-hosted URL
+sandbox-cli langfuse api traces list
+```
+
+The g4f API can also send its own traces to Langfuse. Install the optional
+extra and set the same credentials before starting the server:
+
+```bash
+pip install "g4f[tracing]"        # installs the langfuse SDK
+export LANGFUSE_PUBLIC_KEY=pk-lf-...
+export LANGFUSE_SECRET_KEY=sk-lf-...
+python -m g4f --port 8080
+```
+
+Every `/v1/chat/completions`, `/v1/responses` and `/v1/messages` request then
+becomes one Langfuse generation carrying the model, provider, sampling
+parameters, token usage and the assistant output. Streaming responses are
+accumulated and reported once the stream ends. Tracing is inert unless both
+credentials are present, so the server runs unchanged without Langfuse.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `LANGFUSE_PUBLIC_KEY` | – | Required, enables tracing together with the secret key |
+| `LANGFUSE_SECRET_KEY` | – | Required, enables tracing together with the public key |
+| `LANGFUSE_HOST` / `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` | Langfuse instance to send traces to |
+| `G4F_LANGFUSE_TRACING` | `1` | Set to `0` to keep the SDK installed but stop sending traces |
+| `G4F_LANGFUSE_TAGS` | – | Comma-separated tags added to every trace |
 
 ### Choosing a g4f provider
 

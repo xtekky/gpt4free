@@ -60,9 +60,68 @@ from .tools import (
     BrowserTypeTool,
     BrowserSelectTool,
     BrowserCloseTool,
+    BrowserClickSelectorTool,
+    BrowserTypeSelectorTool,
+    BrowserSelectSelectorTool,
+    BrowserScrapeTool,
+    BrowserExistsTool,
     NotebookCreateTool,
     NotebookListTool,
 )
+
+
+SUPPORTED_PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
+DEFAULT_PROTOCOL_VERSION = "2024-11-05"
+
+
+def _json_default(value: Any) -> str:
+    """Fallback serializer for tool payloads that are not JSON native."""
+    return repr(value)
+
+
+def format_tool_result(result: Any) -> Dict[str, Any]:
+    """Wrap a raw tool payload in the MCP ``CallToolResult`` shape.
+
+    The tools return plain dictionaries (for example
+    ``{"url": ..., "content": "..."}``) for in-process callers. MCP clients
+    expect ``{"content": [{"type": "text", "text": ...}], "isError": bool}``,
+    so the raw payload is converted here. The complete payload is also exposed
+    as ``structuredContent`` for clients that consume structured results.
+    """
+    raw = result if isinstance(result, dict) else {"result": result}
+    data = dict(raw)
+    is_error = bool(data.get("error"))
+    text = data.pop("content", None)
+
+    if isinstance(text, list) and text and all(
+        isinstance(item, dict) and "type" in item for item in text
+    ):
+        # Already a list of MCP content blocks.
+        blocks = text
+    else:
+        if text is None:
+            text = (
+                json.dumps(data, ensure_ascii=False, indent=2, default=_json_default)
+                if data
+                else ""
+            )
+        elif not isinstance(text, str):
+            text = json.dumps(text, ensure_ascii=False, default=_json_default)
+        blocks = [{"type": "text", "text": text}]
+        if data:
+            blocks.append(
+                {
+                    "type": "text",
+                    "text": json.dumps(
+                        data, ensure_ascii=False, indent=2, default=_json_default
+                    ),
+                }
+            )
+
+    payload: Dict[str, Any] = {"content": blocks, "isError": is_error}
+    if raw:
+        payload["structuredContent"] = raw
+    return payload
 
 
 @dataclass
@@ -76,6 +135,9 @@ class MCPRequest:
     origin: Optional[str] = None
     user_id: Optional[str] = None
     workspace_secret: Optional[str] = None
+    #: Return the raw tool payload instead of a spec compliant CallToolResult.
+    #: Only used by the legacy WebMCP endpoint, which forwards results verbatim.
+    legacy_result: bool = False
 
 
 @dataclass
@@ -135,6 +197,11 @@ class MCPServer:
             "browser_click": BrowserClickTool(),
             "browser_type": BrowserTypeTool(),
             "browser_select": BrowserSelectTool(),
+            "browser_click_selector": BrowserClickSelectorTool(),
+            "browser_type_selector": BrowserTypeSelectorTool(),
+            "browser_select_selector": BrowserSelectSelectorTool(),
+            "browser_scrape": BrowserScrapeTool(),
+            "browser_exists": BrowserExistsTool(),
             "browser_close": BrowserCloseTool(),
             "notebook_create": NotebookCreateTool(),
             "notebook_list": NotebookListTool(),
@@ -171,21 +238,31 @@ class MCPServer:
             )
         return tool_list
 
-    async def handle_request(self, request: MCPRequest) -> MCPResponse:
-        """Handle incoming MCP request"""
+    async def handle_request(self, request: MCPRequest) -> Optional[MCPResponse]:
+        """Handle incoming MCP request.
+
+        Returns ``None`` for JSON-RPC notifications, which must not be
+        answered (for example ``notifications/initialized``).
+        """
         try:
             method = request.method
             params = request.params or {}
 
+            if method and method.startswith("notifications/"):
+                return None
+
             # Handle MCP protocol methods
             if method == "initialize":
-                tool_list = self.get_tool_list()
+                requested = params.get("protocolVersion")
+                protocol_version = (
+                    requested
+                    if requested in SUPPORTED_PROTOCOL_VERSIONS
+                    else DEFAULT_PROTOCOL_VERSION
+                )
                 result = {
-                    "protocolVersion": "2024-11-05",
+                    "protocolVersion": protocol_version,
                     "serverInfo": self.server_info,
-                    "capabilities": {
-                        "tools": {tool["name"]: tool for tool in tool_list}
-                    },
+                    "capabilities": {"tools": {"listChanged": False}},
                 }
                 return MCPResponse(jsonrpc="2.0", id=request.id, result=result)
 
@@ -221,11 +298,33 @@ class MCPServer:
                     )
 
                 tool = self.tools[tool_name]
-                result = await tool.execute(tool_arguments)
+                raw_result = await tool.execute(tool_arguments)
+                if request.legacy_result:
+                    result = raw_result
+                else:
+                    result = format_tool_result(raw_result)
 
                 return MCPResponse(jsonrpc="2.0", id=request.id, result=result)
 
             elif method == "ping":
+                return MCPResponse(jsonrpc="2.0", id=request.id, result={})
+
+            elif method == "resources/list":
+                return MCPResponse(
+                    jsonrpc="2.0", id=request.id, result={"resources": []}
+                )
+
+            elif method == "resources/templates/list":
+                return MCPResponse(
+                    jsonrpc="2.0", id=request.id, result={"resourceTemplates": []}
+                )
+
+            elif method == "prompts/list":
+                return MCPResponse(
+                    jsonrpc="2.0", id=request.id, result={"prompts": []}
+                )
+
+            elif method == "logging/setLevel":
                 return MCPResponse(jsonrpc="2.0", id=request.id, result={})
 
             else:
@@ -275,6 +374,10 @@ class MCPServer:
 
                     # Handle request
                     response = await self.handle_request(request)
+
+                    # Notifications are not answered.
+                    if response is None:
+                        continue
 
                     # Write response to protocol stdout
                     response_dict = {"jsonrpc": response.jsonrpc, "id": response.id}
@@ -335,6 +438,10 @@ class MCPServer:
 
                 # Handle request
                 response = await self.handle_request(mcp_request)
+
+                # Notifications are acknowledged without a JSON-RPC response.
+                if response is None:
+                    return web.Response(status=202)
 
                 # Build response dict
                 response_dict = {"jsonrpc": response.jsonrpc, "id": response.id}

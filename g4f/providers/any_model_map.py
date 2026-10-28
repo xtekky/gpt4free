@@ -9,7 +9,6 @@ model_map = {
     "GLM": "",
     "KiloCode": "",
     "CopilotApp": "",
-    "OpenCode": "",
     "DeepInfra": "",
     "Ollama": "",
     "Pollinations": "",
@@ -311,7 +310,6 @@ model_map = {
     "GeminiPro": "gemini-3.1-pro",
     "Arena": "gemini-3.1-pro-preview",
     "KiloCode": "google/gemini-3.1-pro-preview",
-    "OpenCode": "gemini-3.1-pro",
     "OpenRouter": "google/gemini-3.1-pro-preview:batch",
     "Puter": "openrouter:google/gemini-3.1-pro-preview:batch"
   },
@@ -335,7 +333,6 @@ model_map = {
     "GithubCopilot": "gemini-3.6-flash",
     "Arena": "gemini-3.6-flash",
     "KiloCode": "google/gemini-3.6-flash",
-    "OpenCode": "gemini-3.6-flash",
     "OpenRouter": "google/gemini-3.6-flash:batch",
     "Puter": "openrouter:google/gemini-3.6-flash:batch"
   },
@@ -348,7 +345,6 @@ model_map = {
     "GithubCopilot": "gemini-3.7-flash",
     "Arena": "gemini-3.7-flash",
     "KiloCode": "google/gemini-3.7-flash",
-    "OpenCode": "gemini-3.7-flash",
     "OpenRouter": "google/gemini-3.7-flash:batch",
     "Puter": "openrouter:google/gemini-3.7-flash:batch"
   },
@@ -360,7 +356,6 @@ model_map = {
     "GeminiPro": "gemini-3.8-flash",
     "GithubCopilot": "gemini-3.8-flash",
     "KiloCode": "google/gemini-3.8-flash",
-    "OpenCode": "gemini-3.8-flash",
     "OpenRouter": "google/gemini-3.8-flash:batch",
     "Puter": "openrouter:google/gemini-3.8-flash:batch"
   },
@@ -375,7 +370,6 @@ model_map = {
     "GeminiPro": "gemini-3.5-flash-lite",
     "Arena": "gemini-3.5-flash-lite",
     "KiloCode": "google/gemini-3.5-flash-lite",
-    "OpenCode": "gemini-3.5-flash-lite",
     "OpenRouter": "google/gemini-3.5-flash-lite:batch",
     "Puter": "openrouter:google/gemini-3.5-flash-lite:batch"
   },
@@ -387,7 +381,6 @@ model_map = {
     "GithubCopilot": "gemini-3.5-flash",
     "Arena": "gemini-3.5-flash",
     "KiloCode": "google/gemini-3.5-flash",
-    "OpenCode": "gemini-3.5-flash",
     "OpenRouter": "google/gemini-3.5-flash:batch",
     "Puter": "openrouter:google/gemini-3.5-flash:batch"
   },
@@ -616,7 +609,6 @@ model_map = {
     "HuggingChat": "deepseek-ai/DeepSeek-V4.1-Flash",
     "KiloCode": "deepseek/deepseek-v4.1-flash",
     "Ollama": "deepseek-v4.1-flash",
-    "OpenCode": "deepseek-v4.1-flash",
     "OpenRouter": "deepseek/deepseek-v4.1-flash",
     "Puter": "togetherai:deepseek-ai/deepseek-v4.1-flash"
   },
@@ -630,7 +622,6 @@ model_map = {
     "Nvidia": "z-ai/glm-5.3",
     "KiloCode": "z-ai/glm-5.3",
     "Ollama": "glm-5.3",
-    "OpenCode": "glm-5.3",
     "OpenRouter": "z-ai/glm-5.3:batch",
     "Puter": "z-ai:z-ai/glm-5.3"
   },
@@ -644,7 +635,6 @@ model_map = {
     "Nvidia": "z-ai/glm-5.3-flash",
     "KiloCode": "z-ai/glm-5.3-flash",
     "Ollama": "glm-5.3-flash",
-    "OpenCode": "glm-5.3-flash",
     "OpenRouter": "z-ai/glm-5.3-flash:batch",
     "Puter": "z-ai:z-ai/glm-5.3-flash"
   },
@@ -657,7 +647,6 @@ model_map = {
     "Nvidia": "moonshotai/kimi-k3",
     "KiloCode": "moonshotai/kimi-k3",
     "Ollama": "kimi-k3",
-    "OpenCode": "kimi-k3",
     "OpenRouter": "moonshotai/kimi-k3:batch",
     "Puter": "togetherai:moonshotai/kimi-k3"
   },
@@ -699,7 +688,6 @@ model_map = {
     "HuggingChat": "zai-org/GLM-5.2-FP8",
     "KiloCode": "z-ai/glm-5.2:free",
     "Ollama": "glm-5.2",
-    "OpenCode": "glm-5.2",
     "OpenRouter": "z-ai/glm-5.2:free",
     "OpenRouterFree": "z-ai/glm-5.2:free",
     "Puter": "z-ai:z-ai/glm-5.2"
@@ -713,7 +701,6 @@ model_map = {
     "HuggingChat": "moonshotai/Kimi-K2.7-Code",
     "KiloCode": "moonshotai/kimi-k2.7-code",
     "Ollama": "kimi-k2.7-code",
-    "OpenCode": "kimi-k2.7-code",
     "OpenRouter": "moonshotai/kimi-k2.7-code",
     "Puter": "openrouter:moonshotai/kimi-k2.7-code"
   },
@@ -738,7 +725,6 @@ model_map = {
     "RelayRouter": "deepseek-v4-flash",
     "KiloCode": "deepseek/deepseek-v4-flash",
     "Ollama": "deepseek-v4-flash:0731",
-    "OpenCode": "deepseek-v4-flash-free",
     "OpenRouter": "deepseek/deepseek-v4-flash",
     "OrcaRouter": "deepseek/deepseek-v4-flash-free",
     "Puter": "openrouter:~deepseek/deepseek-v4-flash-latest"
@@ -751,7 +737,6 @@ model_map = {
     "HuggingChat": "deepseek-ai/DeepSeek-V4-Pro",
     "KiloCode": "deepseek/deepseek-v4-pro",
     "Ollama": "deepseek-v4-pro:0813",
-    "OpenCode": "deepseek-v4-pro",
     "OpenRouter": "deepseek/deepseek-v4-pro",
     "Puter": "openrouter:deepseek/deepseek-v4-pro"
   },
@@ -764,7 +749,6 @@ model_map = {
     "Nvidia": "moonshotai/kimi-k2.6",
     "KiloCode": "moonshotai/kimi-k2.6",
     "Ollama": "kimi-k2.6",
-    "OpenCode": "kimi-k2.6",
     "OpenRouter": "moonshotai/kimi-k2.6",
     "Puter": "openrouter:moonshotai/kimi-k2.6"
   },
@@ -797,7 +781,6 @@ model_map = {
     "Arena": "glm-5.1",
     "KiloCode": "z-ai/glm-5.1",
     "Ollama": "glm-5.1",
-    "OpenCode": "glm-5.1",
     "OpenRouter": "z-ai/glm-5.1",
     "Puter": "z-ai:z-ai/glm-5.1"
   },
@@ -906,7 +889,6 @@ model_map = {
     "G4FSpace": "srv_mr9dda21bf67b4c62086:deepseek/deepseek-v4-flash-vision-exp",
     "HuggingChat": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
     "KiloCode": "deepseek/deepseek-v4-flash-vision-exp",
-    "OpenCode": "deepseek-v4-flash-vision-exp",
     "OpenRouter": "deepseek/deepseek-v4-flash-vision-exp:batch",
     "Puter": "openrouter:deepseek/deepseek-v4-flash-vision-exp:batch"
   },
@@ -955,7 +937,6 @@ model_map = {
     "HuggingFace": "inclusionAI/Ling-3.0-flash-Fin",
     "HuggingChat": "inclusionAI/Ling-3.0-flash-Fin",
     "KiloCode": "inclusionai/ling-3.0-flash-fin:free",
-    "OpenCode": "ling-3.0-flash-fin-free",
     "OpenRouter": "inclusionai/ling-3.0-flash-fin:free",
     "OpenRouterFree": "inclusionai/ling-3.0-flash-fin:free",
     "Puter": "openrouter:inclusionai/ling-3.0-flash-fin:free"
@@ -969,7 +950,6 @@ model_map = {
     "MiniMax": "MiniMax-M3",
     "KiloCode": "minimax/minimax-m3",
     "Ollama": "minimax-m3",
-    "OpenCode": "minimax-m3",
     "OpenRouter": "minimax/minimax-m3:batch",
     "Puter": "togetherai:minimaxai/minimax-m3"
   },
@@ -1166,7 +1146,6 @@ model_map = {
     "Airforce": "kimi-k2.5",
     "HuggingChat": "moonshotai/Kimi-K2.5",
     "KiloCode": "moonshotai/kimi-k2.5",
-    "OpenCode": "kimi-k2.5",
     "OpenRouter": "moonshotai/kimi-k2.5",
     "Puter": "openrouter:moonshotai/kimi-k2.5"
   },
@@ -1187,7 +1166,6 @@ model_map = {
     "Arena": "mimo-v2.5",
     "RelayRouter": "mimo-v2.5",
     "KiloCode": "xiaomi/mimo-v2.5",
-    "OpenCode": "mimo-v2.5-free",
     "OpenRouter": "xiaomi/mimo-v2.5",
     "Puter": "openrouter:xiaomi/mimo-v2.5"
   },
@@ -1286,7 +1264,6 @@ model_map = {
     "MiniMax": "MiniMax-M2.7",
     "KiloCode": "minimax/minimax-m2.7",
     "Ollama": "minimax-m2.7",
-    "OpenCode": "minimax-m2.7",
     "OpenRouter": "minimax/minimax-m2.7",
     "Puter": "openrouter:minimax/minimax-m2.7"
   },
@@ -1408,7 +1385,6 @@ model_map = {
     "HuggingChat": "MiniMaxAI/MiniMax-M2.5",
     "Arena": "minimax-m2.5",
     "KiloCode": "minimax/minimax-m2.5",
-    "OpenCode": "minimax-m2.5",
     "OpenRouter": "minimax/minimax-m2.5",
     "Puter": "openrouter:minimax/minimax-m2.5"
   },
@@ -1512,7 +1488,6 @@ model_map = {
     "HuggingChat": "zai-org/GLM-5",
     "Arena": "glm-5",
     "KiloCode": "z-ai/glm-5",
-    "OpenCode": "glm-5",
     "OpenRouter": "z-ai/glm-5",
     "Puter": "z-ai:z-ai/glm-5"
   },

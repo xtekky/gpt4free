@@ -124,6 +124,7 @@ class MCPToolManager:
             id=0,
             method="tools/call",
             params={"name": name, "arguments": arguments},
+            legacy_result=True,
         )
         response = await self.server.handle_request(request)
         if response.error:

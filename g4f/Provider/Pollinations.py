@@ -45,6 +45,7 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
     working = True
     supports_native_tools = True
+    models_need_auth = True
 
     # API endpoints
     image_api_endpoint = "https://image.pollinations.ai/prompt/{}"

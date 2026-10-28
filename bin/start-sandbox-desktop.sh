@@ -301,7 +301,7 @@ case "$ACTION" in
             --shm-size 2gb
             -p "${PORT}:${PORT}"
             -p "${VNC_PORT}:${VNC_PORT}"
-            -v "${REPO_ROOT}:/app"
+            -v "${REPO_ROOT}:/app/gpt4free"
             -e "XDG_RUNTIME_DIR=/tmp/sandbox-runtime"
             -e "SANDBOX_DESKTOP=$([ "$NO_DESKTOP" -eq 1 ] && echo 0 || echo 1)"
         )

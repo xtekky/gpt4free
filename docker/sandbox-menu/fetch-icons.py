@@ -83,6 +83,7 @@ ICONS: dict[str, list[str]] = {
     "qwencode": [google("qwen.ai")],
     "claude-code": [google("claude.ai")],
     "codex": [google("openai.com")],
+    "cindy": [google("cindy.app"), github("makecindy")],
     "copilot": ["https://github.githubassets.com/favicons/favicon.svg"],
     "cline": [google("cline.bot")],
     "amp": [google("ampcode.com")],
@@ -107,6 +108,7 @@ ICONS: dict[str, list[str]] = {
     # Gateways
     "omniroute": [google("omniroute.online")],
     "litellm": [google("litellm.ai")],
+    "langfuse": [google("langfuse.com"), github("langfuse")],
     "proxy": [google("mitmproxy.org")],
     "tunnel": [google("cloudflare.com")],
     # Local AI
@@ -125,6 +127,7 @@ ICONS: dict[str, list[str]] = {
     "cptr": [github("open-webui"), google("openwebui.com")],
     # Editors
     "code-server": [google("coder.com"), github("coder")],
+    "kate": [google("kate-editor.org"), github("KDE")],
     # Assistants
     "openclaw": ["https://openclaw.ai/favicon.svg"],
     "fabric": [github("danielmiessler")],

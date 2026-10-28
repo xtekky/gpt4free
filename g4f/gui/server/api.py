@@ -46,6 +46,13 @@ PROVIDERS_CACHE_TTL = 5 * 60
 _providers_cache_writable = True
 
 
+def _normalize_version(version):
+    """Return a version string without a leading ``v`` (e.g. ``v8.8.3`` -> ``8.8.3``)."""
+    if isinstance(version, str) and version.startswith("v"):
+        return version[1:]
+    return version
+
+
 class Api:
     models_lock = threading.Lock()
 
@@ -248,8 +255,8 @@ class Api:
         except VersionNotFoundError:
             pass
         return {
-            "version": current_version,
-            "latest_version": latest_version,
+            "version": _normalize_version(current_version),
+            "latest_version": _normalize_version(latest_version),
         }
 
     def serve_images(self, name):

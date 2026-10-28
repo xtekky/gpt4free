@@ -86,6 +86,7 @@ except ImportError:
 
 from .fetch_and_scrape import scrape_text
 from ..files import secure_filename, get_bucket_dir
+from ..har import sanitize_har_text
 from ..image import is_allowed_extension
 from ..requests.aiohttp import get_connector
 from ..providers.asyncio import to_sync_generator
@@ -255,7 +256,10 @@ def stream_read_files(
         elif has_beautifulsoup4 and filename.endswith(".html"):
             yield from scrape_text(file_path.read_text(errors="ignore"))
         elif extension in PLAIN_FILE_EXTENSIONS:
-            yield file_path.read_text(errors="ignore").strip()
+            text = file_path.read_text(errors="ignore").strip()
+            if extension == "har":
+                text = sanitize_har_text(text)
+            yield text
         yield f"\n<-- End -->\n\n"
 
 

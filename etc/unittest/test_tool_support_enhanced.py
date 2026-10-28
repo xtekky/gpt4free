@@ -127,6 +127,42 @@ class TestToolSupportEnhanced(unittest.TestCase):
         self.assertEqual(len(res_code), 1)
         self.assertEqual(res_code[0]["name"], "calc")
 
+    def test_parse_tool_calls_from_text_dsml(self):
+        dsml_text = (
+            "<|DSML|tool_calls>\n"
+            "<|DSML|invoke name=\"sample_get_weather\">\n"
+            "<|DSML|parameter name=\"location\" string=\"true\">Tokyo</|DSML|parameter>\n"
+            "<|DSML|parameter name=\"unit\" string=\"true\">celsius</|DSML|parameter>\n"
+            "</|DSML|invoke>\n"
+            "<|DSML|invoke name=\"calc\">\n"
+            "<|DSML|parameter name=\"expr\" string=\"true\">1+1</|DSML|parameter>\n"
+            "<|DSML|parameter name=\"precision\" string=\"false\">2</|DSML|parameter>\n"
+            "</|DSML|invoke>\n"
+            "</|DSML|tool_calls>"
+        )
+        calls = parse_tool_calls_from_text(dsml_text)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0]["name"], "sample_get_weather")
+        self.assertEqual(calls[0]["arguments"], {"location": "Tokyo", "unit": "celsius"})
+        self.assertEqual(calls[1]["name"], "calc")
+        self.assertEqual(calls[1]["arguments"], {"expr": "1+1", "precision": 2})
+
+        # Full-width separators as emitted by some models.
+        fullwidth = (
+            "<｜DSML｜tool_calls>"
+            "<｜DSML｜invoke name=\"calc\">"
+            "<｜DSML｜parameter name=\"expr\" string=\"true\">2+2</｜DSML｜parameter>"
+            "</｜DSML｜invoke>"
+            "</｜DSML｜tool_calls>"
+        )
+        calls = parse_tool_calls_from_text(fullwidth)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["arguments"], {"expr": "2+2"})
+
+        # Filtering by allowed tool names still applies.
+        calls = parse_tool_calls_from_text(dsml_text, tool_names=["calc"])
+        self.assertEqual([c["name"] for c in calls], ["calc"])
+
     def test_preprocess_tool_messages_anthropic_and_legacy(self):
         messages = [
             {"role": "system", "content": "You are helpful."},

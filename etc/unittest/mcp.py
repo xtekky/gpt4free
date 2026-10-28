@@ -59,8 +59,29 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertIn("serverInfo", response.result)
         self.assertIn("capabilities", response.result)
         self.assertIn("tools", response.result["capabilities"])
+        # MCP capabilities describe behaviour, they do not embed tool schemas.
         self.assertIsInstance(response.result["capabilities"]["tools"], dict)
-        self.assertIn("file_read", response.result["capabilities"]["tools"])
+        self.assertIn("listChanged", response.result["capabilities"]["tools"])
+
+    async def test_initialize_protocol_version_negotiation(self):
+        """A supported client protocol version is echoed back."""
+        server = MCPServer()
+        request = MCPRequest(
+            jsonrpc="2.0",
+            id=6,
+            method="initialize",
+            params={"protocolVersion": "2025-06-18"},
+        )
+        response = await server.handle_request(request)
+        self.assertEqual(response.result["protocolVersion"], "2025-06-18")
+
+    async def test_notification_has_no_response(self):
+        """JSON-RPC notifications must not be answered."""
+        server = MCPServer()
+        request = MCPRequest(
+            jsonrpc="2.0", id=None, method="notifications/initialized", params={}
+        )
+        self.assertIsNone(await server.handle_request(request))
 
     async def test_tools_list(self):
         """Test tools/list method"""
@@ -114,6 +135,83 @@ class TestMCPServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.id, 5)
         self.assertIsNotNone(response.error)
         self.assertEqual(response.error["code"], -32601)
+
+    async def test_tools_call_returns_mcp_content(self):
+        """Tool results use the spec compliant CallToolResult shape."""
+
+        class EchoTool:
+            description = "echo"
+            input_schema = {"type": "object", "properties": {}}
+
+            async def execute(self, arguments):
+                return {
+                    "url": "https://example.com",
+                    "title": "Example",
+                    "content": "hello world",
+                }
+
+        server = MCPServer()
+        server.tools["echo"] = EchoTool()
+        request = MCPRequest(
+            jsonrpc="2.0",
+            id=7,
+            method="tools/call",
+            params={"name": "echo", "arguments": {}},
+        )
+        response = await server.handle_request(request)
+        result = response.result
+        self.assertIsInstance(result["content"], list)
+        self.assertEqual(result["content"][0]["type"], "text")
+        self.assertEqual(result["content"][0]["text"], "hello world")
+        self.assertFalse(result["isError"])
+        self.assertEqual(result["structuredContent"]["url"], "https://example.com")
+        self.assertEqual(result["structuredContent"]["content"], "hello world")
+
+    async def test_tools_call_error_sets_is_error(self):
+        """A tool payload containing ``error`` sets isError on the result."""
+
+        class FailTool:
+            description = "fail"
+            input_schema = {"type": "object", "properties": {}}
+
+            async def execute(self, arguments):
+                return {"error": "boom"}
+
+        server = MCPServer()
+        server.tools["fail"] = FailTool()
+        response = await server.handle_request(
+            MCPRequest(
+                jsonrpc="2.0",
+                id=8,
+                method="tools/call",
+                params={"name": "fail", "arguments": {}},
+            )
+        )
+        self.assertTrue(response.result["isError"])
+        self.assertIn("boom", response.result["content"][0]["text"])
+
+    async def test_legacy_result_keeps_raw_payload(self):
+        """The WebMCP endpoint can opt out of the MCP result conversion."""
+
+        class EchoTool:
+            description = "echo"
+            input_schema = {"type": "object", "properties": {}}
+
+            async def execute(self, arguments):
+                return {"content": "raw"}
+
+        server = MCPServer()
+        server.tools["echo"] = EchoTool()
+        response = await server.handle_request(
+            MCPRequest(
+                jsonrpc="2.0",
+                id=9,
+                method="tools/call",
+                params={"name": "echo", "arguments": {}},
+                legacy_result=True,
+            )
+        )
+        self.assertEqual(response.result, {"content": "raw"})
 
 
 class TestMCPTools(unittest.IsolatedAsyncioTestCase):
@@ -1062,6 +1160,48 @@ class TestMCPServerShellActivation(unittest.TestCase):
         )
         self.assertIsNotNone(response.error)
         self.assertIn("disabled", response.error["message"])
+
+
+class TestBrowserSelectorTools(unittest.IsolatedAsyncioTestCase):
+    """Tests for the selector-based browser tools."""
+
+    TOOL_NAMES = (
+        "browser_click_selector",
+        "browser_type_selector",
+        "browser_select_selector",
+        "browser_scrape",
+        "browser_exists",
+    )
+
+    def test_tools_registered(self):
+        server = MCPServer()
+        for name in self.TOOL_NAMES:
+            self.assertIn(name, server.tools)
+            self.assertIn("selector", server.tools[name].input_schema["properties"])
+
+    async def test_selector_is_required(self):
+        server = MCPServer()
+        for name in self.TOOL_NAMES:
+            result = await server.tools[name].execute({})
+            self.assertIn("error", result, name)
+
+    def test_selector_js_helpers(self):
+        from g4f.mcp.browser_dom import (
+            selector_click_js,
+            selector_exists_js,
+            selector_scrape_js,
+            selector_select_js,
+            selector_type_js,
+        )
+
+        for js in (
+            selector_click_js("#submit"),
+            selector_type_js("#query", "hello", True, False),
+            selector_select_js("#lang", "en"),
+            selector_scrape_js("main", "href"),
+            selector_exists_js(".result"),
+        ):
+            self.assertIn("document.querySelector", js)
 
 
 class TestMCPApiRoute(unittest.TestCase):

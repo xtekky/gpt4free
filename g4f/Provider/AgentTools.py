@@ -378,6 +378,7 @@ async def _execute_tool_call(server, call: dict, kwargs: dict) -> tuple:
                 origin=kwargs.get("origin"),
                 user_id=kwargs.get("user_id"),
                 workspace_secret=kwargs.get("workspace_secret"),
+                legacy_result=True,
             )
         )
         if call_response.error:

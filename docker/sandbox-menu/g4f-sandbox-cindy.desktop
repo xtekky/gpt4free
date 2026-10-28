@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Cindy
+Comment=Cindy desktop AI agent — installs on first click, then opens on the desktop
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Cindy --icon=g4f-sandbox-cindy --command="/usr/local/bin/sandbox-cli cindy"
+Icon=g4f-sandbox-cindy
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=cindy;ai;agent;desktop;coding;;
+StartupNotify=false

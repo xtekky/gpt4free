@@ -18,6 +18,11 @@
 # afterwards the CLI starts instantly in the same terminal window (Chrome
 # opens on the desktop instead). nodejs/npm are already in the image for the
 # npm-based tools, everything else is one click. Runs as `pn`.
+#
+# The g4f API runs the same command for the apps it serves by hostname: a
+# request to <app>.g4f.local for an app that is not running starts
+# `sandbox-cli <app>` in the background (see g4f/api/sandbox_apps.py), so the
+# hostname works without opening the menu first.
 
 set -u
 
@@ -64,11 +69,15 @@ ROOMOTE_INSTALLER="https://get.roomote.dev"
 QODER_INSTALLER="https://qoder.com/install"
 VIBE_INSTALLER="https://mistral.ai/vibe/install.sh"
 UV_INSTALLER="https://astral.sh/uv/install.sh"
-# assistant-ui's setup-agent drives a setup that is shared live between the
-# browser that opened this URL and the agent installing the products. The URL
-# is the browser's link to its agent, not one setup: a finished setup stays on
-# it and the browser's next one replaces it.
-ASSISTANT_UI_SETUP_URL="https://setup.assistant-ui.com/Q2Exyx6AidfK"
+# assistant-ui has no package of its own: its CLI creates the app (see
+# https://www.assistant-ui.com/docs/installation). The app lives in
+# ~/.assistant-ui, its chat route is pointed at the sandbox's g4f API -- which
+# speaks the OpenAI protocol -- so it needs no provider key, and the g4f
+# "auto" model lets g4f pick the provider and the model itself. The port can
+# be moved with ASSISTANT_UI_PORT; keep the URL this entry prints in step with
+# the host router, which reads the same variable.
+ASSISTANT_UI_DIR_NAME=".assistant-ui"
+ASSISTANT_UI_PORT="${ASSISTANT_UI_PORT:-3000}"
 # Local model runtimes and their web UIs.
 OLLAMA_INSTALLER="https://ollama.com/install.sh"
 LMSTUDIO_INSTALLER="https://lmstudio.ai/install.sh"
@@ -83,6 +92,12 @@ JAN_RELEASE_BASE="https://github.com/janhq/jan/releases/download"
 # (see ensure_librechat) and needs MongoDB, which the image does not ship.
 LOBECHAT_RELEASE_BASE="https://github.com/lobehub/lobehub/releases/download"
 MSTY_APPIMAGE_URL="https://next-assets.msty.studio/app/latest/linux/MstyStudio_x86_64.AppImage"
+# Cindy is an Electron desktop agent published as a regional Debian package.
+# The tag is resolved from the GitHub API and the package is unpacked into a
+# user-owned prefix by the installer shipped in the release itself.
+CINDY_REPO="https://github.com/makecindy/cindy"
+CINDY_REGION="${CINDY_REGION:-global}"
+CINDY_PREFIX="${CINDY_PREFIX:-$HOME/.local/opt/cindy}"
 LIBRECHAT_REPO="https://github.com/danny-avila/LibreChat.git"
 # MongoDB publishes no trixie build of mongodb-org-server, so the server comes
 # from the bookworm repository (the .deb is self-contained) or, on arm64, from
@@ -271,7 +286,7 @@ save_sandbox_settings() { # <model> <home> <provider> <proxy>
     {
         printf '# g4f sandbox settings — written by: sandbox-cli settings\n'
         printf '# Read by the menu launchers (HOME, proxy) and the g4f-aware ones\n'
-        printf '# (OpenCode, Copilot, Hermes).\n'
+        printf '# (OpenCode, Copilot, Hermes, LibreChat, assistant-ui).\n'
         printf 'G4F_MODEL=%s\n' "$1"
         printf 'SANDBOX_HOME=%s\n' "$2"
         printf 'G4F_PROVIDER=%s\n' "$3"
@@ -353,14 +368,14 @@ usage: sandbox-cli settings                    ask for model, HOME, provider and
        sandbox-cli settings --unset            drop the file and use the defaults
 
 HOME and PROXY apply to every menu entry. The g4f-aware launchers (OpenCode,
-Copilot, Hermes, LibreChat) additionally read the model and provider; the
-environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME, G4F_SANDBOX_PROVIDER
-and G4F_SANDBOX_PROXY override them. PROXY is exported as G4F_PROXY (for g4f)
-and as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents), with loopback kept
-direct. The launchers always register the g4f provider with the "auto" model; a
-saved model is also registered and becomes the tool's default, while without
-one the tool keeps its own default model. Copilot only applies its BYOK
-provider when a model is set.
+Copilot, Hermes, LibreChat, assistant-ui) additionally read the model and
+provider; the environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME,
+G4F_SANDBOX_PROVIDER and G4F_SANDBOX_PROXY override them. PROXY is exported as
+G4F_PROXY (for g4f) and as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents),
+with loopback kept direct. The launchers always register the g4f provider with
+the "auto" model; a saved model is also registered and becomes the tool's
+default, while without one the tool keeps its own default model. Copilot only
+applies its BYOK provider when a model is set.
 EOF
 }
 
@@ -1042,6 +1057,179 @@ MSTY_WRAPPER
     have msty || die "msty not on PATH after the install"
 }
 
+# Cindy's user installer unpacks the .deb with bsdtar (libarchive-tools on
+# Debian); the image does not ship it because it is only needed here.
+ensure_bsdtar() {
+    have bsdtar && return 0
+    log "installing libarchive-tools (needed by the Cindy installer)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq libarchive-tools \
+        || die "could not install libarchive-tools"
+    have bsdtar || die "bsdtar not on PATH after installing libarchive-tools"
+}
+
+# Write a stable ~/.local/bin/cindy launcher. The packaged app runs on Electron
+# and containers/hardened hosts without unprivileged user namespaces need
+# --no-sandbox; the AppImage entries make the same fail-safe.
+write_cindy_launcher() {
+    mkdir -p "$HOME/.local/bin"
+    {
+        printf '#!/bin/bash\nprefix=%q\n' "$CINDY_PREFIX"
+        cat <<'CINDY_LAUNCHER'
+args=()
+if ! unshare -Ur true 2>/dev/null; then
+    args+=(--no-sandbox)
+fi
+exec "$prefix/launch" "${args[@]}" "$@"
+CINDY_LAUNCHER
+    } > "$HOME/.local/bin/cindy"
+    chmod +x "$HOME/.local/bin/cindy"
+}
+
+# Install the official Linux package when there is no source checkout. The
+# release's own install-user.sh extracts the .deb into a user-owned prefix (no
+# apt/dpkg, no root) and writes $CINDY_PREFIX/launch.
+ensure_cindy_release() {
+    have cindy && return 0
+    local arch tag url tmp sha
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) arch=x64 ;;
+        arm64|aarch64) arch=arm64 ;;
+        *) die "Cindy publishes no Linux build for $(dpkg --print-architecture)" ;;
+    esac
+    case "$CINDY_REGION" in
+        global|cn) ;;
+        *) die "CINDY_REGION must be global or cn" ;;
+    esac
+    ensure_electron_libs
+    ensure_bsdtar
+    tag="$(curl -fsSL "https://api.github.com/repos/makecindy/cindy/releases/latest" \
+        | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+    [ -n "$tag" ] || die "could not resolve the latest Cindy release"
+    url="$CINDY_REPO/releases/download/$tag/cindy-${tag#v}-linux-$arch-$CINDY_REGION.deb"
+    log "installing Cindy ($tag, $CINDY_REGION)..."
+    tmp="$(mktemp -d)"
+    if ! curl -fL --retry 2 -o "$tmp/cindy.deb" "$url"; then
+        rm -rf "$tmp"
+        die "could not download Cindy ($url)"
+    fi
+    sha="$(sha256sum "$tmp/cindy.deb" | cut -d' ' -f1)"
+    if ! curl -fsSL -o "$tmp/install-user.sh" \
+        "https://raw.githubusercontent.com/makecindy/cindy/$tag/apps/desktop/resources/linux/install-user.sh"; then
+        rm -rf "$tmp"
+        die "could not download the Cindy installer"
+    fi
+    if ! bash "$tmp/install-user.sh" --install "$tmp/cindy.deb" "$sha" "$CINDY_PREFIX"; then
+        rm -rf "$tmp"
+        die "Cindy installation failed"
+    fi
+    rm -rf "$tmp"
+    write_cindy_launcher
+    have cindy || die "cindy not on PATH after the install"
+}
+
+# Cindy keeps providers in its own SQLite database and has no CLI for adding
+# one. The sandbox ships a local g4f API, so the app is opened once with a
+# local-mode session, its database is seeded with a "g4f" custom provider and
+# the app is closed again; the caller then launches it normally.
+cindy_user_data_dir() {
+    case "$CINDY_REGION" in
+        cn) printf '%s\n' "$HOME/.config/Cindy" ;;
+        *) printf '%s\n' "$HOME/.config/CindyGlobal" ;;
+    esac
+}
+
+cindy_db_query() { # <db> <sql>
+    CINDY_DB="$1" CINDY_SQL="$2" python3 - <<'CINDY_SQL'
+import os, sqlite3, sys
+try:
+    con = sqlite3.connect("file:%s?mode=ro" % os.environ["CINDY_DB"], uri=True)
+    con.execute(os.environ["CINDY_SQL"]).fetchall()
+except Exception:
+    sys.exit(1)
+CINDY_SQL
+}
+
+provision_cindy() {
+    local profile db base_url pid i
+    profile="$(cindy_user_data_dir)"
+    db="$profile/cindy-local-v1.db"
+    mkdir -p "$profile"
+    if [ ! -f "$profile/app-session.json" ]; then
+        printf '{\n  "activeMode": "local"\n}\n' > "$profile/app-session.json"
+    fi
+    if cindy_db_query "$db" \
+        "select 1 from custom_providers where id = 'g4f'"; then
+        log "Cindy already has the local g4f provider"
+        return 0
+    fi
+    configure_g4f
+    base_url="$G4F_API_BASE_URL"
+    log "adding the local g4f provider to Cindy..."
+    nohup setsid cindy >/tmp/cindy-provision.log 2>&1 &
+    pid=$!
+    i=0
+    while [ "$i" -lt 120 ]; do
+        if cindy_db_query "$db" "select 1 from custom_providers limit 1"; then
+            break
+        fi
+        sleep 1
+        i=$((i + 1))
+    done
+    if [ "$i" -ge 120 ]; then
+        log "Cindy's provider database did not appear; open Cindy once, then run this again"
+        return 0
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null || true
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 1
+        done
+        kill -9 "$pid" 2>/dev/null || true
+    fi
+    CINDY_DB="$db" CINDY_G4F_URL="$base_url" python3 - <<'CINDY_SQL' \
+        || log "could not write Cindy's g4f provider; open Cindy once, then run this again"
+import json, os, sqlite3, time
+runtimes = {
+    "codex": {
+        "baseUrl": os.environ["CINDY_G4F_URL"],
+        "models": [
+            {"id": "default", "name": "g4f default", "defaultEnabled": True},
+            {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "defaultEnabled": True},
+            {"id": "deepseek-v4.1-flash", "name": "DeepSeek V4.1 Flash", "defaultEnabled": True},
+            {"id": "kimi-k3", "name": "Kimi K3", "defaultEnabled": True},
+        ],
+        "wireProtocol": "openai-chat",
+        "modelsUrl": os.environ["CINDY_G4F_URL"] + "/models",
+    }
+}
+now = int(time.time() * 1000)
+con = sqlite3.connect(os.environ["CINDY_DB"])
+con.execute(
+    "insert or replace into custom_providers"
+    " (id, name, runtimes, auth, sort_order, created_at, updated_at)"
+    " values (?, ?, ?, ?, ?, ?, ?)",
+    ("g4f", "g4f", json.dumps(runtimes), json.dumps({"method": "none"}), 0, now, now),
+)
+con.commit()
+con.close()
+CINDY_SQL
+    log "Cindy now has the g4f provider ($base_url)"
+}
+
+# Kate is the KDE text editor and the one editor the menu installs from the
+# distribution instead of a vendor script: Debian ships it as `kate`, and apt
+# pulls its KDE/Qt runtime in with it. The binary lands in /usr/bin, already on
+# PATH, so no link is needed.
+ensure_kate() {
+    have kate && return 0
+    log "installing Kate (apt)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq kate || die "could not install Kate"
+    have kate || die "kate not on PATH after the install"
+}
+
 # LibreChat is not packaged: it is a Node monorepo that needs MongoDB and a
 # full frontend build. The checkout lives in ~/.librechat, the database in
 # ~/.librechat-data (started by ensure_librechat, kept running by run_tool).
@@ -1229,6 +1417,31 @@ ensure_sillytavern() {
 # the machine it runs on, not a copy of it.
 ensure_cptr() {
     ensure_pip cptr cptr
+}
+
+# assistant-ui is installed with its own CLI, which creates the app instead of
+# adding a package: `npx assistant-ui@latest create` downloads the starter
+# template (a Next.js app with the AI SDK chat route) and installs it. The app
+# lives in ~/.assistant-ui; the CLI runs through npx, so nothing is installed
+# globally. The g4f endpoint is written into the app afterwards (see
+# write_assistant_ui_env and write_assistant_ui_route).
+ensure_assistant_ui() {
+    ensure_node
+    have npx || die "npx is not on PATH"
+    local dir="$HOME/$ASSISTANT_UI_DIR_NAME"
+    if [ ! -f "$dir/package.json" ]; then
+        log "creating the assistant-ui app in $dir (npx assistant-ui@latest create)..."
+        rm -rf "$dir"
+        ( cd "$HOME" && npx --yes assistant-ui@latest create \
+            "$ASSISTANT_UI_DIR_NAME" -t minimal --use-npm --no-skills ) \
+            || die "could not create the assistant-ui app"
+    fi
+    [ -f "$dir/package.json" ] || die "the assistant-ui app was not created"
+    if [ ! -d "$dir/node_modules" ]; then
+        log "installing the assistant-ui dependencies (npm install, this takes a while)..."
+        ( cd "$dir" && npm install --no-fund --no-audit ) \
+            || die "the assistant-ui npm install failed"
+    fi
 }
 
 # code-server (VS Code in the browser) ships its own vendor installer. Explicit
@@ -1461,6 +1674,120 @@ configure_hermes_g4f() {
     hermes config unset model.extra_body.provider >/dev/null 2>&1 || true
 }
 
+# The assistant-ui app reads its model settings from .env.local. Only three
+# values are needed: the g4f endpoint, the key the endpoint expects (the
+# sandbox API does not check it) and the model. The model is the g4f "auto"
+# model, which lets g4f pick the provider itself, unless a model was chosen
+# in Sandbox Settings -- then that model (with its provider prefix) is used.
+write_assistant_ui_env() {
+    local env="$HOME/$ASSISTANT_UI_DIR_NAME/.env.local"
+    [ -f "$env" ] || printf '# Written by sandbox-cli.\n' >"$env" \
+        || die "could not create $env"
+    set_env_var "$env" G4F_API_BASE_URL "$G4F_API_BASE_URL"
+    set_env_var "$env" G4F_API_KEY "$G4F_API_KEY"
+    set_env_var "$env" G4F_MODEL "$G4F_PROVIDER_MODEL"
+}
+
+# The chat route of the generated app is replaced with one that talks to the
+# g4f API: the endpoint speaks the OpenAI protocol, so the default provider
+# is a baseURL swap on createOpenAI. The route is written once -- a marker
+# comment keeps later launches from overwriting edits made in the app.
+write_assistant_ui_route() {
+    local route="$HOME/$ASSISTANT_UI_DIR_NAME/app/api/chat/route.ts"
+    mkdir -p "$(dirname "$route")" || die "could not create the chat route directory"
+    if grep -q "sandbox-cli" "$route" 2>/dev/null; then
+        return 0
+    fi
+    cat >"$route" <<'ROUTE'
+// Written by sandbox-cli: the sandbox's g4f API is the model provider.
+// https://www.assistant-ui.com/docs/installation
+import { createOpenAI } from "@ai-sdk/openai";
+import { frontendTools } from "@assistant-ui/ai-sdk";
+import {
+  type JSONSchema7,
+  streamText,
+  convertToModelMessages,
+  type UIMessage,
+} from "ai";
+
+export const maxDuration = 30;
+
+// The g4f API speaks the OpenAI protocol, so the default provider is a
+// baseURL swap. It serves /v1/chat/completions, so the chat model is used
+// (the provider's default model speaks the Responses API instead). The "auto"
+// model lets g4f choose the provider and the model itself; G4F_MODEL in
+// .env.local overrides it.
+const g4f = createOpenAI({
+  baseURL: process.env.G4F_API_BASE_URL || "http://127.0.0.1:8080/v1",
+  apiKey: process.env.G4F_API_KEY || "g4f",
+});
+
+export async function POST(req: Request) {
+  const {
+    messages,
+    system,
+    tools,
+  }: {
+    messages: UIMessage[];
+    system?: string;
+    tools?: Record<string, { description?: string; parameters: JSONSchema7 }>;
+  } = await req.json();
+
+  const aiSDKTools = { ...frontendTools(tools ?? {}) };
+  const result = streamText({
+    abortSignal: req.signal,
+    model: g4f.chat(process.env.G4F_MODEL || "auto"),
+    messages: await convertToModelMessages(messages, { tools: aiSDKTools }),
+    tools: aiSDKTools,
+    ...(system === undefined ? {} : { system }),
+  });
+
+  return result.toUIMessageStreamResponse({
+    onError: (error) =>
+      error instanceof Error ? error.message : String(error),
+  });
+}
+ROUTE
+}
+
+# Next.js blocks dev-only resources (_next chunks, the HMR websocket) whose
+# Origin is not in allowedDevOrigins, which is what the browser sends when the
+# app is opened through the host router (http://assistant-ui.g4f.local/) rather
+# than through 127.0.0.1. Without the entry the page loads but every chunk and
+# the HMR socket come back 403. The generated next.config.ts is replaced with
+# one that lists the sandbox host names and keeps the withAui() wrapper the
+# template ships; the marker comment keeps later launches from overwriting
+# edits made in the app.
+write_assistant_ui_next_config() {
+    local config="$HOME/$ASSISTANT_UI_DIR_NAME/next.config.ts"
+    [ -f "$config" ] || return 0
+    grep -q "sandbox-cli" "$config" 2>/dev/null && return 0
+    local suffix="${G4F_DOMAIN_SUFFIX:-g4f.local}"
+    if grep -q "allowedDevOrigins" "$config" 2>/dev/null; then
+        # A newer template (or the user) already sets it: leave the list alone
+        # and only add the sandbox host names when they are missing.
+        grep -q "assistant-ui\.$suffix" "$config" 2>/dev/null && return 0
+        sed -i "s/allowedDevOrigins: *\[/allowedDevOrigins: [\"assistant-ui.$suffix\", \"*.$suffix\", /" \
+            "$config" || die "could not add the sandbox host names to next.config.ts"
+        return 0
+    fi
+    # Only rewrite the shape the template ships; anything else is left alone
+    # rather than clobbered.
+    grep -q "withAui" "$config" 2>/dev/null || return 0
+    cat >"$config" <<CONFIG
+// Written by sandbox-cli: the app is also served as assistant-ui.$suffix, and
+// Next.js blocks dev resources (chunks, HMR) whose Origin is not listed here.
+import { withAui } from "@assistant-ui/next";
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  allowedDevOrigins: ["assistant-ui.$suffix", "*.$suffix"],
+};
+
+export default withAui(nextConfig);
+CONFIG
+}
+
 # The addresses the sandbox serves through the g4f API: every app is reachable
 # by hostname (<app>.g4f.local, or the port form <port>.g4f.local) on the same
 # g4f API port. Printed by "sandbox-cli urls" and echoed by every install &
@@ -1479,6 +1806,7 @@ public_urls() {
         "http://sillytavern.g4f.local/ (also http://8601.g4f.local/)" \
         "http://cptr.g4f.local/ (also http://8000.g4f.local/)" \
         "http://code-server.g4f.local/ (also http://8602.g4f.local/)" \
+        "http://assistant-ui.g4f.local/ (also http://$ASSISTANT_UI_PORT.g4f.local/)" \
         "http://llamacpp.g4f.local/ (also http://11435.g4f.local/)" \
         "http://lmstudio.g4f.local/ (also http://1234.g4f.local/)" \
         "http://remote-desktop.g4f.local/ (also http://8765.g4f.local/)" \
@@ -1501,11 +1829,12 @@ print('\n'.join(hosts_entries()))
     printf '127.0.0.1 %s\n' \
         "g4f.$suffix" "omniroute.$suffix" "ollama.$suffix" "litellm.$suffix" \
         "librechat.$suffix" "sillytavern.$suffix" "cptr.$suffix" \
-        "code-server.$suffix" "llamacpp.$suffix" "lmstudio.$suffix" \
+        "code-server.$suffix" "assistant-ui.$suffix" \
+        "llamacpp.$suffix" "lmstudio.$suffix" \
         "remote-desktop.$suffix" "desktop.$suffix" "pi-freeflow.$suffix" \
-        "1234.$suffix" "3080.$suffix" "4000.$suffix" "8000.$suffix" \
-        "8080.$suffix" "8601.$suffix" "8602.$suffix" "8765.$suffix" \
-        "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
+        "1234.$suffix" "$ASSISTANT_UI_PORT.$suffix" "3080.$suffix" "4000.$suffix" \
+        "8000.$suffix" "8080.$suffix" "8601.$suffix" "8602.$suffix" \
+        "8765.$suffix" "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
 }
 
 # Print the /etc/hosts block for the host, ready to paste (see the "Host Names"
@@ -1616,6 +1945,16 @@ run_tool() {
         codex)
             ensure_npm @openai/codex codex
             launch Codex codex "${@:2}" ;;
+        cindy)
+            ensure_cindy_release
+            provision_cindy
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Cindy is installed and ready"
+                exit 0
+            fi
+            log "opening Cindy on the desktop"
+            nohup setsid cindy >/tmp/cindy.log 2>&1 &
+            exit 0 ;;
         copilot)
             ensure_npm @github/copilot copilot
             if [ "$INSTALL_ONLY" = 0 ]; then
@@ -1837,6 +2176,17 @@ run_tool() {
             log "starting code-server on http://127.0.0.1:$CODE_SERVER_PORT (Ctrl-C to stop)"
             launch "VS Code Web" code-server --auth none \
                 --bind-addr "127.0.0.1:$CODE_SERVER_PORT" "${@:2}" ;;
+        kate)
+            ensure_kate
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Kate is installed and ready"
+                exit 0
+            fi
+            # Kate is a GUI app: open it on the desktop, detached, so the
+            # launcher terminal can close while the editor keeps running.
+            log "opening Kate on the desktop"
+            nohup setsid kate >/tmp/kate.log 2>&1 &
+            exit 0 ;;
         openclaw)
             ensure_script "$OPENCLAW_INSTALLER" openclaw "OpenClaw"
             launch OpenClaw openclaw "${@:2}" ;;
@@ -1909,6 +2259,9 @@ run_tool() {
         litellm)
             ensure_pip 'litellm[proxy]' litellm
             launch "LiteLLM gateway" litellm "${@:2}" ;;
+        langfuse)
+            ensure_npm @langfuse/cli langfuse
+            launch "Langfuse CLI" langfuse "${@:2}" ;;
         sgpt)
             ensure_pip shell-gpt sgpt
             launch ShellGPT sgpt "${@:2}" ;;
@@ -1916,21 +2269,23 @@ run_tool() {
             ensure_pip llm llm
             launch "LLM CLI" llm "${@:2}" ;;
         assistant-ui)
-            ensure_node
-            have npx || die "npx is not on PATH"
+            ensure_assistant_ui
             if [ "$INSTALL_ONLY" = 1 ]; then
-                log "assistant-ui's setup-agent is ready (runs through npx)"
+                log "assistant-ui is installed and ready"
                 exit 0
             fi
-            # setup-agent is a thin Statewire client, not an installer: it
-            # prints the setup's instructions and current state, then the
-            # agent drives it from this shell (stream, wait, plan, add-step,
-            # step, done). It is meant for a coding agent, so with none
-            # detected it offers to start one -- which is why this entry opens
-            # a terminal instead of installing anything itself.
-            log "starting the assistant-ui setup (Ctrl-C to stop)"
-            launch "assistant-ui" npx --yes setup-agent \
-                "$ASSISTANT_UI_SETUP_URL" "${@:2}" ;;
+            # The app is a web app: the Next.js dev server runs in the
+            # foreground so the terminal stays open as its console. Its chat
+            # route talks to the g4f API on the loopback interface, so the
+            # chat needs no provider key.
+            configure_g4f
+            write_assistant_ui_env
+            write_assistant_ui_route
+            write_assistant_ui_next_config
+            log "starting assistant-ui on http://127.0.0.1:$ASSISTANT_UI_PORT (Ctrl-C to stop)"
+            cd "$HOME/$ASSISTANT_UI_DIR_NAME" || die "the assistant-ui app is missing"
+            launch "assistant-ui" npm run dev -- \
+                --port "$ASSISTANT_UI_PORT" --hostname 127.0.0.1 "${@:2}" ;;
         *)
             die "unknown tool \"$1\" — run: sandbox-cli list" ;;
     esac
@@ -1971,6 +2326,7 @@ list_tools() {
     printf '%s\n' "Coding Agents"
     printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
+        cindy       "Cindy desktop AI agent" \
         omp         "Oh My Pi (OMP) coding agent" \
         pi          "Pi coding agent" \
         kilocode    "Kilo Code terminal agent" \
@@ -2004,6 +2360,7 @@ list_tools() {
     printf '  %-15s %s\n' \
         omniroute   "OmniRoute AI router/gateway" \
         litellm     "LiteLLM AI gateway" \
+        langfuse    "Langfuse LLM observability CLI" \
         pi-freeflow "Freeflow API on port 28180 (35 free models)" \
         proxy       "mitmproxy HTTP(S) proxy server" \
         tunnel      "Tunnel client (public HTTPS URL via cloudflared)"
@@ -2019,18 +2376,19 @@ list_tools() {
         lobechat    "LobeChat desktop app" \
         msty        "Msty Studio desktop app" \
         sillytavern "SillyTavern web UI for role-play chats" \
-        cptr        "Open WebUI Computer (files + terminal + AI)"
+        cptr        "Open WebUI Computer (files + terminal + AI)" \
+        assistant-ui "assistant-ui web UI (Next.js, backed by the g4f API)"
     printf '%s\n' "Editors"
     printf '  %-15s %s\n' \
-        code-server "VS Code Web (code-server)"
+        code-server "VS Code Web (code-server)" \
+        kate        "Kate text editor (KDE)"
     printf '%s\n' "Assistants"
     printf '  %-15s %s\n' \
         openclaw    "OpenClaw CLI" \
         fabric      "Fabric AI patterns CLI" \
         sgpt        "ShellGPT shell assistant" \
         gptme       "gptme terminal agent" \
-        llm         "LLM CLI by Simon Willison" \
-        assistant-ui "assistant-ui setup (setup-agent)"
+        llm         "LLM CLI by Simon Willison"
 }
 
 case "${1:-}" in

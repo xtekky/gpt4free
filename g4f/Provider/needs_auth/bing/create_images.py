@@ -46,7 +46,6 @@ def create_session(
     """
     headers = {
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-encoding": "gzip, deflate, br",
         "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh-TW;q=0.7,zh;q=0.6",
         "content-type": "application/x-www-form-urlencoded",
         "referrer-policy": "origin-when-cross-origin",

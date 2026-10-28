@@ -28,6 +28,3 @@ services:
     environment:
       - XDG_RUNTIME_DIR=/tmp/sandbox-runtime
       # - SANDBOX_DESKTOP=0
-    # --debug turns on g4f's verbose logging, so `docker compose logs` shows
-    # provider selection, request handling and HAR captures.
-    command: ["g4f-go", "dev", "--port", "8080"]

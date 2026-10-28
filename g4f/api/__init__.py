@@ -129,6 +129,7 @@ from .stubs import (
     AudioSpeechConfig,
 )
 from g4f import debug
+from g4f import tracing
 
 try:
     from g4f.gui.server.crypto import create_or_read_keys, decrypt_data, get_session_key
@@ -301,15 +302,8 @@ def _save_request_har(request: Request, entry: dict) -> None:
         request_entry = {
             "method": entry.get("method"),
             "url": str(request.url),
-            "httpVersion": "HTTP/1.1",
             "headers": _headers_to_har(req_headers),
-            "queryString": [
-                {"name": name, "value": value}
-                for name, value in request.query_params.items()
-            ],
             "cookies": [],
-            "headersSize": -1,
-            "bodySize": len(req_text),
         }
         if entry.get("request_body") is not None:
             request_entry["postData"] = {
@@ -327,23 +321,12 @@ def _save_request_har(request: Request, entry: dict) -> None:
                         "request": request_entry,
                         "response": {
                             "status": entry.get("status"),
-                            "statusText": "",
-                            "httpVersion": "HTTP/1.1",
                             "headers": _headers_to_har(resp_headers),
                             "content": {
                                 "size": len(resp_text),
                                 "mimeType": resp_headers.get("content-type", ""),
                                 "text": resp_text,
                             },
-                            "redirectURL": "",
-                            "headersSize": -1,
-                            "bodySize": len(resp_text),
-                        },
-                        "cache": {},
-                        "timings": {
-                            "send": 0,
-                            "wait": entry.get("duration_ms", 0),
-                            "receive": 0,
                         },
                     }
                 ],
@@ -500,6 +483,7 @@ async def lifespan(app: FastAPI):
     if ProviderLoader.ignored:
         debug.log(f"Ignored providers: {ProviderLoader.ignored}")
     yield
+    tracing.shutdown()
     if has_cdp:
         from g4f.requests.cdp import _terminate_shared_browser
         _terminate_shared_browser()
@@ -877,7 +861,9 @@ class Api:
 
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
-            user = None
+            user = request.headers.get("x-user")
+            if user and user.startswith("XX:") and request.headers.get("cf-ipcountry"):
+                user = f"{request.headers.get('cf-ipcountry')}:{user[3:]}"
             remove_authorization_header = False
             if (
                 request.method != "OPTIONS"
@@ -899,7 +885,7 @@ class Api:
                 ):
                     try:
                         new_user = await self.get_username(request)
-                        if user is None:
+                        if new_user:
                             remove_authorization_header = True
                             user = new_user
                     except HTTPException as e:
@@ -1179,13 +1165,14 @@ class Api:
             except ProviderNotFoundError:
                 return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
+                trace = tracing.RequestTrace()
                 if config.conversation_id is None:
                     config.conversation_id = conversation_id
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
                 if config.stream_timeout is None and config.stream:
                     config.stream_timeout = AppConfig.stream_timeout
-                if credentials is not None and credentials.credentials != "secret":
+                if credentials is not None and len(credentials.credentials) > 8:
                     config.api_key = credentials.credentials
 
                 conversation = config.conversation
@@ -1228,6 +1215,17 @@ class Api:
                                 status_code=HTTP_422_UNPROCESSABLE_CONTENT,
                             )
 
+                trace = tracing.start_request_trace(
+                    "chat.completions",
+                    input=config.messages,
+                    model=config.model or AppConfig.model,
+                    provider=config.provider,
+                    model_parameters=tracing.model_parameters(config),
+                    metadata={"mode": mode, "stream": config.stream},
+                    user_id=x_user,
+                    session_id=config.conversation_id,
+                )
+
                 # Create the completion response
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -1253,6 +1251,8 @@ class Api:
 
                 if not config.stream:
                     result = await response
+                    trace.record_output(result)
+                    trace.finish()
                     return Response(
                         content=result.model_dump_json()
                         if hasattr(result, "model_dump_json")
@@ -1264,6 +1264,7 @@ class Api:
                     )
 
                 first_chunk = await response.__anext__()
+                trace.record_output(first_chunk)
 
                 async def streaming():
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
@@ -1283,18 +1284,22 @@ class Api:
                                         config.provider
                                     ] = chunk
                             else:
+                                trace.record_output(chunk)
                                 yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
                     except GeneratorExit:
                         pass
                     except RateLimitError as e:
                         debug.error(e)
+                        trace.record_error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
                         return
                     except Exception as e:
                         logger.exception(e)
+                        trace.record_error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
                         return
                     finally:
+                        trace.finish()
                         if hasattr(response, "aclose"):
                             try:
                                 await response.aclose()
@@ -1318,16 +1323,24 @@ class Api:
                 )
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
             except (MissingAuthError, NoValidHarFileError) as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
             except RateLimitError as e:
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(
                     e, config, HTTP_429_TOO_MANY_REQUESTS
                 )
             except Exception as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(
                     e, config, HTTP_500_INTERNAL_SERVER_ERROR
                 )
@@ -1356,11 +1369,12 @@ class Api:
             except ProviderNotFoundError:
                 return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
+                trace = tracing.RequestTrace()
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
                 if config.stream_timeout is None and config.stream:
                     config.stream_timeout = AppConfig.stream_timeout
-                if credentials is not None and credentials.credentials != "secret":
+                if credentials is not None and len(credentials.credentials) > 8:
                     config.api_key = credentials.credentials
 
                 # Normalize `input` into a messages list.
@@ -1372,6 +1386,16 @@ class Api:
                         {"role": "system", "content": config.instructions},
                         *messages,
                     ]
+
+                trace = tracing.start_request_trace(
+                    "responses",
+                    input=messages,
+                    model=config.model or AppConfig.model,
+                    provider=config.provider,
+                    model_parameters=tracing.model_parameters(config),
+                    metadata={"stream": config.stream},
+                    user_id=x_user,
+                )
 
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -1396,6 +1420,8 @@ class Api:
 
                 if not config.stream:
                     result = await response
+                    trace.record_output(result)
+                    trace.finish()
                     text = result.choices[0].message.content if result.choices else ""
                     usage = getattr(result, "usage", None)
                     if usage is not None and hasattr(usage, "model_dump"):
@@ -1424,6 +1450,7 @@ class Api:
                     )
 
                 first_chunk = await response.__anext__()
+                trace.record_output(first_chunk)
 
                 async def responses_streaming():
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
@@ -1435,18 +1462,22 @@ class Api:
                             if isinstance(chunk, BaseConversation):
                                 pass
                             else:
+                                trace.record_output(chunk)
                                 yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
                     except GeneratorExit:
                         pass
                     except RateLimitError as e:
                         debug.error(e)
+                        trace.record_error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
                         return
                     except Exception as e:
                         logger.exception(e)
+                        trace.record_error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
                         return
                     finally:
+                        trace.finish()
                         if hasattr(response, "aclose"):
                             try:
                                 await response.aclose()
@@ -1472,16 +1503,24 @@ class Api:
                 )
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
             except (MissingAuthError, NoValidHarFileError) as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
             except RateLimitError as e:
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(
                     e, config, HTTP_429_TOO_MANY_REQUESTS
                 )
             except Exception as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(
                     e, config, HTTP_500_INTERNAL_SERVER_ERROR
                 )
@@ -1510,11 +1549,12 @@ class Api:
             except ProviderNotFoundError:
                 return ErrorResponse.from_message(f"Provider not found: {config.provider}", 404)
             try:
+                trace = tracing.RequestTrace()
                 if config.timeout is None:
                     config.timeout = AppConfig.timeout
                 if config.stream_timeout is None and config.stream:
                     config.stream_timeout = AppConfig.stream_timeout
-                if credentials is not None and credentials.credentials != "secret":
+                if credentials is not None and len(credentials.credentials) > 8:
                     config.api_key = credentials.credentials
 
                 # Anthropic uses a top-level `system` field; fold it into messages.
@@ -1530,6 +1570,17 @@ class Api:
                         {"role": "system", "content": system_content},
                         *messages,
                     ]
+
+                trace = tracing.start_request_trace(
+                    "messages",
+                    input=messages,
+                    model=config.model or AppConfig.model,
+                    provider=config.provider,
+                    model_parameters=tracing.model_parameters(config),
+                    metadata={"stream": config.stream},
+                    user_id=x_user,
+                    session_id=config.conversation_id,
+                )
 
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -1554,6 +1605,8 @@ class Api:
 
                 if not config.stream:
                     result = await response
+                    trace.record_output(result)
+                    trace.finish()
                     text = result.choices[0].message.content if result.choices else ""
                     usage = getattr(result, "usage", None)
                     input_tokens = getattr(usage, "prompt_tokens", 0) or 0
@@ -1580,6 +1633,7 @@ class Api:
                     )
 
                 first_chunk = await response.__anext__()
+                trace.record_output(first_chunk)
 
                 async def messages_streaming():
                     yield f"data: {first_chunk.model_dump_json() if hasattr(first_chunk, 'model_dump_json') else first_chunk.json()}\n\n"
@@ -1591,18 +1645,22 @@ class Api:
                             if isinstance(chunk, BaseConversation):
                                 pass
                             else:
+                                trace.record_output(chunk)
                                 yield f"data: {chunk.model_dump_json() if hasattr(chunk, 'model_dump_json') else chunk.json()}\n\n"
                     except GeneratorExit:
                         pass
                     except RateLimitError as e:
                         debug.error(e)
+                        trace.record_error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
                         return
                     except Exception as e:
                         logger.exception(e)
+                        trace.record_error(e)
                         yield f"data: {format_exception(e, config)}\n\n"
                         return
                     finally:
+                        trace.finish()
                         if hasattr(response, "aclose"):
                             try:
                                 await response.aclose()
@@ -1628,16 +1686,24 @@ class Api:
                 )
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
             except (MissingAuthError, NoValidHarFileError) as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
             except RateLimitError as e:
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(
                     e, config, HTTP_429_TOO_MANY_REQUESTS
                 )
             except Exception as e:
                 logger.exception(e)
+                trace.record_error(e)
+                trace.finish()
                 return ErrorResponse.from_exception(
                     e, config, HTTP_500_INTERNAL_SERVER_ERROR
                 )
@@ -1673,7 +1739,7 @@ class Api:
             if (
                 config.api_key is None
                 and credentials is not None
-                and credentials.credentials != "secret"
+                and len(credentials.credentials) > 8
             ):
                 config.api_key = credentials.credentials
             try:
@@ -2800,6 +2866,9 @@ class Api:
                 workspace_secret=request.headers.get("x-workspace-secret"),
             )
             response = await server.handle_request(mcp_request)
+            if response is None:
+                # JSON-RPC notification: no response body is expected.
+                return Response(status_code=202)
             body: dict = {"jsonrpc": response.jsonrpc, "id": response.id}
             if response.result is not None:
                 body["result"] = response.result

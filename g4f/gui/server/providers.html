@@ -25,174 +25,72 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://g4f.space/providers">
 
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/dist/css/theme.css">
+    <script src="/dist/js/framework.js" defer></script>
+
     <style>
-        :root {
-            --primary: #6e48aa;
-            --secondary: #9d50bb;
-            --accent: #4776E6;
-            --dark: #1a1a2e;
-            --light: #f8f9fa;
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --card-bg: rgba(255,255,255,0.05);
-            --card-border: rgba(255,255,255,0.1);
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, var(--dark), #16213e);
-            color: var(--light);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: rgba(26, 26, 46, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-decoration: none;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .nav-links a {
-            color: var(--light);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: var(--secondary);
-        }
-
-        .main-container {
-            padding: 6rem 2rem 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .page-header {
-            margin-bottom: 2rem;
-        }
-
-        .page-header h1 {
-            font-size: 2.2rem;
-            margin: 0 0 0.5rem;
-            background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .page-header p {
-            color: rgba(255,255,255,0.6);
-            margin: 0;
-            font-size: 1.05rem;
-        }
-
+        /* ---- Providers grid ---- */
         .providers-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1.5rem;
         }
 
         .provider-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            padding: 1.75rem;
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
 
-        .provider-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        .provider-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--accent-light), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .provider-card:hover::before {
+            opacity: 1;
         }
 
         .provider-name {
             font-size: 1.25rem;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 0.75rem;
+            color: #fff;
         }
 
         .provider-url {
-            color: var(--accent);
+            color: var(--accent-light);
             font-size: 0.9rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
+            word-break: break-all;
         }
 
         .provider-details {
             font-size: 0.85rem;
             line-height: 1.6;
-            color: #a0aec0;
+            color: var(--text-secondary);
         }
 
         .provider-details strong {
-            color: var(--accent);
+            color: var(--accent-light);
         }
 
         .provider-actions {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--card-border);
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5a45d6;
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #8a82b8;
+            gap: 0.6rem;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-card);
         }
 
         .no-providers {
@@ -203,16 +101,19 @@
 
         /* ---- Provider detail page ---- */
         .detail-header h1 {
-            font-size: 2.2rem;
-            margin: 0 0 0.25rem;
-            background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent));
+            font-size: 2.6rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin: 0 0 0.35rem;
+            background: linear-gradient(135deg, #ffffff 0%, #e9d5ff 50%, #c084fc 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
+
         .detail-subtitle {
-            color: rgba(255,255,255,0.5);
-            margin: 0 0 1.5rem;
+            color: var(--text-muted);
+            margin: 0 0 1.75rem;
             font-size: 0.95rem;
         }
 
@@ -224,44 +125,52 @@
             margin-bottom: 2rem;
             flex-wrap: wrap;
         }
+
+        .nav-prev-next-bottom {
+            margin-top: 2rem;
+        }
+
         .nav-btn {
             padding: 0.6rem 1.2rem;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.9rem;
             transition: all 0.2s ease;
-            border: 1px solid var(--card-border);
-            background: var(--card-bg);
-            color: var(--light);
+            border: 1px solid var(--border-card);
+            background: var(--bg-card);
+            color: var(--text-primary);
         }
+
         .nav-btn:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: var(--accent);
+            background: var(--bg-card-hover);
+            border-color: var(--accent-light);
+            box-shadow: 0 6px 20px var(--accent-glow);
         }
-        .nav-prev { color: var(--accent); }
-        .nav-next { color: var(--accent); }
-        .nav-back { color: rgba(255,255,255,0.6); }
+
+        .nav-prev { color: var(--accent-light); }
+        .nav-next { color: var(--accent-light); }
+        .nav-back { color: var(--text-secondary); }
 
         .detail-grid {
             display: grid;
             gap: 1.5rem;
             margin-bottom: 1.5rem;
         }
+
         @media (max-width: 768px) {
             .detail-grid { grid-template-columns: 1fr; }
         }
 
         .detail-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1.75rem;
         }
+
         .detail-card h2 {
             font-size: 1.1rem;
+            font-weight: 800;
             margin: 0 0 1rem;
-            color: var(--accent);
+            color: var(--accent-light);
         }
 
         .attr-table {
@@ -269,27 +178,40 @@
             border-collapse: collapse;
             font-size: 0.9rem;
         }
+
         .attr-table th {
             text-align: left;
-            padding: 0.5rem 0.75rem;
-            color: rgba(255,255,255,0.5);
-            font-weight: 500;
-            border-bottom: 1px solid var(--card-border);
+            padding: 0.6rem 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-card);
             white-space: nowrap;
         }
+
         .attr-table td {
-            padding: 0.5rem 0.75rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            color: #c9d1d9;
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
         }
-        .attr-table a { color: var(--accent); text-decoration: none; }
+
+        .attr-table a { color: var(--accent-light); text-decoration: none; }
         .attr-table a:hover { text-decoration: underline; }
 
         .screenshot-section { text-align: center; }
+
         .screenshot-caption {
             font-size: 0.8rem;
-            color: rgba(255,255,255,0.4);
+            color: var(--text-muted);
             margin-top: 0.5rem;
+        }
+
+        .provider-logo {
+            width: 96px;
+            height: 96px;
+            border-radius: 16px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-card);
         }
 
         .model-list, .param-list {
@@ -300,32 +222,114 @@
             flex-wrap: wrap;
             gap: 0.5rem;
         }
+
         .model-list li, .param-list li {
-            background: rgba(71,118,230,0.15);
-            border: 1px solid rgba(71,118,230,0.3);
-            color: #79c0ff;
+            background: rgba(139, 61, 255, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #d8b4fe;
             padding: 0.3rem 0.7rem;
             border-radius: 6px;
             font-size: 0.85rem;
             font-family: ui-monospace, monospace;
         }
+
         .param-list li {
-            background: rgba(157,80,187,0.15);
-            border-color: rgba(157,80,187,0.3);
-            color: #d2a8ff;
+            background: rgba(168, 85, 247, 0.12);
+            border-color: rgba(168, 85, 247, 0.25);
+            color: #e9d5ff;
         }
 
         .detail-models { margin-bottom: 1.5rem; }
+
+        /* ---- Language overlay ---- */
+        .lang-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            background: rgba(6, 4, 12, 0.82);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .lang-overlay.hidden { display: none; }
+
+        .lang-overlay-frame {
+            width: min(1100px, 100%);
+            height: min(760px, 100%);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius);
+            background: var(--bg-main);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+        }
+
+        .lang-btn {
+            background: rgba(139, 61, 255, 0.15);
+            border: 1px solid var(--border-card);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .lang-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent-light);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .lang-btn .fa-spinner {
+            display: none;
+        }
+
+        .lang-btn.busy .fa-spinner {
+            display: inline-block;
+            animation: lang-spin 0.8s linear infinite;
+        }
+
+        @keyframes lang-spin { to { transform: rotate(360deg); } }
+
+        .nav-tools {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
-<body>
+<body class="translate">
     <nav class="navbar">
-        <a href="/" class="logo">G4F</a>
+        <a href="/" class="brand">
+            <div class="brand-logo">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <span class="brand-text">G4F Framework</span>
+        </a>
         <div class="nav-links">
             <a href="/">Home</a>
             <a href="/chat/">Chat</a>
-            <a href="/providers/">Providers</a>
+            <a href="/providers/" class="active">Providers</a>
             <a href="/stats/">Stats</a>
+            <div class="nav-tools">
+                <button type="button" class="lang-btn" id="language-btn" aria-label="Open language selection">
+                    <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                    <span>Language</span>
+                </button>
+                <button type="button" class="lang-btn" id="translate-btn" aria-label="Translate user interface">
+                    <i class="fa-solid fa-language" aria-hidden="true"></i>
+                    <span>Translate UI</span>
+                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -344,5 +348,133 @@
         </div>
         <!-- CONTENT_END -->
     </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 G4F Framework. All Rights Reserved. | <a href="https://github.com/xtekky/gpt4free" target="_blank" rel="noopener noreferrer">GitHub Repository</a></p>
+    </footer>
+
+    <!-- Language selection overlay: the selection page is opened in a frame,
+         it posts back "g4f-language:changed" so this page reloads and picks
+         up the newly loaded translation package. -->
+    <div class="lang-overlay hidden" id="lang-overlay" aria-hidden="true">
+        <iframe class="lang-overlay-frame" id="lang-overlay-frame" title="Language selection"
+                src="about:blank"></iframe>
+    </div>
+
+    <script>
+        (function () {
+            "use strict";
+
+            const overlay = document.getElementById("lang-overlay");
+            const frame = document.getElementById("lang-overlay-frame");
+            const languageBtn = document.getElementById("language-btn");
+            const translateBtn = document.getElementById("translate-btn");
+
+            /* ---- Placeholder templates ------------------------------------
+             * Elements with a "data-tpl" attribute hold a template like
+             * "Provider #{0} of {1}". The template is translated as a whole
+             * and the placeholders are filled with the "data-a<n>" values.
+             * The framework only translates plain text nodes, so these
+             * elements are handled here. */
+            const applyTemplates = () => {
+                document.querySelectorAll("[data-tpl]").forEach((el) => {
+                    const tpl = el.getAttribute("data-tpl") || "";
+                    let text = tpl;
+                    if (window.framework && framework.translate) {
+                        try {
+                            const translated = framework.translate(tpl, false);
+                            // Only apply the translation when it kept every
+                            // placeholder, otherwise the numbers would break.
+                            const holes = tpl.match(/\{\d+\}/g) || [];
+                            if (holes.every((hole) => translated.includes(hole))) {
+                                text = translated;
+                            }
+                        } catch (e) { /* keep the raw template */ }
+                    }
+                    text = text.replace(/\{(\d+)\}/g, (match, index) => {
+                        const value = el.getAttribute("data-a" + index);
+                        return value !== null && value !== undefined ? value : match;
+                    });
+                    el.textContent = text;
+                });
+            };
+
+            const closeOverlay = () => {
+                overlay.classList.add("hidden");
+                overlay.setAttribute("aria-hidden", "true");
+                frame.src = "about:blank";
+            };
+
+            const openOverlay = () => {
+                frame.src = "/language-selection.html";
+                overlay.classList.remove("hidden");
+                overlay.setAttribute("aria-hidden", "false");
+            };
+
+            if (languageBtn) {
+                languageBtn.addEventListener("click", openOverlay);
+            }
+            overlay.addEventListener("click", (event) => {
+                if (event.target === overlay) closeOverlay();
+            });
+
+            window.addEventListener("message", (event) => {
+                if (event.origin !== location.origin) return;
+                const data = event.data || {};
+                if (data.type === "g4f-language:changed" || data.type === "g4f-language:dismiss") {
+                    closeOverlay();
+                    // Reload so the framework rebuilds its translations from the
+                    // newly selected language package.
+                    if (data.type === "g4f-language:changed") {
+                        window.location.reload();
+                    }
+                }
+            });
+
+            if (translateBtn) {
+                translateBtn.addEventListener("click", () => {
+                    if (!window.framework || !framework.translateAll) return;
+                    translateBtn.classList.add("busy");
+                    framework.translateAll()
+                        .catch(() => {})
+                        .finally(() => {
+                            translateBtn.classList.remove("busy");
+                            applyTemplates();
+                        });
+                });
+            }
+
+            // Re-render the templates whenever the framework (re)applies its
+            // translations, so placeholder texts stay in sync with the UI.
+            const install = () => {
+                if (!window.framework) return false;
+                if (!framework.__providersTranslateWrapped && framework.translateAll) {
+                    const original = framework.translateAll.bind(framework);
+                    framework.translateAll = function (...args) {
+                        return original(...args).then((result) => {
+                            applyTemplates();
+                            return result;
+                        });
+                    };
+                    framework.__providersTranslateWrapped = true;
+                }
+                applyTemplates();
+                return true;
+            };
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", () => {
+                    if (!install()) {
+                        // framework.js is deferred — retry once it is ready.
+                        window.addEventListener("load", install, { once: true });
+                    }
+                });
+            } else {
+                if (!install()) {
+                    window.addEventListener("load", install, { once: true });
+                }
+            }
+        })();
+    </script>
 </body>
 </html>

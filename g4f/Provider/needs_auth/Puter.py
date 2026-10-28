@@ -449,7 +449,6 @@ class Puter(AsyncGeneratorProvider, ProviderModelMixin):
                 "sec-fetch-mode": "cors",
                 "sec-fetch-dest": "empty",
                 "referer": "http://docs.puter.com/",
-                "accept-encoding": "gzip",
                 "accept-language": "en-US,en;q=0.9",
             }
 

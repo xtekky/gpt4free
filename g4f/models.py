@@ -131,7 +131,6 @@ default = Model(
             "TeachAnything",
             "OpenaiChat",
             "ChatGPT",
-            "OpenCode",
             "KiloCode",
             "OpenRouterFree",
             "GeminiPro",

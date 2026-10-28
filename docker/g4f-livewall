@@ -1,0 +1,576 @@
+#!/usr/bin/env python3
+"""g4f live wallpaper — an animated, colourful terminal background.
+
+A self-contained ANSI/truecolour animation: a drifting nebula, twinkling
+stars, orbiting particles, a shimmering "g4f" emblem and a live status bar.
+
+Keys: q / Q / Esc / Ctrl-C to quit.
+"""
+
+import math
+import os
+import random
+import select
+import signal
+import sys
+import termios
+import time
+import tty
+
+ESC = "\x1b"
+TAU = math.tau
+HALF_PI = math.pi * 0.5
+
+# Classic "ANSI Shadow" letterforms for g4f (6 rows, 9 columns each).
+GLYPHS = {
+    "g": (
+        " ██████╗ ",
+        "██╔════╝ ",
+        "██║  ███╗",
+        "██║   ██║",
+        "╚██████╔╝",
+        " ╚═════╝ ",
+    ),
+    "4": (
+        "██╗  ██╗ ",
+        "██║  ██║ ",
+        "███████║ ",
+        "╚════██║ ",
+        "     ██║ ",
+        "     ╚═╝ ",
+    ),
+    "f": (
+        "███████╗ ",
+        "██╔════╝ ",
+        "█████╗   ",
+        "██╔══╝   ",
+        "██║      ",
+        "╚═╝      ",
+    ),
+}
+GLYPH_W = 9
+GLYPH_H = 6
+LOGO_W = GLYPH_W * 3 + 2
+LOGO_H = GLYPH_H
+
+ORBIT_COLORS = ((90, 225, 255), (175, 120, 255), (255, 105, 200))
+
+# Fast sine lookup table (4096 entries is plenty for a terminal).
+SIN_N = 4096
+SIN_MASK = SIN_N - 1
+SIN_SCALE = SIN_N / TAU
+SIN = [math.sin(TAU * i / SIN_N) for i in range(SIN_N)]
+
+
+def fsin(a):
+    return SIN[int(a * SIN_SCALE) & SIN_MASK]
+
+
+def fcos(a):
+    return SIN[int((a + HALF_PI) * SIN_SCALE) & SIN_MASK]
+
+
+def hsv2rgb(h, s, v):
+    h = h % 1.0
+    i = int(h * 6.0)
+    f = h * 6.0 - i
+    p = v * (1.0 - s)
+    q = v * (1.0 - f * s)
+    t = v * (1.0 - (1.0 - f) * s)
+    i %= 6
+    if i == 0:
+        r, g, b = v, t, p
+    elif i == 1:
+        r, g, b = q, v, p
+    elif i == 2:
+        r, g, b = p, v, t
+    elif i == 3:
+        r, g, b = p, q, v
+    elif i == 4:
+        r, g, b = t, p, v
+    else:
+        r, g, b = v, p, q
+    return int(r * 255.0), int(g * 255.0), int(b * 255.0)
+
+
+def pack(r, g, b):
+    r = 0 if r < 0 else (255 if r > 255 else int(r))
+    g = 0 if g < 0 else (255 if g > 255 else int(g))
+    b = 0 if b < 0 else (255 if b > 255 else int(b))
+    return (r << 16) | (g << 8) | b
+
+
+# Static neon halo offsets around the emblem.
+GLOW_OFFSETS = []
+for _dy in range(-4, 5):
+    for _dx in range(-6, 7):
+        _d2 = _dx * _dx + _dy * _dy * 2.4
+        if _d2 <= 33.0:
+            GLOW_OFFSETS.append(
+                (_dx, _dy, (1.0 - math.sqrt(_d2) / 5.8) * 0.42)
+            )
+
+
+class Star:
+    __slots__ = ("x", "y", "speed", "phase", "size")
+
+    def __init__(self, rng):
+        self.x = rng.random()
+        self.y = rng.random()
+        self.speed = rng.uniform(0.35, 1.8)
+        self.phase = rng.uniform(0.0, TAU)
+        self.size = rng.random()
+
+
+class Wallpaper:
+    def __init__(self):
+        self.out = sys.stdout.buffer
+        self.prev = None
+        self.w = 0
+        self.h = 0
+        self.rng = random.Random(0x64F)
+        self.stars = []
+        self.t0 = time.monotonic()
+        self.frames = 0
+        self.fps = 0.0
+        self.fps_t = self.t0
+        self.fps_n = 0
+        self.glow = []
+        self.logo_cells = []
+        self.bg_cache = None
+        self.frame_no = 0
+
+    # ---------------------------------------------------------------- setup
+    def enter(self):
+        termios.tcgetattr(sys.stdin.fileno())  # fail early if not a tty
+        self.saved_attrs = termios.tcgetattr(sys.stdin.fileno())
+        tty.setcbreak(sys.stdin.fileno())
+        self.out.write(
+            b"\x1b]0;g4f \xc2\xb7 live wallpaper\x07"
+            b"\x1b[?1049h\x1b[?25l\x1b[2J"
+        )
+        self.out.flush()
+        self.resize()
+
+    def leave(self):
+        try:
+            self.out.write(b"\x1b[0m\x1b[?25h\x1b[?1049l")
+            self.out.flush()
+        finally:
+            try:
+                termios.tcsetattr(
+                    sys.stdin.fileno(), termios.TCSADRAIN, self.saved_attrs
+                )
+            except Exception:
+                pass
+
+    def resize(self):
+        size = os.get_terminal_size(sys.stdout.fileno())
+        self.w = max(20, size.columns)
+        self.h = max(10, size.lines)
+        w, h = self.w, self.h
+        self.prev = None
+        self.out.write(b"\x1b[2J")
+        self.out.flush()
+
+        n_stars = max(40, min(260, (w * h) // 55))
+        self.stars = [Star(self.rng) for _ in range(n_stars)]
+        area = w * h
+        self.block = 2 if area <= 6000 else (3 if area <= 12000 else 4)
+        self.bg_every = 6 if area <= 8000 else 10
+        self.bg_cache = None
+
+        # Emblem geometry is static for a given size.
+        self.x0 = max(0, (w - LOGO_W) // 2)
+        self.y0 = max(1, (h - 15) // 2)
+        self.ty = min(h - 2, self.y0 + LOGO_H + 6)
+        self.sy = self.ty + 2
+        cells = []
+        for gi, glyph in enumerate("g4f"):
+            ox = self.x0 + gi * (GLYPH_W + 1)
+            for gy, row in enumerate(GLYPHS[glyph]):
+                for gx, c in enumerate(row):
+                    if c != " ":
+                        cells.append((ox + gx, self.y0 + gy, c))
+        self.logo_cells = cells
+
+        # Static soft glow field around the emblem.
+        glow = [0.0] * (w * h)
+        for lx, ly, _ in cells:
+            for dx, dy, amt in GLOW_OFFSETS:
+                xx = lx + dx
+                yy = ly + dy
+                if 0 <= xx < w and 0 <= yy < h:
+                    glow[yy * w + xx] += amt
+        self.glow = glow
+
+    # ------------------------------------------------------- background
+    def _background(self, t, pulse):
+        w, h = self.w, self.h
+        n = w * h
+        bg = [0] * n
+        glow = self.glow
+        x0 = self.x0
+        y0 = self.y0
+        sin = fsin
+        cos = fcos
+
+        # --- nebula background ---------------------------------------------
+        # Hoist everything that only depends on one axis.
+        cos_band = [1.5 * cos(x * 0.041 + t * 0.21) for x in range(w)]
+        x1 = [x * 0.052 for x in range(w)]
+        x3 = [x * 0.0432 for x in range(w)]
+        voff = [(x / max(1, w - 1) - 0.5) ** 2 * 1.35 for x in range(w)]
+        inv_h = 1.0 / max(1, h - 1)
+        phase1 = t * 0.42
+        phase3 = t * 0.55
+
+        # The nebula is very low frequency: sample it on a coarse grid so the
+        # animation stays smooth on small and large remote desktops alike.
+        bs = self.block
+        for y in range(0, h, bs):
+            dy = y * inv_h - 0.5
+            p1 = phase1 + 1.8 * sin(y * 0.19 - t * 0.33)
+            p2 = y * 0.23 - t * 0.37
+            p3 = phase3 + y * 0.0672
+            vy = dy * dy * 2.0
+            for x in range(0, w, bs):
+                v1 = sin(x1[x] + p1)
+                a1 = 0.5 + 0.5 * v1
+                v2 = sin(p2 + cos_band[x])
+                a2 = 0.5 + 0.5 * v2
+                v3 = sin(x3[x] + p3)
+                a3 = 0.5 + 0.5 * v3
+
+                r = 3.0 + 24.0 * a1 * a1 + 9.0 * a3 * a3
+                g = 4.0 + 8.0 * a1 * a2 + 27.0 * a2 * a2
+                b = 15.0 + 33.0 * a1 * a2 + 26.0 * a3 * a3
+
+                vig = 1.0 - voff[x] - vy
+                if vig < 0.30:
+                    vig = 0.30
+                r *= vig
+                g *= vig
+                b *= vig
+
+                r = 0 if r < 0 else (255 if r > 255 else int(r))
+                g = 0 if g < 0 else (255 if g > 255 else int(g))
+                b = 0 if b < 0 else (255 if b > 255 else int(b))
+                col = (r << 16) | (g << 8) | b
+
+                row = [col] * min(bs, w - x)
+                for yy in range(y, min(y + bs, h)):
+                    start = yy * w + x
+                    bg[start:start + len(row)] = row
+
+        # Neon halo is added at full resolution so it stays smooth.
+        gx0 = max(0, x0 - 7)
+        gx1 = min(w, x0 + LOGO_W + 7)
+        gy0 = max(0, y0 - 5)
+        gy1 = min(h, y0 + LOGO_H + 6)
+        for y in range(gy0, gy1):
+            base = y * w
+            for x in range(gx0, gx1):
+                gv = glow[base + x] * pulse
+                if gv <= 0.0:
+                    continue
+                if gv > 1.0:
+                    gv = 1.0
+                col = bg[base + x]
+                r = ((col >> 16) & 255) + 62.0 * gv
+                g = ((col >> 8) & 255) + 26.0 * gv
+                b = (col & 255) + 105.0 * gv
+                r = 0 if r < 0 else (255 if r > 255 else int(r))
+                g = 0 if g < 0 else (255 if g > 255 else int(g))
+                b = 0 if b < 0 else (255 if b > 255 else int(b))
+                bg[base + x] = (r << 16) | (g << 8) | b
+
+        return bg
+
+    # --------------------------------------------------------------- drawing
+    def frame(self, t):
+        w, h = self.w, self.h
+        n = w * h
+        ch = [" "] * n
+        fg = [0] * n
+        cells = self.logo_cells
+        x0 = self.x0
+        y0 = self.y0
+        sin = fsin
+        cos = fcos
+
+        pulse = 0.68 + 0.32 * sin(t * 1.15)
+        self.frame_no += 1
+        # The nebula drifts slowly; refresh it twice a second and let the
+        # emblem, stars and orbits animate at the full frame rate.
+        if self.bg_cache is None or self.frame_no % self.bg_every == 0:
+            self.bg_cache = self._background(t, pulse)
+        bg = self.bg_cache.copy()
+
+        # --- stars ----------------------------------------------------------
+        for s in self.stars:
+            tw = 0.5 + 0.5 * sin(t * s.speed + s.phase)
+            tw = 0.10 + 0.90 * tw * tw
+            i = int(s.y * h) * w + int(s.x * w)
+            br = 0.35 + 0.65 * tw
+            if s.size > 0.93:
+                ch[i] = "✦"
+                fg[i] = pack(200 * br + 40, 225 * br + 20, 255 * br + 10)
+            elif s.size > 0.78:
+                ch[i] = "·"
+                fg[i] = pack(150 * br + 35, 175 * br + 35, 240 * br + 25)
+            else:
+                ch[i] = "·"
+                fg[i] = pack(95 * br + 26, 115 * br + 32, 185 * br + 35)
+
+        # --- rare shooting star --------------------------------------------
+        period = 7.5
+        k = int(t / period)
+        local = t - k * period
+        if local < 1.25:
+            p = local / 1.25
+            srng = random.Random(0x51A7 + k * 7919)
+            sy = 1 + int(srng.random() * (h * 0.55))
+            sx = int(-10 + (w + 18) * p)
+            for j in range(14):
+                xx = sx - j * 2
+                if 0 <= xx < w and 0 <= sy < h:
+                    fade = (1.0 - j / 14.0) * (1.0 - p * 0.55)
+                    i = sy * w + xx
+                    ch[i] = "✦" if j == 0 else "─"
+                    fg[i] = pack(
+                        170 * fade + 60, 210 * fade + 40, 255 * fade + 25
+                    )
+                    if j % 3 == 0:
+                        sy += 1
+
+        # --- orbiting particles --------------------------------------------
+        cx = x0 + LOGO_W / 2.0
+        cy = y0 + 2.6
+        for o in range(3):
+            rx = LOGO_W * 0.66 + o * 6.0
+            ry = 3.1 + o * 1.35
+            speed = (0.34 if o % 2 == 0 else -0.27) * (1.0 + 0.12 * o)
+            phase = o * 1.9
+            orr, org, orb = ORBIT_COLORS[o]
+            for i in range(30):
+                th = TAU * i / 30.0 + t * speed + phase
+                x = int(round(cx + rx * cos(th)))
+                y = int(round(cy + ry * sin(th)))
+                if not (0 <= x < w and 0 <= y < h):
+                    continue
+                z = sin(th)
+                bri = 0.30 + 0.70 * (0.5 + 0.5 * z)
+                idx = y * w + x
+                ch[idx] = "•" if z > 0.15 else "∙"
+                fg[idx] = pack(orr * bri, org * bri, orb * bri)
+
+        # --- the g4f emblem ------------------------------------------------
+        for lx, ly, c in cells:
+            relx = (lx - x0) / LOGO_W
+            rely = (ly - y0) / LOGO_H
+            hue = 0.525 + 0.115 * sin(relx * 5.0 - t * 0.85) \
+                + 0.045 * sin(rely * 4.0 + t * 0.6)
+            val = 0.86 + 0.14 * sin(relx * 9.0 + t * 1.4)
+            r, g, b = hsv2rgb(hue, 0.78, val)
+
+            # diagonal light sweep
+            sweep = (t * 0.55) % 2.5 - 0.75
+            diag = relx * 0.92 + rely * 0.08
+            shine = 1.0 - abs(diag - sweep) / 0.105
+            if shine > 0.0:
+                shine = min(1.0, shine) ** 1.5
+                r += (255 - r) * shine * 0.95
+                g += (255 - g) * shine * 0.95
+                b += (255 - b) * shine * 0.95
+
+            idx = ly * w + lx
+            ch[idx] = c
+            fg[idx] = pack(r, g, b)
+
+        # --- shimmering reflection -----------------------------------------
+        refl_row = y0 + LOGO_H + 1
+        for lx, ly, c in cells:
+            ry = refl_row + (LOGO_H - 1 - (ly - y0))
+            if ry >= h - 1:
+                continue
+            x = lx + int(round(sin((ry - y0) * 1.1 + t * 2.2) * 1.4))
+            if not (0 <= x < w):
+                continue
+            depth = (ry - refl_row) / float(LOGO_H)
+            fade = max(0.0, 0.13 - depth * 0.14)
+            idx = ry * w + x
+            base = bg[idx]
+            r = ((base >> 16) & 255) * 0.62 + 120.0 * fade
+            g = ((base >> 8) & 255) * 0.62 + 150.0 * fade
+            b = (base & 255) * 0.62 + 220.0 * fade
+            ch[idx] = "░"
+            fg[idx] = pack(r, g, b)
+
+        # --- wordmark + subtitle -------------------------------------------
+        tag = "g p t 4 f r e e"
+        tx = max(0, (w - len(tag)) // 2)
+        ty = self.ty
+        for j, c in enumerate(tag):
+            if c == " ":
+                continue
+            x = tx + j
+            if 0 <= x < w:
+                hue = 0.52 + 0.10 * sin(j * 0.35 - t * 1.1)
+                r, g, b = hsv2rgb(hue, 0.55, 0.78)
+                ch[ty * w + x] = c
+                fg[ty * w + x] = pack(r, g, b)
+
+        sub = "free  AI  ·  open  source  ·  g4f.dev"
+        if h >= 19:
+            sx = max(0, (w - len(sub)) // 2)
+            sy = self.sy
+            if sy < h - 1:
+                dim = 0.55 + 0.25 * sin(t * 0.9)
+                col = pack(95 * dim + 25, 120 * dim + 30, 185 * dim + 35)
+                for j, c in enumerate(sub):
+                    x = sx + j
+                    if c != " " and 0 <= x < w:
+                        ch[sy * w + x] = c
+                        fg[sy * w + x] = col
+
+        # --- status bar -----------------------------------------------------
+        bar = (h - 1) * w
+        bar_bg = pack(8, 10, 22)
+        dim_fg = pack(95, 110, 150)
+        for x in range(w):
+            ch[bar + x] = " "
+            fg[bar + x] = dim_fg
+            bg[bar + x] = bar_bg
+
+        def bar_text(x, text, color):
+            for j, c in enumerate(text):
+                if 0 <= x + j < w:
+                    ch[bar + x + j] = c
+                    fg[bar + x + j] = color
+
+        live = 0.45 + 0.55 * (0.5 + 0.5 * sin(t * 2.2))
+        bar_text(2, "●", pack(60 + 195 * live, 220, 120))
+        bar_text(4, "g4f", pack(120, 235, 255))
+        bar_text(8, "live wallpaper", dim_fg)
+
+        clock = time.strftime("%H:%M:%S")
+        bar_text(max(9, (w - len(clock)) // 2), clock, pack(205, 218, 245))
+
+        right = f"{self.fps:4.1f} fps  ·  q quit"
+        bar_text(max(12, w - len(right) - 2), right, pack(88, 105, 145))
+
+        return ch, fg, bg
+
+    # --------------------------------------------------------------- present
+    def present(self, ch, fg, bg):
+        w, h = self.w, self.h
+        prev = self.prev
+        buf = []
+        if prev is None:
+            pch = pfg = pbg = None
+        else:
+            pch, pfg, pbg = prev
+
+        for y in range(h):
+            base = y * w
+            x = 0
+            while x < w:
+                i = base + x
+                if pch is not None and ch[i] == pch[i] \
+                        and fg[i] == pfg[i] and bg[i] == pbg[i]:
+                    x += 1
+                    continue
+                buf.append(f"{ESC}[{y + 1};{x + 1}H")
+                last_fg = last_bg = -1
+                while x < w:
+                    i = base + x
+                    if pch is not None and ch[i] == pch[i] \
+                            and fg[i] == pfg[i] and bg[i] == pbg[i]:
+                        break
+                    c = ch[i]
+                    f = fg[i]
+                    b = bg[i]
+                    if c == " ":
+                        if b != last_bg:
+                            buf.append(
+                                f"{ESC}[48;2;{(b >> 16) & 255};"
+                                f"{(b >> 8) & 255};{b & 255}m"
+                            )
+                            last_bg = b
+                    else:
+                        if f != last_fg or b != last_bg:
+                            buf.append(
+                                f"{ESC}[38;2;{(f >> 16) & 255};"
+                                f"{(f >> 8) & 255};{f & 255};48;2;"
+                                f"{(b >> 16) & 255};{(b >> 8) & 255};"
+                                f"{b & 255}m"
+                            )
+                            last_fg, last_bg = f, b
+                    buf.append(c)
+                    x += 1
+
+        if buf:
+            self.out.write("".join(buf).encode("utf-8", "replace"))
+            self.out.flush()
+        self.prev = (ch, fg, bg)
+
+    # ------------------------------------------------------------------ loop
+    def run(self, target_fps=30.0):
+        self.enter()
+        frame_time = 1.0 / target_fps
+        next_frame = time.monotonic()
+        try:
+            while True:
+                now = time.monotonic()
+                t = now - self.t0
+                ch, fg, bg = self.frame(t)
+                self.present(ch, fg, bg)
+
+                self.frames += 1
+                self.fps_n += 1
+                if now - self.fps_t >= 0.5:
+                    self.fps = self.fps_n / (now - self.fps_t)
+                    self.fps_t = now
+                    self.fps_n = 0
+
+                # input (q / esc / ctrl-c)
+                rlist, _, _ = select.select([sys.stdin], [], [], 0)
+                if rlist:
+                    data = os.read(sys.stdin.fileno(), 64)
+                    if not data or b"q" in data or b"Q" in data \
+                            or b"\x1b" in data or b"\x03" in data:
+                        break
+
+                next_frame += frame_time
+                delay = next_frame - time.monotonic()
+                if delay > 0:
+                    time.sleep(delay)
+                elif delay < -frame_time:
+                    next_frame = time.monotonic()
+        finally:
+            self.leave()
+
+
+def main():
+    fps = 30.0
+    if len(sys.argv) > 1:
+        try:
+            fps = float(sys.argv[1])
+        except ValueError:
+            pass
+    wall = Wallpaper()
+
+    def _term(signum, frame_):
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, _term)
+    signal.signal(signal.SIGHUP, _term)
+    try:
+        wall.run(fps)
+    except (KeyboardInterrupt, SystemExit, BrokenPipeError):
+        pass
+
+
+if __name__ == "__main__":
+    main()

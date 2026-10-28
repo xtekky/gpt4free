@@ -34,8 +34,15 @@ try:
     from .test_domain_router import *
 except ImportError:
     pass
+try:
+    from .test_sandbox_apps import *
+except ImportError:
+    pass
 from .test_provider_routing import *
 from .test_lightpanda import *
+from .test_har import *
+from .test_langfuse_tracing import *
+from .test_google_search import *
 # from .test_cdp_parallel import *
 
 unittest.main()

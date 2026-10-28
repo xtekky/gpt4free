@@ -369,11 +369,82 @@ def _extract_balanced_json(s: str, start: int) -> tuple[str, int]:
     return s[start:].strip(), len(s)
 
 
+def _parse_dsml_attributes(raw: str) -> dict[str, str]:
+    """Parse the ``key="value"`` attributes of a DSML tag."""
+    attrs: dict[str, str] = {}
+    for m in re.finditer(r"""([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""", raw):
+        attrs[m.group(1).lower()] = m.group(2) if m.group(2) is not None else m.group(3)
+    return attrs
+
+
+def _parse_dsml_tool_calls(text: str) -> list[dict]:
+    """Parse DeepSeek DSML tool calls emitted as text.
+
+    Example::
+
+        <|DSML|tool_calls>
+        <|DSML|invoke name="get_weather">
+        <|DSML|parameter name="location" string="true">Paris</|DSML|parameter>
+        </|DSML|invoke>
+        </|DSML|tool_calls>
+
+    Parameters with ``string="false"`` are decoded as JSON, everything else is
+    kept as a string. Both ASCII ``|`` and the full-width ``｜`` separator are
+    accepted, as some models emit the latter.
+    """
+    if "DSML" not in text.upper():
+        return []
+
+    # One separator token shared by opening and closing DSML tags.
+    sep = r"[|｜]\s*DSML\s*[|｜]"
+    open_tag = r"<" + sep
+    close_tag = r"</" + sep
+    invoke_re = re.compile(
+        open_tag + r"\s*invoke\b([^>]*?)(?:/>|>(.*?)" + close_tag + r"\s*invoke\s*>)",
+        re.DOTALL | re.IGNORECASE,
+    )
+    param_re = re.compile(
+        open_tag + r"\s*parameter\b([^>]*?)>(.*?)" + close_tag + r"\s*parameter\s*>",
+        re.DOTALL | re.IGNORECASE,
+    )
+
+    calls: list[dict] = []
+    for invoke_m in invoke_re.finditer(text):
+        invoke_attrs = _parse_dsml_attributes(invoke_m.group(1) or "")
+        name = invoke_attrs.get("name", "").strip()
+        if not name:
+            continue
+
+        args: dict[str, Any] = {}
+        body = invoke_m.group(2) or ""
+        for param_m in param_re.finditer(body):
+            param_attrs = _parse_dsml_attributes(param_m.group(1) or "")
+            param_name = param_attrs.get("name", "").strip()
+            if not param_name:
+                continue
+            value: Any = param_m.group(2)
+            if param_attrs.get("string", "true").lower() in ("false", "0", "no"):
+                try:
+                    value = json.loads(value)
+                except Exception:
+                    value = value
+            args[param_name] = value
+
+        calls.append({
+            "name": name,
+            "id": invoke_attrs.get("id", ""),
+            "arguments": args,
+        })
+
+    return calls
+
+
 def parse_tool_calls_from_text(content: str, tool_names: Optional[list[str]] = None) -> list[dict]:
     """Parse tool calls from arbitrary LLM response text.
 
     Supports:
     - JSON object/array (code fenced or raw) with key `tool_calls`, `tool_call`, `function_call`, `function`, `name`, `tool`, `action`.
+    - DSML blocks `<|DSML|tool_calls><|DSML|invoke name=...>...`.
     - XML tags `<tool_call>...</tool_call>`, `<function_call>...</function_call>`, `<tool>...</tool>`.
     - Stringified tool calls `[Tool call: name] (id=id)\\nArguments: {json}`.
     - ReAct pattern `Action: name\\nAction Input: {json}`.
@@ -398,7 +469,17 @@ def parse_tool_calls_from_text(content: str, tool_names: Optional[list[str]] = N
     if calls:
         return filter_tool_calls_by_names(calls, tool_names)
 
-    # 2. Check XML tags <tool_call>...</tool_call> or <function_call>...</function_call> or <tool>...</tool>
+    # 2. Check DSML blocks
+    #    <|DSML|tool_calls>
+    #    <|DSML|invoke name="tool">
+    #    <|DSML|parameter name="arg" string="true">value</|DSML|parameter>
+    #    </|DSML|invoke>
+    #    </|DSML|tool_calls>
+    dsml_calls = _parse_dsml_tool_calls(text)
+    if dsml_calls:
+        return filter_tool_calls_by_names(dsml_calls, tool_names)
+
+    # 3. Check XML tags <tool_call>...</tool_call> or <function_call>...</function_call> or <tool>...</tool>
     xml_re = re.compile(
         r"<(?:tool_call|function_call|tool)>(.*?)</(?:tool_call|function_call|tool)>",
         re.DOTALL | re.IGNORECASE,
@@ -424,7 +505,7 @@ def parse_tool_calls_from_text(content: str, tool_names: Optional[list[str]] = N
     if calls:
         return filter_tool_calls_by_names(calls, tool_names)
 
-    # 3. Check ReAct pattern: Action: name \n Action Input: {json}
+    # 4. Check ReAct pattern: Action: name \n Action Input: {json}
     react_re = re.compile(
         r"Action\s*:\s*([^\n]+)\s*\n\s*Action\s*Input\s*:\s*",
         re.IGNORECASE,
@@ -437,7 +518,7 @@ def parse_tool_calls_from_text(content: str, tool_names: Optional[list[str]] = N
     if calls:
         return filter_tool_calls_by_names(calls, tool_names)
 
-    # 4. JSON parsing (strip code fences first)
+    # 5. JSON parsing (strip code fences first)
     raw_text = _strip_code_fences(text)
     if "</tool_response>" in raw_text:
         raw_text = raw_text.split("</tool_response>", 1)[-1].strip()

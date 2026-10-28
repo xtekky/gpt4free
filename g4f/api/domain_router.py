@@ -14,12 +14,17 @@ module maps a hostname to each app:
 Apps that already have a path-prefix proxy are reached by rewriting the request
 path to that prefix, so the existing proxy (and its WebSocket bridge) does the
 forwarding. Apps without one are forwarded by a root-mounted
-:class:`~g4f.api.local_gateway_proxy.LocalGatewayProxy`.
+:class:`~g4f.api.local_gateway_proxy.LocalGatewayProxy`, which relays both HTTP
+requests and WebSocket connections.
 
 Only the hostnames in :func:`routes` are routed, and only to the fixed local
 ports they name, so the router cannot be used as an open proxy. The suffix
 defaults to ``g4f.local`` and can be changed with ``G4F_DOMAIN_SUFFIX``; set
 ``G4F_DOMAIN_ROUTER=0`` to disable the router entirely.
+
+An app that is not running yet is installed and started on demand by
+``sandbox-cli`` (see :mod:`g4f.api.sandbox_apps`); set
+``G4F_DOMAIN_AUTOSTART=0`` to disable that.
 
 The names must resolve to the g4f API inside the container; the sandbox
 entrypoint seeds ``/etc/hosts`` from :func:`hosts_entries` (see
@@ -37,6 +42,7 @@ from urllib.parse import urlsplit
 
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.websockets import WebSocket
 
 from .local_gateway_proxy import LocalGatewayProxy, env_root_url
 
@@ -186,6 +192,17 @@ def routes() -> Dict[str, DomainRoute]:
                 8602,
             ),
         ),
+        "assistant-ui": DomainRoute(
+            "assistant-ui",
+            "assistant-ui",
+            port=3000,
+            root_url=_local_root_url(
+                "ASSISTANT_UI_BASE_URL",
+                "ASSISTANT_UI_HOST",
+                "ASSISTANT_UI_PORT",
+                3000,
+            ),
+        ),
         "llamacpp": DomainRoute(
             "llamacpp",
             "llama.cpp",
@@ -269,6 +286,7 @@ class DomainRouterMiddleware:
                 route.root_url,
                 label=route.label,
                 target_prefix=route.target_prefix,
+                app=route.name,
             )
             self._proxies[route.name] = proxy
         return proxy
@@ -300,13 +318,13 @@ class DomainRouterMiddleware:
             await self.app(scope, receive, send)
             return
 
-        if scope["type"] != "http":
-            # No path proxy and no HTTP: nothing to forward to.
-            await self.app(scope, receive, send)
-            return
-
         proxy = self._proxy_for(route)
         logger.debug("Domain router: %s%s -> %s", host, path, route.label)
+        if scope["type"] == "websocket":
+            await proxy.forward_websocket(
+                WebSocket(scope, receive, send), path.lstrip("/")
+            )
+            return
         response = await proxy.forward(Request(scope, receive), path.lstrip("/"))
         await response(scope, receive, send)
 

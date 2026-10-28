@@ -3,10 +3,15 @@ from __future__ import annotations
 import os
 import socket
 import tempfile
+import threading
+import time
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
 
+import uvicorn
+from fastapi import FastAPI, WebSocket
+from starlette.websockets import WebSocketDisconnect
 from fastapi.testclient import TestClient
 
 import g4f.api
@@ -19,6 +24,7 @@ from g4f.api.domain_router import (
     register_domain_router,
     routes,
 )
+from g4f.api.local_gateway_proxy import websocket_url
 
 
 class _RecordingApp:
@@ -50,6 +56,18 @@ async def _receive():
 async def _send(message):
     return None
 
+def _ws_receive():
+    """Receive callable that completes the WebSocket handshake."""
+    messages = [
+        {"type": "websocket.connect"},
+        {"type": "websocket.disconnect", "code": 1000},
+    ]
+
+    async def receive():
+        return messages.pop(0) if messages else {"type": "websocket.disconnect", "code": 1000}
+
+    return receive
+
 
 def _http_scope(host: str, path: str = "/v1/models"):
     return {
@@ -62,11 +80,15 @@ def _http_scope(host: str, path: str = "/v1/models"):
     }
 
 
-def _closed_port() -> int:
-    """Return a localhost port that nothing is listening on."""
+def _free_port() -> int:
+    """Return a localhost port that is currently free."""
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         return sock.getsockname()[1]
+
+def _closed_port() -> int:
+    """Return a localhost port that nothing is listening on."""
+    return _free_port()
 
 
 class TestDomainRouterMatching(unittest.TestCase):
@@ -165,6 +187,7 @@ class TestDomainRouterDispatch(unittest.IsolatedAsyncioTestCase):
         # A route without a path proxy is forwarded by a root-mounted
         # LocalGatewayProxy; the target is unreachable here, so the proxy
         # answers with its own 502 payload instead of reaching the inner app.
+        # Autostart is off, so nothing tries to install and start the app.
         inner = _RecordingApp()
         middleware = DomainRouterMiddleware(inner)
         scope = _http_scope("litellm.g4f.local")
@@ -173,13 +196,62 @@ class TestDomainRouterDispatch(unittest.IsolatedAsyncioTestCase):
         async def send(message):
             sent.append(message)
 
-        await middleware(scope, _receive, send)
+        with patch.dict(os.environ, {"G4F_DOMAIN_AUTOSTART": "0"}):
+            await middleware(scope, _receive, send)
         self.assertEqual(inner.scopes, [])
         self.assertEqual(sent[0]["status"], 502)
 
-    async def test_root_mounted_route_ignores_websocket(self):
-        scope = await self._call("litellm.g4f.local", "/ws", scope_type="websocket")
-        self.assertEqual(scope["path"], "/ws")
+    async def test_root_mounted_route_forwards_websocket(self):
+        # A route without a path proxy forwards WebSockets through its
+        # root-mounted LocalGatewayProxy; the target is unreachable here, so
+        # the proxy closes the socket instead of reaching the inner app.
+        inner = _RecordingApp()
+        middleware = DomainRouterMiddleware(inner)
+        scope = _http_scope("litellm.g4f.local", "/ws")
+        scope["type"] = "websocket"
+        scope["scheme"] = "ws"
+        sent = []
+
+        async def send(message):
+            sent.append(message)
+
+        await middleware(scope, _ws_receive(), send)
+        self.assertEqual(inner.scopes, [])
+        self.assertEqual(sent[0]["type"], "websocket.accept")
+        self.assertEqual(sent[-1]["type"], "websocket.close")
+        self.assertEqual(sent[-1]["code"], 1011)
+
+
+class TestWebsocketUrl(unittest.TestCase):
+    def test_http_becomes_ws(self):
+        self.assertEqual(
+            websocket_url("http://127.0.0.1:4000", "ws/echo"),
+            "ws://127.0.0.1:4000/ws/echo",
+        )
+
+    def test_https_becomes_wss(self):
+        self.assertEqual(
+            websocket_url("https://example.test", "/ws"),
+            "wss://example.test/ws",
+        )
+
+    def test_keeps_base_path(self):
+        self.assertEqual(
+            websocket_url("http://127.0.0.1:4000/api", "ws"),
+            "ws://127.0.0.1:4000/api/ws",
+        )
+
+    def test_keeps_query(self):
+        self.assertEqual(
+            websocket_url("http://127.0.0.1:4000", "ws", "a=1&b=2"),
+            "ws://127.0.0.1:4000/ws?a=1&b=2",
+        )
+
+    def test_empty_path_uses_root(self):
+        self.assertEqual(
+            websocket_url("http://127.0.0.1:4000", ""),
+            "ws://127.0.0.1:4000/",
+        )
 
 
 class TestDomainRouterConfig(unittest.TestCase):
@@ -307,6 +379,116 @@ class TestDomainRouterIntegration(unittest.TestCase):
         self.assertEqual(
             response.json()["error"]["type"], "remote desktop_unavailable"
         )
+
+    def test_gateway_host_relays_websocket(self):
+        """A root-mounted route proxies WebSocket frames to the target app."""
+        upstream = FastAPI()
+
+        @upstream.websocket("/ws/echo")
+        async def echo(websocket: WebSocket):
+            await websocket.accept(
+                subprotocol=websocket.headers.get("sec-websocket-protocol")
+            )
+            try:
+                while True:
+                    await websocket.send_text(f"echo:{await websocket.receive_text()}")
+            except WebSocketDisconnect:
+                pass
+
+        port = _free_port()
+        server = uvicorn.Server(
+            uvicorn.Config(upstream, host="127.0.0.1", port=port, log_level="error")
+        )
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+        try:
+            for _ in range(100):
+                if server.started:
+                    break
+                time.sleep(0.05)
+            self.assertTrue(server.started, "upstream server did not start")
+
+            registry = routes()
+            registry["litellm"] = replace(
+                registry["litellm"], root_url=lambda: f"http://127.0.0.1:{port}"
+            )
+            with patch("g4f.api.domain_router.routes", return_value=registry):
+                client = TestClient(g4f.api.create_app())
+                with client.websocket_connect(
+                    "/ws/echo",
+                    headers={
+                        "host": "litellm.g4f.local",
+                        "sec-websocket-protocol": "chat",
+                    },
+                ) as websocket:
+                    self.assertEqual(websocket.accepted_subprotocol, "chat")
+                    websocket.send_text("hello")
+                    self.assertEqual(websocket.receive_text(), "echo:hello")
+                    websocket.send_text("again")
+                    self.assertEqual(websocket.receive_text(), "echo:again")
+        finally:
+            server.should_exit = True
+            thread.join(timeout=5)
+
+    def test_gateway_host_forwards_websocket_credentials(self):
+        """Cookies and Authorization survive the WebSocket handshake."""
+        upstream = FastAPI()
+        seen = {}
+
+        @upstream.websocket("/ws/auth")
+        async def auth(websocket: WebSocket):
+            seen.update(websocket.headers)
+            await websocket.accept()
+            await websocket.close()
+
+        port = _free_port()
+        server = uvicorn.Server(
+            uvicorn.Config(upstream, host="127.0.0.1", port=port, log_level="error")
+        )
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+        try:
+            for _ in range(100):
+                if server.started:
+                    break
+                time.sleep(0.05)
+            self.assertTrue(server.started, "upstream server did not start")
+
+            registry = routes()
+            registry["litellm"] = replace(
+                registry["litellm"], root_url=lambda: f"http://127.0.0.1:{port}"
+            )
+            with patch("g4f.api.domain_router.routes", return_value=registry):
+                client = TestClient(g4f.api.create_app())
+                with client.websocket_connect(
+                    "/ws/auth",
+                    headers={
+                        "host": "litellm.g4f.local",
+                        "cookie": "session=abc",
+                        "authorization": "Bearer token",
+                    },
+                ):
+                    pass
+        finally:
+            server.should_exit = True
+            thread.join(timeout=5)
+
+        self.assertEqual(seen.get("cookie"), "session=abc")
+        self.assertEqual(seen.get("authorization"), "Bearer token")
+        self.assertEqual(seen.get("x-forwarded-host"), "litellm.g4f.local")
+        self.assertEqual(seen.get("x-forwarded-proto"), "ws")
+        # aiohttp must generate its own handshake key, not reuse the browser's.
+        self.assertTrue(seen.get("sec-websocket-key"))
+
+    def test_gateway_host_closes_websocket_when_unreachable(self):
+        with self._unreachable("litellm"):
+            client = TestClient(g4f.api.create_app())
+            with client.websocket_connect(
+                "/ws", headers={"host": "litellm.g4f.local"}
+            ) as websocket:
+                message = websocket.receive()
+        self.assertEqual(message["type"], "websocket.close")
+        self.assertEqual(message["code"], 1011)
 
     def test_desktop_host_serves_novnc_client(self):
         with tempfile.TemporaryDirectory() as novnc_dir:

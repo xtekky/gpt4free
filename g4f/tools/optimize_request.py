@@ -584,6 +584,54 @@ def _set_tool_description(tool: Any, desc: str) -> None:
         tool["description"] = desc
 
 
+# JSON-Schema keys that only affect editor/UI rendering. Providers ignore them
+# when building the tool prompt, so they are pure token overhead.
+_COSMETIC_SCHEMA_KEYS = frozenset(
+    {
+        "title",
+        "default",
+        "examples",
+        "$schema",
+        "$id",
+        "$comment",
+        "deprecated",
+        "readOnly",
+        "writeOnly",
+        "markdownDescription",
+        "enumDescriptions",
+        "enumNames",
+        "x-",
+    }
+)
+
+# Nested parameter descriptions are truncated to this many characters. The
+# top-level tool description is left untouched (it is condensed separately).
+_MAX_PARAM_DESC = 160
+
+def _compact_schema(node: Any, depth: int = 0) -> Any:
+    """Recursively drop cosmetic JSON-Schema keys and shorten nested descriptions.
+
+    Only structural keys that providers actually use (``type``, ``properties``,
+    ``required``, ``items``, ``enum``, ``anyOf``/``oneOf``/``allOf``, ...) are
+    preserved. Returns a new node; the input is not mutated.
+    """
+    if isinstance(node, list):
+        return [_compact_schema(item, depth) for item in node]
+    if not isinstance(node, dict):
+        return node
+
+    compacted: Dict[str, Any] = {}
+    for key, value in node.items():
+        if key in _COSMETIC_SCHEMA_KEYS or key.startswith("x-"):
+            continue
+        if key == "description" and isinstance(value, str):
+            if len(value) > _MAX_PARAM_DESC:
+                value = value[: _MAX_PARAM_DESC - 1].rstrip() + "…"
+            compacted[key] = value
+            continue
+        compacted[key] = _compact_schema(value, depth + 1)
+    return compacted
+
 def optimize_tools(tools: List[dict]) -> Tuple[List[dict], int, Dict[str, str]]:
     """Condense tool descriptions and remove unused tools.
 
@@ -619,6 +667,13 @@ def optimize_tools(tools: List[dict]) -> Tuple[List[dict], int, Dict[str, str]]:
         desc = re.sub(r"\n{3,}", "\n\n", desc)
 
         _set_tool_description(tool, desc)
+
+        # Drop cosmetic JSON-Schema keys and shorten nested parameter
+        # descriptions. This is the single largest lever for tool payloads.
+        params = tool["function"].get("parameters")
+        if isinstance(params, dict):
+            tool["function"]["parameters"] = _compact_schema(params)
+
         condensed.append(tool)
 
     # ── Remove unused tools ──
@@ -717,8 +772,8 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
 
     * Drops empty/whitespace-only messages (except the system prompt).
     * Removes exact duplicate messages (same role + content), keeping first.
-    * Collapses consecutive same-role messages, keeping the one with
-      tool_calls or more content.
+    * Collapses consecutive same-role messages that are true duplicates,
+      keeping the one with tool_calls.
 
     Returns (messages, bytes_saved).
     """
@@ -741,11 +796,22 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
             result.append(msg)
             continue
 
+        # Tool/function results are paired with a specific tool_call_id. They
+        # must never be dropped or merged, otherwise the provider rejects the
+        # request for having an unanswered tool call.
+        if role in ("tool", "function"):
+            result.append(msg)
+            continue
+
         # Drop empty messages, but keep assistant messages that carry tool_calls.
         if _is_empty_content(msg) and not msg.get("tool_calls"):
             continue
 
-        # Collapse consecutive same-role messages.
+        sig = _msg_signature(msg)
+
+        # Collapse consecutive same-role messages, but only when they are true
+        # duplicates. Distinct consecutive messages (e.g. several user turns)
+        # each carry information and must be preserved.
         if result and isinstance(result[-1], dict) and result[-1].get("role") == role:
             prev = result[-1]
             # Keep the message that has tool_calls.
@@ -756,11 +822,11 @@ def dedup_messages(messages: Messages) -> tuple[Messages, int]:
             # If previous has tool_calls and this one doesn't, skip this one.
             if prev.get("tool_calls") and not msg.get("tool_calls"):
                 continue
-            # Neither has tool_calls — skip the duplicate.
-            continue
+            # Neither has tool_calls — only drop a true duplicate.
+            if sig[1] and sig == _msg_signature(prev):
+                continue
 
         # Remove exact duplicates (same role + content hash).
-        sig = _msg_signature(msg)
         if sig[1] and sig in seen:
             continue
         seen.add(sig)
@@ -1276,8 +1342,9 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
         logs["system"] = f"condensed system prompt (-{sys_saved} bytes)"
 
     # ── Message-level dedup & reasoning echo removal ──
-    messages, dedup_saved = dedup_messages(messages)
+    deduped, dedup_saved = dedup_messages(messages)
     if dedup_saved:
+        messages[:] = deduped
         saved_bytes += dedup_saved
         logs["dedup"] = f"removed duplicate/empty messages (-{dedup_saved} bytes)"
 
@@ -1288,6 +1355,7 @@ def optimize_request(messages: Messages, tools: Any) -> Tuple[int, Dict[str, str
             "reasoning_echo"
         ] = f"stripped repeated reasoning blocks (-{echo_saved} bytes)"
 
+    # Don't truncate like this, the agent may doesn't works anymore
     # # ── Tool result truncation ──
     # tool_trunc_saved = _truncate_tool_results(messages)
     # if tool_trunc_saved:

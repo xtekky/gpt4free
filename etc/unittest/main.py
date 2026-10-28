@@ -12,6 +12,11 @@ class TestGetLastProvider(unittest.TestCase):
         if current_version is not None:
             self.assertIsInstance(g4f.version.utils.current_version, str)
         try:
-            self.assertIsInstance(g4f.version.utils.latest_version, str)
+            latest_version = g4f.version.utils.latest_version
         except VersionNotFoundError:
-            pass
+            return
+        if latest_version is None:
+            # Without package metadata, git tags or network access the version
+            # cannot be resolved, so there is nothing to assert.
+            self.skipTest("latest version is unavailable")
+        self.assertIsInstance(latest_version, str)
