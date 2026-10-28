@@ -38,8 +38,6 @@ EXTRA_REQUIRE = {
         "setuptools",
         "markitdown[all]",
         "python-dotenv",
-        "wasmtime",
-        "numpy",
         "PyYAML",
         "pystray",
         "cryptography",
