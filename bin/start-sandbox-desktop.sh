@@ -4,9 +4,14 @@
 #
 # Launches the TigerVNC + Xfce + noVNC + g4f desktop environment inside Docker.
 # The desktop and API server are accessible via browser (noVNC) and direct VNC:
-#   Desktop (browser): http://localhost:8080/desktop/
-#   API server:        http://localhost:8080/
-#   VNC direct:        localhost:5900
+#   Desktop (browser): http://172.0.0.1:8080/desktop/
+#   API server:        http://172.0.0.1:8080/
+#   VNC direct:        172.0.0.1:5900
+#
+# The ports are published on SANDBOX_BIND_ADDR (default: 172.0.0.1). Set it to
+# 127.0.0.1 for localhost or 0.0.0.0 to expose the desktop on the LAN. The
+# container also gets an egress firewall that blocks private, link-local and
+# reserved networks; set SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable it.
 #
 # Usage:
 #   ./bin/start-desktop.sh              start in foreground
@@ -14,6 +19,7 @@
 #   ./bin/start-desktop.sh --build      rebuild image before starting
 #   ./bin/start-desktop.sh --pull       pull prebuilt image from Docker Hub
 #   ./bin/start-desktop.sh --port 8080  use custom port (default: 8080)
+#   ./bin/start-desktop.sh --bind 127.0.0.1  use a different host bind address
 #   ./bin/start-desktop.sh stop         stop the sandbox container
 #   ./bin/start-desktop.sh status       check container status
 #   ./bin/start-desktop.sh shell        open interactive bash shell in container
@@ -35,6 +41,11 @@ CONTAINER_NAME="g4f-sandbox-desktop"
 
 PORT="${PORT:-8080}"
 VNC_PORT="${VNC_PORT:-5900}"
+# Host address the published ports bind to. 172.0.0.1 is the default so the
+# desktop is not exposed on every interface; override with --bind or
+# SANDBOX_BIND_ADDR (127.0.0.1 for localhost, 0.0.0.0 for the LAN).
+BIND_ADDR="${SANDBOX_BIND_ADDR:-172.0.0.1}"
+BLOCK_LOCAL_NETWORK="${SANDBOX_BLOCK_LOCAL_NETWORK:-1}"
 # uid of the unprivileged sandbox user; must match the image's G4F_USER_ID.
 USER_ID="${G4F_USER_ID:-1000}"
 DETACH=0
@@ -68,18 +79,20 @@ Options:
   -b, --build         Build/rebuild image before starting
       --pull          Pull prebuilt image from registry ($REMOTE_IMAGE)
   -p, --port PORT     API & noVNC web port (default: $PORT)
+      --bind ADDR     Host address to publish the ports on (default: $BIND_ADDR)
       --vnc-port PORT Direct VNC display port (default: $VNC_PORT)
       --user-id UID   uid for the sandbox user (default: $USER_ID)
+      --allow-local-network  Let the sandbox reach private/link-local networks
       --no-desktop    Disable desktop GUI stack, run API only (SANDBOX_DESKTOP=0)
       --image IMAGE   Specify Docker image (default: $IMAGE)
       --name NAME     Specify container name (default: $CONTAINER_NAME)
       --no-compose    Use direct 'docker run' instead of 'docker compose'
   -h, --help          Show this help message
 
-Endpoints:
-  noVNC desktop:  http://localhost:${PORT}/desktop/
-  API server:     http://localhost:${PORT}/
-  Direct VNC:     localhost:${VNC_PORT}
+Endpoints (published on ${BIND_ADDR}):
+  noVNC desktop:  http://${BIND_ADDR}:${PORT}/desktop/
+  API server:     http://${BIND_ADDR}:${PORT}/
+  Direct VNC:     ${BIND_ADDR}:${VNC_PORT}
 EOF
 }
 
@@ -110,6 +123,19 @@ while [ $# -gt 0 ]; do
             ;;
         --port=*)
             PORT="${1#*=}"
+            shift
+            ;;
+        --bind|--bind-address)
+            [ $# -ge 2 ] || die "$1 requires an argument"
+            BIND_ADDR="$2"
+            shift 2
+            ;;
+        --bind=*|--bind-address=*)
+            BIND_ADDR="${1#*=}"
+            shift
+            ;;
+        --allow-local-network)
+            BLOCK_LOCAL_NETWORK=0
             shift
             ;;
         --vnc-port)
@@ -194,6 +220,14 @@ case "$USER_ID" in
     ''|*[!0-9]*) die "user id must be numeric: $USER_ID" ;;
 esac
 [ "$USER_ID" != "0" ] || die "user id 0 (root) is not supported for the sandbox desktop"
+[ -n "$BIND_ADDR" ] || die "bind address must not be empty"
+case "$BIND_ADDR" in
+    *:*) die "IPv6 bind addresses are not supported by this helper; pass it through docker compose instead" ;;
+esac
+case "$BLOCK_LOCAL_NETWORK" in
+    0|1) ;;
+    *) die "SANDBOX_BLOCK_LOCAL_NETWORK must be 0 or 1: $BLOCK_LOCAL_NETWORK" ;;
+esac
 
 # Find docker CLI
 DOCKER_BIN=""
@@ -298,16 +332,26 @@ case "$ACTION" in
             fi
         fi
 
-        # Print banner
+        # Print banner. A 0.0.0.0 publish is reachable through localhost; keep
+        # the printed URLs usable instead of showing the wildcard address.
+        display_addr="$BIND_ADDR"
+        [ "$display_addr" = "0.0.0.0" ] && display_addr="127.0.0.1"
         printf '\n'
         log "Starting G4F Sandbox Desktop..."
         printf '  Container:   %s\n' "$CONTAINER_NAME"
         printf '  Image:       %s\n' "$IMAGE"
         printf '  User ID:     %s\n' "$USER_ID"
-        printf '  Desktop URL: http://localhost:%s/desktop/\n' "$PORT"
-        printf '  API Server:  http://localhost:%s/\n' "$PORT"
+        printf '  Bind address: %s\n' "$BIND_ADDR"
+        printf '  Desktop URL: http://%s:%s/desktop/\n' "$display_addr" "$PORT"
+        printf '  API Server:  http://%s:%s/\n' "$display_addr" "$PORT"
         printf '  App domains: http://g4f.g4f.local/ (also <port>.g4f.local)\n'
-        printf '  VNC Display: localhost:%s\n\n' "$VNC_PORT"
+        printf '  VNC Display: %s:%s\n' "$display_addr" "$VNC_PORT"
+        if [ "$BLOCK_LOCAL_NETWORK" = "1" ]; then
+            printf '  Egress:      private/link-local networks blocked\n'
+        else
+            printf '  Egress:      local networks allowed (SANDBOX_BLOCK_LOCAL_NETWORK=0)\n'
+        fi
+        printf '\n'
 
         if [ "$NO_DESKTOP" -eq 1 ]; then
             log "Desktop GUI stack disabled (SANDBOX_DESKTOP=0)"
@@ -320,6 +364,8 @@ case "$ACTION" in
                 COMPOSE_ARGS+=("-d")
             fi
             export SANDBOX_DESKTOP="$([ "$NO_DESKTOP" -eq 1 ] && echo 0 || echo 1)"
+            export SANDBOX_BIND_ADDR="$BIND_ADDR"
+            export SANDBOX_BLOCK_LOCAL_NETWORK="$BLOCK_LOCAL_NETWORK"
             export G4F_USER_ID="$USER_ID"
             exec docker compose "${COMPOSE_ARGS[@]}"
         fi
@@ -334,11 +380,13 @@ case "$ACTION" in
             --hostname sandbox
             --init
             --shm-size 2gb
-            -p "${PORT}:${PORT}"
-            -p "${VNC_PORT}:${VNC_PORT}"
+            --cap-add NET_ADMIN
+            -p "${BIND_ADDR}:${PORT}:${PORT}"
+            -p "${BIND_ADDR}:${VNC_PORT}:${VNC_PORT}"
             -v "${REPO_ROOT}:/app/gpt4free"
             -e "XDG_RUNTIME_DIR=/tmp/sandbox-runtime"
             -e "SANDBOX_DESKTOP=$([ "$NO_DESKTOP" -eq 1 ] && echo 0 || echo 1)"
+            -e "SANDBOX_BLOCK_LOCAL_NETWORK=$BLOCK_LOCAL_NETWORK"
         )
 
         if [ "$DETACH" -eq 1 ]; then

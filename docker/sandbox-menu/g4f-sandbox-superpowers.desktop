@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install Superpowers
+Comment=Superpowers skills plugin for OpenCode — installs on first click
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Superpowers --icon=g4f-sandbox-superpowers --command="/usr/local/bin/sandbox-cli superpowers"
+Icon=g4f-sandbox-superpowers
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Skills;
+Keywords=superpowers;skills;agent;opencode;plugin;;
+StartupNotify=false

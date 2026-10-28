@@ -1,7 +1,7 @@
 # Reasoning Field Standardization
 
 ## Issue
-DeepSeek uses `"reasoning_content"` field while OpenAI uses `"reasoning"` field in their chat completion streaming responses. This inconsistency caused confusion about what field name to use in the g4f Interference API.
+DeepSeek uses `"reasoning_content"` field while OpenAI uses `"reasoning"` field in their chat completion streaming responses. This inconsistency caused confusion about what field name to use in the g4f Inference API.
 
 ## Decision
 **Standardized on OpenAI's `"reasoning"` field format for API output while maintaining input compatibility.**

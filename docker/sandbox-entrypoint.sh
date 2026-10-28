@@ -8,11 +8,13 @@
 # g4f/api/vnc_relay) on its own port, so no websockify process runs here.
 #
 # Env knobs:
-#   SANDBOX_DESKTOP  set to 0 to skip the desktop stack (default: 1)
-#   G4F_WALLPAPER    set to 0 to skip the animated g4f wallpaper (default: 1)
-#   VNC_DISPLAY      X display for Xvnc   (default: :0)
-#   VNC_GEOMETRY     screen size          (default: 1920x1080)
-#   VNC_RFBPORT      VNC port             (default: 5900)
+#   SANDBOX_DESKTOP              set to 0 to skip the desktop stack (default: 1)
+#   SANDBOX_BLOCK_LOCAL_NETWORK  set to 0 to disable the egress filter (default: 1)
+#   SANDBOX_FIREWALL_STRICT      set to 0 to keep starting without the filter
+#   G4F_WALLPAPER                set to 0 to skip the animated g4f wallpaper (default: 1)
+#   VNC_DISPLAY                  X display for Xvnc   (default: :0)
+#   VNC_GEOMETRY                 screen size          (default: 1920x1080)
+#   VNC_RFBPORT                  VNC port             (default: 5900)
 
 set -u
 
@@ -54,6 +56,22 @@ PY
         # Drop a previous block (the container may be restarted in place).
         as_root sh -c "grep -v -e '# g4f sandbox domain routing' -e '\\.${suffix}\$' /etc/hosts > /tmp/g4f-hosts.keep && cat /tmp/g4f-hosts.keep > /etc/hosts && rm -f /tmp/g4f-hosts.keep" || true
         as_root sh -c 'cat /tmp/g4f-domain-hosts >> /etc/hosts' || true
+    fi
+fi
+
+# Keep the public internet reachable (the menu installs tools on first click,
+# g4f providers call their upstream APIs) but reject traffic into the host's
+# LAN, other Docker networks and cloud metadata. Loopback stays open so the
+# API, g4f's domain router and the local gateways keep working. The rules need
+# CAP_NET_ADMIN; compose and bin/start-sandbox-desktop.sh add it.
+if [ "${SANDBOX_BLOCK_LOCAL_NETWORK:-1}" != "0" ]; then
+    if ! /usr/local/bin/sandbox-firewall.sh; then
+        if [ "${SANDBOX_FIREWALL_STRICT:-1}" = "0" ]; then
+            printf 'warning: sandbox egress filter could not be applied; local networks are reachable\n' >&2
+        else
+            printf 'error: sandbox egress filter could not be applied (run with --cap-add=NET_ADMIN or set SANDBOX_FIREWALL_STRICT=0)\n' >&2
+            exit 1
+        fi
     fi
 fi
 

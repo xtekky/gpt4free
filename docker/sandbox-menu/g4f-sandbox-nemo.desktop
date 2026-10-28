@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open File Manager (Nemo)
+Comment=Nemo file manager — installs on first click, then opens on the desktop
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="File Manager (Nemo)" --icon=folder --command="/usr/local/bin/sandbox-cli nemo"
+Icon=folder
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Files;
+Keywords=files;file manager;nemo;cinnamon;browse;folders;;
+StartupNotify=false

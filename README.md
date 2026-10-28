@@ -56,7 +56,7 @@ Table of contents
 - [Local inference & media](#local-inference--media)
 - [Configuration & customization](#configuration--customization)
 - [Running on smartphone](#running-on-smartphone)
-- [Interference API (OpenAI‑compatible)](#interference-api-openai-compatible)
+- [Inference API (OpenAI‑compatible)](#interference-api-openai-compatible)
 - [Examples & common patterns](#examples--common-patterns)
 - [Contributing](#contributing)
   - [How to create a new provider](#how-to-create-a-new-provider)
@@ -75,7 +75,7 @@ Table of contents
 ## What’s included
 - Python client library and async client.
 - Optional local web GUI.
-- FastAPI-based OpenAI-compatible API (Interference API).
+- FastAPI-based OpenAI-compatible API (Inference API).
 - Official browser JS client (g4f.dev distribution).
 - Docker images (full and slim).
 - Multi-provider adapters (LLMs, media providers, local inference backends).
@@ -148,7 +148,7 @@ docker run \
 ```
 Notes:
 - The slim image can update the g4f package on startup and installs additional dependencies as needed.
-- In this example, the Interference API is mapped to 1337.
+- In this example, the Inference API is mapped to 1337.
 
 ### Sandbox desktop (Docker)
 A full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click
@@ -159,14 +159,27 @@ the tool list and the settings.
 
 ```bash
 docker run -d --name g4f-sandbox-desktop \
-  -p 8080:8080 -p 5900:5900 \
+  --cap-add NET_ADMIN \
+  -p 172.0.0.1:8080:8080 -p 172.0.0.1:5900:5900 \
   --shm-size="2gb" \
   -v ${PWD}:/app/gpt4free \
   -v ${PWD}/sandbox-home/.config:/home/pn/.config \
   -v ${PWD}/sandbox-home/.local:/home/pn/.local \
   hlohaus789/g4f:latest-sandbox-desktop
 ```
-- Desktop (browser): http://localhost:8080/desktop/ · API: http://localhost:8080/ · Direct VNC: `localhost:5900`
+- Desktop (browser): http://172.0.0.1:8080/desktop/ · API: http://172.0.0.1:8080/ · Direct VNC: `172.0.0.1:5900`
+- The ports bind to `172.0.0.1` (not every host interface). Set
+  `SANDBOX_BIND_ADDR=127.0.0.1` to use localhost or `0.0.0.0` to expose the
+  desktop on the LAN; `bin/start-sandbox-desktop.sh --bind <addr>` does the
+  same. The address must exist on the Docker host.
+- The image starts an egress firewall (needs `--cap-add NET_ADMIN`): the
+  sandbox can reach the public internet, but connections to private,
+  link-local and reserved networks — the host LAN, other Docker networks and
+  cloud metadata — are rejected. Loopback inside the container stays usable,
+  so the g4f API, its `*.g4f.local` router and local gateways keep working.
+  Host-side services reached through `host.docker.internal`, `172.17.0.1` or
+  the host's LAN address are blocked too; run them inside the sandbox or set
+  `SANDBOX_BLOCK_LOCAL_NETWORK=0` to disable the filter for a trusted setup.
 - `-v ${PWD}:/app/gpt4free` mounts your app into the sandbox at the path the
   image's editable g4f install points at, so the API serves your code and the
   agents can edit it. Mount at `/app/gpt4free`, not `/app`.
@@ -180,7 +193,7 @@ docker run -d --name g4f-sandbox-desktop \
   `sandbox-cli settings --home /home/pn/work`.
 - `bin/start-sandbox-desktop.sh` wraps the same run (and
   `docker/docker-compose.sandbox-desktop.yml`) with `--build`, `--pull`,
-  `--port`, `shell`, `logs` and `stop`.
+  `--port`, `--bind`, `shell`, `logs` and `stop`.
 - The sandbox user (`pn`) runs with uid/gid 1000 by default. On a host whose
   user has another id, build the image with
   `--build-arg G4F_USER_ID="$(id -u)"` (or run
@@ -230,12 +243,12 @@ python -m g4f.cli gui --port 8080 --debug
 ```
 - Open: http://localhost:8080/chat/
 
-### FastAPI / Interference API
+### FastAPI / Inference API
 - Start FastAPI server:
 ```bash
 python -m g4f --port 8080 --debug
 ```
-- If using slim docker mapping, Interference API may be available at `http://localhost:1337/v1`
+- If using slim docker mapping, Inference API may be available at `http://localhost:1337/v1`
 - Swagger UI: `http://localhost:1337/docs`
 
 ### CLI
@@ -411,7 +424,7 @@ Provider requirements may include:
 ---
 
 ## Inference API (OpenAI‑compatible)
-- The Interference API enables OpenAI-like workflows routed through GPT4Free provider selection.
+- The Inference API enables OpenAI-like workflows routed through GPT4Free provider selection.
 - Docs: [docs/interference-api.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/interference-api.md)
 - Default endpoint (example slim docker): `http://localhost:1337/v1`
 - Swagger UI: `http://localhost:1337/docs`

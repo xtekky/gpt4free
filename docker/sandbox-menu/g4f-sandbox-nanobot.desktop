@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open nanobot
+Comment=nanobot personal AI assistant WebUI — installs on first click, then starts on port 8766
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=nanobot --icon=g4f-sandbox-nanobot --command="/usr/local/bin/sandbox-cli nanobot"
+Icon=g4f-sandbox-nanobot
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Assistant;
+Keywords=nanobot;assistant;agent;webui;chat;;
+StartupNotify=false

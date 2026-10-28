@@ -10,6 +10,7 @@
 #   sandbox-cli list            list the tools the desktop menu knows about
 #   sandbox-cli urls            print the public URLs served by the g4f API
 #   sandbox-cli hosts           print the /etc/hosts entries for the app domains
+#   sandbox-cli polli-sandbox   create/connect/manage hosted Polli sandboxes
 #
 # Each menu item runs:
 #   xfce4-terminal --command="/usr/local/bin/sandbox-cli <tool>"
@@ -60,6 +61,51 @@ OPENHANDS_INSTALLER="https://install.openhands.dev/install.sh"
 PLANDEX_INSTALLER="https://plandex.ai/install.sh"
 FABRIC_INSTALLER="https://raw.githubusercontent.com/danielmiessler/fabric/main/scripts/installer/install.sh"
 HERMES_INSTALLER="https://hermes-agent.nousresearch.com/install.sh"
+# Oh My Hermes (OMH) is an operating layer on top of Hermes Agent: the npm
+# package installs the `omh` launcher, and `omh setup --yes` registers its
+# managed skills with the Hermes home the entry already configured for g4f.
+OMH_PACKAGE="oh-my-hermes"
+# The standalone hf CLI lives in its own virtualenv under ~/.hf-cli and drops
+# a wrapper in ~/.local/bin. --exclude-skill keeps it from writing into the
+# agents' skill directories; the Spaces entry is a terminal browser, not an
+# agent integration.
+HF_CLI_INSTALLER="https://hf.co/cli/install.sh"
+# Humanizer is an agent skill rather than a CLI; `npx skills` copies it into
+# ~/.agents/skills and links it for every agent it knows about.
+HUMANIZER_SKILL="blader/humanizer"
+# Both detectors are installed from their git checkouts with pip --user.
+# ai-detect is a lightweight, offline text-risk analyzer; aidetect pulls the
+# torch stack and is installed on first click only.
+AI_TEXT_DETECTOR_REPO="https://github.com/lynote-ai/ai-text-detector.git"
+AI_IMAGE_DETECTOR_REPO="https://github.com/lynote-ai/ai-image-detector.git"
+# OpenBot, Orca and VoiceStudio are Electron desktop apps published as
+# AppImages; the release tag is resolved at install time and the AppImage is
+# unpacked into ~/.local/opt (see install_appimage).
+OPENBOT_RELEASE_API="https://api.github.com/repos/nightly-labs/openbot/releases/latest"
+OPENBOT_RELEASE_BASE="https://github.com/nightly-labs/openbot/releases/download"
+ORCA_RELEASE_API="https://api.github.com/repos/stablyai/orca/releases/latest"
+ORCA_RELEASE_BASE="https://github.com/stablyai/orca/releases/download"
+VOICESTUDIO_RELEASE_API="https://api.github.com/repos/debpalash/VoiceStudio/releases/latest"
+VOICESTUDIO_RELEASE_BASE="https://github.com/debpalash/VoiceStudio/releases/download"
+# ThinkRail is JetBrains' agentic IDE/CLI. Its installer verifies the release
+# SHA-256 and writes the binary under ~/.local/bin.
+THINKRAIL_INSTALLER="https://raw.githubusercontent.com/JetBrains/thinkrail/main/install.sh"
+# HyperFrames renders HTML compositions to video with an agent; npm package.
+HYPERFRAMES_PACKAGE="hyperframes"
+# DeepTutor and nanobot are Python web apps. nanobot's WebUI binds 8765 by
+# default, which the Remote Desktop entry already uses, so move it to 8766.
+DEEPTUTOR_PACKAGE="deeptutor[full]"
+NANOBOT_PACKAGE="nanobot-ai"
+NANOBOT_PORT="8766"
+# Agent Reach installs from its GitHub release zip through uv; the PyPI
+# package named agent-reach is an unrelated project.
+AGENT_REACH_ZIP="https://github.com/Panniantong/Agent-Reach/releases/latest/download/agent-reach.zip"
+# Agent-skill integrations: ECC, Superpowers and Claude-Mem register
+# themselves with OpenCode; Graphify copies its skill into ~/.agents/skills.
+ECC_PACKAGE="ecc-universal@2.2.3"
+SUPERPOWERS_PLUGIN="superpowers@git+https://github.com/obra/superpowers.git"
+GRAPHIFY_PACKAGE="graphifyy"
+CLAUDE_MEM_PACKAGE="claude-mem@15.4.0"
 KIRO_INSTALLER="https://cli.kiro.dev/install"
 KIMI_INSTALLER="https://code.kimi.com/kimi-code/install.sh"
 # Roomote is a self-hosted service, not a CLI: its installer needs root, brings
@@ -598,6 +644,14 @@ ensure_pip() { # <pypi package> <binary>
     have "$2" || die "$2 not on PATH after installing $1"
 }
 
+ensure_apt() { # <apt package> <binary>
+    have "$2" && return 0
+    log "installing $1 (apt)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq "$1" || die "could not install $1"
+    have "$2" || die "$2 not found after installing $1"
+}
+
 # uv is the only Python toolchain here that can pick an interpreter version:
 # the image's embedded CPython is 3.15, which is too new for SWE-agent, whose
 # pinned dependencies ship no wheels for it. uv downloads a matching CPython
@@ -759,6 +813,49 @@ ensure_hermes() {
         ln -sf "$bin" "$HOME/.local/bin/hermes"
     fi
     have hermes || die "hermes not on PATH after the Hermes Agent install"
+}
+
+# Oh My Hermes (OMH) is an npm launcher around a Python wheel; it needs Hermes
+# itself, which the omh case installs first. `omh setup --yes` is the
+# non-interactive form documented upstream: it installs the managed skills and
+# registers them with Hermes without asking the user-scope question.
+ensure_omh() {
+    have omh && return 0
+    ensure_npm "$OMH_PACKAGE" omh
+}
+
+# Hugging Face's standalone installer builds a private venv and writes the hf
+# wrapper into ~/.local/bin, which sandbox-cli already puts on PATH.
+ensure_hf() {
+    have hf && return 0
+    log "installing the Hugging Face CLI (hf)..."
+    curl -fsSL "$HF_CLI_INSTALLER" \
+        | bash -s -- --exclude-skill --no-modify-path \
+        || die "the Hugging Face CLI install script failed"
+    have hf || die "hf not on PATH after the Hugging Face CLI install"
+}
+
+# The Skills CLI understands each agent's skill layout, so let it decide where
+# Humanizer goes instead of copying SKILL.md into one guessed directory.
+ensure_humanizer() {
+    [ -f "$HOME/.agents/skills/humanizer/SKILL.md" ] && return 0
+    have npx || ensure_node
+    log "installing the Humanizer skill for the installed agents..."
+    npx -y skills add "$HUMANIZER_SKILL" --global --agent '*' -y \
+        || die "could not install the Humanizer skill"
+    [ -f "$HOME/.agents/skills/humanizer/SKILL.md" ] \
+        || die "Humanizer was not installed under ~/.agents/skills"
+}
+
+# Install a Python CLI from a git checkout. Used by the detectors: neither is
+# published on PyPI, and both ship their entry point in pyproject.toml.
+ensure_pip_git() { # <repository url> <binary> <label>
+    have "$2" && return 0
+    ensure_git
+    log "installing $3 (pip install --user from git)..."
+    python3 -m pip install --user --quiet "git+$1" \
+        || die "pip install $3 failed"
+    have "$2" || die "$2 not on PATH after installing $3"
 }
 
 # Oh My Pi (OMP) is the host that pi-freeflow plugs into. The installer fetches
@@ -987,6 +1084,54 @@ ensure_electron_libs() {
         || die "could not install the Electron runtime libraries"
 }
 
+# Resolve the tag of a GitHub repository's latest release. Used by the
+# AppImage entries, whose asset names embed the version in different ways.
+latest_release_tag() { # <api url> <label>
+    local tag
+    tag="$(curl -fsSL "$1" | grep -m1 '"tag_name"' | cut -d'"' -f4)"
+    [ -n "$tag" ] || die "could not resolve the latest $2 release"
+    printf '%s\n' "$tag"
+}
+
+# Write a launcher for an unpacked AppImage. The wrapper pins APPDIR because
+# some AppRuns mis-detect it, and adds --no-sandbox when the container cannot
+# create unprivileged user namespaces (Electron ignores the flag elsewhere).
+write_appimage_launcher() { # <opt dir name> <binary>
+    local name="$1" bin="$2"
+    mkdir -p "$HOME/.local/bin"
+    cat > "$HOME/.local/bin/$bin" <<APPIMAGE
+#!/bin/bash
+# Generated by sandbox-cli: the $name AppImage is unpacked under ~/.local/opt
+# because the container has no FUSE.
+appdir="\$HOME/.local/opt/$name/squashfs-root"
+export APPDIR="\$appdir"
+no_sandbox=()
+if ! unshare -Ur true 2>/dev/null; then
+    no_sandbox=(--no-sandbox)
+fi
+exec "\$appdir/AppRun" "\${no_sandbox[@]}" "\$@"
+APPIMAGE
+    chmod 0755 "$HOME/.local/bin/$bin"
+}
+
+# Download an AppImage, unpack it into ~/.local/opt/<name> and install the
+# launcher from write_appimage_launcher. Electron apps need NSS/NSPR and ALSA.
+install_appimage() { # <label> <url> <opt dir name> <binary>
+    local label="$1" url="$2" name="$3" bin="$4" dir
+    ensure_electron_libs
+    log "installing $label..."
+    dir="$HOME/.local/opt/$name"
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    curl -fsSL -o "$dir/$name.AppImage" "$url" \
+        || die "could not download $label ($url)"
+    chmod +x "$dir/$name.AppImage"
+    ( cd "$dir" && "./$name.AppImage" --appimage-extract >/dev/null 2>&1 ) \
+        || die "could not unpack the $label AppImage"
+    write_appimage_launcher "$name" "$bin"
+    have "$bin" || die "$bin not on PATH after installing $label"
+}
+
 # LobeChat (lobehub) ships an Electron desktop app as an AppImage. Like Jan it
 # is unpacked rather than mounted (no FUSE in the container) and the AppRun is
 # symlinked onto PATH. The release only carries an x64 AppImage.
@@ -1055,6 +1200,144 @@ exec "$appdir/AppRun" "${no_sandbox[@]}" "$@"
 MSTY_WRAPPER
     chmod +x "$HOME/.local/bin/msty"
     have msty || die "msty not on PATH after the install"
+}
+
+# OpenBot is a local-first multi-agent desktop workspace (Codex, Claude,
+# Grok). Its AppImage per architecture embeds the version in the asset name.
+ensure_openbot() {
+    have openbot && return 0
+    local tag arch
+    tag="$(latest_release_tag "$OPENBOT_RELEASE_API" OpenBot)"
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) arch=x86_64 ;;
+        arm64|aarch64) arch=arm64 ;;
+        *) die "OpenBot publishes no AppImage for $(dpkg --print-architecture)" ;;
+    esac
+    install_appimage OpenBot \
+        "$OPENBOT_RELEASE_BASE/$tag/OpenBot-${tag#v}-$arch.AppImage" \
+        openbot openbot
+}
+
+# Orca is an IDE for parallel agentic development, shipped as an Electron
+# AppImage (x64 and arm64 have different asset names).
+ensure_orca() {
+    have orca && return 0
+    local tag asset
+    tag="$(latest_release_tag "$ORCA_RELEASE_API" Orca)"
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) asset=orca-linux.AppImage ;;
+        arm64|aarch64) asset=orca-linux-arm64.AppImage ;;
+        *) die "Orca publishes no AppImage for $(dpkg --print-architecture)" ;;
+    esac
+    install_appimage Orca "$ORCA_RELEASE_BASE/$tag/$asset" orca orca
+}
+
+# VoiceStudio is an Electron voice studio (TTS/voice cloning). It publishes a
+# Linux AppImage for x64 only.
+ensure_voicestudio() {
+    have voicestudio && return 0
+    local tag
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+        amd64|x86_64) ;;
+        *) die "VoiceStudio publishes no Linux AppImage for $(dpkg --print-architecture); only x64 is available" ;;
+    esac
+    tag="$(latest_release_tag "$VOICESTUDIO_RELEASE_API" VoiceStudio)"
+    install_appimage VoiceStudio \
+        "$VOICESTUDIO_RELEASE_BASE/$tag/VoiceStudio-${tag#v}-linux-x64.AppImage" \
+        voicestudio voicestudio
+}
+
+# ThinkRail's installer resolves the latest release, verifies its SHA-256 and
+# writes ~/.local/bin/thinkrail. --no-modify-path leaves the shell rc alone;
+# sandbox-cli already puts ~/.local/bin on PATH.
+ensure_thinkrail() {
+    have thinkrail && return 0
+    log "installing ThinkRail..."
+    curl -fsSL "$THINKRAIL_INSTALLER" | bash -s -- --no-modify-path \
+        || die "the ThinkRail install script failed"
+    have thinkrail || die "thinkrail not on PATH after the ThinkRail install"
+}
+
+ensure_hyperframes() {
+    have hyperframes && return 0
+    ensure_npm "$HYPERFRAMES_PACKAGE" hyperframes
+}
+
+# DeepTutor's [full] extra carries the web app; bare `deeptutor` is CLI only.
+ensure_deeptutor() {
+    have deeptutor && return 0
+    ensure_pip "$DEEPTUTOR_PACKAGE" deeptutor
+}
+
+ensure_nanobot() {
+    have nanobot && return 0
+    ensure_pip "$NANOBOT_PACKAGE" nanobot
+}
+
+# Agent Reach is a uv-installed agent skill/CLI. uv tool install puts its
+# wrapper in ~/.local/bin, which the script already prepends to PATH.
+ensure_agent_reach() {
+    have agent-reach && return 0
+    ensure_uv
+    log "installing Agent Reach..."
+    uv tool install --force "$AGENT_REACH_ZIP" \
+        || die "uv tool install Agent Reach failed"
+    have agent-reach || die "agent-reach not on PATH after the install"
+}
+
+# ECC installs harness-native skills, rules and commands; for OpenCode the
+# state file marks a completed run so a second click is instant.
+ensure_ecc() {
+    [ -f "$HOME/.config/opencode/ecc-install-state.json" ] && return 0
+    have npx || ensure_node
+    log "installing ECC (skills, rules and commands for OpenCode)..."
+    npx -y "$ECC_PACKAGE" install --target opencode --profile core --no-hooks \
+        || die "the ECC install failed"
+    [ -f "$HOME/.config/opencode/ecc-install-state.json" ] \
+        || die "ECC did not write its OpenCode install state"
+}
+
+# Superpowers is an OpenCode plugin; `opencode plugin add` records it in the
+# global config and fetches the git checkout itself.
+ensure_superpowers() {
+    if [ -f "$HOME/.config/opencode/opencode.json" ] \
+        && grep -Fq "$SUPERPOWERS_PLUGIN" "$HOME/.config/opencode/opencode.json"; then
+        return 0
+    fi
+    ensure_script "$OPENCODE_INSTALLER" opencode "OpenCode"
+    log "installing the Superpowers plugin for OpenCode..."
+    opencode plugin add "$SUPERPOWERS_PLUGIN" \
+        || die "opencode plugin add Superpowers failed"
+    grep -Fq "$SUPERPOWERS_PLUGIN" "$HOME/.config/opencode/opencode.json" \
+        || die "Superpowers was not added to the OpenCode config"
+}
+
+# Graphify ships a pip CLI that copies its skill into each supported agent's
+# directory; --platform agents covers the shared ~/.agents/skills layout.
+ensure_graphify() {
+    [ -f "$HOME/.agents/skills/graphify/SKILL.md" ] && return 0
+    ensure_pip "$GRAPHIFY_PACKAGE" graphify
+    log "installing the Graphify skill for the installed agents..."
+    graphify install --platform agents \
+        || die "graphify install failed"
+    [ -f "$HOME/.agents/skills/graphify/SKILL.md" ] \
+        || die "Graphify was not installed under ~/.agents/skills"
+}
+
+# Claude-Mem installs an OpenCode plugin and needs Bun for its worker. Bun's
+# installer unpacks a zip, so unzip has to be present first. --provider claude
+# is the documented local mode; it runs memory on the user's own Claude plan.
+# CLAUDE_MEM_ONLINE_OPTIN=false keeps the install local-only.
+ensure_claude_mem() {
+    [ -f "$HOME/.config/opencode/plugins/claude-mem.js" ] && return 0
+    ensure_unzip
+    have npx || ensure_node
+    log "installing Claude-Mem for OpenCode..."
+    CLAUDE_MEM_ONLINE_OPTIN=false npx -y "$CLAUDE_MEM_PACKAGE" install \
+        --ide opencode --provider claude \
+        || die "the Claude-Mem install failed"
+    [ -f "$HOME/.config/opencode/plugins/claude-mem.js" ] \
+        || die "Claude-Mem did not write its OpenCode plugin"
 }
 
 # Cindy's user installer unpacks the .deb with bsdtar (libarchive-tools on
@@ -1861,6 +2144,310 @@ launch() { # <label> <command...>
     exec "$@"
 }
 
+# ---------------------------------------------------------------------------
+# Polli sandboxes
+#
+# `polli sandbox` starts a hosted Debian VM (E2B) billed to the Pollinations
+# account and reaches it as <id>.polli over ssh. The menu entry wraps its
+# subcommands in one terminal so the ids and options are visible; it also
+# offers to install this very menu inside a sandbox (see
+# polli-sandbox-bootstrap.sh), which is the way to get the g4f desktop menu in
+# a Polli VM. Polli's ssh config uses `polli sandbox proxy` as its
+# ProxyCommand and needs ssh-keygen, so the OpenSSH client is installed on the
+# first click.
+# ---------------------------------------------------------------------------
+polli_sandbox_usage() {
+    cat <<'EOF'
+usage: sandbox-cli polli-sandbox                     interactive menu
+       sandbox-cli polli-sandbox create [template] [seconds]
+       sandbox-cli polli-sandbox list
+       sandbox-cli polli-sandbox connect <id>        ssh <id>.polli
+       sandbox-cli polli-sandbox timeout <id> <seconds>
+       sandbox-cli polli-sandbox pause <id>
+       sandbox-cli polli-sandbox logs <id>
+       sandbox-cli polli-sandbox kill [id...]
+       sandbox-cli polli-sandbox ssh-config
+       sandbox-cli polli-sandbox install-menu <id> [--desktop]
+
+create starts a sandbox (default template "pollinations"); timeout 0 keeps it
+running until it is paused or killed. The storage is billed to the Pollinations
+account, and a sandbox pauses itself after a few minutes without an ssh
+session. install-menu copies this menu into a Polli sandbox; --desktop also
+installs Xfce + TigerVNC and prints the ssh tunnel for a VNC client.
+EOF
+}
+
+ensure_ssh_client() {
+    have ssh && have ssh-keygen && return 0
+    log "installing the OpenSSH client (needed by polli sandbox)..."
+    as_root apt-get update -qq || die "apt-get update failed"
+    as_root apt-get install -y -qq openssh-client \
+        || die "could not install openssh-client"
+    have ssh && have ssh-keygen \
+        || die "ssh/ssh-keygen not found after installing openssh-client"
+}
+
+polli_sandbox_valid_id() {
+    case "$1" in
+        ''|*[!a-z0-9-]*) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+# Print the sandbox list to the terminal and return the id typed by the user.
+# Everything except the id goes to stderr so the caller can capture stdout.
+polli_sandbox_pick_id() { # <prompt>
+    local id=""
+    printf 'Your Polli sandboxes:\n' >&2
+    polli sandbox list >&2 2>&1 || true
+    printf '\n' >&2
+    read -r -p "$1: " id || true
+    printf '%s' "$id"
+}
+
+polli_sandbox_prepare_ssh() {
+    polli sandbox ssh-config >/dev/null 2>&1 \
+        || log "could not write ~/.pollinations/ssh/config; ssh may not know <id>.polli"
+}
+
+polli_sandbox_connect() {
+    local id="${1:-}"
+    [ -n "$id" ] || id="$(polli_sandbox_pick_id "sandbox id")"
+    [ -n "$id" ] || return 0
+    polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
+    polli_sandbox_prepare_ssh
+    log "connecting to ${id}.polli (leave the shell to return to the menu)..."
+    ssh "${id}.polli" || log "ssh exited with status $?"
+}
+
+polli_sandbox_create() {
+    local template="" timeout="" output id answer
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --timeout)
+                [ $# -ge 2 ] || die "--timeout needs a number of seconds"
+                timeout="$2"; shift 2 ;;
+            -h|--help)
+                polli sandbox create --help; return 0 ;;
+            -*)
+                die "unknown create option \"$1\" — run: polli sandbox create --help" ;;
+            *)
+                if [ -z "$template" ]; then
+                    template="$1"
+                elif [ -z "$timeout" ]; then
+                    timeout="$1"
+                else
+                    die "too many arguments for create"
+                fi
+                shift ;;
+        esac
+    done
+    if [ -z "$template" ] && [ -t 0 ]; then
+        printf 'Template: pollinations (default), pollinations-large (4 vCPU/8 GB),\n'
+        printf 'or pollinations-azure / -azure-large / -azure-xl.\n'
+        read -r -p "template [pollinations]: " template || true
+    fi
+    template="${template:-pollinations}"
+    if [ -z "$timeout" ] && [ -t 0 ]; then
+        read -r -p "timeout in seconds, 0 = never expire [600]: " timeout || true
+    fi
+    timeout="${timeout:-600}"
+    case "$timeout" in
+        ''|*[!0-9]*) die "timeout must be a whole number of seconds (0 = never expire)" ;;
+    esac
+    polli_sandbox_prepare_ssh
+    log "creating a Polli sandbox ($template, timeout ${timeout}s)..."
+    output="$(polli sandbox create --timeout "$timeout" "$template" 2>&1)" || {
+        printf '%s\n' "$output"
+        die "could not create the Polli sandbox"
+    }
+    printf '%s\n' "$output"
+    id="$(printf '%s\n' "$output" \
+        | sed -n 's/^Sandbox \([^ ]*\) created.*/\1/p' | head -n1)"
+    if [ -z "$id" ]; then
+        log "created; run 'polli sandbox list' to see its id"
+        return 0
+    fi
+    polli_sandbox_prepare_ssh
+    [ -t 0 ] || return 0
+    read -r -p "Connect to $id now? [Y/n]: " answer || true
+    case "$answer" in
+        n|N|no|NO) ;;
+        *) polli_sandbox_connect "$id" ;;
+    esac
+}
+
+polli_sandbox_timeout() {
+    local id="${1:-}" seconds="${2:-}"
+    [ -n "$id" ] || id="$(polli_sandbox_pick_id "sandbox id")"
+    [ -n "$id" ] || return 0
+    polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
+    if [ -z "$seconds" ] && [ -t 0 ]; then
+        read -r -p "keep running for how many seconds (0 = never expire): " seconds || true
+    fi
+    case "$seconds" in
+        ''|*[!0-9]*) die "timeout must be a whole number of seconds (0 = never expire)" ;;
+    esac
+    polli sandbox timeout "$id" "$seconds" || die "could not set the timeout of $id"
+}
+
+polli_sandbox_pause() {
+    local id="${1:-}"
+    [ -n "$id" ] || id="$(polli_sandbox_pick_id "sandbox id")"
+    [ -n "$id" ] || return 0
+    polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
+    polli sandbox pause "$id" || die "could not pause $id"
+}
+
+polli_sandbox_logs() {
+    local id="${1:-}"
+    [ -n "$id" ] || id="$(polli_sandbox_pick_id "sandbox id")"
+    [ -n "$id" ] || return 0
+    polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
+    polli sandbox logs "$id" || die "could not read the logs of $id"
+}
+
+polli_sandbox_kill() {
+    local ids=("$@") answer typed id
+    if [ ${#ids[@]} -eq 0 ]; then
+        typed="$(polli_sandbox_pick_id "sandbox id (space-separated for several)")"
+        [ -n "$typed" ] || return 0
+        read -r -a ids <<< "$typed"
+    fi
+    [ ${#ids[@]} -gt 0 ] || return 0
+    for id in "${ids[@]}"; do
+        polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
+    done
+    log "This deletes ${ids[*]} and their files."
+    read -r -p "Kill? [y/N]: " answer || true
+    case "$answer" in
+        y|Y|yes|YES) polli sandbox kill "${ids[@]}" || die "could not kill ${ids[*]}" ;;
+        *) log "kept ${ids[*]}" ;;
+    esac
+}
+
+# Copy the menu assets into a Polli sandbox and run the bootstrap there. The
+# host tar writes the same paths the sandbox image uses, so the bootstrap can
+# patch the Xfce menu and start the desktop without extra arguments.
+polli_sandbox_install_menu() {
+    local id="${1:-}" desktop="${2:-ask}" stage="" boot_src="" answer
+    local files=() path self_dir
+    [ -n "$id" ] || id="$(polli_sandbox_pick_id "sandbox id")"
+    [ -n "$id" ] || return 0
+    polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
+    if [ "$desktop" = ask ] && [ -t 0 ]; then
+        read -r -p "Also install the Xfce desktop + VNC (larger, needs a VNC client)? [y/N]: " answer || true
+        case "$answer" in
+            y|Y|yes|YES) desktop=1 ;;
+            *) desktop=0 ;;
+        esac
+    fi
+    case "$desktop" in
+        1|--desktop|desktop|yes|YES) desktop=1 ;;
+        *) desktop=0 ;;
+    esac
+
+    for path in \
+        /usr/local/bin/sandbox-cli \
+        /usr/local/bin/patch-xfce-menu.py \
+        /usr/local/bin/polli-sandbox-bootstrap.sh \
+        /usr/local/bin/sandbox-docs \
+        /usr/local/bin/sandbox-discover \
+        /usr/local/bin/start-browser \
+        /usr/share/applications/g4f-sandbox-*.desktop \
+        /usr/share/desktop-directories/g4f-sandbox-*.directory \
+        /usr/share/icons/hicolor/*/apps/g4f-sandbox-*; do
+        [ -e "$path" ] && files+=("${path#/}")
+    done || true
+
+    if [ ! -f /usr/local/bin/polli-sandbox-bootstrap.sh ]; then
+        self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        boot_src="$self_dir/polli-sandbox-bootstrap.sh"
+        [ -f "$boot_src" ] \
+            || die "polli-sandbox-bootstrap.sh is missing (rebuild the sandbox image)"
+        stage="$(mktemp -d)" || die "could not create a temporary directory"
+        mkdir -p "$stage/usr/local/bin"
+        cp "$boot_src" "$stage/usr/local/bin/" || die "could not stage the bootstrap script"
+    fi
+    [ ${#files[@]} -gt 0 ] || die "no sandbox menu assets found in this image"
+
+    polli_sandbox_prepare_ssh
+    log "copying the sandbox menu into ${id}.polli..."
+    if [ -n "$stage" ]; then
+        tar -C / -czf - "${files[@]}" \
+            -C "$stage" usr/local/bin/polli-sandbox-bootstrap.sh \
+            | ssh "$id.polli" 'sudo -n tar -C / -xzf -' \
+            || die "could not copy the menu into $id (does the sandbox user have sudo?)"
+        rm -rf "$stage"
+    else
+        tar -C / -czf - "${files[@]}" \
+            | ssh "$id.polli" 'sudo -n tar -C / -xzf -' \
+            || die "could not copy the menu into $id (does the sandbox user have sudo?)"
+    fi
+
+    log "installing the sandbox menu inside $id..."
+    if [ "$desktop" = 1 ]; then
+        ssh "$id.polli" 'sudo -n /usr/local/bin/polli-sandbox-bootstrap.sh --desktop' \
+            || die "the menu bootstrap failed inside $id"
+    else
+        ssh "$id.polli" 'sudo -n /usr/local/bin/polli-sandbox-bootstrap.sh' \
+            || die "the menu bootstrap failed inside $id"
+    fi
+}
+
+polli_sandbox_menu() {
+    local choice
+    while :; do
+        printf '\nPolli sandboxes — hosted E2B VMs billed to your Pollinations account\n'
+        polli auth status 2>/dev/null | sed 's/^/  /' \
+            || printf '  not logged in — run: polli auth login\n'
+        cat <<'EOF'
+  1) List sandboxes
+  2) Create a sandbox
+  3) Connect (ssh <id>.polli)
+  4) Set a timeout
+  5) Pause a sandbox
+  6) Show logs
+  7) Kill sandboxes
+  8) Install this sandbox menu inside a Polli sandbox
+  9) Show the ssh config
+  q) Quit
+EOF
+        read -r -p "Choice: " choice || { printf '\n'; return 0; }
+        case "$choice" in
+            1) polli sandbox list || log "could not list the sandboxes" ;;
+            2) polli_sandbox_create ;;
+            3) polli_sandbox_connect ;;
+            4) polli_sandbox_timeout ;;
+            5) polli_sandbox_pause ;;
+            6) polli_sandbox_logs ;;
+            7) polli_sandbox_kill ;;
+            8) polli_sandbox_install_menu ;;
+            9) polli sandbox ssh-config ;;
+            q|Q|quit|exit) return 0 ;;
+            *) log "unknown choice: $choice" ;;
+        esac
+        printf '\n'
+    done
+}
+
+polli_sandbox_dispatch() {
+    case "${1:-}" in
+        '') polli_sandbox_menu; hold_open ;;
+        list) shift; polli sandbox list "$@"; hold_open ;;
+        create) shift; polli_sandbox_create "$@" ;;
+        connect|ssh) shift; polli_sandbox_connect "$@" ;;
+        timeout) shift; polli_sandbox_timeout "$@" ;;
+        pause) shift; polli_sandbox_pause "$@" ;;
+        logs) shift; polli_sandbox_logs "$@"; hold_open ;;
+        kill) shift; polli_sandbox_kill "$@" ;;
+        ssh-config) shift; polli sandbox ssh-config "$@"; hold_open ;;
+        install-menu|setup) shift; polli_sandbox_install_menu "$@" ;;
+        -h|--help|help) polli_sandbox_usage ;;
+        *) exec polli sandbox "$@" ;;
+    esac
+}
+
 run_tool() {
     # The saved HOME and PROXY apply to every entry, g4f-aware or not.
     apply_sandbox_home
@@ -1910,6 +2497,10 @@ run_tool() {
             log "starting Pi (Ctrl-C to stop)"
             log "pick a free model with /model -> freeflow"
             launch Pi pi "${@:2}" ;;
+        thinkrail)
+            ensure_thinkrail
+            ensure_git
+            launch ThinkRail thinkrail "${@:2}" ;;
         pi-freeflow)
             ensure_freeflow_api
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -2141,6 +2732,33 @@ run_tool() {
             log "opening Msty Studio on the desktop"
             nohup setsid msty >/tmp/msty.log 2>&1 &
             exit 0 ;;
+        openbot)
+            ensure_openbot
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "OpenBot is installed and ready"
+                exit 0
+            fi
+            log "opening OpenBot on the desktop"
+            nohup setsid openbot >/tmp/openbot.log 2>&1 &
+            exit 0 ;;
+        orca)
+            ensure_orca
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Orca is installed and ready"
+                exit 0
+            fi
+            log "opening Orca on the desktop"
+            nohup setsid orca >/tmp/orca.log 2>&1 &
+            exit 0 ;;
+        voicestudio)
+            ensure_voicestudio
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "VoiceStudio is installed and ready"
+                exit 0
+            fi
+            log "opening VoiceStudio on the desktop"
+            nohup setsid voicestudio >/tmp/voicestudio.log 2>&1 &
+            exit 0 ;;
         sillytavern)
             ensure_sillytavern
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -2218,6 +2836,22 @@ run_tool() {
                 configure_hermes_g4f
             fi
             launch "Hermes Agent" hermes "${@:2}" ;;
+        omh)
+            ensure_hermes
+            ensure_omh
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Oh My Hermes is installed and ready"
+                exit 0
+            fi
+            # OMH reads the same Hermes home the Hermes entry configures. Run
+            # setup before pointing Hermes at g4f so a fresh install registers
+            # its managed skills, then write the g4f alias last so setup cannot
+            # overwrite it.
+            configure_g4f
+            log "preparing Oh My Hermes (omh setup --yes)..."
+            omh setup --yes || die "omh setup failed"
+            configure_hermes_g4f
+            launch "Oh My Hermes" omh "${@:2}" ;;
         kiro)
             ensure_unzip
             ensure_script "$KIRO_INSTALLER" kiro-cli "Kiro CLI"
@@ -2268,6 +2902,99 @@ run_tool() {
         llm)
             ensure_pip llm llm
             launch "LLM CLI" llm "${@:2}" ;;
+        files|nemo)
+            # GUI file managers: installed on first click, then opened on the
+            # desktop detached, so the launcher terminal closes and the window
+            # stays. An optional argument is the folder to open.
+            if [ "$1" = nemo ]; then
+                ensure_apt nemo nemo
+                label="File Manager (Nemo)"
+                app=nemo
+            else
+                ensure_apt thunar thunar
+                label="File Manager"
+                app=thunar
+            fi
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "$label is installed and ready"
+                exit 0
+            fi
+            target="$HOME"
+            [ $# -gt 1 ] && target="$2"
+            log "opening $target in $label"
+            nohup setsid "$app" "$target" >"/tmp/$app.log" 2>&1 &
+            exit 0 ;;
+        discover)
+            # The scout asks OpenCode to find new/trending tools and edit this
+            # launcher plus the desktop entries. OpenCode talks to the g4f API,
+            # so register that provider first (the same config the OpenCode
+            # entry writes); the agent then runs unattended with --auto.
+            ensure_script "$OPENCODE_INSTALLER" opencode "OpenCode"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "OpenCode is installed and ready"
+                exit 0
+            fi
+            configure_g4f
+            configure_opencode_g4f
+            status=0
+            sandbox-discover "${@:2}" || status=$?
+            [ "$status" = 0 ] || log "the scout exited with status $status"
+            log "report: ${XDG_CACHE_HOME:-$HOME/.cache}/sandbox-discover/report.md"
+            exec bash -i ;;
+        glow)
+            ensure_apt glow glow
+            ensure_apt chafa chafa
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Glow and chafa are installed and ready"
+                exit 0
+            fi
+            # sandbox-docs downloads the markdown sources from https://g4f.dev,
+            # rewrites their images into chafa ANSI art and opens the index in
+            # glow. It exits into glow, so the terminal stays as its pager.
+            log "opening the g4f.dev docs in glow (first run downloads them)..."
+            exec sandbox-docs open "${@:2}" ;;
+        polli)
+            ensure_npm @pollinations/cli polli
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Polli is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch "Polli" polli "${@:2}"
+            fi
+            # Polli has no TUI of its own: a bare `polli` prints usage and
+            # exits, which would close the terminal window. Start a shell with
+            # the CLI on PATH instead and show the login state first.
+            log "Polli is ready (https://gen.pollinations.ai). Try:"
+            log "  polli gen text \"Say hello in one sentence\""
+            log "  polli gen image \"a cat in space\" --output cat.png"
+            polli auth status 2>/dev/null || true
+            exec bash -i ;;
+        polli-sandbox)
+            ensure_npm @pollinations/cli polli
+            ensure_ssh_client
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Polli and the OpenSSH client are installed and ready"
+                exit 0
+            fi
+            polli_sandbox_dispatch "${@:2}" ;;
+        hyperframes)
+            ensure_hyperframes
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "HyperFrames is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch HyperFrames hyperframes "${@:2}"
+            fi
+            # HyperFrames is a one-shot CLI: bare `hyperframes` prints usage and
+            # exits, so show the common commands and leave a shell open.
+            log "HyperFrames is ready. Examples:"
+            log "  hyperframes init my-video"
+            log "  hyperframes preview"
+            log "  hyperframes render"
+            hyperframes --help 2>/dev/null || true
+            exec bash -i ;;
         assistant-ui)
             ensure_assistant_ui
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -2286,6 +3013,138 @@ run_tool() {
             cd "$HOME/$ASSISTANT_UI_DIR_NAME" || die "the assistant-ui app is missing"
             launch "assistant-ui" npm run dev -- \
                 --port "$ASSISTANT_UI_PORT" --hostname 127.0.0.1 "${@:2}" ;;
+        huggingface|hf)
+            ensure_hf
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "the Hugging Face CLI (hf) is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch "Hugging Face Spaces" hf "${@:2}"
+            fi
+            # A bare entry lists trending Spaces, then leaves the shell open so
+            # the CLI can be used for inspection and downloads. `hf spaces ls
+            # <owner/name>` shows a Space's files and `hf spaces info` its
+            # metadata; auth is only needed for private or gated repositories.
+            log "trending Hugging Face Spaces:"
+            hf spaces ls --limit 20 2>/dev/null || true
+            hf auth whoami 2>/dev/null || log "not signed in (optional: hf auth login)"
+            log "try: hf spaces info <owner/name>  or  hf download <owner/name> --repo-type space"
+            exec bash -i ;;
+        deeptutor)
+            ensure_deeptutor
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "DeepTutor is installed and ready"
+                exit 0
+            fi
+            # The web app runs in the foreground as the terminal's console; the
+            # first run asks for the runtime home and a model provider.
+            log "starting DeepTutor on http://127.0.0.1:3782 (Ctrl-C to stop)"
+            launch DeepTutor deeptutor start "${@:2}" ;;
+        nanobot)
+            ensure_nanobot
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "nanobot is installed and ready"
+                exit 0
+            fi
+            log "starting nanobot on http://127.0.0.1:$NANOBOT_PORT (Ctrl-C to stop)"
+            launch nanobot nanobot webui --port "$NANOBOT_PORT" "${@:2}" ;;
+        agent-reach)
+            ensure_agent_reach
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Agent Reach is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch "Agent Reach" agent-reach "${@:2}"
+            fi
+            # setup is idempotent but slow: enable the default channels and
+            # install the agent skill once, then show the CLI state and keep a
+            # shell open for channel-specific commands.
+            if [ ! -f "$HOME/.agent-reach/config.yaml" ]; then
+                log "setting up Agent Reach (default channels + agent skill)..."
+                agent-reach setup 2>/dev/null | tail -n 20 || true
+            fi
+            agent-reach version 2>/dev/null || true
+            log "try: agent-reach channels  or  agent-reach read <url>"
+            exec bash -i ;;
+        humanizer)
+            ensure_humanizer
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "the Humanizer skill is installed and ready"
+                exit 0
+            fi
+            # The skill has no command of its own: each supported agent loads
+            # it as /humanizer (or asks for it in plain language). Keep the
+            # terminal open with a reminder of where it landed.
+            log "Humanizer is installed for the agents under $HOME/.agents/skills/humanizer"
+            log "use /humanizer in OpenCode, Codex, Claude Code or another skills-aware agent"
+            exec bash -i ;;
+        ecc)
+            ensure_ecc
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "ECC is installed and ready"
+                exit 0
+            fi
+            log "ECC is installed under $HOME/.config/opencode (skills, rules, commands)"
+            log "restart OpenCode to load them"
+            exec bash -i ;;
+        superpowers)
+            ensure_superpowers
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Superpowers is installed and ready"
+                exit 0
+            fi
+            log "Superpowers is registered in $HOME/.config/opencode/opencode.json"
+            log "restart OpenCode; the skills are available as /superpowers commands"
+            exec bash -i ;;
+        graphify)
+            ensure_graphify
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Graphify is installed and ready"
+                exit 0
+            fi
+            log "Graphify is installed under $HOME/.agents/skills/graphify"
+            log "ask your agent to graphify a folder, or run: graphify --help"
+            exec bash -i ;;
+        claude-mem)
+            ensure_claude_mem
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Claude-Mem is installed and ready"
+                exit 0
+            fi
+            log "Claude-Mem is installed: $HOME/.config/opencode/plugins/claude-mem.js"
+            log "it captures memory automatically after OpenCode restarts"
+            log "memory runs on your own Claude plan (--provider claude)"
+            exec bash -i ;;
+        ai-detect)
+            ensure_pip_git "$AI_TEXT_DETECTOR_REPO" ai-detect "AI Text Detector"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "the AI Text Detector is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch "AI Text Detector" ai-detect "${@:2}"
+            fi
+            log "AI Text Detector is ready. Examples:"
+            log "  ai-detect essay.txt"
+            log "  cat draft.md | ai-detect --json"
+            ai-detect --help 2>/dev/null || true
+            exec bash -i ;;
+        aidetect)
+            ensure_pip_git "$AI_IMAGE_DETECTOR_REPO" aidetect "AI Image Detector"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "the AI Image Detector is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch "AI Image Detector" aidetect "${@:2}"
+            fi
+            log "AI Image Detector is ready. Examples:"
+            log "  aidetect detect image.jpg"
+            log "  aidetect detect ./images --csv report.csv"
+            aidetect --help 2>/dev/null || true
+            exec bash -i ;;
         *)
             die "unknown tool \"$1\" — run: sandbox-cli list" ;;
     esac
@@ -2300,6 +3159,7 @@ usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop to
        sandbox-cli list               list the tools behind the desktop menu
        sandbox-cli urls               print the public URLs served by the g4f API
        sandbox-cli hosts              print the /etc/hosts entries for the app domains
+       sandbox-cli polli-sandbox      create/connect/manage hosted Polli sandboxes
        sandbox-cli help               this help
 
 Installs go to /usr/local (npm -g via sudo), ~/.local (pip --user and the
@@ -2315,6 +3175,8 @@ list_tools() {
     printf '  %-15s %s\n' \
         g4f-go          "g4f Go launcher CLI (preinstalled)" \
         remote-desktop  "share this sandbox screen with a phone (WebRTC)" \
+        glow            "g4f.dev docs in the terminal (images as ANSI art)" \
+        discover        "find new/trending AI tools and add them to this menu" \
         settings        "g4f model, HOME and provider for the launchers" \
         reset           "clear the saved settings, back to the defaults" \
         urls            "public URLs served by the g4f API" \
@@ -2323,10 +3185,17 @@ list_tools() {
     printf '  %-15s %s\n' \
         chrome      "Google Chrome browser" \
         lightpanda  "Lightpanda headless browser (CDP server)"
+    printf '%s\n' "Files"
+    printf '  %-15s %s\n' \
+        files       "Thunar file manager" \
+        nemo        "Nemo file manager (Cinnamon)"
     printf '%s\n' "Coding Agents"
     printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
         cindy       "Cindy desktop AI agent" \
+        openbot     "OpenBot multi-agent desktop workspace" \
+        thinkrail   "ThinkRail agentic IDE by JetBrains" \
+        orca        "Orca IDE for parallel agentic development" \
         omp         "Oh My Pi (OMP) coding agent" \
         pi          "Pi coding agent" \
         kilocode    "Kilo Code terminal agent" \
@@ -2348,6 +3217,7 @@ list_tools() {
         openhands   "OpenHands coding agent" \
         plandex     "Plandex coding agent" \
         hermes      "Hermes Agent by Nous Research" \
+        omh         "Oh My Hermes (OMH) harness for Hermes Agent" \
         kiro        "Kiro CLI by AWS" \
         kimi        "Kimi Code by Moonshot AI" \
         roomote     "Roomote self-hosted coding agent" \
@@ -2356,6 +3226,12 @@ list_tools() {
         iflow       "iFlow CLI" \
         vibe        "Mistral Vibe" \
         sweagent    "SWE-agent by Princeton"
+    printf '%s\n' "Agent Skills"
+    printf '  %-15s %s\n' \
+        ecc         "ECC skills, rules and commands for OpenCode" \
+        superpowers "Superpowers skills plugin for OpenCode" \
+        graphify    "Graphify codebase knowledge-graph skill" \
+        claude-mem  "Claude-Mem cross-session memory for OpenCode"
     printf '%s\n' "Gateways"
     printf '  %-15s %s\n' \
         omniroute   "OmniRoute AI router/gateway" \
@@ -2382,8 +3258,25 @@ list_tools() {
     printf '  %-15s %s\n' \
         code-server "VS Code Web (code-server)" \
         kate        "Kate text editor (KDE)"
+    printf '%s\n' "Media"
+    printf '  %-15s %s\n' \
+        polli       "Pollinations CLI (text, image, audio, video, 3D)" \
+        voicestudio "VoiceStudio voice cloning and TTS app" \
+        hyperframes "HyperFrames HTML-to-video renderer"
+    printf '%s\n' "Sandboxes"
+    printf '  %-15s %s\n' \
+        polli-sandbox "create, connect to and manage hosted Polli (E2B) sandboxes"
+    printf '%s\n' "Writing"
+    printf '  %-15s %s\n' \
+        humanizer   "Humanizer skill for AI-sounding text" \
+        ai-detect   "AI-generated text risk analyzer" \
+        aidetect    "AI-generated image detector"
     printf '%s\n' "Assistants"
     printf '  %-15s %s\n' \
+        huggingface "Hugging Face Spaces browser (hf CLI)" \
+        deeptutor   "DeepTutor personalized learning web app" \
+        nanobot     "nanobot personal AI assistant (WebUI)" \
+        agent-reach "Agent Reach internet access for agents" \
         openclaw    "OpenClaw CLI" \
         fabric      "Fabric AI patterns CLI" \
         sgpt        "ShellGPT shell assistant" \

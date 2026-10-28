@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Oh My Hermes
+Comment=Oh My Hermes (OMH) — Hermes Agent harness with model routing and parallel workflow skills; installs on first click, then opens in a terminal
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Oh My Hermes" --icon=g4f-sandbox-omh --command="/usr/local/bin/sandbox-cli omh"
+Icon=g4f-sandbox-omh
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=oh-my-hermes;omh;hermes;nous;agent;ai;coding;dag-ulw;;
+StartupNotify=false

@@ -42,12 +42,34 @@ MENUS = [
 """,
     ),
     (
+        "Files",
+        """    <Menu>
+        <Name>Files</Name>
+        <Directory>g4f-sandbox-files.directory</Directory>
+        <Include>
+            <Category>X-G4F-Files</Category>
+        </Include>
+    </Menu>
+""",
+    ),
+    (
         "Coding Agents",
         """    <Menu>
         <Name>Coding Agents</Name>
         <Directory>g4f-sandbox-coding-agents.directory</Directory>
         <Include>
             <Category>X-G4F-Agent</Category>
+        </Include>
+    </Menu>
+""",
+    ),
+    (
+        "Agent Skills",
+        """    <Menu>
+        <Name>Agent Skills</Name>
+        <Directory>g4f-sandbox-skills.directory</Directory>
+        <Include>
+            <Category>X-G4F-Skills</Category>
         </Include>
     </Menu>
 """,
@@ -103,6 +125,39 @@ MENUS = [
         <Directory>g4f-sandbox-editors.directory</Directory>
         <Include>
             <Category>X-G4F-Editor</Category>
+        </Include>
+    </Menu>
+""",
+    ),
+    (
+        "Writing",
+        """    <Menu>
+        <Name>Writing</Name>
+        <Directory>g4f-sandbox-writing.directory</Directory>
+        <Include>
+            <Category>X-G4F-Writing</Category>
+        </Include>
+    </Menu>
+""",
+    ),
+    (
+        "Media",
+        """    <Menu>
+        <Name>Media</Name>
+        <Directory>g4f-sandbox-media.directory</Directory>
+        <Include>
+            <Category>X-G4F-Media</Category>
+        </Include>
+    </Menu>
+""",
+    ),
+    (
+        "Sandboxes",
+        """    <Menu>
+        <Name>Sandboxes</Name>
+        <Directory>g4f-sandbox-sandboxes.directory</Directory>
+        <Include>
+            <Category>X-G4F-Sandboxes</Category>
         </Include>
     </Menu>
 """,

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install Claude-Mem
+Comment=Claude-Mem cross-session memory for OpenCode — installs on first click
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Claude-Mem --icon=g4f-sandbox-claude-mem --command="/usr/local/bin/sandbox-cli claude-mem"
+Icon=g4f-sandbox-claude-mem
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Skills;
+Keywords=claude-mem;memory;context;opencode;plugin;;
+StartupNotify=false

@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+"""Read the g4f.dev docs in a terminal: download, render, open.
+
+The sandbox's "Install & Open Glow" entry runs `sandbox-docs open`, which
+downloads the markdown sources from https://g4f.dev/docs/ into a cache, turns
+the images they reference into ANSI art (chafa), and opens the index in glow.
+
+    sandbox-docs fetch            download the docs (README plus every .md it links)
+    sandbox-docs render [--all]   rewrite image tags into chafa art
+    sandbox-docs open [--all]     fetch + render + exec glow on the index
+
+`--all` renders images on every page; the default renders them on the index
+only, so the first open stays quick (the other pages keep a plain link).
+
+Nothing is installed here: glow and chafa come from the sandbox-cli entry.
+G4F_DOCS_DIR overrides the cache (~/.cache/g4f-docs).
+"""
+
+import argparse
+import hashlib
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+BASE = "https://g4f.dev/docs/"
+INDEX = "README.md"
+USER_AGENT = "sandbox-docs/1.0 (+https://g4f.dev/)"
+TIMEOUT = 30
+MAX_PAGES = 120
+MAX_DEPTH = 3
+# Pages older than this are fetched again on the next open; G4F_DOCS_TTL
+# overrides it (seconds, 0 always refreshes).
+TTL = int(os.environ.get("G4F_DOCS_TTL", 24 * 60 * 60))
+# Badges are noise as ANSI art: hundreds of pixels of shields.io chrome that say
+# more in their alt text than in the art. Everything else is fair game.
+SKIP_IMAGE = re.compile(r"(?:shields\.io|badge|/badge/)", re.IGNORECASE)
+IMAGE_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".avif")
+CURSOR = re.compile(r"\x1b\[\?25[lh]")
+
+
+def cache_dir() -> str:
+    return os.environ.get("G4F_DOCS_DIR") or os.path.join(
+        os.path.expanduser("~"), ".cache", "g4f-docs"
+    )
+
+
+def log(*args: object) -> None:
+    print(*args, file=sys.stderr)
+
+
+def fetch(url: str, dest: str) -> bytes | None:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            data = response.read()
+    except Exception as exc:  # noqa: BLE001 - any network/payload problem is a skip
+        log(f"sandbox-docs: could not download {url}: {exc}")
+        return None
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with open(dest, "wb") as handle:
+        handle.write(data)
+    return data
+
+
+LINK = re.compile(r"\]\(([^)\s]+)\)")
+
+
+def page_path(url: str) -> str:
+    """Cache-relative path for a docs URL (README.md, guides/phone.md, ...)."""
+    path = urllib.parse.urlparse(url).path
+    prefix = urllib.parse.urlparse(BASE).path
+    if path.startswith(prefix):
+        path = path[len(prefix):]
+    return path.lstrip("/") or INDEX
+
+
+def fetch_docs(root: str, refresh: bool = False) -> list[str]:
+    """Download the index and every relative .md it links, breadth first."""
+    raw = os.path.join(root, "raw")
+    seen: dict[str, str] = {}
+    queue = [(urllib.parse.urljoin(BASE, INDEX), 0)]
+    pages: list[str] = []
+    while queue and len(seen) < MAX_PAGES:
+        url, depth = queue.pop(0)
+        if url in seen:
+            continue
+        seen[url] = page_path(url)
+        dest = os.path.join(raw, seen[url])
+        cached = os.path.isfile(dest)
+        stale = cached and TTL > 0 and time.time() - os.path.getmtime(dest) > TTL
+        if cached and not refresh and not stale:
+            with open(dest, "rb") as handle:
+                data = handle.read()
+        else:
+            data = fetch(url, dest)
+        if data is None:
+            continue
+        pages.append(seen[url])
+        if depth >= MAX_DEPTH:
+            continue
+        text = data.decode("utf-8", "replace")
+        for target in LINK.findall(text):
+            target = target.split("#", 1)[0]
+            if not target.endswith(".md"):
+                continue
+            nxt = urllib.parse.urljoin(url, target)
+            if urllib.parse.urlparse(nxt).netloc != urllib.parse.urlparse(BASE).netloc:
+                continue
+            if nxt not in seen:
+                queue.append((nxt, depth + 1))
+    log(f"sandbox-docs: {len(pages)} page(s) in {raw}")
+    return pages
+
+
+HTML_IMG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+HTML_LINKED_IMG = re.compile(
+    r"""<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>\s*(<img\b[^>]*>)\s*</a>""",
+    re.IGNORECASE,
+)
+SRC = re.compile(r"""\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
+ALT = re.compile(r"""\balt\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
+MD_IMG = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+# Images use at most half the terminal width, and never more than 50 columns.
+MAX_IMAGE_COLUMNS = 50
+
+
+def resolve(src: str, page_url: str, root: str) -> tuple[str | None, str | None]:
+    """(local file, url) for an image reference; local wins for shipped files."""
+    if not src or "{" in src or "$" in src or src.startswith("data:"):
+        return None, None
+    url = urllib.parse.urljoin(page_url, src)
+    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+        return None, None
+    if SKIP_IMAGE.search(url):
+        return None, None
+    local = None
+    path = urllib.parse.urlparse(url).path
+    prefix = urllib.parse.urlparse(BASE).path
+    if path.startswith(prefix):
+        candidate = os.path.join(root, "raw", path[len(prefix):].lstrip("/"))
+        if os.path.isfile(candidate) and candidate.lower().endswith(IMAGE_EXT):
+            local = candidate
+    return local, url
+
+
+def chafa(source: str, width: int, height: int) -> str | None:
+    try:
+        proc = subprocess.run(
+            [
+                "chafa",
+                "--format", "symbols",
+                "--colors", "256",
+                "--animate", "off",
+                "--size", f"{width}x{height}",
+                source,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=60,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None
+    art = CURSOR.sub("", proc.stdout.decode("utf-8", "replace")).rstrip()
+    return art or None
+
+
+def art_block(source: str, url: str, alt: str, width: int, link: str = "") -> str | None:
+    width = max(1, min(width // 2, MAX_IMAGE_COLUMNS))
+    height = max(6, min(28, int(width * 0.45)))
+    rendered = chafa(source, width, height)
+    if not rendered:
+        return None
+    label = alt.strip() or os.path.basename(urllib.parse.urlparse(url).path)
+    # A wrapped image follows its link; a bare one opens the image full size.
+    target = link or url
+    return f"*{label}* ({target})\n\n```\n{rendered}\n```\n"
+
+
+def image_cache(root: str, url: str) -> str | None:
+    """Download an image once, keyed by URL, and return the local path."""
+    suffix = os.path.splitext(urllib.parse.urlparse(url).path)[1].lower()
+    if suffix not in IMAGE_EXT:
+        suffix = ".img"
+    name = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16] + suffix
+    dest = os.path.join(root, "images", name)
+    if os.path.isfile(dest) and os.path.getsize(dest) > 0:
+        return dest
+    data = fetch(url, dest)
+    return dest if data else None
+
+
+def render_page(source: str, url: str, root: str, width: int, images: bool) -> str:
+    def image(src: str, alt: str, link: str = "") -> str:
+        local, absolute = resolve(src, url, root)
+        if not absolute:
+            return alt
+        target = link or absolute
+        if not images:
+            return f"[{alt or 'image'}]({target})"
+        path = local or image_cache(root, absolute)
+        block = path and art_block(path, absolute, alt, width, link)
+        return block or f"[{alt or 'image'}]({target})"
+
+    def linked_html(match: re.Match) -> str:
+        href = match.group(1) or match.group(2)
+        link = "" if not href or href.startswith("#") else urllib.parse.urljoin(url, href)
+        tag = match.group(3)
+        src = next((a or b for a, b in SRC.findall(tag)), "")
+        alt = next((a or b for a, b in ALT.findall(tag)), "")
+        return image(src, alt, link)
+
+    def html(match: re.Match) -> str:
+        tag = match.group(0)
+        src = next((a or b for a, b in SRC.findall(tag)), "")
+        alt = next((a or b for a, b in ALT.findall(tag)), "")
+        return image(src, alt)
+
+    def markdown(match: re.Match) -> str:
+        return image(match.group(2), match.group(1))
+
+    source = HTML_LINKED_IMG.sub(linked_html, source)
+    return MD_IMG.sub(markdown, HTML_IMG.sub(html, source))
+
+
+def render_docs(root: str, pages: list[str], width: int, render_all: bool) -> str:
+    raw = os.path.join(root, "raw")
+    out = os.path.join(root, "docs")
+    for page in pages:
+        src = os.path.join(raw, page)
+        dst = os.path.join(out, page)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(src, encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+        images = render_all or page == INDEX
+        text = render_page(text, urllib.parse.urljoin(BASE, page), root, width, images)
+        with open(dst, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    return os.path.join(out, INDEX)
+
+
+def terminal_width(columns: int | None) -> int:
+    # Art uses at most half of the terminal width (see art_block()).
+    if columns:
+        return max(1, columns)
+    try:
+        return max(1, shutil.get_terminal_size().columns)
+    except OSError:
+        return 72
+
+
+def run(action: str, render_all: bool, width: int, refresh: bool) -> int:
+    root = cache_dir()
+    pages = fetch_docs(root, refresh)
+    if not pages:
+        log("sandbox-docs: no pages downloaded")
+        return 1
+    if action == "fetch":
+        return 0
+    index = render_docs(root, pages, width, render_all)
+    if action != "open":
+        log(f"sandbox-docs: rendered into {os.path.join(root, 'docs')}")
+        return 0
+    if not shutil.which("glow"):
+        log("sandbox-docs: glow is not installed (run: sandbox-cli glow)")
+        return 1
+    os.execvp("glow", ["glow", "-p", index])
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Download the g4f.dev docs and read them with glow.",
+    )
+    parser.add_argument("action", choices=("fetch", "render", "open"), nargs="?",
+                        default="open")
+    parser.add_argument("--all", action="store_true", dest="render_all",
+                        help="render images on every page, not just the index")
+    parser.add_argument("--width", type=int, default=0,
+                        help="maximum art width in columns "
+                             "(default: min(50, half the terminal width))")
+    parser.add_argument("--refresh", action="store_true",
+                        help="download the pages again instead of reusing the cache")
+    args = parser.parse_args()
+    return run(args.action, args.render_all, terminal_width(args.width or None),
+               args.refresh)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

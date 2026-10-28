@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Find & Add AI Tools
+Comment=Asks the OpenCode agent to search for new or trending AI tools and add them to this menu
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="AI Tool Scout" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli discover"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=discover;trending;new;tools;ai;agents;opencode;scout;;
+StartupNotify=false

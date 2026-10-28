@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+#
+# sandbox-discover — ask the OpenCode agent to find new or trending AI tools
+# and wire them into this desktop menu.
+#
+# The agent reads `sandbox-cli list`, searches the web, picks up to three tools
+# that are missing, and edits the launcher (case in run_tool, line in
+# list_tools), the desktop entry and — when the gpt4free checkout is present —
+# the repo copies under docker/sandbox-menu plus the README tables. It never
+# installs or runs the tools it adds; clicking the new entry does that.
+#
+#   sandbox-discover                 look for anything new
+#   sandbox-discover "audio tools"   bias the search towards a topic
+#   sandbox-discover --dry-run       print the prompt instead of running it
+#
+# SANDBOX_DISCOVER_MODEL overrides the model (default: g4f/auto, the g4f
+# provider the OpenCode entry registers).
+#
+set -u
+
+usage() {
+    cat <<'EOF'
+usage: sandbox-discover [--dry-run] [focus...]
+
+Asks the OpenCode agent to find new or trending AI tools and add them to the
+sandbox desktop menu (sandbox-cli + a g4f-sandbox-<tool>.desktop entry).
+
+  --dry-run   print the prompt and exit, without calling the agent
+  focus...    optional words to bias the search, e.g. "audio" or "coding agents"
+
+The agent writes a report to ~/.cache/sandbox-discover/report.md.
+Set SANDBOX_DISCOVER_MODEL to pick a different OpenCode model.
+EOF
+}
+
+DRY_RUN=0
+FOCUS=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dry-run|-n) DRY_RUN=1 ;;
+        --help|-h) usage; exit 0 ;;
+        --) shift; FOCUS+=("$@"); break ;;
+        *) FOCUS+=("$1") ;;
+    esac
+    shift
+done
+
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/sandbox-discover"
+REPORT="$CACHE_DIR/report.md"
+mkdir -p "$CACHE_DIR" || {
+    echo "sandbox-discover: cannot create $CACHE_DIR" >&2
+    exit 1
+}
+
+PROMPT=$(cat <<'PROMPT'
+You are the tool scout for this sandbox desktop.
+
+Goal: find 3 new or currently trending AI tools that are missing from the
+sandbox menu, then add each one to the menu by editing the sandbox launcher.
+
+1. Start by reading the menu: run `sandbox-cli list` and keep the ids.
+
+2. Find candidates. Use web search or fetch. If those tools are unavailable,
+   fall back to curl on pages such as:
+     https://github.com/trending?since=weekly
+     https://github.com/trending/python?since=weekly
+     https://news.ycombinator.com/show
+   Prefer open-source command line tools (coding agents, AI CLIs, media and
+   terminal utilities) released or trending within the last six months that
+   install with npm, pip, a vendor install script, apt, or a GitHub release.
+
+3. Skip anything already printed by `sandbox-cli list`, skip GUI-only apps,
+   and never add the discover entry itself.
+
+4. For each chosen tool (at most 3), keep the diff minimal and match the
+   existing style:
+   - Launcher: if /app/gpt4free/docker/sandbox-menu/sandbox-cli.sh exists it is
+     the source of truth — edit it and copy it over /usr/local/bin/sandbox-cli.
+     Otherwise edit /usr/local/bin/sandbox-cli directly (sudo -n works). Add a
+     case to run_tool using the existing ensure_npm / ensure_pip /
+     ensure_script / ensure_apt helpers followed by launch, and a line to
+     list_tools in the closest existing group.
+   - Desktop entry: create /usr/share/applications/g4f-sandbox-<id>.desktop by
+     copying an existing entry and changing Name, Comment, Keywords, the tool
+     id, the --title and the icon. Reuse a category already in
+     /etc/xdg/menus/xfce-applications.menu (X-G4F-Agent, X-G4F-Skills,
+     X-G4F-Gateway, X-G4F-Assistant, X-G4F-Editor, X-G4F-LocalAI,
+     X-G4F-ChatUI, X-G4F-Writing, X-G4F-Media, X-G4F-Files, X-G4F-Browser or
+     X-G4F-Core) and do not edit that menu file. When the gpt4free checkout
+     exists, add the same desktop file under docker/sandbox-menu/ and add the
+     tool id to ICONS in fetch-icons.py with the vendor's icon URL.
+   - README: when /app/gpt4free/docker/sandbox-menu/README.md exists, add the
+     tool to the tool table and to the category table.
+   - Do not install, run or test the new tools; clicking the entry does that.
+   - Validate: `bash -n` the sandbox-cli file you edited and run
+     `sandbox-cli list` — every group must still print and the new ids must
+     appear.
+
+5. Write a short report with one line per tool (id, name, why it is trending,
+   install method, source URL). If nothing suitable is found, change nothing
+   and say so in the report. Print the same summary at the end.
+
+PROMPT
+)
+
+{
+    printf '%s\n' "$PROMPT"
+    printf '\nReport file: %s\n' "$REPORT"
+    printf 'Today: %s\n' "$(date -u +%Y-%m-%d)"
+    if [ ${#FOCUS[@]} -gt 0 ]; then
+        printf 'Extra focus from the user: %s\n' "${FOCUS[*]}"
+    fi
+} >"$CACHE_DIR/prompt.md"
+
+# Re-read the file so the prompt handed to the agent is exactly the one kept
+# on disk (and nothing in it is expanded a second time).
+PROMPT="$(cat "$CACHE_DIR/prompt.md")"
+
+if [ "$DRY_RUN" = 1 ]; then
+    printf '%s\n' "$PROMPT"
+    exit 0
+fi
+
+if ! command -v opencode >/dev/null 2>&1; then
+    echo "sandbox-discover: opencode is not installed — run: sandbox-cli opencode" >&2
+    exit 1
+fi
+
+MODEL="${SANDBOX_DISCOVER_MODEL:-g4f/auto}"
+echo "==> asking OpenCode ($MODEL) to scout for new tools; this takes a few minutes" >&2
+echo "==> the report lands in $REPORT" >&2
+exec opencode run --auto --model "$MODEL" --title "Sandbox tool scout" "$PROMPT"

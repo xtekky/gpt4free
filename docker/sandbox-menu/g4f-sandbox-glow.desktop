@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Glow
+Comment=g4f.dev docs in the terminal (glow + chafa) — downloads the docs and renders their images as ANSI art
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="g4f Docs" --icon=g4f-sandbox-glow --command="/usr/local/bin/sandbox-cli glow"
+Icon=g4f-sandbox-glow
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=glow;docs;documentation;markdown;chafa;images;terminal;g4f;;
+StartupNotify=false

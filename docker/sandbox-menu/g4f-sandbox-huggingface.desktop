@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Hugging Face Spaces
+Comment=Hugging Face Spaces in the terminal (hf CLI) — installs on first click, then lists trending Spaces
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Hugging Face Spaces" --icon=g4f-sandbox-huggingface --command="/usr/local/bin/sandbox-cli huggingface"
+Icon=g4f-sandbox-huggingface
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Assistant;
+Keywords=huggingface;hugging face;spaces;hf;hub;models;datasets;download;;
+StartupNotify=false

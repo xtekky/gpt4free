@@ -97,6 +97,13 @@ ICONS: dict[str, list[str]] = {
     "openhands": [github("All-Hands-AI")],
     "plandex": [github("plandex-ai")],
     "hermes": [google("nousresearch.com")],
+    "omh": [
+        "https://raw.githubusercontent.com/rlaope/oh-my-hermes/main/assets/omh-logo.png",
+        github("rlaope"),
+    ],
+    "openbot": [google("openbot.dev"), github("nightly-labs")],
+    "thinkrail": [google("thinkrail.ai"), github("JetBrains")],
+    "orca": [google("stably.ai"), github("stablyai")],
     "kiro": [google("kiro.dev")],
     "kimi": [google("kimi.com")],
     "roomote": [google("roomote.dev")],
@@ -129,12 +136,35 @@ ICONS: dict[str, list[str]] = {
     "code-server": [google("coder.com"), github("coder")],
     "kate": [google("kate-editor.org"), github("KDE")],
     # Assistants
+    "huggingface": [
+        "https://huggingface.co/front/assets/huggingface_logo-noborder.svg",
+        google("huggingface.co"),
+    ],
     "openclaw": ["https://openclaw.ai/favicon.svg"],
     "fabric": [github("danielmiessler")],
     "sgpt": [github("TheR1D")],
     "gptme": ["https://gptme.org/media/icon.svg"],
     "llm": [github("simonw")],
     "assistant-ui": [google("assistant-ui.com"), github("assistant-ui")],
+    "deeptutor": [google("deeptutor.info"), github("HKUDS")],
+    "nanobot": [github("HKUDS")],
+    "agent-reach": [github("Panniantong")],
+    # Media
+    "polli": [google("pollinations.ai"), github("pollinations")],
+    "polli-sandbox": [google("pollinations.ai"), github("pollinations")],
+    "voicestudio": [github("debpalash")],
+    "hyperframes": [google("heygen.com"), github("heygen-com")],
+    # Agent skills
+    "ecc": [github("affaan-m")],
+    "superpowers": [github("obra")],
+    "graphify": [github("Graphify-Labs")],
+    "claude-mem": [github("thedotmack")],
+    # Writing
+    "humanizer": [github("blader")],
+    "ai-detect": [google("lynote.ai"), github("lynote-ai")],
+    "aidetect": [google("lynote.ai"), github("lynote-ai")],
+    # Docs
+    "glow": [google("charm.sh"), github("charmbracelet")],
 }
 
 

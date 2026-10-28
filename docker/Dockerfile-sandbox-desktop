@@ -87,7 +87,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
         jq ripgrep fd-find tmux less nano vim-tiny zip rsync tree procps htop \
-        file bsdextrautils ca-certificates curl locales sudo git && \
+        file bsdextrautils ca-certificates curl locales sudo git iptables && \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
     rm -rf /var/lib/apt/lists/*
 
@@ -121,6 +121,7 @@ RUN apt-get -o Acquire::Retries=3 update && \
         tigervnc-standalone-server \
         xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
         dbus-x11 x11-xserver-utils x11-utils x11-xkb-utils xauth fonts-dejavu-core \
+        fonts-noto-core fonts-noto-color-emoji \
         at-spi2-core libgtk-3-0t64 librsvg2-common gtk-update-icon-cache && \
     rm -rf /var/lib/apt/lists/*
 
@@ -155,6 +156,7 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
 # automation uses; the menu runs it with --once so it does not relaunch in a
 # loop. See docker/sandbox-menu/README.md.
 COPY docker/sandbox-menu/sandbox-cli.sh /usr/local/bin/sandbox-cli
+COPY docker/sandbox-menu/polli-sandbox-bootstrap.sh /usr/local/bin/polli-sandbox-bootstrap.sh
 COPY bin/start-browser.sh /usr/local/bin/start-browser
 COPY docker/sandbox-menu/g4f-sandbox-*.desktop /usr/share/applications/
 COPY docker/sandbox-menu/g4f-sandbox-cli.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg
@@ -163,7 +165,11 @@ COPY docker/sandbox-menu/g4f-sandbox-cli.svg /usr/share/icons/hicolor/scalable/a
 # file the manifest names), installed under the menu entry's icon name.
 COPY projects/remote-desktop/web/icon.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
 COPY docker/sandbox-menu/fetch-icons.py /usr/local/bin/fetch-icons.py
-RUN chmod 0755 /usr/local/bin/sandbox-cli /usr/local/bin/start-browser /usr/local/bin/fetch-icons.py && \
+COPY docker/sandbox-menu/sandbox-docs.py /usr/local/bin/sandbox-docs
+COPY docker/sandbox-menu/sandbox-discover.sh /usr/local/bin/sandbox-discover
+RUN chmod 0755 /usr/local/bin/sandbox-cli /usr/local/bin/polli-sandbox-bootstrap.sh \
+        /usr/local/bin/start-browser /usr/local/bin/fetch-icons.py \
+        /usr/local/bin/sandbox-docs /usr/local/bin/sandbox-discover && \
     chmod 0644 /usr/share/applications/g4f-sandbox-*.desktop \
         /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg \
         /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
@@ -332,9 +338,19 @@ RUN printf 'XDG_RUNTIME_DIR=/tmp/sandbox-runtime\n' >> /etc/environment
 # the WebSocket bridge to Xvnc. 5900: Xvnc on display :0.
 EXPOSE 8080 5900
 
-# Entrypoint seeds /etc/machine-id, starts a system bus, launches the desktop
-# stack (Xvnc + Xfce) as `pn` and exports DISPLAY so a browser on the desktop
-# renders inside the sandbox. SANDBOX_DESKTOP=0 skips the desktop.
+# Egress filter for the sandbox: public internet stays reachable, but private,
+# link-local and reserved destinations (the Docker host's LAN, other
+# containers, cloud metadata) are rejected. The entrypoint installs it before
+# starting the desktop; the container needs CAP_NET_ADMIN for the rules.
+# See docker/sandbox-firewall.sh and docker-compose.sandbox-desktop.yml.
+COPY docker/sandbox-firewall.sh /usr/local/bin/sandbox-firewall.sh
+RUN chmod +x /usr/local/bin/sandbox-firewall.sh && \
+    bash -n /usr/local/bin/sandbox-firewall.sh
+
+# Entrypoint seeds /etc/machine-id, starts a system bus, applies the egress
+# filter, launches the desktop stack (Xvnc + Xfce) as `pn` and exports DISPLAY
+# so a browser on the desktop renders inside the sandbox. SANDBOX_DESKTOP=0
+# skips the desktop.
 COPY docker/sandbox-entrypoint.sh /usr/local/bin/sandbox-entrypoint.sh
 RUN chmod +x /usr/local/bin/sandbox-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]

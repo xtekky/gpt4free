@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open OpenBot
+Comment=OpenBot local-first multi-agent desktop workspace — installs on first click, then opens on the desktop
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=OpenBot --icon=g4f-sandbox-openbot --command="/usr/local/bin/sandbox-cli openbot"
+Icon=g4f-sandbox-openbot
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=openbot;agents;codex;claude;grok;desktop;;
+StartupNotify=false

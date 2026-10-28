@@ -1,0 +1,140 @@
+#!/bin/bash
+# Egress policy for the sandbox desktop image.
+#
+# The sandbox must still reach the public internet (the menu installs tools on
+# click and the g4f providers talk to their upstream APIs), but it must not be
+# able to reach the Docker host's LAN, other containers on the host, or cloud
+# metadata endpoints. Those are the addresses an SSRF or a compromised agent
+# would use to escape the sandbox, so OUTPUT drops every private, link-local,
+# shared (CGNAT) and reserved IPv4 range plus the IPv6 ULA/link-local ranges.
+#
+# Loopback is intentionally left alone: the g4f API, the domain router, the
+# local gateways (Ollama, LiteLLM, LibreChat, ...) and Docker's embedded DNS
+# (127.0.0.11) all run inside this network namespace on 127.0.0.1. Only traffic
+# that leaves the container is filtered.
+#
+# The rules need CAP_NET_ADMIN. docker-compose.sandbox-desktop.yml and
+# bin/start-sandbox-desktop.sh add it for the container; when the image is run
+# by hand, pass `--cap-add=NET_ADMIN` as well.
+#
+# Env knobs:
+#   SANDBOX_BLOCK_LOCAL_NETWORK=0  disable the egress filter
+#   SANDBOX_FIREWALL_STRICT=0      continue (with a warning) if it cannot apply
+#
+# Usage:
+#   sandbox-firewall.sh            install/replace the filter
+#   sandbox-firewall.sh --status   print the installed rules
+#   sandbox-firewall.sh --clear    remove the filter
+
+set -euo pipefail
+
+CHAIN4="G4F_SANDBOX_EGRESS"
+CHAIN6="G4F_SANDBOX_EGRESS"
+
+log()  { printf '==> %s\n' "$*"; }
+warn() { printf 'warning: %s\n' "$*" >&2; }
+die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+# The entrypoint runs as `pn`; the image grants that user passwordless sudo and
+# the container is started with CAP_NET_ADMIN, so iptables/IPv6 rules can still
+# be managed. Running as root works too.
+as_root() {
+    if [ "$(id -u)" = "0" ]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo -n "$@"
+    else
+        return 1
+    fi
+}
+
+ipt() {
+    as_root iptables -w 5 "$@"
+}
+
+ip6t() {
+    as_root ip6tables -w 5 "$@"
+}
+
+if [ "${SANDBOX_BLOCK_LOCAL_NETWORK:-1}" = "0" ] && [ "${1:-}" != "--status" ]; then
+    log "sandbox egress filter disabled (SANDBOX_BLOCK_LOCAL_NETWORK=0)"
+    exit 0
+fi
+
+case "${1:-}" in
+    -h|--help)
+        sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
+        exit 0
+        ;;
+    --clear)
+        if ipt -D OUTPUT -j "$CHAIN4" 2>/dev/null; then :; fi
+        if ipt -F "$CHAIN4" 2>/dev/null; then :; fi
+        if ipt -X "$CHAIN4" 2>/dev/null; then :; fi
+        if ip6t -D OUTPUT -j "$CHAIN6" 2>/dev/null; then :; fi
+        if ip6t -F "$CHAIN6" 2>/dev/null; then :; fi
+        if ip6t -X "$CHAIN6" 2>/dev/null; then :; fi
+        log "sandbox egress filter removed"
+        exit 0
+        ;;
+    --status)
+        printf 'IPv4 rules:\n'
+        ipt -S "$CHAIN4" 2>/dev/null || printf '  (not installed)\n'
+        printf 'IPv6 rules:\n'
+        ip6t -S "$CHAIN6" 2>/dev/null || printf '  (not installed)\n'
+        exit 0
+        ;;
+    '')
+        ;;
+    *)
+        die "unknown argument: $1 (use --status or --clear)"
+        ;;
+esac
+
+command -v iptables >/dev/null 2>&1 || die "iptables is not installed"
+command -v ip6tables >/dev/null 2>&1 || warn "ip6tables is not installed; IPv6 is not filtered"
+
+# Recreate the chain so a container restart in place picks up the current
+# ranges instead of stacking duplicates.
+ipt -N "$CHAIN4" 2>/dev/null || true
+ipt -F "$CHAIN4" 2>/dev/null || true
+
+# `addrtype --dst-type LOCAL` covers 127.0.0.0/8, the container's own address
+# and broadcast, i.e. services in this namespace, without allowing the Docker
+# host or any other container.
+ipt -A "$CHAIN4" -m addrtype --dst-type LOCAL -j RETURN
+ipt -A "$CHAIN4" -d 0.0.0.0/8 -j REJECT
+ipt -A "$CHAIN4" -d 10.0.0.0/8 -j REJECT
+ipt -A "$CHAIN4" -d 100.64.0.0/10 -j REJECT
+ipt -A "$CHAIN4" -d 169.254.0.0/16 -j REJECT
+ipt -A "$CHAIN4" -d 172.16.0.0/12 -j REJECT
+ipt -A "$CHAIN4" -d 192.0.0.0/24 -j REJECT
+ipt -A "$CHAIN4" -d 192.0.2.0/24 -j REJECT
+ipt -A "$CHAIN4" -d 192.168.0.0/16 -j REJECT
+ipt -A "$CHAIN4" -d 198.18.0.0/15 -j REJECT
+ipt -A "$CHAIN4" -d 198.51.100.0/24 -j REJECT
+ipt -A "$CHAIN4" -d 203.0.113.0/24 -j REJECT
+ipt -A "$CHAIN4" -d 224.0.0.0/4 -j REJECT
+ipt -A "$CHAIN4" -d 240.0.0.0/4 -j REJECT
+ipt -A "$CHAIN4" -d 255.255.255.255/32 -j REJECT
+
+# Hook the chain into OUTPUT once. Keep it first so an existing permissive rule
+# cannot shadow the filter.
+if ! ipt -C OUTPUT -j "$CHAIN4" >/dev/null 2>&1; then
+    ipt -I OUTPUT 1 -j "$CHAIN4"
+fi
+
+if command -v ip6tables >/dev/null 2>&1; then
+    ip6t -N "$CHAIN6" 2>/dev/null || true
+    ip6t -F "$CHAIN6" 2>/dev/null || true
+    ip6t -A "$CHAIN6" -m addrtype --dst-type LOCAL -j RETURN
+    ip6t -A "$CHAIN6" -d ::/128 -j REJECT
+    ip6t -A "$CHAIN6" -d fc00::/7 -j REJECT
+    ip6t -A "$CHAIN6" -d fe80::/10 -j REJECT
+    ip6t -A "$CHAIN6" -d ff00::/8 -j REJECT
+    ip6t -A "$CHAIN6" -d ::ffff:0:0/96 -j REJECT
+    if ! ip6t -C OUTPUT -j "$CHAIN6" >/dev/null 2>&1; then
+        ip6t -I OUTPUT 1 -j "$CHAIN6"
+    fi
+fi
+
+log "sandbox egress filter active (private, link-local and reserved networks blocked)"
