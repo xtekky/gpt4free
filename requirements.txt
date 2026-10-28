@@ -22,3 +22,5 @@ ddgs
 numpy
 PyYAML
 cryptography
+wasmtime
+q
