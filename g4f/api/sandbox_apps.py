@@ -7,9 +7,12 @@ port, so opening a hostname for an app that was never installed would
 otherwise only show the proxy's 502 "is not running".
 
 This module closes that gap: when a routed app is not reachable, the proxy
-asks :func:`ensure_app_running` to start it in the background — installing it
-first when needed — and answers with a 503 "starting" payload that tells the
-browser to retry until the app is up.
+asks :func:`ensure_app_running` to start it — installing it first when needed —
+and answers with a 503 "starting" payload that tells the browser to retry until
+the app is up. On the sandbox desktop the CLI runs in a visible terminal
+window, so the install and the server console can be watched and closing the
+window stops the app; without an X display it runs detached with its output in
+a log file.
 
 Only apps that ``sandbox-cli`` knows how to install and run are started, and
 only when the CLI is present, so the hook is inert outside the sandbox image.
@@ -26,7 +29,7 @@ import socket
 import subprocess
 import tempfile
 import time
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 from urllib.parse import urlsplit
 
 from fastapi.responses import JSONResponse
@@ -36,6 +39,8 @@ logger = logging.getLogger(__name__)
 #: Where the sandbox image installs the CLI (see docker/Dockerfile-sandbox-desktop).
 CLI_PATH = "/usr/local/bin/sandbox-cli"
 CLI_NAME = "sandbox-cli"
+#: Desktop terminal used to show the install & run flow on the sandbox desktop.
+TERMINAL_NAME = "xfce4-terminal"
 
 #: How long a request waits for the app to come up before answering "starting".
 START_TIMEOUT = 5.0
@@ -111,12 +116,45 @@ def is_starting(name: str) -> bool:
     _processes.pop(name, None)
     return False
 
+def terminal_argv(path: str, tool: str, label: str) -> Optional[List[str]]:
+    """Return the desktop-terminal argv for ``path tool``, if one is available.
+
+    Auto-started apps used to run detached with their output in a log file, so
+    neither the install nor the server console was visible on the sandbox
+    desktop and there was no window to close. When the desktop is up (an X
+    display and ``xfce4-terminal``), the CLI runs in a visible terminal window
+    instead: the install and the app's console stay on screen, and closing the
+    window stops the app.
+
+    ``--disable-server`` keeps xfce4-terminal from handing the window to an
+    already running instance. The spawned process must stay alive for as long
+    as the window does, so :func:`is_starting` keeps tracking the install.
+    """
+    if not os.environ.get("DISPLAY"):
+        return None
+    terminal = shutil.which(TERMINAL_NAME)
+    if terminal is None:
+        return None
+    return [
+        terminal,
+        "--disable-server",
+        "--maximize",
+        "--hide-borders",
+        "--hide-menubar",
+        f"--title={label}",
+        f"--icon=g4f-sandbox-{tool}",
+        f"--command={path} {tool}",
+    ]
+
 def start_app(name: str, label: str) -> bool:
-    """Start ``sandbox-cli <name>`` detached; return whether it was spawned.
+    """Start ``sandbox-cli <name>`` in a terminal window; return whether it was spawned.
 
     The CLI installs the tool when it is missing and then runs it, so this is
-    the whole "install & run" flow. It is spawned in its own session with its
-    output in a log file, so it outlives the request and never blocks it.
+    the whole "install & run" flow. On the sandbox desktop it is spawned in a
+    visible terminal window, so the user can watch the install and close the
+    window to stop the app. Without a desktop (or without xfce4-terminal) it
+    falls back to a detached process with its output in a log file. Either way
+    it runs in its own session, so it outlives the request and never blocks it.
     """
     tool = tool_for(name)
     path = cli_path()
@@ -130,9 +168,13 @@ def start_app(name: str, label: str) -> bool:
     except OSError as e:
         logger.warning("Autostart: cannot open %s: %s", log_path, e)
         return False
+    argv = terminal_argv(path, tool, label)
+    on_desktop = argv is not None
+    if argv is None:
+        argv = [path, tool]
     try:
         process = subprocess.Popen(
-            [path, tool],
+            argv,
             stdin=subprocess.DEVNULL,
             stdout=log,
             stderr=subprocess.STDOUT,
@@ -146,10 +188,11 @@ def start_app(name: str, label: str) -> bool:
         log.close()
     _processes[name] = process
     logger.info(
-        "Autostart: %s is not running, started \"%s %s\" (pid %s, log %s)",
+        "Autostart: %s is not running, started \"%s %s\" %s (pid %s, log %s)",
         label,
         path,
         tool,
+        "in a desktop terminal" if on_desktop else "detached",
         process.pid,
         log_path,
     )
@@ -166,7 +209,7 @@ async def ensure_app_running(
     retry the request it was serving. Returns ``False`` when the app is not
     startable (autostart off, unknown tool, no CLI) or did not come up within
     :data:`START_TIMEOUT` — the caller then answers "starting" while the
-    install keeps running in the background.
+    install keeps running in the terminal window (or in the background).
     """
     if is_running(root_url()):
         return True
@@ -192,7 +235,7 @@ def starting_response(name: str, label: str) -> JSONResponse:
                 "type": f"{name}_starting",
                 "detail": (
                     f"\"sandbox-cli {tool}\" is installing and starting {label} "
-                    f"in the background; retry in a few seconds."
+                    f"on the desktop; retry in a few seconds."
                 ),
             }
         },

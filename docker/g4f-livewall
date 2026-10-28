@@ -139,18 +139,26 @@ class Wallpaper:
         self.logo_cells = []
         self.bg_cache = None
         self.frame_no = 0
+        self._resize_pending = False
 
     # ---------------------------------------------------------------- setup
     def enter(self):
         termios.tcgetattr(sys.stdin.fileno())  # fail early if not a tty
         self.saved_attrs = termios.tcgetattr(sys.stdin.fileno())
         tty.setcbreak(sys.stdin.fileno())
+        # Keep the canvas in sync when the terminal (or the desktop behind the
+        # maximized window) changes size. The handler only raises a flag so the
+        # main loop can rebuild its buffers safely between frames.
+        signal.signal(signal.SIGWINCH, self._request_resize)
         self.out.write(
             b"\x1b]0;g4f \xc2\xb7 live wallpaper\x07"
             b"\x1b[?1049h\x1b[?25l\x1b[2J"
         )
         self.out.flush()
         self.resize()
+
+    def _request_resize(self, _signum, _frame):
+        self._resize_pending = True
 
     def leave(self):
         try:
@@ -165,10 +173,16 @@ class Wallpaper:
                 pass
 
     def resize(self):
-        size = os.get_terminal_size(sys.stdout.fileno())
-        self.w = max(20, size.columns)
-        self.h = max(10, size.lines)
-        w, h = self.w, self.h
+        self._resize_pending = False
+        try:
+            size = os.get_terminal_size(sys.stdout.fileno())
+        except OSError:
+            return
+        w = max(20, size.columns)
+        h = max(10, size.lines)
+        if self.prev is not None and (w, h) == (self.w, self.h):
+            return
+        self.w, self.h = w, h
         self.prev = None
         self.out.write(b"\x1b[2J")
         self.out.flush()
@@ -522,6 +536,8 @@ class Wallpaper:
         next_frame = time.monotonic()
         try:
             while True:
+                if self._resize_pending:
+                    self.resize()
                 now = time.monotonic()
                 t = now - self.t0
                 ch, fg, bg = self.frame(t)

@@ -59,6 +59,13 @@ FROM ${NODE_IMAGE} AS node-dist
 FROM ${SANDBOX_BASE}
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
+# The sandbox runs its desktop and tools as an unprivileged user so Chrome and
+# the AT-SPI bus get a real session. Its uid is configurable at build time so a
+# bind-mounted home (and files created in mounted projects) line up with the
+# invoking host user:
+#   docker build --build-arg G4F_USER_ID="$(id -u)" ...
+ARG G4F_USER_ID=1000
+
 # G4F_VERSION gives the local checkout a PEP 440 version (setup.py reads it)
 # and becomes the g4f-go version pin (see the g4f-go step below). The G4F_VNC_*
 # pair switches on the API's custom noVNC routes: /desktop/ serves the client and
@@ -70,6 +77,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     G4F_VERSION=0.0.0-dev \
     G4F_VNC_PORT=5900 \
     G4F_NOVNC_DIR=/usr/share/novnc \
+    G4F_USER_ID=${G4F_USER_ID} \
     G4F_CONFIG_DIR=/home/pn/.g4f
 
 # Everyday tools a slim base lacks. Kept to what agents reach for from a shell.
@@ -241,7 +249,7 @@ RUN chmod +x /usr/local/bin/novnc-brand.sh && novnc-brand.sh
 # /home/pn/.g4f, which the `pn` user owns, so the menu can pip-install into it.
 COPY --from=g4f-go-builder /out/g4f-go /usr/local/bin/g4f-go
 WORKDIR ${G4F_DIR}
-COPY --chown=1000:1000 setup.py README.md MANIFEST.in ${G4F_DIR}/gpt4free/
+COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} setup.py README.md MANIFEST.in ${G4F_DIR}/gpt4free/
 COPY g4f ${G4F_DIR}/g4f
 RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
     g4f-go -v latest && \
@@ -261,7 +269,7 @@ RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip && \
     python3 -c "import sys; print('python3 ->', sys.executable)" && \
     pip --version && \
-    chown -R 1000:1000 "${G4F_CONFIG_DIR}"
+    chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_CONFIG_DIR}"
 
 # Pillow: the Screen pane's thumbnail is grabbed INSIDE the sandbox (the X socket
 # and its cookie live here, not on the gateway host). Also used for ad-hoc image work.
@@ -292,13 +300,15 @@ RUN fetch-icons.py && gtk-update-icon-cache -f -t /usr/share/icons/hicolor
 
 # The container runs as root, so existing docker_image users see no ownership or
 # PATH change. Desktop processes (Xvnc, Xfce, and the menu's Chrome) run as the
-# unprivileged `pn` (uid 1000): Chrome refuses to run as root without
-# --no-sandbox and the AT-SPI bus wants a real user session. `pn` may sudo.
+# unprivileged `pn` user: Chrome refuses to run as root without --no-sandbox and
+# the AT-SPI bus wants a real user session. `pn` may sudo. Its uid (and matching
+# gid) comes from G4F_USER_ID, so the host user can own the bind-mounted home.
 # The g4f-go step above already created /home/pn (as root) to hold the runtime,
 # so useradd only warns about the existing home and leaves it root-owned; the
 # chown restores ownership for the unprivileged user.
-RUN useradd --create-home --uid 1000 --shell /bin/bash pn && \
-    chown 1000:1000 /home/pn && \
+RUN groupadd --gid "${G4F_USER_ID}" pn && \
+    useradd --create-home --uid "${G4F_USER_ID}" --gid pn --shell /bin/bash pn && \
+    chown "${G4F_USER_ID}:${G4F_USER_ID}" /home/pn && \
     echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudoers.d/pn && \
     mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && \
     mkdir -p /tmp/sandbox-runtime && chown pn:pn /tmp/sandbox-runtime && chmod 0700 /tmp/sandbox-runtime

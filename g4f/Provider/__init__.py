@@ -165,6 +165,8 @@ class ProviderLoader:
                 module = "hf_space"
             elif name in ["QwenCode"]:
                 module = "qwen.QwenCode"
+            elif name in ["GithubCopilot"]:
+                module = "github.GithubCopilot"
             elif name in ["MiniMax", "HailuoAI"]:
                 module = "needs_auth.mini_max"
             else:

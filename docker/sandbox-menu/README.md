@@ -469,18 +469,21 @@ Two environment variables control it:
 Opening a hostname for an app that was never installed does not dead-end in a
 proxy error: the router starts the app for you. When a request reaches
 `<app>.g4f.local` and nothing listens on the app's port, the g4f API runs
-`sandbox-cli <app>` in the background — the same install-and-run flow as the
-desktop menu entry — and answers the request with `503` and a `Retry-After`
-header while the install runs:
+`sandbox-cli <app>` in a terminal window on the sandbox desktop — the same
+install-and-run flow as the desktop menu entry — and answers the request with
+`503` and a `Retry-After` header while the install runs:
 
 ```json
 {"error": {"message": "LiteLLM is starting", "type": "litellm_starting",
-           "detail": "\"sandbox-cli litellm\" is installing and starting LiteLLM in the background; retry in a few seconds."}}
+           "detail": "\"sandbox-cli litellm\" is installing and starting LiteLLM on the desktop; retry in a few seconds."}}
 ```
 
 The request is retried automatically once the app accepts connections within a
 few seconds (so a fast start is invisible to the browser); otherwise reload the
-page. The install keeps running either way, and its output is in
+page. The install keeps running either way. The window shows the app's output
+and stays open as its console, so closing it stops the app (the same as
+Ctrl-C in a menu entry). Without a desktop — no `DISPLAY` or no
+`xfce4-terminal` — the CLI runs detached instead, with its output in
 `/tmp/g4f-autostart-<app>.log`. Only one install per app runs at a time, and
 only the apps in the table above that `sandbox-cli` knows how to install are
 started — `g4f` (the API itself) and `desktop` (the noVNC client, part of the

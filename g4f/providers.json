@@ -172,7 +172,7 @@
     "active_by_default": false,
     "auth": false,
     "login_url": "https://discord.gg/qXA4Wf4Fsm",
-    "live": 0,
+    "live": 1,
     "login": false
   },
   {
@@ -243,7 +243,7 @@
     "name": "DeepInfra",
     "label": "DeepInfra",
     "parent": null,
-    "image": 0,
+    "image": 2,
     "audio": 0,
     "video": 0,
     "vision": false,
@@ -252,7 +252,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://deepinfra.com/dash/api_keys",
-    "live": 0,
+    "live": 1,
     "login": false
   },
   {
@@ -369,7 +369,7 @@
   },
   {
     "name": "GithubCopilot",
-    "label": "GitHub Copilot (OAuth) \ud83d\udd10",
+    "label": "GitHub Copilot",
     "parent": null,
     "image": 0,
     "audio": 0,
@@ -377,11 +377,11 @@
     "vision": false,
     "nodriver": false,
     "hf_space": false,
-    "active_by_default": true,
+    "active_by_default": false,
     "auth": true,
-    "login_url": "https://github.com/login",
+    "login_url": null,
     "live": 0,
-    "login": true
+    "login": false
   },
   {
     "name": "GoogleAiMode",

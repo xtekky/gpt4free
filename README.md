@@ -181,6 +181,13 @@ docker run -d --name g4f-sandbox-desktop \
 - `bin/start-sandbox-desktop.sh` wraps the same run (and
   `docker/docker-compose.sandbox-desktop.yml`) with `--build`, `--pull`,
   `--port`, `shell`, `logs` and `stop`.
+- The sandbox user (`pn`) runs with uid/gid 1000 by default. On a host whose
+  user has another id, build the image with
+  `--build-arg G4F_USER_ID="$(id -u)"` (or run
+  `bin/start-sandbox-desktop.sh --user-id "$(id -u)"`; it rebuilds when the
+  existing image was built for a different id). Matching the id keeps the
+  bind-mounted `sandbox-home` and files written under `/app/gpt4free` owned by
+  your host user.
 
 ### Python Installation (pip / from source / partial installs)
 

@@ -61,10 +61,10 @@ if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
     export VNC_DISPLAY="${VNC_DISPLAY:-:0}"
     export VNC_GEOMETRY="${VNC_GEOMETRY:-1920x1080}"
     export VNC_RFBPORT="${VNC_RFBPORT:-5900}"
-    # Desktop processes run as `pn` (uid 1000): Xvnc and Xfce want a real
-    # user session, and Chrome refuses to run as root without --no-sandbox.
-    # When the container already runs as `pn` (the image default) no switch is
-    # needed; as root, drop privileges with runuser.
+    # Desktop processes run as `pn` (the unprivileged uid set by G4F_USER_ID):
+    # Xvnc and Xfce want a real user session, and Chrome refuses to run as root
+    # without --no-sandbox. When the container already runs as `pn` (the image
+    # default) no switch is needed; as root, drop privileges with runuser.
     desktop_launcher='
         export HOME=/home/pn DISPLAY="$VNC_DISPLAY"
         num="${VNC_DISPLAY#:}"

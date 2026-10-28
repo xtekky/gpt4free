@@ -104,6 +104,39 @@ class TestReachability(unittest.TestCase):
         # A finished process is forgotten, so the next request can start it.
         self.assertNotIn("litellm", sandbox_apps._processes)
 
+class TestTerminalArgv(unittest.TestCase):
+    def test_no_terminal_without_a_display(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DISPLAY", None)
+            self.assertIsNone(
+                sandbox_apps.terminal_argv(
+                    "/usr/local/bin/sandbox-cli", "litellm", "LiteLLM"
+                )
+            )
+
+    def test_no_terminal_when_xfce4_terminal_is_missing(self):
+        with patch.dict(os.environ, {"DISPLAY": ":0"}), patch(
+            "g4f.api.sandbox_apps.shutil.which", return_value=None
+        ):
+            self.assertIsNone(
+                sandbox_apps.terminal_argv(
+                    "/usr/local/bin/sandbox-cli", "litellm", "LiteLLM"
+                )
+            )
+
+    def test_terminal_runs_the_cli_in_a_visible_window(self):
+        with patch.dict(os.environ, {"DISPLAY": ":0"}), patch(
+            "g4f.api.sandbox_apps.shutil.which", return_value="/usr/bin/xfce4-terminal"
+        ):
+            argv = sandbox_apps.terminal_argv(
+                "/usr/local/bin/sandbox-cli", "litellm", "LiteLLM"
+            )
+        self.assertEqual(argv[0], "/usr/bin/xfce4-terminal")
+        self.assertIn("--disable-server", argv)
+        self.assertIn("--title=LiteLLM", argv)
+        self.assertIn("--icon=g4f-sandbox-litellm", argv)
+        self.assertIn("--command=/usr/local/bin/sandbox-cli litellm", argv)
+
 class TestStartApp(unittest.TestCase):
     def setUp(self):
         sandbox_apps._processes.clear()
@@ -112,11 +145,29 @@ class TestStartApp(unittest.TestCase):
     def test_spawns_the_cli_detached(self):
         popen = MagicMock(return_value=_FakeProcess())
         with patch("g4f.api.sandbox_apps.cli_path", return_value="/usr/local/bin/sandbox-cli"), patch(
-            "g4f.api.sandbox_apps.subprocess.Popen", popen
-        ):
+            "g4f.api.sandbox_apps.terminal_argv", return_value=None
+        ), patch("g4f.api.sandbox_apps.subprocess.Popen", popen):
             self.assertTrue(start_app("litellm", "LiteLLM"))
         args, kwargs = popen.call_args
         self.assertEqual(args[0], ["/usr/local/bin/sandbox-cli", "litellm"])
+        self.assertTrue(kwargs["start_new_session"])
+        self.assertEqual(kwargs["stdin"], sandbox_apps.subprocess.DEVNULL)
+        self.assertTrue(is_starting("litellm"))
+
+    def test_spawns_the_cli_in_a_desktop_terminal(self):
+        argv = [
+            "/usr/bin/xfce4-terminal",
+            "--disable-server",
+            "--command=/usr/local/bin/sandbox-cli litellm",
+        ]
+        popen = MagicMock(return_value=_FakeProcess())
+        with patch("g4f.api.sandbox_apps.cli_path", return_value="/usr/local/bin/sandbox-cli"), patch(
+            "g4f.api.sandbox_apps.terminal_argv", return_value=argv
+        ) as terminal, patch("g4f.api.sandbox_apps.subprocess.Popen", popen):
+            self.assertTrue(start_app("litellm", "LiteLLM"))
+        terminal.assert_called_once_with("/usr/local/bin/sandbox-cli", "litellm", "LiteLLM")
+        args, kwargs = popen.call_args
+        self.assertEqual(args[0], argv)
         self.assertTrue(kwargs["start_new_session"])
         self.assertEqual(kwargs["stdin"], sandbox_apps.subprocess.DEVNULL)
         self.assertTrue(is_starting("litellm"))

@@ -15,6 +15,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile-sandbox-desktop
+      args:
+        # Match the host uid to avoid permission problems on bind mounts.
+        G4F_USER_ID: ${G4F_USER_ID:-1000}
     container_name: g4f-sandbox-desktop
     hostname: sandbox
     init: true

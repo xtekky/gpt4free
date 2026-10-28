@@ -35,6 +35,8 @@ CONTAINER_NAME="g4f-sandbox-desktop"
 
 PORT="${PORT:-8080}"
 VNC_PORT="${VNC_PORT:-5900}"
+# uid of the unprivileged sandbox user; must match the image's G4F_USER_ID.
+USER_ID="${G4F_USER_ID:-1000}"
 DETACH=0
 BUILD=0
 PULL=0
@@ -67,6 +69,7 @@ Options:
       --pull          Pull prebuilt image from registry ($REMOTE_IMAGE)
   -p, --port PORT     API & noVNC web port (default: $PORT)
       --vnc-port PORT Direct VNC display port (default: $VNC_PORT)
+      --user-id UID   uid for the sandbox user (default: $USER_ID)
       --no-desktop    Disable desktop GUI stack, run API only (SANDBOX_DESKTOP=0)
       --image IMAGE   Specify Docker image (default: $IMAGE)
       --name NAME     Specify container name (default: $CONTAINER_NAME)
@@ -116,6 +119,15 @@ while [ $# -gt 0 ]; do
             ;;
         --vnc-port=*)
             VNC_PORT="${1#*=}"
+            shift
+            ;;
+        --user-id|--uid)
+            [ $# -ge 2 ] || die "$1 requires an argument"
+            USER_ID="$2"
+            shift 2
+            ;;
+        --user-id=*|--uid=*)
+            USER_ID="${1#*=}"
             shift
             ;;
         --image)
@@ -178,6 +190,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+case "$USER_ID" in
+    ''|*[!0-9]*) die "user id must be numeric: $USER_ID" ;;
+esac
+[ "$USER_ID" != "0" ] || die "user id 0 (root) is not supported for the sandbox desktop"
+
 # Find docker CLI
 DOCKER_BIN=""
 for bin in docker podman; do
@@ -239,15 +256,15 @@ case "$ACTION" in
         ;;
 
     build)
-        log "building sandbox desktop image: $IMAGE..."
-        "$DOCKER_BIN" build -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT"
+        log "building sandbox desktop image: $IMAGE (user id $USER_ID)..."
+        "$DOCKER_BIN" build --build-arg "G4F_USER_ID=$USER_ID" -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT"
         log "build finished: $IMAGE"
         exit 0
         ;;
 
     restart)
         "$0" stop
-        exec "$0" up "$@"
+        exec "$0" up --user-id "$USER_ID" "$@"
         ;;
 
     up)
@@ -255,13 +272,29 @@ case "$ACTION" in
         if [ "$PULL" -eq 1 ]; then
             log "pulling $IMAGE..."
             "$DOCKER_BIN" pull "$IMAGE" || die "failed to pull $IMAGE"
+            if [ "$USER_ID" != "1000" ]; then
+                warn "pulled images run as uid 1000; rebuild locally with --user-id $USER_ID to change it"
+            fi
         fi
 
-        # Check if image exists; build if missing
+        # Check if image exists; build if missing or if it was built for a
+        # different uid. G4F_USER_ID is recorded in the image environment by the
+        # Dockerfile, so an existing image can be checked without running it.
+        if [ "$PULL" -eq 0 ] && "$DOCKER_BIN" image inspect "$IMAGE" >/dev/null 2>&1; then
+            image_user_id="$("$DOCKER_BIN" image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$IMAGE" 2>/dev/null \
+                | sed -n 's/^G4F_USER_ID=//p' | tail -n 1)"
+            if [ -n "$image_user_id" ] && [ "$image_user_id" != "$USER_ID" ]; then
+                log "image '$IMAGE' was built for user id $image_user_id; rebuilding for $USER_ID"
+                BUILD=1
+            elif [ -z "$image_user_id" ] && [ "$USER_ID" != "1000" ]; then
+                log "image '$IMAGE' does not record its user id; rebuilding for $USER_ID"
+                BUILD=1
+            fi
+        fi
         if [ "$BUILD" -eq 1 ] || ! "$DOCKER_BIN" image inspect "$IMAGE" >/dev/null 2>&1; then
             if [ "$PULL" -eq 0 ]; then
                 log "image '$IMAGE' not found locally (or --build specified); building from $DOCKERFILE..."
-                "$DOCKER_BIN" build -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT" || die "failed to build $IMAGE"
+                "$DOCKER_BIN" build --build-arg "G4F_USER_ID=$USER_ID" -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT" || die "failed to build $IMAGE"
             fi
         fi
 
@@ -270,6 +303,7 @@ case "$ACTION" in
         log "Starting G4F Sandbox Desktop..."
         printf '  Container:   %s\n' "$CONTAINER_NAME"
         printf '  Image:       %s\n' "$IMAGE"
+        printf '  User ID:     %s\n' "$USER_ID"
         printf '  Desktop URL: http://localhost:%s/desktop/\n' "$PORT"
         printf '  API Server:  http://localhost:%s/\n' "$PORT"
         printf '  App domains: http://g4f.g4f.local/ (also <port>.g4f.local)\n'
@@ -286,6 +320,7 @@ case "$ACTION" in
                 COMPOSE_ARGS+=("-d")
             fi
             export SANDBOX_DESKTOP="$([ "$NO_DESKTOP" -eq 1 ] && echo 0 || echo 1)"
+            export G4F_USER_ID="$USER_ID"
             exec docker compose "${COMPOSE_ARGS[@]}"
         fi
 
