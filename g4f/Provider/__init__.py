@@ -165,6 +165,8 @@ class ProviderLoader:
                 module = "hf_space"
             elif name in ["QwenCode"]:
                 module = "qwen.QwenCode"
+            elif name in ["MiniMax", "HailuoAI"]:
+                module = "needs_auth.mini_max"
             else:
                 module = name
             module = importlib.import_module(f"g4f.Provider.{module}")
@@ -183,10 +185,6 @@ class ProviderLoader:
             from g4f.Provider.glm import GLM
 
             return GLM
-        elif name == "HailuoAI":
-            from g4f.Provider.needs_auth.mini_max.HailuoAI import HailuoAI
-
-            return HailuoAI
         elif name == "RelayRouter":
             from ..client.factory import AbstractClientFactory
             cls.loaded[name] = AbstractClientFactory.create_provider(
