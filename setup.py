@@ -92,6 +92,10 @@ EXTRA_REQUIRE = {
         "cairosvg",
     ],
     "tracing": ["langfuse"],
+    "wasmtime": [
+        "wasmtime",
+        "numpy",
+    ],
 }
 
 DESCRIPTION = (
