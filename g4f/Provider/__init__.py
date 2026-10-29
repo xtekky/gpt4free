@@ -169,6 +169,9 @@ class ProviderLoader:
                 module = "github.GithubCopilot"
             elif name in ["MiniMax", "HailuoAI"]:
                 module = "needs_auth.mini_max"
+            elif name in ["OpenaiChat", "ChatGPT"]:
+                name = "ChatGPT"
+                module = "ChatGPT"
             else:
                 module = name
             module = importlib.import_module(f"g4f.Provider.{module}")

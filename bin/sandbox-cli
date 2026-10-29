@@ -2775,6 +2775,8 @@ run_tool() {
             start_freeflow_api ;;
         kilocode)
             ensure_npm @kilocode/cli kilo
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             launch "Kilo Code" kilo "${@:2}" ;;
         antigravity)
             ensure_script "$ANTIGRAVITY_INSTALLER" agy "Antigravity CLI"
@@ -2969,6 +2971,8 @@ run_tool() {
             launch LibreChat npm run backend "${@:2}" ;;
         lobechat)
             ensure_lobechat
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "LobeChat is installed and ready"
                 exit 0
@@ -2980,6 +2984,8 @@ run_tool() {
             exit 0 ;;
         msty)
             ensure_msty
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "Msty Studio is installed and ready"
                 exit 0
@@ -3027,6 +3033,8 @@ run_tool() {
             launch SillyTavern node server.js "${@:2}" ;;
         cptr)
             ensure_cptr
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "Open WebUI Computer is installed and ready"
                 exit 0
@@ -3483,6 +3491,25 @@ run_tool() {
     esac
 }
 
+run_configure() { # <agent>
+    local agent="${1:-}"
+    [ -n "$agent" ] || die "usage: sandbox-cli configure <agent>"
+    configure_g4f
+    case "$agent" in
+        opencode) configure_opencode_g4f; configure_opencode_service ;;
+        copilot) configure_copilot_g4f ;;
+        hermes|omh) configure_hermes_g4f ;;
+        assistant-ui) write_assistant_ui_env ;;
+        librechat) write_librechat_env; write_librechat_yaml ;;
+        cindy) provision_cindy ;;
+        lobechat) ;;
+        msty) ;;
+        cptr) ;;
+        *) log "no agent-specific provider registration for '$agent'; g4f env configured" ;;
+    esac
+    log "g4f provider registered for $agent"
+}
+
 usage() {
     cat <<'EOF'
 usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop tool
@@ -3628,6 +3655,30 @@ list_tools() {
 case "${1:-}" in
     ""|help|-h|--help)
         usage ;;
+    harness)
+        agent="${2:-}"
+        shift 2 2>/dev/null || true
+        harness_provider=""
+        harness_model=""
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                --provider) harness_provider="${2:-}"; shift 2 ;;
+                --model) harness_model="${2:-}"; shift 2 ;;
+                *) shift ;;
+            esac
+        done
+        [ -n "$harness_provider" ] && export G4F_PROVIDER="$harness_provider"
+        [ -n "$harness_model" ] && export G4F_MODEL="$harness_model"
+        if [ -n "$agent" ]; then
+            settings_file="${G4F_SANDBOX_ENV:-$HOME/.config/g4f-sandbox/env}"
+            mkdir -p "$(dirname "$settings_file")"
+            key="HARNESS_$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_')"
+            tmp="${settings_file}.tmp.$$"
+            ( [ -f "$settings_file" ] && grep -v "^${key}=" "$settings_file" || true
+              [ -n "$harness_provider$harness_model" ] && printf '%s=%s:%s\n' "$key" "$harness_provider" "$harness_model" ) > "$tmp"
+            mv "$tmp" "$settings_file"
+        fi
+        exec "$0" "$agent" ;;
     list)
         list_tools ;;
     urls)
@@ -3636,10 +3687,12 @@ case "${1:-}" in
     hosts)
         print_hosts
         hold_open ;;
+    configure)
+        shift
+        run_configure "$@" ;;
     settings)
         shift
-        run_settings "$@" ;;
-    reset)
+        run_settings "$@" ;;    reset)
         shift
         run_reset "$@" ;;
     package)
