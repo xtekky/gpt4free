@@ -4,7 +4,7 @@ import asyncio
 import inspect
 import os
 import time
-from typing import Iterable, Optional, Sequence, Tuple, Type
+from typing import Iterable, Optional, Sequence, Tuple, Type, Union
 
 from .. import debug
 from ..tools.auth import AuthManager, ProviderAuthStatus
@@ -101,8 +101,7 @@ class ProviderRouter:
     discovery, with a timeout and a cache, so the common path stays fast.
     """
 
-    _models_cache: dict[str, Tuple[Tuple[str, str], ...]] = {}
-    _global_models_cache: dict[str, list[str]] = {}
+    _models_cache: dict[str, Union[dict, list]] = {}
     _lately_used: list[dict] = []
 
     @classmethod
@@ -113,7 +112,6 @@ class ProviderRouter:
     def load_caches(cls) -> None:
         for attr, path in (
             ("_models_cache", _MODELS_CACHE_FILE),
-            ("_global_models_cache", _GLOBAL_MODELS_CACHE_FILE),
             ("_lately_used", _LATELY_USED_FILE),
         ):
             try:
@@ -128,7 +126,6 @@ class ProviderRouter:
     @classmethod
     def reset_cache(cls) -> None:
         cls._models_cache = {}
-        cls._global_models_cache = {}
         cls._lately_used = []
         cls.save_caches()
 
@@ -138,9 +135,6 @@ class ProviderRouter:
             cls._ensure_dir(_MODELS_CACHE_FILE)
             with open(_MODELS_CACHE_FILE, "w", encoding="utf-8") as f:
                 json.dump(cls._models_cache, f)
-            cls._ensure_dir(_GLOBAL_MODELS_CACHE_FILE)
-            with open(_GLOBAL_MODELS_CACHE_FILE, "w", encoding="utf-8") as f:
-                json.dump(cls._global_models_cache, f)
             cls._ensure_dir(_LATELY_USED_FILE)
             with open(_LATELY_USED_FILE, "w", encoding="utf-8") as f:
                 json.dump(cls._lately_used, f)
@@ -159,16 +153,6 @@ class ProviderRouter:
     def lately_used(cls) -> list[dict]:
         return list(cls._lately_used)
 
-    @classmethod
-    def set_global_models(cls, provider: str, models: list[str]) -> None:
-        cls._global_models_cache[provider] = list(models)
-        cls.save_caches()
-
-    @classmethod
-    def global_models(cls, provider: str = None):
-        if provider is None:
-            return dict(cls._global_models_cache)
-        return cls._global_models_cache.get(provider, [])
 
     @classmethod
     def is_ignored(cls, provider: Type, ignored: Iterable[str] = ()) -> bool:
@@ -291,60 +275,51 @@ class ProviderRouter:
         provider: Type,
         api_key: Optional[str | dict] = None,
         timeout: float = DEFAULT_PROBE_TIMEOUT,
+        refresh: bool = False,
     ) -> tuple[str, ...]:
-        """Return (and cache) a provider's model list without blocking the loop.
-        Each entry is (model_name, provider_name) so callers can show where
-        each model is from."""
         name = getattr(provider, "__name__", str(provider))
-        now = time.time()
+        static = tuple(_static_models(provider))
+        status: ProviderAuthStatus = AuthManager.get_auth_status(provider, api_key)
+        async def _load():
+            try:
+                method = provider.get_models
+                kwargs = cls._get_models_kwargs(provider, status.api_key)
+                if inspect.iscoroutinefunction(method):
+                    result = await asyncio.wait_for(method(**kwargs), timeout=timeout)
+                else:
+                    result = await asyncio.wait_for(
+                        asyncio.to_thread(method, **kwargs), timeout=timeout
+                    )
+                models = tuple(dict.fromkeys(_as_model_list(result)))
+                cls._models_cache[name] = models
+                cls.save_caches()
+                return models
+            except Exception as e:
+                debug.log(f"ProviderRouter: model discovery failed for {name}: {e}")
+                cls._models_cache[name] = static
+                return static
+
         cached = cls._models_cache.get(name)
         # Cache without TTL: only revalidate when explicitly refreshed
         if cached is not None:
+            if refresh:
+                asyncio.create_task(_load())
             return cached
-
-        static = tuple(_static_models(provider))
-        status: ProviderAuthStatus = AuthManager.get_auth_status(provider, api_key)
-        key = status.api_key
-        needs_auth = bool(getattr(provider, "needs_auth", False))
+        
+        models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
 
         # Never probe a gateway we have no credentials for.  Static metadata
         # (including aliases/default_model) is still useful for matching.
-        if needs_auth and not status.configured:
-            cached = tuple((m, name) for m in static)
-            cls._models_cache[name] = cached
-            return cached
-        # Free providers usually advertise a complete static catalogue; skip a
-        # network round trip unless there is nothing to match against.
-        if not key and static:
-            cached = tuple((m, name) for m in static)
-            cls._models_cache[name] = cached
-            return cached
+        if models_needs_auth and not status.configured:
+            cls._models_cache[name] = static
+            return static
 
         get_models = getattr(provider, "get_models", None)
         if not callable(get_models):
-            cached = tuple((m, name) for m in static)
-            cls._models_cache[name] = cached
-            return cached
+            cls._models_cache[name] = static
+            return static
 
-        try:
-            method = provider.get_models
-            kwargs = cls._get_models_kwargs(provider, key)
-            if inspect.iscoroutinefunction(method):
-                result = await asyncio.wait_for(method(**kwargs), timeout=timeout)
-            else:
-                result = await asyncio.wait_for(
-                    asyncio.to_thread(method, **kwargs), timeout=timeout
-                )
-            models = tuple(dict.fromkeys(_as_model_list(result)))
-            cached = tuple((m, name) for m in models)
-            cls._models_cache[name] = cached
-            cls.save_caches()
-            return cached
-        except Exception as e:
-            debug.log(f"ProviderRouter: model discovery failed for {name}: {e}")
-            cached = tuple((m, name) for m in static)
-            cls._models_cache[name] = cached
-            return cached
+        return await _load()
 
     @classmethod
     async def _probe(
@@ -356,8 +331,7 @@ class ProviderRouter:
     ) -> Optional[Tuple[Type, str]]:
         try:
             models = await cls.get_provider_models(provider, api_key, timeout)
-            model_names = [m[0] if isinstance(m, tuple) else m for m in models]
-            alias = cls.match_model(provider, model, model_names)
+            alias = cls.match_model(provider, model,  list(models))
             if alias is None:
                 return None
             if model and alias != model:

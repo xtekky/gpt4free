@@ -1,24 +1,27 @@
-audio_models = []
-image_models = ['dall-e-3', 'gpt-image', 'sdxl-turbo', 'sd-3.5-large', 'flux', 'flux-pro', 'flux-kontext', 'black-forest-labs/FLUX-2-klein-4b', 'black-forest-labs/FLUX-2-klein-9b', 'flux-2-klein-4b', 'flux-2-klein-9b', 'sd-3.5-large', 'flux-dev', 'flux', 'flux-kontext-dev', 'sd-3.5-large', 'flux-dev', 'flux', 'flux-kontext-dev']
+audio_models = ['openai/gpt-audio-1.5', 'openai/gpt-audio-mini']
+image_models = ['dall-e-3', 'gpt-image', 'sdxl-turbo', 'sd-3.5-large', 'flux', 'flux-pro', 'flux-kontext', 'black-forest-labs/FLUX-2-klein-4b', 'black-forest-labs/FLUX-2-klein-9b', 'flux-2-klein-4b', 'flux-2-klein-9b']
 vision_models = []
 video_models = ['video']
 model_map = {
-  "default": {
-    "Qwen": "",
+  "auto": {
+    "ChatGPT": "auto",
     "TeachAnything": "",
-    "GLM": "",
-    "KiloCode": "",
-    "CopilotApp": "",
-    "DeepInfra": "",
+    "LLM7": "",
     "Ollama": "",
+    "OpenRouterFree": "",
+    "KiloCode": "openrouter/auto",
+    "DeepInfra": "",
+    "Qwen": "",
     "Pollinations": "",
     "OperaAria": "",
+    "GLM": "",
+    "CopilotApp": "",
     "GeminiPro": "",
-    "OpenRouterFree": "",
-    "ChatGPT": "",
-    "LLM7": "default",
-    "OpenaiChat": "",
-    "G4FSpace": "default:"
+    "G4FSpace": "auto",
+    "Grok": "auto",
+    "Arena": "auto",
+    "OmniRoute": "auto",
+    "Puter": "infron:infron/auto"
   },
   "agent-tools": {
     "AgentTools": "Agent Tools (MCP)"
@@ -26,38 +29,32 @@ model_map = {
   "gpt-4": {
     "CopilotApp": "chat",
     "Yqcloud": "gpt-4",
-    "OpenaiChat": "gpt-4",
+    "ChatGPT": "",
     "Airforce": "gpt-4",
     "Copilot": "Copilot",
-    "CopilotAccount": "Copilot",
-    "CopilotSession": "Copilot",
     "GithubCopilot": "gpt-4",
     "KiloCode": "openai/gpt-4",
-    "OpenRouter": "openai/gpt-4",
+    "Pollinations": "openai-fast",
     "Puter": "openrouter:openai/gpt-4"
   },
   "gpt-4o": {
     "CopilotApp": "chat",
-    "OpenaiChat": "gpt-4o",
+    "ChatGPT": "",
     "Airforce": "gpt-4o",
     "Copilot": "Copilot",
-    "CopilotAccount": "Copilot",
-    "CopilotSession": "Copilot",
     "GithubCopilot": "gpt-4o",
     "KiloCode": "openai/gpt-4o-2024-05-13",
-    "OpenRouter": "openai/gpt-4o:batch",
-    "ChatGPT": "gpt-4o",
-    "Puter": "openrouter:openai/gpt-4o:batch"
+    "Pollinations": "openai-fast",
+    "Puter": "openrouter:openai/gpt-4o-2024-11-20"
   },
   "gpt-4o-mini": {
-    "OpenaiChat": "gpt-4o-mini",
-    "ChatGPT": "gpt-4o-mini",
+    "ChatGPT": "",
     "Airforce": "gpt-4o-mini",
     "CopilotApp": "chat",
     "GithubCopilot": "gpt-4o-mini",
     "KiloCode": "openai/gpt-4o-mini-2024-07-18",
-    "OpenRouter": "openai/gpt-4o-mini:batch",
-    "Puter": "openrouter:openai/gpt-4o-mini:batch"
+    "Pollinations": "openai-fast",
+    "Puter": "openrouter:openai/gpt-4o-mini-2024-07-18"
   },
   "gpt-4o-mini-tts": {
     "OpenAIFM": "coral",
@@ -67,82 +64,64 @@ model_map = {
     "OpenaiAccount": "o1",
     "Airforce": "o1",
     "Copilot": "Think Deeper",
-    "CopilotAccount": "Think Deeper",
     "CopilotApp": "reasoning",
-    "CopilotSession": "Think Deeper",
-    "KiloCode": "openai/o1",
-    "OpenRouter": "openai/o1",
-    "OpenaiChat": "o1",
-    "Puter": "openrouter:openai/o1"
+    "ChatGPT": "",
+    "Puter": "infron:openai/o1"
   },
   "o1-mini": {
     "OpenaiAccount": "o1-mini",
     "Airforce": "o1-mini",
-    "OpenaiChat": "o1-mini",
+    "ChatGPT": "",
     "Puter": "infron:openai/o1-mini"
   },
   "o3-mini": {
-    "OpenaiChat": "o3-mini",
+    "ChatGPT": "",
     "Airforce": "o3-mini",
     "CopilotApp": "reasoning",
     "Arena": "o3-mini",
-    "KiloCode": "openai/o3-mini",
-    "OpenRouter": "openai/o3-mini:batch",
-    "Puter": "openrouter:openai/o3-mini:batch"
+    "Puter": "infron:openai/o3-mini"
   },
   "o3-mini-high": {
     "OpenaiAccount": "o3-mini-high",
-    "KiloCode": "openai/o3-mini-high",
-    "OpenRouter": "openai/o3-mini-high",
-    "OpenaiChat": "o3-mini-high",
-    "Puter": "openrouter:openai/o3-mini-high"
+    "ChatGPT": ""
   },
   "o4-mini": {
-    "OpenaiChat": "o4-mini",
+    "ChatGPT": "",
     "Airforce": "o4-mini",
     "Arena": "o4-mini-2025-04-16",
-    "KiloCode": "openai/o4-mini",
-    "OpenRouter": "openai/o4-mini:batch",
-    "Puter": "openrouter:openai/o4-mini:batch"
+    "Puter": "infron:openai/o4-mini"
   },
   "o4-mini-high": {
-    "OpenaiChat": "o4-mini-high",
-    "KiloCode": "openai/o4-mini-high",
-    "OpenRouter": "openai/o4-mini-high",
-    "Puter": "openrouter:openai/o4-mini-high"
+    "ChatGPT": ""
   },
   "gpt-4.1": {
-    "OpenaiChat": "gpt-4-1",
+    "ChatGPT": "",
     "Airforce": "gpt-4.1",
     "GithubCopilot": "gpt-4.1",
     "Arena": "gpt-4.1-2025-04-14",
     "KiloCode": "openai/gpt-4.1",
-    "OpenRouter": "openai/gpt-4.1:batch",
-    "Puter": "openrouter:openai/gpt-4.1:batch"
+    "Puter": "openrouter:openai/gpt-4.1"
   },
   "gpt-4.1-mini": {
-    "OpenaiChat": "gpt-4-1-mini",
+    "ChatGPT": "",
     "Airforce": "gpt-4.1-mini",
     "Arena": "gpt-4.1-mini-2025-04-14",
     "KiloCode": "openai/gpt-4.1-mini",
-    "OpenRouter": "openai/gpt-4.1-mini:batch",
-    "ChatGPTLightweight": "gpt-4.1-mini",
-    "Puter": "openrouter:openai/gpt-4.1-mini:batch"
+    "Puter": "openrouter:openai/gpt-4.1-mini"
   },
   "gpt-4.1-nano": {
     "Pollinations": "openai-fast",
     "Airforce": "gpt-4.1-nano",
     "KiloCode": "openai/gpt-4.1-nano",
-    "OpenRouter": "openai/gpt-4.1-nano:batch",
-    "Puter": "openrouter:openai/gpt-4.1-nano:batch"
+    "Puter": "openrouter:openai/gpt-4.1-nano"
   },
   "gpt-4.5": {
-    "OpenaiChat": "gpt-4-5",
-    "Airforce": "gpt-4.5-preview"
+    "ChatGPT": "",
+    "Airforce": "gpt-4.5-preview-2025-02-27"
   },
   "gpt-oss-120b": {
     "Together": "openai/gpt-oss-120b",
-    "OpenRouter": "openai/gpt-oss-120b:batch",
+    "OpenRouter": "openai/gpt-oss-120b",
     "Groq": "openai/gpt-oss-120b",
     "HuggingFace": "openai/gpt-oss-120b",
     "Airforce": "gpt-oss-120b",
@@ -157,14 +136,11 @@ model_map = {
   "dall-e-3": {
     "OpenaiAccount": "dall-e-3",
     "MicrosoftDesigner": "dall-e-3",
-    "BingCreateImages": "dall-e-3",
-    "CopilotAccount": "Copilot",
-    "OpenaiChat": "gpt-image"
+    "BingCreateImages": "dall-e-3"
   },
   "gpt-image": {
     "PollinationsImage": "gpt-image",
-    "OpenaiChat": "gpt-image",
-    "Pollinations": "gptimage"
+    "Pollinations": "openai/gpt-image-1-mini"
   },
   "meta-ai": {
     "MetaAI": "meta-ai",
@@ -180,24 +156,22 @@ model_map = {
     "Together": "llama-3-8b",
     "Airforce": "llama-3-8b",
     "Cloudflare": "@hf/meta-llama/meta-llama-3-8b-instruct",
-    "PerplexityApi": "llama-3-8b-instruct",
+    "G4FSpace": "llama3-8b",
     "Puter": "openrouter:meta-llama/llama-3-8b-instruct"
   },
   "llama-3-70b": {
     "Together": "llama-3-70b",
     "Airforce": "llama-3-70b",
-    "PerplexityApi": "llama-3-70b-instruct",
-    "Puter": "openrouter:meta-llama/llama-3-70b-instruct",
-    "Replicate": "meta/meta-llama-3-70b-instruct"
+    "Puter": "openrouter:meta-llama/llama-3-70b-instruct"
   },
   "llama-3.1-8b": {
     "Together": "llama-3.1-8b",
     "HuggingFace": "meta-llama/Llama-3.1-8B-Instruct",
+    "Airforce": "llama-3.1-8b-instruct",
     "Cerebras": "llama3.1-8b",
     "Cloudflare": "@cf/meta/llama-3.1-8b-instruct-fp8",
     "HuggingChat": "meta-llama/Llama-3.1-8B-Instruct",
     "KiloCode": "meta-llama/llama-3.1-8b-instruct",
-    "OpenRouter": "meta-llama/llama-3.1-8b-instruct",
     "Puter": [
       "openrouter:meta-llama/llama-3.1-8b-instruct:free",
       "openrouter:meta-llama/llama-3.1-8b-instruct"
@@ -205,9 +179,9 @@ model_map = {
   },
   "llama-3.1-70b": {
     "Together": "llama-3.1-70b",
+    "Airforce": "llama-3.1-70b-instruct",
     "Cerebras": "llama3.1-70b",
     "KiloCode": "meta-llama/llama-3.1-70b-instruct",
-    "OpenRouter": "meta-llama/llama-3.1-70b-instruct",
     "Puter": "openrouter:meta-llama/llama-3.1-70b-instruct"
   },
   "llama-3.1-405b": {
@@ -221,9 +195,9 @@ model_map = {
   },
   "llama-3.2-3b": {
     "Together": "llama-3.2-3b",
+    "Airforce": "llama-3.2-3b-instruct",
     "Cloudflare": "@cf/meta/llama-3.2-3b-instruct",
     "KiloCode": "meta-llama/llama-3.2-3b-instruct",
-    "OpenRouter": "meta-llama/llama-3.2-3b-instruct",
     "Puter": [
       "openrouter:meta-llama/llama-3.2-3b-instruct:free",
       "openrouter:meta-llama/llama-3.2-3b-instruct"
@@ -234,11 +208,12 @@ model_map = {
     "Puter": "openrouter:meta-llama/llama-3.2-90b-vision-instruct"
   },
   "llama-4-scout": {
-    "Pollinations": "llamascout",
+    "Pollinations": "meta/llama-4-scout",
     "Together": "llama-4-scout",
+    "Airforce": "llama-4-scout",
     "Cloudflare": "@cf/meta/llama-4-scout-17b-16e-instruct",
+    "G4FSpace": "srv_mp5miql908c8738d71be:meta/llama-4-scout",
     "KiloCode": "meta-llama/llama-4-scout",
-    "OpenRouter": "meta-llama/llama-4-scout",
     "Puter": [
       "openrouter:meta-llama/llama-4-scout:free",
       "openrouter:meta-llama/llama-4-scout"
@@ -246,9 +221,10 @@ model_map = {
   },
   "llama-4-maverick": {
     "Together": "llama-4-maverick",
-    "RelayRouter": "llama-4-maverick",
+    "Airforce": "llama-4-maverick",
+    "G4FSpace": "srv_mp5miql908c8738d71be:meta/llama-4-maverick",
     "KiloCode": "meta-llama/llama-4-maverick",
-    "OpenRouter": "meta-llama/llama-4-maverick",
+    "Pollinations": "meta/llama-4-maverick",
     "Puter": [
       "openrouter:meta-llama/llama-4-maverick:free",
       "openrouter:meta-llama/llama-4-maverick"
@@ -267,9 +243,7 @@ model_map = {
   "mistral-small-3.1-24b": {
     "Pollinations": "mistral-small",
     "Cloudflare": "@cf/mistralai/mistral-small-3.1-24b-instruct",
-    "G4FSpace": "srv_mtkdrhxt45fe276b15c0:@cf/mistralai/mistral-small-3.1-24b-instruct",
     "KiloCode": "mistralai/mistral-small-3.1-24b-instruct",
-    "OpenRouter": "mistralai/mistral-small-3.1-24b-instruct",
     "Puter": "openrouter:mistralai/mistral-small-3.1-24b-instruct"
   },
   "hermes-2-dpo": {
@@ -284,17 +258,17 @@ model_map = {
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-2.5-flash",
     "Arena": "gemini-2.5-flash",
     "KiloCode": "google/gemini-2.5-flash",
-    "OpenRouter": "google/gemini-2.5-flash:batch",
     "Puter": "openrouter:google/gemini-2.5-flash-preview"
   },
   "gemini-2.5-pro": {
     "Gemini": "gemini-2.5-pro",
     "GeminiPro": "gemini-2.5-pro",
     "GeminiCLI": "gemini-2.5-pro",
-    "Airforce": "gemini-2.5-pro",
+    "Airforce": "gemini-2.5-pro-preview-06-05",
+    "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-2.5-pro",
     "Arena": "gemini-2.5-pro",
     "KiloCode": "google/gemini-2.5-pro-preview",
-    "OpenRouter": "google/gemini-2.5-pro-preview",
+    "Pollinations": "google/gemini-3.1-pro-preview",
     "Puter": [
       "openrouter:google/gemini-2.5-pro-preview",
       "openrouter:google/gemini-2.5-pro-exp-03-25"
@@ -306,47 +280,44 @@ model_map = {
   },
   "gemini-3.1-pro": {
     "Gemini": "gemini-3.1-pro",
-    "Airforce": "gemini-3.1-pro-preview",
+    "Airforce": "gemini-3.1-pro",
+    "G4FSpace": "srv_mp5miql908c8738d71be:google/gemini-3.1-pro-preview",
     "GeminiPro": "gemini-3.1-pro",
     "Arena": "gemini-3.1-pro-preview",
     "KiloCode": "google/gemini-3.1-pro-preview",
-    "OpenRouter": "google/gemini-3.1-pro-preview:batch",
-    "Puter": "openrouter:google/gemini-3.1-pro-preview:batch"
+    "Pollinations": "google/gemini-3.1-pro-preview",
+    "Puter": "openrouter:google/gemini-3.1-pro-preview"
   },
   "gemini-3.1-flash-lite": {
     "Gemini": "gemini-3.1-flash-lite",
     "Antigravity": "gemini-3.1-flash-lite",
-    "Airforce": "gemini-3.1-flash-lite",
-    "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.1-flash-lite-preview",
+    "Airforce": "gemini-3.1-flash-lite-preview",
+    "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.1-flash-lite",
     "GeminiPro": "gemini-3.1-flash-lite",
     "Arena": "gemini-3.1-flash-lite",
     "KiloCode": "google/gemini-3.1-flash-lite-preview",
-    "OpenRouter": "google/gemini-3.1-flash-lite-preview",
-    "Puter": "openrouter:google/gemini-3.1-flash-lite:batch"
+    "Pollinations": "google/gemini-3.5-flash-lite",
+    "Puter": "openrouter:google/gemini-3.1-flash-lite-preview"
   },
   "gemini-3.6-flash": {
     "Gemini": "gemini-3.6-flash",
-    "Antigravity": "gemini-3.6-flash",
     "Airforce": "gemini-3.6-flash",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.6-flash",
     "GeminiPro": "gemini-3.6-flash",
-    "GithubCopilot": "gemini-3.6-flash",
     "Arena": "gemini-3.6-flash",
     "KiloCode": "google/gemini-3.6-flash",
-    "OpenRouter": "google/gemini-3.6-flash:batch",
-    "Puter": "openrouter:google/gemini-3.6-flash:batch"
+    "Pollinations": "google/gemini-3.7-flash",
+    "Puter": "openrouter:google/gemini-3.6-flash"
   },
   "gemini-3.7-flash": {
     "Gemini": "gemini-3.7-flash",
-    "Antigravity": "gemini-3.7-flash",
     "Airforce": "gemini-3.7-flash",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.7-flash",
     "GeminiPro": "gemini-3.7-flash",
-    "GithubCopilot": "gemini-3.7-flash",
     "Arena": "gemini-3.7-flash",
     "KiloCode": "google/gemini-3.7-flash",
-    "OpenRouter": "google/gemini-3.7-flash:batch",
-    "Puter": "openrouter:google/gemini-3.7-flash:batch"
+    "Pollinations": "google/gemini-3.7-flash",
+    "Puter": "openrouter:google/gemini-3.7-flash"
   },
   "gemini-3.8-flash": {
     "Gemini": "gemini-3.8-flash",
@@ -356,8 +327,8 @@ model_map = {
     "GeminiPro": "gemini-3.8-flash",
     "GithubCopilot": "gemini-3.8-flash",
     "KiloCode": "google/gemini-3.8-flash",
-    "OpenRouter": "google/gemini-3.8-flash:batch",
-    "Puter": "openrouter:google/gemini-3.8-flash:batch"
+    "Pollinations": "google/gemini-3.8-flash",
+    "Puter": "openrouter:google/gemini-3.8-flash"
   },
   "gemini-3.8-pro": {
     "Gemini": "gemini-3.8-pro",
@@ -370,19 +341,18 @@ model_map = {
     "GeminiPro": "gemini-3.5-flash-lite",
     "Arena": "gemini-3.5-flash-lite",
     "KiloCode": "google/gemini-3.5-flash-lite",
-    "OpenRouter": "google/gemini-3.5-flash-lite:batch",
-    "Puter": "openrouter:google/gemini-3.5-flash-lite:batch"
+    "Pollinations": "google/gemini-3.5-flash-lite",
+    "Puter": "openrouter:google/gemini-3.5-flash-lite"
   },
   "gemini-3.5-flash": {
     "Gemini": "gemini-3.5-flash",
     "Airforce": "gemini-3.5-flash",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-3.5-flash",
     "GeminiPro": "gemini-3.5-flash",
-    "GithubCopilot": "gemini-3.5-flash",
     "Arena": "gemini-3.5-flash",
     "KiloCode": "google/gemini-3.5-flash",
-    "OpenRouter": "google/gemini-3.5-flash:batch",
-    "Puter": "openrouter:google/gemini-3.5-flash:batch"
+    "Pollinations": "google/gemini-3.7-flash",
+    "Puter": "openrouter:google/gemini-3.5-flash"
   },
   "gemini-3.5-flash-thinking": {
     "Gemini": "gemini-3.5-flash-thinking",
@@ -400,7 +370,8 @@ model_map = {
     "Gemini": "gemini-flash-lite",
     "Airforce": "gemini-flash-lite-latest",
     "G4FSpace": "srv_mrgy0nmbc8a86c407f17:models/gemini-flash-lite-latest",
-    "GeminiPro": "gemini-flash-lite"
+    "GeminiPro": "gemini-flash-lite",
+    "Pollinations": "google/gemini-3.5-flash-lite"
   },
   "command-r7b": {
     "HuggingSpace": [
@@ -415,19 +386,19 @@ model_map = {
   },
   "command-a": {
     "HuggingSpace": "command-a-03-2025",
+    "Airforce": "command-a",
     "CohereForAI_C4AI_Command": "command-a-03-2025",
     "KiloCode": "cohere/command-a",
-    "OpenRouter": "cohere/command-a",
     "Puter": "openrouter:cohere/command-a"
   },
   "qwen-2.5-coder-32b": {
     "Together": "qwen-2.5-coder-32b",
     "HuggingChat": "Qwen/Qwen2.5-Coder-32B-Instruct",
     "HuggingFace": "Qwen/Qwen2.5-Coder-32B-Instruct",
+    "Airforce": "qwen-2.5-coder-32b-instruct",
     "Cloudflare": "@cf/qwen/qwen2.5-coder-32b-instruct",
     "KiloCode": "qwen/qwen-2.5-coder-32b-instruct",
-    "OpenRouter": "qwen/qwen-2.5-coder-32b-instruct",
-    "Pollinations": "qwen-3-coder",
+    "Pollinations": "qwen/qwen3-coder-30b-a3b-instruct",
     "Puter": [
       "openrouter:qwen/qwen-2.5-coder-32b-instruct:free",
       "openrouter:qwen/qwen-2.5-coder-32b-instruct"
@@ -436,9 +407,9 @@ model_map = {
   "qwen-2.5-vl-72b": {
     "Together": "qwen-2.5-vl-72b",
     "HuggingFace": "Qwen/Qwen2.5-VL-72B-Instruct",
+    "Airforce": "qwen2.5-vl-72b-instruct",
     "HuggingChat": "Qwen/Qwen2.5-VL-72B-Instruct",
     "KiloCode": "qwen/qwen2.5-vl-72b-instruct",
-    "OpenRouter": "qwen/qwen2.5-vl-72b-instruct",
     "Puter": [
       "openrouter:qwen/qwen2.5-vl-72b-instruct:free",
       "openrouter:qwen/qwen2.5-vl-72b-instruct"
@@ -457,7 +428,6 @@ model_map = {
     "Airforce": "qwen3-32b",
     "HuggingChat": "Qwen/Qwen3-32B",
     "KiloCode": "qwen/qwen3-32b",
-    "OpenRouter": "qwen/qwen3-32b",
     "Puter": [
       "openrouter:qwen/qwen3-32b:free",
       "openrouter:qwen/qwen3-32b"
@@ -488,8 +458,6 @@ model_map = {
     "Cerebras": "deepseek-r1-distill-llama-70b",
     "DeepSeek": "deepseek-r1",
     "HuggingChat": "deepseek-ai/DeepSeek-R1",
-    "KiloCode": "deepseek/deepseek-r1",
-    "OpenRouter": "deepseek/deepseek-r1",
     "Puter": [
       "deepseek-reasoner",
       "openrouter:deepseek/deepseek-r1:free",
@@ -498,11 +466,7 @@ model_map = {
   },
   "deepseek-r1-distill-llama-70b": {
     "Together": "deepseek-r1-distill-llama-70b",
-    "HuggingFace": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
     "Cerebras": "deepseek-r1-distill-llama-70b",
-    "HuggingChat": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-    "KiloCode": "deepseek/deepseek-r1-distill-llama-70b",
-    "OpenRouter": "deepseek/deepseek-r1-distill-llama-70b",
     "Puter": [
       "openrouter:deepseek/deepseek-r1-distill-llama-70b:free",
       "openrouter:deepseek/deepseek-r1-distill-llama-70b"
@@ -541,31 +505,32 @@ model_map = {
     "Airforce": "kimi-k2-instruct",
     "HuggingChat": "moonshotai/Kimi-K2-Instruct",
     "KiloCode": "moonshotai/kimi-k2",
-    "OpenRouter": "moonshotai/kimi-k2",
     "Puter": "openrouter:moonshotai/kimi-k2"
   },
   "sonar": {
-    "Puter": "openrouter:perplexity/sonar",
+    "G4FSpace": "srv_mp5miql908c8738d71be:perplexity/sonar",
     "KiloCode": "perplexity/sonar",
-    "OpenRouter": "perplexity/sonar"
+    "Pollinations": "perplexity/sonar",
+    "Puter": "openrouter:perplexity/sonar"
   },
   "sonar-pro": {
-    "Puter": "openrouter:perplexity/sonar-pro",
     "KiloCode": "perplexity/sonar-pro",
-    "OpenRouter": "perplexity/sonar-pro"
+    "Pollinations": "perplexity/sonar",
+    "Puter": "openrouter:perplexity/sonar-pro"
   },
   "sonar-reasoning": {
+    "Pollinations": "perplexity/sonar",
     "Puter": "openrouter:perplexity/sonar-reasoning"
   },
   "sonar-reasoning-pro": {
-    "Puter": "openrouter:perplexity/sonar-reasoning-pro",
     "KiloCode": "perplexity/sonar-reasoning-pro",
-    "OpenRouter": "perplexity/sonar-reasoning-pro"
+    "Pollinations": "perplexity/sonar",
+    "Puter": "openrouter:perplexity/sonar-reasoning-pro"
   },
   "r1-1776": {
     "Together": "r1-1776",
-    "Puter": "openrouter:perplexity/r1-1776",
-    "Perplexity": "r1-1776"
+    "Perplexity": "r1-1776",
+    "Puter": "openrouter:perplexity/r1-1776"
   },
   "nemotron-70b": {
     "Together": "nemotron-70b",
@@ -591,7 +556,7 @@ model_map = {
     "Together": "flux",
     "HuggingSpace": "black-forest-labs-flux-1-dev",
     "BlackForestLabs_Flux1Dev": "black-forest-labs-flux-1-dev",
-    "Pollinations": "flux"
+    "Pollinations": "black-forest-labs/flux.1-schnell"
   },
   "flux-pro": {
     "PollinationsImage": "flux-pro",
@@ -602,40 +567,85 @@ model_map = {
     "Pollinations": "kontext",
     "Together": "flux-kontext"
   },
+  "deepseek-v4.1-flash-1017": {
+    "DeepInfra": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "HuggingFace": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "Airforce": "deepseek-v4.1-flash-1017",
+    "HuggingChat": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "RelayRouter": "deepseek-v4.1-flash-1017:free",
+    "KiloCode": "deepseek/deepseek-v4.1-flash-1017",
+    "Pollinations": "deepseek/deepseek-v4.1-flash-1017",
+    "Puter": "togetherai:deepseek-ai/deepseek-v4.1-flash-1017"
+  },
+  "nemotron-3.5-super-vl": {
+    "DeepInfra": "nvidia/NVIDIA-Nemotron-3.5-Super-VL",
+    "Airforce": "nemotron-3.5-super-vl",
+    "G4FSpace": "srv_mve15k17fe3d549fd0b8:nvidia/nemotron-3.5-super-vl:free",
+    "KiloCode": "nvidia/nemotron-3.5-super-vl",
+    "Pollinations": "nvidia/nemotron-3.5-super-vl",
+    "Puter": "togetherai:nvidia/nvidia-nemotron-3.5-super-vl"
+  },
+  "hy4": {
+    "DeepInfra": "tencent/Hy4-preview",
+    "HuggingFace": "tencent/Hy4-preview",
+    "Airforce": "hy4-preview",
+    "HuggingChat": "tencent/Hy4-preview",
+    "RelayRouter": "hy4-preview",
+    "KiloCode": "tencent/hy4-preview",
+    "Pollinations": "tencent/hy4-preview",
+    "Puter": "openrouter:tencent/hy4-preview"
+  },
+  "mimo-v2.6-flash": {
+    "DeepInfra": "XiaomiMiMo/MiMo-V2.6-Flash",
+    "Airforce": "mimo-v2.6-flash",
+    "KiloCode": "xiaomi/mimo-v2.6-flash",
+    "Pollinations": "xiaomi/mimo-v2.6-flash",
+    "Puter": "openrouter:xiaomi/mimo-v2.6-flash"
+  },
+  "mimo-v2.6-pro": {
+    "DeepInfra": "XiaomiMiMo/MiMo-V2.6-Pro",
+    "Airforce": "mimo-v2.6-pro",
+    "KiloCode": "xiaomi/mimo-v2.6-pro",
+    "Pollinations": "xiaomi/mimo-v2.6-pro",
+    "Puter": "openrouter:xiaomi/mimo-v2.6-pro"
+  },
   "deepseek-v4.1-flash": {
     "DeepInfra": "deepseek-ai/DeepSeek-V4.1-Flash",
     "HuggingFace": "deepseek-ai/DeepSeek-V4.1-Flash",
     "Airforce": "deepseek-v4.1-flash",
+    "G4FSpace": "srv_mr9dda21bf67b4c62086:deepseek/deepseek-v4.1-flash",
     "HuggingChat": "deepseek-ai/DeepSeek-V4.1-Flash",
+    "Nvidia": "deepseek-ai/deepseek-v4.1-flash",
     "KiloCode": "deepseek/deepseek-v4.1-flash",
-    "Ollama": "deepseek-v4.1-flash",
-    "OpenRouter": "deepseek/deepseek-v4.1-flash",
+    "Ollama": "deepseek-v4.1-flash:1017",
+    "Pollinations": "deepseek/deepseek-v4.1-flash",
     "Puter": "togetherai:deepseek-ai/deepseek-v4.1-flash"
   },
   "glm-5.3": {
     "DeepInfra": "zai-org/GLM-5.3",
     "HuggingFace": "zai-org/GLM-5.3-BF16",
     "Airforce": "glm-5.3",
-    "G4FSpace": "srv_mp2huzrg06e426ad12f3:zai-org/GLM-5.3",
+    "G4FSpace": "srv_mp5miql908c8738d71be:z-ai/glm-5.3",
     "GLM": "GLM-5.3",
     "HuggingChat": "zai-org/GLM-5.3-BF16",
-    "Nvidia": "z-ai/glm-5.3",
+    "RelayRouter": "glm-5.3",
     "KiloCode": "z-ai/glm-5.3",
     "Ollama": "glm-5.3",
-    "OpenRouter": "z-ai/glm-5.3:batch",
-    "Puter": "z-ai:z-ai/glm-5.3"
+    "Pollinations": "z-ai/glm-5.3",
+    "Puter": "zhipu/glm-5.3"
   },
   "glm-5.3-flash": {
     "DeepInfra": "zai-org/GLM-5.3-Flash",
     "HuggingFace": "zai-org/GLM-5.3-Flash-BF16",
     "Airforce": "glm-5.3-flash",
-    "G4FSpace": "srv_mkombumpae45db46dcb8:z-ai/glm-5.3-flash",
+    "G4FSpace": "srv_mp5miql908c8738d71be:community/scriptsnsenses-sys/glm-5.3-flash-free",
     "GLM": "GLM-5.3-Flash",
     "HuggingChat": "zai-org/GLM-5.3-Flash-BF16",
     "Nvidia": "z-ai/glm-5.3-flash",
+    "RelayRouter": "glm-5.3-flash",
     "KiloCode": "z-ai/glm-5.3-flash",
     "Ollama": "glm-5.3-flash",
-    "OpenRouter": "z-ai/glm-5.3-flash:batch",
+    "Pollinations": "z-ai/glm-5.3-flash",
     "Puter": "z-ai:z-ai/glm-5.3-flash"
   },
   "kimi-k3": {
@@ -644,100 +654,75 @@ model_map = {
     "Airforce": "kimi-k3",
     "GithubCopilot": "kimi-k3",
     "HuggingChat": "moonshotai/Kimi-K3",
-    "Nvidia": "moonshotai/kimi-k3",
+    "RelayRouter": "openrouter/kimi-k3",
     "KiloCode": "moonshotai/kimi-k3",
     "Ollama": "kimi-k3",
-    "OpenRouter": "moonshotai/kimi-k3:batch",
+    "Pollinations": "moonshotai/kimi-k3",
     "Puter": "togetherai:moonshotai/kimi-k3"
-  },
-  "qwen-3.8-2.4t-a95b": {
-    "DeepInfra": "Qwen/Qwen3.8-2.4T-A95B",
-    "HuggingFace": "Qwen/Qwen3.8-2.4T-A95B",
-    "HuggingChat": "Qwen/Qwen3.8-2.4T-A95B",
-    "KiloCode": "qwen/qwen3.8-2.4t-a95b",
-    "OpenRouter": "qwen/qwen3.8-2.4t-a95b:batch",
-    "Puter": "togetherai:qwen/qwen3.8-2.4t-a95b"
   },
   "deepseek-v4-pro-0813": {
     "DeepInfra": "deepseek-ai/DeepSeek-V4-Pro-0813",
     "HuggingFace": "deepseek-ai/DeepSeek-V4-Pro-0813",
     "Airforce": "deepseek-v4-pro-0813",
-    "G4FSpace": "HuggingChat:deepseek-ai/DeepSeek-V4-Pro-0813",
     "HuggingChat": "deepseek-ai/DeepSeek-V4-Pro-0813",
+    "RelayRouter": "deepseek-v4-pro-0813",
     "KiloCode": "deepseek/deepseek-v4-pro-0813",
-    "OpenRouter": "deepseek/deepseek-v4-pro-0813:batch",
     "Puter": "togetherai:deepseek-ai/deepseek-v4-pro-0813"
   },
   "deepseek-v4-flash-0731": {
     "DeepInfra": "deepseek-ai/DeepSeek-V4-Flash-0731",
     "HuggingFace": "deepseek-ai/DeepSeek-V4-Flash-0731",
-    "G4FSpace": "srv_mkombumpae45db46dcb8:deepseek-ai/deepseek-v4-flash-0731",
+    "Airforce": "deepseek-v4-flash-0731",
     "HuggingChat": "deepseek-ai/DeepSeek-V4-Flash-0731",
-    "Nvidia": "deepseek-ai/deepseek-v4-flash-0731",
+    "RelayRouter": "deepseek-v4-flash-0731",
     "KiloCode": "deepseek/deepseek-v4-flash-0731",
-    "OpenRouter": "deepseek/deepseek-v4-flash-0731:batch",
-    "Puter": "togetherai:deepseek-ai/deepseek-v4-flash-0731"
+    "Puter": "openrouter:deepseek/deepseek-v4-flash-0731"
   },
   "glm-5.2": {
     "DeepInfra": "zai-org/GLM-5.2",
     "HuggingFace": "zai-org/GLM-5.2-FP8",
     "Airforce": "glm-5.2",
     "Cloudflare": "@cf/zai-org/glm-5.2",
-    "G4FSpace": "srv_monk1pkz433a519ff2be:z-ai/glm-5.2:free",
+    "G4FSpace": "srv_mr9dda21bf67b4c62086:z-ai/glm-5.2",
     "GLM": "GLM-5.2",
     "HuggingChat": "zai-org/GLM-5.2-FP8",
-    "KiloCode": "z-ai/glm-5.2:free",
+    "RelayRouter": "glm-5.2",
+    "KiloCode": "z-ai/glm-5.2",
     "Ollama": "glm-5.2",
-    "OpenRouter": "z-ai/glm-5.2:free",
-    "OpenRouterFree": "z-ai/glm-5.2:free",
-    "Puter": "z-ai:z-ai/glm-5.2"
-  },
-  "kimi-k2.7-code": {
-    "DeepInfra": "moonshotai/Kimi-K2.7-Code",
-    "HuggingFace": "moonshotai/Kimi-K2.7-Code",
-    "Airforce": "kimi-k2.7-code",
-    "Cloudflare": "@cf/moonshotai/kimi-k2.7-code",
-    "GithubCopilot": "kimi-k2.7-code",
-    "HuggingChat": "moonshotai/Kimi-K2.7-Code",
-    "KiloCode": "moonshotai/kimi-k2.7-code",
-    "Ollama": "kimi-k2.7-code",
-    "OpenRouter": "moonshotai/kimi-k2.7-code",
-    "Puter": "openrouter:moonshotai/kimi-k2.7-code"
+    "Pollinations": "z-ai/glm-5.2",
+    "Puter": "zhipu/glm-5.2"
   },
   "nemotron-3-ultra-550b-a55b": {
     "DeepInfra": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B",
     "HuggingFace": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16",
-    "G4FSpace": "srv_mp5miql908c8738d71be:community/NamanSoni78/nemotron-3-ultra-550b-a55b",
+    "Airforce": "nemotron-3-ultra-550b-a55b",
+    "G4FSpace": "srv_mve15k17fe3d549fd0b8:nvidia/nemotron-3-ultra-550b-a55b:free",
     "HuggingChat": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16",
     "Nvidia": "nvidia/nemotron-3-ultra-550b-a55b",
-    "KiloCode": "nvidia/nemotron-3-ultra-550b-a55b",
-    "OpenRouter": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "KiloCode": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "OpenRouterFree": "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "Pollinations": "community/NamanSoni78/nemotron-3-ultra-550b-a55b",
+    "Pollinations": "nvidia/nemotron-3-ultra",
     "Puter": "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free"
   },
   "deepseek-v4-flash": {
     "DeepInfra": "deepseek-ai/DeepSeek-V4-Flash",
     "HuggingFace": "deepseek-ai/DeepSeek-V4-Flash",
     "Airforce": "deepseek-v4-flash",
-    "G4FSpace": "srv_mtsj8uzo97d3c0d49960:deepseek-z/deepseek-v4-flash",
+    "G4FSpace": "deepseek/deepseek-v4-flash",
     "HuggingChat": "deepseek-ai/DeepSeek-V4-Flash",
-    "RelayRouter": "deepseek-v4-flash",
     "KiloCode": "deepseek/deepseek-v4-flash",
-    "Ollama": "deepseek-v4-flash:0731",
-    "OpenRouter": "deepseek/deepseek-v4-flash",
-    "OrcaRouter": "deepseek/deepseek-v4-flash-free",
+    "Pollinations": "deepseek/deepseek-v4-flash",
     "Puter": "openrouter:~deepseek/deepseek-v4-flash-latest"
   },
   "deepseek-v4-pro": {
     "DeepInfra": "deepseek-ai/DeepSeek-V4-Pro",
     "HuggingFace": "deepseek-ai/DeepSeek-V4-Pro",
     "Airforce": "deepseek-v4-pro",
-    "G4FSpace": "srv_mr9dda21bf67b4c62086:deepseek/deepseek-v4-pro",
+    "G4FSpace": "srv_mp5miql908c8738d71be:deepseek/deepseek-v4-pro",
     "HuggingChat": "deepseek-ai/DeepSeek-V4-Pro",
     "KiloCode": "deepseek/deepseek-v4-pro",
     "Ollama": "deepseek-v4-pro:0813",
-    "OpenRouter": "deepseek/deepseek-v4-pro",
+    "Pollinations": "deepseek/deepseek-v4-pro",
     "Puter": "openrouter:deepseek/deepseek-v4-pro"
   },
   "kimi-k2.6": {
@@ -745,23 +730,14 @@ model_map = {
     "HuggingFace": "moonshotai/Kimi-K2.6",
     "Airforce": "kimi-k2.6",
     "Cloudflare": "@cf/moonshotai/kimi-k2.6",
+    "G4FSpace": "srv_mp5miql908c8738d71be:moonshotai/kimi-k2.6",
     "HuggingChat": "moonshotai/Kimi-K2.6",
     "Nvidia": "moonshotai/kimi-k2.6",
+    "RelayRouter": "kimi-k2.6",
     "KiloCode": "moonshotai/kimi-k2.6",
     "Ollama": "kimi-k2.6",
-    "OpenRouter": "moonshotai/kimi-k2.6",
+    "Pollinations": "moonshotai/kimi-k2.6",
     "Puter": "openrouter:moonshotai/kimi-k2.6"
-  },
-  "mimo-v2.5-pro": {
-    "DeepInfra": "XiaomiMiMo/MiMo-V2.5-Pro",
-    "HuggingFace": "XiaomiMiMo/MiMo-V2.5-Pro",
-    "Airforce": "mimo-v2.5-pro",
-    "G4FSpace": "HuggingChat:XiaomiMiMo/MiMo-V2.5-Pro",
-    "HuggingChat": "XiaomiMiMo/MiMo-V2.5-Pro",
-    "Arena": "mimo-v2.5-pro",
-    "KiloCode": "xiaomi/mimo-v2.5-pro",
-    "OpenRouter": "xiaomi/mimo-v2.5-pro",
-    "Puter": "openrouter:xiaomi/mimo-v2.5-pro"
   },
   "qwen-3.6-35b-a3b": {
     "DeepInfra": "Qwen/Qwen3.6-35B-A3B",
@@ -769,29 +745,17 @@ model_map = {
     "Airforce": "qwen3.6-35b-a3b",
     "HuggingChat": "Qwen/Qwen3.6-35B-A3B",
     "KiloCode": "qwen/qwen3.6-35b-a3b",
-    "OpenRouter": "qwen/qwen3.6-35b-a3b",
     "Puter": "openrouter:qwen/qwen3.6-35b-a3b",
     "Qwen": "qwen3.6-35b-a3b"
-  },
-  "glm-5.1": {
-    "DeepInfra": "zai-org/GLM-5.1",
-    "HuggingFace": "zai-org/GLM-5.1",
-    "Airforce": "glm-5.1",
-    "HuggingChat": "zai-org/GLM-5.1",
-    "Arena": "glm-5.1",
-    "KiloCode": "z-ai/glm-5.1",
-    "Ollama": "glm-5.1",
-    "OpenRouter": "z-ai/glm-5.1",
-    "Puter": "z-ai:z-ai/glm-5.1"
   },
   "qwen-3.5-397b-a17b": {
     "DeepInfra": "Qwen/Qwen3.5-397B-A17B",
     "HuggingFace": "Qwen/Qwen3.5-397B-A17B",
     "Airforce": "qwen3.5-397b-a17b",
+    "G4FSpace": "srv_mvi8x0lo7e51b06cf96c:ovh-free/Qwen3.5-397B-A17B",
     "HuggingChat": "Qwen/Qwen3.5-397B-A17B",
     "Arena": "qwen3.5-397b-a17b",
     "KiloCode": "qwen/qwen3.5-397b-a17b",
-    "OpenRouter": "qwen/qwen3.5-397b-a17b",
     "Puter": "openrouter:qwen/qwen3.5-397b-a17b",
     "Qwen": "qwen3.5-397b-a17b"
   },
@@ -799,56 +763,41 @@ model_map = {
     "DeepInfra": "google/gemma-4-26B-A4B-it",
     "HuggingFace": "google/gemma-4-26B-A4B-it",
     "Cloudflare": "@cf/google/gemma-4-26b-a4b-it",
+    "G4FSpace": "srv_mp5miql908c8738d71be:google/gemma-4-26b-a4b-it",
     "GeminiPro": "gemma-4-26b-a4b-it",
     "HuggingChat": "google/gemma-4-26B-A4B-it",
     "KiloCode": "google/gemma-4-26b-a4b-it",
-    "OpenRouter": "google/gemma-4-26b-a4b-it:free",
     "OpenRouterFree": "google/gemma-4-26b-a4b-it:free",
+    "Pollinations": "google/gemma-4-26b-a4b-it",
     "Puter": "openrouter:google/gemma-4-26b-a4b-it:free"
   },
   "gemma-4-31b-it": {
     "DeepInfra": "google/gemma-4-31B-it",
     "HuggingFace": "google/gemma-4-31B-it",
+    "Airforce": "gemma-4-31b-it",
+    "G4FSpace": "srv_mp5miql908c8738d71be:google/gemma-4-31b-it",
     "GeminiPro": "gemma-4-31b-it",
     "HuggingChat": "google/gemma-4-31B-it",
     "Nvidia": "google/gemma-4-31b-it",
     "KiloCode": "google/gemma-4-31b-it",
-    "OpenRouter": "google/gemma-4-31b-it:free",
     "OpenRouterFree": "google/gemma-4-31b-it:free",
+    "Pollinations": "google/gemma-4-31b-it",
     "Puter": "openrouter:google/gemma-4-31b-it:free"
   },
   "nemotron-3-super-120b-a12b": {
     "DeepInfra": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
     "G4FSpace": "srv_mkombumpae45db46dcb8:nvidia/nemotron-3-super-120b-a12b",
     "Nvidia": "nvidia/nemotron-3-super-120b-a12b",
-    "KiloCode": "nvidia/nemotron-3-super-120b-a12b:free",
-    "OpenRouter": "nvidia/nemotron-3-super-120b-a12b:free",
-    "OpenRouterFree": "nvidia/nemotron-3-super-120b-a12b:free",
-    "Puter": "openrouter:nvidia/nemotron-3-super-120b-a12b:free"
-  },
-  "qwen-3-max": {
-    "DeepInfra": "Qwen/Qwen3-Max",
-    "Airforce": "qwen3-max-preview",
-    "Arena": "qwen3-max-2025-09-26",
-    "KiloCode": "qwen/qwen3-max",
-    "OpenRouter": "qwen/qwen3-max",
-    "Puter": "openrouter:qwen/qwen3-max",
-    "Qwen": "qwen3-max-2026-01-23"
-  },
-  "qwen-3-max-thinking": {
-    "DeepInfra": "Qwen/Qwen3-Max-Thinking",
-    "Arena": "qwen3-max-thinking",
-    "KiloCode": "qwen/qwen3-max-thinking",
-    "OpenRouter": "qwen/qwen3-max-thinking",
-    "Puter": "openrouter:qwen/qwen3-max-thinking"
+    "KiloCode": "nvidia/nemotron-3-super-120b-a12b",
+    "Puter": "openrouter:nvidia/nemotron-3-super-120b-a12b"
   },
   "deepseek-v3.2": {
     "DeepInfra": "deepseek-ai/DeepSeek-V3.2",
     "HuggingFace": "deepseek-ai/DeepSeek-V3.2",
     "Airforce": "deepseek-v3.2",
+    "G4FSpace": "srv_mp5miql908c8738d71be:community/vendouple/deepseek-v3.2",
     "HuggingChat": "deepseek-ai/DeepSeek-V3.2",
     "KiloCode": "deepseek/deepseek-v3.2",
-    "OpenRouter": "deepseek/deepseek-v3.2",
     "Puter": "openrouter:deepseek/deepseek-v3.2"
   },
   "flux-2-klein-4b": {
@@ -857,58 +806,74 @@ model_map = {
   "flux-2-klein-9b": {
     "DeepInfra": "black-forest-labs/FLUX-2-klein-9b"
   },
+  "minimax-m3.1-flash": {
+    "HuggingFace": "MiniMaxAI/MiniMax-M3.1-Flash",
+    "Airforce": "minimax-m3.1-flash",
+    "G4FSpace": "srv_mkombumpae45db46dcb8:minimaxai/minimax-m3.1-flash",
+    "HuggingChat": "MiniMaxAI/MiniMax-M3.1-Flash",
+    "Nvidia": "minimaxai/minimax-m3.1-flash",
+    "RelayRouter": "minimax-m3.1-flash",
+    "KiloCode": "minimax/minimax-m3.1-flash",
+    "Ollama": "minimax-m3.1-flash",
+    "Puter": "togetherai:minimaxai/minimax-m3.1-flash"
+  },
   "qwen-3.8-27b": {
     "HuggingFace": "Qwen/Qwen3.8-27B",
     "Airforce": "qwen3.8-27b",
-    "G4FSpace": "srv_mtsj8uzo97d3c0d49960:openrouter-z/qwen3.8-27b",
+    "G4FSpace": "srv_mvi8x0lo7e51b06cf96c:ovh-free/Qwen3.8-27B",
     "Groq": "qwen/qwen3.8-27b",
     "HuggingChat": "Qwen/Qwen3.8-27B",
-    "KiloCode": "qwen/qwen3.8-27b:free",
-    "OpenRouter": "qwen/qwen3.8-27b:free",
-    "OpenRouterFree": "qwen/qwen3.8-27b:free",
-    "OrcaRouter": "qwen/qwen3.8-27b-free",
-    "Puter": "openrouter:qwen/qwen3.8-27b:free"
+    "RelayRouter": "qwen3.8-27b",
+    "KiloCode": "qwen/qwen3.8-27b",
+    "Pollinations": "qwen/qwen3.8-27b",
+    "Puter": "openrouter:qwen/qwen3.8-27b"
   },
-  "qwen-3-8b": {
-    "HuggingFace": "Qwen/Qwen3-8B",
-    "Airforce": "qwen3-8b",
-    "HuggingChat": "Qwen/Qwen3-8B",
-    "KiloCode": "qwen/qwen3-8b",
-    "OpenRouter": "qwen/qwen3-8b",
-    "Puter": [
-      "openrouter:qwen/qwen3-8b:free",
-      "openrouter:qwen/qwen3-8b"
-    ]
+  "beam-1.0-501b-a23b": {
+    "HuggingFace": "reflection/Beam-1.0-501B-A23B",
+    "Airforce": "beam-1.0-501b-a23b",
+    "HuggingChat": "reflection/Beam-1.0-501B-A23B",
+    "KiloCode": "reflection/beam-1.0-501b-a23b",
+    "Puter": "togetherai:reflection/beam-1.0-501b-a23b"
   },
-  "ternary-bonsai-27b-gguf": {
-    "HuggingFace": "prism-ml/Ternary-Bonsai-27B-gguf",
-    "HuggingChat": "prism-ml/Ternary-Bonsai-27B-gguf"
-  },
-  "deepseek-v4-flash-vision-exp": {
-    "HuggingFace": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
-    "G4FSpace": "srv_mr9dda21bf67b4c62086:deepseek/deepseek-v4-flash-vision-exp",
-    "HuggingChat": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
-    "KiloCode": "deepseek/deepseek-v4-flash-vision-exp",
-    "OpenRouter": "deepseek/deepseek-v4-flash-vision-exp:batch",
-    "Puter": "openrouter:deepseek/deepseek-v4-flash-vision-exp:batch"
+  "muse-spark-open-816b-a42b": {
+    "HuggingFace": "meta-models/Muse-Spark-Open-816B-A42B",
+    "HuggingChat": "meta-models/Muse-Spark-Open-816B-A42B",
+    "Puter": "togetherai:meta-models/muse-spark-open-816b-a42b"
   },
   "qwen-3.5-9b": {
     "HuggingFace": "Qwen/Qwen3.5-9B",
-    "G4FSpace": "HuggingChat:Qwen/Qwen3.5-9B",
+    "Airforce": "qwen3.5-9b",
     "HuggingChat": "Qwen/Qwen3.5-9B",
     "KiloCode": "qwen/qwen3.5-9b",
-    "OpenRouter": "qwen/qwen3.5-9b:batch",
     "Puter": "togetherai:qwen/qwen3.5-9b"
+  },
+  "nemotron-3.5-super-vl-120b-a12b-nvfp4": {
+    "HuggingFace": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4",
+    "HuggingChat": "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4"
   },
   "muse-glimmer-30b": {
     "HuggingFace": "meta-models/Muse-Glimmer-30B",
-    "G4FSpace": "srv_mp5miql908c8738d71be:community/YoannDev90/muse-glimmer-30b:free",
+    "Airforce": "muse-glimmer-30b",
+    "G4FSpace": "srv_mkombumpae45db46dcb8:meta/muse-glimmer-30b",
     "HuggingChat": "meta-models/Muse-Glimmer-30B",
     "Nvidia": "meta/muse-glimmer-30b",
     "KiloCode": "meta/muse-glimmer-30b",
-    "OpenRouter": "meta/muse-glimmer-30b:batch",
-    "Pollinations": "community/YoannDev90/muse-glimmer-30b:free",
+    "Pollinations": "meta/muse-glimmer-30b",
     "Puter": "togetherai:meta-models/muse-glimmer-30b"
+  },
+  "mimo-v2.6-pro-rl": {
+    "HuggingFace": "XiaomiMiMo/MiMo-V2.6-Pro-RL",
+    "HuggingChat": "XiaomiMiMo/MiMo-V2.6-Pro-RL"
+  },
+  "qwen-3.8-2.4t-a95b": {
+    "HuggingFace": "Qwen/Qwen3.8-2.4T-A95B",
+    "Airforce": "qwen3.8-2.4t-a95b",
+    "G4FSpace": "srv_mp5miql908c8738d71be:qwen/qwen3.8-2.4t-a95b",
+    "HuggingChat": "Qwen/Qwen3.8-2.4T-A95B",
+    "RelayRouter": "qwen3.8-2.4t-a95b",
+    "KiloCode": "qwen/qwen3.8-2.4t-a95b",
+    "Pollinations": "qwen/qwen3.8-2.4t-a95b",
+    "Puter": "togetherai:qwen/qwen3.8-2.4t-a95b"
   },
   "gpt-oss-20b": {
     "HuggingFace": "openai/gpt-oss-20b",
@@ -921,44 +886,57 @@ model_map = {
     "Nvidia": "openai/gpt-oss-20b",
     "KiloCode": "openai/gpt-oss-20b",
     "Ollama": "gpt-oss:20b",
-    "OpenRouter": "openai/gpt-oss-20b",
+    "Pollinations": "openai/gpt-oss-20b",
     "Puter": "openrouter:openai/gpt-oss-20b"
   },
-  "ling-3.0-flash-vl": {
-    "HuggingFace": "inclusionAI/Ling-3.0-flash-VL",
-    "G4FSpace": "srv_monk1pkz433a519ff2be:inclusionai/ling-3.0-flash-vl:free",
-    "HuggingChat": "inclusionAI/Ling-3.0-flash-VL",
-    "KiloCode": "inclusionai/ling-3.0-flash-vl",
-    "OpenRouter": "inclusionai/ling-3.0-flash-vl:free",
-    "OpenRouterFree": "inclusionai/ling-3.0-flash-vl:free",
-    "Puter": "openrouter:inclusionai/ling-3.0-flash-vl:free"
+  "qwen-3-4b-2507": {
+    "HuggingFace": "Qwen/Qwen3-4B-Instruct-2507",
+    "HuggingChat": "Qwen/Qwen3-4B-Instruct-2507"
   },
-  "ling-3.0-flash-fin": {
-    "HuggingFace": "inclusionAI/Ling-3.0-flash-Fin",
-    "HuggingChat": "inclusionAI/Ling-3.0-flash-Fin",
-    "KiloCode": "inclusionai/ling-3.0-flash-fin:free",
-    "OpenRouter": "inclusionai/ling-3.0-flash-fin:free",
-    "OpenRouterFree": "inclusionai/ling-3.0-flash-fin:free",
-    "Puter": "openrouter:inclusionai/ling-3.0-flash-fin:free"
+  "qwen-3-8b": {
+    "HuggingFace": "Qwen/Qwen3-8B",
+    "Airforce": "qwen3-8b",
+    "HuggingChat": "Qwen/Qwen3-8B",
+    "Puter": [
+      "openrouter:qwen/qwen3-8b:free",
+      "openrouter:qwen/qwen3-8b"
+    ]
+  },
+  "qwen-3-14b": {
+    "HuggingFace": "Qwen/Qwen3-14B",
+    "Airforce": "qwen3-14b",
+    "HuggingChat": "Qwen/Qwen3-14B",
+    "KiloCode": "qwen/qwen3-14b",
+    "Puter": [
+      "openrouter:qwen/qwen3-14b:free",
+      "openrouter:qwen/qwen3-14b"
+    ]
+  },
+  "qwen-3.8-flash-next": {
+    "HuggingFace": "Qwen/Qwen3.8-Flash-Next-FP8",
+    "HuggingChat": "Qwen/Qwen3.8-Flash-Next-FP8"
   },
   "minimax-m3": {
     "HuggingFace": "MiniMaxAI/MiniMax-M3",
     "Airforce": "minimax-m3",
-    "G4FSpace": "srv_mtsj8uzo97d3c0d49960:minimax-z/minimax-m3",
+    "G4FSpace": "minimax/minimax-m3",
     "HuggingChat": "MiniMaxAI/MiniMax-M3",
     "Arena": "minimax-m3",
-    "MiniMax": "MiniMax-M3",
+    "RelayRouter": "minimax-m3",
     "KiloCode": "minimax/minimax-m3",
     "Ollama": "minimax-m3",
-    "OpenRouter": "minimax/minimax-m3:batch",
+    "Pollinations": "minimax/minimax-m3",
     "Puter": "togetherai:minimaxai/minimax-m3"
   },
-  "qwen-3-coder-next": {
-    "HuggingFace": "Qwen/Qwen3-Coder-Next",
-    "HuggingChat": "Qwen/Qwen3-Coder-Next",
-    "KiloCode": "qwen/qwen3-coder-next",
-    "OpenRouter": "qwen/qwen3-coder-next",
-    "Puter": "openrouter:qwen/qwen3-coder-next"
+  "qwen-2.5-72b": {
+    "HuggingFace": "Qwen/Qwen2.5-72B-Instruct",
+    "Airforce": "qwen2.5-72b-instruct",
+    "HuggingChat": "Qwen/Qwen2.5-72B-Instruct",
+    "KiloCode": "qwen/qwen-2.5-72b-instruct",
+    "Puter": [
+      "openrouter:qwen/qwen-2.5-72b-instruct:free",
+      "openrouter:qwen/qwen-2.5-72b-instruct"
+    ]
   },
   "llama-3.3-70b": {
     "HuggingFace": "meta-llama/Llama-3.3-70B-Instruct",
@@ -967,187 +945,104 @@ model_map = {
     "Cloudflare": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "HuggingChat": "meta-llama/Llama-3.3-70B-Instruct",
     "KiloCode": "meta-llama/llama-3.3-70b-instruct",
-    "OpenRouter": "meta-llama/llama-3.3-70b-instruct",
+    "Pollinations": "meta/llama-3.3-70b-instruct",
     "Puter": [
       "openrouter:meta-llama/llama-3.3-70b-instruct:free",
       "openrouter:meta-llama/llama-3.3-70b-instruct"
     ]
   },
+  "mimo-v2.6-flash-rl": {
+    "HuggingFace": "XiaomiMiMo/MiMo-V2.6-Flash-RL",
+    "HuggingChat": "XiaomiMiMo/MiMo-V2.6-Flash-RL"
+  },
   "qwen-3.6-27b": {
     "HuggingFace": "Qwen/Qwen3.6-27B",
+    "Airforce": "qwen3.6-27b",
     "HuggingChat": "Qwen/Qwen3.6-27B",
     "Arena": "qwen3.6-27b",
     "KiloCode": "qwen/qwen3.6-27b",
-    "OpenRouter": "qwen/qwen3.6-27b",
     "Puter": "openrouter:qwen/qwen3.6-27b",
     "Qwen": "qwen3.6-27b"
   },
-  "apertus-v1.5-8b": {
-    "HuggingFace": "swiss-ai/Apertus-v1.5-8B",
-    "HuggingChat": "swiss-ai/Apertus-v1.5-8B"
-  },
-  "qwen-3-coder-30b-a3b": {
-    "HuggingFace": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
-    "Airforce": "qwen3-coder-30b-a3b",
-    "HuggingChat": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
-    "KiloCode": "qwen/qwen3-coder-30b-a3b-instruct",
-    "OpenRouter": "qwen/qwen3-coder-30b-a3b-instruct",
-    "Puter": "openrouter:qwen/qwen3-coder-30b-a3b-instruct"
-  },
-  "nemotron-3.5-lightning-30b-a3b": {
-    "HuggingFace": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
-    "G4FSpace": "srv_mkombumpae45db46dcb8:nvidia/nemotron-3.5-lightning-30b-a3b",
-    "HuggingChat": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
-    "Nvidia": "nvidia/nemotron-3.5-lightning-30b-a3b"
-  },
-  "ling-3.0-flash": {
-    "HuggingFace": "inclusionAI/Ling-3.0-flash",
-    "HuggingChat": "inclusionAI/Ling-3.0-flash",
-    "KiloCode": "inclusionai/ling-3.0-flash",
-    "OpenRouter": "inclusionai/ling-3.0-flash",
-    "Puter": "openrouter:inclusionai/ling-3.0-flash"
-  },
-  "gemma-3-12b-it": {
-    "HuggingFace": "google/gemma-3-12b-it",
-    "GeminiPro": "gemma-3-12b-it",
-    "HuggingChat": "google/gemma-3-12b-it",
-    "Nvidia": "google/gemma-3-12b-it",
-    "KiloCode": "google/gemma-3-12b-it",
-    "OpenRouter": "google/gemma-3-12b-it",
-    "Puter": "openrouter:google/gemma-3-12b-it"
+  "ling-3.1-flash": {
+    "HuggingFace": "inclusionAI/Ling-3.1-flash",
+    "Airforce": "ling-3.1-flash",
+    "HuggingChat": "inclusionAI/Ling-3.1-flash",
+    "KiloCode": "inclusionai/ling-3.1-flash",
+    "Pollinations": "inclusionai/ling-3.1-flash",
+    "Puter": "openrouter:inclusionai/ling-3.1-flash"
   },
   "qwen-3.5-35b-a3b": {
     "HuggingFace": "Qwen/Qwen3.5-35B-A3B",
+    "Airforce": "qwen3.5-35b-a3b",
     "HuggingChat": "Qwen/Qwen3.5-35B-A3B",
     "Arena": "qwen3.5-35b-a3b",
     "KiloCode": "qwen/qwen3.5-35b-a3b",
-    "OpenRouter": "qwen/qwen3.5-35b-a3b",
     "Puter": "openrouter:qwen/qwen3.5-35b-a3b",
     "Qwen": "qwen3.5-35b-a3b"
   },
-  "granite-4.2-3b": {
-    "HuggingFace": "ibm-granite/granite-4.2-3b",
-    "HuggingChat": "ibm-granite/granite-4.2-3b"
+  "glm-4.7-flash": {
+    "HuggingFace": "zai-org/GLM-4.7-Flash",
+    "Airforce": "glm-4.7-flash",
+    "Cloudflare": "@cf/zai-org/glm-4.7-flash",
+    "HuggingChat": "zai-org/GLM-4.7-Flash",
+    "KiloCode": "z-ai/glm-4.7-flash",
+    "Puter": "openrouter:z-ai/glm-4.7-flash"
   },
-  "ternary-bonsai-27b-awq-4bit": {
-    "HuggingFace": "prism-ml/Ternary-Bonsai-27B-AWQ-4bit",
-    "HuggingChat": "prism-ml/Ternary-Bonsai-27B-AWQ-4bit"
+  "qwen-3.5-27b": {
+    "HuggingFace": "Qwen/Qwen3.5-27B",
+    "Airforce": "qwen3.5-27b",
+    "HuggingChat": "Qwen/Qwen3.5-27B",
+    "Arena": "qwen3.5-27b",
+    "KiloCode": "qwen/qwen3.5-27b",
+    "Puter": "openrouter:qwen/qwen3.5-27b",
+    "Qwen": "qwen3.5-27b"
   },
-  "granite-4.2-8b": {
-    "HuggingFace": "ibm-granite/granite-4.2-8b",
-    "HuggingChat": "ibm-granite/granite-4.2-8b",
-    "KiloCode": "ibm-granite/granite-4.2-8b",
-    "OpenRouter": "ibm-granite/granite-4.2-8b",
-    "Puter": "openrouter:ibm-granite/granite-4.2-8b"
-  },
-  "qwen-3-4b-2507": {
-    "HuggingFace": "Qwen/Qwen3-4B-Instruct-2507",
-    "HuggingChat": "Qwen/Qwen3-4B-Instruct-2507"
+  "phi-4": {
+    "HuggingFace": "microsoft/phi-4",
+    "Airforce": "phi-4",
+    "HuggingChat": "microsoft/phi-4",
+    "KiloCode": "microsoft/phi-4",
+    "Puter": "openrouter:microsoft/phi-4"
   },
   "inkling": {
     "HuggingFace": "thinkingmachines/Inkling",
     "Airforce": "inkling",
     "HuggingChat": "thinkingmachines/Inkling",
     "KiloCode": "thinkingmachines/inkling",
-    "OpenRouter": "thinkingmachines/inkling:free",
     "OpenRouterFree": "thinkingmachines/inkling:free",
+    "Pollinations": "thinkingmachines/inkling-small",
     "Puter": "togetherai:thinkingmachines/inkling"
-  },
-  "gemma-3-4b-it": {
-    "HuggingFace": "google/gemma-3-4b-it",
-    "GeminiPro": "gemma-3-4b-it",
-    "HuggingChat": "google/gemma-3-4b-it",
-    "Nvidia": "google/gemma-3-4b-it",
-    "KiloCode": "google/gemma-3-4b-it",
-    "OpenRouter": "google/gemma-3-4b-it",
-    "Puter": "openrouter:google/gemma-3-4b-it"
-  },
-  "phi-4": {
-    "HuggingFace": "microsoft/phi-4",
-    "HuggingChat": "microsoft/phi-4",
-    "KiloCode": "microsoft/phi-4",
-    "OpenRouter": "microsoft/phi-4",
-    "Puter": "openrouter:microsoft/phi-4"
-  },
-  "glm-4.7-flash": {
-    "HuggingFace": "zai-org/GLM-4.7-Flash",
-    "Airforce": "glm-4.7-flash",
-    "Cloudflare": "@cf/zai-org/glm-4.7-flash",
-    "G4FSpace": "srv_mtkdrhxt45fe276b15c0:@cf/zai-org/glm-4.7-flash",
-    "HuggingChat": "zai-org/GLM-4.7-Flash",
-    "KiloCode": "z-ai/glm-4.7-flash",
-    "OpenRouter": "z-ai/glm-4.7-flash",
-    "Puter": "openrouter:z-ai/glm-4.7-flash"
-  },
-  "apertus-v1.5-70b": {
-    "HuggingFace": "swiss-ai/Apertus-v1.5-70B",
-    "HuggingChat": "swiss-ai/Apertus-v1.5-70B"
-  },
-  "qwen-3-14b": {
-    "HuggingFace": "Qwen/Qwen3-14B",
-    "Airforce": "qwen3-14b",
-    "HuggingChat": "Qwen/Qwen3-14B",
-    "KiloCode": "qwen/qwen3-14b",
-    "OpenRouter": "qwen/qwen3-14b",
-    "Puter": [
-      "openrouter:qwen/qwen3-14b:free",
-      "openrouter:qwen/qwen3-14b"
-    ]
-  },
-  "bielik-11b-v3.0": {
-    "HuggingFace": "speakleash/Bielik-11B-v3.0-Instruct",
-    "HuggingChat": "speakleash/Bielik-11B-v3.0-Instruct"
-  },
-  "gemma-3-27b-it": {
-    "HuggingFace": "google/gemma-3-27b-it",
-    "GeminiPro": "gemma-3-27b-it",
-    "HuggingChat": "google/gemma-3-27b-it",
-    "Arena": "gemma-3-27b-it",
-    "KiloCode": "google/gemma-3-27b-it",
-    "OpenRouter": "google/gemma-3-27b-it",
-    "Puter": "openrouter:google/gemma-3-27b-it"
-  },
-  "llama-4-scout-17b-16e": {
-    "HuggingFace": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-    "HuggingChat": "meta-llama/Llama-4-Scout-17B-16E-Instruct"
   },
   "inkling-small": {
     "HuggingFace": "thinkingmachines/Inkling-Small",
+    "G4FSpace": "srv_mp5miql908c8738d71be:thinkingmachines/inkling-small",
     "HuggingChat": "thinkingmachines/Inkling-Small",
     "Arena": "inkling-small",
-    "KiloCode": "thinkingmachines/inkling-small:free",
-    "OpenRouter": "thinkingmachines/inkling-small:free",
+    "KiloCode": "thinkingmachines/inkling-small",
     "OpenRouterFree": "thinkingmachines/inkling-small:free",
+    "Pollinations": "thinkingmachines/inkling-small",
     "Puter": "openrouter:thinkingmachines/inkling-small:free"
   },
-  "gpt-oss-safeguard-20b": {
-    "HuggingFace": "openai/gpt-oss-safeguard-20b",
-    "G4FSpace": "srv_mkom688d57c76d8a3542:openai/gpt-oss-safeguard-20b",
-    "Groq": "openai/gpt-oss-safeguard-20b",
-    "HuggingChat": "openai/gpt-oss-safeguard-20b",
-    "KiloCode": "openai/gpt-oss-safeguard-20b",
-    "OpenRouter": "openai/gpt-oss-safeguard-20b",
-    "Puter": "openrouter:openai/gpt-oss-safeguard-20b"
+  "qwen-3-vl-30b-a3b": {
+    "HuggingFace": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+    "Airforce": "qwen3-vl-30b-a3b",
+    "HuggingChat": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+    "KiloCode": "qwen/qwen3-vl-30b-a3b-instruct",
+    "Pollinations": "qwen/qwen3-vl-30b-a3b-instruct",
+    "Puter": "openrouter:qwen/qwen3-vl-30b-a3b-instruct"
   },
-  "llama-guard-4-12b": {
-    "HuggingFace": "meta-llama/Llama-Guard-4-12B",
-    "HuggingChat": "meta-llama/Llama-Guard-4-12B",
-    "Nvidia": "meta/llama-guard-4-12b",
-    "KiloCode": "meta-llama/llama-guard-4-12b",
-    "OpenRouter": "meta-llama/llama-guard-4-12b",
-    "Puter": "openrouter:meta-llama/llama-guard-4-12b"
+  "qwen-2.5-coder-7b": {
+    "HuggingFace": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "HuggingChat": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "Puter": "openrouter:qwen/qwen2.5-coder-7b-instruct"
   },
-  "l3-8b-stheno-v3.2": {
-    "HuggingFace": "Sao10K/L3-8B-Stheno-v3.2",
-    "HuggingChat": "Sao10K/L3-8B-Stheno-v3.2"
-  },
-  "kimi-k2.5": {
-    "HuggingFace": "moonshotai/Kimi-K2.5",
-    "Airforce": "kimi-k2.5",
-    "HuggingChat": "moonshotai/Kimi-K2.5",
-    "KiloCode": "moonshotai/kimi-k2.5",
-    "OpenRouter": "moonshotai/kimi-k2.5",
-    "Puter": "openrouter:moonshotai/kimi-k2.5"
+  "glm-4.6": {
+    "HuggingFace": "zai-org/GLM-4.6-FP8",
+    "Airforce": "glm-4.6",
+    "HuggingChat": "zai-org/GLM-4.6-FP8",
+    "KiloCode": "z-ai/glm-4.6",
+    "Puter": "z-ai:z-ai/glm-4.6"
   },
   "qwen-3-30b-a3b": {
     "HuggingFace": "Qwen/Qwen3-30B-A3B",
@@ -1156,31 +1051,16 @@ model_map = {
     "HuggingChat": "Qwen/Qwen3-30B-A3B",
     "Arena": "qwen3-30b-a3b",
     "KiloCode": "qwen/qwen3-30b-a3b",
-    "OpenRouter": "qwen/qwen3-30b-a3b",
     "Puter": "openrouter:qwen/qwen3-30b-a3b"
   },
-  "mimo-v2.5": {
-    "HuggingFace": "XiaomiMiMo/MiMo-V2.5",
-    "Airforce": "mimo-v2.5",
-    "HuggingChat": "XiaomiMiMo/MiMo-V2.5",
-    "Arena": "mimo-v2.5",
-    "RelayRouter": "mimo-v2.5",
-    "KiloCode": "xiaomi/mimo-v2.5",
-    "OpenRouter": "xiaomi/mimo-v2.5",
-    "Puter": "openrouter:xiaomi/mimo-v2.5"
-  },
-  "granite-4.2-30b": {
-    "HuggingFace": "ibm-granite/granite-4.2-30b",
-    "HuggingChat": "ibm-granite/granite-4.2-30b"
-  },
-  "qwen-2.5-coder-7b": {
-    "HuggingFace": "Qwen/Qwen2.5-Coder-7B-Instruct",
-    "HuggingChat": "Qwen/Qwen2.5-Coder-7B-Instruct",
-    "Puter": "openrouter:qwen/qwen2.5-coder-7b-instruct"
-  },
-  "nemotron-3-ultra-550b-a55b-nvfp4": {
-    "HuggingFace": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4",
-    "HuggingChat": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4"
+  "gemma-3-12b-it": {
+    "HuggingFace": "google/gemma-3-12b-it",
+    "Airforce": "gemma-3-12b-it",
+    "GeminiPro": "gemma-3-12b-it",
+    "HuggingChat": "google/gemma-3-12b-it",
+    "Nvidia": "google/gemma-3-12b-it",
+    "KiloCode": "google/gemma-3-12b-it",
+    "Puter": "openrouter:google/gemma-3-12b-it"
   },
   "qwen-3.5-122b-a10b": {
     "HuggingFace": "Qwen/Qwen3.5-122B-A10B",
@@ -1188,39 +1068,172 @@ model_map = {
     "HuggingChat": "Qwen/Qwen3.5-122B-A10B",
     "Arena": "qwen3.5-122b-a10b",
     "KiloCode": "qwen/qwen3.5-122b-a10b",
-    "OpenRouter": "qwen/qwen3.5-122b-a10b",
     "Puter": "openrouter:qwen/qwen3.5-122b-a10b",
     "Qwen": "qwen3.5-122b-a10b"
   },
-  "llama-4-maverick-17b-128e": {
-    "HuggingFace": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "HuggingChat": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+  "qwen-3-235b-a22b": {
+    "HuggingFace": "Qwen/Qwen3-235B-A22B",
+    "Airforce": "qwen3-235b-a22b",
+    "HuggingChat": "Qwen/Qwen3-235B-A22B",
+    "Arena": "qwen3-235b-a22b",
+    "Puter": "infron:qwen/qwen3-235b-a22b"
   },
-  "step-3.7-flash": {
-    "HuggingFace": "stepfun-ai/Step-3.7-Flash",
-    "Airforce": "step-3.7-flash",
-    "HuggingChat": "stepfun-ai/Step-3.7-Flash",
-    "KiloCode": "stepfun/step-3.7-flash:free",
-    "OpenRouter": "stepfun/step-3.7-flash",
-    "Puter": "openrouter:stepfun/step-3.7-flash"
+  "minimax-m2.5": {
+    "HuggingFace": "MiniMaxAI/MiniMax-M2.5",
+    "HuggingChat": "MiniMaxAI/MiniMax-M2.5",
+    "Arena": "minimax-m2.5",
+    "RelayRouter": "minimax-m2.5",
+    "KiloCode": "minimax/minimax-m2.5",
+    "Pollinations": "minimax/minimax-m2.7",
+    "Puter": "openrouter:minimax/minimax-m2.5"
   },
-  "qwen-3-vl-235b-a22b": {
-    "HuggingFace": "Qwen/Qwen3-VL-235B-A22B-Instruct",
-    "Airforce": "qwen3-vl-235b-a22b",
-    "HuggingChat": "Qwen/Qwen3-VL-235B-A22B-Instruct",
-    "Arena": "qwen3-vl-235b-a22b-instruct",
-    "KiloCode": "qwen/qwen3-vl-235b-a22b-instruct",
-    "OpenRouter": "qwen/qwen3-vl-235b-a22b-instruct",
-    "Puter": "openrouter:qwen/qwen3-vl-235b-a22b-instruct"
+  "mimo-v2.5-pro": {
+    "HuggingFace": "XiaomiMiMo/MiMo-V2.5-Pro",
+    "Airforce": "mimo-v2.5-pro",
+    "HuggingChat": "XiaomiMiMo/MiMo-V2.5-Pro",
+    "KiloCode": "xiaomi/mimo-v2.5-pro",
+    "Pollinations": "xiaomi/mimo-v2.5-pro",
+    "Puter": "openrouter:xiaomi/mimo-v2.5-pro"
   },
-  "qwen-3.5-27b": {
-    "HuggingFace": "Qwen/Qwen3.5-27B",
-    "HuggingChat": "Qwen/Qwen3.5-27B",
-    "Arena": "qwen3.5-27b",
-    "KiloCode": "qwen/qwen3.5-27b",
-    "OpenRouter": "qwen/qwen3.5-27b",
-    "Puter": "openrouter:qwen/qwen3.5-27b",
-    "Qwen": "qwen3.5-27b"
+  "glm-4.7": {
+    "HuggingFace": "zai-org/GLM-4.7-FP8",
+    "Airforce": "glm-4.7",
+    "HuggingChat": "zai-org/GLM-4.7-FP8",
+    "KiloCode": "z-ai/glm-4.7",
+    "Puter": "z-ai:z-ai/glm-4.7"
+  },
+  "qwen-3-next-80b-a3b": {
+    "HuggingFace": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+    "Airforce": "qwen3-next-80b-a3b-instruct",
+    "HuggingChat": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+    "Arena": "qwen3-next-80b-a3b-instruct",
+    "KiloCode": "qwen/qwen3-next-80b-a3b-instruct",
+    "Puter": "openrouter:qwen/qwen3-next-80b-a3b-instruct"
+  },
+  "glm-5.1": {
+    "HuggingFace": "zai-org/GLM-5.1-FP8",
+    "Airforce": "glm-5.1",
+    "HuggingChat": "zai-org/GLM-5.1-FP8",
+    "Arena": "glm-5.1",
+    "KiloCode": "z-ai/glm-5.1",
+    "Puter": "z-ai:z-ai/glm-5.1"
+  },
+  "qwen-2.5-coder-3b": {
+    "HuggingFace": "Qwen/Qwen2.5-Coder-3B-Instruct",
+    "HuggingChat": "Qwen/Qwen2.5-Coder-3B-Instruct"
+  },
+  "step-3.5-flash": {
+    "HuggingFace": "stepfun-ai/Step-3.5-Flash",
+    "Airforce": "step-3.5-flash",
+    "HuggingChat": "stepfun-ai/Step-3.5-Flash",
+    "Arena": "step-3.5-flash",
+    "KiloCode": "stepfun/step-3.5-flash",
+    "Pollinations": "stepfun/step-3.5-flash",
+    "Puter": "openrouter:stepfun/step-3.5-flash"
+  },
+  "gemma-3-27b-it": {
+    "HuggingFace": "google/gemma-3-27b-it",
+    "Airforce": "gemma-3-27b-it",
+    "GeminiPro": "gemma-3-27b-it",
+    "HuggingChat": "google/gemma-3-27b-it",
+    "Arena": "gemma-3-27b-it",
+    "KiloCode": "google/gemma-3-27b-it",
+    "Puter": "openrouter:google/gemma-3-27b-it"
+  },
+  "kimi-k2.5": {
+    "HuggingFace": "moonshotai/Kimi-K2.5",
+    "Airforce": "kimi-k2.5",
+    "HuggingChat": "moonshotai/Kimi-K2.5",
+    "RelayRouter": "kimi-k2.5",
+    "KiloCode": "moonshotai/kimi-k2.5",
+    "Puter": "openrouter:moonshotai/kimi-k2.5"
+  },
+  "gpt-oss-safeguard-20b": {
+    "HuggingFace": "openai/gpt-oss-safeguard-20b",
+    "Airforce": "gpt-oss-safeguard-20b",
+    "G4FSpace": "srv_mkom688d57c76d8a3542:openai/gpt-oss-safeguard-20b",
+    "Groq": "openai/gpt-oss-safeguard-20b",
+    "HuggingChat": "openai/gpt-oss-safeguard-20b",
+    "KiloCode": "openai/gpt-oss-safeguard-20b",
+    "Puter": "openrouter:openai/gpt-oss-safeguard-20b"
+  },
+  "llama-4-scout-17b-16e": {
+    "HuggingFace": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "HuggingChat": "meta-llama/Llama-4-Scout-17B-16E-Instruct"
+  },
+  "kimi-k2.7-code": {
+    "HuggingFace": "moonshotai/Kimi-K2.7-Code",
+    "Airforce": "kimi-k2.7-code",
+    "Cloudflare": "@cf/moonshotai/kimi-k2.7-code",
+    "HuggingChat": "moonshotai/Kimi-K2.7-Code",
+    "RelayRouter": "kimi-k2.7-code",
+    "KiloCode": "moonshotai/kimi-k2.7-code",
+    "Ollama": "kimi-k2.7-code",
+    "Pollinations": "moonshotai/kimi-k2.7-code",
+    "Puter": "openrouter:moonshotai/kimi-k2.7-code"
+  },
+  "l3-8b-stheno-v3.2": {
+    "HuggingFace": "Sao10K/L3-8B-Stheno-v3.2",
+    "HuggingChat": "Sao10K/L3-8B-Stheno-v3.2"
+  },
+  "glm-4.5": {
+    "HuggingFace": "zai-org/GLM-4.5",
+    "Airforce": "glm-4.5",
+    "HuggingChat": "zai-org/GLM-4.5",
+    "KiloCode": "z-ai/glm-4.5",
+    "Puter": "z-ai:z-ai/glm-4.5"
+  },
+  "glm-4.5-air": {
+    "HuggingFace": "zai-org/GLM-4.5-Air",
+    "Airforce": "glm-4.5-air",
+    "HuggingChat": "zai-org/GLM-4.5-Air",
+    "KiloCode": "z-ai/glm-4.5-air",
+    "Puter": "z-ai:z-ai/glm-4.5-air"
+  },
+  "glm-5": {
+    "HuggingFace": "zai-org/GLM-5",
+    "Airforce": "glm-5",
+    "HuggingChat": "zai-org/GLM-5",
+    "KiloCode": "z-ai/glm-5",
+    "Puter": "z-ai:z-ai/glm-5"
+  },
+  "minimax-m2.7": {
+    "HuggingFace": "MiniMaxAI/MiniMax-M2.7",
+    "Airforce": "minimax-m2.7",
+    "HuggingChat": "MiniMaxAI/MiniMax-M2.7",
+    "RelayRouter": "minimax-m2.7",
+    "KiloCode": "minimax/minimax-m2.7",
+    "Ollama": "minimax-m2.7",
+    "Pollinations": "minimax/minimax-m2.7",
+    "Puter": "openrouter:minimax/minimax-m2.7"
+  },
+  "ling-3.0-flash": {
+    "HuggingFace": "inclusionAI/Ling-3.0-flash",
+    "Airforce": "ling-3.0-flash",
+    "HuggingChat": "inclusionAI/Ling-3.0-flash",
+    "KiloCode": "inclusionai/ling-3.0-flash",
+    "Puter": "openrouter:inclusionai/ling-3.0-flash"
+  },
+  "qwen-3-4b-thinking-2507": {
+    "HuggingFace": "Qwen/Qwen3-4B-Thinking-2507",
+    "HuggingChat": "Qwen/Qwen3-4B-Thinking-2507"
+  },
+  "deepseek": {
+    "HuggingFace": "deepseek-ai/DeepSeek-V3",
+    "Airforce": "deepseek",
+    "HuggingChat": "deepseek-ai/DeepSeek-V3",
+    "Pollinations": "deepseek/deepseek-v4-flash"
+  },
+  "granite-4.2-3b": {
+    "HuggingFace": "ibm-granite/granite-4.2-3b",
+    "HuggingChat": "ibm-granite/granite-4.2-3b"
+  },
+  "granite-4.2-8b": {
+    "HuggingFace": "ibm-granite/granite-4.2-8b",
+    "Airforce": "granite-4.2-8b",
+    "HuggingChat": "ibm-granite/granite-4.2-8b",
+    "KiloCode": "ibm-granite/granite-4.2-8b",
+    "Puter": "openrouter:ibm-granite/granite-4.2-8b"
   },
   "qwen-3-235b-a22b-2507": {
     "HuggingFace": "Qwen/Qwen3-235B-A22B-Instruct-2507",
@@ -1228,25 +1241,151 @@ model_map = {
     "HuggingChat": "Qwen/Qwen3-235B-A22B-Instruct-2507",
     "Arena": "qwen3-235b-a22b-instruct-2507",
     "KiloCode": "qwen/qwen3-235b-a22b-2507",
-    "OpenRouter": "qwen/qwen3-235b-a22b-2507",
     "Puter": "openrouter:qwen/qwen3-235b-a22b-2507"
   },
-  "deepseek-r1-0528": {
-    "HuggingFace": "deepseek-ai/DeepSeek-R1-0528",
-    "Airforce": "deepseek-r1-0528",
-    "HuggingChat": "deepseek-ai/DeepSeek-R1-0528",
-    "KiloCode": "deepseek/deepseek-r1-0528",
-    "OpenRouter": "deepseek/deepseek-r1-0528",
-    "Puter": "openrouter:deepseek/deepseek-r1-0528"
+  "gemma-3-4b-it": {
+    "HuggingFace": "google/gemma-3-4b-it",
+    "Airforce": "gemma-3-4b-it",
+    "GeminiPro": "gemma-3-4b-it",
+    "HuggingChat": "google/gemma-3-4b-it",
+    "Nvidia": "google/gemma-3-4b-it",
+    "KiloCode": "google/gemma-3-4b-it",
+    "Puter": "openrouter:google/gemma-3-4b-it"
   },
-  "glm-4.5-air": {
-    "HuggingFace": "zai-org/GLM-4.5-Air",
-    "Airforce": "glm-4.5-air",
-    "GLM": "GLM-4.5-Air",
-    "HuggingChat": "zai-org/GLM-4.5-Air",
-    "KiloCode": "z-ai/glm-4.5-air",
-    "OpenRouter": "z-ai/glm-4.5-air",
-    "Puter": "z-ai:z-ai/glm-4.5-air"
+  "qwen-3-235b-a22b-thinking-2507": {
+    "HuggingFace": "Qwen/Qwen3-235B-A22B-Thinking-2507",
+    "Airforce": "qwen3-235b-a22b-thinking-2507",
+    "HuggingChat": "Qwen/Qwen3-235B-A22B-Thinking-2507",
+    "Arena": "qwen3-235b-a22b-thinking-2507",
+    "KiloCode": "qwen/qwen3-235b-a22b-thinking-2507",
+    "Puter": "openrouter:qwen/qwen3-235b-a22b-thinking-2507"
+  },
+  "qwen-3-vl-235b-a22b": {
+    "HuggingFace": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+    "Airforce": "qwen3-vl-235b-a22b",
+    "HuggingChat": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+    "Arena": "qwen3-vl-235b-a22b-instruct",
+    "KiloCode": "qwen/qwen3-vl-235b-a22b-instruct",
+    "Puter": "openrouter:qwen/qwen3-vl-235b-a22b-instruct"
+  },
+  "deepseek-v3.1-terminus": {
+    "HuggingFace": "deepseek-ai/DeepSeek-V3.1-Terminus",
+    "Airforce": "deepseek-v3.1-terminus",
+    "HuggingChat": "deepseek-ai/DeepSeek-V3.1-Terminus",
+    "KiloCode": "deepseek/deepseek-v3.1-terminus",
+    "Puter": "openrouter:deepseek/deepseek-v3.1-terminus"
+  },
+  "ling-3.0-flash-vl": {
+    "HuggingFace": "inclusionAI/Ling-3.0-flash-VL",
+    "Airforce": "ling-3.0-flash-vl",
+    "HuggingChat": "inclusionAI/Ling-3.0-flash-VL",
+    "KiloCode": "inclusionai/ling-3.0-flash-vl",
+    "Pollinations": "inclusionai/ling-3.0-flash-vl",
+    "Puter": "openrouter:inclusionai/ling-3.0-flash-vl"
+  },
+  "mimo-v2.5": {
+    "HuggingFace": "XiaomiMiMo/MiMo-V2.5",
+    "Airforce": "mimo-v2.5",
+    "HuggingChat": "XiaomiMiMo/MiMo-V2.5",
+    "KiloCode": "xiaomi/mimo-v2.5",
+    "Pollinations": "xiaomi/mimo-v2.5",
+    "Puter": "openrouter:xiaomi/mimo-v2.5"
+  },
+  "hy3": {
+    "HuggingFace": "tencent/Hy3",
+    "Airforce": "hy3",
+    "HuggingChat": "tencent/Hy3",
+    "RelayRouter": "hy3",
+    "KiloCode": "tencent/hy3-preview",
+    "Pollinations": "tencent/hy3",
+    "Puter": "openrouter:tencent/hy3-preview"
+  },
+  "llama-4-maverick-17b-128e": {
+    "HuggingFace": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "HuggingChat": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+  },
+  "bielik-11b-v3.0": {
+    "HuggingFace": "speakleash/Bielik-11B-v3.0-Instruct",
+    "HuggingChat": "speakleash/Bielik-11B-v3.0-Instruct"
+  },
+  "granite-4.2-30b": {
+    "HuggingFace": "ibm-granite/granite-4.2-30b",
+    "HuggingChat": "ibm-granite/granite-4.2-30b"
+  },
+  "apertus-v1.5-70b": {
+    "HuggingFace": "swiss-ai/Apertus-v1.5-70B",
+    "HuggingChat": "swiss-ai/Apertus-v1.5-70B"
+  },
+  "command-r7b24": {
+    "HuggingFace": "CohereLabs/c4ai-command-r7b-12-2024",
+    "Airforce": "command-r7b-12-2024",
+    "CohereForAI_C4AI_Command": "command-r7b-12-2024",
+    "HuggingChat": "CohereLabs/c4ai-command-r7b-12-2024",
+    "HuggingSpace": "command-r7b-12-2024",
+    "KiloCode": "cohere/command-r7b-12-2024",
+    "Puter": "openrouter:cohere/command-r7b-12-2024"
+  },
+  "glm-4.5v": {
+    "HuggingFace": "zai-org/GLM-4.5V-FP8",
+    "Airforce": "glm-4.5v",
+    "HuggingChat": "zai-org/GLM-4.5V-FP8",
+    "KiloCode": "z-ai/glm-4.5v",
+    "Puter": "infron:z-ai/glm-4.5v"
+  },
+  "ling-3.0-flash-fin": {
+    "HuggingFace": "inclusionAI/Ling-3.0-flash-Fin",
+    "HuggingChat": "inclusionAI/Ling-3.0-flash-Fin"
+  },
+  "tiny-aya-global": {
+    "HuggingFace": "CohereLabs/tiny-aya-global",
+    "HuggingChat": "CohereLabs/tiny-aya-global"
+  },
+  "llama-guard-4-12b": {
+    "HuggingFace": "meta-llama/Llama-Guard-4-12B",
+    "Airforce": "llama-guard-4-12b",
+    "G4FSpace": "srv_mkombumpae45db46dcb8:meta/llama-guard-4-12b",
+    "HuggingChat": "meta-llama/Llama-Guard-4-12B",
+    "Nvidia": "meta/llama-guard-4-12b",
+    "KiloCode": "meta-llama/llama-guard-4-12b",
+    "Puter": "openrouter:meta-llama/llama-guard-4-12b"
+  },
+  "glm-4.6v-flash": {
+    "HuggingFace": "zai-org/GLM-4.6V-Flash",
+    "G4FSpace": "srv_mp1v9cyha31b95fa8c9a:z-ai/glm-4.6v-flash",
+    "HuggingChat": "zai-org/GLM-4.6V-Flash",
+    "Puter": "infron:z-ai/glm-4.6v-flash"
+  },
+  "hermes-3-llama-3.1-70b": {
+    "HuggingFace": "NousResearch/Hermes-3-Llama-3.1-70B",
+    "Airforce": "hermes-3-llama-3.1-70b",
+    "HuggingChat": "NousResearch/Hermes-3-Llama-3.1-70B",
+    "KiloCode": "nousresearch/hermes-3-llama-3.1-70b",
+    "Puter": "infron:nousresearch/hermes-3-llama-3.1-70b"
+  },
+  "tiny-aya-water": {
+    "HuggingFace": "CohereLabs/tiny-aya-water",
+    "HuggingChat": "CohereLabs/tiny-aya-water"
+  },
+  "deepseek-v4-flash-vision-exp": {
+    "HuggingFace": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+    "Airforce": "deepseek-v4-flash-vision-exp",
+    "G4FSpace": "srv_mr9dda21bf67b4c62086:deepseek/deepseek-v4-flash-vision-exp",
+    "HuggingChat": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+    "KiloCode": "deepseek/deepseek-v4-flash-vision-exp",
+    "Pollinations": "deepseek/deepseek-v4-flash-vision-exp",
+    "Puter": "openrouter:deepseek/deepseek-v4-flash-vision-exp"
+  },
+  "tiny-aya-earth": {
+    "HuggingFace": "CohereLabs/tiny-aya-earth",
+    "HuggingChat": "CohereLabs/tiny-aya-earth"
+  },
+  "nemotron-sea-lion-v4.8-120b-a12b": {
+    "HuggingFace": "aisingapore/Nemotron-SEA-LION-v4.8-120B-A12B",
+    "HuggingChat": "aisingapore/Nemotron-SEA-LION-v4.8-120B-A12B"
+  },
+  "deepseek-r1-distill-qwen-7b": {
+    "HuggingFace": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    "HuggingChat": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
   },
   "deepseek-v3-0324": {
     "HuggingFace": "deepseek-ai/DeepSeek-V3-0324",
@@ -1257,387 +1396,123 @@ model_map = {
       "openrouter:deepseek/deepseek-chat-v3-0324"
     ]
   },
-  "minimax-m2.7": {
-    "HuggingFace": "MiniMaxAI/MiniMax-M2.7",
-    "Airforce": "minimax-m2.7",
-    "HuggingChat": "MiniMaxAI/MiniMax-M2.7",
-    "MiniMax": "MiniMax-M2.7",
-    "KiloCode": "minimax/minimax-m2.7",
-    "Ollama": "minimax-m2.7",
-    "OpenRouter": "minimax/minimax-m2.7",
-    "Puter": "openrouter:minimax/minimax-m2.7"
-  },
-  "step-3.5-flash": {
-    "HuggingFace": "stepfun-ai/Step-3.5-Flash",
-    "Airforce": "step-3.5-flash",
-    "HuggingChat": "stepfun-ai/Step-3.5-Flash",
-    "Arena": "step-3.5-flash",
-    "KiloCode": "stepfun/step-3.5-flash",
-    "OpenRouter": "stepfun/step-3.5-flash",
-    "Puter": "openrouter:stepfun/step-3.5-flash"
-  },
-  "deepseek": {
-    "HuggingFace": "deepseek-ai/DeepSeek-V3",
-    "Airforce": "deepseek-v3",
-    "HuggingChat": "deepseek-ai/DeepSeek-V3",
-    "PhindAi": "deepseek"
-  },
-  "qwen-2.5-coder-3b": {
-    "HuggingFace": "Qwen/Qwen2.5-Coder-3B-Instruct",
-    "HuggingChat": "Qwen/Qwen2.5-Coder-3B-Instruct"
-  },
-  "autoglm-phone-9b-multilingual": {
-    "HuggingFace": "zai-org/AutoGLM-Phone-9B-Multilingual",
-    "HuggingChat": "zai-org/AutoGLM-Phone-9B-Multilingual"
-  },
-  "wizardlm-2-8x22b": {
-    "HuggingFace": "alpindale/WizardLM-2-8x22B",
-    "HuggingChat": "alpindale/WizardLM-2-8x22B",
-    "KiloCode": "microsoft/wizardlm-2-8x22b",
-    "OpenRouter": "microsoft/wizardlm-2-8x22b",
-    "Puter": "openrouter:microsoft/wizardlm-2-8x22b"
-  },
-  "qwen-2.5-72b": {
-    "HuggingFace": "Qwen/Qwen2.5-72B-Instruct",
-    "KiloCode": "qwen/qwen-2.5-72b-instruct",
-    "OpenRouter": "qwen/qwen-2.5-72b-instruct",
-    "Puter": [
-      "openrouter:qwen/qwen-2.5-72b-instruct:free",
-      "openrouter:qwen/qwen-2.5-72b-instruct"
-    ]
+  "aya-vision-32b": {
+    "HuggingFace": "CohereLabs/aya-vision-32b",
+    "HuggingChat": "CohereLabs/aya-vision-32b"
   },
   "deepseek-r1-distill-llama-8b": {
     "HuggingFace": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "HuggingChat": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "Puter": "openrouter:deepseek/deepseek-r1-distill-llama-8b"
   },
-  "l3-8b-lunaris": {
-    "HuggingFace": "Sao10K/L3-8B-Lunaris-v1",
-    "HuggingChat": "Sao10K/L3-8B-Lunaris-v1"
-  },
-  "hy3": {
-    "HuggingFace": "tencent/Hy3",
-    "HuggingChat": "tencent/Hy3",
-    "KiloCode": "tencent/hy3-preview",
-    "OpenRouter": "tencent/hy3-preview",
-    "OrcaRouter": "tencent/hy3-free",
-    "Puter": "openrouter:tencent/hy3-preview"
-  },
-  "deepseek-r1-distill-qwen-7b": {
-    "HuggingFace": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
-    "HuggingChat": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
-  },
-  "qwen-3-235b-a22b": {
-    "HuggingFace": "Qwen/Qwen3-235B-A22B",
-    "Airforce": "qwen3-235b-a22b",
-    "HuggingChat": "Qwen/Qwen3-235B-A22B",
-    "Arena": "qwen3-235b-a22b",
-    "KiloCode": "qwen/qwen3-235b-a22b",
-    "OpenRouter": "qwen/qwen3-235b-a22b",
-    "Puter": "openrouter:qwen/qwen3-235b-a22b"
-  },
-  "command-r24": {
-    "HuggingFace": "CohereLabs/c4ai-command-r-08-2024",
-    "HuggingSpace": "command-r-08-2024",
-    "CohereForAI_C4AI_Command": "command-r-08-2024",
-    "HuggingChat": "CohereLabs/c4ai-command-r-08-2024",
-    "KiloCode": "cohere/command-r-08-2024",
-    "OpenRouter": "cohere/command-r-08-2024",
-    "Puter": "openrouter:cohere/command-r-08-2024"
-  },
-  "qwen-3-coder-480b-a35b": {
-    "HuggingFace": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
-    "Airforce": "qwen3-coder-480b-a35b",
-    "HuggingChat": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
-    "Arena": "qwen3-coder-480b-a35b-instruct",
-    "Puter": "infron:qwen/qwen3-coder-480b-a35b:priority"
-  },
-  "aya-expanse-32b": {
-    "HuggingFace": "CohereLabs/aya-expanse-32b",
-    "HuggingChat": "CohereLabs/aya-expanse-32b"
-  },
-  "kimi-k2-0905": {
-    "HuggingFace": "moonshotai/Kimi-K2-Instruct-0905",
-    "HuggingChat": "moonshotai/Kimi-K2-Instruct-0905",
-    "Arena": "kimi-k2-0905-preview",
-    "KiloCode": "moonshotai/kimi-k2-0905",
-    "OpenRouter": "moonshotai/kimi-k2-0905",
-    "Puter": "openrouter:moonshotai/kimi-k2-0905"
-  },
-  "command-a-reasoning25": {
-    "HuggingFace": "CohereLabs/command-a-reasoning-08-2025",
-    "HuggingChat": "CohereLabs/command-a-reasoning-08-2025"
-  },
-  "glm-4.6": {
-    "HuggingFace": "zai-org/GLM-4.6-FP8",
-    "Airforce": "glm-4.6",
-    "HuggingChat": "zai-org/GLM-4.6-FP8",
-    "KiloCode": "z-ai/glm-4.6",
-    "OpenRouter": "z-ai/glm-4.6",
-    "Puter": "z-ai:z-ai/glm-4.6"
-  },
-  "tiny-aya-water": {
-    "HuggingFace": "CohereLabs/tiny-aya-water",
-    "HuggingChat": "CohereLabs/tiny-aya-water"
-  },
-  "minimax-m2.5": {
-    "HuggingFace": "MiniMaxAI/MiniMax-M2.5",
-    "HuggingChat": "MiniMaxAI/MiniMax-M2.5",
-    "Arena": "minimax-m2.5",
-    "KiloCode": "minimax/minimax-m2.5",
-    "OpenRouter": "minimax/minimax-m2.5",
-    "Puter": "openrouter:minimax/minimax-m2.5"
-  },
-  "hermes-3-llama-3.1-70b": {
-    "HuggingFace": "NousResearch/Hermes-3-Llama-3.1-70B",
-    "HuggingChat": "NousResearch/Hermes-3-Llama-3.1-70B",
-    "KiloCode": "nousresearch/hermes-3-llama-3.1-70b",
-    "OpenRouter": "nousresearch/hermes-3-llama-3.1-70b",
-    "Puter": "openrouter:nousresearch/hermes-3-llama-3.1-70b"
-  },
-  "glm-4-32b-0414": {
-    "HuggingFace": "zai-org/GLM-4-32B-0414",
-    "HuggingChat": "zai-org/GLM-4-32B-0414"
-  },
-  "glm-4.5": {
-    "HuggingFace": "zai-org/GLM-4.5",
-    "Airforce": "glm-4.5",
-    "GLM": "GLM-4.5",
-    "KiloCode": "z-ai/glm-4.5",
-    "OpenRouter": "z-ai/glm-4.5",
-    "Puter": "z-ai:z-ai/glm-4.5"
-  },
-  "qwen-3-235b-a22b-thinking-2507": {
-    "HuggingFace": "Qwen/Qwen3-235B-A22B-Thinking-2507",
-    "Airforce": "qwen3-235b-a22b-thinking-2507",
-    "HuggingChat": "Qwen/Qwen3-235B-A22B-Thinking-2507",
-    "Arena": "qwen3-235b-a22b-thinking-2507",
-    "KiloCode": "qwen/qwen3-235b-a22b-thinking-2507",
-    "OpenRouter": "qwen/qwen3-235b-a22b-thinking-2507",
-    "Puter": "openrouter:qwen/qwen3-235b-a22b-thinking-2507"
-  },
-  "ernie-4.5-vl-424b-a47b-base-pt": {
-    "HuggingFace": "baidu/ERNIE-4.5-VL-424B-A47B-Base-PT",
-    "HuggingChat": "baidu/ERNIE-4.5-VL-424B-A47B-Base-PT"
-  },
-  "minimax-m1-80k": {
-    "HuggingFace": "MiniMaxAI/MiniMax-M1-80k",
-    "HuggingChat": "MiniMaxAI/MiniMax-M1-80k"
-  },
-  "deepseek-v3.1": {
-    "HuggingFace": "deepseek-ai/DeepSeek-V3.1",
-    "Airforce": "deepseek-v3.1",
-    "G4FSpace": "srv_msu3vtvl920c386aa8a4:deepseek-ai/DeepSeek-V3.1",
-    "HuggingChat": "deepseek-ai/DeepSeek-V3.1",
-    "Puter": "infron:deepseek/deepseek-v3.1"
-  },
-  "glm-4.5v": {
-    "HuggingFace": "zai-org/GLM-4.5V-FP8",
-    "Airforce": "glm-4.5v",
-    "HuggingChat": "zai-org/GLM-4.5V",
-    "KiloCode": "z-ai/glm-4.5v",
-    "OpenRouter": "z-ai/glm-4.5v",
-    "Puter": "openrouter:z-ai/glm-4.5v"
-  },
-  "qwen-3-next-80b-a3b": {
-    "HuggingFace": "Qwen/Qwen3-Next-80B-A3B-Instruct",
-    "Airforce": "qwen3-next-80b-a3b-instruct",
-    "HuggingChat": "Qwen/Qwen3-Next-80B-A3B-Instruct",
-    "Arena": "qwen3-next-80b-a3b-instruct",
-    "KiloCode": "qwen/qwen3-next-80b-a3b-instruct",
-    "OpenRouter": "qwen/qwen3-next-80b-a3b-instruct",
-    "Puter": "openrouter:qwen/qwen3-next-80b-a3b-instruct"
-  },
-  "glm-4.7": {
-    "HuggingFace": "zai-org/GLM-4.7",
-    "Airforce": "glm-4.7",
-    "GLM": "GLM-4.7",
-    "HuggingChat": "zai-org/GLM-4.7",
-    "Arena": "glm-4.7",
-    "KiloCode": "z-ai/glm-4.7",
-    "OpenRouter": "z-ai/glm-4.7",
-    "Puter": "z-ai:z-ai/glm-4.7"
-  },
-  "deepseek-v3.1-terminus": {
-    "HuggingFace": "deepseek-ai/DeepSeek-V3.1-Terminus",
-    "Airforce": "deepseek-v3.1-terminus",
-    "HuggingChat": "deepseek-ai/DeepSeek-V3.1-Terminus",
-    "KiloCode": "deepseek/deepseek-v3.1-terminus",
-    "OpenRouter": "deepseek/deepseek-v3.1-terminus",
-    "Puter": "openrouter:deepseek/deepseek-v3.1-terminus"
-  },
-  "qwen-3-vl-235b-a22b-thinking": {
-    "HuggingFace": "Qwen/Qwen3-VL-235B-A22B-Thinking",
-    "HuggingChat": "Qwen/Qwen3-VL-235B-A22B-Thinking",
-    "Arena": "qwen3-vl-235b-a22b-thinking",
-    "KiloCode": "qwen/qwen3-vl-235b-a22b-thinking",
-    "OpenRouter": "qwen/qwen3-vl-235b-a22b-thinking",
-    "Puter": "openrouter:qwen/qwen3-vl-235b-a22b-thinking"
-  },
-  "deepseek-v3.2-exp": {
-    "HuggingFace": "deepseek-ai/DeepSeek-V3.2-Exp",
-    "Airforce": "deepseek-v3.2-exp",
-    "HuggingChat": "deepseek-ai/DeepSeek-V3.2-Exp",
-    "KiloCode": "deepseek/deepseek-v3.2-exp",
-    "OpenRouter": "deepseek/deepseek-v3.2-exp",
-    "Puter": "openrouter:deepseek/deepseek-v3.2-exp"
-  },
-  "glm-5": {
-    "HuggingFace": "zai-org/GLM-5",
-    "Airforce": "glm-5",
-    "HuggingChat": "zai-org/GLM-5",
-    "Arena": "glm-5",
-    "KiloCode": "z-ai/glm-5",
-    "OpenRouter": "z-ai/glm-5",
-    "Puter": "z-ai:z-ai/glm-5"
-  },
-  "glm-4.6v-flash": {
-    "HuggingFace": "zai-org/GLM-4.6V-Flash",
-    "G4FSpace": "srv_mp5miql908c8738d71be:community/MarcosFRG/glm-4.6v-flash",
-    "HuggingChat": "zai-org/GLM-4.6V-Flash",
-    "Pollinations": "community/MarcosFRG/glm-4.6v-flash",
-    "Puter": "infron:z-ai/glm-4.6v-flash"
-  },
-  "minimax-m2": {
-    "HuggingFace": "MiniMaxAI/MiniMax-M2",
-    "Airforce": "minimax-m2",
-    "HuggingChat": "MiniMaxAI/MiniMax-M2",
-    "Arena": "minimax-m2-preview",
-    "KiloCode": "minimax/minimax-m2",
-    "OpenRouter": "minimax/minimax-m2",
-    "Puter": "openrouter:minimax/minimax-m2"
-  },
-  "command-r7b24": {
-    "HuggingFace": "CohereLabs/c4ai-command-r7b-12-2024",
-    "HuggingSpace": "command-r7b-12-2024",
-    "CohereForAI_C4AI_Command": "command-r7b-12-2024",
-    "HuggingChat": "CohereLabs/c4ai-command-r7b-12-2024",
-    "KiloCode": "cohere/command-r7b-12-2024",
-    "OpenRouter": "cohere/command-r7b-12-2024",
-    "Puter": "openrouter:cohere/command-r7b-12-2024"
+  "deepseek-r1-0528": {
+    "HuggingFace": "deepseek-ai/DeepSeek-R1-0528",
+    "Airforce": "deepseek-r1-0528",
+    "HuggingChat": "deepseek-ai/DeepSeek-R1-0528",
+    "KiloCode": "deepseek/deepseek-r1-0528",
+    "Puter": "openrouter:deepseek/deepseek-r1-0528"
   },
   "gemma-sea-lion-v4-27b-it": {
     "HuggingFace": "aisingapore/Gemma-SEA-LION-v4-27B-IT",
     "GeminiPro": "gemma-sea-lion-v4-27b-it",
     "HuggingChat": "aisingapore/Gemma-SEA-LION-v4-27B-IT"
   },
-  "minimax-m2.1": {
-    "HuggingFace": "MiniMaxAI/MiniMax-M2.1",
-    "Airforce": "minimax-m2.1",
-    "HuggingChat": "MiniMaxAI/MiniMax-M2.1",
-    "Arena": "minimax-m2.1-preview",
-    "KiloCode": "minimax/minimax-m2.1",
-    "OpenRouter": "minimax/minimax-m2.1",
-    "Puter": "openrouter:minimax/minimax-m2.1"
+  "glm-4.6v": {
+    "HuggingFace": "zai-org/GLM-4.6V-FP8",
+    "Airforce": "glm-4.6v",
+    "HuggingChat": "zai-org/GLM-4.6V-FP8",
+    "RelayRouter": "glm-4.6v",
+    "KiloCode": "z-ai/glm-4.6v",
+    "Puter": "openrouter:z-ai/glm-4.6v"
   },
-  "command-r7b-arabic25": {
-    "HuggingFace": "CohereLabs/c4ai-command-r7b-arabic-02-2025",
-    "HuggingSpace": "command-r7b-arabic-02-2025",
-    "CohereForAI_C4AI_Command": "command-r7b-arabic-02-2025",
-    "HuggingChat": "CohereLabs/c4ai-command-r7b-arabic-02-2025"
+  "deepseek-v3.1": {
+    "HuggingFace": "deepseek-ai/DeepSeek-V3.1",
+    "Airforce": "deepseek-v3.1",
+    "HuggingChat": "deepseek-ai/DeepSeek-V3.1",
+    "Puter": "infron:deepseek/deepseek-v3.1"
   },
   "apertus-8b-2509": {
     "HuggingFace": "swiss-ai/Apertus-8B-Instruct-2509",
     "HuggingChat": "swiss-ai/Apertus-8B-Instruct-2509"
   },
-  "aya-vision-32b": {
-    "HuggingFace": "CohereLabs/aya-vision-32b",
-    "HuggingChat": "CohereLabs/aya-vision-32b"
+  "apertus-70b-2509": {
+    "HuggingFace": "swiss-ai/Apertus-70B-Instruct-2509",
+    "HuggingChat": "swiss-ai/Apertus-70B-Instruct-2509"
   },
-  "qwen-3-vl-30b-a3b": {
-    "HuggingFace": "Qwen/Qwen3-VL-30B-A3B-Instruct",
-    "Airforce": "qwen3-vl-30b-a3b-instruct",
-    "HuggingChat": "Qwen/Qwen3-VL-30B-A3B-Instruct",
-    "KiloCode": "qwen/qwen3-vl-30b-a3b-instruct",
-    "OpenRouter": "qwen/qwen3-vl-30b-a3b-instruct",
-    "Puter": "openrouter:qwen/qwen3-vl-30b-a3b-instruct"
+  "step-3.7-flash": {
+    "HuggingFace": "stepfun-ai/Step-3.7-Flash",
+    "Airforce": "step-3.7-flash",
+    "HuggingChat": "stepfun-ai/Step-3.7-Flash",
+    "KiloCode": "stepfun/step-3.7-flash",
+    "Pollinations": "stepfun/step-3.7-flash",
+    "Puter": "openrouter:stepfun/step-3.7-flash"
   },
-  "command-a25": {
-    "HuggingFace": "CohereLabs/c4ai-command-a-03-2025",
-    "HuggingSpace": "command-a-03-2025",
-    "CohereForAI_C4AI_Command": "command-a-03-2025",
-    "HuggingChat": "CohereLabs/c4ai-command-a-03-2025",
-    "Puter": "infron:cohere/command-a-03-2025"
+  "qwen-sea-lion-v4.5-27b-it": {
+    "HuggingFace": "aisingapore/Qwen-SEA-LION-v4.5-27B-IT",
+    "HuggingChat": "aisingapore/Qwen-SEA-LION-v4.5-27B-IT"
   },
   "qwen-sea-lion-v4-32b-it": {
     "HuggingFace": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
     "HuggingChat": "aisingapore/Qwen-SEA-LION-v4-32B-IT"
   },
-  "command-a-vision25": {
-    "HuggingFace": "CohereLabs/command-a-vision-07-2025",
-    "HuggingChat": "CohereLabs/command-a-vision-07-2025"
+  "command-r24": {
+    "HuggingFace": "CohereLabs/c4ai-command-r-08-2024",
+    "Airforce": "command-r-08-2024",
+    "CohereForAI_C4AI_Command": "command-r-08-2024",
+    "HuggingChat": "CohereLabs/c4ai-command-r-08-2024",
+    "HuggingSpace": "command-r-08-2024",
+    "KiloCode": "cohere/command-r-08-2024",
+    "Puter": "openrouter:cohere/command-r-08-2024"
+  },
+  "wizardlm-2-8x22b": {
+    "HuggingFace": "alpindale/WizardLM-2-8x22B",
+    "HuggingChat": "alpindale/WizardLM-2-8x22B",
+    "Puter": "openrouter:microsoft/wizardlm-2-8x22b"
+  },
+  "alia-40b-2606": {
+    "HuggingFace": "BSC-LT/ALIA-40b-instruct-2606",
+    "HuggingChat": "BSC-LT/ALIA-40b-instruct-2606"
+  },
+  "aya-expanse-32b": {
+    "HuggingFace": "CohereLabs/aya-expanse-32b",
+    "HuggingChat": "CohereLabs/aya-expanse-32b"
+  },
+  "autoglm-phone-9b-multilingual": {
+    "HuggingFace": "zai-org/AutoGLM-Phone-9B-Multilingual",
+    "HuggingChat": "zai-org/AutoGLM-Phone-9B-Multilingual"
+  },
+  "minimax-m1-80k": {
+    "HuggingFace": "MiniMaxAI/MiniMax-M1-80k",
+    "HuggingChat": "MiniMaxAI/MiniMax-M1-80k"
+  },
+  "command-a25": {
+    "HuggingFace": "CohereLabs/c4ai-command-a-03-2025",
+    "CohereForAI_C4AI_Command": "command-a-03-2025",
+    "HuggingChat": "CohereLabs/c4ai-command-a-03-2025",
+    "HuggingSpace": "command-a-03-2025",
+    "Puter": "infron:cohere/command-a-03-2025"
+  },
+  "kimi-k2-0905": {
+    "HuggingFace": "moonshotai/Kimi-K2-Instruct-0905",
+    "HuggingChat": "moonshotai/Kimi-K2-Instruct-0905",
+    "KiloCode": "moonshotai/kimi-k2-0905",
+    "Puter": "openrouter:moonshotai/kimi-k2-0905"
+  },
+  "command-a-reasoning25": {
+    "HuggingFace": "CohereLabs/command-a-reasoning-08-2025",
+    "HuggingChat": "CohereLabs/command-a-reasoning-08-2025"
   },
   "command-a-translate25": {
     "HuggingFace": "CohereLabs/command-a-translate-08-2025",
     "HuggingChat": "CohereLabs/command-a-translate-08-2025"
   },
-  "tiny-aya-global": {
-    "HuggingFace": "CohereLabs/tiny-aya-global",
-    "HuggingChat": "CohereLabs/tiny-aya-global"
-  },
-  "qwen-3-4b-thinking-2507": {
-    "HuggingFace": "Qwen/Qwen3-4B-Thinking-2507",
-    "HuggingChat": "Qwen/Qwen3-4B-Thinking-2507"
-  },
-  "tiny-aya-earth": {
-    "HuggingFace": "CohereLabs/tiny-aya-earth",
-    "HuggingChat": "CohereLabs/tiny-aya-earth"
-  },
-  "glm-4.6v": {
-    "HuggingFace": "zai-org/GLM-4.6V-FP8",
-    "GLM": "GLM-4.6V",
-    "HuggingChat": "zai-org/GLM-4.6V-FP8",
-    "KiloCode": "z-ai/glm-4.6v",
-    "OpenRouter": "z-ai/glm-4.6v",
-    "Puter": "openrouter:z-ai/glm-4.6v"
-  },
   "tiny-aya-fire": {
     "HuggingFace": "CohereLabs/tiny-aya-fire",
     "HuggingChat": "CohereLabs/tiny-aya-fire"
   },
-  "command-r": {
-    "HuggingSpace": "command-r-08-2024",
-    "CohereForAI_C4AI_Command": "command-r-08-2024",
-    "Puter": [
-      "openrouter:cohere/command-r-08-2024",
-      "openrouter:cohere/command-r",
-      "openrouter:cohere/command-r-03-2024"
-    ]
-  },
-  "command-r-plus": {
-    "HuggingSpace": [
-      "command-r-plus-08-2024",
-      "command-r-plus"
-    ],
-    "CohereForAI_C4AI_Command": [
-      "command-r-plus-08-2024",
-      "command-r-plus"
-    ],
-    "Puter": [
-      "openrouter:cohere/command-r-plus-08-2024",
-      "openrouter:cohere/command-r-plus",
-      "openrouter:cohere/command-r-plus-04-2024"
-    ]
-  },
-  "command-r-plus24": {
-    "HuggingSpace": "command-r-plus-08-2024",
-    "CohereForAI_C4AI_Command": "command-r-plus-08-2024",
-    "KiloCode": "cohere/command-r-plus-08-2024",
-    "OpenRouter": "cohere/command-r-plus-08-2024",
-    "Puter": "openrouter:cohere/command-r-plus-08-2024"
-  },
-  "flux-dev": {
-    "HuggingSpace": "black-forest-labs-flux-1-dev",
-    "BlackForestLabs_Flux1Dev": "black-forest-labs-flux-1-dev",
-    "HuggingFaceMedia": "black-forest-labs/FLUX.1-dev",
-    "Pollinations": "flux"
-  },
-  "flux-kontext-dev": {
-    "HuggingSpace": "flux-kontext-dev",
-    "BlackForestLabs_Flux1KontextDev": "flux-kontext-dev"
-  },
   "perplexity": {
-    "Perplexity": "perplexity"
+    "Perplexity": "perplexity",
+    "Pollinations": "perplexity/sonar"
   },
   "pplx_pro": {
     "Perplexity": "pplx_pro"
@@ -1648,63 +1523,63 @@ model_map = {
 }
 models_count = {
   "default": 16,
-  "gpt-4": 11,
-  "gpt-4o": 11,
-  "gpt-4o-mini": 8,
+  "gpt-4": 9,
+  "gpt-4o": 8,
+  "gpt-4o-mini": 7,
   "gpt-4o-mini-tts": 2,
-  "o1": 10,
+  "o1": 6,
   "o1-mini": 4,
-  "o3-mini": 7,
-  "o3-mini-high": 5,
-  "o4-mini": 6,
+  "o3-mini": 5,
+  "o3-mini-high": 2,
+  "o4-mini": 4,
   "o4-mini-high": 4,
-  "gpt-4.1": 7,
-  "gpt-4.1-mini": 7,
-  "gpt-4.1-nano": 5,
+  "gpt-4.1": 6,
+  "gpt-4.1-mini": 5,
+  "gpt-4.1-nano": 4,
   "gpt-4.5": 2,
   "gpt-oss-120b": 12,
-  "dall-e-3": 5,
-  "gpt-image": 3,
+  "dall-e-3": 3,
+  "gpt-image": 2,
   "meta-ai": 2,
   "llama-2-70b": 4,
   "llama-3-8b": 5,
-  "llama-3-70b": 5,
+  "llama-3-70b": 3,
   "llama-3.1-8b": 8,
   "llama-3.1-70b": 5,
   "llama-3.1-405b": 3,
   "llama-3.2-3b": 5,
   "llama-3.2-90b": 2,
-  "llama-4-scout": 6,
-  "llama-4-maverick": 5,
+  "llama-4-scout": 7,
+  "llama-4-maverick": 6,
   "mixtral-8x7b": 2,
-  "mistral-small-3.1-24b": 6,
+  "mistral-small-3.1-24b": 4,
   "hermes-2-dpo": 2,
-  "gemini-2.5-flash": 9,
-  "gemini-2.5-pro": 8,
+  "gemini-2.5-flash": 8,
+  "gemini-2.5-pro": 9,
   "gemini-3-pro-preview": 2,
   "gemini-3.1-pro": 8,
   "gemini-3.1-flash-lite": 9,
-  "gemini-3.5-flash": 10,
+  "gemini-3.5-flash": 8,
   "gemini-3.5-flash-thinking": 2,
   "gemini-auto": 2,
   "gemini-3.5-flash-thinking-lite": 2,
-  "gemini-flash-lite": 4,
+  "gemini-flash-lite": 5,
   "command-r7b": 3,
   "command-a": 5,
   "qwen-2.5-coder-32b": 8,
   "qwen-2.5-vl-72b": 6,
   "qwen-3-235b": 2,
-  "qwen-3-32b": 7,
+  "qwen-3-32b": 6,
   "qwq-32b": 6,
   "deepseek-v3": 3,
-  "deepseek-r1": 10,
-  "deepseek-r1-distill-llama-70b": 7,
+  "deepseek-r1": 8,
+  "deepseek-r1-distill-llama-70b": 3,
   "deepseek-r1-distill-qwen-1.5b": 2,
   "deepseek-r1-distill-qwen-14b": 4,
   "grok-2": 2,
   "grok-3": 2,
-  "kimi-k2": 7,
-  "sonar": 3,
+  "kimi-k2": 6,
+  "sonar": 4,
   "sonar-pro": 3,
   "sonar-reasoning": 2,
   "sonar-reasoning-pro": 3,
@@ -1715,48 +1590,48 @@ models_count = {
   "flux": 6,
   "flux-pro": 3,
   "flux-kontext": 2,
-  "glm-5.2": 13,
-  "kimi-k2.7-code": 11,
+  "glm-5.2": 12,
+  "kimi-k2.7-code": 9,
   "nemotron-3-ultra-550b-a55b": 10,
-  "deepseek-v4-flash": 12,
-  "deepseek-v4-pro": 10,
-  "kimi-k2.6": 11,
-  "mimo-v2.5-pro": 9,
-  "qwen-3.6-35b-a3b": 8,
-  "glm-5.1": 10,
+  "deepseek-v4-flash": 8,
+  "deepseek-v4-pro": 9,
+  "kimi-k2.6": 12,
+  "mimo-v2.5-pro": 6,
+  "qwen-3.6-35b-a3b": 7,
+  "glm-5.1": 6,
   "qwen-3.5-397b-a17b": 9,
-  "gemma-4-26b-a4b-it": 9,
-  "gemma-4-31b-it": 9,
-  "glm-5": 8,
+  "gemma-4-26b-a4b-it": 10,
+  "gemma-4-31b-it": 11,
+  "glm-5": 5,
   "minimax-m2.5": 7,
   "qwen-3-max": 7,
   "qwen-3-max-thinking": 5,
-  "kimi-k2.5": 7,
-  "glm-4.7-flash": 8,
+  "kimi-k2.5": 6,
+  "glm-4.7-flash": 6,
   "deepseek-v3.2": 7,
   "inkling": 7,
   "ternary-bonsai-27b-gguf": 2,
   "qwen-3.6-27b": 7,
-  "hy3": 6,
+  "hy3": 7,
   "ornith-1.0-35b": 2,
   "apertus-v1.5-70b": 2,
-  "minimax-m3": 11,
+  "minimax-m3": 10,
   "apertus-v1.5-8b": 2,
-  "qwen-3.5-9b": 6,
-  "qwen-3-8b": 6,
+  "qwen-3.5-9b": 5,
+  "qwen-3-8b": 4,
   "gpt-oss-20b": 12,
   "qwen-3.5-27b": 7,
   "qwen-3-coder-30b-a3b": 6,
-  "mimo-v2.5": 9,
+  "mimo-v2.5": 6,
   "qwen-3-coder-next": 5,
   "gemma-3-4b-it": 7,
-  "qwen-3.5-122b-a10b": 8,
+  "qwen-3.5-122b-a10b": 7,
   "ling-2.6-1t": 4,
   "qwen-3-4b-2507": 2,
   "step-3.7-flash": 6,
-  "glm-4.5-air": 7,
-  "qwen-3-14b": 6,
-  "qwen-3-next-80b-a3b": 7,
+  "glm-4.5-air": 5,
+  "qwen-3-14b": 5,
+  "qwen-3-next-80b-a3b": 6,
   "qwen-2.5-coder-7b": 3,
   "nemotron-3-ultra-550b-a55b-nvfp4": 2,
   "qwen-3.5-35b-a3b": 7,
@@ -1765,49 +1640,49 @@ models_count = {
   "phi-4": 5,
   "qwen-3-vl-30b-a3b": 6,
   "ternary-bonsai-27b-awq-4bit": 2,
-  "kimi-k2-0905": 6,
+  "kimi-k2-0905": 4,
   "qwen-2.5-7b": 5,
-  "qwen-3-vl-235b-a22b": 7,
+  "qwen-3-vl-235b-a22b": 6,
   "llama-3.3-70b": 8,
   "qwen-3-coder-480b-a35b": 5,
   "gpt-oss-safeguard-20b": 7,
   "command-r7b24": 7,
-  "qwen-3-235b-a22b-2507": 7,
+  "qwen-3-235b-a22b-2507": 6,
   "llama-4-scout-17b-16e": 2,
   "step-3.5-flash": 7,
   "qwen-2.5-coder-3b": 2,
   "l3-8b-stheno-v3.2": 2,
   "deepseek-r1-distill-qwen-7b": 2,
-  "llama-guard-4-12b": 6,
+  "llama-guard-4-12b": 7,
   "qwen-3-4b-thinking-2507": 2,
-  "glm-4.7": 8,
+  "glm-4.7": 5,
   "gemma-sea-lion-v4-27b-it": 3,
   "command-a25": 5,
   "deepseek-r1-distill-llama-8b": 3,
   "apertus-8b-2509": 2,
   "tiny-aya-global": 2,
-  "qwen-3-235b-a22b": 7,
+  "qwen-3-235b-a22b": 5,
   "bielik-11b-v3.0": 2,
   "tiny-aya-earth": 2,
-  "minimax-m2.7": 9,
+  "minimax-m2.7": 8,
   "llama-4-maverick-17b-128e": 2,
   "deepseek-v3-0324": 3,
   "ernie-4.5-vl-424b-a47b-base-pt": 2,
   "glm-4-32b-0414": 2,
-  "deepseek-r1-0528": 6,
-  "qwen-3-235b-a22b-thinking-2507": 7,
+  "deepseek-r1-0528": 5,
+  "qwen-3-235b-a22b-thinking-2507": 6,
   "deepseek": 4,
-  "glm-4.5": 6,
-  "glm-4.5v": 6,
-  "wizardlm-2-8x22b": 5,
-  "qwen-2.5-72b": 4,
-  "glm-4.6": 6,
-  "glm-4.6v-flash": 5,
+  "glm-4.5": 5,
+  "glm-4.5v": 5,
+  "wizardlm-2-8x22b": 3,
+  "qwen-2.5-72b": 5,
+  "glm-4.6": 5,
+  "glm-4.6v-flash": 4,
   "l3-8b-lunaris": 2,
-  "deepseek-v3.1": 5,
+  "deepseek-v3.1": 4,
   "glm-4.6v": 6,
   "minimax-m1-80k": 2,
-  "deepseek-v3.1-terminus": 6,
+  "deepseek-v3.1-terminus": 5,
   "command-r24": 7,
   "deepseek-v3.2-exp": 6,
   "aya-expanse-32b": 2,
@@ -1834,32 +1709,49 @@ models_count = {
   "flux-dev": 4,
   "flux-kontext-dev": 2,
   "perplexity": 2,
-  "gemini-3.6-flash": 11,
-  "gemini-3.7-flash": 11,
-  "gemini-3.8-flash": 10,
+  "gemini-3.6-flash": 8,
+  "gemini-3.7-flash": 8,
+  "gemini-3.8-flash": 9,
   "gemini-3.8-pro": 2,
-  "gemini-3.5-flash-lite": 9,
-  "deepseek-v4.1-flash": 9,
-  "glm-5.3": 12,
+  "gemini-3.5-flash-lite": 8,
+  "deepseek-v4.1-flash": 10,
+  "glm-5.3": 11,
   "glm-5.3-flash": 12,
-  "kimi-k3": 11,
-  "qwen-3.8-2.4t-a95b": 6,
-  "deepseek-v4-pro-0813": 8,
-  "deepseek-v4-flash-0731": 8,
-  "nemotron-3-super-120b-a12b": 7,
-  "qwen-3.8-27b": 10,
+  "kimi-k3": 10,
+  "qwen-3.8-2.4t-a95b": 8,
+  "deepseek-v4-pro-0813": 7,
+  "deepseek-v4-flash-0731": 7,
+  "nemotron-3-super-120b-a12b": 5,
+  "qwen-3.8-27b": 9,
   "deepseek-v4-flash-vision-exp": 7,
   "muse-glimmer-30b": 8,
-  "ling-3.0-flash-vl": 7,
-  "ling-3.0-flash-fin": 7,
+  "ling-3.0-flash-vl": 6,
+  "ling-3.0-flash-fin": 2,
   "nemotron-3.5-lightning-30b-a3b": 4,
   "ling-3.0-flash": 5,
   "granite-4.2-3b": 2,
   "granite-4.2-8b": 5,
-  "inkling-small": 7,
-  "qwen-3-30b-a3b": 8,
+  "inkling-small": 8,
+  "qwen-3-30b-a3b": 7,
   "granite-4.2-30b": 2,
-  "hermes-3-llama-3.1-70b": 5
+  "hermes-3-llama-3.1-70b": 5,
+  "auto": 18,
+  "deepseek-v4.1-flash-1017": 8,
+  "nemotron-3.5-super-vl": 6,
+  "hy4": 8,
+  "mimo-v2.6-flash": 5,
+  "mimo-v2.6-pro": 5,
+  "minimax-m3.1-flash": 9,
+  "beam-1.0-501b-a23b": 5,
+  "muse-spark-open-816b-a42b": 3,
+  "nemotron-3.5-super-vl-120b-a12b-nvfp4": 2,
+  "mimo-v2.6-pro-rl": 2,
+  "qwen-3.8-flash-next": 2,
+  "mimo-v2.6-flash-rl": 2,
+  "ling-3.1-flash": 6,
+  "nemotron-sea-lion-v4.8-120b-a12b": 2,
+  "qwen-sea-lion-v4.5-27b-it": 2,
+  "alia-40b-2606": 2
 }
 parents = {
   "HuggingSpace": [
@@ -1868,18 +1760,11 @@ parents = {
     "CohereForAI_C4AI_Command",
     "StabilityAI_SD35Large"
   ],
-  "Copilot": [
-    "CopilotAccount",
-    "CopilotSession"
-  ],
   "HuggingFace": [
     "HuggingFaceMedia"
   ],
   "MetaAI": [
     "MetaAIAccount"
-  ],
-  "OpenaiChat": [
-    "OpenaiAccount"
   ],
   "Pollinations": [
     "PollinationsAudio",
@@ -1887,9 +1772,9 @@ parents = {
   ]
 }
 model_aliases = {
-  "": "default",
+  "": "gpt-4.5",
   "chat": "gpt-4o-mini",
-  "Copilot": "dall-e-3",
+  "Copilot": "gpt-4o",
   "openai/gpt-4": "gpt-4",
   "openrouter:openai/gpt-4": "gpt-4",
   "openai/gpt-4o-2024-05-13": "gpt-4o",
@@ -2012,7 +1897,7 @@ model_aliases = {
   "moonshotai/kimi-k2": "kimi-k2",
   "openrouter:moonshotai/kimi-k2": "kimi-k2",
   "openrouter:perplexity/sonar": "sonar",
-  "perplexity/sonar": "sonar",
+  "perplexity/sonar": "perplexity",
   "perplexity-fast": "sonar",
   "openrouter:perplexity/sonar-pro": "sonar-pro",
   "perplexity/sonar-pro": "sonar-pro",
@@ -2026,8 +1911,8 @@ model_aliases = {
   "turbo": "sdxl-turbo",
   "stabilityai/stable-diffusion-3.5-large": "sd-3.5-large",
   "stabilityai-stable-diffusion-3-5-large": "sd-3.5-large",
-  "black-forest-labs/FLUX.1-dev": "flux-dev",
-  "black-forest-labs-flux-1-dev": "flux-dev",
+  "black-forest-labs/FLUX.1-dev": "flux",
+  "black-forest-labs-flux-1-dev": "flux",
   "kontext": "flux-kontext",
   "zai-org/GLM-5.2": "glm-5.2",
   "zai-org/GLM-5.2-FP8": "glm-5.2",
@@ -2045,7 +1930,7 @@ model_aliases = {
   "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16": "nemotron-3-ultra-550b-a55b",
   "deepseek-ai/DeepSeek-V4-Flash": "deepseek-v4-flash",
   "deepseek-ai/deepseek-v4-flash": "deepseek-v4-flash",
-  "deepseek/deepseek-v4-flash": "deepseek-v4-flash",
+  "deepseek/deepseek-v4-flash": "deepseek",
   "deepseek:deepseek/deepseek-v4-flash": "deepseek-v4-flash",
   "deepseek-ai/DeepSeek-V4-Pro": "deepseek-v4-pro",
   "deepseek-ai/deepseek-v4-pro": "deepseek-v4-pro",
@@ -2152,7 +2037,7 @@ model_aliases = {
   "alibaba:qwen/qwen3.5-27b": "qwen-3.5-27b",
   "Qwen/Qwen3-Coder-30B-A3B-Instruct": "qwen-3-coder-30b-a3b",
   "qwen3-coder-30b-a3b": "qwen-3-coder-30b-a3b",
-  "qwen/qwen3-coder-30b-a3b-instruct": "qwen-3-coder-30b-a3b",
+  "qwen/qwen3-coder-30b-a3b-instruct": "qwen-2.5-coder-32b",
   "alibaba:qwen/qwen3-coder-30b-a3b-instruct": "qwen-3-coder-30b-a3b",
   "XiaomiMiMo/MiMo-V2.5": "mimo-v2.5",
   "xiaomi/mimo-v2.5": "mimo-v2.5",
@@ -2318,7 +2203,7 @@ model_aliases = {
   "deepseek/deepseek-v3.1-terminus": "deepseek-v3.1-terminus",
   "openrouter:deepseek/deepseek-v3.1-terminus": "deepseek-v3.1-terminus",
   "CohereLabs/c4ai-command-r-08-2024": "command-r24",
-  "command-r-08-2024": "command-r",
+  "command-r-08-2024": "command-r24",
   "cohere/command-r-08-2024": "command-r24",
   "openrouter:cohere/command-r-08-2024": "command-r24",
   "deepseek-ai/DeepSeek-V3.2-Exp": "deepseek-v3.2-exp",
@@ -2398,7 +2283,7 @@ model_aliases = {
   "google/gemini-3.6-flash:batch": "gemini-3.6-flash",
   "openrouter:google/gemini-3.6-flash:batch": "gemini-3.6-flash",
   "srv_mrgy0nmbc8a86c407f17:models/gemini-3.7-flash": "gemini-3.7-flash",
-  "google/gemini-3.7-flash": "gemini-3.7-flash",
+  "google/gemini-3.7-flash": "gemini-3.5-flash",
   "google/gemini-3.7-flash:batch": "gemini-3.7-flash",
   "openrouter:google/gemini-3.7-flash:batch": "gemini-3.7-flash",
   "srv_mrgy0nmbc8a86c407f17:models/gemini-3.8-flash": "gemini-3.8-flash",
@@ -2406,7 +2291,7 @@ model_aliases = {
   "google/gemini-3.8-flash:batch": "gemini-3.8-flash",
   "openrouter:google/gemini-3.8-flash:batch": "gemini-3.8-flash",
   "srv_mrgy0nmbc8a86c407f17:models/gemini-3.5-flash-lite": "gemini-3.5-flash-lite",
-  "google/gemini-3.5-flash-lite": "gemini-3.5-flash-lite",
+  "google/gemini-3.5-flash-lite": "gemini-flash-lite",
   "google/gemini-3.5-flash-lite:batch": "gemini-3.5-flash-lite",
   "openrouter:google/gemini-3.5-flash-lite:batch": "gemini-3.5-flash-lite",
   "srv_mrgy0nmbc8a86c407f17:models/gemini-3.5-flash": "gemini-3.5-flash",
@@ -2566,5 +2451,111 @@ model_aliases = {
   "openrouter:minimax/minimax-m2.1": "minimax-m2.1",
   "qwen3-vl-30b-a3b-instruct": "qwen-3-vl-30b-a3b",
   "infron:cohere/command-a-03-2025": "command-a25",
-  "openrouter:z-ai/glm-4.6v": "glm-4.6v"
+  "openrouter:z-ai/glm-4.6v": "glm-4.6v",
+  "openrouter/auto": "auto",
+  "infron:infron/auto": "auto",
+  "infron:openai/o1": "o1",
+  "infron:openai/o3-mini": "o3-mini",
+  "infron:openai/o4-mini": "o4-mini",
+  "openrouter:openai/gpt-4.1": "gpt-4.1",
+  "openrouter:openai/gpt-4.1-mini": "gpt-4.1-mini",
+  "openrouter:openai/gpt-4.1-nano": "gpt-4.1-nano",
+  "gpt-4.5-preview-2025-02-27": "gpt-4.5",
+  "openai/gpt-image-1-mini": "gpt-image",
+  "llama3-8b": "llama-3-8b",
+  "llama-3.1-8b-instruct": "llama-3.1-8b",
+  "llama-3.1-70b-instruct": "llama-3.1-70b",
+  "llama-3.2-3b-instruct": "llama-3.2-3b",
+  "meta/llama-4-scout": "llama-4-scout",
+  "srv_mp5miql908c8738d71be:meta/llama-4-scout": "llama-4-scout",
+  "srv_mp5miql908c8738d71be:meta/llama-4-maverick": "llama-4-maverick",
+  "meta/llama-4-maverick": "llama-4-maverick",
+  "gemini-2.5-pro-preview-06-05": "gemini-2.5-pro",
+  "srv_mrgy0nmbc8a86c407f17:models/gemini-2.5-pro": "gemini-2.5-pro",
+  "srv_mp5miql908c8738d71be:google/gemini-3.1-pro-preview": "gemini-3.1-pro",
+  "gemini-3.1-flash-lite-preview": "gemini-3.1-flash-lite",
+  "srv_mrgy0nmbc8a86c407f17:models/gemini-3.1-flash-lite": "gemini-3.1-flash-lite",
+  "openrouter:google/gemini-3.6-flash": "gemini-3.6-flash",
+  "openrouter:google/gemini-3.7-flash": "gemini-3.7-flash",
+  "openrouter:google/gemini-3.8-flash": "gemini-3.8-flash",
+  "openrouter:google/gemini-3.5-flash-lite": "gemini-3.5-flash-lite",
+  "qwen-2.5-coder-32b-instruct": "qwen-2.5-coder-32b",
+  "qwen2.5-vl-72b-instruct": "qwen-2.5-vl-72b",
+  "srv_mp5miql908c8738d71be:perplexity/sonar": "sonar",
+  "black-forest-labs/flux.1-schnell": "flux",
+  "deepseek-ai/DeepSeek-V4.1-Flash-1017": "deepseek-v4.1-flash-1017",
+  "deepseek-v4.1-flash-1017:free": "deepseek-v4.1-flash-1017",
+  "deepseek/deepseek-v4.1-flash-1017": "deepseek-v4.1-flash-1017",
+  "togetherai:deepseek-ai/deepseek-v4.1-flash-1017": "deepseek-v4.1-flash-1017",
+  "nvidia/NVIDIA-Nemotron-3.5-Super-VL": "nemotron-3.5-super-vl",
+  "srv_mve15k17fe3d549fd0b8:nvidia/nemotron-3.5-super-vl:free": "nemotron-3.5-super-vl",
+  "nvidia/nemotron-3.5-super-vl": "nemotron-3.5-super-vl",
+  "togetherai:nvidia/nvidia-nemotron-3.5-super-vl": "nemotron-3.5-super-vl",
+  "tencent/Hy4-preview": "hy4",
+  "hy4-preview": "hy4",
+  "tencent/hy4-preview": "hy4",
+  "openrouter:tencent/hy4-preview": "hy4",
+  "XiaomiMiMo/MiMo-V2.6-Flash": "mimo-v2.6-flash",
+  "xiaomi/mimo-v2.6-flash": "mimo-v2.6-flash",
+  "openrouter:xiaomi/mimo-v2.6-flash": "mimo-v2.6-flash",
+  "XiaomiMiMo/MiMo-V2.6-Pro": "mimo-v2.6-pro",
+  "xiaomi/mimo-v2.6-pro": "mimo-v2.6-pro",
+  "openrouter:xiaomi/mimo-v2.6-pro": "mimo-v2.6-pro",
+  "srv_mr9dda21bf67b4c62086:deepseek/deepseek-v4.1-flash": "deepseek-v4.1-flash",
+  "deepseek-ai/deepseek-v4.1-flash": "deepseek-v4.1-flash",
+  "deepseek-v4.1-flash:1017": "deepseek-v4.1-flash",
+  "srv_mp5miql908c8738d71be:z-ai/glm-5.3": "glm-5.3",
+  "zhipu/glm-5.3": "glm-5.3",
+  "srv_mp5miql908c8738d71be:community/scriptsnsenses-sys/glm-5.3-flash-free": "glm-5.3-flash",
+  "openrouter/kimi-k3": "kimi-k3",
+  "openrouter:deepseek/deepseek-v4-flash-0731": "deepseek-v4-flash-0731",
+  "srv_mr9dda21bf67b4c62086:z-ai/glm-5.2": "glm-5.2",
+  "zhipu/glm-5.2": "glm-5.2",
+  "srv_mve15k17fe3d549fd0b8:nvidia/nemotron-3-ultra-550b-a55b:free": "nemotron-3-ultra-550b-a55b",
+  "nvidia/nemotron-3-ultra": "nemotron-3-ultra-550b-a55b",
+  "srv_mp5miql908c8738d71be:deepseek/deepseek-v4-pro": "deepseek-v4-pro",
+  "srv_mp5miql908c8738d71be:moonshotai/kimi-k2.6": "kimi-k2.6",
+  "srv_mvi8x0lo7e51b06cf96c:ovh-free/Qwen3.5-397B-A17B": "qwen-3.5-397b-a17b",
+  "srv_mp5miql908c8738d71be:google/gemma-4-26b-a4b-it": "gemma-4-26b-a4b-it",
+  "srv_mp5miql908c8738d71be:google/gemma-4-31b-it": "gemma-4-31b-it",
+  "openrouter:nvidia/nemotron-3-super-120b-a12b": "nemotron-3-super-120b-a12b",
+  "srv_mp5miql908c8738d71be:community/vendouple/deepseek-v3.2": "deepseek-v3.2",
+  "MiniMaxAI/MiniMax-M3.1-Flash": "minimax-m3.1-flash",
+  "srv_mkombumpae45db46dcb8:minimaxai/minimax-m3.1-flash": "minimax-m3.1-flash",
+  "minimaxai/minimax-m3.1-flash": "minimax-m3.1-flash",
+  "minimax/minimax-m3.1-flash": "minimax-m3.1-flash",
+  "togetherai:minimaxai/minimax-m3.1-flash": "minimax-m3.1-flash",
+  "srv_mvi8x0lo7e51b06cf96c:ovh-free/Qwen3.8-27B": "qwen-3.8-27b",
+  "openrouter:qwen/qwen3.8-27b": "qwen-3.8-27b",
+  "reflection/Beam-1.0-501B-A23B": "beam-1.0-501b-a23b",
+  "reflection/beam-1.0-501b-a23b": "beam-1.0-501b-a23b",
+  "togetherai:reflection/beam-1.0-501b-a23b": "beam-1.0-501b-a23b",
+  "meta-models/Muse-Spark-Open-816B-A42B": "muse-spark-open-816b-a42b",
+  "togetherai:meta-models/muse-spark-open-816b-a42b": "muse-spark-open-816b-a42b",
+  "qwen3.5-9b": "qwen-3.5-9b",
+  "nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4": "nemotron-3.5-super-vl-120b-a12b-nvfp4",
+  "srv_mkombumpae45db46dcb8:meta/muse-glimmer-30b": "muse-glimmer-30b",
+  "XiaomiMiMo/MiMo-V2.6-Pro-RL": "mimo-v2.6-pro-rl",
+  "qwen3.8-2.4t-a95b": "qwen-3.8-2.4t-a95b",
+  "srv_mp5miql908c8738d71be:qwen/qwen3.8-2.4t-a95b": "qwen-3.8-2.4t-a95b",
+  "Qwen/Qwen3.8-Flash-Next-FP8": "qwen-3.8-flash-next",
+  "qwen2.5-72b-instruct": "qwen-2.5-72b",
+  "XiaomiMiMo/MiMo-V2.6-Flash-RL": "mimo-v2.6-flash-rl",
+  "inclusionAI/Ling-3.1-flash": "ling-3.1-flash",
+  "inclusionai/ling-3.1-flash": "ling-3.1-flash",
+  "openrouter:inclusionai/ling-3.1-flash": "ling-3.1-flash",
+  "thinkingmachines/inkling-small": "inkling-small",
+  "srv_mp5miql908c8738d71be:thinkingmachines/inkling-small": "inkling-small",
+  "infron:qwen/qwen3-235b-a22b": "qwen-3-235b-a22b",
+  "zai-org/GLM-4.7-FP8": "glm-4.7",
+  "openrouter:inclusionai/ling-3.0-flash-vl": "ling-3.0-flash-vl",
+  "tencent/hy3": "hy3",
+  "infron:z-ai/glm-4.5v": "glm-4.5v",
+  "srv_mkombumpae45db46dcb8:meta/llama-guard-4-12b": "llama-guard-4-12b",
+  "srv_mp1v9cyha31b95fa8c9a:z-ai/glm-4.6v-flash": "glm-4.6v-flash",
+  "infron:nousresearch/hermes-3-llama-3.1-70b": "hermes-3-llama-3.1-70b",
+  "openrouter:deepseek/deepseek-v4-flash-vision-exp": "deepseek-v4-flash-vision-exp",
+  "aisingapore/Nemotron-SEA-LION-v4.8-120B-A12B": "nemotron-sea-lion-v4.8-120b-a12b",
+  "aisingapore/Qwen-SEA-LION-v4.5-27B-IT": "qwen-sea-lion-v4.5-27b-it",
+  "BSC-LT/ALIA-40b-instruct-2606": "alia-40b-2606"
 }

@@ -10,7 +10,7 @@ from ..image import is_data_an_audio
 from ..providers.retry_provider import RotatedProvider
 from ..providers.config_provider import RouterConfig, ConfigModelProvider
 from ..providers.provider_router import ProviderRouter
-from ..errors import ModelNotFoundError
+from ..errors import ModelNotFoundError, RetryProviderError
 from ..Provider import ProviderLoader, ProviderUtils, G4FSpace
 from .base_provider import (
     AsyncGeneratorProvider,
@@ -100,9 +100,9 @@ class AnyModelProviderMixin(ProviderModelMixin):
         return ignored
 
     @classmethod
-    def get_models(cls, ignored: list[str] = [], **kwargs) -> list[str]:
+    async def get_models(cls, ignored: list[str] = [], **kwargs) -> list[str]:
         if not cls.models:
-            cls.update_model_map()
+            await cls.update_model_map()
         if not ignored:
             return cls.models
         ignored = cls.extend_ignored(ignored)
@@ -115,8 +115,8 @@ class AnyModelProviderMixin(ProviderModelMixin):
         return filtered
 
     @classmethod
-    def update_model_map(cls):
-        cls.create_model_map()
+    async def update_model_map(cls):
+        await cls.create_model_map()
         file = os.path.join(os.path.dirname(__file__), "any_model_map.py")
         with open(file, "w", encoding="utf-8") as f:
             for key in [
@@ -135,7 +135,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 )
 
     @classmethod
-    def create_model_map(cls):
+    async def create_model_map(cls):
         cls.audio_models = []
         cls.image_models = []
         cls.vision_models = []
@@ -151,7 +151,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         # Get models from the models registry
         cls.model_map = {
-            "default": {
+            cls.default_model: {
                 provider.__name__: ""
                 for provider in models.default.best_provider.get_providers()
             },
@@ -186,8 +186,6 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     f"Error getting models for provider {provider.__name__}:", e
                 )
                 continue
-            if provider == __getattr__("HuggingFaceMedia"):
-                new_models = provider.video_models
             model_map = {}
             for model in new_models:
                 clean_value = clean_name(model)
@@ -217,8 +215,9 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     [clean_name(model) for model in provider.video_models]
                 )
 
-        for provider in ProviderLoader.names:
+        for provider_name in ProviderLoader.names:
             try:
+                provider = ProviderLoader.from_name(provider_name)
                 if provider == ProviderLoader.from_name("Perplexity"):
                     for model in provider.fallback_models:
                         if model not in cls.model_map:
@@ -235,6 +234,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
                         ProviderLoader.from_name("OpenaiAccount"),
                     ]
                 ):
+                    models = await cls.get_provider_models(provider)
                     for model in provider.get_models():
                         clean = clean_name(model)
                         if clean in cls.model_map:
@@ -548,11 +548,17 @@ class DefaultProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             f"{cls.__name__}: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'"
         )
 
-        async for chunk in RotatedProvider(providers, False).create_async_generator(
-            model, messages, stream=stream, media=media, api_key=api_key, **kwargs
-        ):
-            yield chunk
-
+        try:
+            async for chunk in RotatedProvider(providers, False).create_async_generator(
+                model, messages, stream=stream, media=media, api_key=api_key, **kwargs
+            ):
+                yield chunk
+        except RetryProviderError as e:
+             debug.log(f"{cls.__name__}: RetryProviderError encountered: {e}")
+             async for chunk in G4FSpace.create_async_generator(
+                model, messages, stream=stream, media=media, api_key=api_key, **kwargs
+            ):
+                yield chunk
 
 class AnyProvider(DefaultProvider):
     working = True
