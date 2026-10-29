@@ -19,7 +19,7 @@
 ARG GO_BUILDER=golang:1.25-bookworm
 ARG NODE_IMAGE=node:24-bookworm-slim
 ARG SANDBOX_BASE=debian:trixie-slim
-ARG BUILDPLATFORM=linux/arm64
+# ARG BUILDPLATFORM=linux/arm64
 
 # ---------------------------------------------------------------------------
 # Stage 1: g4f-go launcher
