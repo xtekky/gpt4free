@@ -12,9 +12,9 @@ long_description = long_description.replace("[!NOTE]", "")
 INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
-    "brotli",
     "pycryptodome",
     "nest-asyncio2",
+    "brotli>=1.2.1",
 ]
 
 EXTRA_REQUIRE = {
