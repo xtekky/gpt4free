@@ -39,21 +39,21 @@ class ToolProvider(RoutingProvider):
 
 
 class KeyedProvider(RoutingProvider):
-    needs_auth = True
+    models_needs_auth = True
 
 
 class UnknownProvider(RoutingProvider):
-    needs_auth = True
+    models_needs_auth = True
 
 
 class FakeAudio(RoutingProvider):
-    needs_auth = True
+    models_needs_auth = True
     default_model = "voice"
     models = ["voice"]
 
 
 class CachedProvider(RoutingProvider):
-    needs_auth = True
+    models_needs_auth = True
     cache_file: Path = None
 
     @classmethod
