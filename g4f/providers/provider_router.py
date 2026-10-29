@@ -304,7 +304,7 @@ class ProviderRouter:
                 return static
 
         cached = cls._models_cache.get(name)
-models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
+        models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
 
         # Cache without TTL: only revalidate when explicitly refreshed
         if cached is not None:
