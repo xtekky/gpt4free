@@ -40,9 +40,8 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - "${SANDBOX_BIND_ADDR:-127.0.0.1}:8080:8080"   # g4f API server + noVNC desktop (custom routes /desktop/, /desktop/websockify)
-      - "${SANDBOX_BIND_ADDR:-127.0.0.1}:5900:5900"   # Xvnc display :0 (direct VNC clients)
-      - "${SANDBOX_BIND_ADDR:-127.0.0.1}:8602:8602"
+      - "${SANDBOX_BIND_ADDR:-0.0.0.0}:8080:8080"   # g4f API server + noVNC desktop (custom routes /desktop/, /desktop/websockify)
+      - "${SANDBOX_BIND_ADDR:-0.0.0.0}:5900:5900"   # Xvnc display :0 (direct VNC clients)
     volumes:
       - ../:/app/gpt4free
     environment:
