@@ -311,7 +311,7 @@ models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
             if refresh:
                 asyncio.create_task(_load())
             return cached
-        
+
         get_models = getattr(provider, "get_models", None)
         if not callable(get_models):
             cls._models_cache[name] = static
