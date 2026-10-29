@@ -62,7 +62,7 @@ class CachedProvider(RoutingProvider):
 
 
 class DiscoveredProvider(RoutingProvider):
-    needs_auth = True
+    models_needs_auth = True
     models = []
     model_aliases = {"delta-alias": "delta"}
 
