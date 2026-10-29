@@ -15,10 +15,6 @@ from .retry_provider import ProviderCircuitBreaker
 import json
 from pathlib import Path
 
-_GLOBAL_MODELS_CACHE_FILE = os.environ.get(
-    "G4F_MODELS_CACHE_FILE",
-    str(Path.home() / ".g4f" / "cache" / "models_cache.json"),
-)
 _MODELS_CACHE_FILE = os.environ.get(
     "G4F_PROVIDER_MODELS_CACHE_FILE",
     str(Path.home() / ".g4f" / "cache" / "provider_models_cache.json"),
@@ -280,6 +276,14 @@ class ProviderRouter:
         name = getattr(provider, "__name__", str(provider))
         static = tuple(_static_models(provider))
         status: ProviderAuthStatus = AuthManager.get_auth_status(provider, api_key)
+        models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
+
+        # Never probe a gateway we have no credentials for.  Static metadata
+        # (including aliases/default_model) is still useful for matching.
+        if models_needs_auth and not status.configured:
+            cls._models_cache[name] = static
+            return static
+
         async def _load():
             try:
                 method = provider.get_models
@@ -300,20 +304,14 @@ class ProviderRouter:
                 return static
 
         cached = cls._models_cache.get(name)
+models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
+
         # Cache without TTL: only revalidate when explicitly refreshed
         if cached is not None:
             if refresh:
                 asyncio.create_task(_load())
             return cached
         
-        models_needs_auth = bool(getattr(provider, "models_needs_auth", False))
-
-        # Never probe a gateway we have no credentials for.  Static metadata
-        # (including aliases/default_model) is still useful for matching.
-        if models_needs_auth and not status.configured:
-            cls._models_cache[name] = static
-            return static
-
         get_models = getattr(provider, "get_models", None)
         if not callable(get_models):
             cls._models_cache[name] = static
