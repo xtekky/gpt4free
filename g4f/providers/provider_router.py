@@ -12,9 +12,24 @@ from .retry_provider import ProviderCircuitBreaker
 
 # Provider model lists are discovered lazily.  The cache keeps a request for an
 # unknown model from hitting every gateway on every call.
+import json
+from pathlib import Path
+
+_GLOBAL_MODELS_CACHE_FILE = os.environ.get(
+    "G4F_MODELS_CACHE_FILE",
+    str(Path.home() / ".g4f" / "cache" / "models_cache.json"),
+)
+_MODELS_CACHE_FILE = os.environ.get(
+    "G4F_PROVIDER_MODELS_CACHE_FILE",
+    str(Path.home() / ".g4f" / "cache" / "provider_models_cache.json"),
+)
+_LATELY_USED_FILE = os.environ.get(
+    "G4F_LATELY_USED_FILE",
+    str(Path.home() / ".g4f" / "cache" / "lately_used.json"),
+)
+DEFAULT_PROBE_TIMEOUT = 4.0
 MODELS_TTL = float(os.environ.get("G4F_PROVIDER_MODELS_TTL", "300"))
 FAILURE_TTL = 60.0
-DEFAULT_PROBE_TIMEOUT = 4.0
 
 # Provider classes that are routing plumbing rather than network backends.
 _SKIP_PROVIDERS = {"AnyProvider", "DefaultProvider", "AgentTools"}
@@ -86,11 +101,67 @@ class ProviderRouter:
     discovery, with a timeout and a cache, so the common path stays fast.
     """
 
-    _models_cache: dict[str, Tuple[float, Tuple[str, ...]]] = {}
+    _models_cache: dict[str, Tuple[Tuple[str, str], ...]] = {}
+    _global_models_cache: dict[str, list[str]] = {}
+    _lately_used: list[dict] = []
 
     @classmethod
-    def reset_cache(cls) -> None:
-        cls._models_cache.clear()
+    def _ensure_dir(cls, path: str) -> None:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def load_caches(cls) -> None:
+        for attr, path in (
+            ("_models_cache", _MODELS_CACHE_FILE),
+            ("_global_models_cache", _GLOBAL_MODELS_CACHE_FILE),
+            ("_lately_used", _LATELY_USED_FILE),
+        ):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                setattr(cls, attr, data if isinstance(data, (dict, list)) else getattr(cls, attr))
+            except FileNotFoundError:
+                cls._ensure_dir(path)
+            except Exception as e:
+                debug.log(f"ProviderRouter: cache load failed {path}: {e}")
+
+    @classmethod
+    def save_caches(cls) -> None:
+        try:
+            cls._ensure_dir(_MODELS_CACHE_FILE)
+            with open(_MODELS_CACHE_FILE, "w", encoding="utf-8") as f:
+                json.dump(cls._models_cache, f)
+            cls._ensure_dir(_GLOBAL_MODELS_CACHE_FILE)
+            with open(_GLOBAL_MODELS_CACHE_FILE, "w", encoding="utf-8") as f:
+                json.dump(cls._global_models_cache, f)
+            cls._ensure_dir(_LATELY_USED_FILE)
+            with open(_LATELY_USED_FILE, "w", encoding="utf-8") as f:
+                json.dump(cls._lately_used, f)
+        except Exception as e:
+            debug.log(f"ProviderRouter: cache save failed: {e}")
+
+    @classmethod
+    def record_used(cls, model: str, provider: str) -> None:
+        entry = {"model": model, "provider": provider, "ts": time.time()}
+        cls._lately_used = [e for e in cls._lately_used if not (e.get("model") == model and e.get("provider") == provider)]
+        cls._lately_used.insert(0, entry)
+        cls._lately_used = cls._lately_used[:50]
+        cls.save_caches()
+
+    @classmethod
+    def lately_used(cls) -> list[dict]:
+        return list(cls._lately_used)
+
+    @classmethod
+    def set_global_models(cls, provider: str, models: list[str]) -> None:
+        cls._global_models_cache[provider] = list(models)
+        cls.save_caches()
+
+    @classmethod
+    def global_models(cls, provider: str = None):
+        if provider is None:
+            return dict(cls._global_models_cache)
+        return cls._global_models_cache.get(provider, [])
 
     @classmethod
     def is_ignored(cls, provider: Type, ignored: Iterable[str] = ()) -> bool:
@@ -214,12 +285,15 @@ class ProviderRouter:
         api_key: Optional[str | dict] = None,
         timeout: float = DEFAULT_PROBE_TIMEOUT,
     ) -> tuple[str, ...]:
-        """Return (and cache) a provider's model list without blocking the loop."""
+        """Return (and cache) a provider's model list without blocking the loop.
+        Each entry is (model_name, provider_name) so callers can show where
+        each model is from."""
         name = getattr(provider, "__name__", str(provider))
         now = time.time()
         cached = cls._models_cache.get(name)
-        if cached and cached[0] > now:
-            return cached[1]
+        # Cache without TTL: only revalidate when explicitly refreshed
+        if cached is not None:
+            return cached
 
         static = tuple(_static_models(provider))
         status: ProviderAuthStatus = AuthManager.get_auth_status(provider, api_key)
@@ -229,15 +303,21 @@ class ProviderRouter:
         # Never probe a gateway we have no credentials for.  Static metadata
         # (including aliases/default_model) is still useful for matching.
         if needs_auth and not status.configured:
-            return static
+            cached = tuple((m, name) for m in static)
+            cls._models_cache[name] = cached
+            return cached
         # Free providers usually advertise a complete static catalogue; skip a
         # network round trip unless there is nothing to match against.
         if not key and static:
-            return static
+            cached = tuple((m, name) for m in static)
+            cls._models_cache[name] = cached
+            return cached
 
         get_models = getattr(provider, "get_models", None)
         if not callable(get_models):
-            return static
+            cached = tuple((m, name) for m in static)
+            cls._models_cache[name] = cached
+            return cached
 
         try:
             method = provider.get_models
@@ -249,12 +329,15 @@ class ProviderRouter:
                     asyncio.to_thread(method, **kwargs), timeout=timeout
                 )
             models = tuple(dict.fromkeys(_as_model_list(result)))
-            cls._models_cache[name] = (now + MODELS_TTL, models)
-            return models
+            cached = tuple((m, name) for m in models)
+            cls._models_cache[name] = cached
+            cls.save_caches()
+            return cached
         except Exception as e:
             debug.log(f"ProviderRouter: model discovery failed for {name}: {e}")
-            cls._models_cache[name] = (now + FAILURE_TTL, static)
-            return static
+            cached = tuple((m, name) for m in static)
+            cls._models_cache[name] = cached
+            return cached
 
     @classmethod
     async def _probe(
@@ -266,7 +349,8 @@ class ProviderRouter:
     ) -> Optional[Tuple[Type, str]]:
         try:
             models = await cls.get_provider_models(provider, api_key, timeout)
-            alias = cls.match_model(provider, model, models)
+            model_names = [m[0] if isinstance(m, tuple) else m for m in models]
+            alias = cls.match_model(provider, model, model_names)
             if alias is None:
                 return None
             if model and alias != model:
@@ -434,3 +518,5 @@ class ProviderRouter:
         # sorted() is stable, so providers with equal scores keep the order
         # supplied by the caller (model map order / discovery order).
         return sorted(unique, key=score, reverse=True)
+
+ProviderRouter.load_caches()

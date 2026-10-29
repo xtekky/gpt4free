@@ -112,6 +112,9 @@ ICONS: dict[str, list[str]] = {
     "iflow": [google("iflow.cn")],
     "vibe": [google("mistral.ai")],
     "sweagent": [google("swe-agent.com")],
+    "dsh": [google("deepseek.com"), github("deepseek-ai")],
+    "paseo": [google("paseo.sh"), github("getpaseo")],
+    "t3code": [google("t3.codes"), github("pingdotgg")],
     # Gateways
     "omniroute": [google("omniroute.online")],
     "litellm": [google("litellm.ai")],

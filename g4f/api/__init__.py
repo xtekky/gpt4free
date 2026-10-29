@@ -941,6 +941,20 @@ class Api:
             if self._models_cache is not None and (now - self._models_cache_time) < 300:
                 return self._models_cache
 
+            models_list = list(AnyProvider.get_models())
+            # Drop outdated / irrelevant entries; prefer top g4f.space models.
+            try:
+                from g4f.Provider import ProviderLoader
+                from g4f.providers.provider_router import ProviderRouter
+                G4FSpace = ProviderLoader.from_name("G4FSpace")
+                # Load G4FSpace models from cache or network, with provider info
+                space_models = await ProviderRouter.get_provider_models(G4FSpace)
+                if space_models:
+                    # Each entry is (model_name, provider_name) tuple
+                    space_model_names = [m[0] if isinstance(m, tuple) else m for m in space_models]
+                    models_list = space_model_names + [m for m in models_list if m not in space_model_names]
+            except Exception as e:
+                debug.log(f"models: failed to load G4FSpace models: {e}")
             result = {
                 "object": "list",
                 "data": [
@@ -951,22 +965,8 @@ class Api:
                         "owned_by": "",
                         "image": isinstance(model, g4f.models.ImageModel),
                         "vision": isinstance(model, g4f.models.VisionModel),
-                        "provider": False,
                     }
-                    for model in AnyProvider.get_models()
-                ]
-                + [
-                    {
-                        "id": provider_name,
-                        "object": "model",
-                        "created": 0,
-                        "owned_by": getattr(provider, "label", ""),
-                        "image": bool(getattr(provider, "image_models", False)),
-                        "vision": bool(getattr(provider, "vision_models", False)),
-                        "provider": True,
-                    }
-                    for provider_name, provider in ProviderUtils.convert.items()
-                    if provider.working
+                    for model in models_list
                 ],
             }
             self._models_cache = result
@@ -1251,6 +1251,11 @@ class Api:
 
                 if not config.stream:
                     result = await response
+                    try:
+                        from g4f.providers.provider_router import ProviderRouter
+                        ProviderRouter.record_used(config.model or AppConfig.model, getattr(provider, "__name__", str(provider)))
+                    except Exception:
+                        pass
                     trace.record_output(result)
                     trace.finish()
                     return Response(
@@ -1420,6 +1425,11 @@ class Api:
 
                 if not config.stream:
                     result = await response
+                    try:
+                        from g4f.providers.provider_router import ProviderRouter
+                        ProviderRouter.record_used(config.model or AppConfig.model, getattr(provider, "__name__", str(provider)))
+                    except Exception:
+                        pass
                     trace.record_output(result)
                     trace.finish()
                     text = result.choices[0].message.content if result.choices else ""
@@ -1605,6 +1615,11 @@ class Api:
 
                 if not config.stream:
                     result = await response
+                    try:
+                        from g4f.providers.provider_router import ProviderRouter
+                        ProviderRouter.record_used(config.model or AppConfig.model, getattr(provider, "__name__", str(provider)))
+                    except Exception:
+                        pass
                     trace.record_output(result)
                     trace.finish()
                     text = result.choices[0].message.content if result.choices else ""

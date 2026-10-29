@@ -19,6 +19,7 @@
 ARG GO_BUILDER=golang:1.25-bookworm
 ARG NODE_IMAGE=node:24-bookworm-slim
 ARG SANDBOX_BASE=debian:trixie-slim
+ARG BUILDPLATFORM=linux/arm64
 
 # ---------------------------------------------------------------------------
 # Stage 1: g4f-go launcher
@@ -240,8 +241,21 @@ RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
 # untouched. It verifies each patch, so a changed noVNC layout fails the build.
 COPY docker/novnc-index.html /usr/share/novnc/index.html
 COPY docker/g4f.svg /usr/share/novnc/g4f.svg
+RUN chmod 0775 /usr/share/novnc/ -R
 RUN novnc-brand.sh
 
+# Create the unprivileged sandbox user BEFORE the runtime install, so g4f-go
+# materializes /home/pn/.g4f and every pip package as `pn` from the start --
+# no root-owned runtime dir and no later chown pass. Desktop processes (Xvnc,
+# Xfce and the menu's Chrome) run as `pn`: Chrome refuses to run as root
+# without --no-sandbox and the AT-SPI bus wants a real user session. `pn` may
+# sudo. Its uid (and matching gid) comes from G4F_USER_ID, so the host user can
+# own the bind-mounted home.
+RUN groupadd --gid "${G4F_USER_ID}" pn && \
+    useradd --create-home --uid "${G4F_USER_ID}" --gid pn --shell /bin/bash pn && \
+    echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudoers.d/pn && \
+    mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && \
+    mkdir -p /tmp/sandbox-runtime && chown pn:pn /tmp/sandbox-runtime && chmod 0700 /tmp/sandbox-runtime
 
 # g4f-go owns the interpreter and the g4f install. The launcher built in the
 # g4f-go-builder stage goes on PATH, then g4f-go materializes its runtime
@@ -271,28 +285,36 @@ RUN novnc-brand.sh
 # g4f-go (not the pip symlink) lands it in the embedded runtime's own
 # site-packages with the launcher's PYTHONHOME/PYTHONNOUSERSITE env.
 COPY --from=g4f-go-builder /out/g4f-go /usr/local/bin/g4f-go
+RUN chmod 0755 /usr/local/bin/g4f-go
 WORKDIR ${G4F_DIR}
 COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} setup.py README.md MANIFEST.in ${G4F_DIR}/gpt4free/
 COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} g4f ${G4F_DIR}/gpt4free/g4f
-RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
-    g4f-go -v latest && \
-    g4f-go install setuptools wheel websockets "pillow>=10" && \
-    g4f-go install --force-reinstall --no-deps -e ${G4F_DIR}/gpt4free/ && \
-    printf '%s\n' "${G4F_VERSION}" \
-        > "${G4F_CONFIG_DIR}/python-embed/.g4f-runtime/.g4f-version" && \
-    g4f-go -m g4f --help && \
-    "${G4F_CONFIG_DIR}/python-embed/python" \
-        -c "import g4f.api.vnc_relay; from g4f.client import Client; from PIL import ImageGrab; print('g4f + vnc relay + pillow ok')" && \
-    "${G4F_CONFIG_DIR}/python-embed/python" \
-        -c "from g4f.api.domain_router import hosts_entries; print('domain router ok:', len(hosts_entries()), 'hosts')" && \
-    g4f-go status && \
-    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python3 && \
+# Docker creates implicitly-created parent dirs as root; pip's editable install
+# writes g4f.egg-info into the project dir, so hand the whole tree to `pn`.
+RUN chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_DIR}/gpt4free"
+
+# Run the installs as the unprivileged user: the embedded CPython, the g4f
+# deps and this checkout's editable g4f all land under /home/pn/.g4f, which
+# `pn` owns, so the runtime is writable by the same user the API runs as.
+# HOME is passed explicitly because a USER switch alone is not guaranteed to
+# update it; the root steps that follow keep the image's default HOME so they
+# never create root-owned cache files inside /home/pn.
+USER pn
+RUN HOME=/home/pn g4f-go --version && \
+    HOME=/home/pn g4f-go -v latest && \
+    HOME=/home/pn g4f-go status
+
+# Back to root for the steps that write outside the user's home: the
+# python3/pip symlinks live in root-owned /usr/local/bin, and the icon steps
+# below write to /usr/share. The runtime installed above stays owned by `pn`,
+# so nothing needs re-chowning.
+USER root
+RUN ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python3 && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip3 && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip && \
     python3 -c "import sys; print('python3 ->', sys.executable)" && \
-    pip --version && \
-    chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_CONFIG_DIR}"
+    pip --version
 
 # Animated g4f terminal wallpaper. The entrypoint opens it in a maximized
 # xfce4-terminal at desktop start; the g4f-sandbox-wallpaper menu entry can
@@ -315,20 +337,9 @@ RUN python3 -c "compile(open('/usr/local/bin/g4f-livewall').read(), 'g4f-livewal
 # visible to GTK without a directory rescan.
 RUN fetch-icons.py && gtk-update-icon-cache -f -t /usr/share/icons/hicolor
 
-# The container runs as root, so existing docker_image users see no ownership or
-# PATH change. Desktop processes (Xvnc, Xfce, and the menu's Chrome) run as the
-# unprivileged `pn` user: Chrome refuses to run as root without --no-sandbox and
-# the AT-SPI bus wants a real user session. `pn` may sudo. Its uid (and matching
-# gid) comes from G4F_USER_ID, so the host user can own the bind-mounted home.
-# The g4f-go step above already created /home/pn (as root) to hold the runtime,
-# so useradd only warns about the existing home and leaves it root-owned; the
-# chown restores ownership for the unprivileged user.
-RUN groupadd --gid "${G4F_USER_ID}" pn && \
-    useradd --create-home --uid "${G4F_USER_ID}" --gid pn --shell /bin/bash pn && \
-    chown "${G4F_USER_ID}:${G4F_USER_ID}" /home/pn && \
-    echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn && chmod 0440 /etc/sudoers.d/pn && \
-    mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix && \
-    mkdir -p /tmp/sandbox-runtime && chown pn:pn /tmp/sandbox-runtime && chmod 0700 /tmp/sandbox-runtime
+# The `pn` user (and /tmp/.X11-unix + /tmp/sandbox-runtime) was created before
+# the g4f-go install above, so the runtime and packages it wrote are already
+# owned by `pn` and no post-install chown is needed.
 
 # ~/.local/bin first: sandbox-cli drops a `google-chrome` wrapper there that
 # always passes --no-sandbox (see link_chrome_no_sandbox), and both
@@ -363,6 +374,7 @@ EXPOSE 8080 5900
 RUN bash -n /usr/local/bin/sandbox-firewall.sh && \
     bash -n /usr/local/bin/sandbox-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]
+ENV HOME=/home/pn
 USER pn
 # The tray is the container's main process: it starts the g4f API as a child
 # and exposes Restart Server, Update/Change g4f Package, Set API Key and a log

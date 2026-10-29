@@ -50,6 +50,8 @@ BIND_ADDR="${SANDBOX_BIND_ADDR:-127.0.0.1}"
 BLOCK_LOCAL_NETWORK="${SANDBOX_BLOCK_LOCAL_NETWORK:-1}"
 # uid of the unprivileged sandbox user; must match the image's G4F_USER_ID.
 USER_ID="${G4F_USER_ID:-1000}"
+# 1 = install this checkout as an editable g4f; 0 (default) = PyPI g4f only.
+INSTALL_LOCAL="${G4F_INSTALL_LOCAL:-0}"
 DETACH=0
 BUILD=0
 PULL=0
@@ -84,6 +86,8 @@ Options:
       --bind ADDR     Host address to publish the ports on (default: $BIND_ADDR)
       --vnc-port PORT Direct VNC display port (default: $VNC_PORT)
       --user-id UID   uid for the sandbox user (default: $USER_ID)
+      --local-g4f     Install this checkout as an editable g4f
+      --no-local-g4f  Use the PyPI g4f only (default)
       --allow-local-network  Let the sandbox reach private/link-local networks
       --no-desktop    Disable desktop GUI stack, run API only (SANDBOX_DESKTOP=0)
       --image IMAGE   Specify Docker image (default: $IMAGE)
@@ -158,6 +162,14 @@ while [ $# -gt 0 ]; do
             USER_ID="${1#*=}"
             shift
             ;;
+        --local-g4f)
+            INSTALL_LOCAL=1
+            shift
+            ;;
+        --no-local-g4f)
+            INSTALL_LOCAL=0
+            shift
+            ;;
         --image)
             [ $# -ge 2 ] || die "$1 requires an argument"
             IMAGE="$2"
@@ -230,6 +242,10 @@ case "$BLOCK_LOCAL_NETWORK" in
     0|1) ;;
     *) die "SANDBOX_BLOCK_LOCAL_NETWORK must be 0 or 1: $BLOCK_LOCAL_NETWORK" ;;
 esac
+case "$INSTALL_LOCAL" in
+    0|1) ;;
+    *) die "G4F_INSTALL_LOCAL must be 0 or 1: $INSTALL_LOCAL" ;;
+esac
 
 # Find docker CLI
 DOCKER_BIN=""
@@ -292,8 +308,8 @@ case "$ACTION" in
         ;;
 
     build)
-        log "building sandbox desktop image: $IMAGE (user id $USER_ID)..."
-        "$DOCKER_BIN" build --build-arg "G4F_USER_ID=$USER_ID" -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT"
+        log "building sandbox desktop image: $IMAGE (user id $USER_ID, local g4f: $INSTALL_LOCAL)..."
+        "$DOCKER_BIN" build --build-arg "G4F_USER_ID=$USER_ID" --build-arg "G4F_INSTALL_LOCAL=$INSTALL_LOCAL" -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT"
         log "build finished: $IMAGE"
         exit 0
         ;;
@@ -314,11 +330,13 @@ case "$ACTION" in
         fi
 
         # Check if image exists; build if missing or if it was built for a
-        # different uid. G4F_USER_ID is recorded in the image environment by the
-        # Dockerfile, so an existing image can be checked without running it.
+        # different uid or local-g4f mode. G4F_USER_ID and G4F_INSTALL_LOCAL are
+        # recorded in the image environment by the Dockerfile, so an existing
+        # image can be checked without running it.
         if [ "$PULL" -eq 0 ] && "$DOCKER_BIN" image inspect "$IMAGE" >/dev/null 2>&1; then
-            image_user_id="$("$DOCKER_BIN" image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$IMAGE" 2>/dev/null \
-                | sed -n 's/^G4F_USER_ID=//p' | tail -n 1)"
+            image_env="$("$DOCKER_BIN" image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$IMAGE" 2>/dev/null)"
+            image_user_id="$(printf '%s\n' "$image_env" | sed -n 's/^G4F_USER_ID=//p' | tail -n 1)"
+            image_install_local="$(printf '%s\n' "$image_env" | sed -n 's/^G4F_INSTALL_LOCAL=//p' | tail -n 1)"
             if [ -n "$image_user_id" ] && [ "$image_user_id" != "$USER_ID" ]; then
                 log "image '$IMAGE' was built for user id $image_user_id; rebuilding for $USER_ID"
                 BUILD=1
@@ -326,11 +344,15 @@ case "$ACTION" in
                 log "image '$IMAGE' does not record its user id; rebuilding for $USER_ID"
                 BUILD=1
             fi
+            if [ -n "$image_install_local" ] && [ "$image_install_local" != "$INSTALL_LOCAL" ]; then
+                log "image '$IMAGE' was built with G4F_INSTALL_LOCAL=$image_install_local; rebuilding with $INSTALL_LOCAL"
+                BUILD=1
+            fi
         fi
         if [ "$BUILD" -eq 1 ] || ! "$DOCKER_BIN" image inspect "$IMAGE" >/dev/null 2>&1; then
             if [ "$PULL" -eq 0 ]; then
                 log "image '$IMAGE' not found locally (or --build specified); building from $DOCKERFILE..."
-                "$DOCKER_BIN" build --build-arg "G4F_USER_ID=$USER_ID" -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT" || die "failed to build $IMAGE"
+                "$DOCKER_BIN" build --build-arg "G4F_USER_ID=$USER_ID" --build-arg "G4F_INSTALL_LOCAL=$INSTALL_LOCAL" -f "$DOCKERFILE" -t "$IMAGE" "$REPO_ROOT" || die "failed to build $IMAGE"
             fi
         fi
 

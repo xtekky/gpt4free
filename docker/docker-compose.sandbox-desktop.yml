@@ -29,6 +29,9 @@ services:
       args:
         # Match the host uid to avoid permission problems on bind mounts.
         G4F_USER_ID: ${G4F_USER_ID:-1000}
+        # 1 = install this checkout as an editable g4f (serves the repo code);
+        # 0 (default) = keep only the PyPI g4f that g4f-go installs.
+        G4F_INSTALL_LOCAL: ${G4F_INSTALL_LOCAL:-0}
     container_name: g4f-sandbox-desktop
     hostname: sandbox
     init: true

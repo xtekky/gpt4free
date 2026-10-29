@@ -227,7 +227,6 @@ def run_tray(
     server_command: Optional[Sequence[str]] = None,
     server_env: Optional[EnvSource] = None,
     api_key: Optional[str] = None,
-    on_set_api_key: Optional[Callable[[], object]] = None,
     on_update_package: Optional[Callable[[], object]] = None,
     on_change_package: Optional[Callable[[], object]] = None,
     package_label: str = "g4f package",
@@ -253,8 +252,10 @@ def run_tray(
         Extra environment for the server. A callable is consulted on every
         start, so settings changed through the menu take effect on restart.
     api_key : str, optional
-        Shorthand for ``server_env={"G4F_API_KEY": api_key}``.
-    on_set_api_key, on_update_package, on_change_package : callable, optional
+        Shorthand for ``server_env={"G4F_API_KEY": api_key}``. The key is
+        passed to the server; the tray intentionally has no key editor, so a
+        host application can keep the key in its own settings UI.
+    on_update_package, on_change_package : callable, optional
         Menu actions. They normally open a terminal prompt and return when the
         user closes it; the server is restarted afterwards. Omit an action to
         hide its menu item.
@@ -341,10 +342,6 @@ def run_tray(
         manager.stop()
         icon.stop()
 
-    def on_set_api_key_click(icon, item):
-        if on_set_api_key is not None:
-            run_action(icon, on_set_api_key)
-
     def on_update_package_click(icon, item):
         if on_update_package is not None:
             run_action(icon, on_update_package)
@@ -381,11 +378,6 @@ def run_tray(
                     f"Change {package_label} Version...", on_change_package_click
                 )
             )
-    if on_set_api_key is not None:
-        items.append(pystray.Menu.SEPARATOR)
-        items.append(
-            pystray.MenuItem("Set API Key...", on_set_api_key_click)
-        )
     items.extend(
         [
             pystray.Menu.SEPARATOR,

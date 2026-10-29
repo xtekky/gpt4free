@@ -35,23 +35,21 @@ PROVIDERS_LIST_2 = [
     "OpenaiChat",
     "CopilotApp",
     "Pollinations",
-    "Perplexity",
     "Gemini",
     "Grok",
     "Qwen",
     "GLM",
     "OpenRouterFree",
-    "Arena",
     "Puter",
-    "HuggingFaceMedia",
 ]
+
 
 # Add all models to the model map
 PROVIDERS_LIST_3 = [
     "DeepInfra",
     "HuggingFace",
-    "HuggingSpace",
 ]
+
 
 LABELS = {
     "default": "Default",

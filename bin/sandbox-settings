@@ -1,0 +1,1079 @@
+#!/usr/bin/env python3
+"""Interactive settings editor for the g4f sandbox.
+
+The desktop menu entries cannot export environment variables, so the model,
+API key, HOME, provider and proxy are kept in a small file under the real
+home.  ``sandbox-cli settings`` used to ask five line-based questions; this
+script adds a proper full-screen editor with the things that were missing
+from that prompt:
+
+* every value shows where it comes from (environment override, saved file or
+  the built-in default), so a change that will not take effect is obvious;
+* fields are validated before they are written (absolute HOME, proxy URL,
+  provider name, no whitespace in the key);
+* the API key is never echoed, can be revealed on demand, generated securely
+  and cleared without retyping the other values;
+* saving is atomic and keeps the file mode 0600;
+* the running tray is asked to restart the API, so the server and the menu
+  launchers use the saved key immediately;
+* "Test connection" checks the saved key against the running API;
+* unknown keys in the file are preserved.
+
+It is deliberately stdlib-only (curses), so it works in the embedded Python
+the sandbox ships.  The command is installed as ``sandbox-settings`` next to
+``sandbox-cli``; ``sandbox-cli settings`` falls back to the old line prompt
+when curses or a terminal is unavailable.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pwd
+import secrets
+import stat
+import sys
+import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+CLI_NAME = "sandbox-cli"
+DEFAULT_PORT = 8080
+TIMEOUT = 2.0
+FIFO_GLOB = "/tmp/g4f-tray-*.fifo"
+
+# Sentinel used while reading the settings file.
+MISSING = object()
+# Returned by the inline editor when the user presses Ctrl-D.
+CLEAR = object()
+
+
+@dataclass(frozen=True)
+class Field:
+    attr: str
+    key: str
+    override: str
+    ambient: str
+    label: str
+    help_text: str
+    secret: bool = False
+    default_label: str = "(default)"
+    placeholder: str = ""
+
+
+FIELDS: Tuple[Field, ...] = (
+    Field(
+        "model",
+        "G4F_MODEL",
+        "G4F_SANDBOX_MODEL",
+        "G4F_MODEL",
+        "Model",
+        "Model id passed to the g4f API and used as the launchers' default. "
+        "Empty lets g4f choose (the launchers still expose \"auto\").",
+        placeholder="(server default / auto)",
+    ),
+    Field(
+        "api_key",
+        "G4F_API_KEY",
+        "G4F_SANDBOX_API_KEY",
+        "G4F_API_KEY",
+        "API key",
+        "Bearer token required by the API and sent by the launchers. "
+        "Empty disables authentication.",
+        secret=True,
+        default_label="(no authentication)",
+        placeholder="(no authentication)",
+    ),
+    Field(
+        "home",
+        "SANDBOX_HOME",
+        "G4F_SANDBOX_HOME",
+        "HOME",
+        "HOME",
+        "HOME for every menu entry; agents keep their config and caches here. "
+        "Must be an absolute path.",
+        default_label="(real home)",
+        placeholder="(real home)",
+    ),
+    Field(
+        "provider",
+        "G4F_PROVIDER",
+        "G4F_SANDBOX_PROVIDER",
+        "G4F_PROVIDER",
+        "Provider",
+        "g4f provider to pin. Empty keeps g4f's own rotation. "
+        "Use the provider name only, not \"Provider:model\".",
+        default_label="(g4f rotation)",
+        placeholder="(g4f rotation)",
+    ),
+    Field(
+        "proxy",
+        "SANDBOX_PROXY",
+        "G4F_SANDBOX_PROXY",
+        "G4F_PROXY",
+        "Proxy",
+        "HTTP(S)/SOCKS proxy for the agents and g4f, e.g. "
+        "http://127.0.0.1:8081. Empty connects directly.",
+        default_label="(direct)",
+        placeholder="(direct)",
+    ),
+)
+
+KNOWN_KEYS = tuple(field.key for field in FIELDS)
+FIELD_BY_ATTR = {field.attr: field for field in FIELDS}
+FIELD_BY_KEY = {field.key: field for field in FIELDS}
+
+
+def real_home() -> Path:
+    """Return the passwd home, never the possibly overridden $HOME."""
+    try:
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (KeyError, OSError):
+        return Path(os.path.expanduser("~"))
+
+
+def default_settings_file() -> Path:
+    override = os.environ.get("G4F_SANDBOX_ENV")
+    if override:
+        return Path(override).expanduser()
+    return real_home() / ".config" / "g4f-sandbox" / "env"
+
+
+def mask_secret(value: str) -> str:
+    if not value:
+        return "(not set)"
+    return "******** (%s characters)" % len(value)
+
+
+def generate_key() -> str:
+    """Return a new URL-safe key (43 characters, 256 bits of entropy)."""
+    return secrets.token_urlsafe(32)
+
+
+class SettingsStore:
+    """Read and write the env-style settings file atomically."""
+
+    def __init__(self, path: Optional[Path] = None) -> None:
+        self.path = Path(path) if path is not None else default_settings_file()
+
+    def exists(self) -> bool:
+        return self.path.is_file()
+
+    def load(self) -> Dict[str, str]:
+        values: Dict[str, str] = {}
+        try:
+            lines = self.path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return values
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            values[key.strip()] = value
+        return values
+
+    def save(self, values: Dict[str, str]) -> None:
+        """Write known fields and preserve any unknown KEY=value lines."""
+        parent = self.path.parent
+        parent.mkdir(parents=True, exist_ok=True)
+        extras = {
+            key: value
+            for key, value in self.load().items()
+            if key not in KNOWN_KEYS
+        }
+        lines = [
+            "# g4f sandbox settings — written by: sandbox-cli settings",
+            "# Read by the menu launchers (HOME, proxy, API key) and the g4f-aware",
+            "# ones (OpenCode, Copilot, Hermes, LibreChat, assistant-ui).",
+        ]
+        for field in FIELDS:
+            lines.append("%s=%s" % (field.key, values.get(field.attr, "")))
+        for key, value in extras.items():
+            lines.append("%s=%s" % (key, value))
+        text = "\n".join(lines) + "\n"
+
+        fd, temp_name = tempfile.mkstemp(
+            prefix=".env.", dir=str(parent), text=True
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(text)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.chmod(temp_name, stat.S_IRUSR | stat.S_IWUSR)
+            os.replace(temp_name, self.path)
+        except Exception:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
+            raise
+        # The replace keeps the mode of the temporary file, but do it again
+        # for filesystems where mkstemp's mode is inherited differently.
+        try:
+            os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
+        except OSError:
+            pass
+
+    def delete(self) -> bool:
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            return False
+        except OSError:
+            return False
+        return True
+
+
+def _effective(
+    field: Field, saved: Dict[str, str]
+) -> Tuple[str, str]:
+    """Return (value, source description) following sandbox-cli precedence."""
+    override = os.environ.get(field.override, MISSING)
+    if override is not MISSING:
+        # The API key override is meaningful even when empty: it disables auth.
+        if field.secret or override:
+            return str(override), "environment"
+    if field.key in saved:
+        value = saved[field.key]
+        if field.secret:
+            return value, "settings file" if value else "authentication off"
+        if value:
+            return value, "settings file"
+    if field.attr == "home":
+        value = os.environ.get("HOME", "") or str(real_home())
+        return value, "environment" if os.environ.get("HOME") else "default HOME"
+    value = os.environ.get(field.ambient, "")
+    if value:
+        return value, "environment"
+    return "", field.default_label
+
+
+def validate_field(field: Field, value: str) -> Optional[str]:
+    """Return an error message, or None when the value is acceptable."""
+    if "\x00" in value or "\n" in value or "\r" in value:
+        return "%s must be a single line" % field.label
+    if not value:
+        return None
+    if field.attr == "home":
+        if not os.path.isabs(value):
+            return "HOME must be an absolute path (for example /home/pn/work)"
+        return None
+    if field.attr == "proxy":
+        parsed = urllib.parse.urlparse(value)
+        if parsed.scheme.lower() not in (
+            "http",
+            "https",
+            "socks4",
+            "socks4a",
+            "socks5",
+            "socks5h",
+        ):
+            return "Proxy must start with http://, https:// or socks5://"
+        if not parsed.netloc:
+            return "Proxy needs a host, for example http://127.0.0.1:8081"
+        return None
+    if field.attr == "provider":
+        if ":" in value:
+            return "Provider is the name only; put the model in the Model field"
+        if any(char.isspace() for char in value):
+            return "Provider must not contain whitespace"
+        return None
+    if field.attr == "model":
+        if value != value.strip():
+            return "Model must not start or end with whitespace"
+        if any(char.isspace() for char in value):
+            return "Model must not contain whitespace"
+        return None
+    if field.attr == "api_key":
+        if any(char.isspace() for char in value):
+            return "API key must not contain whitespace"
+        return None
+    return None
+
+
+def validate_values(values: Dict[str, str]) -> Dict[str, str]:
+    errors: Dict[str, str] = {}
+    for field in FIELDS:
+        error = validate_field(field, values.get(field.attr, ""))
+        if error:
+            errors[field.attr] = error
+    return errors
+
+
+def _proxy_bypass_opener() -> urllib.request.OpenerDirector:
+    """Ignore HTTP_PROXY for loopback requests to the sandbox API."""
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _candidate_urls() -> List[str]:
+    configured = os.environ.get("G4F_API_BASE_URL", "").strip()
+    if configured:
+        bases = [configured]
+    else:
+        ports: List[int] = []
+        try:
+            ports.append(int(os.environ.get("G4F_API_PORT", DEFAULT_PORT)))
+        except ValueError:
+            ports.append(DEFAULT_PORT)
+        for port in (DEFAULT_PORT, 9090):
+            if port not in ports:
+                ports.append(port)
+        bases = ["http://127.0.0.1:%s/v1" % port for port in ports]
+    return [base.rstrip("/") for base in bases]
+
+
+def probe_server(
+    api_key: str, base_url: Optional[str] = None
+) -> Tuple[Optional[str], Optional[int], Optional[str]]:
+    """Check the API with ``api_key``.
+
+    Returns ``(base_url, model_count, error)``.  A successful request has no
+    error and a model count (or ``None`` when the response has no model list).
+    """
+    candidates = [base_url.rstrip("/")] if base_url else _candidate_urls()
+    opener = _proxy_bypass_opener()
+    last_error: Optional[str] = None
+    for base in candidates:
+        request = urllib.request.Request(base + "/models")
+        if api_key:
+            request.add_header("Authorization", "Bearer " + api_key)
+        try:
+            with opener.open(request, timeout=TIMEOUT) as response:
+                body = response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code in (401, 403):
+                return base, None, "API key rejected (HTTP %s)" % exc.code
+            last_error = "HTTP %s from %s" % (exc.code, base)
+            continue
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            last_error = str(getattr(exc, "reason", exc))
+            continue
+        try:
+            payload = json.loads(body.decode("utf-8", "replace"))
+        except (ValueError, UnicodeError) as exc:
+            last_error = "invalid JSON from %s (%s)" % (base, exc)
+            continue
+        models = payload.get("data") if isinstance(payload, dict) else None
+        count = len(models) if isinstance(models, list) else None
+        return base, count, None
+    return None, None, last_error or "the g4f API is not reachable"
+
+
+def restart_tray_server() -> bool:
+    """Ask a running sandbox-tray to restart its API child."""
+    requested = False
+    for path in _tray_fifos():
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_NONBLOCK)
+        except OSError:
+            continue
+        try:
+            os.write(fd, b"restart\n")
+            requested = True
+        except OSError:
+            pass
+        finally:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+    return requested
+
+
+def _tray_fifos() -> List[str]:
+    import glob
+
+    fifos: List[str] = []
+    for path in glob.glob(FIFO_GLOB):
+        try:
+            info = os.stat(path)
+        except OSError:
+            continue
+        if stat.S_ISFIFO(info.st_mode) and info.st_uid == os.getuid():
+            fifos.append(path)
+    return fifos
+
+
+# ---------------------------------------------------------------------------
+# Curses UI
+# ---------------------------------------------------------------------------
+
+
+class SettingsApp:
+    """A small full-screen editor for the five settings."""
+
+    ACTIONS = (
+        ("save", "Save changes", "Write the file and restart the API"),
+        ("test", "Test saved connection", "Check the saved key against the API"),
+        ("restart", "Restart server", "Ask the tray to restart the API"),
+        ("reset", "Reset to defaults", "Delete the saved settings file"),
+        ("quit", "Quit", "Leave without saving unsaved changes"),
+    )
+
+    def __init__(self, store: SettingsStore) -> None:
+        self.store = store
+        self.saved = store.load()
+        self.draft = {field.attr: self.saved.get(field.key, "") for field in FIELDS}
+        # The key is special: an empty saved value means "no authentication",
+        # so it must not be confused with "no key line at all". When the file
+        # has no key yet, start from the ambient/override key; saving a model
+        # then keeps an existing shell key instead of silently disabling auth.
+        if "G4F_API_KEY" not in self.saved:
+            self.draft["api_key"] = _effective(
+                FIELD_BY_ATTR["api_key"], self.saved
+            )[0].strip()
+        self.original = dict(self.draft)
+        self.selected = 0
+        self.reveal = False
+        self.message = ""
+        self.message_style = 0
+        self.running = True
+        self.colors = False
+
+    # -- state helpers --------------------------------------------------
+
+    def dirty(self) -> bool:
+        return self.draft != self.original
+
+    def rows(self) -> List[Tuple[str, object]]:
+        rows: List[Tuple[str, object]] = [("field", field) for field in FIELDS]
+        rows.append(("spacer", None))
+        rows.extend(("action", action) for action in self.ACTIONS)
+        return rows
+
+    def set_message(self, text: str, error: bool = False) -> None:
+        self.message = text
+        self.message_style = 2 if error else 1
+
+    def move(self, delta: int) -> None:
+        rows = self.rows()
+        index = self.selected
+        for _ in range(len(rows)):
+            index = (index + delta) % len(rows)
+            if rows[index][0] != "spacer":
+                self.selected = index
+                return
+
+    def select_field(self, attr: str) -> None:
+        for index, (kind, item) in enumerate(self.rows()):
+            if kind == "field" and item.attr == attr:  # type: ignore[union-attr]
+                self.selected = index
+                return
+
+    def saved_effective(self, field: Field) -> Tuple[str, str]:
+        return _effective(field, self.saved)
+
+    def display_source(self, field: Field) -> str:
+        value, source = self.saved_effective(field)
+        if self.dirty_field(field):
+            return "unsaved"
+        return source
+
+    def dirty_field(self, field: Field) -> bool:
+        return self.draft.get(field.attr, "") != self.original.get(field.attr, "")
+
+    def display_value(self, field: Field) -> str:
+        value = self.draft.get(field.attr, "")
+        if field.secret:
+            if self.reveal and value:
+                return value
+            if value:
+                return mask_secret(value)
+            return field.placeholder
+        return value or field.placeholder
+
+    # -- rendering ------------------------------------------------------
+
+    def _attr(self, pair: int, fallback: int = 0) -> int:
+        return self.colors and pair or fallback
+
+    def draw(self, stdscr) -> None:
+        try:
+            stdscr.erase()
+            height, width = stdscr.getmaxyx()
+            if height < 22 or width < 62:
+                self._addstr(
+                    stdscr,
+                    0,
+                    0,
+                    "Terminal too small: resize to at least 62x22.",
+                    curses.A_BOLD,
+                    width,
+                )
+                stdscr.refresh()
+                return
+
+            title = " g4f Sandbox Settings "
+            self._addstr(
+                stdscr, 0, 0, title.center(width), self._attr(4, curses.A_REVERSE), width
+            )
+            path = str(self.store.path)
+            if len(path) > width - 10:
+                path = "..." + path[-(width - 13) :]
+            self._addstr(
+                stdscr,
+                1,
+                2,
+                "File: " + path,
+                curses.A_DIM,
+                width - 2,
+            )
+            state = "saved" if self.store.exists() else "not created yet (defaults)"
+            if self.dirty():
+                state += "  •  unsaved changes"
+            self._addstr(
+                stdscr, 2, 2, "State: " + state, self._attr(3, curses.A_DIM), width - 2
+            )
+            self._addstr(
+                stdscr,
+                3,
+                2,
+                "Changes apply to the API server and every g4f-aware launcher.",
+                curses.A_DIM,
+                width - 2,
+            )
+
+            row = 5
+            for index, (kind, item) in enumerate(self.rows()):
+                if kind == "spacer":
+                    row += 1
+                    continue
+                selected = index == self.selected
+                marker = ">" if selected else " "
+                if kind == "field":
+                    field = item  # type: ignore[assignment]
+                    label = "%-9s" % (field.label + ":")
+                    value = self.display_value(field)
+                    source = self.display_source(field)
+                    text = "%s %s %-28s" % (marker, label, value)
+                    if self.dirty_field(field):
+                        text += " *"
+                    self._addstr(
+                        stdscr,
+                        row,
+                        2,
+                        text,
+                        self._attr(1, curses.A_BOLD if selected else 0),
+                        width - 2,
+                    )
+                    if width >= 82 and not selected:
+                        self._addstr(
+                            stdscr,
+                            row,
+                            min(width - len(source) - 2, 54),
+                            source,
+                            curses.A_DIM,
+                            width - 2,
+                        )
+                else:
+                    action = item  # type: ignore[assignment]
+                    self._addstr(
+                        stdscr,
+                        row,
+                        2,
+                        "%s %s" % (marker, action[1]),
+                        self._attr(1, curses.A_BOLD if selected else 0),
+                        width - 2,
+                    )
+                    if width >= 82:
+                        self._addstr(
+                            stdscr,
+                            row,
+                            min(width - len(action[2]) - 2, 54),
+                            action[2],
+                            curses.A_DIM,
+                            width - 2,
+                        )
+                row += 1
+
+            effective_top = height - 9
+            if effective_top >= row + 1:
+                self._addstr(
+                    stdscr,
+                    effective_top,
+                    2,
+                    "Effective values (what the launchers/server use):",
+                    curses.A_DIM,
+                    width - 2,
+                )
+                for offset, field in enumerate(FIELDS, 1):
+                    _value, source = self.saved_effective(field)
+                    value = self.saved.get(field.key, "")
+                    if field.secret:
+                        shown = "set" if value else "off"
+                    else:
+                        shown = value or field.placeholder
+                    line = "  %-9s %-30s %s" % (field.label, shown, source)
+                    self._addstr(
+                        stdscr,
+                        effective_top + offset,
+                        2,
+                        line,
+                        curses.A_DIM,
+                        width - 2,
+                    )
+
+            help_text = (
+                "↑/↓ move  Enter edit  s save  t test  r restart  "
+                "R reset  g key  v reveal  c clear  q quit"
+            )
+            self._addstr(
+                stdscr,
+                height - 2,
+                1,
+                help_text[: width - 2],
+                curses.A_DIM,
+                width - 2,
+            )
+            style = self._attr(2, curses.A_BOLD) if self.message_style == 2 else (
+                self._attr(3, curses.A_DIM) if self.message_style == 1 else curses.A_DIM
+            )
+            if self.message:
+                self._addstr(stdscr, height - 1, 1, self.message, style, width - 2)
+            stdscr.refresh()
+        except curses.error:
+            pass
+
+    @staticmethod
+    def _addstr(win, y: int, x: int, text: str, attr: int, width: int) -> None:
+        if width <= 0:
+            return
+        try:
+            win.addnstr(y, x, text, max(0, width - x), attr)
+        except curses.error:
+            pass
+
+    # -- input ----------------------------------------------------------
+
+    @staticmethod
+    def _hide_cursor() -> None:
+        try:
+            curses.curs_set(0)
+        except curses.error:
+            pass
+
+    def read_line(
+        self,
+        stdscr,
+        field: Field,
+        initial: str,
+        secret: bool,
+    ) -> object:
+        """Read one line. Returns str, CLEAR (Ctrl-D) or None (Esc)."""
+        height, width = stdscr.getmaxyx()
+        line_y = height - 3
+        buffer = list(initial)
+        cursor = len(buffer)
+        hint = "Enter accepts"
+        if secret:
+            hint = "Enter keeps the current key · Ctrl-D clears · Esc cancels"
+        elif field.attr == "home":
+            hint = "Enter accepts · Ctrl-D clears · Esc cancels"
+        else:
+            hint = "Enter accepts · Ctrl-D clears · Esc cancels"
+        while True:
+            if secret:
+                shown = "*" * len(buffer)
+            else:
+                shown = "".join(buffer)
+            prompt = "%s: %s" % (field.label, shown)
+            self._addstr(stdscr, line_y, 1, " " * max(0, width - 2), curses.A_NORMAL, width)
+            self._addstr(stdscr, line_y, 1, prompt, curses.A_BOLD, width - 2)
+            self._addstr(stdscr, height - 1, 1, hint[: width - 2], curses.A_DIM, width - 2)
+            cursor_x = 1 + len(field.label) + 2 + cursor
+            try:
+                stdscr.move(line_y, min(cursor_x, width - 2))
+                curses.curs_set(1)
+            except curses.error:
+                pass
+            stdscr.refresh()
+            try:
+                key = stdscr.get_wch()
+            except curses.error:
+                continue
+            if key in (curses.KEY_ENTER, "\n", "\r"):
+                return "".join(buffer)
+            if key == "\x1b":
+                return None
+            if key == "\x04":  # Ctrl-D
+                return CLEAR
+            if key in (curses.KEY_BACKSPACE, "\x7f", "\b"):
+                if cursor > 0:
+                    cursor -= 1
+                    del buffer[cursor]
+                continue
+            if key == "\x15":  # Ctrl-U
+                buffer = []
+                cursor = 0
+                continue
+            if key in (curses.KEY_DC,):
+                if cursor < len(buffer):
+                    del buffer[cursor]
+                continue
+            if key == curses.KEY_LEFT:
+                cursor = max(0, cursor - 1)
+                continue
+            if key == curses.KEY_RIGHT:
+                cursor = min(len(buffer), cursor + 1)
+                continue
+            if key == curses.KEY_HOME:
+                cursor = 0
+                continue
+            if key == curses.KEY_END:
+                cursor = len(buffer)
+                continue
+            if isinstance(key, str) and key.isprintable():
+                buffer.insert(cursor, key)
+                cursor += 1
+
+    def edit_field(self, stdscr, field: Field) -> None:
+        current = self.draft.get(field.attr, "")
+        if field.secret:
+            # Never pre-fill a secret: Enter keeps it, typing replaces it.
+            result = self.read_line(stdscr, field, "", secret=True)
+            self._hide_cursor()
+            if result is None:
+                return
+            if result is CLEAR:
+                self.draft[field.attr] = ""
+            elif result:
+                self.draft[field.attr] = str(result)
+            else:
+                return
+        else:
+            result = self.read_line(stdscr, field, current, secret=False)
+            self._hide_cursor()
+            if result is None:
+                return
+            if result is CLEAR:
+                self.draft[field.attr] = ""
+            else:
+                self.draft[field.attr] = str(result).strip()
+        error = validate_field(field, self.draft.get(field.attr, ""))
+        if error:
+            self.set_message(error, error=True)
+        else:
+            self.set_message("%s updated. Press s to save." % field.label)
+
+    def confirm(self, stdscr, question: str) -> bool:
+        height, width = stdscr.getmaxyx()
+        y = height - 1
+        self._addstr(stdscr, y, 1, question + " [y/N] ", curses.A_BOLD, width - 2)
+        stdscr.refresh()
+        try:
+            key = stdscr.get_wch()
+        except curses.error:
+            return False
+        return key in ("y", "Y")
+
+    # -- actions --------------------------------------------------------
+
+    def save(self) -> None:
+        errors = validate_values(self.draft)
+        if errors:
+            attr = next(iter(errors))
+            self.select_field(attr)
+            self.set_message(errors[attr], error=True)
+            return
+        if not self.dirty() and self.store.exists():
+            self.set_message("No changes to save.")
+            return
+        if not self.store.exists() and not any(self.draft.values()):
+            self.set_message("Nothing to save; the built-in defaults stay in use.")
+            return
+        try:
+            self.store.save(self.draft)
+        except OSError as exc:
+            self.set_message("Could not write %s: %s" % (self.store.path, exc), error=True)
+            return
+        self.saved = self.store.load()
+        self.original = dict(self.draft)
+        if restart_tray_server():
+            self.set_message(
+                "Saved. The tray is restarting the API; launchers use it next start."
+            )
+        else:
+            self.set_message(
+                "Saved. Start the API again to apply the key (no tray was reachable)."
+            )
+
+    def test(self) -> None:
+        key, _source = self.saved_effective(FIELD_BY_ATTR["api_key"])
+        self.set_message("Testing the saved settings…")
+        base, count, error = probe_server(key)
+        if error:
+            self.set_message("Connection failed: %s" % error, error=True)
+            return
+        if count is None:
+            self.set_message("Connected to %s (no model list returned)." % base)
+        else:
+            self.set_message("Connected to %s: %s models." % (base, count))
+
+    def reset(self, stdscr) -> None:
+        if not self.store.exists():
+            self.draft = {field.attr: "" for field in FIELDS}
+            self.original = dict(self.draft)
+            self.set_message("No settings file to reset; already using the defaults.")
+            return
+        if not self.confirm(stdscr, "Delete the saved settings and use the defaults?"):
+            self.set_message("Reset cancelled.")
+            return
+        if not self.store.delete():
+            self.set_message("Could not remove %s" % self.store.path, error=True)
+            return
+        self.saved = {}
+        self.draft = {field.attr: "" for field in FIELDS}
+        self.original = dict(self.draft)
+        restart_tray_server()
+        self.set_message("Settings cleared; the defaults and environment apply again.")
+
+    def activate(self, stdscr, item) -> None:
+        kind = getattr(item, "attr", None)
+        if kind is not None:
+            self.edit_field(stdscr, item)
+            return
+        action = item[0]
+        if action == "save":
+            self.save()
+        elif action == "test":
+            self.test()
+        elif action == "restart":
+            if restart_tray_server():
+                self.set_message("Asked the tray to restart the API.")
+            else:
+                self.set_message("No running tray found; start the API again manually.", error=True)
+        elif action == "reset":
+            self.reset(stdscr)
+        elif action == "quit":
+            self.quit(stdscr)
+
+    def quit(self, stdscr) -> None:
+        if self.dirty() and not self.confirm(stdscr, "Discard unsaved changes?"):
+            self.set_message("Not quitting; save or clear the changes first.")
+            return
+        self.running = False
+
+    def run(self, stdscr) -> None:
+        global curses
+
+        try:
+            curses.curs_set(0)
+        except curses.error:
+            pass
+        stdscr.keypad(True)
+        try:
+            curses.start_color()
+            curses.use_default_colors()
+            curses.init_pair(1, curses.COLOR_CYAN, -1)
+            curses.init_pair(2, curses.COLOR_RED, -1)
+            curses.init_pair(3, curses.COLOR_GREEN, -1)
+            curses.init_pair(4, curses.COLOR_BLUE, -1)
+            self.colors = curses.has_colors()
+        except curses.error:
+            self.colors = False
+
+        while self.running:
+            self.draw(stdscr)
+            try:
+                key = stdscr.get_wch()
+            except curses.error:
+                continue
+            if key == curses.KEY_RESIZE:
+                continue
+            rows = self.rows()
+            if key in (curses.KEY_UP, "k"):
+                self.move(-1)
+            elif key in (curses.KEY_DOWN, "j"):
+                self.move(1)
+            elif key in (curses.KEY_ENTER, "\n", "\r", " "):
+                _kind, item = rows[self.selected]
+                if item is not None:
+                    self.activate(stdscr, item)
+            elif key == "q":
+                self.quit(stdscr)
+            elif key == "s":
+                self.save()
+            elif key == "t":
+                self.test()
+            elif key == "r":
+                if restart_tray_server():
+                    self.set_message("Asked the tray to restart the API.")
+                else:
+                    self.set_message("No running tray found; start the API again manually.", error=True)
+            elif key == "R":
+                self.reset(stdscr)
+            elif key == "c":
+                _kind, item = rows[self.selected]
+                if isinstance(item, Field):
+                    self.draft[item.attr] = ""
+                    if item.secret:
+                        self.reveal = False
+                    self.set_message("%s cleared. Press s to save." % item.label)
+            elif key == "g":
+                _kind, item = rows[self.selected]
+                if isinstance(item, Field) and item.secret:
+                    self.draft[item.attr] = generate_key()
+                    self.reveal = True
+                    self.set_message("Generated a new API key. Press s to save.")
+                else:
+                    self.set_message("Select the API key field to generate a key.")
+            elif key == "v":
+                _kind, item = rows[self.selected]
+                if isinstance(item, Field) and item.secret:
+                    self.reveal = not self.reveal
+                    self.set_message(
+                        "API key revealed." if self.reveal else "API key hidden."
+                    )
+                else:
+                    self.set_message("Select the API key field to reveal it.")
+            elif key == "\x0c":  # Ctrl-L
+                try:
+                    stdscr.clear()
+                except curses.error:
+                    pass
+
+
+# Imported late so --show works even on a Python without curses.
+try:
+    import curses  # noqa: E402
+except ImportError:  # pragma: no cover - depends on the embedded runtime
+    curses = None  # type: ignore[assignment]
+
+
+# ---------------------------------------------------------------------------
+# Non-interactive output
+# ---------------------------------------------------------------------------
+
+
+def show_settings(store: SettingsStore, as_json: bool = False) -> None:
+    saved = store.load()
+    if as_json:
+        payload = {
+            "file": str(store.path),
+            "exists": store.exists(),
+            "values": {
+                field.key: (
+                    mask_secret(saved.get(field.key, ""))
+                    if field.secret
+                    else saved.get(field.key, "")
+                )
+                for field in FIELDS
+            },
+            "effective": {
+                field.key: {
+                    "value": (
+                        mask_secret(_effective(field, saved)[0])
+                        if field.secret
+                        else _effective(field, saved)[0]
+                    ),
+                    "source": _effective(field, saved)[1],
+                }
+                for field in FIELDS
+            },
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+
+    print("settings file: %s" % store.path)
+    if store.exists():
+        for field in FIELDS:
+            value = saved.get(field.key, "")
+            shown = mask_secret(value) if field.secret else (value or "(unset)")
+            label = {"home": "HOME", "proxy": "PROXY"}.get(field.attr, field.key)
+            print("%-14s %s" % (label + ":", shown))
+    else:
+        for field in FIELDS:
+            _value, source = _effective(field, saved)
+            shown = (
+                mask_secret(_value)
+                if field.secret
+                else (_value or "(unset)")
+            )
+            label = {"home": "HOME", "proxy": "PROXY"}.get(field.attr, field.key)
+            print("%-14s %s (%s)" % (label + ":", shown, source))
+
+
+def check_settings(store: SettingsStore) -> int:
+    saved = store.load()
+    values = {field.attr: saved.get(field.key, "") for field in FIELDS}
+    errors = validate_values(values)
+    if not errors:
+        print("Settings are valid: %s" % store.path)
+        return 0
+    for attr, error in errors.items():
+        print("%s: %s" % (FIELD_BY_ATTR[attr].label, error), file=sys.stderr)
+    return 1
+
+
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="sandbox-settings",
+        description="Edit the g4f sandbox model, API key, HOME, provider and proxy.",
+    )
+    parser.add_argument("--show", action="store_true", help="print the saved settings")
+    parser.add_argument("--json", action="store_true", help="print settings as JSON (key masked)")
+    parser.add_argument("--check", action="store_true", help="validate the settings file")
+    parser.add_argument(
+        "--generate-key",
+        action="store_true",
+        help="print a new random API key without saving it",
+    )
+    parser.add_argument(
+        "--restart-server",
+        action="store_true",
+        help="ask the running tray to restart the API",
+    )
+    parser.add_argument(
+        "--file",
+        default=None,
+        help="settings file to use (default: G4F_SANDBOX_ENV or ~/.config/g4f-sandbox/env)",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = parse_args(argv)
+    store = SettingsStore(Path(args.file) if args.file else None)
+
+    if args.generate_key:
+        print(generate_key())
+        return 0
+    if args.restart_server:
+        if restart_tray_server():
+            print("Asked the running tray to restart the API.")
+            return 0
+        print("No running sandbox-tray found.", file=sys.stderr)
+        return 1
+    if args.show or args.json:
+        show_settings(store, as_json=bool(args.json))
+        return 0
+    if args.check:
+        return check_settings(store)
+
+    if curses is None or not sys.stdin.isatty() or not sys.stdout.isatty():
+        if not sys.stdin.isatty():
+            show_settings(store)
+            print(
+                "\nNo terminal for the interactive editor; showing the saved values.\n"
+                "Use the --model/--api-key/--home/--provider/--proxy flags or "
+                "run this inside a terminal.",
+                file=sys.stderr,
+            )
+            return 0
+        print("curses is not available; run sandbox-cli settings for the line prompt.", file=sys.stderr)
+        return 2
+
+    app = SettingsApp(store)
+    curses.wrapper(app.run)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

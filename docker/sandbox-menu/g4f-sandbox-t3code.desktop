@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open T3 Code
+Comment=T3 Code agent control surface — installs on first click, then opens in a terminal
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="T3 Code" --icon=g4f-sandbox-t3code --command="/usr/local/bin/sandbox-cli t3code"
+Icon=g4f-sandbox-t3code
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=t3code;t3;agent;ai;coding;;
+StartupNotify=false

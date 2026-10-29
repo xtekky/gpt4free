@@ -118,6 +118,12 @@ KIMI_INSTALLER="https://code.kimi.com/kimi-code/install.sh"
 ROOMOTE_INSTALLER="https://get.roomote.dev"
 QODER_INSTALLER="https://qoder.com/install"
 VIBE_INSTALLER="https://mistral.ai/vibe/install.sh"
+# DeepSeek Harness (dsh) is DeepSeek's plugin-based coding harness on npm;
+# Paseo and T3 Code are control surfaces that drive the agent CLIs already
+# installed here. Paseo ships on npm, T3 Code through its vendor install script.
+DEEPSEEK_HARNESS_PACKAGE="@deepseek-ai/dsh"
+PASEO_PACKAGE="@getpaseo/cli"
+T3CODE_INSTALLER="https://t3.codes/install.sh"
 UV_INSTALLER="https://astral.sh/uv/install.sh"
 # assistant-ui has no package of its own: its CLI creates the app (see
 # https://www.assistant-ui.com/docs/installation). The app lives in
@@ -438,6 +444,37 @@ prompt_sandbox_settings() {
     show_sandbox_settings
 }
 
+# The full-screen editor lives in a separate stdlib-only Python script so the
+# line prompts below stay available on a terminal where curses is unavailable.
+sandbox_settings_script() {
+    local candidate
+    if [ -n "${G4F_SANDBOX_SETTINGS_BIN:-}" ]; then
+        [ -f "${G4F_SANDBOX_SETTINGS_BIN}" ] \
+            && { printf '%s\n' "${G4F_SANDBOX_SETTINGS_BIN}"; return 0; }
+        return 1
+    fi
+    candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/sandbox-settings"
+    if [ -f "$candidate" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+    fi
+    candidate="$(command -v sandbox-settings 2>/dev/null || true)"
+    [ -n "$candidate" ] && { printf '%s\n' "$candidate"; return 0; }
+    return 1
+}
+
+run_settings_tool() {
+    local script
+    script="$(sandbox_settings_script)" || return 127
+    have python3 || return 127
+    python3 "$script" "$@"
+}
+
+run_settings_tui() {
+    [ -t 0 ] && [ -t 1 ] || return 2
+    run_settings_tool
+}
+
 prompt_api_key() {
     local key="${SANDBOX_API_KEY:-${G4F_API_KEY:-}}" answer
     [ -t 0 ] || die "sandbox-cli settings --api-key needs a terminal"
@@ -459,8 +496,12 @@ prompt_api_key() {
 
 settings_usage() {
     cat <<'EOF'
-usage: sandbox-cli settings                    ask for model, API key, HOME, provider and proxy
+usage: sandbox-cli settings                    open the interactive settings editor
        sandbox-cli settings --show             print the saved settings
+       sandbox-cli settings --json             print saved/effective settings as JSON
+       sandbox-cli settings --check            validate the settings file
+       sandbox-cli settings --generate-key     print a new random API key (does not save it)
+       sandbox-cli settings --restart-server   ask the running tray to restart the API
        sandbox-cli settings --model <id>       set the model (keeps the rest)
        sandbox-cli settings --api-key <key>    set the API key ("" clears it)
        sandbox-cli settings --api-key          prompt for just the API key
@@ -468,6 +509,13 @@ usage: sandbox-cli settings                    ask for model, API key, HOME, pro
        sandbox-cli settings --provider <name>  set the g4f provider
        sandbox-cli settings --proxy <url>      set the HTTP(S) proxy
        sandbox-cli settings --unset            drop the file and use the defaults
+
+The interactive editor validates every value before writing, shows whether a
+value comes from the environment, the settings file or the built-in default,
+masks the API key (with reveal and generate actions), and asks the tray to
+restart the API after saving. Keys: up/down move, Enter edit, s save, t test
+the saved connection, r restart the server, R reset, g generate a key,
+v reveal, c clear a field, q quit.
 
 HOME and PROXY apply to every menu entry. The g4f-aware launchers (OpenCode,
 Copilot, Hermes, LibreChat, assistant-ui) additionally read the model, provider
@@ -492,6 +540,9 @@ run_settings() {
             --show|show)
                 show_sandbox_settings
                 return 0 ;;
+            --json|--check|--generate-key|--restart-server)
+                run_settings_tool "$1"
+                return $? ;;
             --unset|unset)
                 rm -f "$SANDBOX_ENV_FILE" || die "cannot remove $SANDBOX_ENV_FILE"
                 log "cleared $SANDBOX_ENV_FILE"
@@ -534,8 +585,15 @@ run_settings() {
         show_sandbox_settings
         return 0
     fi
-    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--api-key/--home/--provider/--proxy/--show)"
-    prompt_sandbox_settings
+    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--api-key/--home/--provider/--proxy/--show/--json)"
+    run_settings_tui
+    local rc=$?
+    if [ "$rc" -eq 2 ] || [ "$rc" -eq 127 ]; then
+        # No curses editor or no Python: keep the line-based prompt working.
+        prompt_sandbox_settings
+        return 0
+    fi
+    return "$rc"
 }
 
 reset_usage() {
@@ -2717,6 +2775,8 @@ run_tool() {
             start_freeflow_api ;;
         kilocode)
             ensure_npm @kilocode/cli kilo
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             launch "Kilo Code" kilo "${@:2}" ;;
         antigravity)
             ensure_script "$ANTIGRAVITY_INSTALLER" agy "Antigravity CLI"
@@ -2911,6 +2971,8 @@ run_tool() {
             launch LibreChat npm run backend "${@:2}" ;;
         lobechat)
             ensure_lobechat
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "LobeChat is installed and ready"
                 exit 0
@@ -2922,6 +2984,8 @@ run_tool() {
             exit 0 ;;
         msty)
             ensure_msty
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "Msty Studio is installed and ready"
                 exit 0
@@ -2969,6 +3033,8 @@ run_tool() {
             launch SillyTavern node server.js "${@:2}" ;;
         cptr)
             ensure_cptr
+            configure_g4f
+            export OPENAI_API_BASE="$G4F_API_BASE_URL" OPENAI_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "Open WebUI Computer is installed and ready"
                 exit 0
@@ -3084,6 +3150,17 @@ run_tool() {
         sweagent)
             ensure_sweagent
             launch "SWE-agent" sweagent "${@:2}" ;;
+        dsh)
+            ensure_npm "$DEEPSEEK_HARNESS_PACKAGE" dsh
+            # A bare `dsh` only prints help; the web profile is the entry point
+            # the docs lead with.
+            launch "DeepSeek Harness" dsh web "${@:2}" ;;
+        paseo)
+            ensure_npm "$PASEO_PACKAGE" paseo
+            launch Paseo paseo "${@:2}" ;;
+        t3code)
+            ensure_script "$T3CODE_INSTALLER" t3 "T3 Code"
+            launch "T3 Code" t3 "${@:2}" ;;
         fabric)
             ensure_script "$FABRIC_INSTALLER" fabric "Fabric"
             launch Fabric fabric "${@:2}" ;;
@@ -3146,10 +3223,22 @@ run_tool() {
             log "report: ${XDG_CACHE_HOME:-$HOME/.cache}/sandbox-discover/report.md"
             exec bash -i ;;
         glow)
-            # The g4f docs are a website: open the real site in Chrome so links
-            # are clickable and every code block gets the site's copy button.
-            # The glow/chafa terminal renderer (sandbox-docs) stays available
-            # from the command line, but it can do neither.
+            # The terminal docs reader: sandbox-docs downloads the markdown
+            # behind https://g4f.dev/docs/, turns its images into chafa art and
+            # opens the result in glow. Glow prints every link as a real URL
+            # (Ctrl+click in xfce4-terminal) and its TUI copies the open page,
+            # including code blocks, with `c` (see `?` for the keys).
+            ensure_apt glow glow
+            ensure_apt chafa chafa
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "glow, chafa and the g4f docs reader are installed and ready"
+                exit 0
+            fi
+            exec /usr/local/bin/sandbox-docs open "${@:2}" ;;
+        docs)
+            # The browser entry: open the real docs site in Chrome so every
+            # code block gets the site's own copy button and navigation stays
+            # a normal web page.
             ensure_chrome
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "Google Chrome is installed and ready"
@@ -3402,6 +3491,25 @@ run_tool() {
     esac
 }
 
+run_configure() { # <agent>
+    local agent="${1:-}"
+    [ -n "$agent" ] || die "usage: sandbox-cli configure <agent>"
+    configure_g4f
+    case "$agent" in
+        opencode) configure_opencode_g4f; configure_opencode_service ;;
+        copilot) configure_copilot_g4f ;;
+        hermes|omh) configure_hermes_g4f ;;
+        assistant-ui) write_assistant_ui_env ;;
+        librechat) write_librechat_env; write_librechat_yaml ;;
+        cindy) provision_cindy ;;
+        lobechat) ;;
+        msty) ;;
+        cptr) ;;
+        *) log "no agent-specific provider registration for '$agent'; g4f env configured" ;;
+    esac
+    log "g4f provider registered for $agent"
+}
+
 usage() {
     cat <<'EOF'
 usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop tool
@@ -3429,7 +3537,8 @@ list_tools() {
         g4f-go          "g4f Go launcher CLI (preinstalled)" \
         package         "show, update or pin the g4f package" \
         remote-desktop  "share this sandbox screen with a phone (WebRTC)" \
-        glow            "open the g4f docs in the browser (clickable links, copyable code)" \
+        glow            "open the g4f docs in glow (clickable links, copy code with c)" \
+        docs            "open the g4f docs in the browser (clickable links, copyable code)" \
         discover        "find new/trending AI tools and add them to this menu" \
         settings        "g4f model, API key, HOME and provider for the launchers" \
         reset           "clear the saved settings, back to the defaults" \
@@ -3479,7 +3588,10 @@ list_tools() {
         qoder       "Qoder CLI" \
         iflow       "iFlow CLI" \
         vibe        "Mistral Vibe" \
-        sweagent    "SWE-agent by Princeton"
+        sweagent    "SWE-agent by Princeton" \
+        dsh         "DeepSeek Harness (dsh) coding agent" \
+        paseo       "Paseo coding-agent orchestrator" \
+        t3code      "T3 Code agent control surface"
     printf '%s\n' "Agent Skills"
     printf '  %-15s %s\n' \
         ecc         "ECC skills, rules and commands for OpenCode" \
@@ -3507,6 +3619,7 @@ list_tools() {
         msty        "Msty Studio desktop app" \
         sillytavern "SillyTavern web UI for role-play chats" \
         cptr        "Open WebUI Computer (files + terminal + AI)" \
+        dsh         "DeepSeek Harness web UI (chat + coding)" \
         assistant-ui "assistant-ui web UI (Next.js, backed by the g4f API)"
     printf '%s\n' "Editors"
     printf '  %-15s %s\n' \
@@ -3531,6 +3644,7 @@ list_tools() {
         deeptutor   "DeepTutor personalized learning web app" \
         nanobot     "nanobot personal AI assistant (WebUI)" \
         agent-reach "Agent Reach internet access for agents" \
+        dsh         "DeepSeek Harness assistant + coding harness" \
         openclaw    "OpenClaw CLI" \
         fabric      "Fabric AI patterns CLI" \
         sgpt        "ShellGPT shell assistant" \
@@ -3541,6 +3655,30 @@ list_tools() {
 case "${1:-}" in
     ""|help|-h|--help)
         usage ;;
+    harness)
+        agent="${2:-}"
+        shift 2 2>/dev/null || true
+        harness_provider=""
+        harness_model=""
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                --provider) harness_provider="${2:-}"; shift 2 ;;
+                --model) harness_model="${2:-}"; shift 2 ;;
+                *) shift ;;
+            esac
+        done
+        [ -n "$harness_provider" ] && export G4F_PROVIDER="$harness_provider"
+        [ -n "$harness_model" ] && export G4F_MODEL="$harness_model"
+        if [ -n "$agent" ]; then
+            settings_file="${G4F_SANDBOX_ENV:-$HOME/.config/g4f-sandbox/env}"
+            mkdir -p "$(dirname "$settings_file")"
+            key="HARNESS_$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_')"
+            tmp="${settings_file}.tmp.$$"
+            ( [ -f "$settings_file" ] && grep -v "^${key}=" "$settings_file" || true
+              [ -n "$harness_provider$harness_model" ] && printf '%s=%s:%s\n' "$key" "$harness_provider" "$harness_model" ) > "$tmp"
+            mv "$tmp" "$settings_file"
+        fi
+        exec "$0" "$agent" ;;
     list)
         list_tools ;;
     urls)
@@ -3549,10 +3687,12 @@ case "${1:-}" in
     hosts)
         print_hosts
         hold_open ;;
+    configure)
+        shift
+        run_configure "$@" ;;
     settings)
         shift
-        run_settings "$@" ;;
-    reset)
+        run_settings "$@" ;;    reset)
         shift
         run_reset "$@" ;;
     package)
