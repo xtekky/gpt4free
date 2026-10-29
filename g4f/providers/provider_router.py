@@ -126,6 +126,13 @@ class ProviderRouter:
                 debug.log(f"ProviderRouter: cache load failed {path}: {e}")
 
     @classmethod
+    def reset_cache(cls) -> None:
+        cls._models_cache = {}
+        cls._global_models_cache = {}
+        cls._lately_used = []
+        cls.save_caches()
+
+    @classmethod
     def save_caches(cls) -> None:
         try:
             cls._ensure_dir(_MODELS_CACHE_FILE)
