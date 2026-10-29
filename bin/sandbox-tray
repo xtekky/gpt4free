@@ -4,12 +4,16 @@
 This is the container's main process in the sandbox desktop image. It starts
 the g4f API as a child process and owns a small notification icon in the Xfce
 panel (via ``yad``), so the server can be restarted, the g4f package can be
-updated or pinned, and the API key can be changed without a terminal.
+updated or pinned, and the whole sandbox settings can be opened in an editor.
+
+The API key (and the model, provider and proxy) come from the same settings
+file as the rest of the sandbox, so the server and the
+OpenCode/Copilot/Hermes/LibreChat launchers always use the same values. The
+tray watches that file and restarts the server when it changes, including
+when the settings are edited outside the tray.
 
 The menu actions that need input reuse ``sandbox-cli``: each opens its own
-terminal window, and the server is restarted when that window closes. The
-settings live in the same file as the rest of the sandbox settings, so a key
-set here is also used by the OpenCode/Copilot/Hermes/LibreChat launchers.
+terminal window. Package actions restart the server when the window closes.
 
 Without a display (``SANDBOX_DESKTOP=0``), without ``yad``, or when the tray
 cannot start, it falls back to running the API server directly, exactly like
@@ -67,21 +71,76 @@ def _read_settings() -> Dict[str, str]:
     return values
 
 
-def _api_key() -> str:
-    # Match sandbox-cli's precedence: an explicit G4F_SANDBOX_API_KEY wins over
-    # the saved settings file (even when it is empty), which in turn wins over
-    # an ambient G4F_API_KEY.
-    if "G4F_SANDBOX_API_KEY" in os.environ:
-        return os.environ["G4F_SANDBOX_API_KEY"].strip()
-    settings = _read_settings()
-    if "G4F_API_KEY" in settings:
-        return settings["G4F_API_KEY"].strip()
-    return os.environ.get("G4F_API_KEY", "").strip()
+def _setting(
+    settings: Dict[str, str],
+    key: str,
+    override: str,
+    ambient: str,
+    allow_empty: bool = False,
+) -> str:
+    """Resolve one setting with sandbox-cli's precedence.
+
+    An explicit ``G4F_SANDBOX_*`` override wins over the saved file, which
+    wins over the ambient variable. For the API key an empty value is
+    meaningful (it disables authentication) and therefore also wins; for the
+    other settings an empty value means "not set" and falls through.
+    """
+    if override in os.environ:
+        value = os.environ[override]
+        if allow_empty or value:
+            return value
+    if key in settings:
+        value = settings[key]
+        if allow_empty or value:
+            return value
+    return os.environ.get(ambient, "")
+
+
+def _api_key(settings: Optional[Dict[str, str]] = None) -> str:
+    if settings is None:
+        settings = _read_settings()
+    return _setting(
+        settings,
+        "G4F_API_KEY",
+        "G4F_SANDBOX_API_KEY",
+        "G4F_API_KEY",
+        allow_empty=True,
+    ).strip()
 
 
 def _server_env() -> Dict[str, str]:
-    key = _api_key()
-    return {"G4F_API_KEY": key} if key else {}
+    """Return the settings the API child should see.
+
+    Key, model, provider and proxy are passed on, so changing them in Sandbox
+    Settings applies to the server as well as to the menu launchers.
+    """
+    settings = _read_settings()
+    values = {
+        "G4F_API_KEY": _api_key(settings),
+        "G4F_MODEL": _setting(settings, "G4F_MODEL", "G4F_SANDBOX_MODEL", "G4F_MODEL"),
+        "G4F_PROVIDER": _setting(
+            settings, "G4F_PROVIDER", "G4F_SANDBOX_PROVIDER", "G4F_PROVIDER"
+        ),
+        "G4F_PROXY": _setting(
+            settings, "SANDBOX_PROXY", "G4F_SANDBOX_PROXY", "G4F_PROXY"
+        ),
+    }
+    return {key: value for key, value in values.items() if value}
+
+
+# Variables owned by the settings file. They are removed from the inherited
+# environment before the resolved values are applied, so an empty saved value
+# suppresses a stale ambient one instead of silently falling back to it.
+_SETTINGS_ENV = ("G4F_API_KEY", "G4F_MODEL", "G4F_PROVIDER", "G4F_PROXY")
+
+
+def _settings_token():
+    """Cheap fingerprint used to notice edits of the settings file."""
+    try:
+        info = _settings_file().stat()
+    except OSError:
+        return None
+    return (info.st_mtime_ns, info.st_size)
 
 
 def _server_command(port: int, debug: bool) -> List[str]:
@@ -100,7 +159,8 @@ def _server_command(port: int, debug: bool) -> List[str]:
 
 def _exec_server(command: List[str]) -> int:
     env = os.environ.copy()
-    env.pop("G4F_API_KEY", None)
+    for key in _SETTINGS_ENV:
+        env.pop(key, None)
     env.update(_server_env())
     try:
         os.execvpe(command[0], command, env)
@@ -160,8 +220,14 @@ def _open_url(url: str) -> None:
     webbrowser.open(url)
 
 
-def _set_api_key() -> bool:
-    return _run_in_terminal("g4f API Key", f"{_cli_path()} settings --api-key")
+def _open_settings() -> bool:
+    """Open the full settings editor; the tray watches the file for changes."""
+    _run_in_terminal("Sandbox Settings", f"{_cli_path()} settings")
+    # The editor asks the tray to restart after saving, and the settings
+    # watcher below catches changes made anywhere else. Returning False keeps
+    # the generic "restart when the terminal closes" path from restarting a
+    # second time after an unchanged visit.
+    return False
 
 
 def _update_package() -> bool:
@@ -182,7 +248,8 @@ class _Server:
 
     def _environment(self) -> Dict[str, str]:
         env = os.environ.copy()
-        env.pop("G4F_API_KEY", None)
+        for key in _SETTINGS_ENV:
+            env.pop(key, None)
         env.update(_server_env())
         return env
 
@@ -278,7 +345,7 @@ class _Tray:
             f"Update g4f Package!{self._action('update')}",
             f"Change g4f Package Version...!{self._action('change')}",
             "",
-            f"Set API Key...!{self._action('key')}",
+            f"Sandbox Settings...!{self._action('settings')}",
             "",
             f"Show Logs!{self._action('logs')}",
             "",
@@ -411,8 +478,10 @@ def _run_tray(server: _Server, port: int, autostart: bool = True) -> int:
                 elif action == "change":
                     if _change_package():
                         server.restart()
-                elif action == "key":
-                    if _set_api_key():
+                elif action == "settings":
+                    _open_settings()
+                elif action == "reload":
+                    if server.is_running():
                         server.restart()
                 elif action == "quit":
                     stop.set()
@@ -435,8 +504,19 @@ def _run_tray(server: _Server, port: int, autostart: bool = True) -> int:
     _refresh()
     buffer = b""
     exit_code = 0
+    settings_token = _settings_token()
     try:
         while not stop.is_set() and tray.alive():
+            # Settings can change without the tray: sandbox-cli settings,
+            # Sandbox Settings in the editor, or a file edited by hand. Pick
+            # that up here so the server (not just the launchers) uses the
+            # new key/model/provider/proxy immediately.
+            current_token = _settings_token()
+            if current_token != settings_token:
+                settings_token = current_token
+                if server.is_running():
+                    print("sandbox-tray: settings changed; restarting server", flush=True)
+                    _spawn_action("reload")
             try:
                 ready, _, _ = select.select([fd], [], [], 0.5)
             except InterruptedError:

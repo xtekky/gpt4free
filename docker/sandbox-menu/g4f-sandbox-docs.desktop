@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Open g4f Docs
+Comment=g4f.dev documentation in the browser — clickable links and copyable code
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="g4f Docs" --icon=g4f-sandbox-applications --command="/usr/local/bin/sandbox-cli docs"
+Icon=g4f-sandbox-applications
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=docs;documentation;markdown;browser;g4f;;
+StartupNotify=false

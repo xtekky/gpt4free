@@ -95,6 +95,9 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open iFlow     | `iflow`     | npm `@iflow-ai/iflow-cli`   | `iflow`        |
 | Install & Open Mistral Vibe | `vibe`   | mistral.ai/vibe install script | `vibe`      |
 | Install & Open SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
+| Install & Open DeepSeek Harness | `dsh` | npm `@deepseek-ai/dsh` (listed under Chat UIs, Assistants and Coding Agents) | `dsh` |
+| Install & Open Paseo     | `paseo`     | npm `@getpaseo/cli`         | `paseo`        |
+| Install & Open T3 Code   | `t3code`    | t3.codes install script     | `t3`           |
 | Install & Open Fabric    | `fabric`    | fabric installer script     | `fabric`       |
 | Install & Open LiteLLM   | `litellm`   | pip `litellm[proxy]`        | `litellm`      |
 | Install & Open Langfuse CLI | `langfuse` | npm `@langfuse/cli`      | `langfuse`     |
@@ -122,7 +125,8 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install Superpowers      | `superpowers` | `opencode plugin add` (git) | —            |
 | Install Graphify         | `graphify`  | pip `graphifyy` + `graphify install --platform agents` | `graphify` |
 | Install Claude-Mem       | `claude-mem` | npx `claude-mem@15.4.0 install --ide opencode` | — |
-| Open g4f Docs           | `glow`      | Google Chrome (installed on first open) | `google-chrome` |
+| Open g4f Docs in Glow   | `glow`      | apt `glow` + `chafa` (installed on first open) | `glow` |
+| Open g4f Docs           | `docs`      | Google Chrome (installed on first open) | `google-chrome` |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
 `litellm`, `pi-freeflow`) that expose an OpenAI-compatible endpoint, together
@@ -331,19 +335,19 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 
 | Menu             | Category          | Entries                                        |
 |------------------|-------------------|------------------------------------------------|
-| **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `package`, `glow`, `discover`, `settings`, `reset` |
+| **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `package`, `glow`, `docs`, `discover`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
 | **Files**        | `X-G4F-Files`     | `files`, `nemo`                                |
-| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `openbot`, `thinkrail`, `orca`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `omh`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
+| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `openbot`, `thinkrail`, `orca`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `omh`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent`, `dsh`, `paseo`, `t3code` |
 | **Agent Skills** | `X-G4F-Skills`    | `ecc`, `superpowers`, `graphify`, `claude-mem` |
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
-| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr`, `assistant-ui` |
+| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr`, `dsh`, `assistant-ui` |
 | **Editors**      | `X-G4F-Editor`    | `code-server`, `kate` |
 | **Writing**      | `X-G4F-Writing`   | `humanizer`, `ai-detect`, `aidetect` |
 | **Media**        | `X-G4F-Media`     | `polli`, `voicestudio`, `hyperframes`          |
 | **Sandboxes**    | `X-G4F-Sandboxes` | `polli-sandbox`                                |
-| **Assistants**   | `X-G4F-Assistant` | `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `huggingface`, `deeptutor`, `nanobot`, `agent-reach` |
+| **Assistants**   | `X-G4F-Assistant` | `dsh`, `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `huggingface`, `deeptutor`, `nanobot`, `agent-reach` |
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
@@ -483,7 +487,7 @@ defaults:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `G4F_API_BASE_URL` | detected `http://127.0.0.1:{8080,9090}/v1`, otherwise `http://127.0.0.1:8080/v1` | g4f OpenAI-compatible API base URL |
-| `G4F_API_KEY` | unset | API key sent as a bearer token and required by the server; saved with `sandbox-cli settings --api-key` |
+| `G4F_API_KEY` | unset | API key sent as a bearer token and required by the server; saved in the Sandbox Settings editor (or with `sandbox-cli settings --api-key`) |
 | `G4F_MODEL` | unset  | Model ID registered with the g4f-aware tools and used as their default when saved in **Sandbox Settings**; setting it only in the environment does not select it |
 | `G4F_PROVIDER` | unset | g4f provider the launchers pin by prefixing a model chosen in **Sandbox Settings**; unset lets g4f pick from its own rotation |
 
@@ -787,19 +791,20 @@ managed from the desktop without a terminal:
 | **Restart Server** | Stops the child and starts it again, e.g. after changing settings |
 | **Update g4f Package** | Runs `sandbox-cli package --update` in a terminal |
 | **Change g4f Package Version...** | Prompts for a version (or `latest`) and pins it |
-| **Set API Key…** | Runs `sandbox-cli settings --api-key` in a terminal |
+| **Sandbox Settings...** | Opens the interactive editor for model, API key, HOME, provider and proxy |
 | **Show Logs** | Opens the API's `/logs` page |
 | **Quit** | Stops the server and closes the tray |
 
-The menu actions that need input open a terminal and the tray restarts the
-server when that window closes, so package updates and key changes take effect
-immediately. `sandbox-cli package --show` prints the running package and the
-g4f-go version pin; `sandbox-cli package --version <v>` does the same install
-non-interactively.
+The menu actions that need input open a terminal; package actions restart the
+server when that window closes. Sandbox Settings does not need that: the tray
+watches the settings file, so a saved key/model/provider/proxy is picked up by
+the API server as well as by the launchers, and the server is restarted
+automatically. The same applies to changes made with `sandbox-cli settings` or
+to the file by hand.
 
 The server is a child process on purpose: restarting an in-process uvicorn
 instance is not reliable, and the container would otherwise have to be
-recreated for every package or API-key change. When there is no display
+recreated for every package or settings change. When there is no display
 (`SANDBOX_DESKTOP=0`), `yad` is unavailable, or the tray exits unexpectedly,
 `sandbox-tray` falls back to running the API directly.
 
@@ -814,12 +819,38 @@ proxy to a small settings file that the launchers read before they start:
 ```
 
 The file lives outside `$HOME` on purpose: changing HOME must not move the
-file that records it. `sandbox-cli settings` prompts for all five values
-(Enter keeps the current one) and prints the result; the same command works
-non-interactively:
+file that records it. `sandbox-cli settings` opens a full-screen editor
+(`sandbox-settings`), validates every value before writing, and shows whether
+each effective value comes from an `G4F_SANDBOX_*` environment override, the
+saved file or the built-in default:
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Move between fields and actions |
+| `Enter` | Edit the selected field / run the selected action |
+| `s` | Save (writes atomically, mode `0600`) and restart the API |
+| `t` | Test the saved key against the running API |
+| `r` | Ask the tray to restart the API |
+| `R` | Reset to defaults (delete the settings file) |
+| `g` | Generate a new random API key |
+| `v` | Reveal/hide the selected API key |
+| `c` | Clear the selected field |
+| `q` | Quit (asks before discarding unsaved changes) |
+
+The editor only writes the file when something changed, preserves unknown
+`KEY=value` lines, and never echoes the key while typing. Pressing Enter in the
+key field keeps the current key; type a new one to replace it. After a save (or
+a reset) the tray restarts the server, so the key the server requires and the
+key the launchers send are never out of step.
+
+The same command works non-interactively:
 
 ```bash
 sandbox-cli settings --show                 # print the saved values (the key is masked)
+sandbox-cli settings --json                 # saved + effective values as JSON (key masked)
+sandbox-cli settings --check                # validate the file without changing it
+sandbox-cli settings --generate-key         # print a new random key (does not save it)
+sandbox-cli settings --restart-server       # ask the tray to restart the API
 sandbox-cli settings --model gpt-4o         # set the model, keep the rest
 sandbox-cli settings --api-key sk-...       # set the server/tool API key
 sandbox-cli settings --api-key ""           # clear it
@@ -831,8 +862,10 @@ sandbox-cli settings --unset                # back to the defaults
 
 The API key is exported as `G4F_API_KEY` to the menu launchers (OpenCode,
 Copilot, Hermes, LibreChat, assistant-ui) and passed to the server child, so
-the same saved key authenticates both sides. With no key saved, the server
-starts without authentication, as before.
+the same saved key authenticates both sides. The model, provider and proxy are
+passed to the server too. With no key saved, the server starts without
+authentication, as before; saving an empty key deliberately disables
+authentication even if `G4F_API_KEY` is set in the ambient environment.
 
 The **Reset Sandbox Settings** entry (`g4f` menu) is the same reset behind a
 menu item: it asks for confirmation, then removes the settings file so every
@@ -927,16 +960,22 @@ first click. Run it by hand with `sandbox-cli discover`, add a topic bias with
 `~/.cache/sandbox-discover/report.md`; `SANDBOX_DISCOVER_MODEL` picks another
 OpenCode model (default `g4f/auto`).
 
-### g4f docs in the browser
+### g4f docs in the browser and in glow
 
-The **Open g4f Docs** entry (`g4f` menu) opens
+The **Open g4f Docs** entry (`docs`) opens
 `https://g4f.dev/docs/` in Google Chrome on the desktop (Chrome is installed
-on first open if it is not there yet). A real browser makes every navigation
-link clickable and gives each code block the site's copy button — neither is
-possible in the old glow/chafa terminal view.
+on first open if it is not there yet). The browser gives every code block the
+site's copy button and keeps the docs' normal navigation.
 
-The terminal renderer is still available from a shell with `sandbox-docs open`
-(install `glow` and `chafa` first, e.g. `sudo apt-get install glow chafa`):
+The **Open g4f Docs in Glow** entry (`glow`) is the terminal reader. It
+installs `glow` and `chafa` with apt on first open, then downloads the docs
+and opens them in glow's TUI. Glow renders every link as a real URL, so
+`Ctrl+click` opens it in the browser, and `c` copies the open page — code
+blocks included — to the clipboard (`?` lists the keys). Code can still be
+copied the usual way by selecting it in the terminal; `--pager` opens with
+`glow -p` instead for terminals where the TUI is not wanted.
+
+The same renderer is available from a shell with `sandbox-docs open`:
 
 1. it downloads `https://g4f.dev/docs/README.md` and every relative `.md` that
    page links (breadth first, depth 3, at most 120 pages) into
@@ -947,7 +986,9 @@ The terminal renderer is still available from a shell with `sandbox-docs open`
    never more than 50 columns; it follows the link when the image is wrapped
    in one, and otherwise links to the full image; shields.io badges are skipped,
    and images that cannot be fetched fall back to a plain link);
-3. it starts `glow -p` on the rendered index.
+3. it starts glow on the rendered docs (glow 3 opens the index in its TUI;
+   glow 2's TUI starts on the rendered file list with every page one Enter
+   away; `--pager` uses `glow -p` on the index instead).
 
 The cache is reused on later opens, so only new pages and images are fetched;
 pages are downloaded again after 24 hours (`G4F_DOCS_TTL`, in seconds) or when
@@ -964,7 +1005,10 @@ the first open quick; run `sandbox-docs render --all` (or `sandbox-docs open
   `sandbox-cli urls`, `sandbox-cli hosts`.
 - `bin/sandbox-tray` — installed as `/usr/local/bin/sandbox-tray`; the image's
   main process. It runs the g4f API as a child and shows the tray menu (server
-  restart, package update/pin, API key). See **System tray** above.
+  restart, package update/pin, Sandbox Settings). See **System tray** above.
+- `bin/sandbox-settings` — installed as `/usr/local/bin/sandbox-settings`; the
+  curses editor behind `sandbox-cli settings`. The line prompts remain as a
+  fallback when curses or a terminal is unavailable.
 - `g4f-sandbox-*.desktop` — the menu entries, copied to
   `/usr/share/applications/`. Each names its own `g4f-sandbox-<tool>` icon and
   passes it to `xfce4-terminal` as `--icon`.
@@ -981,8 +1025,9 @@ the first open quick; run `sandbox-docs render --all` (or `sandbox-docs open
   `/etc/xdg/menus/xfce-applications.menu` at build time.
 - `bin/sandbox-docs` — installed as `/usr/local/bin/sandbox-docs`; the terminal
   renderer for https://g4f.dev/docs/ (downloads the markdown sources, rewrites
-  their images into chafa ANSI art and opens the index in glow). The
-  **Open g4f Docs** menu entry opens the site in Chrome instead.
+  their images into chafa ANSI art and opens the result in glow). The
+  **Open g4f Docs** menu entry opens the site in Chrome; **Open g4f Docs in
+  Glow** runs `sandbox-docs open`.
 - `bin/sandbox-discover` — installed as `/usr/local/bin/sandbox-discover`; the
   "AI Tool Scout" behind the **Find & Add AI Tools** entry (see below).
 

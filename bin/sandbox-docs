@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Read the g4f.dev docs in a terminal: download, render, open.
 
-The sandbox desktop's "Open g4f Docs" entry opens the website in Chrome
-(clickable links, copyable code). This command is the terminal alternative:
-it downloads the markdown sources from https://g4f.dev/docs/ into a cache,
-turns the images they reference into ANSI art (chafa), and opens the index in
-glow (install glow and chafa first).
+The sandbox desktop has two docs entries: "Open g4f Docs" opens the website
+in Chrome (the site's navigation and copy buttons), and "Open g4f Docs in
+Glow" runs this command. It downloads the markdown sources from
+https://g4f.dev/docs/ into a cache, turns the images they reference into ANSI
+art (chafa), and opens the result in glow (install glow and chafa first).
 
     sandbox-docs fetch            download the docs (README plus every .md it links)
     sandbox-docs render [--all]   rewrite image tags into chafa art
-    sandbox-docs open [--all]     fetch + render + exec glow on the index
+    sandbox-docs open [--all]     fetch + render + open in glow
+
+Glow shows links as real URLs (Ctrl+click in xfce4-terminal); in its TUI `c`
+copies the open page, code blocks included, and `?` lists the keys. `--pager`
+uses `glow -p` instead, where the terminal's own selection is used to copy.
 
 `--all` renders images on every page; the default renders them on the index
 only, so the first open stays quick (the other pages keep a plain link).
@@ -258,7 +262,38 @@ def terminal_width(columns: int | None) -> int:
         return 72
 
 
-def run(action: str, render_all: bool, width: int, refresh: bool) -> int:
+def glow_has_tui() -> bool:
+    """True when glow supports `--tui` (glow 3+), which can open one page."""
+    try:
+        proc = subprocess.run(
+            ["glow", "--help"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "--tui" in proc.stdout
+
+
+def open_docs(index: str, pager: bool) -> None:
+    if pager:
+        os.execvp("glow", ["glow", "-p", index])
+    if glow_has_tui():
+        # Glow 3 starts the TUI on this document: `c` copies it (code blocks
+        # included) and links keep their URLs. Mouse wheel scrolling is handy
+        # for long pages.
+        os.execvp("glow", ["glow", "-t", "-m", index])
+    # Glow 2 only enters the TUI for a directory. Its file list is rooted at
+    # the rendered docs, so every page is one Enter away and `c` still copies
+    # the open page.
+    os.execvp("glow", ["glow", os.path.dirname(index)])
+
+
+def run(action: str, render_all: bool, width: int, refresh: bool,
+        pager: bool) -> int:
     root = cache_dir()
     pages = fetch_docs(root, refresh)
     if not pages:
@@ -273,7 +308,8 @@ def run(action: str, render_all: bool, width: int, refresh: bool) -> int:
     if not shutil.which("glow"):
         log("sandbox-docs: glow is not installed (sudo apt-get install glow chafa)")
         return 1
-    os.execvp("glow", ["glow", "-p", index])
+    open_docs(index, pager)
+    return 0  # os.execvp does not return
 
 
 def main() -> int:
@@ -289,9 +325,11 @@ def main() -> int:
                              "(default: min(50, half the terminal width))")
     parser.add_argument("--refresh", action="store_true",
                         help="download the pages again instead of reusing the cache")
+    parser.add_argument("--pager", action="store_true",
+                        help="open with `glow -p` instead of glow's TUI")
     args = parser.parse_args()
     return run(args.action, args.render_all, terminal_width(args.width or None),
-               args.refresh)
+               args.refresh, args.pager)
 
 
 if __name__ == "__main__":
