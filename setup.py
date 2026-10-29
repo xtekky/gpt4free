@@ -90,6 +90,7 @@ EXTRA_REQUIRE = {
         "pystray",
         "pillow",
         "cairosvg",
+        "python-xlib; sys_platform == 'linux'",
     ],
     "tracing": ["langfuse"],
     "wasmtime": [

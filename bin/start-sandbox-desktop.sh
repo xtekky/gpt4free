@@ -4,14 +4,16 @@
 #
 # Launches the TigerVNC + Xfce + noVNC + g4f desktop environment inside Docker.
 # The desktop and API server are accessible via browser (noVNC) and direct VNC:
-#   Desktop (browser): http://172.0.0.1:8080/desktop/
-#   API server:        http://172.0.0.1:8080/
-#   VNC direct:        172.0.0.1:5900
+#   Desktop (browser): http://127.0.0.1:8080/desktop/
+#   API server:        http://127.0.0.1:8080/
+#   VNC direct:        127.0.0.1:5900
 #
-# The ports are published on SANDBOX_BIND_ADDR (default: 172.0.0.1). Set it to
-# 127.0.0.1 for localhost or 0.0.0.0 to expose the desktop on the LAN. The
-# container also gets an egress firewall that blocks private, link-local and
-# reserved networks; set SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable it.
+# The ports are published on SANDBOX_BIND_ADDR (default: 127.0.0.1, localhost),
+# not on every host interface. Set it to 0.0.0.0 to expose the desktop on the
+# LAN. The container also gets an egress firewall that blocks private,
+# link-local and reserved networks; inbound connections from the host still
+# work (their replies are classified ESTABLISHED). Set
+# SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable the filter.
 #
 # Usage:
 #   ./bin/start-desktop.sh              start in foreground
@@ -19,7 +21,7 @@
 #   ./bin/start-desktop.sh --build      rebuild image before starting
 #   ./bin/start-desktop.sh --pull       pull prebuilt image from Docker Hub
 #   ./bin/start-desktop.sh --port 8080  use custom port (default: 8080)
-#   ./bin/start-desktop.sh --bind 127.0.0.1  use a different host bind address
+#   ./bin/start-desktop.sh --bind 0.0.0.0  publish on every host interface
 #   ./bin/start-desktop.sh stop         stop the sandbox container
 #   ./bin/start-desktop.sh status       check container status
 #   ./bin/start-desktop.sh shell        open interactive bash shell in container
@@ -41,10 +43,10 @@ CONTAINER_NAME="g4f-sandbox-desktop"
 
 PORT="${PORT:-8080}"
 VNC_PORT="${VNC_PORT:-5900}"
-# Host address the published ports bind to. 172.0.0.1 is the default so the
-# desktop is not exposed on every interface; override with --bind or
-# SANDBOX_BIND_ADDR (127.0.0.1 for localhost, 0.0.0.0 for the LAN).
-BIND_ADDR="${SANDBOX_BIND_ADDR:-172.0.0.1}"
+# Host address the published ports bind to. 127.0.0.1 is the default (localhost
+# only, not every interface); override with --bind or SANDBOX_BIND_ADDR
+# (0.0.0.0 for the LAN).
+BIND_ADDR="${SANDBOX_BIND_ADDR:-127.0.0.1}"
 BLOCK_LOCAL_NETWORK="${SANDBOX_BLOCK_LOCAL_NETWORK:-1}"
 # uid of the unprivileged sandbox user; must match the image's G4F_USER_ID.
 USER_ID="${G4F_USER_ID:-1000}"

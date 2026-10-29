@@ -6,18 +6,20 @@ DEBUG_PORT=57011
 HEADLESS=0
 ONCE=0
 NO_SANDBOX=0
+URLS=()
 for arg in "$@"; do
     case "$arg" in
         --headless) HEADLESS=1 ;;
         --once|--no-loop) ONCE=1 ;;
         --no-sandbox) NO_SANDBOX=1 ;;
         -h|--help)
-            echo "Usage: $0 [chrome|chromium|brave|msedge] [--headless] [--once] [--no-sandbox]"
+            echo "Usage: $0 [chrome|chromium|brave|msedge] [url ...] [--headless] [--once] [--no-sandbox]"
             echo "  --once  start the browser a single time, no relaunch loop (Linux)"
             echo "  --no-sandbox  disable the browser sandbox (implied when running as root)"
             exit 0
             ;;
         -*) echo "Unknown argument: $arg" >&2; exit 1 ;;
+        http://*|https://*|file://*) URLS+=("$arg") ;;
         *) BROWSER="$arg" ;;
     esac
 done
@@ -234,7 +236,7 @@ start_port_forward
 if [[ "$BROWSER_BIN" == *.exe ]]; then
     # Windows: relaunch the browser whenever it is closed.
     while true; do
-        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}" &
+        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}" "${URLS[@]}" &
         BROWSER_PID=$!
         # Wait until the debugging port is reachable (browser fully started), max 30s.
         waited=0
@@ -255,11 +257,11 @@ if [[ "$BROWSER_BIN" == *.exe ]]; then
 else
     # Linux: loop and relaunch if the browser exits (--once starts it a single time)
     if [ "$ONCE" -eq 1 ]; then
-        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
+        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}" "${URLS[@]}"
         exit 0
     fi
     while true; do
-        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}"
+        "$BROWSER_BIN" "${BROWSER_FLAGS[@]}" "${URLS[@]}"
         sleep 5
     done
 fi

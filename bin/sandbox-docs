@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Read the g4f.dev docs in a terminal: download, render, open.
 
-The sandbox's "Install & Open Glow" entry runs `sandbox-docs open`, which
-downloads the markdown sources from https://g4f.dev/docs/ into a cache, turns
-the images they reference into ANSI art (chafa), and opens the index in glow.
+The sandbox desktop's "Open g4f Docs" entry opens the website in Chrome
+(clickable links, copyable code). This command is the terminal alternative:
+it downloads the markdown sources from https://g4f.dev/docs/ into a cache,
+turns the images they reference into ANSI art (chafa), and opens the index in
+glow (install glow and chafa first).
 
     sandbox-docs fetch            download the docs (README plus every .md it links)
     sandbox-docs render [--all]   rewrite image tags into chafa art
@@ -12,7 +14,7 @@ the images they reference into ANSI art (chafa), and opens the index in glow.
 `--all` renders images on every page; the default renders them on the index
 only, so the first open stays quick (the other pages keep a plain link).
 
-Nothing is installed here: glow and chafa come from the sandbox-cli entry.
+Nothing is installed here: use apt-get for glow and chafa.
 G4F_DOCS_DIR overrides the cache (~/.cache/g4f-docs).
 """
 
@@ -269,7 +271,7 @@ def run(action: str, render_all: bool, width: int, refresh: bool) -> int:
         log(f"sandbox-docs: rendered into {os.path.join(root, 'docs')}")
         return 0
     if not shutil.which("glow"):
-        log("sandbox-docs: glow is not installed (run: sandbox-cli glow)")
+        log("sandbox-docs: glow is not installed (sudo apt-get install glow chafa)")
         return 1
     os.execvp("glow", ["glow", "-p", index])
 

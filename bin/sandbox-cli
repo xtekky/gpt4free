@@ -5,8 +5,9 @@
 #
 #   sandbox-cli <tool>          install <tool> if missing, then run it here
 #   sandbox-cli install <tool>  install only, don't run it
-#   sandbox-cli settings        choose the g4f model, HOME, provider and proxy
+#   sandbox-cli settings        choose the g4f model, API key, HOME, provider and proxy
 #   sandbox-cli reset           clear the saved settings, back to the defaults
+#   sandbox-cli package         show, update or pin the g4f package
 #   sandbox-cli list            list the tools the desktop menu knows about
 #   sandbox-cli urls            print the public URLs served by the g4f API
 #   sandbox-cli hosts           print the /etc/hosts entries for the app domains
@@ -53,6 +54,9 @@ OPENCLAW_INSTALLER="https://openclaw.ai/install.sh"
 # Google publishes per-architecture .deb files; append the dpkg arch (amd64,
 # arm64) to this prefix. The .deb pulls its own Chrome runtime libraries.
 CHROME_DEB_BASE="https://dl.google.com/linux/direct/google-chrome-stable_current"
+# The g4f docs are a website: open the real site in Chrome so links are
+# clickable and code fences get the site's copy buttons.
+G4F_DOCS_URL="https://g4f.dev/docs/"
 # Vendor install scripts whose binaries land on PATH (~/.local/bin or
 # /usr/local/bin, both searched above).
 GROK_INSTALLER="https://x.ai/cli/install.sh"
@@ -236,7 +240,7 @@ set_env_var() { # <file> <key> <value>
 }
 
 # ---------------------------------------------------------------------------
-# Sandbox settings (g4f model, g4f provider + HOME)
+# Sandbox settings (g4f model, API key, g4f provider + HOME)
 #
 # A desktop menu entry cannot export environment variables, so the launchers
 # read their overrides from a small settings file that the "Sandbox Settings"
@@ -244,11 +248,15 @@ set_env_var() { # <file> <key> <value>
 # must not move the file that records it.
 #
 # Precedence, highest first:
-#   G4F_SANDBOX_MODEL / G4F_SANDBOX_HOME / G4F_SANDBOX_PROVIDER /
-#   G4F_SANDBOX_PROXY                      explicit environment override
+#   G4F_SANDBOX_MODEL / G4F_SANDBOX_API_KEY / G4F_SANDBOX_HOME /
+#   G4F_SANDBOX_PROVIDER / G4F_SANDBOX_PROXY
+#                                          explicit environment override
 #   the settings file                      what the menu entry saved
-#   G4F_MODEL / $HOME / G4F_PROVIDER / G4F_PROXY
+#   G4F_MODEL / G4F_API_KEY / $HOME / G4F_PROVIDER / G4F_PROXY
 #                                          ambient environment, then defaults
+#
+# API KEY is exported as G4F_API_KEY for the g4f-aware launchers and for the
+# API server the tray starts, so a key saved here authenticates both sides.
 #
 # HOME applies to every menu entry (see apply_sandbox_home): agents keep their
 # config, credentials and caches under $HOME, so pointing it at a scratch
@@ -296,8 +304,12 @@ SANDBOX_MODEL=""
 SANDBOX_HOME=""
 SANDBOX_PROVIDER=""
 SANDBOX_PROXY=""
+SANDBOX_API_KEY=""
 # 1 once a model was chosen (G4F_SANDBOX_MODEL, or the settings file), else 0.
 SANDBOX_MODEL_SET=0
+# 1 once the settings file contains G4F_API_KEY (even when it is empty), so a
+# cleared key suppresses an ambient G4F_API_KEY instead of falling back to it.
+SANDBOX_API_KEY_SET=0
 # The model every g4f provider registration exposes even when no model was
 # chosen: g4f's "auto" lets the server pick a provider and model itself.
 G4F_AUTO_MODEL="auto"
@@ -307,7 +319,9 @@ load_sandbox_settings() {
     SANDBOX_HOME=""
     SANDBOX_PROVIDER=""
     SANDBOX_PROXY=""
+    SANDBOX_API_KEY=""
     SANDBOX_MODEL_SET=0
+    SANDBOX_API_KEY_SET=0
     [ -f "$SANDBOX_ENV_FILE" ] || return 0
     local line key value
     while IFS= read -r line || [ -n "$line" ]; do
@@ -321,34 +335,49 @@ load_sandbox_settings() {
             SANDBOX_HOME) SANDBOX_HOME="$value" ;;
             G4F_PROVIDER) SANDBOX_PROVIDER="$value" ;;
             SANDBOX_PROXY) SANDBOX_PROXY="$value" ;;
+            G4F_API_KEY) SANDBOX_API_KEY="$value"; SANDBOX_API_KEY_SET=1 ;;
         esac
     done < "$SANDBOX_ENV_FILE"
 }
 
-save_sandbox_settings() { # <model> <home> <provider> <proxy>
+save_sandbox_settings() { # <model> <home> <provider> <proxy> <api-key>
     local dir
     dir="$(dirname "$SANDBOX_ENV_FILE")"
     mkdir -p "$dir" || die "cannot create $dir"
     {
         printf '# g4f sandbox settings — written by: sandbox-cli settings\n'
-        printf '# Read by the menu launchers (HOME, proxy) and the g4f-aware ones\n'
-        printf '# (OpenCode, Copilot, Hermes, LibreChat, assistant-ui).\n'
+        printf '# Read by the menu launchers (HOME, proxy, API key) and the g4f-aware\n'
+        printf '# ones (OpenCode, Copilot, Hermes, LibreChat, assistant-ui).\n'
         printf 'G4F_MODEL=%s\n' "$1"
         printf 'SANDBOX_HOME=%s\n' "$2"
         printf 'G4F_PROVIDER=%s\n' "$3"
         printf 'SANDBOX_PROXY=%s\n' "$4"
+        printf 'G4F_API_KEY=%s\n' "$5"
     } > "$SANDBOX_ENV_FILE" || die "cannot write $SANDBOX_ENV_FILE"
+    # The file can hold G4F_API_KEY; keep it private to the sandbox user.
+    chmod 600 "$SANDBOX_ENV_FILE" 2>/dev/null || true
+}
+
+mask_secret() { # <value>
+    local len="${#1}"
+    if [ "$len" -eq 0 ]; then
+        printf '(unset)'
+    else
+        printf '******** (%s characters)' "$len"
+    fi
 }
 
 show_sandbox_settings() {
     printf 'settings file: %s\n' "$SANDBOX_ENV_FILE"
     if [ -f "$SANDBOX_ENV_FILE" ]; then
         printf 'G4F_MODEL:     %s\n' "${SANDBOX_MODEL:-(unset)}"
+        printf 'G4F_API_KEY:   %s\n' "$(mask_secret "$SANDBOX_API_KEY")"
         printf 'HOME:          %s\n' "${SANDBOX_HOME:-(unset)}"
         printf 'G4F_PROVIDER:  %s\n' "${SANDBOX_PROVIDER:-(unset)}"
         printf 'PROXY:         %s\n' "${SANDBOX_PROXY:-(unset)}"
     else
         printf 'G4F_MODEL:     %s (default)\n' "${G4F_MODEL:-(unset)}"
+        printf 'G4F_API_KEY:   %s (default)\n' "$(mask_secret "${G4F_API_KEY:-}")"
         printf 'HOME:          %s (default)\n' "$(real_home)"
         printf 'G4F_PROVIDER:  %s (default)\n' "${G4F_PROVIDER:-(unset)}"
         printf 'PROXY:         %s (default)\n' "${G4F_PROXY:-(unset)}"
@@ -373,15 +402,21 @@ validate_sandbox_home() { # <dir>
 }
 
 prompt_sandbox_settings() {
-    local model home provider proxy answer
+    local model home provider proxy api_key answer
     model="${SANDBOX_MODEL:-${G4F_MODEL:-}}"
     home="${SANDBOX_HOME:-$(real_home)}"
     provider="${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}"
     proxy="${SANDBOX_PROXY:-${G4F_PROXY:-}}"
+    api_key="${SANDBOX_API_KEY:-${G4F_API_KEY:-}}"
     printf 'g4f sandbox settings — press Enter to keep the value in brackets.\n\n'
     printf 'Model passed to the g4f API (G4F_MODEL).\n'
     read -r -p "  model [$model]: " answer || true
     [ -n "$answer" ] && model="$answer"
+    printf '\nAPI key the server requires and the launchers send (G4F_API_KEY).\n'
+    printf 'Enter keeps it; clear it with: sandbox-cli settings --api-key ""\n'
+    read -r -s -p "  API key [$([ -n "$api_key" ] && printf set || printf none)]: " answer || true
+    printf '\n'
+    [ -n "$answer" ] && api_key="$answer"
     printf '\nHOME used by every menu entry (agents keep their config here).\n'
     read -r -p "  HOME [$home]: " answer || true
     [ -n "$answer" ] && home="$answer"
@@ -398,36 +433,60 @@ prompt_sandbox_settings() {
     [ -n "$answer" ] && proxy="$answer"
     printf '\n'
     validate_sandbox_home "$home"
-    save_sandbox_settings "$model" "$home" "$provider" "$proxy"
+    save_sandbox_settings "$model" "$home" "$provider" "$proxy" "$api_key"
+    load_sandbox_settings
+    show_sandbox_settings
+}
+
+prompt_api_key() {
+    local key="${SANDBOX_API_KEY:-${G4F_API_KEY:-}}" answer
+    [ -t 0 ] || die "sandbox-cli settings --api-key needs a terminal"
+    printf 'g4f API key — press Enter to keep the current value.\n\n'
+    printf 'The server requires this key and the menu launchers send it (G4F_API_KEY).\n'
+    printf 'Clear it with: sandbox-cli settings --api-key ""\n\n'
+    read -r -s -p "  API key [$([ -n "$key" ] && printf set || printf none)]: " answer || true
+    printf '\n'
+    [ -n "$answer" ] && key="$answer"
+    save_sandbox_settings \
+        "${SANDBOX_MODEL:-${G4F_MODEL:-}}" \
+        "${SANDBOX_HOME:-$(real_home)}" \
+        "${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}" \
+        "${SANDBOX_PROXY:-${G4F_PROXY:-}}" \
+        "$key"
     load_sandbox_settings
     show_sandbox_settings
 }
 
 settings_usage() {
     cat <<'EOF'
-usage: sandbox-cli settings                    ask for model, HOME, provider and proxy
+usage: sandbox-cli settings                    ask for model, API key, HOME, provider and proxy
        sandbox-cli settings --show             print the saved settings
        sandbox-cli settings --model <id>       set the model (keeps the rest)
+       sandbox-cli settings --api-key <key>    set the API key ("" clears it)
+       sandbox-cli settings --api-key          prompt for just the API key
        sandbox-cli settings --home <dir>       set HOME (keeps the rest)
        sandbox-cli settings --provider <name>  set the g4f provider
        sandbox-cli settings --proxy <url>      set the HTTP(S) proxy
        sandbox-cli settings --unset            drop the file and use the defaults
 
 HOME and PROXY apply to every menu entry. The g4f-aware launchers (OpenCode,
-Copilot, Hermes, LibreChat, assistant-ui) additionally read the model and
-provider; the environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_HOME,
-G4F_SANDBOX_PROVIDER and G4F_SANDBOX_PROXY override them. PROXY is exported as
-G4F_PROXY (for g4f) and as HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents),
-with loopback kept direct. The launchers always register the g4f provider with
-the "auto" model; a saved model is also registered and becomes the tool's
-default, while without one the tool keeps its own default model. Copilot only
-applies its BYOK provider when a model is set.
+Copilot, Hermes, LibreChat, assistant-ui) additionally read the model, provider
+and API key. The API key is exported as G4F_API_KEY, both to the tools and to
+the server the tray starts, so one saved key authenticates both sides. The
+environment variables G4F_SANDBOX_MODEL, G4F_SANDBOX_API_KEY,
+G4F_SANDBOX_HOME, G4F_SANDBOX_PROVIDER and G4F_SANDBOX_PROXY override the
+settings file. PROXY is exported as G4F_PROXY (for g4f) and as
+HTTP_PROXY/HTTPS_PROXY/ALL_PROXY (for the agents), with loopback kept direct.
+The launchers always register the g4f provider with the "auto" model; a saved
+model is also registered and becomes the tool's default, while without one the
+tool keeps its own default model. Copilot only applies its BYOK provider when a
+model is set.
 EOF
 }
 
 run_settings() {
-    local model="" home="" provider="" proxy=""
-    local set_model=0 set_home=0 set_provider=0 set_proxy=0
+    local model="" home="" provider="" proxy="" api_key=""
+    local set_model=0 set_home=0 set_provider=0 set_proxy=0 set_api_key=0
     while [ $# -gt 0 ]; do
         case "$1" in
             --show|show)
@@ -449,6 +508,12 @@ run_settings() {
             --proxy)
                 [ $# -ge 2 ] || die "--proxy needs a value"
                 proxy="$2"; set_proxy=1; shift 2 ;;
+            --api-key)
+                if [ $# -lt 2 ]; then
+                    prompt_api_key
+                    return 0
+                fi
+                api_key="$2"; set_api_key=1; shift 2 ;;
             -h|--help|help)
                 settings_usage
                 return 0 ;;
@@ -457,18 +522,19 @@ run_settings() {
         esac
     done
     if [ "$set_model" = 1 ] || [ "$set_home" = 1 ] || [ "$set_provider" = 1 ] \
-        || [ "$set_proxy" = 1 ]; then
+        || [ "$set_proxy" = 1 ] || [ "$set_api_key" = 1 ]; then
         [ "$set_model" = 1 ] || model="${SANDBOX_MODEL:-${G4F_MODEL:-}}"
         [ "$set_home" = 1 ] || home="${SANDBOX_HOME:-$(real_home)}"
         [ "$set_provider" = 1 ] || provider="${SANDBOX_PROVIDER:-${G4F_PROVIDER:-}}"
         [ "$set_proxy" = 1 ] || proxy="${SANDBOX_PROXY:-${G4F_PROXY:-}}"
+        [ "$set_api_key" = 1 ] || api_key="${SANDBOX_API_KEY:-${G4F_API_KEY:-}}"
         validate_sandbox_home "$home"
-        save_sandbox_settings "$model" "$home" "$provider" "$proxy"
+        save_sandbox_settings "$model" "$home" "$provider" "$proxy" "$api_key"
         load_sandbox_settings
         show_sandbox_settings
         return 0
     fi
-    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--home/--provider/--proxy/--show)"
+    [ -t 0 ] || die "sandbox-cli settings needs a terminal (or use --model/--api-key/--home/--provider/--proxy/--show)"
     prompt_sandbox_settings
 }
 
@@ -480,8 +546,8 @@ usage: sandbox-cli reset            clear the saved settings (asks first)
 
 Drops the settings file written by "sandbox-cli settings", so the launchers
 fall back to the ambient environment and the built-in defaults (G4F_MODEL,
-$HOME, G4F_PROVIDER). Only that file is removed — installed tools, agent
-configs and the g4f runtime are left alone.
+G4F_API_KEY, $HOME, G4F_PROVIDER). Only that file is removed — installed tools,
+agent configs and the g4f runtime are left alone.
 EOF
 }
 
@@ -508,7 +574,7 @@ run_reset() {
     fi
     if [ "$assume_yes" = 0 ]; then
         [ -t 0 ] || die "sandbox-cli reset needs a terminal (or use --yes)"
-        printf 'This removes %s and restores the default model, HOME and provider.\n' \
+        printf 'This removes %s and restores the default model, API key, HOME and provider.\n' \
             "$SANDBOX_ENV_FILE"
         local answer
         read -r -p "Reset the sandbox settings? [y/N]: " answer || true
@@ -526,6 +592,102 @@ run_reset() {
 
 load_sandbox_settings
 
+# ---------------------------------------------------------------------------
+# g4f package management
+#
+# The sandbox's Python runtime and g4f install are owned by g4f-go. The tray's
+# "Update g4f package" and "Change g4f package version" items open this command
+# in a terminal; the tray restarts the server when the terminal closes.
+# ---------------------------------------------------------------------------
+package_show() {
+    if have g4f-go; then
+        g4f-go --version 2>/dev/null || true
+        g4f-go status 2>/dev/null || true
+    else
+        printf 'g4f-go: not installed\n'
+    fi
+    if have python3; then
+        python3 - <<'PY' 2>/dev/null || true
+import importlib.metadata
+
+try:
+    print("g4f package:", importlib.metadata.version("g4f"))
+except importlib.metadata.PackageNotFoundError:
+    print("g4f package: not installed")
+PY
+    fi
+}
+
+package_usage() {
+    cat <<'EOF'
+usage: sandbox-cli package                 ask for a version (Enter keeps it)
+       sandbox-cli package --show          show the running g4f package
+       sandbox-cli package --update        install the latest g4f release
+       sandbox-cli package --version <v>   install exactly g4f <v>
+       sandbox-cli package --version latest
+                                           same as --update
+
+The package is managed by g4f-go, which pins an exact version in
+~/.g4f/python-embed/.g4f-runtime/.g4f-version. "latest" removes that pin and
+tracks new g4f releases again. Restart the server from the tray (or Ctrl-C
+and reopen the API) after the install finishes.
+EOF
+}
+
+run_package() {
+    local action="prompt" version=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --show|show)
+                package_show
+                hold_open
+                return 0 ;;
+            --update|update)
+                action="update"; shift ;;
+            --version)
+                [ $# -ge 2 ] || die "--version needs a version (or \"latest\")"
+                version="$2"; action="version"; shift 2 ;;
+            --latest)
+                action="update"; shift ;;
+            -h|--help|help)
+                package_usage
+                return 0 ;;
+            *)
+                die "unknown package option \"$1\" — run: sandbox-cli package --help" ;;
+        esac
+    done
+    have g4f-go || die "g4f-go is not installed"
+    if [ "$action" = "prompt" ]; then
+        [ -t 0 ] || die "sandbox-cli package needs a terminal (or use --show/--update/--version)"
+        package_show
+        printf '\n'
+        printf 'Enter a g4f version to install (for example 0.5.2), or\n'
+        printf '"latest" to track the newest release. Enter keeps the current package.\n'
+        read -r -p 'g4f version [keep]: ' version || true
+        case "$version" in
+            "") log "keeping the current g4f package"; hold_open; return 0 ;;
+            latest|LATEST) action="update" ;;
+            *) action="version" ;;
+        esac
+    fi
+    if [ "$action" = "update" ] || [ "$version" = "latest" ]; then
+        # The saved proxy/HOME also apply to the network install.
+        apply_sandbox_home
+        apply_sandbox_proxy
+        log "installing the latest g4f package..."
+        g4f-go install --upgrade g4f || die "g4f package update failed"
+    else
+        [ -n "$version" ] || die "no g4f version given"
+        apply_sandbox_home
+        apply_sandbox_proxy
+        log "installing g4f $version..."
+        g4f-go install "g4f==$version" || die "installing g4f $version failed"
+    fi
+    log "done; restart the server to load the new package (the tray does this when this window closes)"
+    package_show
+    hold_open
+}
+
 # HOME is a per-menu-entry setting, so it is applied for every tool, not just
 # the g4f-aware ones: agents keep their config, credentials and caches under
 # $HOME, and a scratch HOME gives a throwaway profile. The PATH entries added
@@ -542,6 +704,30 @@ apply_sandbox_home() {
     export HOME="$home"
     PATH="$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.openclaw/bin:$HOME/.kimi-code/bin:$HOME/.qoder/bin:$PATH"
     export PATH
+}
+
+# The API key is shared by both sides of the g4f integration: the server the
+# tray starts reads it from the same settings file, and the launchers send it
+# as a bearer token. An explicit G4F_SANDBOX_API_KEY wins over the saved value.
+apply_sandbox_api_key() {
+    if [ -n "${G4F_SANDBOX_API_KEY+x}" ]; then
+        if [ -n "$G4F_SANDBOX_API_KEY" ]; then
+            export G4F_API_KEY="$G4F_SANDBOX_API_KEY"
+        else
+            unset G4F_API_KEY
+        fi
+        return 0
+    fi
+    if [ "$SANDBOX_API_KEY_SET" = 1 ]; then
+        if [ -n "$SANDBOX_API_KEY" ]; then
+            export G4F_API_KEY="$SANDBOX_API_KEY"
+        else
+            unset G4F_API_KEY
+        fi
+        return 0
+    fi
+    [ -n "${G4F_API_KEY:-}" ] && export G4F_API_KEY
+    return 0
 }
 
 # mitmproxy signs the HTTPS traffic it intercepts with its own CA, which no
@@ -644,12 +830,22 @@ ensure_pip() { # <pypi package> <binary>
     have "$2" || die "$2 not on PATH after installing $1"
 }
 
-ensure_apt() { # <apt package> <binary>
+ensure_apt_soft() { # <apt package> <binary>; returns 1 instead of exiting
     have "$2" && return 0
     log "installing $1 (apt)..."
-    as_root apt-get update -qq || die "apt-get update failed"
-    as_root apt-get install -y -qq "$1" || die "could not install $1"
-    have "$2" || die "$2 not found after installing $1"
+    # --no-install-recommends keeps menu installs small: thunar's recommends
+    # alone pull tumbler -> gdal/opencv and dbus-user-session/systemd, which
+    # turns a file manager into a multi-minute, session-touching install.
+    # DEBIAN_FRONTEND keeps a package with a conffile prompt from wedging the
+    # terminal that the menu entry opened.
+    as_root env DEBIAN_FRONTEND=noninteractive apt-get update -qq || return 1
+    as_root env DEBIAN_FRONTEND=noninteractive \
+        apt-get install -y -qq --no-install-recommends "$1" || return 1
+    have "$2"
+}
+
+ensure_apt() { # <apt package> <binary>
+    ensure_apt_soft "$1" "$2" || die "could not install $1"
 }
 
 # uv is the only Python toolchain here that can pick an interpreter version:
@@ -2449,8 +2645,9 @@ polli_sandbox_dispatch() {
 }
 
 run_tool() {
-    # The saved HOME and PROXY apply to every entry, g4f-aware or not.
+    # The saved HOME, API key and PROXY apply to every entry, g4f-aware or not.
     apply_sandbox_home
+    apply_sandbox_api_key
     apply_sandbox_proxy
     case "$1" in
         remote-desktop)
@@ -2906,14 +3103,21 @@ run_tool() {
             # GUI file managers: installed on first click, then opened on the
             # desktop detached, so the launcher terminal closes and the window
             # stays. An optional argument is the folder to open.
+            # Thunar is the lightweight Xfce default; if its apt install fails
+            # (stale mirror, missing package), fall back to Nemo rather than
+            # leaving the entry dead.
             if [ "$1" = nemo ]; then
                 ensure_apt nemo nemo
                 label="File Manager (Nemo)"
                 app=nemo
-            else
-                ensure_apt thunar thunar
+            elif ensure_apt_soft thunar thunar; then
                 label="File Manager"
                 app=thunar
+            else
+                log "Thunar could not be installed; falling back to Nemo"
+                ensure_apt nemo nemo
+                label="File Manager (Nemo)"
+                app=nemo
             fi
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "$label is installed and ready"
@@ -2942,17 +3146,32 @@ run_tool() {
             log "report: ${XDG_CACHE_HOME:-$HOME/.cache}/sandbox-discover/report.md"
             exec bash -i ;;
         glow)
-            ensure_apt glow glow
-            ensure_apt chafa chafa
+            # The g4f docs are a website: open the real site in Chrome so links
+            # are clickable and every code block gets the site's copy button.
+            # The glow/chafa terminal renderer (sandbox-docs) stays available
+            # from the command line, but it can do neither.
+            ensure_chrome
             if [ "$INSTALL_ONLY" = 1 ]; then
-                log "Glow and chafa are installed and ready"
+                log "Google Chrome is installed and ready"
                 exit 0
             fi
-            # sandbox-docs downloads the markdown sources from https://g4f.dev,
-            # rewrites their images into chafa ANSI art and opens the index in
-            # glow. It exits into glow, so the terminal stays as its pager.
-            log "opening the g4f.dev docs in glow (first run downloads them)..."
-            exec sandbox-docs open "${@:2}" ;;
+            log "opening the g4f docs in Chrome..."
+            nohup setsid /usr/local/bin/start-browser chrome --once \
+                "$G4F_DOCS_URL" >/tmp/g4f-docs.log 2>&1 &
+            local waited=0
+            while [ "$waited" -lt 20 ]; do
+                port_open 57011 && break
+                pgrep -f "remote-debugging-port=57011" >/dev/null 2>&1 || break
+                sleep 1
+                waited=$((waited + 1))
+            done
+            if port_open 57011; then
+                log "the g4f docs are open on the desktop"
+                exit 0
+            fi
+            printf '\nChrome did not start. Last lines of /tmp/g4f-docs.log:\n\n' >&2
+            tail -n 20 /tmp/g4f-docs.log >&2 2>/dev/null || true
+            die "could not open the g4f docs (see /tmp/g4f-docs.log)" ;;
         polli)
             ensure_npm @pollinations/cli polli
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -2994,6 +3213,39 @@ run_tool() {
             log "  hyperframes preview"
             log "  hyperframes render"
             hyperframes --help 2>/dev/null || true
+            exec bash -i ;;
+        repomix)
+            ensure_npm repomix repomix
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "repomix is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch repomix repomix "${@:2}"
+            fi
+            repomix --help 2>/dev/null || true
+            exec bash -i ;;
+        files-to-prompt)
+            ensure_pip files-to-prompt files-to-prompt
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "files-to-prompt is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch files-to-prompt files-to-prompt "${@:2}"
+            fi
+            files-to-prompt --help 2>/dev/null || true
+            exec bash -i ;;
+        gitingest)
+            ensure_pip gitingest gitingest
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "gitingest is installed and ready"
+                exit 0
+            fi
+            if [ $# -gt 1 ]; then
+                launch gitingest gitingest "${@:2}"
+            fi
+            gitingest --help 2>/dev/null || true
             exec bash -i ;;
         assistant-ui)
             ensure_assistant_ui
@@ -3154,8 +3406,9 @@ usage() {
     cat <<'EOF'
 usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop tool
        sandbox-cli install <tool>     install only, don't run it
-       sandbox-cli settings           choose the g4f model, HOME, provider and proxy
+       sandbox-cli settings           choose the g4f model, API key, HOME, provider and proxy
        sandbox-cli reset              clear the saved settings, back to the defaults
+       sandbox-cli package            show, update or pin the g4f package
        sandbox-cli list               list the tools behind the desktop menu
        sandbox-cli urls               print the public URLs served by the g4f API
        sandbox-cli hosts              print the /etc/hosts entries for the app domains
@@ -3174,10 +3427,11 @@ list_tools() {
     printf '%s\n' "g4f"
     printf '  %-15s %s\n' \
         g4f-go          "g4f Go launcher CLI (preinstalled)" \
+        package         "show, update or pin the g4f package" \
         remote-desktop  "share this sandbox screen with a phone (WebRTC)" \
-        glow            "g4f.dev docs in the terminal (images as ANSI art)" \
+        glow            "open the g4f docs in the browser (clickable links, copyable code)" \
         discover        "find new/trending AI tools and add them to this menu" \
-        settings        "g4f model, HOME and provider for the launchers" \
+        settings        "g4f model, API key, HOME and provider for the launchers" \
         reset           "clear the saved settings, back to the defaults" \
         urls            "public URLs served by the g4f API" \
         hosts           "host /etc/hosts entries for the app domains"
@@ -3301,6 +3555,9 @@ case "${1:-}" in
     reset)
         shift
         run_reset "$@" ;;
+    package)
+        shift
+        run_package "$@" ;;
     install)
         [ $# -ge 2 ] || die "usage: sandbox-cli install <tool>"
         INSTALL_ONLY=1

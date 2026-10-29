@@ -21,7 +21,7 @@ desktop-entry `Exec` line is split on whitespace, so an unquoted title makes
 xfce4-terminal treat the second word as an option and refuse to start
 (`Unknown option "Settings"`).
 
-The **g4f Live Wallpaper** entry runs `docker/g4f-livewall`, a self-contained
+The **g4f Live Wallpaper** entry runs `bin/g4f-livewall`, a self-contained
 truecolour ANSI animation (drifting nebula, stars, orbits and a shimmering g4f
 emblem). The desktop entrypoint also opens it at startup; set
 `G4F_WALLPAPER=0` to skip it.
@@ -51,6 +51,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Open g4f-go CLI          | `g4f-go`    | preinstalled in the image   | `g4f-go`       |
 | Open Remote Desktop      | `remote-desktop` | g4f-go bundled module + pip `qrcode`, `python-xlib`, `pynput` | `g4f-go` |
 | Sandbox Settings         | `settings`  | none (writes a settings file) | —            |
+| Update or Change g4f Package | `package` | `g4f-go install` (pip) | —           |
 | Reset Sandbox Settings   | `reset`     | none (removes the settings file) | —         |
 | Public URLs              | `urls`      | none (prints the g4f API URLs) | —           |
 | Host Names               | `hosts`     | none (prints the `/etc/hosts` entries) | —    |
@@ -121,7 +122,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install Superpowers      | `superpowers` | `opencode plugin add` (git) | —            |
 | Install Graphify         | `graphify`  | pip `graphifyy` + `graphify install --platform agents` | `graphify` |
 | Install Claude-Mem       | `claude-mem` | npx `claude-mem@15.4.0 install --ide opencode` | — |
-| Install & Open Glow      | `glow`      | apt `glow` + `chafa` (Debian) | `glow`       |
+| Open g4f Docs           | `glow`      | Google Chrome (installed on first open) | `google-chrome` |
 
 Beyond the coding agents, the menu also carries **gateways** (`omniroute`,
 `litellm`, `pi-freeflow`) that expose an OpenAI-compatible endpoint, together
@@ -330,7 +331,7 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 
 | Menu             | Category          | Entries                                        |
 |------------------|-------------------|------------------------------------------------|
-| **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `glow`, `discover`, `settings`, `reset` |
+| **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `package`, `glow`, `discover`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
 | **Files**        | `X-G4F-Files`     | `files`, `nemo`                                |
 | **Coding Agents**| `X-G4F-Agent`     | `opencode`, `openbot`, `thinkrail`, `orca`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `omh`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent` |
@@ -398,7 +399,7 @@ Adwaita symbolic icons the category `.directory` files name.
 `chrome` is the odd one out: it installs Google's `.deb` through `apt` (the
 package pulls its own runtime libraries) and then starts Chrome on the desktop
 via `start-browser chrome --once`, detached from the launcher terminal (its
-log goes to `/tmp/chrome.log`). `start-browser` (from `bin/start-browser.sh`,
+log goes to `/tmp/chrome.log`). `start-browser` (from `bin/start-browser`,
 baked into the image) adds the CDP remote-debugging port (9223 on the network,
 57011 locally) that the g4f automation connects to; `--once` starts Chrome a
 single time instead of the script's default relaunch loop. Nothing about
@@ -482,7 +483,7 @@ defaults:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `G4F_API_BASE_URL` | detected `http://127.0.0.1:{8080,9090}/v1`, otherwise `http://127.0.0.1:8080/v1` | g4f OpenAI-compatible API base URL |
-| `G4F_API_KEY` | unset | API key sent as a bearer token; set this if the g4f API requires authentication |
+| `G4F_API_KEY` | unset | API key sent as a bearer token and required by the server; saved with `sandbox-cli settings --api-key` |
 | `G4F_MODEL` | unset  | Model ID registered with the g4f-aware tools and used as their default when saved in **Sandbox Settings**; setting it only in the environment does not select it |
 | `G4F_PROVIDER` | unset | g4f provider the launchers pin by prefixing a model chosen in **Sandbox Settings**; unset lets g4f pick from its own rotation |
 
@@ -772,29 +773,66 @@ the menu; the always-registered `auto` model is never prefixed, and
 launcher does not select a provider for the request — the model name is what
 does.
 
-### Sandbox Settings (model, HOME, provider and proxy)
+### System tray
+
+The sandbox image runs `sandbox-tray` as its main process. It starts the g4f
+API (`g4f-go api --port 8080 --debug`) as a child and puts a g4f icon in the
+Xfce panel's stock **Status Tray** plugin through `yad`, so the server can be
+managed from the desktop without a terminal:
+
+| Tray item | What it does |
+|-----------|--------------|
+| **Open in Browser** | Opens `http://127.0.0.1:8080` on the desktop |
+| **Start / Stop Server** | Starts or stops the API child process |
+| **Restart Server** | Stops the child and starts it again, e.g. after changing settings |
+| **Update g4f Package** | Runs `sandbox-cli package --update` in a terminal |
+| **Change g4f Package Version...** | Prompts for a version (or `latest`) and pins it |
+| **Set API Key…** | Runs `sandbox-cli settings --api-key` in a terminal |
+| **Show Logs** | Opens the API's `/logs` page |
+| **Quit** | Stops the server and closes the tray |
+
+The menu actions that need input open a terminal and the tray restarts the
+server when that window closes, so package updates and key changes take effect
+immediately. `sandbox-cli package --show` prints the running package and the
+g4f-go version pin; `sandbox-cli package --version <v>` does the same install
+non-interactively.
+
+The server is a child process on purpose: restarting an in-process uvicorn
+instance is not reliable, and the container would otherwise have to be
+recreated for every package or API-key change. When there is no display
+(`SANDBOX_DESKTOP=0`), `yad` is unavailable, or the tray exits unexpectedly,
+`sandbox-tray` falls back to running the API directly.
+
+### Sandbox Settings (model, API key, HOME, provider and proxy)
 
 A desktop menu entry cannot export environment variables, so the **Sandbox
-Settings** entry (`g4f` menu) writes the model, HOME, provider and proxy to a
-small settings file that the launchers read before they start:
+Settings** entry (`g4f` menu) writes the model, API key, HOME, provider and
+proxy to a small settings file that the launchers read before they start:
 
 ```
-~/.config/g4f-sandbox/env      # G4F_MODEL=…, SANDBOX_HOME=…, G4F_PROVIDER=…, SANDBOX_PROXY=…
+~/.config/g4f-sandbox/env      # G4F_MODEL=…, G4F_API_KEY=…, SANDBOX_HOME=…, G4F_PROVIDER=…, SANDBOX_PROXY=…
 ```
 
 The file lives outside `$HOME` on purpose: changing HOME must not move the
-file that records it. `sandbox-cli settings` prompts for all four values
+file that records it. `sandbox-cli settings` prompts for all five values
 (Enter keeps the current one) and prints the result; the same command works
 non-interactively:
 
 ```bash
-sandbox-cli settings --show                 # print the saved values
+sandbox-cli settings --show                 # print the saved values (the key is masked)
 sandbox-cli settings --model gpt-4o         # set the model, keep the rest
+sandbox-cli settings --api-key sk-...       # set the server/tool API key
+sandbox-cli settings --api-key ""           # clear it
 sandbox-cli settings --home /home/pn/work   # set HOME, keep the rest
 sandbox-cli settings --provider PollinationsAI
 sandbox-cli settings --proxy http://127.0.0.1:8081
 sandbox-cli settings --unset                # back to the defaults
 ```
+
+The API key is exported as `G4F_API_KEY` to the menu launchers (OpenCode,
+Copilot, Hermes, LibreChat, assistant-ui) and passed to the server child, so
+the same saved key authenticates both sides. With no key saved, the server
+starts without authentication, as before.
 
 The **Reset Sandbox Settings** entry (`g4f` menu) is the same reset behind a
 menu item: it asks for confirmation, then removes the settings file so every
@@ -853,11 +891,11 @@ server restarted, so turning the setting off takes effect as well.
 
 Precedence, highest first:
 
-1. `G4F_SANDBOX_MODEL` / `G4F_SANDBOX_HOME` / `G4F_SANDBOX_PROVIDER` /
-   `G4F_SANDBOX_PROXY` — explicit environment override
+1. `G4F_SANDBOX_MODEL` / `G4F_SANDBOX_API_KEY` / `G4F_SANDBOX_HOME` /
+   `G4F_SANDBOX_PROVIDER` / `G4F_SANDBOX_PROXY` — explicit environment override
 2. the settings file — what the menu entry saved
-3. `G4F_MODEL` / `$HOME` / `G4F_PROVIDER` / `G4F_PROXY` — ambient environment,
-   then the built-in defaults
+3. `G4F_MODEL` / `G4F_API_KEY` / `$HOME` / `G4F_PROVIDER` / `G4F_PROXY` —
+   ambient environment, then the built-in defaults
 
 A model counts as chosen only at levels 1 or 2. If neither provides one, the
 g4f-aware launchers still register the g4f provider with model `auto`, but
@@ -889,10 +927,16 @@ first click. Run it by hand with `sandbox-cli discover`, add a topic bias with
 `~/.cache/sandbox-discover/report.md`; `SANDBOX_DISCOVER_MODEL` picks another
 OpenCode model (default `g4f/auto`).
 
-### g4f docs in the terminal (Glow)
+### g4f docs in the browser
 
-The **Install & Open Glow** entry (`g4f` menu) installs `glow` and `chafa` from
-Debian, then runs `sandbox-docs open`:
+The **Open g4f Docs** entry (`g4f` menu) opens
+`https://g4f.dev/docs/` in Google Chrome on the desktop (Chrome is installed
+on first open if it is not there yet). A real browser makes every navigation
+link clickable and gives each code block the site's copy button — neither is
+possible in the old glow/chafa terminal view.
+
+The terminal renderer is still available from a shell with `sandbox-docs open`
+(install `glow` and `chafa` first, e.g. `sudo apt-get install glow chafa`):
 
 1. it downloads `https://g4f.dev/docs/README.md` and every relative `.md` that
    page links (breadth first, depth 3, at most 120 pages) into
@@ -913,28 +957,33 @@ the first open quick; run `sandbox-docs render --all` (or `sandbox-docs open
 
 ## Files
 
-- `sandbox-cli.sh` — installed as `/usr/local/bin/sandbox-cli`; also usable by
+- `bin/sandbox-cli` — installed as `/usr/local/bin/sandbox-cli` (the image
+  copies the whole repo `bin/` into `/usr/local/bin`); also usable by
   hand: `sandbox-cli list`, `sandbox-cli install <tool>`, `sandbox-cli <tool>`,
-  `sandbox-cli settings`, `sandbox-cli reset`, `sandbox-cli urls`,
-  `sandbox-cli hosts`.
+  `sandbox-cli settings`, `sandbox-cli package`, `sandbox-cli reset`,
+  `sandbox-cli urls`, `sandbox-cli hosts`.
+- `bin/sandbox-tray` — installed as `/usr/local/bin/sandbox-tray`; the image's
+  main process. It runs the g4f API as a child and shows the tray menu (server
+  restart, package update/pin, API key). See **System tray** above.
 - `g4f-sandbox-*.desktop` — the menu entries, copied to
   `/usr/share/applications/`. Each names its own `g4f-sandbox-<tool>` icon and
   passes it to `xfce4-terminal` as `--icon`.
-- `g4f-sandbox-cli.svg` — the shared icon, used by the `g4f-go`, `settings`,
-  `reset`, `urls` and `hosts` entries and as the fallback for any tool whose
-  icon sources are unreachable.
-- `fetch-icons.py` — installed as `/usr/local/bin/fetch-icons.py`; fetches and
+- `g4f-sandbox-cli.svg` — the shared icon, used by the `g4f-go`, `package`,
+  `settings`, `reset`, `urls` and `hosts` entries and as the fallback for any
+  tool whose icon sources are unreachable.
+- `bin/fetch-icons.py` — installed as `/usr/local/bin/fetch-icons.py`; fetches and
   normalizes the per-tool icons into the hicolor theme at build time. Run it by
   hand with `--dest <dir>` to inspect the result, or `--only <tool>` to retry a
   single tool.
 - `desktop-directories/g4f-sandbox-*.directory` — the menu titles and icons,
   copied to `/usr/share/desktop-directories/`.
-- `patch-xfce-menu.py` — inserts the category menus into
+- `bin/patch-xfce-menu.py` — inserts the category menus into
   `/etc/xdg/menus/xfce-applications.menu` at build time.
-- `sandbox-docs.py` — installed as `/usr/local/bin/sandbox-docs`; downloads the
-  markdown sources from https://g4f.dev/docs/, rewrites their images into
-  chafa ANSI art and opens the index in glow (see the Glow entry below).
-- `sandbox-discover.sh` — installed as `/usr/local/bin/sandbox-discover`; the
+- `bin/sandbox-docs` — installed as `/usr/local/bin/sandbox-docs`; the terminal
+  renderer for https://g4f.dev/docs/ (downloads the markdown sources, rewrites
+  their images into chafa ANSI art and opens the index in glow). The
+  **Open g4f Docs** menu entry opens the site in Chrome instead.
+- `bin/sandbox-discover` — installed as `/usr/local/bin/sandbox-discover`; the
   "AI Tool Scout" behind the **Find & Add AI Tools** entry (see below).
 
 ## Fonts
@@ -947,7 +996,7 @@ Noto packages (for example `fonts-noto-cjk`) to the `apt-get install` list in
 
 ## Adding a tool
 
-1. Add a case to `sandbox-cli.sh` (`ensure_npm` / `ensure_pip` /
+1. Add a case to `bin/sandbox-cli` (`ensure_npm` / `ensure_pip` /
    `ensure_script` / `ensure_chrome` / `ensure_lightpanda` + `launch`) and a
    line to `list_tools`.
    The saved HOME is applied to every entry automatically; a tool that should
@@ -956,7 +1005,7 @@ Noto packages (for example `fonts-noto-cjk`) to the `apt-get install` list in
    keywords, and set `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` to the category it
    belongs to. Set `Icon=g4f-sandbox-<tool>` and add the matching
    `--icon=g4f-sandbox-<tool>` to the `Exec` line.
-3. Add the tool id to `ICONS` in `fetch-icons.py` with its candidate URLs, best
+3. Add the tool id to `ICONS` in `bin/fetch-icons.py` with its candidate URLs, best
    first (a direct logo asset, then `google("<domain>")`, then
    `github("<org>")`). A tool with no vendor site goes into `SHARED` instead and
    keeps `g4f-sandbox-cli`.
@@ -966,6 +1015,6 @@ Noto packages (for example `fonts-noto-cjk`) to the `apt-get install` list in
 
 1. Add a `.directory` file in `desktop-directories/` (copy an existing one and
    swap `Name`, `Comment` and `Icon`).
-2. Add the matching `<Menu>` block to `MENUS` in `patch-xfce-menu.py`, using
+2. Add the matching `<Menu>` block to `MENUS` in `bin/patch-xfce-menu.py`, using
    the new `X-G4F-<Cat>` category.
 3. Rebuild the image.

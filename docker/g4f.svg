@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="g4f">
   <!-- g4f mark (https://g4f.dev/dist/img/g4f.svg): brand-gradient circle + G4F.
-       Referenced by docker/novnc-brand.sh as the sandbox desktop's noVNC logo,
+       Referenced by bin/novnc-brand.sh as the sandbox desktop's noVNC logo,
        favicon and icon asset, so keep the ids g4f-prefixed. -->
   <defs>
     <linearGradient id="g4fGrad" x1="0%" y1="0%" x2="100%" y2="100%">

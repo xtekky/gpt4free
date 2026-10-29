@@ -1,0 +1,530 @@
+#!/usr/bin/env python3
+"""Desktop tray for the g4f sandbox.
+
+This is the container's main process in the sandbox desktop image. It starts
+the g4f API as a child process and owns a small notification icon in the Xfce
+panel (via ``yad``), so the server can be restarted, the g4f package can be
+updated or pinned, and the API key can be changed without a terminal.
+
+The menu actions that need input reuse ``sandbox-cli``: each opens its own
+terminal window, and the server is restarted when that window closes. The
+settings live in the same file as the rest of the sandbox settings, so a key
+set here is also used by the OpenCode/Copilot/Hermes/LibreChat launchers.
+
+Without a display (``SANDBOX_DESKTOP=0``), without ``yad``, or when the tray
+cannot start, it falls back to running the API server directly, exactly like
+the image's previous command.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import pwd
+import select
+import shlex
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import webbrowser
+from pathlib import Path
+from typing import Dict, List, Optional
+
+CLI_NAME = "sandbox-cli"
+TERMINAL_NAME = "xfce4-terminal"
+YAD_NAME = "yad"
+ICON = "g4f-sandbox-applications"
+
+
+def _real_home() -> Path:
+    try:
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (KeyError, OSError):
+        return Path(os.path.expanduser("~"))
+
+
+def _settings_file() -> Path:
+    override = os.environ.get("G4F_SANDBOX_ENV")
+    if override:
+        return Path(override).expanduser()
+    return _real_home() / ".config" / "g4f-sandbox" / "env"
+
+
+def _read_settings() -> Dict[str, str]:
+    values: Dict[str, str] = {}
+    try:
+        lines = _settings_file().read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return values
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key] = value
+    return values
+
+
+def _api_key() -> str:
+    # Match sandbox-cli's precedence: an explicit G4F_SANDBOX_API_KEY wins over
+    # the saved settings file (even when it is empty), which in turn wins over
+    # an ambient G4F_API_KEY.
+    if "G4F_SANDBOX_API_KEY" in os.environ:
+        return os.environ["G4F_SANDBOX_API_KEY"].strip()
+    settings = _read_settings()
+    if "G4F_API_KEY" in settings:
+        return settings["G4F_API_KEY"].strip()
+    return os.environ.get("G4F_API_KEY", "").strip()
+
+
+def _server_env() -> Dict[str, str]:
+    key = _api_key()
+    return {"G4F_API_KEY": key} if key else {}
+
+
+def _server_command(port: int, debug: bool) -> List[str]:
+    override = os.environ.get("G4F_TRAY_SERVER_COMMAND", "").strip()
+    if override:
+        return shlex.split(override)
+    launcher = shutil.which("g4f-go")
+    if launcher:
+        command = [launcher, "api", "--port", str(port)]
+    else:
+        command = [sys.executable, "-m", "g4f", "api", "--port", str(port)]
+    if debug:
+        command.append("--debug")
+    return command
+
+
+def _exec_server(command: List[str]) -> int:
+    env = os.environ.copy()
+    env.pop("G4F_API_KEY", None)
+    env.update(_server_env())
+    try:
+        os.execvpe(command[0], command, env)
+    except OSError as exc:
+        print(f"sandbox-tray: could not start the server: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _cli_path() -> str:
+    return shutil.which(CLI_NAME) or f"/usr/local/bin/{CLI_NAME}"
+
+
+def _run_in_terminal(title: str, command: str) -> bool:
+    """Run ``command`` in a desktop terminal and wait for the window to close."""
+    terminal = shutil.which(TERMINAL_NAME)
+    if terminal:
+        argv = [
+            terminal,
+            "--disable-server",
+            "--maximize",
+            "--hide-borders",
+            "--hide-menubar",
+            f"--title={title}",
+            f"--icon={ICON}",
+            f"--command={command}",
+        ]
+        try:
+            return subprocess.call(argv) == 0
+        except OSError:
+            pass
+    # Last resort for an odd session: run the CLI in this process.
+    argv = shlex.split(command)
+    try:
+        return subprocess.call(argv) == 0
+    except OSError as exc:
+        print(f"sandbox-tray: could not open {command}: {exc}", file=sys.stderr)
+        return False
+
+
+def _open_url(url: str) -> None:
+    """Open ``url`` on the desktop, preferring the sandbox's Chrome wrapper."""
+    launcher = shutil.which("start-browser")
+    chrome = shutil.which("google-chrome") or shutil.which("google-chrome-stable")
+    if launcher and chrome:
+        try:
+            subprocess.Popen(
+                [launcher, "chrome", "--once", url],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            return
+        except OSError:
+            pass
+    webbrowser.open(url)
+
+
+def _set_api_key() -> bool:
+    return _run_in_terminal("g4f API Key", f"{_cli_path()} settings --api-key")
+
+
+def _update_package() -> bool:
+    return _run_in_terminal("g4f Package", f"{_cli_path()} package --update")
+
+
+def _change_package() -> bool:
+    return _run_in_terminal("g4f Package", f"{_cli_path()} package")
+
+
+class _Server:
+    """Start, stop and restart the g4f API as a child process."""
+
+    def __init__(self, command: List[str]) -> None:
+        self.command = command
+        self._lock = threading.RLock()
+        self._process: Optional[subprocess.Popen] = None
+
+    def _environment(self) -> Dict[str, str]:
+        env = os.environ.copy()
+        env.pop("G4F_API_KEY", None)
+        env.update(_server_env())
+        return env
+
+    def is_running(self) -> bool:
+        with self._lock:
+            return self._process is not None and self._process.poll() is None
+
+    def start(self) -> bool:
+        with self._lock:
+            if self.is_running():
+                return False
+            try:
+                self._process = subprocess.Popen(
+                    self.command,
+                    env=self._environment(),
+                    stdin=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+            except OSError as exc:
+                print(f"sandbox-tray: could not start the server: {exc}", file=sys.stderr)
+                return False
+            print(f"sandbox-tray: server started (pid {self._process.pid})", flush=True)
+            return True
+
+    def _signal(self, process: subprocess.Popen, sig: int) -> None:
+        try:
+            os.killpg(os.getpgid(process.pid), sig)
+        except (AttributeError, ProcessLookupError, PermissionError, OSError):
+            try:
+                process.kill() if sig == signal.SIGKILL else process.terminate()
+            except OSError:
+                pass
+
+    def stop(self, timeout: float = 10.0) -> bool:
+        with self._lock:
+            process = self._process
+            if process is None:
+                return False
+            self._process = None
+        if process.poll() is None:
+            print(f"sandbox-tray: stopping server (pid {process.pid})", flush=True)
+            self._signal(process, signal.SIGTERM)
+            try:
+                process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                self._signal(process, signal.SIGKILL)
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
+        return True
+
+    def restart(self) -> bool:
+        self.stop()
+        return self.start()
+
+
+class _Tray:
+    """A yad notification icon with a dynamic menu."""
+
+    def __init__(self, fifo_path: Path, port: int) -> None:
+        self.fifo_path = fifo_path
+        self.port = port
+        self.action_lock = threading.Lock()
+        self._menu_lock = threading.Lock()
+        self.process: Optional[subprocess.Popen] = None
+        self._menu = ""
+
+    def _action(self, name: str) -> str:
+        script = os.path.abspath(__file__)
+        return " ".join(
+            shlex.quote(part)
+            for part in (
+                sys.executable,
+                script,
+                "--send",
+                str(self.fifo_path),
+                name,
+            )
+        )
+
+    def menu(self, server_running: bool) -> str:
+        items = [
+            f"Open in Browser!{self._action('open')}",
+            "",
+            (
+                f"Stop Server!{self._action('toggle')}"
+                if server_running
+                else f"Start Server!{self._action('toggle')}"
+            ),
+            f"Restart Server!{self._action('restart')}",
+            "",
+            f"Update g4f Package!{self._action('update')}",
+            f"Change g4f Package Version...!{self._action('change')}",
+            "",
+            f"Set API Key...!{self._action('key')}",
+            "",
+            f"Show Logs!{self._action('logs')}",
+            "",
+            f"Quit!{self._action('quit')}",
+        ]
+        return "|".join(items)
+
+    def write(self, command: str) -> None:
+        if self.process is None or self.process.stdin is None:
+            return
+        if self.process.poll() is not None:
+            return
+        try:
+            self.process.stdin.write((command + "\n").encode())
+            self.process.stdin.flush()
+        except (BrokenPipeError, OSError, ValueError):
+            pass
+
+    def set_state(self, server_running: bool) -> None:
+        menu = self.menu(server_running)
+        with self._menu_lock:
+            if menu == self._menu:
+                return
+            self._menu = menu
+            self.write(f"menu:{menu}")
+            self.write(
+                f"tooltip:g4f API — "
+                f"{'running' if server_running else 'stopped'} "
+                f"(http://127.0.0.1:{self.port})"
+            )
+
+    def start(self) -> bool:
+        yad = shutil.which(YAD_NAME)
+        if yad is None:
+            return False
+        self._menu = self.menu(False)
+        argv = [
+            yad,
+            "--notification",
+            "--listen",
+            f"--image={ICON}",
+            "--text=g4f API starting...",
+            f"--menu={self._menu}",
+        ]
+        try:
+            self.process = subprocess.Popen(
+                argv,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError as exc:
+            print(f"sandbox-tray: could not start yad: {exc}", file=sys.stderr)
+            return False
+        return True
+
+    def alive(self) -> bool:
+        return self.process is not None and self.process.poll() is None
+
+    def close(self) -> None:
+        self.write("quit")
+        if self.process is None:
+            return
+        try:
+            self.process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+
+
+def _send(fifo_path: str, action: str) -> int:
+    try:
+        with open(fifo_path, "wb", buffering=0) as fifo:
+            fifo.write(action.encode() + b"\n")
+    except OSError as exc:
+        print(f"sandbox-tray: could not send {action}: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _run_tray(server: _Server, port: int, autostart: bool = True) -> int:
+    fifo_path = Path(f"/tmp/g4f-tray-{os.getpid()}.fifo")
+    try:
+        if fifo_path.exists():
+            fifo_path.unlink()
+        os.mkfifo(str(fifo_path), 0o600)
+    except OSError as exc:
+        print(f"sandbox-tray: cannot create control FIFO: {exc}", file=sys.stderr)
+        return 1
+
+    tray = _Tray(fifo_path, port)
+    if not tray.start():
+        try:
+            fifo_path.unlink()
+        except OSError:
+            pass
+        return 1
+
+    stop = threading.Event()
+
+    def _signal(signum, frame):
+        stop.set()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(sig, _signal)
+        except (ValueError, OSError):
+            pass
+
+    def _refresh() -> None:
+        tray.set_state(server.is_running())
+
+    def _run_action(action: str) -> None:
+        with tray.action_lock:
+            try:
+                if action == "open":
+                    _open_url(f"http://127.0.0.1:{port}")
+                elif action == "logs":
+                    _open_url(f"http://127.0.0.1:{port}/logs")
+                elif action == "toggle":
+                    server.stop() if server.is_running() else server.start()
+                elif action == "restart":
+                    server.restart()
+                elif action == "update":
+                    if _update_package():
+                        server.restart()
+                elif action == "change":
+                    if _change_package():
+                        server.restart()
+                elif action == "key":
+                    if _set_api_key():
+                        server.restart()
+                elif action == "quit":
+                    stop.set()
+            finally:
+                _refresh()
+
+    def _spawn_action(action: str) -> None:
+        threading.Thread(target=_run_action, args=(action,), daemon=True).start()
+
+    # Keep the FIFO readable without hitting EOF between writers.
+    try:
+        fd = os.open(str(fifo_path), os.O_RDWR | os.O_NONBLOCK)
+    except OSError as exc:
+        print(f"sandbox-tray: cannot open control FIFO: {exc}", file=sys.stderr)
+        tray.close()
+        return 1
+
+    if autostart:
+        server.start()
+    _refresh()
+    buffer = b""
+    exit_code = 0
+    try:
+        while not stop.is_set() and tray.alive():
+            try:
+                ready, _, _ = select.select([fd], [], [], 0.5)
+            except InterruptedError:
+                continue
+            if not ready:
+                continue
+            try:
+                chunk = os.read(fd, 4096)
+            except BlockingIOError:
+                continue
+            if not chunk:
+                continue
+            buffer += chunk
+            while b"\n" in buffer:
+                line, buffer = buffer.split(b"\n", 1)
+                action = line.decode(errors="replace").strip()
+                if action:
+                    _spawn_action(action)
+        if not stop.is_set() and not tray.alive():
+            print("sandbox-tray: the tray window closed", file=sys.stderr)
+            exit_code = 2
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        tray.close()
+        server.stop()
+        try:
+            fifo_path.unlink()
+        except OSError:
+            pass
+    return exit_code
+
+
+def _main() -> int:
+    parser = argparse.ArgumentParser(description="Run the g4f sandbox desktop tray")
+    parser.add_argument(
+        "--port",
+        "-p",
+        type=int,
+        default=int(os.environ.get("G4F_API_PORT", "8080")),
+        help="g4f API port (default: 8080 or G4F_API_PORT).",
+    )
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=os.environ.get("G4F_DEBUG", "").lower() in ("1", "true", "yes"),
+        help="Enable verbose server logging.",
+    )
+    parser.add_argument(
+        "--no-autostart",
+        action="store_true",
+        help="Show the tray without starting the API server.",
+    )
+    # Internal: a yad menu item sends one line to the running tray.
+    parser.add_argument("--send", nargs=2, metavar=("FIFO", "ACTION"))
+    args = parser.parse_args()
+
+    if args.send:
+        return _send(*args.send)
+
+    command = _server_command(args.port, args.debug)
+    if not os.environ.get("DISPLAY") or shutil.which(YAD_NAME) is None:
+        print(
+            "sandbox-tray: no display or yad, running the g4f API without a tray",
+            file=sys.stderr,
+        )
+        return _exec_server(command)
+
+    server = _Server(command)
+    try:
+        result = _run_tray(server, args.port, autostart=not args.no_autostart)
+    except Exception as exc:
+        print(
+            f"sandbox-tray: tray stopped ({exc}); running the API only",
+            file=sys.stderr,
+        )
+        return _exec_server(command)
+    if result != 0:
+        print(
+            "sandbox-tray: tray unavailable; running the API only",
+            file=sys.stderr,
+        )
+        return _exec_server(command)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main())

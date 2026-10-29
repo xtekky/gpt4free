@@ -6,7 +6,7 @@
 # The agent reads `sandbox-cli list`, searches the web, picks up to three tools
 # that are missing, and edits the launcher (case in run_tool, line in
 # list_tools), the desktop entry and — when the gpt4free checkout is present —
-# the repo copies under docker/sandbox-menu plus the README tables. It never
+# the repo copies under bin/ and docker/sandbox-menu/ plus the README tables. It never
 # installs or runs the tools it adds; clicking the new entry does that.
 #
 #   sandbox-discover                 look for anything new
@@ -74,7 +74,7 @@ sandbox menu, then add each one to the menu by editing the sandbox launcher.
 
 4. For each chosen tool (at most 3), keep the diff minimal and match the
    existing style:
-   - Launcher: if /app/gpt4free/docker/sandbox-menu/sandbox-cli.sh exists it is
+   - Launcher: if /app/gpt4free/bin/sandbox-cli exists it is
      the source of truth — edit it and copy it over /usr/local/bin/sandbox-cli.
      Otherwise edit /usr/local/bin/sandbox-cli directly (sudo -n works). Add a
      case to run_tool using the existing ensure_npm / ensure_pip /
@@ -88,7 +88,7 @@ sandbox menu, then add each one to the menu by editing the sandbox launcher.
      X-G4F-ChatUI, X-G4F-Writing, X-G4F-Media, X-G4F-Files, X-G4F-Browser or
      X-G4F-Core) and do not edit that menu file. When the gpt4free checkout
      exists, add the same desktop file under docker/sandbox-menu/ and add the
-     tool id to ICONS in fetch-icons.py with the vendor's icon URL.
+     tool id to ICONS in bin/fetch-icons.py with the vendor's icon URL.
    - README: when /app/gpt4free/docker/sandbox-menu/README.md exists, add the
      tool to the tool table and to the category table.
    - Do not install, run or test the new tools; clicking the entry does that.

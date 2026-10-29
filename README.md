@@ -160,26 +160,29 @@ the tool list and the settings.
 ```bash
 docker run -d --name g4f-sandbox-desktop \
   --cap-add NET_ADMIN \
-  -p 172.0.0.1:8080:8080 -p 172.0.0.1:5900:5900 \
+  -p 127.0.0.1:8080:8080 -p 127.0.0.1:5900:5900 \
   --shm-size="2gb" \
   -v ${PWD}:/app/gpt4free \
   -v ${PWD}/sandbox-home/.config:/home/pn/.config \
   -v ${PWD}/sandbox-home/.local:/home/pn/.local \
   hlohaus789/g4f:latest-sandbox-desktop
 ```
-- Desktop (browser): http://172.0.0.1:8080/desktop/ · API: http://172.0.0.1:8080/ · Direct VNC: `172.0.0.1:5900`
-- The ports bind to `172.0.0.1` (not every host interface). Set
-  `SANDBOX_BIND_ADDR=127.0.0.1` to use localhost or `0.0.0.0` to expose the
-  desktop on the LAN; `bin/start-sandbox-desktop.sh --bind <addr>` does the
-  same. The address must exist on the Docker host.
+- Desktop (browser): http://127.0.0.1:8080/desktop/ · API: http://127.0.0.1:8080/ · Direct VNC: `127.0.0.1:5900`
+- The ports bind to `127.0.0.1` by default (localhost only, not every host
+  interface). Set `SANDBOX_BIND_ADDR=0.0.0.0` to expose the desktop on the LAN;
+  `bin/start-sandbox-desktop.sh --bind <addr>` does the same.
 - The image starts an egress firewall (needs `--cap-add NET_ADMIN`): the
   sandbox can reach the public internet, but connections to private,
   link-local and reserved networks — the host LAN, other Docker networks and
   cloud metadata — are rejected. Loopback inside the container stays usable,
   so the g4f API, its `*.g4f.local` router and local gateways keep working.
-  Host-side services reached through `host.docker.internal`, `172.17.0.1` or
-  the host's LAN address are blocked too; run them inside the sandbox or set
-  `SANDBOX_BLOCK_LOCAL_NETWORK=0` to disable the filter for a trusted setup.
+  Replies to connections that come in from the host are allowed, so the
+  published desktop/API ports stay reachable even though the host address is
+  in a blocked range; the filter only stops the sandbox from starting such
+  connections itself. Host-side services reached through
+  `host.docker.internal`, `172.17.0.1` or the host's LAN address are blocked
+  too; run them inside the sandbox or set `SANDBOX_BLOCK_LOCAL_NETWORK=0` to
+  disable the filter for a trusted setup.
 - `-v ${PWD}:/app/gpt4free` mounts your app into the sandbox at the path the
   image's editable g4f install points at, so the API serves your code and the
   agents can edit it. Mount at `/app/gpt4free`, not `/app`.

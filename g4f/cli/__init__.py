@@ -393,6 +393,11 @@ def get_tray_parser(exit_on_error: bool = True) -> ArgumentParser:
         action="store_true",
         help="Do not start the API server automatically on launch.",
     )
+    tray_parser.add_argument(
+        "--api-key",
+        default=None,
+        help="Require this API key (G4F_API_KEY) for the server.",
+    )
     return tray_parser
 
 
@@ -409,6 +414,7 @@ def run_tray_args(args):
             host=args.host,
             debug=args.debug,
             no_autostart=args.no_autostart,
+            api_key=getattr(args, "api_key", None),
         )
     except Exception as e:
         print(f"Warning: System tray unavailable ({e}), falling back to API server...")

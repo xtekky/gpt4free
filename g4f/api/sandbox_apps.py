@@ -50,7 +50,7 @@ RETRY_AFTER = 3
 PROBE_TIMEOUT = 0.25
 
 #: Routed apps that ``sandbox-cli`` can install and run, i.e. the ``run_tool``
-#: cases in docker/sandbox-menu/sandbox-cli.sh. The route names match the tool
+#: cases in bin/sandbox-cli. The route names match the tool
 #: names; ``g4f`` (the API itself) and ``desktop`` (the noVNC client, part of
 #: the image) have no tool and are never started.
 _TOOLS = frozenset(

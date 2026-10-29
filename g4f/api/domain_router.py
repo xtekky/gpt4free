@@ -28,7 +28,7 @@ An app that is not running yet is installed and started on demand by
 
 The names must resolve to the g4f API inside the container; the sandbox
 entrypoint seeds ``/etc/hosts`` from :func:`hosts_entries` (see
-``docker/sandbox-entrypoint.sh``).
+``bin/sandbox-entrypoint.sh``).
 """
 
 from __future__ import annotations

@@ -13,6 +13,11 @@
 # (127.0.0.11) all run inside this network namespace on 127.0.0.1. Only traffic
 # that leaves the container is filtered.
 #
+# Replies to inbound connections are always allowed (ESTABLISHED,RELATED), so
+# the published API/noVNC desktop stays reachable from the host even though the
+# host/gateway address is itself in a blocked private range. The filter only
+# stops the sandbox from OPENING a connection to those ranges.
+#
 # The rules need CAP_NET_ADMIN. docker-compose.sandbox-desktop.yml and
 # bin/start-sandbox-desktop.sh add it for the container; when the image is run
 # by hand, pass `--cap-add=NET_ADMIN` as well.
@@ -56,14 +61,9 @@ ip6t() {
     as_root ip6tables -w 5 "$@"
 }
 
-if [ "${SANDBOX_BLOCK_LOCAL_NETWORK:-1}" = "0" ] && [ "${1:-}" != "--status" ]; then
-    log "sandbox egress filter disabled (SANDBOX_BLOCK_LOCAL_NETWORK=0)"
-    exit 0
-fi
-
 case "${1:-}" in
     -h|--help)
-        sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
         exit 0
         ;;
     --clear)
@@ -90,6 +90,11 @@ case "${1:-}" in
         ;;
 esac
 
+if [ "${SANDBOX_BLOCK_LOCAL_NETWORK:-1}" = "0" ]; then
+    log "sandbox egress filter disabled (SANDBOX_BLOCK_LOCAL_NETWORK=0)"
+    exit 0
+fi
+
 command -v iptables >/dev/null 2>&1 || die "iptables is not installed"
 command -v ip6tables >/dev/null 2>&1 || warn "ip6tables is not installed; IPv6 is not filtered"
 
@@ -97,6 +102,14 @@ command -v ip6tables >/dev/null 2>&1 || warn "ip6tables is not installed; IPv6 i
 # ranges instead of stacking duplicates.
 ipt -N "$CHAIN4" 2>/dev/null || true
 ipt -F "$CHAIN4" 2>/dev/null || true
+
+# Replies to connections that came IN from outside must be allowed, or the
+# published ports (the API/noVNC desktop on 8080, VNC on 5900) are unreachable
+# from the host: a host browser connects through docker's DNAT/proxy, so the
+# reply's destination is the host/gateway address (a private range below) and
+# would otherwise be REJECTed. This opens only established flows -- the sandbox
+# still cannot INITIATE a connection to a private or link-local address.
+ipt -A "$CHAIN4" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
 
 # `addrtype --dst-type LOCAL` covers 127.0.0.0/8, the container's own address
 # and broadcast, i.e. services in this namespace, without allowing the Docker
@@ -126,6 +139,7 @@ fi
 if command -v ip6tables >/dev/null 2>&1; then
     ip6t -N "$CHAIN6" 2>/dev/null || true
     ip6t -F "$CHAIN6" 2>/dev/null || true
+    ip6t -A "$CHAIN6" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
     ip6t -A "$CHAIN6" -m addrtype --dst-type LOCAL -j RETURN
     ip6t -A "$CHAIN6" -d ::/128 -j REJECT
     ip6t -A "$CHAIN6" -d fc00::/7 -j REJECT

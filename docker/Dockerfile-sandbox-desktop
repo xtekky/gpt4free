@@ -70,9 +70,15 @@ ARG G4F_USER_ID=1000
 # and becomes the g4f-go version pin (see the g4f-go step below). The G4F_VNC_*
 # pair switches on the API's custom noVNC routes: /desktop/ serves the client and
 # /desktop/websockify bridges the browser WebSocket to Xvnc, both on the API port.
+# PYTHONSAFEPATH keeps the working directory off sys.path for `python -m` and
+# `python -c`. The API runs as `g4f-go api` from /app, so without it a stray
+# /app/g4f directory would shadow the installed (editable) package. That is
+# exactly how a freshly deleted/updated checkout left a running server
+# importing provider modules from a path that no longer existed.
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     PYTHONUNBUFFERED=1 \
+    PYTHONSAFEPATH=1 \
     G4F_DIR=/app \
     G4F_VERSION=0.0.0-dev \
     G4F_VNC_PORT=5900 \
@@ -84,10 +90,33 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Node.js 24 is copied below from node-dist because most CLIs in the sandbox
 # desktop menu (docker/sandbox-menu) install through npm.
 # git is in because the Hermes Agent installer clones its own checkout.
+#
+# The display stack is installed in the same layer: one `apt-get update` and one
+# install transaction instead of two, which is both faster and smaller.
+# TigerVNC plus the Xfce components a launcher starts individually, never
+# xfce4-session. Xvnc is exec'd as `pn`. Neither Debian's `novnc` package nor
+# websockify (pulled in as its dependency) is installed: the client files come
+# from the pinned upstream release below, and the WebSocket -> VNC bridge is the
+# g4f API's own /desktop/websockify route (g4f/api/vnc_relay, same port as the
+# API). libnss3/libasound2/libxss1 are NOT listed: they are Chrome's runtime
+# deps and the menu's Chrome .deb pulls them in itself.
+# librsvg2-common is listed explicitly because it is only a Recommends of
+# xfdesktop4/adwaita-icon-theme, and --no-install-recommends would drop it. It
+# ships the gdk-pixbuf SVG loader (libpixbufloader_svg.so), without which GTK
+# cannot render ANY svg icon -- neither the menu's per-tool icons nor the
+# Adwaita symbolic category icons the .directory files name.
+# yad provides the notification icon and popup menu for the g4f tray
+# (sandbox-tray); it uses GTK's status icon, so the panel's stock systray
+# plugin hosts it without an AppIndicator/StatusNotifier host.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
         jq ripgrep fd-find tmux less nano vim-tiny zip rsync tree procps htop \
-        file bsdextrautils ca-certificates curl locales sudo git iptables && \
+        file bsdextrautils ca-certificates curl locales sudo git iptables \
+        tigervnc-standalone-server \
+        xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
+        dbus-x11 x11-xserver-utils x11-utils x11-xkb-utils xauth fonts-dejavu-core \
+        fonts-noto-core fonts-noto-color-emoji \
+        at-spi2-core libgtk-3-0t64 librsvg2-common gtk-update-icon-cache yad && \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
     rm -rf /var/lib/apt/lists/*
 
@@ -104,27 +133,7 @@ RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
     npm --version
 
 # Display stack: TigerVNC plus the Xfce components a launcher starts
-# individually, never xfce4-session. Xvnc is exec'd as `pn`. Neither Debian's
-# `novnc` package nor websockify (pulled in as its dependency) is installed:
-# the client files come from the pinned upstream release below, and the
-# WebSocket -> VNC bridge is the g4f API's own /desktop/websockify route
-# (g4f/api/vnc_relay, same port as the API). libnss3/libasound2/libxss1 are NOT
-# listed: they are Chrome's runtime deps and the menu's Chrome .deb pulls them
-# in itself.
-# librsvg2-common is listed explicitly because it is only a Recommends of
-# xfdesktop4/adwaita-icon-theme, and --no-install-recommends would drop it. It
-# ships the gdk-pixbuf SVG loader (libpixbufloader_svg.so), without which GTK
-# cannot render ANY svg icon -- neither the menu's per-tool icons nor the
-# Adwaita symbolic category icons the .directory files name.
-RUN apt-get -o Acquire::Retries=3 update && \
-    apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
-        tigervnc-standalone-server \
-        xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
-        dbus-x11 x11-xserver-utils x11-utils x11-xkb-utils xauth fonts-dejavu-core \
-        fonts-noto-core fonts-noto-color-emoji \
-        at-spi2-core libgtk-3-0t64 librsvg2-common gtk-update-icon-cache && \
-    rm -rf /var/lib/apt/lists/*
-
+# individually, never xfce4-session. Installed in the apt layer above.
 # noVNC client files, fetched straight from the upstream release (pinned by
 # version + sha256) instead of Debian's `novnc` package, whose dependency chain
 # drags in websockify -- the standalone bridge the API's custom /desktop/ +
@@ -155,21 +164,20 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
 # start-browser launches Chrome with the CDP debug port (9223) the g4f
 # automation uses; the menu runs it with --once so it does not relaunch in a
 # loop. See docker/sandbox-menu/README.md.
-COPY docker/sandbox-menu/sandbox-cli.sh /usr/local/bin/sandbox-cli
-COPY docker/sandbox-menu/polli-sandbox-bootstrap.sh /usr/local/bin/polli-sandbox-bootstrap.sh
-COPY bin/start-browser.sh /usr/local/bin/start-browser
+# The scripts themselves live in the repo's bin/ and are installed wholesale
+# into the global bin dir: one COPY picks up sandbox-cli, the entrypoint, the
+# firewall, start-browser and the menu helpers instead of one COPY each.
+COPY bin/ /usr/local/bin/
 COPY docker/sandbox-menu/g4f-sandbox-*.desktop /usr/share/applications/
 COPY docker/sandbox-menu/g4f-sandbox-cli.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg
 # Remote Desktop is g4f's own entry, so it is not one of fetch-icons.py's
 # vendor downloads: it ships the app icon the web app itself uses (the same
 # file the manifest names), installed under the menu entry's icon name.
 COPY projects/remote-desktop/web/icon.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
-COPY docker/sandbox-menu/fetch-icons.py /usr/local/bin/fetch-icons.py
-COPY docker/sandbox-menu/sandbox-docs.py /usr/local/bin/sandbox-docs
-COPY docker/sandbox-menu/sandbox-discover.sh /usr/local/bin/sandbox-discover
-RUN chmod 0755 /usr/local/bin/sandbox-cli /usr/local/bin/polli-sandbox-bootstrap.sh \
-        /usr/local/bin/start-browser /usr/local/bin/fetch-icons.py \
-        /usr/local/bin/sandbox-docs /usr/local/bin/sandbox-discover && \
+RUN chmod 0755 /usr/local/bin/sandbox-* /usr/local/bin/fetch-icons.py \
+        /usr/local/bin/patch-xfce-menu.py /usr/local/bin/novnc-brand.sh \
+        /usr/local/bin/g4f-livewall /usr/local/bin/polli-sandbox-bootstrap.sh \
+        /usr/local/bin/start-browser && \
     chmod 0644 /usr/share/applications/g4f-sandbox-*.desktop \
         /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-cli.svg \
         /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-remote-desktop.svg
@@ -218,9 +226,7 @@ RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>
 # merged elements with a depth-2 traversal that never reaches nested <Menu>
 # nodes, so the menus would be dropped. See docker/sandbox-menu/README.md.
 COPY docker/sandbox-menu/desktop-directories/*.directory /usr/share/desktop-directories/
-COPY docker/sandbox-menu/patch-xfce-menu.py /usr/local/bin/patch-xfce-menu.py
 RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
-    chmod 0755 /usr/local/bin/patch-xfce-menu.py && \
     patch-xfce-menu.py
 
 # noVNC branding. The upstream noVNC tree ships no index.html, so a request to
@@ -234,8 +240,7 @@ RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
 # untouched. It verifies each patch, so a changed noVNC layout fails the build.
 COPY docker/novnc-index.html /usr/share/novnc/index.html
 COPY docker/g4f.svg /usr/share/novnc/g4f.svg
-COPY docker/novnc-brand.sh /usr/local/bin/novnc-brand.sh
-RUN chmod +x /usr/local/bin/novnc-brand.sh && novnc-brand.sh
+RUN novnc-brand.sh
 
 
 # g4f-go owns the interpreter and the g4f install. The launcher built in the
@@ -243,9 +248,14 @@ RUN chmod +x /usr/local/bin/novnc-brand.sh && novnc-brand.sh
 # at build time: CPython plus the PyPI g4f (which brings the deps and writes
 # g4f-go's .installed stamp), then THIS checkout's g4f over it -- so the API the
 # sandbox serves is the repository code, incl. g4f/api/vnc_relay. The checkout
-# install stays editable, so the compose bind-mount of the repo (/app) is live.
-# The version pin makes g4f-go treat the overlay as final: its api/gui
-# auto-upgrade would otherwise replace the checkout build with PyPI's next run.
+# is copied INTO the editable project (${G4F_DIR}/gpt4free/g4f), not to a
+# second /app/g4f tree: a stray /app/g4f sits on sys.path ahead of the editable
+# install and shadows the live checkout (and, in the image, was root-owned and
+# stale). Keeping a single source tree means `import g4f` always resolves to
+# ${G4F_DIR}/gpt4free/g4f. The compose bind-mount of the repo (/app/gpt4free)
+# stays live. The version pin makes g4f-go treat the overlay as final: its
+# api/gui auto-upgrade would otherwise replace the checkout build with PyPI's
+# next run.
 #
 # The base image ships no Python, so the embedded runtime is the only
 # interpreter in the image. python3/pip in /usr/local/bin are symlinks into it
@@ -253,19 +263,26 @@ RUN chmod +x /usr/local/bin/novnc-brand.sh && novnc-brand.sh
 # symlink works and keeps `python3 -m pip install --user` -- what sandbox-cli
 # and the menu's pip tools use -- writing to ~/.local). The runtime lives in
 # /home/pn/.g4f, which the `pn` user owns, so the menu can pip-install into it.
+#
+# Dependencies are installed in a single g4f-go call (one pip transaction).
+# Pillow is one of them: the Screen pane's thumbnail is grabbed INSIDE the
+# sandbox (the X socket and its cookie live here, not on the gateway host), and
+# fetch-icons.py below needs it to convert JPEG sources. Installing through
+# g4f-go (not the pip symlink) lands it in the embedded runtime's own
+# site-packages with the launcher's PYTHONHOME/PYTHONNOUSERSITE env.
 COPY --from=g4f-go-builder /out/g4f-go /usr/local/bin/g4f-go
 WORKDIR ${G4F_DIR}
 COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} setup.py README.md MANIFEST.in ${G4F_DIR}/gpt4free/
-COPY g4f ${G4F_DIR}/g4f
+COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} g4f ${G4F_DIR}/gpt4free/g4f
 RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
     g4f-go -v latest && \
-    g4f-go install setuptools wheel websockets && \
+    g4f-go install setuptools wheel websockets "pillow>=10" && \
     g4f-go install --force-reinstall --no-deps -e ${G4F_DIR}/gpt4free/ && \
     printf '%s\n' "${G4F_VERSION}" \
         > "${G4F_CONFIG_DIR}/python-embed/.g4f-runtime/.g4f-version" && \
     g4f-go -m g4f --help && \
     "${G4F_CONFIG_DIR}/python-embed/python" \
-        -c "import g4f.api.vnc_relay; from g4f.client import Client; print('g4f + vnc relay ok')" && \
+        -c "import g4f.api.vnc_relay; from g4f.client import Client; from PIL import ImageGrab; print('g4f + vnc relay + pillow ok')" && \
     "${G4F_CONFIG_DIR}/python-embed/python" \
         -c "from g4f.api.domain_router import hosts_entries; print('domain router ok:', len(hosts_entries()), 'hosts')" && \
     g4f-go status && \
@@ -277,20 +294,14 @@ RUN chmod 0755 /usr/local/bin/g4f-go && g4f-go --version && \
     pip --version && \
     chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_CONFIG_DIR}"
 
-# Pillow: the Screen pane's thumbnail is grabbed INSIDE the sandbox (the X socket
-# and its cookie live here, not on the gateway host). Also used for ad-hoc image work.
-# Installed through g4f-go (not the pip symlink) so it lands in the embedded
-# runtime's own site-packages with the launcher's PYTHONHOME/PYTHONNOUSERSITE
-# env, exactly like the g4f install above.
-RUN g4f-go install "pillow>=10" && python3 -c "from PIL import ImageGrab"
-
 # Animated g4f terminal wallpaper. The entrypoint opens it in a maximized
 # xfce4-terminal at desktop start; the g4f-sandbox-wallpaper menu entry can
 # reopen it later. Pure stdlib Python (truecolour ANSI nebula, stars, orbits
 # and a shimmering g4f emblem), so it needs nothing beyond the runtime above.
-COPY docker/g4f-livewall /usr/local/bin/g4f-livewall
-RUN chmod 0755 /usr/local/bin/g4f-livewall && \
-    python3 -c "compile(open('/usr/local/bin/g4f-livewall').read(), 'g4f-livewall', 'exec')"
+# g4f-livewall and sandbox-tray are already in /usr/local/bin via the bin/
+# COPY; compile both here so a syntax error fails the build.
+RUN python3 -c "compile(open('/usr/local/bin/g4f-livewall').read(), 'g4f-livewall', 'exec')" && \
+    python3 -c "compile(open('/usr/local/bin/sandbox-tray').read(), 'sandbox-tray', 'exec')"
 
 # Per-tool menu icons. Every g4f-sandbox-*.desktop names g4f-sandbox-<tool> and
 # hands the same name to xfce4-terminal as --icon, so the menu row and the
@@ -342,19 +353,23 @@ EXPOSE 8080 5900
 # link-local and reserved destinations (the Docker host's LAN, other
 # containers, cloud metadata) are rejected. The entrypoint installs it before
 # starting the desktop; the container needs CAP_NET_ADMIN for the rules.
-# See docker/sandbox-firewall.sh and docker-compose.sandbox-desktop.yml.
-COPY docker/sandbox-firewall.sh /usr/local/bin/sandbox-firewall.sh
-RUN chmod +x /usr/local/bin/sandbox-firewall.sh && \
-    bash -n /usr/local/bin/sandbox-firewall.sh
-
+# See bin/sandbox-firewall.sh and docker-compose.sandbox-desktop.yml.
+#
 # Entrypoint seeds /etc/machine-id, starts a system bus, applies the egress
 # filter, launches the desktop stack (Xvnc + Xfce) as `pn` and exports DISPLAY
 # so a browser on the desktop renders inside the sandbox. SANDBOX_DESKTOP=0
-# skips the desktop.
-COPY docker/sandbox-entrypoint.sh /usr/local/bin/sandbox-entrypoint.sh
-RUN chmod +x /usr/local/bin/sandbox-entrypoint.sh
+# skips the desktop. Both files arrive with the bin/ COPY above; this layer
+# only validates them, in one step.
+RUN bash -n /usr/local/bin/sandbox-firewall.sh && \
+    bash -n /usr/local/bin/sandbox-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]
 USER pn
+# The tray is the container's main process: it starts the g4f API as a child
+# and exposes Restart Server, Update/Change g4f Package, Set API Key and a log
+# link in the Xfce panel's systray. Keeping the server as a child is what makes
+# a restart possible without stopping the container. The tray falls back to
+# running the API directly when there is no display (SANDBOX_DESKTOP=0) or the
+# tray dependencies are unavailable.
 # --debug turns on g4f's verbose logging (tray parser in g4f/cli/__init__.py),
 # so `docker logs` shows provider selection, request handling and HAR captures.
-CMD ["g4f-go", "api", "--port", "8080", "--debug"]
+CMD ["sandbox-tray", "--port", "8080", "--debug"]

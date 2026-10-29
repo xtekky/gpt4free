@@ -2,10 +2,10 @@
 Version=1.0
 Type=Application
 Name=Sandbox Settings
-Comment=Choose the g4f model, HOME, provider and proxy used by the menu entries
+Comment=Choose the g4f model, API key, HOME, provider and proxy used by the menu entries
 Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Sandbox Settings" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli settings"
 Icon=g4f-sandbox-cli
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Core;
-Keywords=g4f;settings;model;home;provider;proxy;environment;;
+Keywords=g4f;settings;model;api;key;home;provider;proxy;environment;;
 StartupNotify=false
