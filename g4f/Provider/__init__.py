@@ -105,6 +105,7 @@ class ProviderLoader:
         "OpenaiAPI",
         "Cohere",
         "OpenRouter",
+        "Opper",
         "PerplexityApi",
         "PhindAi",
         "Replicate",
