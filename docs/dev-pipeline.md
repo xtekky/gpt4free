@@ -132,6 +132,7 @@ bin/dev-pipeline doctor
 
 # Create/update a PR from the current working tree
 bin/dev-pipeline pr
+bin/dev-pipeline pr --project g4f.dev
 
 # Push the current branch without creating or updating a PR
 bin/dev-pipeline push
@@ -144,11 +145,13 @@ back to the other configured remotes when one is not writable. Use
 `--remote <name>` to force a specific remote.
 
 `pr` creates `pipeline/pr-<timestamp>`, commits the working tree, pushes it to
-a GitHub remote, then creates or updates the PR with `gh`. When the current
-branch is already a `pipeline/pr-*` branch, it commits and pushes that branch in
-place, so the existing PR is updated instead of a second PR being opened (a
-clean branch is allowed in that case). It tries `origin` first and falls back to
-another configured GitHub remote (typically a fork) when `origin` is read-only;
+a GitHub remote, then creates or updates the PR with `gh`. By default it
+operates on the pipeline root checkout; use `--project <name>` to open the PR
+from another configured checkout such as `g4f.dev`. When the current branch is
+already a `pipeline/pr-*` branch, it commits and pushes that branch in place, so
+the existing PR is updated instead of a second PR being opened (a clean branch
+is allowed in that case). It tries `origin` first and falls back to another
+configured GitHub remote (typically a fork) when `origin` is read-only;
 cross-repo PRs use `owner:branch` as the head, and an existing branch keeps
 pushing to its tracked remote first. Use `--remote <name>` to force a specific
 remote. Install `gh` and run `gh auth login`, or set `GH_TOKEN`/`GITHUB_TOKEN`

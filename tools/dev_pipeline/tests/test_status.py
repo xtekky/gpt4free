@@ -19,7 +19,12 @@ from tools.dev_pipeline.cli import (
     _pr_command,
     _push_command,
 )
-from tools.dev_pipeline.config import ConfigError, load_config
+from tools.dev_pipeline.config import (
+    ConfigError,
+    PipelineConfig,
+    ProjectConfig,
+    load_config,
+)
 from tools.dev_pipeline.freeflow import rank_models
 from tools.dev_pipeline.orchestrator import Pipeline, effective_fallbacks
 from tools.dev_pipeline.runner import AgentRunner, _message_text, _summarise_tool_args
@@ -525,11 +530,93 @@ class PrCommandTests(unittest.TestCase):
         self._git("add", "-A")
         self._git("commit", "-q", "-m", "init")
 
-    def _run(self):
+    def _run(self, config=None, **kwargs):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            code = _pr_command(SimpleNamespace(root=self.root))
+            code = _pr_command(config or SimpleNamespace(root=self.root), **kwargs)
         return code, out.getvalue(), err.getvalue()
+
+    def test_parser_accepts_project_option(self) -> None:
+        args = _build_parser().parse_args(["pr", "--project", "g4f.dev"])
+        self.assertEqual(args.project, "g4f.dev")
+        self.assertIsNone(args.remote)
+
+    def test_rejects_unknown_project(self) -> None:
+        self._init_repo()
+        config = PipelineConfig(
+            root=self.root,
+            projects={
+                "gpt4free": ProjectConfig(name="gpt4free", path=self.root),
+            },
+        )
+        code, _, err = self._run(config=config, project="missing")
+        self.assertEqual(code, 1)
+        self.assertIn("unknown project 'missing'", err)
+        self.assertIn("gpt4free", err)
+
+    def test_opens_pr_from_project_checkout(self) -> None:
+        checkout = self.root / "g4f.dev"
+        checkout.mkdir()
+        subprocess.run(["git", "init", "-q"], cwd=checkout, check=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=checkout,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"], cwd=checkout, check=True
+        )
+        (checkout / "README.md").write_text("x\n", encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], cwd=checkout, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "init"], cwd=checkout, check=True
+        )
+
+        remote_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(remote_temp.cleanup)
+        bare = Path(remote_temp.name) / "github.com" / "x" / "y.git"
+        bare.parent.mkdir(parents=True)
+        subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+        subprocess.run(
+            ["git", "remote", "add", "origin", "https://github.com/x/y.git"],
+            cwd=checkout,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "remote", "set-url", "--push", "origin", str(bare)],
+            cwd=checkout,
+            check=True,
+        )
+
+        (checkout / "change.txt").write_text("change\n", encoding="utf-8")
+        config = PipelineConfig(
+            root=self.root,
+            projects={
+                "g4f.dev": ProjectConfig(name="g4f.dev", path=checkout),
+            },
+        )
+        env = self._fake_gh(existing=False)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run(config=config, project="g4f.dev")
+
+        self.assertEqual(code, 0, err)
+        self.assertIn("PR created successfully", out)
+        root_branches = self._git("branch", "--list", "pipeline/pr-*").stdout
+        self.assertEqual(root_branches.strip(), "")
+        project_branches = subprocess.run(
+            ["git", "branch", "--list", "pipeline/pr-*"],
+            cwd=checkout,
+            text=True,
+            capture_output=True,
+        ).stdout
+        self.assertIn("pipeline/pr-", project_branches)
+        log = subprocess.run(
+            ["git", "log", "-1", "--pretty=%s"],
+            cwd=checkout,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+        self.assertEqual(log, "pipeline: prepare PR")
 
     def test_rejects_non_git_directory(self) -> None:
         code, _, err = self._run()

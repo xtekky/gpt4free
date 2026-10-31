@@ -105,7 +105,7 @@ The blocks below are maintained automatically. Do not edit them by hand.
 {
   "schema": 1,
   "project": "gpt4free",
-  "updated": "2026-10-31T07:27:26Z",
+  "updated": "2026-10-31T07:32:18Z",
   "tasks": [
     {
       "id": "G4F-001",
@@ -236,12 +236,25 @@ The blocks below are maintained automatically. Do not edit them by hand.
       "attempts": 1,
       "last_model": "cohere/north-mini-code:free",
       "notes": ""
+    },
+    {
+      "id": "G4F-008",
+      "project": "gpt4free",
+      "priority": "P2",
+      "status": "in-progress",
+      "title": "create pr in https://github.com/gpt4free/g4f.dev/pulls",
+      "acceptance": "",
+      "created": "2026-10-31T07:32:11Z",
+      "updated": "2026-10-31T07:32:18Z",
+      "attempts": 1,
+      "last_model": "cohere/north-mini-code:free",
+      "notes": ""
     }
   ],
   "models": {
     "base_url": "http://127.0.0.1:28180/v1",
-    "checked_at": "2026-10-31T07:27:26Z",
-    "from_cache": false,
+    "checked_at": "2026-10-31T07:32:18Z",
+    "from_cache": true,
     "working": [
       {
         "id": "cohere/north-mini-code:free",
@@ -453,6 +466,7 @@ The blocks below are maintained automatically. Do not edit them by hand.
 | G4F-005 | gpt4free | P2 | done | create new pr #3553 |  | 2026-10-31T05:53:04Z |
 | G4F-006 | gpt4free | P2 | done | github codeql check failed, update pr |  | 2026-10-31T05:54:37Z |
 | G4F-007 | gpt4free | P2 | in-progress | create pr from g4f.dev |  | 2026-10-31T07:27:26Z |
+| G4F-008 | gpt4free | P2 | in-progress | create pr in https://github.com/gpt4free/g4f.dev/pulls |  | 2026-10-31T07:32:18Z |
 | G4F-016 | gpt4free | P2 | done | add models from pi-freeflow in gpt4free too |  | 2026-10-31T06:20:14Z |
 | G4F-017 | gpt4free | P2 | in-progress | improve stabillty of gpt4free |  | 2026-10-31T06:20:26Z |
 | G4F-018 | gpt4free | P2 | done | move docs from gpt4free to g4f.dev, gen html docs |  | 2026-10-31T06:40:18Z |
@@ -460,7 +474,7 @@ The blocks below are maintained automatically. Do not edit them by hand.
 
 ### Free model health
 
-Checked `2026-10-31T07:27:26Z` at `http://127.0.0.1:28180/v1`.
+Checked `2026-10-31T07:32:18Z` at `http://127.0.0.1:28180/v1`.
 
 | Model | Status | Latency | Detail |
 | --- | --- | --- | --- |

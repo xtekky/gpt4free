@@ -120,6 +120,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "pr", help="create or update a PR from the working tree with gh"
     )
     pr.add_argument(
+        "--project",
+        default=None,
+        help="project whose checkout to open the PR from (default: the pipeline root)",
+    )
+    pr.add_argument(
         "--remote",
         default=None,
         help="remote to push to (default: origin, then any other GitHub remote)",
@@ -337,7 +342,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             return Pipeline(config).doctor()
 
         if args.command == "pr":
-            return _pr_command(config, args.remote)
+            return _pr_command(config, args.remote, args.project)
 
         if args.command == "push":
             return _push_command(config, args.remote)
@@ -526,13 +531,27 @@ def _push_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
     )
 
 
-def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
-    """Create a branch, commit the working tree, and open a PR with gh."""
+def _pr_command(
+    config: PipelineConfig,
+    remote: Optional[str] = None,
+    project: Optional[str] = None,
+) -> int:
+    """Create a branch, commit the working tree, and open a PR with gh.
+
+    By default the PR is opened from the pipeline root checkout.  Pass a
+    configured project name to operate on that project's checkout instead.
+    """
     root = config.root
 
     def fail(message: str) -> int:
         print(f"dev-pipeline: pr: {message}", file=sys.stderr)
         return 1
+
+    if project is not None:
+        try:
+            root = config.project(project).path
+        except ConfigError as exc:
+            return fail(str(exc))
 
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
