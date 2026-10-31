@@ -2,11 +2,60 @@
 
 from __future__ import annotations
 
+import json
+import threading
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from .config import PipelineConfig, ProjectConfig
-from .util import CommandResult, run_command, truncate, utc_now
+from .util import (
+    CommandResult,
+    run_command,
+    run_command_streaming,
+    truncate,
+    utc_now,
+)
+
+
+TOOL_ARG_KEYS = (
+    "command",
+    "cmd",
+    "path",
+    "file_path",
+    "filePath",
+    "pattern",
+    "query",
+    "url",
+)
+
+
+def _summarise_tool_args(args: Any) -> str:
+    """Return a short one-line description of a tool call's arguments."""
+    if isinstance(args, dict):
+        for key in TOOL_ARG_KEYS:
+            value = args.get(key)
+            if value:
+                return " ".join(str(value).split())[:140]
+        try:
+            return " ".join(json.dumps(args, ensure_ascii=False).split())[:140]
+        except (TypeError, ValueError):
+            return ""
+    if isinstance(args, str):
+        return " ".join(args.split())[:140]
+    return ""
+
+
+def _message_text(message: Dict[str, Any]) -> str:
+    content = message.get("content")
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts: List[str] = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text") or ""))
+        return "".join(parts).strip()
+    return ""
 
 
 @dataclass
@@ -25,12 +74,16 @@ class AgentResult:
 
 
 class AgentRunner:
+    # Models from these providers are already fully qualified; everything else
+    # is assumed to come from the pi-freeflow proxy.
+    PROVIDER_PREFIXES = ("freeflow/", "pollinations/")
+
     def __init__(self, config: PipelineConfig):
         self.config = config
         self.binary = config.find_agent()
 
     def model_ref(self, model_id: str) -> str:
-        if model_id.startswith("freeflow/"):
+        if model_id.startswith(self.PROVIDER_PREFIXES):
             return model_id
         return "freeflow/" + model_id
 
@@ -40,14 +93,17 @@ class AgentRunner:
         model_id: str,
         prompt: str,
         timeout: Optional[int] = None,
+        progress: Optional[Callable[[str], None]] = None,
+        heartbeat: int = 30,
     ) -> AgentResult:
+        model_ref = self.model_ref(model_id)
         command = [
             self.binary,
             "-p",
             "--model",
-            self.model_ref(model_id),
+            model_ref,
             "--mode",
-            "text",
+            "json",
             "--approve",
             "--no-session",
             "--no-mcp",
@@ -56,20 +112,85 @@ class AgentRunner:
             prompt,
         ]
         started = utc_now()
-        result = run_command(
-            command,
-            cwd=project.path,
-            timeout=timeout or self.config.task_timeout,
-            extra_env={
-                "DEV_PIPELINE": "1",
-                "PI_FREEFLOW_MODEL": model_id,
-            },
-        )
+        limit = timeout or self.config.task_timeout
+        stop = threading.Event()
+        final_parts: List[str] = []
+        event_log: List[str] = []
+
+        def emit(message: str) -> None:
+            if progress:
+                progress(message)
+
+        def handle_line(line: str) -> None:
+            text = line.strip()
+            if not text:
+                return
+            try:
+                event = json.loads(text)
+            except json.JSONDecodeError:
+                # Diagnostics on stdout are rare in JSON mode; surface them.
+                if len(text) <= 200:
+                    emit("  " + text)
+                return
+            if not isinstance(event, dict):
+                return
+            kind = event.get("type")
+            if kind == "tool_execution_start":
+                name = str(event.get("toolName") or "tool")
+                summary = _summarise_tool_args(event.get("args"))
+                message = f"  -> {name}: {summary}".rstrip()
+                event_log.append(message)
+                emit(message)
+            elif kind == "tool_execution_end":
+                name = str(event.get("toolName") or "tool")
+                duration = event.get("durationMs")
+                status = "error" if event.get("isError") else "ok"
+                timing = f", {duration / 1000:.1f}s" if isinstance(duration, (int, float)) else ""
+                message = f"  <- {name} ({status}{timing})"
+                event_log.append(message)
+                emit(message)
+            elif kind == "message_end":
+                message = event.get("message")
+                if isinstance(message, dict) and message.get("role") == "assistant":
+                    text = _message_text(message)
+                    if text:
+                        final_parts.append(text)
+            elif kind == "agent_settled" and event.get("aborted"):
+                emit("  agent aborted")
+
+        def beat() -> None:
+            elapsed = 0
+            while not stop.wait(heartbeat):
+                elapsed += heartbeat
+                emit(
+                    f"  ... {model_ref} still running ({elapsed}s, timeout {limit}s)"
+                )
+
+        thread = threading.Thread(target=beat, daemon=True)
+        thread.start()
+        try:
+            result = run_command_streaming(
+                command,
+                cwd=project.path,
+                timeout=limit,
+                extra_env={
+                    "DEV_PIPELINE": "1",
+                    "PI_FREEFLOW_MODEL": model_id,
+                },
+                on_line=handle_line,
+            )
+        finally:
+            stop.set()
+            thread.join(timeout=1)
+
+        output = "\n\n".join(part for part in final_parts if part).strip()
+        if not output:
+            output = "\n".join(event_log).strip() or result.output
         return AgentResult(
             model=model_id,
             command=command,
             exit_code=result.exit_code,
-            output=result.output,
+            output=truncate(output),
             duration=result.duration,
             started=started,
             finished=utc_now(),

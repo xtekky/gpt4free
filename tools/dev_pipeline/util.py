@@ -7,11 +7,12 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Callable, Dict, Iterable, List, Optional, Sequence
 
 
 def utc_now() -> str:
@@ -115,6 +116,99 @@ def run_command(
     except OSError as exc:
         output = f"[dev-pipeline] could not run command: {exc}"
         code = 126
+    return CommandResult(
+        command=list(command),
+        exit_code=code,
+        output=truncate(output),
+        duration=time.monotonic() - started,
+    )
+
+
+def run_command_streaming(
+    command: Sequence[str],
+    cwd: Path,
+    timeout: int,
+    extra_env: Optional[Dict[str, str]] = None,
+    input_text: Optional[str] = None,
+    on_line: Optional[Callable[[str], None]] = None,
+) -> CommandResult:
+    """Run a command and forward each stdout line to ``on_line`` as it arrives.
+
+    Unlike :func:`run_command`, stdout is consumed continuously so a chatty
+    agent can report progress without waiting for the whole process to finish.
+    The accumulated output is still returned for the caller.
+    """
+    env = os.environ.copy()
+    python_path = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(cwd) if not python_path else str(cwd) + os.pathsep + python_path
+    )
+    env.setdefault("PYTHONUNBUFFERED", "1")
+    if extra_env:
+        env.update(extra_env)
+
+    started = time.monotonic()
+    output_parts: List[str] = []
+    timed_out = False
+
+    try:
+        process = subprocess.Popen(
+            list(command),
+            cwd=str(cwd),
+            env=env,
+            stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except FileNotFoundError as exc:
+        return CommandResult(
+            command=list(command),
+            exit_code=127,
+            output=f"[dev-pipeline] executable not found: {exc}",
+            duration=time.monotonic() - started,
+        )
+    except OSError as exc:
+        return CommandResult(
+            command=list(command),
+            exit_code=126,
+            output=f"[dev-pipeline] could not run command: {exc}",
+            duration=time.monotonic() - started,
+        )
+
+    def watchdog() -> None:
+        nonlocal timed_out
+        timed_out = True
+        process.kill()
+
+    timer = threading.Timer(timeout, watchdog)
+    timer.start()
+    try:
+        if input_text is not None and process.stdin is not None:
+            process.stdin.write(input_text)
+            process.stdin.close()
+        assert process.stdout is not None
+        for line in process.stdout:
+            output_parts.append(line)
+            if on_line is not None:
+                try:
+                    on_line(line.rstrip("\r\n"))
+                except Exception:
+                    pass
+        code = process.wait()
+    finally:
+        timer.cancel()
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        if process.stdout is not None:
+            process.stdout.close()
+
+    output = "".join(output_parts)
+    if timed_out:
+        output += f"\n[dev-pipeline] command timed out after {timeout}s"
+        code = 124
     return CommandResult(
         command=list(command),
         exit_code=code,

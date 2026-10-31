@@ -36,6 +36,12 @@ DEFAULT_PREFERRED_MODELS: List[str] = [
     "nemotron-3-ultra-550b",
 ]
 
+# Optional provider-qualified models tried after the freeflow candidates fail.
+# Empty by default so the pipeline stays free-only.  A fallback is only used
+# when the agent already knows the provider (for example after
+# `polli harness pi on --model ...`).
+DEFAULT_FALLBACK_MODELS: List[str] = []
+
 DEFAULT_PROJECTS: Dict[str, Dict[str, Any]] = {
     "gpt4free": {
         "path": ".",
@@ -114,6 +120,7 @@ class PipelineConfig:
     root: Path
     projects: Dict[str, ProjectConfig]
     preferred_models: List[str] = field(default_factory=lambda: list(DEFAULT_PREFERRED_MODELS))
+    fallback_models: List[str] = field(default_factory=lambda: list(DEFAULT_FALLBACK_MODELS))
     base_url: Optional[str] = None
     probe_limit: int = 10
     min_models: int = 2
@@ -241,6 +248,10 @@ def load_config(root: Path, config_path: Optional[Path] = None) -> PipelineConfi
     if not isinstance(preferred, list) or not all(isinstance(item, str) for item in preferred):
         raise ConfigError("'preferred_models' must be a list of strings")
 
+    fallback = data.get("fallback_models", DEFAULT_FALLBACK_MODELS)
+    if not isinstance(fallback, list) or not all(isinstance(item, str) for item in fallback):
+        raise ConfigError("'fallback_models' must be a list of strings")
+
     enabled_projects = data.get("enabled_projects")
     if enabled_projects is not None and (
         not isinstance(enabled_projects, list)
@@ -262,6 +273,7 @@ def load_config(root: Path, config_path: Optional[Path] = None) -> PipelineConfi
         root=root,
         projects=projects,
         preferred_models=list(preferred),
+        fallback_models=list(fallback),
         base_url=data.get("base_url"),
         probe_limit=integer("probe_limit", 10, 1),
         min_models=integer("min_models", 2, 1),

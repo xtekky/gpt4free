@@ -11,9 +11,12 @@ board in each project's `AGENTS.md` into an autonomous development loop:
 6. run the project checks, optionally ask the same model to repair failures;
 7. write the result, model health, and run log back to `AGENTS.md`.
 
-Only free models are used. The pipeline never falls back to a paid provider: if
-the freeflow proxy is unreachable or no probed free model answers, the run stops
-and records the failure.
+Only free models are used by default. The pipeline never falls back to a paid
+provider on its own: if the freeflow proxy is unreachable or no probed free
+model answers, the run stops and records the failure. An operator can opt in to
+provider-qualified `fallback_models` (for example a model served by Pollinations)
+when the agent is already configured for that provider; those models are tried
+after the freeflow candidates.
 
 ## Files
 
@@ -119,7 +122,29 @@ bin/dev-pipeline add-task --title "Fix streaming retry" --project gpt4free \
 
 # Health check: projects, agent, freeflow, working models
 bin/dev-pipeline doctor
+
+# Create/update a PR from the current working tree
+bin/dev-pipeline pr
 ```
+
+`pr` creates `pipeline/pr-<timestamp>`, commits the working tree, pushes it to
+the GitHub remote, then creates or updates the PR with `gh`. Install `gh` and
+run `gh auth login`, or set `GH_TOKEN`/`GITHUB_TOKEN` (for example in CI). The
+command validates the repository, remote, `gh` availability, and authentication
+before it changes any branch, so a missing tool never leaves a half-made commit.
+
+During `run`, the agent is invoked in Pi's JSON event mode. The pipeline prints
+each tool call as it happens and a heartbeat every 30 seconds, so a long agent
+run shows progress instead of appearing idle:
+
+```
+Running /home/pn/.local/bin/pi with cohere/north-mini-code:free ... (streaming progress, timeout 1800s)
+  -> bash: pwd
+  <- bash (ok, 0.1s)
+```
+
+Pressing Ctrl-C requeues the current task as `pending` instead of leaving it
+`in-progress`.
 
 Global options (`--root`, `--config`) must come before the subcommand:
 
@@ -202,6 +227,17 @@ one because free lanes are rate-limited and occasionally return empty streams:
    (default 300). `--refresh-models` bypasses the cache.
 6. On an agent failure the next working model is tried, up to
    `max_model_attempts`.
+7. If every freeflow attempt fails, optional `fallback_models` are tried next.
+   Entries are provider-qualified ids understood by the agent, such as
+   `pollinations/deepseek/deepseek-v4.1-flash-1017`. Configure the agent
+   provider first, for example:
+
+   ```bash
+   polli harness pi on --model deepseek/deepseek-v4.1-flash-1017 --no-mcp
+   ```
+
+   Pollinations models can be paid. Fallbacks are opt-in and empty by default,
+   so the free-only guarantee holds unless an operator adds them.
 
 Probing stops as soon as `min_models` working models are found, to conserve free
 quotas. The default preferred order starts with OpenCode Zen and Kilo coding
@@ -215,6 +251,7 @@ models, then OVHcloud models as keyless fallbacks.
 | --- | --- | --- |
 | `projects` | gpt4free + g4f.dev | map of project name to `path`, `agents_file`, `checks`, `enabled` |
 | `preferred_models` | coding-first list | ranking hints for free models |
+| `fallback_models` | `[]` | optional provider-qualified models tried after freeflow failures |
 | `base_url` | `http://127.0.0.1:28180/v1` | freeflow-compatible endpoint |
 | `probe_limit` | `10` | maximum candidates probed per refresh |
 | `min_models` | `2` | stop probing after this many working models |

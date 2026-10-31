@@ -35,6 +35,9 @@
     "dots-3-note-preview",
     "nemotron-3-ultra-550b"
   ],
+  "fallback_models": [
+    "pollinations/deepseek/deepseek-v4.1-flash-1017"
+  ],
   "probe_limit": 10,
   "min_models": 2,
   "model_cache_ttl": 300,

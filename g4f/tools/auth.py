@@ -40,7 +40,11 @@ class AuthManager:
     @classmethod
     def load_api_key(cls, provider: ProviderType) -> Optional[str]:
         """Load API key from config file"""
-        if not provider.needs_auth and not hasattr(provider, "login_url"):
+        if (
+            not getattr(provider, "needs_auth", False)
+            and not getattr(provider, "models_needs_auth", False)
+            and not hasattr(provider, "login_url")
+        ):
             return None
         provider_name = provider.get_parent()
         env_var = f"{provider_name.upper()}_API_KEY"
@@ -170,7 +174,11 @@ class AuthManager:
         except Exception:
             pass
 
-        if not getattr(provider, "needs_auth", False):
+        # ``models_needs_auth`` means the provider cannot serve its catalogue
+        # without credentials, so it must not be treated as free either.
+        if not getattr(provider, "needs_auth", False) and not getattr(
+            provider, "models_needs_auth", False
+        ):
             return ProviderAuthStatus(True, "free")
         return ProviderAuthStatus(False, "unknown")
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -12,7 +14,7 @@ from .config import ConfigError, PipelineConfig, load_config
 from .freeflow import FreeflowError
 from .orchestrator import Pipeline, discover_todos, load_stores
 from .status import StatusError, StatusStore
-from .util import LockError, ensure_state_dir, file_lock, utc_now
+from .util import LockError, ensure_state_dir, file_lock, one_line, utc_now
 
 
 DEFAULT_AGENTS_TEMPLATE = """# AGENTS.md
@@ -97,6 +99,8 @@ def _build_parser() -> argparse.ArgumentParser:
     init.add_argument("--force", action="store_true", help="overwrite an existing AGENTS.md")
 
     doctor = sub.add_parser("doctor", help="check projects, agent, and freeflow health")
+
+    pr = sub.add_parser("pr", help="create a branch, commit, and open a PR with gh")
 
     return parser
 
@@ -300,6 +304,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.command == "doctor":
             return Pipeline(config).doctor()
 
+        if args.command == "pr":
+            return _pr_command(config)
+
         parser.error(f"unknown command {args.command}")
         return 2
     except (ConfigError, FreeflowError, StatusError, LockError) as exc:
@@ -308,3 +315,151 @@ def main(argv: Optional[List[str]] = None) -> int:
     except KeyboardInterrupt:
         print("\ndev-pipeline: interrupted", file=sys.stderr)
         return 130
+
+
+def _pr_command(config: PipelineConfig) -> int:
+    """Create a branch, commit the working tree, and open a PR with gh."""
+    root = config.root
+
+    def fail(message: str) -> int:
+        print(f"dev-pipeline: pr: {message}", file=sys.stderr)
+        return 1
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", *args],
+            cwd=root,
+            text=True,
+            capture_output=True,
+        )
+
+    if not (root / ".git").exists():
+        return fail("not a git repository (no .git directory)")
+
+    remotes = git("remote", "-v")
+    if remotes.returncode != 0:
+        return fail("could not list git remotes")
+    remote_lines = [line for line in remotes.stdout.splitlines() if line.strip()]
+    if not remote_lines:
+        return fail(
+            "no git remote configured; add one with: "
+            "git remote add origin https://github.com/<owner>/<repo>.git"
+        )
+    github_remotes = {}
+    for line in remote_lines:
+        parts = line.split()
+        if len(parts) >= 2 and "github.com" in parts[1]:
+            github_remotes.setdefault(parts[0], parts[1])
+    if not github_remotes:
+        return fail("no GitHub remote configured; `gh pr create` needs a github.com remote")
+    remote_name = "origin" if "origin" in github_remotes else sorted(github_remotes)[0]
+
+    gh = shutil.which("gh")
+    if not gh:
+        return fail(
+            "gh (GitHub CLI) not found; install it from https://cli.github.com/ "
+            "and run `gh auth login`"
+        )
+
+    auth = subprocess.run(
+        [gh, "auth", "status"], cwd=root, text=True, capture_output=True
+    )
+    if auth.returncode != 0:
+        return fail(
+            "gh is not authenticated; run `gh auth login` or set "
+            "GH_TOKEN/GITHUB_TOKEN"
+        )
+
+    branch_result = git("branch", "--show-current")
+    branch = branch_result.stdout.strip()
+    if branch_result.returncode != 0 or not branch:
+        return fail("could not determine the current branch (detached HEAD?)")
+
+    status = git("status", "--porcelain")
+    if status.returncode != 0:
+        return fail("could not read git status")
+    if not status.stdout.strip():
+        return fail("no changes to commit")
+
+    pr_branch = "pipeline/pr-" + utc_now().replace("-", "").replace(":", "").replace("Z", "")
+
+    created = git("switch", "-c", pr_branch)
+    if created.returncode != 0:
+        return fail("failed to create branch: " + one_line(created.stderr, 300))
+    print(f"dev-pipeline: pr: created branch {pr_branch}")
+
+    added = git("add", "-A")
+    if added.returncode != 0:
+        git("switch", branch)
+        return fail("failed to stage changes: " + one_line(added.stderr, 300))
+
+    message = "pipeline: prepare PR"
+    committed = git("commit", "-m", message)
+    if committed.returncode != 0:
+        git("switch", branch)
+        return fail("failed to commit: " + one_line(committed.stderr, 300))
+    print(f"dev-pipeline: pr: committed {message}")
+
+    pushed = git("push", "-u", remote_name, pr_branch)
+    if pushed.returncode != 0:
+        git("switch", branch)
+        return fail(
+            f"failed to push {pr_branch} to {remote_name}: "
+            + one_line(pushed.stderr, 300)
+        )
+    print(f"dev-pipeline: pr: pushed {pr_branch} to {remote_name}")
+
+    title = "Automated pipeline changes"
+    body = "Created by `bin/dev-pipeline pr`."
+    existing = subprocess.run(
+        [gh, "pr", "view", pr_branch, "--json", "url", "--jq", ".url"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+    )
+    if existing.returncode == 0:
+        result = subprocess.run(
+            [gh, "pr", "edit", pr_branch, "--title", title, "--body", body],
+            cwd=root,
+            text=True,
+            capture_output=True,
+        )
+        action = "updated"
+    else:
+        result = subprocess.run(
+            [
+                gh,
+                "pr",
+                "create",
+                "--title",
+                title,
+                "--body",
+                body,
+                "--base",
+                branch,
+                "--head",
+                pr_branch,
+            ],
+            cwd=root,
+            text=True,
+            capture_output=True,
+        )
+        action = "created"
+
+    if result.returncode != 0:
+        git("switch", branch)
+        print(
+            f"dev-pipeline: pr: gh pr {action} failed: "
+            + one_line(result.stderr, 400),
+            file=sys.stderr,
+        )
+        print(
+            f"  Branch {pr_branch} was pushed; switch back with "
+            f"`git switch {branch}` and retry the gh command.",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"dev-pipeline: pr: PR {action} successfully!")
+    print(result.stdout.strip() or f"PR {action}")
+    return 0

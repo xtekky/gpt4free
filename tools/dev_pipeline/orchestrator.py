@@ -369,18 +369,30 @@ class Pipeline:
         self.log(f"Project: {owner} ({project_config.path})")
         self.log(f"Priority: {task.get('priority')}  Attempts: {task.get('attempts', 0)}")
 
+        freeflow_error = ""
         try:
             client, working, failed, from_cache = self.models(
                 refresh=self.refresh_models, project_name=owner
             )
         except FreeflowError as exc:
-            self.log(f"No working free model: {exc}")
+            client = None
+            working, failed, from_cache = [], [], False
+            freeflow_error = str(exc)
+
+        candidates = [str(item.get("id")) for item in working if item.get("id")]
+        fallbacks = [model for model in self.config.fallback_models if model]
+        if not candidates and not fallbacks:
+            if freeflow_error:
+                self.log(f"No working free model: {freeflow_error}")
+            else:
+                self.log("No working free model returned by the proxy.")
             if dry_run:
                 return False
             store.update_task(
                 str(task.get("id")),
                 status="blocked",
-                notes="No working freeflow model: " + one_line(str(exc), 300),
+                notes="No working freeflow model: "
+                + one_line(freeflow_error or "empty proxy catalog", 300),
             )
             store.record_run(
                 {
@@ -390,32 +402,39 @@ class Pipeline:
                     "result": "blocked",
                     "started": utc_now(),
                     "finished": utc_now(),
-                    "detail": "no working free model: " + one_line(str(exc), 250),
+                    "detail": "no working free model: "
+                    + one_line(freeflow_error or "empty proxy catalog", 250),
                 }
             )
             store.save()
             return False
 
-        candidates = [str(item.get("id")) for item in working if item.get("id")]
-        if not candidates:
-            self.log("No working free model returned by the proxy.")
-            return False
-
-        self.log(f"Freeflow: {client.base_url} ({len(working)} working, {'cached' if from_cache else 'live'})")
-        self.log("Models: " + ", ".join(candidates[: self.config.max_model_attempts]))
+        if client is not None:
+            self.log(
+                f"Freeflow: {client.base_url} ({len(working)} working, "
+                f"{'cached' if from_cache else 'live'})"
+            )
+        elif freeflow_error:
+            self.log(f"Freeflow unavailable: {one_line(freeflow_error, 200)}")
+        if candidates:
+            self.log("Models: " + ", ".join(candidates[: self.config.max_model_attempts]))
+        if fallbacks:
+            self.log("Fallbacks: " + ", ".join(fallbacks))
 
         if dry_run:
             self.log("Checks: " + (", ".join(" ".join(c) for c in checks) or "(none)"))
             self.log("Dry run only; AGENTS.md was not modified.")
             return True
 
+        first_model = candidates[0] if candidates else fallbacks[0]
         store.update_task(
             str(task.get("id")),
             status="in-progress",
-            model=candidates[0],
+            model=first_model,
             increment_attempt=True,
         )
-        store.record_models(working, failed, client.base_url, from_cache)
+        if client is not None:
+            store.record_models(working, failed, client.base_url, from_cache)
         store.save()
 
         started = utc_now()
@@ -443,63 +462,83 @@ class Pipeline:
             self.log(detail)
             return False
 
-        attempt_models = candidates[: self.config.max_model_attempts]
+        attempt_models = list(candidates[: self.config.max_model_attempts])
+        for fallback in fallbacks:
+            if fallback not in attempt_models:
+                attempt_models.append(fallback)
         last_detail = ""
         used_model = None
         success = False
         agent_exit = None
 
-        for index, model_id in enumerate(attempt_models):
-            if index:
-                self.log(f"Retrying with fallback free model: {model_id}")
-            used_model = model_id
-            prompt = build_prompt(project_config, task, checks)
-            if last_detail:
-                prompt += "\n\nPrevious attempt output:\n" + truncate(last_detail, 3000)
-            self.log(f"Running {self.runner_binary()} with {model_id} ...")
-            agent: AgentResult = self._runner().run(project_config, model_id, prompt)
-            agent_exit = agent.exit_code
-            self.log(
-                f"Agent finished in {agent.duration:.1f}s with exit {agent.exit_code}."
-            )
-            if not agent.ok:
-                last_detail = f"agent exit {agent.exit_code}:\n{truncate(agent.output, 3000)}"
-                self.log("Agent failed; trying the next free model if available.")
-                continue
-
-            results = run_checks(self.config, project_config, checks)
-            if checks_ok(results):
-                success = True
-                break
-
-            last_detail = "checks failed:\n" + format_check_results(results)
-            self.log("Checks failed after the first attempt; asking the model to repair.")
-            for repair in range(self.config.repair_attempts):
-                repair_prompt = build_prompt(
-                    project_config,
-                    task,
-                    checks,
-                    repair_context=last_detail,
-                )
-                repair_agent = self._runner().run(project_config, model_id, repair_prompt)
-                agent_exit = repair_agent.exit_code
+        try:
+            for index, model_id in enumerate(attempt_models):
+                if index:
+                    self.log(f"Retrying with fallback model: {model_id}")
+                used_model = model_id
+                prompt = build_prompt(project_config, task, checks)
+                if last_detail:
+                    prompt += "\n\nPrevious attempt output:\n" + truncate(last_detail, 3000)
                 self.log(
-                    f"Repair {repair + 1}/{self.config.repair_attempts} finished in "
-                    f"{repair_agent.duration:.1f}s with exit {repair_agent.exit_code}."
+                    f"Running {self.runner_binary()} with {model_id} ... "
+                    f"(streaming progress, timeout {self.config.task_timeout}s)"
                 )
-                if not repair_agent.ok:
-                    last_detail = "repair agent exit {}:\n{}".format(
-                        repair_agent.exit_code,
-                        truncate(repair_agent.output, 3000),
-                    )
-                    break
+                agent: AgentResult = self._runner().run(
+                    project_config, model_id, prompt, progress=self.log
+                )
+                agent_exit = agent.exit_code
+                self.log(
+                    f"Agent finished in {agent.duration:.1f}s with exit {agent.exit_code}."
+                )
+                if not agent.ok:
+                    last_detail = f"agent exit {agent.exit_code}:\n{truncate(agent.output, 3000)}"
+                    self.log("Agent failed; trying the next free model if available.")
+                    continue
+
                 results = run_checks(self.config, project_config, checks)
                 if checks_ok(results):
                     success = True
                     break
+
                 last_detail = "checks failed:\n" + format_check_results(results)
-            if success:
-                break
+                self.log("Checks failed after the first attempt; asking the model to repair.")
+                for repair in range(self.config.repair_attempts):
+                    repair_prompt = build_prompt(
+                        project_config,
+                        task,
+                        checks,
+                        repair_context=last_detail,
+                    )
+                    repair_agent = self._runner().run(
+                        project_config, model_id, repair_prompt, progress=self.log
+                    )
+                    agent_exit = repair_agent.exit_code
+                    self.log(
+                        f"Repair {repair + 1}/{self.config.repair_attempts} finished in "
+                        f"{repair_agent.duration:.1f}s with exit {repair_agent.exit_code}."
+                    )
+                    if not repair_agent.ok:
+                        last_detail = "repair agent exit {}:\n{}".format(
+                            repair_agent.exit_code,
+                            truncate(repair_agent.output, 3000),
+                        )
+                        break
+                    results = run_checks(self.config, project_config, checks)
+                    if checks_ok(results):
+                        success = True
+                        break
+                    last_detail = "checks failed:\n" + format_check_results(results)
+                if success:
+                    break
+        except KeyboardInterrupt:
+            store.update_task(
+                str(task.get("id")),
+                status="pending",
+                notes="Interrupted; task requeued by the operator.",
+            )
+            store.save()
+            self.log("Interrupted; task requeued as pending.")
+            raise
 
         finished = utc_now()
         if success:

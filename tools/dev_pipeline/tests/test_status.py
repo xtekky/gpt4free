@@ -1,17 +1,28 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
+from tools.dev_pipeline.cli import _pr_command
+from tools.dev_pipeline.config import ConfigError, load_config
 from tools.dev_pipeline.freeflow import rank_models
+from tools.dev_pipeline.runner import AgentRunner, _message_text, _summarise_tool_args
 from tools.dev_pipeline.status import (
     BOARD_BEGIN,
     STATE_BEGIN,
     StatusError,
     StatusStore,
 )
+from tools.dev_pipeline.util import run_command_streaming
 
 
 class StatusStoreTests(unittest.TestCase):
@@ -115,6 +126,194 @@ class ModelRankingTests(unittest.TestCase):
             ["qwen3.5-397b", "llama-3.3-70b"],
         )
         self.assertEqual(ranked[0], "ovh-free/Qwen3.5-397B-A17B")
+
+
+class FallbackModelTests(unittest.TestCase):
+    def _config(self, payload):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "dev-pipeline.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return load_config(Path(temp.name), path)
+
+    def test_fallback_models_load(self) -> None:
+        config = self._config(
+            {"fallback_models": ["pollinations/deepseek/deepseek-v4.1-flash-1017"]}
+        )
+        self.assertEqual(
+            config.fallback_models,
+            ["pollinations/deepseek/deepseek-v4.1-flash-1017"],
+        )
+
+    def test_fallback_models_default_to_empty(self) -> None:
+        self.assertEqual(self._config({}).fallback_models, [])
+
+    def test_fallback_models_must_be_strings(self) -> None:
+        with self.assertRaises(ConfigError):
+            self._config({"fallback_models": [123]})
+
+    def test_provider_qualified_model_ref_is_kept(self) -> None:
+        runner = AgentRunner.__new__(AgentRunner)
+        self.assertEqual(
+            runner.model_ref("pollinations/deepseek/deepseek-v4.1-flash-1017"),
+            "pollinations/deepseek/deepseek-v4.1-flash-1017",
+        )
+        self.assertEqual(
+            runner.model_ref("ovh-free/gpt-oss-120b"),
+            "freeflow/ovh-free/gpt-oss-120b",
+        )
+        self.assertEqual(
+            runner.model_ref("big-pickle"),
+            "freeflow/big-pickle",
+        )
+
+
+class StreamingProgressTests(unittest.TestCase):
+    def test_streaming_forwards_lines(self) -> None:
+        lines = []
+        result = run_command_streaming(
+            [sys.executable, "-c", "print('one'); print('two')"],
+            Path("."),
+            timeout=10,
+            on_line=lines.append,
+        )
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(lines, ["one", "two"])
+
+    def test_tool_summary_uses_command(self) -> None:
+        self.assertEqual(
+            _summarise_tool_args({"command": "pwd", "other": 1}),
+            "pwd",
+        )
+
+    def test_message_text_joins_text_blocks(self) -> None:
+        self.assertEqual(
+            _message_text(
+                {
+                    "content": [
+                        {"type": "thinking", "thinking": "skip"},
+                        {"type": "text", "text": "hello "},
+                        {"type": "text", "text": "world"},
+                    ]
+                }
+            ),
+            "hello world",
+        )
+
+
+class PrCommandTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def _git(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", *args], cwd=self.root, text=True, capture_output=True
+        )
+
+    def _init_repo(self) -> None:
+        self._git("init", "-q")
+        self._git("config", "user.email", "test@example.com")
+        self._git("config", "user.name", "Test")
+        (self.root / "README.md").write_text("x\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "init")
+
+    def _run(self):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = _pr_command(SimpleNamespace(root=self.root))
+        return code, out.getvalue(), err.getvalue()
+
+    def test_rejects_non_git_directory(self) -> None:
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("not a git repository", err)
+
+    def test_rejects_missing_remote(self) -> None:
+        self._init_repo()
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("no git remote", err)
+
+    def test_rejects_non_github_remote(self) -> None:
+        self._init_repo()
+        self._git("remote", "add", "origin", "https://gitlab.com/x/y.git")
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("no GitHub remote", err)
+
+    def test_rejects_missing_gh(self) -> None:
+        self._init_repo()
+        self._git("remote", "add", "origin", "https://github.com/x/y.git")
+        with mock.patch("tools.dev_pipeline.cli.shutil.which", return_value=None):
+            code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("gh (GitHub CLI) not found", err)
+
+    def _fake_gh(self, existing: bool = False) -> str:
+        remote_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(remote_temp.cleanup)
+        bin_dir = Path(remote_temp.name) / "bin"
+        bin_dir.mkdir()
+        gh = bin_dir / "gh"
+        view_status = "0" if existing else "1"
+        gh.write_text(
+            "#!/bin/sh\n"
+            'if [ "$1" = "auth" ]; then exit 0; fi\n'
+            'if [ "$1" = "pr" ] && [ "$2" = "view" ]; then\n'
+            f"  echo https://github.com/x/y/pull/1\n"
+            f"  exit {view_status}\n"
+            "fi\n"
+            "echo https://github.com/x/y/pull/1\n",
+            encoding="utf-8",
+        )
+        gh.chmod(0o755)
+        env = dict(os.environ)
+        env["PATH"] = str(bin_dir) + os.pathsep + env.get("PATH", "")
+        return env
+
+    def _add_github_remote(self) -> Path:
+        remote_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(remote_temp.cleanup)
+        bare = Path(remote_temp.name) / "github.com" / "x" / "y.git"
+        bare.parent.mkdir(parents=True)
+        subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+        self._git("remote", "add", "origin", str(bare))
+        return bare
+
+    def test_creates_branch_commit_pushes_and_opens_pr(self) -> None:
+        self._init_repo()
+        bare = self._add_github_remote()
+        (self.root / "change.txt").write_text("change\n", encoding="utf-8")
+        env = self._fake_gh(existing=False)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("created branch pipeline/pr-", out)
+        self.assertIn("pushed pipeline/pr-", out)
+        self.assertIn("PR created successfully", out)
+        branches = self._git("branch", "--list", "pipeline/pr-*").stdout
+        self.assertIn("pipeline/pr-", branches)
+        log = self._git("log", "-1", "--pretty=%s").stdout.strip()
+        self.assertEqual(log, "pipeline: prepare PR")
+        remote_branches = subprocess.run(
+            ["git", "--git-dir", str(bare), "for-each-ref", "--format=%(refname:short)"],
+            text=True,
+            capture_output=True,
+        ).stdout
+        self.assertIn("pipeline/pr-", remote_branches)
+
+    def test_updates_existing_pr(self) -> None:
+        self._init_repo()
+        self._add_github_remote()
+        (self.root / "change.txt").write_text("change\n", encoding="utf-8")
+        env = self._fake_gh(existing=True)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("PR updated successfully", out)
 
 
 if __name__ == "__main__":
