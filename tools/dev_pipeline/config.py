@@ -121,6 +121,7 @@ class PipelineConfig:
     projects: Dict[str, ProjectConfig]
     preferred_models: List[str] = field(default_factory=lambda: list(DEFAULT_PREFERRED_MODELS))
     fallback_models: List[str] = field(default_factory=lambda: list(DEFAULT_FALLBACK_MODELS))
+    disabled_models: List[str] = field(default_factory=list)
     base_url: Optional[str] = None
     probe_limit: int = 10
     min_models: int = 2
@@ -252,6 +253,10 @@ def load_config(root: Path, config_path: Optional[Path] = None) -> PipelineConfi
     if not isinstance(fallback, list) or not all(isinstance(item, str) for item in fallback):
         raise ConfigError("'fallback_models' must be a list of strings")
 
+    disabled = data.get("disabled_models", [])
+    if not isinstance(disabled, list) or not all(isinstance(item, str) for item in disabled):
+        raise ConfigError("'disabled_models' must be a list of strings")
+
     enabled_projects = data.get("enabled_projects")
     if enabled_projects is not None and (
         not isinstance(enabled_projects, list)
@@ -274,6 +279,7 @@ def load_config(root: Path, config_path: Optional[Path] = None) -> PipelineConfi
         projects=projects,
         preferred_models=list(preferred),
         fallback_models=list(fallback),
+        disabled_models=list(disabled),
         base_url=data.get("base_url"),
         probe_limit=integer("probe_limit", 10, 1),
         min_models=integer("min_models", 2, 1),

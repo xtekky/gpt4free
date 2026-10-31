@@ -128,8 +128,11 @@ bin/dev-pipeline pr
 ```
 
 `pr` creates `pipeline/pr-<timestamp>`, commits the working tree, pushes it to
-the GitHub remote, then creates or updates the PR with `gh`. Install `gh` and
-run `gh auth login`, or set `GH_TOKEN`/`GITHUB_TOKEN` (for example in CI). The
+a GitHub remote, then creates or updates the PR with `gh`. It tries `origin`
+first and falls back to another configured GitHub remote (typically a fork) when
+`origin` is read-only; cross-repo PRs use `owner:branch` as the head. Use
+`--remote <name>` to force a specific remote. Install `gh` and run
+`gh auth login`, or set `GH_TOKEN`/`GITHUB_TOKEN` (for example in CI). The
 command validates the repository, remote, `gh` availability, and authentication
 before it changes any branch, so a missing tool never leaves a half-made commit.
 
@@ -223,7 +226,9 @@ one because free lanes are rate-limited and occasionally return empty streams:
 3. Each candidate is probed with a small non-streaming chat completion.
 4. A model is usable only if the response has choices and non-empty content or
    reasoning. Empty 200 responses are failures.
-5. Health is cached in `.dev-pipeline/models.json` for `model_cache_ttl` seconds
+5. Entries in `disabled_models` are removed before probing, even when the
+   proxy still lists them; short aliases and full ids both match. Health is
+   cached in `.dev-pipeline/models.json` for `model_cache_ttl` seconds
    (default 300). `--refresh-models` bypasses the cache.
 6. On an agent failure the next working model is tried, up to
    `max_model_attempts`.
@@ -251,6 +256,7 @@ models, then OVHcloud models as keyless fallbacks.
 | --- | --- | --- |
 | `projects` | gpt4free + g4f.dev | map of project name to `path`, `agents_file`, `checks`, `enabled` |
 | `preferred_models` | coding-first list | ranking hints for free models |
+| `disabled_models` | empty | models or aliases never probed or used (substring matching) |
 | `fallback_models` | `[]` | optional provider-qualified models tried after freeflow failures |
 | `base_url` | `http://127.0.0.1:28180/v1` | freeflow-compatible endpoint |
 | `probe_limit` | `10` | maximum candidates probed per refresh |

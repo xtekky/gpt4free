@@ -21,7 +21,6 @@
     "deepseek-v4.1-flash-free",
     "glm-5.3-flash-free",
     "mimo-v2.6-flash-free",
-    "nemotron-3.5-lightning-free",
     "big-pickle",
     "north-mini-code",
     "qwen3.6-27b",
@@ -37,6 +36,9 @@
   ],
   "fallback_models": [
     "pollinations/deepseek/deepseek-v4.1-flash-1017"
+  ],
+  "disabled_models": [
+    "nvidia/nemotron-3.5-lightning:free"
   ],
   "probe_limit": 10,
   "min_models": 2,

@@ -229,8 +229,32 @@ def _normalise(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
 
-def rank_models(model_ids: Sequence[str], preferred: Sequence[str]) -> List[str]:
-    """Order catalog models by the configured coding preference."""
+def _matches(model_norm: str, candidates: Sequence[str]) -> bool:
+    """Return True when any short alias or full id matches ``model_norm``."""
+    for candidate in candidates:
+        candidate_norm = _normalise(candidate)
+        if not candidate_norm:
+            continue
+        if candidate_norm in model_norm or model_norm in candidate_norm:
+            return True
+    return False
+
+
+def is_model_disabled(model_id: str, disabled: Sequence[str]) -> bool:
+    """Return True when ``model_id`` is excluded by ``disabled_models``."""
+    return _matches(_normalise(model_id), disabled)
+
+
+def rank_models(
+    model_ids: Sequence[str],
+    preferred: Sequence[str],
+    disabled: Sequence[str] = (),
+) -> List[str]:
+    """Order catalog models by the configured coding preference.
+
+    Models matching ``disabled`` are removed entirely so they are never probed
+    or handed to the agent, even when the freeflow catalog still lists them.
+    """
     preferred_norm = [_normalise(item) for item in preferred]
 
     def score(model_id: str) -> Tuple[int, int, str]:
@@ -247,7 +271,12 @@ def rank_models(model_ids: Sequence[str], preferred: Sequence[str]) -> List[str]
         coding_bonus = 0 if any(token in model_norm for token in ("code", "deepseek", "qwen", "glm")) else 1
         return (rank, coding_bonus, model_id.lower())
 
-    return sorted(dict.fromkeys(model_ids), key=score)
+    allowed = [
+        model_id
+        for model_id in dict.fromkeys(model_ids)
+        if not is_model_disabled(model_id, disabled)
+    ]
+    return sorted(allowed, key=score)
 
 
 def _load_cache(path: Path) -> Optional[Dict[str, Any]]:
@@ -288,6 +317,11 @@ def select_working_models(
     target = limit if explore else min_working
 
     if explicit_model:
+        if is_model_disabled(explicit_model, config.disabled_models):
+            raise FreeflowError(
+                f"requested model {explicit_model!r} is disabled in "
+                "dev-pipeline.json ('disabled_models')"
+            )
         result = client.probe(explicit_model)
         if not result.ok:
             raise FreeflowError(
@@ -302,13 +336,21 @@ def select_working_models(
             item for item in cache.get("working", []) if isinstance(item, dict) and item.get("id")
         ]
         if age <= config.model_cache_ttl and len(cached_working) >= target:
-            # Keep only models that are still in the live catalog.
+            # Keep only models that are still in the live catalog and not
+            # disabled by the operator.
             live = set(client.model_ids)
-            cached_working = [item for item in cached_working if item["id"] in live]
+            cached_working = [
+                item
+                for item in cached_working
+                if item["id"] in live
+                and not is_model_disabled(item["id"], config.disabled_models)
+            ]
             if len(cached_working) >= target:
                 return client, cached_working[:limit], list(cache.get("failed", [])), True
 
-    ranked = rank_models(client.model_ids, config.preferred_models)
+    ranked = rank_models(
+        client.model_ids, config.preferred_models, config.disabled_models
+    )
     working: List[Dict[str, Any]] = []
     failed: List[Dict[str, Any]] = []
     attempts = 0

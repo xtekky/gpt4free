@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -101,6 +102,11 @@ def _build_parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser("doctor", help="check projects, agent, and freeflow health")
 
     pr = sub.add_parser("pr", help="create a branch, commit, and open a PR with gh")
+    pr.add_argument(
+        "--remote",
+        default=None,
+        help="remote to push to (default: origin, then any other GitHub remote)",
+    )
 
     return parser
 
@@ -305,7 +311,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             return Pipeline(config).doctor()
 
         if args.command == "pr":
-            return _pr_command(config)
+            return _pr_command(config, args.remote)
 
         parser.error(f"unknown command {args.command}")
         return 2
@@ -317,7 +323,37 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 130
 
 
-def _pr_command(config: PipelineConfig) -> int:
+def _github_slug(url: str) -> Optional[str]:
+    """Return ``owner/repo`` for a github.com remote URL, if it is one."""
+    match = re.search(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/?$", url.strip())
+    if not match:
+        return None
+    return f"{match.group(1)}/{match.group(2)}"
+
+
+def _push_remote_order(remotes: List[str], requested: Optional[str]) -> List[str]:
+    """Order remotes so a read-only origin can fall back to a writable fork."""
+    if requested:
+        return [requested]
+    if "origin" in remotes:
+        return ["origin"] + [name for name in remotes if name != "origin"]
+    return sorted(remotes)
+
+
+def _default_branch(git, remote: str) -> str:
+    """Best-effort lookup of a remote's default branch (for ``--base``)."""
+    result = git("symbolic-ref", "--quiet", "--short", f"refs/remotes/{remote}/HEAD")
+    value = result.stdout.strip()
+    if result.returncode == 0 and value:
+        return value.split("/", 1)[-1]
+    for candidate in ("main", "master"):
+        check = git("rev-parse", "--verify", f"refs/remotes/{remote}/{candidate}")
+        if check.returncode == 0:
+            return candidate
+    return ""
+
+
+def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
     """Create a branch, commit the working tree, and open a PR with gh."""
     root = config.root
 
@@ -352,7 +388,12 @@ def _pr_command(config: PipelineConfig) -> int:
             github_remotes.setdefault(parts[0], parts[1])
     if not github_remotes:
         return fail("no GitHub remote configured; `gh pr create` needs a github.com remote")
-    remote_name = "origin" if "origin" in github_remotes else sorted(github_remotes)[0]
+    if remote is not None and remote not in github_remotes:
+        return fail(
+            f"remote {remote!r} is not a configured GitHub remote; choose one of: "
+            + ", ".join(sorted(github_remotes))
+        )
+    push_order = _push_remote_order(sorted(github_remotes), remote)
 
     gh = shutil.which("gh")
     if not gh:
@@ -400,26 +441,59 @@ def _pr_command(config: PipelineConfig) -> int:
         return fail("failed to commit: " + one_line(committed.stderr, 300))
     print(f"dev-pipeline: pr: committed {message}")
 
-    pushed = git("push", "-u", remote_name, pr_branch)
-    if pushed.returncode != 0:
+    pushed = None
+    pushed_remote = None
+    push_error = ""
+    for name in push_order:
+        attempt = git("push", "-u", name, pr_branch)
+        if attempt.returncode == 0:
+            pushed = attempt
+            pushed_remote = name
+            break
+        push_error = one_line(attempt.stderr, 300)
+        if name != push_order[-1]:
+            print(
+                f"dev-pipeline: pr: {name} is not writable, trying the next remote "
+                f"({_github_slug(github_remotes[name]) or name})",
+                file=sys.stderr,
+            )
+    if pushed is None or pushed_remote is None:
         git("switch", branch)
         return fail(
-            f"failed to push {pr_branch} to {remote_name}: "
-            + one_line(pushed.stderr, 300)
+            f"failed to push {pr_branch} to any GitHub remote "
+            f"({', '.join(push_order)}): {push_error}"
         )
-    print(f"dev-pipeline: pr: pushed {pr_branch} to {remote_name}")
+    print(f"dev-pipeline: pr: pushed {pr_branch} to {pushed_remote}")
+
+    # A read-only upstream is common: push to the fork, but open the PR against
+    # the upstream repository.  Cross-repo PRs need ``owner:branch`` as head.
+    base_remote = next(
+        (name for name in push_order if name != pushed_remote and name == "origin"),
+        None,
+    )
+    if base_remote is None:
+        base_remote = next(
+            (name for name in push_order if name != pushed_remote), pushed_remote
+        )
+    base_slug = _github_slug(github_remotes[base_remote])
+    push_slug = _github_slug(github_remotes[pushed_remote])
+    head = pr_branch
+    if base_slug and push_slug and base_slug != push_slug:
+        head = f"{push_slug.split('/', 1)[0]}:{pr_branch}"
+    base_branch = _default_branch(git, base_remote) or branch
+    repo_args = ["--repo", base_slug] if base_slug else []
 
     title = "Automated pipeline changes"
     body = "Created by `bin/dev-pipeline pr`."
     existing = subprocess.run(
-        [gh, "pr", "view", pr_branch, "--json", "url", "--jq", ".url"],
+        [gh, "pr", "view", head, *repo_args, "--json", "url", "--jq", ".url"],
         cwd=root,
         text=True,
         capture_output=True,
     )
     if existing.returncode == 0:
         result = subprocess.run(
-            [gh, "pr", "edit", pr_branch, "--title", title, "--body", body],
+            [gh, "pr", "edit", head, *repo_args, "--title", title, "--body", body],
             cwd=root,
             text=True,
             capture_output=True,
@@ -436,9 +510,10 @@ def _pr_command(config: PipelineConfig) -> int:
                 "--body",
                 body,
                 "--base",
-                branch,
+                base_branch,
                 "--head",
-                pr_branch,
+                head,
+                *repo_args,
             ],
             cwd=root,
             text=True,

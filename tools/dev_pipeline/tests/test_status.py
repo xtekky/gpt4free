@@ -127,6 +127,52 @@ class ModelRankingTests(unittest.TestCase):
         )
         self.assertEqual(ranked[0], "ovh-free/Qwen3.5-397B-A17B")
 
+    def test_disabled_model_is_removed(self) -> None:
+        ranked = rank_models(
+            [
+                "nvidia/nemotron-3.5-lightning:free",
+                "cohere/north-mini-code:free",
+            ],
+            ["nvidia/nemotron-3.5-lightning:free", "north-mini-code"],
+            ["nvidia/nemotron-3.5-lightning:free"],
+        )
+        self.assertEqual(ranked, ["cohere/north-mini-code:free"])
+
+    def test_disabled_alias_matches_full_id(self) -> None:
+        ranked = rank_models(
+            [
+                "nvidia/nemotron-3.5-lightning:free",
+                "cohere/north-mini-code:free",
+            ],
+            [],
+            ["nemotron-3.5-lightning-free"],
+        )
+        self.assertEqual(ranked, ["cohere/north-mini-code:free"])
+
+
+class DisabledModelConfigTests(unittest.TestCase):
+    def _config(self, payload):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "dev-pipeline.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return load_config(Path(temp.name), path)
+
+    def test_disabled_models_load(self) -> None:
+        config = self._config(
+            {"disabled_models": ["nvidia/nemotron-3.5-lightning:free"]}
+        )
+        self.assertEqual(
+            config.disabled_models, ["nvidia/nemotron-3.5-lightning:free"]
+        )
+
+    def test_disabled_models_default_to_empty(self) -> None:
+        self.assertEqual(self._config({}).disabled_models, [])
+
+    def test_disabled_models_must_be_strings(self) -> None:
+        with self.assertRaises(ConfigError):
+            self._config({"disabled_models": [123]})
+
 
 class FallbackModelTests(unittest.TestCase):
     def _config(self, payload):
@@ -314,6 +360,36 @@ class PrCommandTests(unittest.TestCase):
             code, out, err = self._run()
         self.assertEqual(code, 0, err)
         self.assertIn("PR updated successfully", out)
+
+    def test_falls_back_to_writable_fork_when_origin_is_read_only(self) -> None:
+        self._init_repo()
+        # A read-only upstream URL still looks like GitHub but cannot be pushed.
+        self._git(
+            "remote",
+            "add",
+            "origin",
+            str(self.root / "missing" / "github.com" / "xtekky" / "gpt4free.git"),
+        )
+        remote_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(remote_temp.cleanup)
+        fork = Path(remote_temp.name) / "github.com" / "g4f-copilot" / "gpt4free.git"
+        fork.parent.mkdir(parents=True)
+        subprocess.run(["git", "init", "--bare", "-q", str(fork)], check=True)
+        self._git("remote", "add", "fork", str(fork))
+
+        (self.root / "change.txt").write_text("main\n", encoding="utf-8")
+        env = self._fake_gh(existing=False)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("pushed pipeline/pr-", out)
+        self.assertIn("to fork", out)
+        remote_branches = subprocess.run(
+            ["git", "--git-dir", str(fork), "for-each-ref", "--format=%(refname:short)"],
+            text=True,
+            capture_output=True,
+        ).stdout
+        self.assertIn("pipeline/pr-", remote_branches)
 
 
 if __name__ == "__main__":
