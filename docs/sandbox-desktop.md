@@ -128,6 +128,26 @@ settings panel for their own session. To use a different default, edit the
 `defaults.json` written by `novnc-brand.sh` or pass `resize=<mode>` in the
 `vnc.html` URL. The direct VNC port (`5900`) is unaffected.
 
+**Touch controls.** The `/desktop/` landing page also overlays the input
+controls from the Remote Desktop viewer, because the stock noVNC control bar
+is awkward on a phone:
+
+- **Type** opens a text field that sends the whole string to the VM, plus
+  Enter, Backspace, Tab, Esc, arrow, navigation and F5/F11 keys.
+- **Ctrl**, **Alt**, **Shift** and **Win** are sticky modifier buttons; tap one,
+  then a key or a shortcut, and tap it again to release it.
+- **Keys** lists one-tap shortcuts (Alt+Tab, Ctrl+C/V/X/Z, Win+R, Alt+F4,
+  PrintScreen, and the rest of the Remote Desktop set), pressing the modifiers
+  around the key and releasing them in reverse.
+- **View/Control** toggles noVNC's view-only mode, **med** cycles the JPEG
+  quality, **Fit** toggles local scaling, **Full** enters fullscreen and
+  **Leave** disconnects. The bar hides after a few idle seconds; tap the
+  arrow at the bottom to bring it back.
+
+The overlay is served from `docker/novnc-controls.{js,css}` and talks to
+noVNC through `window.g4fUI`, exposed by `bin/novnc-brand.sh`; the stock
+client is otherwise unchanged.
+
 ## Password protection (`G4F_API_KEY`)
 
 Set `G4F_API_KEY` to protect the API, the noVNC desktop and every routed app

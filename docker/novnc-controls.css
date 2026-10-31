@@ -1,0 +1,195 @@
+/*
+ * g4f controls layered over the stock noVNC client at /desktop/.
+ *
+ * The noVNC client runs in an iframe that fills the page; these panels sit on
+ * top of it. The palette and the compact bottom toolbar follow the Remote
+ * Desktop viewer (projects/remote-desktop), so the same touch input, key
+ * buttons and one-tap shortcuts are available on the sandbox desktop.
+ */
+
+:root {
+  --g4f-bg: #0b0f14;
+  --g4f-panel: #141b24;
+  --g4f-panel-2: #1c2531;
+  --g4f-line: #26313f;
+  --g4f-text: #e6edf5;
+  --g4f-muted: #8b9bb0;
+  --g4f-accent: #4776e6;
+  --g4f-accent-2: #6e48aa;
+  --g4f-danger: #ff5c5c;
+}
+
+.g4f-ui,
+.g4f-ui * {
+  box-sizing: border-box;
+}
+
+.g4f-ui {
+  color: var(--g4f-text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+.g4f-ui button,
+.g4f-ui input {
+  font: inherit;
+}
+
+.g4f-ui button {
+  appearance: none;
+  border: 1px solid var(--g4f-line);
+  background: var(--g4f-panel-2);
+  color: var(--g4f-text);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+
+.g4f-ui button:hover:not(:disabled) { background: #24303f; }
+.g4f-ui button:disabled { opacity: .45; cursor: not-allowed; }
+.g4f-ui button.primary {
+  background: var(--g4f-accent);
+  border-color: #6f9bff;
+  color: #fff;
+}
+.g4f-ui button.primary:hover:not(:disabled) { background: #5c88f0; }
+.g4f-ui button.danger { border-color: #5a2a2a; color: var(--g4f-danger); }
+.g4f-ui button.active {
+  border-color: var(--g4f-accent);
+  color: #a9c5ff;
+  background: #1d2a44;
+}
+
+.g4f-ui input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--g4f-line);
+  background: #0e141b;
+  color: var(--g4f-text);
+}
+
+.g4f-ui .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.g4f-ui .row.tight { gap: 6px; }
+.g4f-ui .spacer { flex: 1; }
+
+#toolbar.g4f-ui {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(11, 15, 20, .97), rgba(11, 15, 20, .76));
+  border-top: 1px solid var(--g4f-line);
+  z-index: 15;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+#toolbar.hidden {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#toolbar button {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 4px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#toolbar button.active { border-color: var(--g4f-accent); color: #a9c5ff; }
+#toolbar .glyph { font-size: 18px; line-height: 1; }
+
+#handle.g4f-ui {
+  position: fixed;
+  left: 50%;
+  bottom: calc(4px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 14;
+  display: none;
+  padding: 2px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--g4f-line);
+  background: rgba(20, 27, 36, .9);
+  color: var(--g4f-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#handle.g4f-ui:not(.hidden) { display: block; }
+
+#keyboard.g4f-ui,
+#shortcuts.g4f-ui {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  z-index: 16;
+  display: none;
+  background: rgba(20, 27, 36, .98);
+  border-top: 1px solid var(--g4f-line);
+  padding: 10px 10px 12px;
+  max-height: calc(62vh - 78px);
+  overflow: auto;
+}
+
+#keyboard.open,
+#shortcuts.open { display: block; }
+
+#keyboard .keys,
+#shortcuts .keys {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+#keyboard .keys button,
+#shortcuts .keys button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+#shortcuts .keys button { text-align: left; }
+
+#toast.g4f-ui {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translate(-50%, -8px);
+  z-index: 30;
+  max-width: min(90vw, 420px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--g4f-line);
+  background: rgba(20, 27, 36, .94);
+  color: var(--g4f-text);
+  font-size: 13px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (min-width: 700px) {
+  #toolbar .glyph { font-size: 19px; }
+  #keyboard .keys button,
+  #shortcuts .keys button { padding: 9px 14px; }
+}

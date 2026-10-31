@@ -231,16 +231,20 @@ RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
     patch-xfce-menu.py
 
 # noVNC branding. The upstream noVNC tree ships no index.html, so a request to
-# the API's /desktop/ mount would 404; novnc-index.html is a bare full-viewport
-# page that drops straight into the autoconnected client (no header of its
-# own). The g4f branding lives inside the stock client itself:
-# novnc-brand.sh swaps vnc.html's logos (and the icon SVGs) for g4f.svg,
-# repaints the accent palette with the g4f colors, stacks the connect
-# dialog's logo above its button, bridges the browser clipboard to the VM
-# (app/ui.js) and keeps the desktop geometry fixed (resize=off in
+# the API's /desktop/ mount would 404; novnc-index.html is a full-viewport
+# page that drops straight into the autoconnected client and overlays the
+# Remote Desktop viewer's touch controls: text input, modifier/navigation key
+# buttons and one-tap shortcuts (g4f-controls.js/css). The g4f branding lives
+# inside the stock client itself: novnc-brand.sh swaps vnc.html's logos (and
+# the icon SVGs) for g4f.svg, repaints the accent palette with the g4f colors,
+# stacks the connect dialog's logo above its button, bridges the browser
+# clipboard to the VM and exposes the key/text bridge the overlay uses
+# (app/ui.js), and keeps the desktop geometry fixed (resize=off in
 # defaults.json), leaving the rest of noVNC untouched. It verifies each
 # patch, so a changed noVNC layout fails the build.
 COPY docker/novnc-index.html /usr/share/novnc/index.html
+COPY docker/novnc-controls.js /usr/share/novnc/g4f-controls.js
+COPY docker/novnc-controls.css /usr/share/novnc/g4f-controls.css
 COPY docker/g4f.svg /usr/share/novnc/g4f.svg
 RUN chmod 0775 /usr/share/novnc/ -R
 RUN novnc-brand.sh
