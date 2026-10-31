@@ -784,6 +784,22 @@
     "login": false
   },
   {
+    "name": "PiFreeflow",
+    "label": "pi-freeflow",
+    "parent": null,
+    "image": 0,
+    "audio": 0,
+    "video": 0,
+    "vision": false,
+    "nodriver": false,
+    "hf_space": false,
+    "active_by_default": false,
+    "auth": false,
+    "login_url": null,
+    "live": 0,
+    "login": false
+  },
+  {
     "name": "Pi",
     "label": "Pi",
     "parent": null,

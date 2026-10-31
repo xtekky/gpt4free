@@ -96,7 +96,7 @@ Table of contents
 ## Related projects
 - [g4f-go](g4f-go/README.md) – Self-contained Go launcher for g4f (downloads CPython + g4f on demand)
 - [remote_desktop](projects/remote-desktop/) – WebRTC-based remote desktop host/viewer
-- [sandbox-desktop](docs/sandbox-desktop.md) – TigerVNC + Xfce + noVNC desktop in Docker with preinstalled coding agents ([menu/tool list](docker/sandbox-menu/README.md), [start script](bin/start-sandbox-desktop.sh), [Dockerfile](docker/Dockerfile-sandbox-desktop))
+- [sandbox-desktop](https://g4f.dev/docs/sandbox-desktop) – TigerVNC + Xfce + noVNC desktop in Docker with preinstalled coding agents ([menu/tool list](docker/sandbox-menu/README.md), [start script](bin/start-sandbox-desktop.sh), [Dockerfile](docker/Dockerfile-sandbox-desktop))
 
 ---
 
@@ -154,7 +154,7 @@ Notes:
 A full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click
 **Install & Open** menu for 100+ AI tools and providers — coding agents,
 browsers, gateways, local runtimes and assistants. See
-[docs/sandbox-desktop.md](docs/sandbox-desktop.md) for the start script,
+[docs/sandbox-desktop.md](https://g4f.dev/docs/sandbox-desktop) for the start script,
 clipboard, scaling, app volume, user id, password and domain-routing options,
 and [docker/sandbox-menu/README.md](docker/sandbox-menu/README.md) for the
 menu, the tool list and the settings.
@@ -206,7 +206,7 @@ docker run -d --name g4f-sandbox-desktop \
   `--domain-suffix`, `--no-domain-router`, `shell`, `logs` and `stop`.
   `--api-key KEY` protects the desktop/API with a password (any username
   works in the browser login); see
-  [docs/sandbox-desktop.md](docs/sandbox-desktop.md).
+  [docs/sandbox-desktop.md](https://g4f.dev/docs/sandbox-desktop).
 - The sandbox user (`pn`) runs with uid/gid 1000 by default. On a host whose
   user has another id, build the image with
   `--build-arg G4F_USER_ID="$(id -u)"` (or run
@@ -475,7 +475,7 @@ Repository: https://github.com/xtekky/gpt4free
 
 ### How AI can help you write code
 - See: [docs/guides/help_me.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/guides/help_me.md) for prompt templates and workflows to accelerate development.
-- Automatic development loop: [docs/dev-pipeline.md](docs/dev-pipeline.md) explains `bin/dev-pipeline`, which reads tasks from `AGENTS.md` and implements them with working free models from pi-freeflow.
+- Automatic development loop: [docs/dev-pipeline.md](https://g4f.dev/docs/dev-pipeline) explains `bin/dev-pipeline`, which reads tasks from `AGENTS.md` and implements them with working free models from pi-freeflow.
 
 ---
 

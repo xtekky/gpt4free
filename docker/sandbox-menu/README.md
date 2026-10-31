@@ -573,7 +573,7 @@ Set `G4F_API_KEY` on the container (or `bin/start-sandbox-desktop.sh
 routed apps. The browser's login accepts **any username**; the password is the
 key. `G4F_DOMAIN_SUFFIX` changes the `g4f.local` suffix and
 `G4F_DOMAIN_ROUTER=0` disables hostname routing. See
-[`docs/sandbox-desktop.md`](../../docs/sandbox-desktop.md) for all options.
+[`docs/sandbox-desktop.md`](https://g4f.dev/docs/sandbox-desktop) for all options.
 
 ### Domain routing
 

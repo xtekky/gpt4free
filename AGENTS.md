@@ -105,7 +105,7 @@ The blocks below are maintained automatically. Do not edit them by hand.
 {
   "schema": 1,
   "project": "gpt4free",
-  "updated": "2026-10-31T06:09:09Z",
+  "updated": "2026-10-31T06:40:18Z",
   "tasks": [
     {
       "id": "G4F-001",
@@ -186,124 +186,40 @@ The blocks below are maintained automatically. Do not edit them by hand.
       "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
     },
     {
-      "id": "G4F-007",
-      "project": "gpt4free",
-      "priority": "P3",
-      "status": "done",
-      "title": "Resolve TODO in _youtube_converter.py: Fix json type",
-      "acceptance": "Address `g4f/integration/markitdown/_youtube_converter.py:288` without breaking the configured checks.",
-      "created": "2026-10-31T05:51:24Z",
-      "updated": "2026-10-31T05:55:38Z",
-      "attempts": 1,
-      "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
-      "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed.",
-      "source": "g4f/integration/markitdown/_youtube_converter.py:288"
-    },
-    {
-      "id": "G4F-008",
-      "project": "gpt4free",
-      "priority": "P3",
-      "status": "done",
-      "title": "Resolve TODO in optimize_request.py: list with specific, actionable \"",
-      "acceptance": "Address `g4f/tools/optimize_request.py:328` without breaking the configured checks.",
-      "created": "2026-10-31T05:51:24Z",
-      "updated": "2026-10-31T05:57:27Z",
-      "attempts": 1,
-      "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
-      "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed.",
-      "source": "g4f/tools/optimize_request.py:328"
-    },
-    {
-      "id": "G4F-009",
-      "project": "gpt4free",
-      "priority": "P3",
-      "status": "done",
-      "title": "Resolve TODO in optimize_request.py: as in-progress before starting work\\s*\\n3\\. Complete the \"",
-      "acceptance": "Address `g4f/tools/optimize_request.py:329` without breaking the configured checks.",
-      "created": "2026-10-31T05:51:24Z",
-      "updated": "2026-10-31T05:59:39Z",
-      "attempts": 1,
-      "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
-      "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed.",
-      "source": "g4f/tools/optimize_request.py:329"
-    },
-    {
-      "id": "G4F-010",
-      "project": "gpt4free",
-      "priority": "P3",
-      "status": "pending",
-      "title": "Resolve TODO in optimize_request.py: \\s*\\n4\\. Mark that todo as completed IMMEDIATELY\\s*\\n5\\. \"",
-      "acceptance": "Address `g4f/tools/optimize_request.py:330` without breaking the configured checks.",
-      "created": "2026-10-31T05:51:24Z",
-      "updated": "2026-10-31T05:51:24Z",
-      "attempts": 0,
-      "last_model": null,
-      "notes": "",
-      "source": "g4f/tools/optimize_request.py:330"
-    },
-    {
-      "id": "G4F-011",
-      "project": "gpt4free",
-      "priority": "P3",
-      "status": "pending",
-      "title": "Resolve TODO in optimize_request.py: and repeat\"",
-      "acceptance": "Address `g4f/tools/optimize_request.py:331` without breaking the configured checks.",
-      "created": "2026-10-31T05:51:24Z",
-      "updated": "2026-10-31T05:51:24Z",
-      "attempts": 0,
-      "last_model": null,
-      "notes": "",
-      "source": "g4f/tools/optimize_request.py:331"
-    },
-    {
-      "id": "G4F-012",
-      "project": "gpt4free",
-      "priority": "P3",
-      "status": "pending",
-      "title": "Resolve TODO in test_optimize_request.py: \", \"to-do\", \"to do\"):",
-      "acceptance": "Address `etc/unittest/test_optimize_request.py:33` without breaking the configured checks.",
-      "created": "2026-10-31T05:58:21Z",
-      "updated": "2026-10-31T05:58:21Z",
-      "attempts": 0,
-      "last_model": null,
-      "notes": "",
-      "source": "etc/unittest/test_optimize_request.py:33"
-    },
-    {
-      "id": "G4F-013",
+      "id": "G4F-016",
       "project": "gpt4free",
       "priority": "P2",
       "status": "done",
-      "title": "#3545 \u001b[200~The string github.com may be at an arbitrary position in the sanitized URL.~",
+      "title": "add models from pi-freeflow in gpt4free too",
       "acceptance": "",
-      "created": "2026-10-31T06:01:41Z",
-      "updated": "2026-10-31T06:03:56Z",
+      "created": "2026-10-31T06:11:46Z",
+      "updated": "2026-10-31T06:20:14Z",
       "attempts": 1,
       "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
       "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
     },
     {
-      "id": "G4F-014",
+      "id": "G4F-017",
       "project": "gpt4free",
       "priority": "P2",
-      "status": "done",
-      "title": "update pr",
+      "status": "in-progress",
+      "title": "improve stabillty of gpt4free",
       "acceptance": "",
-      "created": "2026-10-31T06:04:35Z",
-      "updated": "2026-10-31T06:06:35Z",
+      "created": "2026-10-31T06:12:16Z",
+      "updated": "2026-10-31T06:20:26Z",
       "attempts": 1,
       "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
-      "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
+      "notes": ""
     },
     {
-      "id": "G4F-015",
+      "id": "G4F-018",
       "project": "gpt4free",
       "priority": "P2",
       "status": "done",
-      "title": "push branch",
+      "title": "move docs from gpt4free to g4f.dev, gen html docs",
       "acceptance": "",
-      "created": "2026-10-31T06:07:13Z",
-      "updated": "2026-10-31T06:09:09Z",
+      "created": "2026-10-31T06:12:50Z",
+      "updated": "2026-10-31T06:40:18Z",
       "attempts": 1,
       "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
       "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
@@ -484,6 +400,28 @@ The blocks below are maintained automatically. Do not edit them by hand.
       "duration_s": null,
       "agent_exit": 0,
       "detail": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
+    },
+    {
+      "task": "G4F-016",
+      "project": "gpt4free",
+      "model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
+      "result": "success",
+      "started": "2026-10-31T06:12:58Z",
+      "finished": "2026-10-31T06:20:14Z",
+      "duration_s": null,
+      "agent_exit": 0,
+      "detail": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
+    },
+    {
+      "task": "G4F-018",
+      "project": "gpt4free",
+      "model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
+      "result": "success",
+      "started": "2026-10-31T06:35:36Z",
+      "finished": "2026-10-31T06:40:18Z",
+      "duration_s": null,
+      "agent_exit": 0,
+      "detail": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
     }
   ]
 }
@@ -501,16 +439,10 @@ The blocks below are maintained automatically. Do not edit them by hand.
 | G4F-004 | gpt4free | P2 | done | push/create/updated pr |  | 2026-10-31T05:23:35Z |
 | G4F-005 | gpt4free | P2 | done | create new pr #3553 |  | 2026-10-31T05:53:04Z |
 | G4F-006 | gpt4free | P2 | done | github codeql check failed, update pr |  | 2026-10-31T05:54:37Z |
-| G4F-013 | gpt4free | P2 | done | #3545 [200~The string github.com may be at an arbitrary position in the sanitized URL.~ |  | 2026-10-31T06:03:56Z |
-| G4F-014 | gpt4free | P2 | done | update pr |  | 2026-10-31T06:06:35Z |
-| G4F-015 | gpt4free | P2 | done | push branch |  | 2026-10-31T06:09:09Z |
+| G4F-016 | gpt4free | P2 | done | add models from pi-freeflow in gpt4free too |  | 2026-10-31T06:20:14Z |
+| G4F-017 | gpt4free | P2 | in-progress | improve stabillty of gpt4free |  | 2026-10-31T06:20:26Z |
+| G4F-018 | gpt4free | P2 | done | move docs from gpt4free to g4f.dev, gen html docs |  | 2026-10-31T06:40:18Z |
 | G4F-003 | gpt4free | P3 | done | Add a dev-pipeline pr command for GitHub checkouts | The command creates a branch and commit then opens a PR with gh; it fails clearly when no GitHub remote/gh exists. | 2026-10-31T05:05:27Z |
-| G4F-007 | gpt4free | P3 | done | Resolve TODO in _youtube_converter.py: Fix json type | Address `g4f/integration/markitdown/_youtube_converter.py:288` without breaking the configured checks. | 2026-10-31T05:55:38Z |
-| G4F-008 | gpt4free | P3 | done | Resolve TODO in optimize_request.py: list with specific, actionable " | Address `g4f/tools/optimize_request.py:328` without breaking the configured checks. | 2026-10-31T05:57:27Z |
-| G4F-009 | gpt4free | P3 | done | Resolve TODO in optimize_request.py: as in-progress before starting work\\s*\\n3\\. Complete the " | Address `g4f/tools/optimize_request.py:329` without breaking the configured checks. | 2026-10-31T05:59:39Z |
-| G4F-010 | gpt4free | P3 | pending | Resolve TODO in optimize_request.py: \\s*\\n4\\. Mark that todo as completed IMMEDIATELY\\s*\\n5\\. " | Address `g4f/tools/optimize_request.py:330` without breaking the configured checks. | 2026-10-31T05:51:24Z |
-| G4F-011 | gpt4free | P3 | pending | Resolve TODO in optimize_request.py: and repeat" | Address `g4f/tools/optimize_request.py:331` without breaking the configured checks. | 2026-10-31T05:51:24Z |
-| G4F-012 | gpt4free | P3 | pending | Resolve TODO in test_optimize_request.py: ", "to-do", "to do"): | Address `etc/unittest/test_optimize_request.py:33` without breaking the configured checks. | 2026-10-31T05:58:21Z |
 
 ### Free model health
 
@@ -531,6 +463,8 @@ Checked `2026-10-31T05:45:31Z` at `http://127.0.0.1:28180/v1`.
 
 | When | Task | Project | Model | Result | Detail |
 | --- | --- | --- | --- | --- | --- |
+| 2026-10-31T06:40:18Z | G4F-018 | gpt4free | pollinations/deepseek/deepseek-v4.1-flash-1017 | success | Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed. |
+| 2026-10-31T06:20:14Z | G4F-016 | gpt4free | pollinations/deepseek/deepseek-v4.1-flash-1017 | success | Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed. |
 | 2026-10-31T06:09:09Z | G4F-015 | gpt4free | pollinations/deepseek/deepseek-v4.1-flash-1017 | success | Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed. |
 | 2026-10-31T06:06:35Z | G4F-014 | gpt4free | pollinations/deepseek/deepseek-v4.1-flash-1017 | success | Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed. |
 | 2026-10-31T06:03:56Z | G4F-013 | gpt4free | pollinations/deepseek/deepseek-v4.1-flash-1017 | success | Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed. |
