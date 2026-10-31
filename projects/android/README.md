@@ -35,6 +35,9 @@ cd android
 # output: app/build/outputs/apk/debug/app-debug.apk
 ```
 
+The build checks that Brotli is included in the APK for both bundled ABIs.
+To check an existing APK: `python3 check_brotli.py app/build/outputs/apk/debug/app-debug.apk`.
+
 ## Architecture
 
 ```

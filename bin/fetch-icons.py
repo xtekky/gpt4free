@@ -134,6 +134,7 @@ ICONS: dict[str, list[str]] = {
     "lobechat": [google("lobehub.com")],
     "msty": [google("msty.ai")],
     "sillytavern": [github("SillyTavern")],
+    "open-webui": [github("open-webui"), google("openwebui.com")],
     "cptr": [github("open-webui"), google("openwebui.com")],
     # Editors
     "code-server": [google("coder.com"), github("coder")],

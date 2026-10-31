@@ -6,6 +6,6 @@ Comment=Open WebUI Computer — pip-installs on first click, then serves files, 
 Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Open WebUI Computer" --icon=g4f-sandbox-cptr --command="/usr/local/bin/sandbox-cli cptr"
 Icon=g4f-sandbox-cptr
 Terminal=false
-Categories=X-G4F-Sandbox;X-G4F-ChatUI;
+Categories=X-G4F-Sandbox;X-G4F-Assistant;
 Keywords=openwebui;computer;cptr;web;files;terminal;editor;;
 StartupNotify=false

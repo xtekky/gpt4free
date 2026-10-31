@@ -181,6 +181,14 @@ def routes() -> Dict[str, DomainRoute]:
             port=8000,
             root_url=_local_root_url("CPTR_BASE_URL", "CPTR_HOST", "CPTR_PORT", 8000),
         ),
+        "open-webui": DomainRoute(
+            "open-webui",
+            "Open WebUI",
+            port=8603,
+            root_url=_local_root_url(
+                "OPEN_WEBUI_BASE_URL", "OPEN_WEBUI_HOST", "OPEN_WEBUI_PORT", 8603
+            ),
+        ),
         "code-server": DomainRoute(
             "code-server",
             "code-server",

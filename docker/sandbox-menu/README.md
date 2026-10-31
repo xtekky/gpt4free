@@ -74,6 +74,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open LobeChat  | `lobechat`  | GitHub release AppImage     | `lobechat`     |
 | Install & Open Msty Studio | `msty`    | vendor "latest" AppImage    | `msty`         |
 | Install & Open SillyTavern | `sillytavern` | git clone + `npm install` | `node`       |
+| Install & Open Open WebUI | `open-webui` | pip `open-webui` (user) | `open-webui` |
 | Install & Open Open WebUI Computer | `cptr` | pip `cptr` (user)     | `cptr`         |
 | Install & Open VS Code Web | `code-server` | code-server.dev install script | `code-server` |
 | Install & Open Kate      | `kate`      | apt `kate` (Debian)         | `kate`         |
@@ -136,9 +137,10 @@ public HTTPS URL, and the **Langfuse CLI** (`langfuse`) for inspecting LLM
 traces and prompts, **local AI** runtimes
 (`ollama`, `llamacpp`, `lmstudio`, `jan`) that serve models on
 the machine itself, **chat UIs** (`librechat`, `lobechat`, `msty`,
-`sillytavern`, `cptr`, `assistant-ui`) that put a chat front end on top of the
-g4f API, browser and desktop **editors** (`code-server`, VS Code Web served by
-code-server, and the KDE **Kate** text editor), **assistant/agent CLIs**
+`sillytavern`, `open-webui`, `assistant-ui`) that put a chat front end on top of
+the g4f API, browser and desktop **editors** (`code-server`, VS Code Web served
+by code-server, and the KDE **Kate** text editor), **assistants** such as
+Open WebUI Computer (`cptr`), and **assistant/agent CLIs**
 (`openclaw`, `fabric`, `sgpt`, `gptme`, `llm`) that live in the terminal,
 the **Writing** tools that humanize or score generated copy, and an **Agent
 Skills** menu that installs skill packs and cross-session memory into the
@@ -356,12 +358,12 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 | **Agent Skills** | `X-G4F-Skills`    | `ecc`, `superpowers`, `graphify`, `claude-mem` |
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
-| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `cptr`, `dsh`, `assistant-ui` |
+| **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `open-webui`, `dsh`, `assistant-ui` |
 | **Editors**      | `X-G4F-Editor`    | `code-server`, `kate` |
 | **Writing**      | `X-G4F-Writing`   | `humanizer`, `ai-detect`, `aidetect` |
 | **Media**        | `X-G4F-Media`     | `polli`, `voicestudio`, `hyperframes`          |
 | **Sandboxes**    | `X-G4F-Sandboxes` | `polli-sandbox`                                |
-| **Assistants**   | `X-G4F-Assistant` | `dsh`, `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `huggingface`, `deeptutor`, `nanobot`, `agent-reach` |
+| **Assistants**   | `X-G4F-Assistant` | `cptr`, `dsh`, `openclaw`, `fabric`, `sgpt`, `gptme`, `llm`, `huggingface`, `deeptutor`, `nanobot`, `agent-reach` |
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
@@ -475,15 +477,19 @@ Open the host page on this desktop, press **Share**, then scan the QR code from
 the phone; extra `remote_desktop` flags pass through, for example
 `sandbox-cli remote-desktop --port 8765 --open-browser`.
 
-## Using g4f with OpenCode, Copilot, Hermes and LibreChat
+## Using g4f with OpenCode, Copilot, Hermes, LibreChat and Open WebUI
 
-The OpenCode, Copilot, Hermes and LibreChat menu launchers configure an
-OpenAI-compatible provider to use the g4f API at `http://127.0.0.1:8080/v1`
-(or `:9090` when that endpoint is reachable). OpenCode receives an inline
-config, Copilot receives its BYOK environment variables, Hermes gets an alias
-(and, when a model is chosen, its `model.*` settings) written through
-`hermes config set` (its config is YAML and the image ships no YAML parser),
-and LibreChat gets a custom endpoint in `librechat.yaml`.
+The OpenCode, Copilot, Hermes, LibreChat and Open WebUI menu launchers
+configure an OpenAI-compatible provider to use the g4f API at
+`http://127.0.0.1:8080/v1` (or `:9090` when that endpoint is reachable).
+OpenCode receives an inline config, Copilot receives its BYOK environment
+variables, Hermes gets an alias (and, when a model is chosen, its `model.*`
+settings) written through `hermes config set` (its config is YAML and the
+image ships no YAML parser), LibreChat gets a custom endpoint in
+`librechat.yaml`, and Open WebUI gets `OPENAI_API_BASE_URL` /
+`OPENAI_API_KEY` plus its data directory under `~/.open-webui`. The Open WebUI
+connection is a first-launch setting: after the admin account exists, change
+it under **Settings → Admin → Connections** if the g4f endpoint moves.
 
 OpenCode, Hermes and LibreChat always register the g4f provider with model
 `auto`, so it is available in the model picker even before anything is chosen.
@@ -582,6 +588,7 @@ which is what the **Public URLs** entry (`sandbox-cli urls`) lists:
 | `litellm.g4f.local` | LiteLLM gateway | `4000.g4f.local` |
 | `librechat.g4f.local` | LibreChat | `3080.g4f.local` |
 | `sillytavern.g4f.local` | SillyTavern | `8601.g4f.local` |
+| `open-webui.g4f.local` | Open WebUI | `8603.g4f.local` |
 | `cptr.g4f.local` | Open WebUI Computer | `8000.g4f.local` |
 | `code-server.g4f.local` | code-server | `8602.g4f.local` |
 | `llamacpp.g4f.local` | llama.cpp server | `11435.g4f.local` |
@@ -589,6 +596,20 @@ which is what the **Public URLs** entry (`sandbox-cli urls`) lists:
 | `remote-desktop.g4f.local` | Remote Desktop | `8765.g4f.local` |
 | `desktop.g4f.local` | noVNC desktop | — |
 | `pi-freeflow.g4f.local` | pi-freeflow | `28180.g4f.local` |
+
+SillyTavern is installed with `listen: true` and its IP/host whitelists
+disabled (with `securityOverride` for its listen-mode startup check), so the
+`*.g4f.local` names above and a `sandbox-cli tunnel` URL work without further
+configuration. Remove those settings in `~/.sillytavern/config.yaml` to keep it
+on localhost only.
+
+Its chat connection is preconfigured as **Custom (OpenAI-compatible)** at the
+sandbox g4f endpoint (`G4F_API_BASE_URL`, normally
+`http://127.0.0.1:8080/v1`) with the g4f model — `auto`, or the model chosen in
+**Sandbox Settings** — and the sandbox API key when `G4F_API_KEY` is set. The
+values are merged into `~/.sillytavern/data/default-user/settings.json` and
+`secrets.json` on every launch; use the connection panel in the UI to change
+them after that.
 
 The hostname form exists because some apps cannot be served from a sub-path:
 they emit absolute URLs, or their client derives its WebSocket URL from the

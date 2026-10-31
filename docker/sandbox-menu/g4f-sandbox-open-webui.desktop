@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install & Open Open WebUI
+Comment=Open WebUI chat interface — pip-installs on first click, then serves the assistant UI on port 8603
+Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Open WebUI" --icon=g4f-sandbox-open-webui --command="/usr/local/bin/sandbox-cli open-webui"
+Icon=g4f-sandbox-open-webui
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-ChatUI;
+Keywords=openwebui;open-webui;chat;ui;assistant;web;;
+StartupNotify=false

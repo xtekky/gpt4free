@@ -2029,7 +2029,7 @@ class BrowserSnapshotTool(MCPTool):
         return (
             "Get a standalone HTML copy (scripts removed, CSS inlined) of the current browser "
             "page. Buttons, links, inputs, selects, textareas and contenteditable elements carry "
-            "a data-index attribute usable with browser_click, browser_type and browser_select."
+            "a data-index attribute usable with the browser action route."
         )
 
     @property
@@ -2042,94 +2042,13 @@ class BrowserSnapshotTool(MCPTool):
         except Exception as exc:
             return {"error": f"Browser snapshot failed: {exc}"}
 
-class BrowserClickTool(MCPTool):
-    """Click an element by data-index."""
-
-    @property
-    def description(self) -> str:
-        return "Click the element with the given data-index (see browser_snapshot)."
-
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "index": {"type": "integer", "description": "data-index of the element"},
-                "targetId": _TARGET_PROP,
-            },
-            "required": ["index"],
-        }
-
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .browser_dom import click_js
-        try:
-            return await _browser_eval(arguments, click_js(int(arguments["index"])))
-        except Exception as exc:
-            return {"error": f"Browser click failed: {exc}"}
-
-class BrowserTypeTool(MCPTool):
-    """Type text into an input/textarea/contenteditable by data-index."""
-
-    @property
-    def description(self) -> str:
-        return "Set the text of the input, textarea or contenteditable element with the given data-index."
-
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "index": {"type": "integer", "description": "data-index of the element"},
-                "text": {"type": "string", "description": "Text to enter"},
-                "clear": {"type": "boolean", "description": "Replace existing text (default: true)", "default": True},
-                "submit": {"type": "boolean", "description": "Press Enter / submit the form afterwards (default: false)", "default": False},
-                "targetId": _TARGET_PROP,
-            },
-            "required": ["index", "text"],
-        }
-
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .browser_dom import type_js
-        try:
-            js = type_js(int(arguments["index"]), str(arguments["text"]),
-                         bool(arguments.get("clear", True)), bool(arguments.get("submit", False)))
-            return await _browser_eval(arguments, js)
-        except Exception as exc:
-            return {"error": f"Browser type failed: {exc}"}
-
-class BrowserSelectTool(MCPTool):
-    """Choose an option of a <select> by data-index."""
-
-    @property
-    def description(self) -> str:
-        return "Select an option (by value or visible text) in the <select> with the given data-index."
-
-    @property
-    def input_schema(self) -> Dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "index": {"type": "integer", "description": "data-index of the <select>"},
-                "value": {"type": "string", "description": "Option value or visible text"},
-                "targetId": _TARGET_PROP,
-            },
-            "required": ["index", "value"],
-        }
-
-    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        from .browser_dom import select_js
-        try:
-            return await _browser_eval(arguments, select_js(int(arguments["index"]), str(arguments["value"])))
-        except Exception as exc:
-            return {"error": f"Browser select failed: {exc}"}
-
 class BrowserClickSelectorTool(MCPTool):
     """Click the element matching a CSS selector."""
 
     @property
     def description(self) -> str:
         return (
-            "Click the first element matching a CSS selector. Unlike browser_click this "
+            "Click the first element matching a CSS selector. Addressing by selector "
             "does not depend on data-index values from browser_snapshot, so it stays "
             "stable when the number of elements on the page changes."
         )
@@ -2162,7 +2081,7 @@ class BrowserTypeSelectorTool(MCPTool):
     def description(self) -> str:
         return (
             "Set the text of the input, textarea or contenteditable element matching a CSS "
-            "selector. Same semantics as browser_type, but addressed by selector."
+            "selector."
         )
 
     @property

@@ -61,6 +61,7 @@ _TOOLS = frozenset(
         "librechat",
         "sillytavern",
         "cptr",
+        "open-webui",
         "code-server",
         "assistant-ui",
         "llamacpp",

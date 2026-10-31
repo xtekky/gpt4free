@@ -106,6 +106,12 @@ class TestDomainRouterMatching(unittest.TestCase):
         self.assertIsNotNone(route)
         self.assertEqual(route.name, "omniroute")
 
+    def test_match_open_webui(self):
+        route = self.middleware._match("open-webui.g4f.local")
+        self.assertIsNotNone(route)
+        self.assertEqual(route.name, "open-webui")
+        self.assertEqual(route.port, 8603)
+
     def test_match_prefix_route(self):
         route = self.middleware._match("remote-desktop.g4f.local")
         self.assertIsNotNone(route)

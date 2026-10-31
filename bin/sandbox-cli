@@ -174,6 +174,11 @@ SILLYTAVERN_PORT="8601"
 # files, terminal, git, editor and AI to any browser, on its documented
 # default port 8000.
 CPTR_PORT="8000"
+# Open WebUI is the upstream chat interface from the Open WebUI organisation.
+# Its documented default port 8080 is the g4f API's, so it listens on 8603
+# instead (see the open-webui case). Its data directory keeps chats, accounts
+# and settings under the (possibly custom) HOME applied for every entry.
+OPEN_WEBUI_PORT="${OPEN_WEBUI_PORT:-8603}"
 # code-server (VS Code in the browser) ships a vendor install script; the
 # standalone method keeps the install under ~/.local. Its default port 8080 is
 # the g4f API's, so it listens on 8602 instead (see the code-server case).
@@ -1913,6 +1918,17 @@ ensure_librechat() {
     have mongod || die "mongod not on PATH after the install"
 }
 
+# Set a top-level scalar in SillyTavern's config.yaml, replacing the existing
+# value (and any comment on that line) or appending the key when the config is
+# from an older release and does not have it yet.
+sillytavern_set_config() { # <file> <key> <value>
+    if grep -q "^$2:" "$1"; then
+        sed -i "s|^$2:.*|$2: $3|" "$1" || return 1
+    else
+        printf '%s: %s\n' "$2" "$3" >>"$1" || return 1
+    fi
+}
+
 # SillyTavern is a Node web app with no upstream package: the checkout lives
 # in ~/.sillytavern, `npm install` fetches the dependencies. If no config.yaml
 # exists yet, the checkout's default/config.yaml is copied to the repo root --
@@ -1921,6 +1937,13 @@ ensure_librechat() {
 # default 8000 so a running Open WebUI Computer (also 8000) does not collide
 # with it, and the startup browser launch is turned off: the launcher terminal
 # is the console and nothing guarantees a desktop browser is installed.
+#
+# It is reached through the same public URLs as the other sandbox apps
+# (http://sillytavern.g4f.local/ and http://8601.g4f.local/, or a cloudflared
+# tunnel), so it has to accept connections from beyond localhost: listen mode
+# is on and the IP/host whitelists are off. SillyTavern refuses to start in
+# that configuration without securityOverride because it would otherwise warn
+# about an unprotected remote instance; the sandbox is the trust boundary.
 ensure_sillytavern() {
     ensure_node
     ensure_git
@@ -1931,22 +1954,136 @@ ensure_sillytavern() {
         git clone --depth 1 "$SILLYTAVERN_REPO" "$dir" \
             || die "could not clone SillyTavern"
     fi
-    if [ ! -d "$dir/node_modules" ]; then
+    # Use the same dependency set as SillyTavern's own start.sh: production
+    # packages only, no install scripts. The full dev tree (webpack plugins,
+    # test and lint tooling) is not needed to serve the app and is large enough
+    # to make the install fail on the sandbox's disk; an interrupted install
+    # leaves a partial node_modules behind, so clear it before retrying.
+    if [ ! -f "$dir/node_modules/.package-lock.json" ]; then
+        rm -rf "$dir/node_modules"
         log "installing SillyTavern's dependencies (npm install)..."
-        ( cd "$dir" && npm install --no-fund --no-audit ) \
-            || die "the SillyTavern npm install failed"
+        ( cd "$dir" && NODE_ENV=production npm install --no-save --no-audit \
+            --no-fund --loglevel=error --no-progress --omit=dev --ignore-scripts ) \
+            || {
+                rm -rf "$dir/node_modules"
+                die "the SillyTavern npm install failed"
+            }
     fi
     config="$dir/config.yaml"
     if [ ! -f "$config" ]; then
         cp "$dir/default/config.yaml" "$config" \
             || die "could not create the SillyTavern config.yaml"
     fi
-    if grep -q '^port: 8000$' "$config"; then
-        sed -i "s/^port: 8000$/port: $SILLYTAVERN_PORT/" "$config" \
-            || die "could not set the SillyTavern port"
-    fi
-    sed -i '/^browserLaunch:/,/^[a-zA-Z]/{s/^  enabled: true/  enabled: false/}' \
+    sillytavern_set_config "$config" port "$SILLYTAVERN_PORT" \
+        || die "could not set the SillyTavern port"
+    sillytavern_set_config "$config" listen true \
+        || die "could not enable SillyTavern listen mode"
+    sillytavern_set_config "$config" whitelistMode false \
+        || die "could not disable SillyTavern's IP whitelist"
+    sillytavern_set_config "$config" securityOverride true \
+        || die "could not override SillyTavern's listen-mode security check"
+    sed -i '/^hostWhitelist:/,/^[a-zA-Z]/{
+        s/^  enabled: .*/  enabled: false/
+        s/^  scan: .*/  scan: false/
+    }' "$config" || die "could not disable SillyTavern's host whitelist"
+    sed -i '/^browserLaunch:/,/^[a-zA-Z]/{s/^  enabled: .*/  enabled: false/}' \
         "$config" || die "could not disable SillyTavern's browser launch"
+}
+
+# SillyTavern's data directory: config.yaml names it (dataRoot, default
+# ./data), relative paths are relative to the checkout.
+sillytavern_data_dir() { # <checkout> <config>
+    local dir="$1" config="$2" data_root
+    data_root=$(grep -m1 '^dataRoot:' "$config" 2>/dev/null \
+        | sed -e 's/^dataRoot:[[:space:]]*//' -e 's/[[:space:]]*#.*$//' \
+            -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//")
+    [ -n "$data_root" ] || data_root="./data"
+    case "$data_root" in
+        "~/"*) data_root="$HOME/${data_root#\~/}" ;;
+        /*) ;;
+        *) data_root="$dir/${data_root#./}" ;;
+    esac
+    printf '%s/default-user\n' "${data_root%/}"
+}
+
+# Point SillyTavern at the sandbox's g4f API. The Custom (OpenAI-compatible)
+# chat completion source is the supported way to use an arbitrary /v1 endpoint;
+# the g4f "auto" model (or the model chosen in Sandbox Settings) is written as
+# custom_model, and the sandbox API key, when set, goes into the same secrets
+# store the UI writes (api_key_custom). Older SillyTavern releases kept these
+# values at the top level of settings.json, newer ones under oai_settings, so
+# both are written; the file is seeded from the checkout's default content
+# when it does not exist yet.
+configure_sillytavern_g4f() {
+    local dir="$HOME/$SILLYTAVERN_DIR_NAME" config data_dir settings secrets tmp
+    config="$dir/config.yaml"
+    [ -f "$config" ] || die "SillyTavern is not installed; run: sandbox-cli install sillytavern"
+    data_dir=$(sillytavern_data_dir "$dir" "$config") \
+        || die "could not read SillyTavern's data directory"
+    mkdir -p "$data_dir" || die "could not create $data_dir"
+    settings="$data_dir/settings.json"
+    if [ ! -f "$settings" ]; then
+        if [ -f "$dir/default/content/settings.json" ]; then
+            cp "$dir/default/content/settings.json" "$settings" \
+                || die "could not create the SillyTavern settings.json"
+        else
+            printf '{}\n' >"$settings" \
+                || die "could not create the SillyTavern settings.json"
+        fi
+    fi
+    tmp="${settings}.tmp.$$"
+    if ! jq --arg url "$G4F_API_BASE_URL" \
+        --arg model "$G4F_PROVIDER_MODEL" '
+        def connection:
+            {
+                chat_completion_source: "custom",
+                custom_url: $url,
+                custom_model: $model,
+                reverse_proxy: "",
+                proxy_password: ""
+            };
+        . as $root
+        | ($root | connection) as $conn
+        | $root
+        | .main_api = "openai"
+        | .oai_settings = ((.oai_settings // {}) + $conn)
+        | . + $conn
+    ' "$settings" >"$tmp"; then
+        rm -f "$tmp"
+        die "could not write the SillyTavern settings.json"
+    fi
+    mv "$tmp" "$settings" || {
+        rm -f "$tmp"
+        die "could not replace the SillyTavern settings.json"
+    }
+    # A configured g4f API key has to be available to the custom connection.
+    # Leave secrets alone when no key is set: the endpoint is keyless then.
+    if [ -n "$G4F_API_KEY" ]; then
+        secrets="$data_dir/secrets.json"
+        [ -f "$secrets" ] || printf '{}\n' >"$secrets" \
+            || die "could not create the SillyTavern secrets.json"
+        tmp="${secrets}.tmp.$$"
+        if ! jq --arg key "$G4F_API_KEY" '
+            .api_key_custom = (
+                ((.api_key_custom // []) | map(. + {active: false}))
+                | map(select((.id // "") != "g4f"))
+                + [{id: "g4f", value: $key, label: "g4f", active: true}]
+            )' "$secrets" >"$tmp"; then
+            rm -f "$tmp"
+            die "could not write the SillyTavern secrets.json"
+        fi
+        mv "$tmp" "$secrets" || {
+            rm -f "$tmp"
+            die "could not replace the SillyTavern secrets.json"
+        }
+    fi
+    log "pointing SillyTavern at the g4f API ($G4F_API_BASE_URL, model $G4F_PROVIDER_MODEL)"
+}
+
+# Open WebUI is the pip-installable upstream chat interface; it is a browser
+# front end for OpenAI-compatible providers, including the sandbox's g4f API.
+ensure_openwebui() {
+    ensure_pip open-webui open-webui
 }
 
 # Open WebUI Computer ("cptr") is pip-installable: one local server that
@@ -2341,6 +2478,7 @@ public_urls() {
         "http://litellm.g4f.local/ (also http://4000.g4f.local/)" \
         "http://librechat.g4f.local/ (also http://3080.g4f.local/)" \
         "http://sillytavern.g4f.local/ (also http://8601.g4f.local/)" \
+        "http://open-webui.g4f.local/ (also http://8603.g4f.local/)" \
         "http://cptr.g4f.local/ (also http://8000.g4f.local/)" \
         "http://code-server.g4f.local/ (also http://8602.g4f.local/)" \
         "http://assistant-ui.g4f.local/ (also http://$ASSISTANT_UI_PORT.g4f.local/)" \
@@ -2365,12 +2503,12 @@ print('\n'.join(hosts_entries()))
     fi
     printf '127.0.0.1 %s\n' \
         "g4f.$suffix" "omniroute.$suffix" "ollama.$suffix" "litellm.$suffix" \
-        "librechat.$suffix" "sillytavern.$suffix" "cptr.$suffix" \
-        "code-server.$suffix" "assistant-ui.$suffix" \
+        "librechat.$suffix" "sillytavern.$suffix" "open-webui.$suffix" \
+        "cptr.$suffix" "code-server.$suffix" "assistant-ui.$suffix" \
         "llamacpp.$suffix" "lmstudio.$suffix" \
         "remote-desktop.$suffix" "desktop.$suffix" "pi-freeflow.$suffix" \
         "1234.$suffix" "$ASSISTANT_UI_PORT.$suffix" "3080.$suffix" "4000.$suffix" \
-        "8000.$suffix" "8080.$suffix" "8601.$suffix" "8602.$suffix" \
+        "8000.$suffix" "8080.$suffix" "8601.$suffix" "8602.$suffix" "8603.$suffix" \
         "8765.$suffix" "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
 }
 
@@ -3032,6 +3170,8 @@ run_tool() {
             exit 0 ;;
         sillytavern)
             ensure_sillytavern
+            configure_g4f
+            configure_sillytavern_g4f
             if [ "$INSTALL_ONLY" = 1 ]; then
                 log "SillyTavern is installed and ready"
                 exit 0
@@ -3054,6 +3194,23 @@ run_tool() {
             # console (Ctrl-C stops it).
             log "starting Open WebUI Computer on http://127.0.0.1:$CPTR_PORT (Ctrl-C to stop)"
             launch "Open WebUI Computer" cptr run "${@:2}" ;;
+        open-webui)
+            ensure_openwebui
+            configure_g4f
+            export OPENAI_API_BASE_URL="$G4F_API_BASE_URL" OPENAI_API_KEY="$G4F_API_KEY"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "Open WebUI is installed and ready"
+                exit 0
+            fi
+            # Keep chats, accounts and settings in one directory under HOME.
+            # The server also writes its session key there, so signing in
+            # survives a restarted container.
+            open_webui_dir="$HOME/.open-webui"
+            mkdir -p "$open_webui_dir" || die "could not create $open_webui_dir"
+            cd "$open_webui_dir" || die "could not enter $open_webui_dir"
+            export DATA_DIR="$open_webui_dir"
+            log "starting Open WebUI on http://127.0.0.1:$OPEN_WEBUI_PORT (Ctrl-C to stop)"
+            launch "Open WebUI" open-webui serve --port "$OPEN_WEBUI_PORT" "${@:2}" ;;
         code-server)
             ensure_code_server
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -3511,6 +3668,7 @@ run_configure() { # <agent>
         hermes|omh) configure_hermes_g4f ;;
         assistant-ui) write_assistant_ui_env ;;
         librechat) write_librechat_env; write_librechat_yaml ;;
+        sillytavern) configure_sillytavern_g4f ;;
         cindy) provision_cindy ;;
         lobechat) ;;
         msty) ;;
@@ -3628,7 +3786,7 @@ list_tools() {
         lobechat    "LobeChat desktop app" \
         msty        "Msty Studio desktop app" \
         sillytavern "SillyTavern web UI for role-play chats" \
-        cptr        "Open WebUI Computer (files + terminal + AI)" \
+        open-webui  "Open WebUI chat interface (backed by g4f)" \
         dsh         "DeepSeek Harness web UI (chat + coding)" \
         assistant-ui "assistant-ui web UI (Next.js, backed by the g4f API)"
     printf '%s\n' "Editors"
@@ -3650,6 +3808,7 @@ list_tools() {
         aidetect    "AI-generated image detector"
     printf '%s\n' "Assistants"
     printf '  %-15s %s\n' \
+        cptr        "Open WebUI Computer (files + terminal + AI)" \
         huggingface "Hugging Face Spaces browser (hf CLI)" \
         deeptutor   "DeepTutor personalized learning web app" \
         nanobot     "nanobot personal AI assistant (WebUI)" \

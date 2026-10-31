@@ -38,7 +38,8 @@ android {
             pip {
                 install "requests"
                 install "aiohttp"
-                install "brotli"
+                // Chaquopy provides Android wheels for this version on both bundled ABIs.
+                install "brotli==1.1.0"
                 install "pycryptodome"
                 install "nest-asyncio2"
                 install "flask"
@@ -89,3 +90,12 @@ dependencies {
     implementation 'androidx.webkit:webkit:1.8.0'
 }
 
+['Debug', 'Release'].each { variant ->
+    def verify = tasks.register("verifyBrotli${variant}", Exec) {
+        def apk = layout.buildDirectory.file("outputs/apk/${variant.toLowerCase()}/app-${variant.toLowerCase()}.apk")
+        commandLine 'python3', "${rootDir}/check_brotli.py", apk.get().asFile
+    }
+    tasks.matching { it.name == "assemble${variant}" }.configureEach {
+        finalizedBy verify
+    }
+}

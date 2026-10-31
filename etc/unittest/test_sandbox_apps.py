@@ -54,7 +54,7 @@ class TestAutostartConfig(unittest.TestCase):
                 self.assertTrue(autostart_enabled(), value)
 
     def test_tool_for_known_apps(self):
-        for name in ("omniroute", "ollama", "litellm", "remote-desktop"):
+        for name in ("omniroute", "ollama", "litellm", "open-webui", "remote-desktop"):
             self.assertEqual(tool_for(name), name)
 
     def test_tool_for_apps_without_a_tool(self):

@@ -155,8 +155,8 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
 # Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
 # Chrome), local gateways/agents (OmniRoute, OpenClaw), chat UIs (LibreChat,
-# LobeChat, Msty Studio, SillyTavern, Open WebUI Computer) and VS Code Web
-# (code-server).
+# LobeChat, Msty Studio, SillyTavern, Open WebUI) and VS Code Web
+# (code-server), plus assistants such as Open WebUI Computer.
 # sandbox-cli installs a tool on first click (vendor script / npm / pip / the
 # Chrome .deb) and runs it; the .desktop files land in the panel's Applications
 # menu. Each entry names its own icon (g4f-sandbox-<tool>) and passes it to
