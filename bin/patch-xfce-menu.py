@@ -10,13 +10,20 @@ menus themselves are silently dropped.
 
 Instead the stock /etc/xdg/menus/xfce-applications.menu is patched directly,
 inserting the menus just before its <DefaultMergeDirs/> node (the last child of
-the root menu). Idempotent: re-running is a no-op.
+the root menu). The stock Internet (network) and Development menus are removed
+at the same time, so the Applications menu contains only the sandbox's own
+categories plus the remaining desktop menus. Idempotent: re-running is a no-op.
 """
 
+import re
 import sys
 
 MENU_PATH = "/etc/xdg/menus/xfce-applications.menu"
 ANCHOR = "    <DefaultMergeDirs/>"
+
+# Stock top-level menus that are not useful in the sandbox image. Xfce labels
+# the menu whose XML name is "Network" as "Internet" in its locale files.
+REMOVE_MENUS = ("Internet", "Network", "Development")
 
 MENUS = [
     (
@@ -164,9 +171,28 @@ MENUS = [
     ),
 ]
 
+def remove_stock_menus(src: str) -> tuple[str, list[str]]:
+    """Drop the top-level <Menu> blocks named in REMOVE_MENUS."""
+    removed: list[str] = []
+    for name in REMOVE_MENUS:
+        # Top-level menus are indented by four spaces; the non-greedy body
+        # reaches the first closing tag with the same indentation, so nested
+        # menus (the Settings submenu) are not cut in half.
+        pattern = re.compile(
+            rf"^    <Menu>\s*\n\s*<Name>{re.escape(name)}</Name>.*?^    </Menu>\n",
+            re.MULTILINE | re.DOTALL,
+        )
+        src, count = pattern.subn("", src)
+        if count:
+            removed.append(name)
+    return src, removed
+
+
 def main() -> int:
     with open(MENU_PATH, encoding="utf-8") as fh:
         src = fh.read()
+
+    src, removed = remove_stock_menus(src)
 
     # Each menu is checked separately so an already-patched file still gains
     # menus added in a later release.
@@ -175,19 +201,26 @@ def main() -> int:
         for name, xml in MENUS
         if f"<Name>{name}</Name>" not in src
     ]
-    if not missing:
+    if not missing and not removed:
         print(f"{MENU_PATH}: already patched")
         return 0
 
-    if ANCHOR not in src:
-        print(f"{MENU_PATH}: anchor {ANCHOR!r} not found", file=sys.stderr)
-        return 1
+    if missing:
+        if ANCHOR not in src:
+            print(f"{MENU_PATH}: anchor {ANCHOR!r} not found", file=sys.stderr)
+            return 1
+        block = "\n".join(xml.rstrip("\n") for _, xml in missing) + "\n\n"
+        src = src.replace(ANCHOR, block + ANCHOR, 1)
 
-    block = "\n".join(xml.rstrip("\n") for _, xml in missing) + "\n\n"
     with open(MENU_PATH, "w", encoding="utf-8") as fh:
-        fh.write(src.replace(ANCHOR, block + ANCHOR, 1))
+        fh.write(src)
 
-    print(f"{MENU_PATH}: patched ({', '.join(name for name, _ in missing)})")
+    changes = []
+    if missing:
+        changes.append("added " + ", ".join(name for name, _ in missing))
+    if removed:
+        changes.append("removed " + ", ".join(removed))
+    print(f"{MENU_PATH}: patched ({'; '.join(changes)})")
     return 0
 
 

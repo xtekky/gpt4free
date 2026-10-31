@@ -8,6 +8,12 @@
 # would use to escape the sandbox, so OUTPUT drops every private, link-local,
 # shared (CGNAT) and reserved IPv4 range plus the IPv6 ULA/link-local ranges.
 #
+# Outbound file-sharing/sync protocols (SMB, NetBIOS, NFS, AFP, FTP, TFTP,
+# rsync, iSCSI, rpcbind) and common cryptocurrency-mining pool/node ports are
+# rejected as well, so a compromised sandbox cannot exfiltrate files over local
+# shares or be turned into a miner. The lists are in the "blocked services"
+# section below.
+#
 # Loopback is intentionally left alone: the g4f API, the domain router, the
 # local gateways (Ollama, LiteLLM, LibreChat, ...) and Docker's embedded DNS
 # (127.0.0.11) all run inside this network namespace on 127.0.0.1. Only traffic
@@ -24,7 +30,8 @@
 #
 # Env knobs:
 #   SANDBOX_BLOCK_LOCAL_NETWORK=0  disable the egress filter
-#   SANDBOX_FIREWALL_STRICT=0      continue (with a warning) if it cannot apply
+#   SANDBOX_FIREWALL_STRICT=1      stop when the filter cannot be applied
+#                                  (default: 0, continue with a warning)
 #
 # Usage:
 #   sandbox-firewall.sh            install/replace the filter
@@ -35,6 +42,56 @@ set -euo pipefail
 
 CHAIN4="G4F_SANDBOX_EGRESS"
 CHAIN6="G4F_SANDBOX_EGRESS"
+
+# Outbound ports used by file-sharing and remote-sync services. Blocking them
+# keeps a compromised sandbox from mounting or pushing files to SMB/CIFS,
+# NetBIOS, NFS, AFP, FTP/TFTP, rsync, iSCSI and rpcbind servers.
+FILE_SHARING_TCP_PORTS=(
+    21    # FTP
+    111   # rpcbind/portmapper
+    139   # NetBIOS session service
+    445   # SMB/CIFS
+    548   # Apple Filing Protocol
+    873   # rsync
+    1214  # Kazaa
+    2049  # NFS
+    3260  # iSCSI
+    4662  # eDonkey/eMule
+    6346  # Gnutella
+    51413 # Transmission BitTorrent
+)
+FILE_SHARING_UDP_PORTS=(
+    69    # TFTP
+    111   # rpcbind/portmapper
+    137   # NetBIOS name service
+    138   # NetBIOS datagram service
+    2049  # NFS
+    4672  # eMule
+    51413 # Transmission BitTorrent
+)
+# BitTorrent clients use the 6881-6999 range by default.
+FILE_SHARING_TCP_RANGES=(6881:6999)
+FILE_SHARING_UDP_RANGES=(6881:6999)
+
+# Destination ports used by common cryptocurrency mining pools and full nodes.
+CRYPTO_MINING_TCP_PORTS=(
+    3333 3334 3335 3336  # common stratum pools
+    4444 5555 7777 9999  # common pool/miner ports
+    8332 8333            # Bitcoin RPC / peer-to-peer
+    9332 9333            # Litecoin RPC / peer-to-peer
+    14444                # common stratum pool
+    18080 18081          # Monero peer-to-peer / RPC
+    30303                # Ethereum peer-to-peer
+    45560 45700          # common mining-pool ports
+)
+CRYPTO_MINING_UDP_PORTS=(
+    3333 3334 3335 3336
+    4444 5555 7777 9999
+    14444
+    18080 18081
+    30303
+    45560 45700
+)
 
 log()  { printf '==> %s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
@@ -115,6 +172,27 @@ ipt -A "$CHAIN4" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
 # and broadcast, i.e. services in this namespace, without allowing the Docker
 # host or any other container.
 ipt -A "$CHAIN4" -m addrtype --dst-type LOCAL -j RETURN
+
+# Blocked services: outbound file sharing/sync and crypto mining.
+for port in "${FILE_SHARING_TCP_PORTS[@]}"; do
+    ipt -A "$CHAIN4" -p tcp --dport "$port" -j REJECT
+done
+for port in "${FILE_SHARING_UDP_PORTS[@]}"; do
+    ipt -A "$CHAIN4" -p udp --dport "$port" -j REJECT
+done
+for port in "${FILE_SHARING_TCP_RANGES[@]}"; do
+    ipt -A "$CHAIN4" -p tcp --dport "$port" -j REJECT
+done
+for port in "${FILE_SHARING_UDP_RANGES[@]}"; do
+    ipt -A "$CHAIN4" -p udp --dport "$port" -j REJECT
+done
+for port in "${CRYPTO_MINING_TCP_PORTS[@]}"; do
+    ipt -A "$CHAIN4" -p tcp --dport "$port" -j REJECT
+done
+for port in "${CRYPTO_MINING_UDP_PORTS[@]}"; do
+    ipt -A "$CHAIN4" -p udp --dport "$port" -j REJECT
+done
+
 ipt -A "$CHAIN4" -d 0.0.0.0/8 -j REJECT
 ipt -A "$CHAIN4" -d 10.0.0.0/8 -j REJECT
 ipt -A "$CHAIN4" -d 100.64.0.0/10 -j REJECT
@@ -141,6 +219,24 @@ if command -v ip6tables >/dev/null 2>&1; then
     ip6t -F "$CHAIN6" 2>/dev/null || true
     ip6t -A "$CHAIN6" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
     ip6t -A "$CHAIN6" -m addrtype --dst-type LOCAL -j RETURN
+    for port in "${FILE_SHARING_TCP_PORTS[@]}"; do
+        ip6t -A "$CHAIN6" -p tcp --dport "$port" -j REJECT
+    done
+    for port in "${FILE_SHARING_UDP_PORTS[@]}"; do
+        ip6t -A "$CHAIN6" -p udp --dport "$port" -j REJECT
+    done
+    for port in "${FILE_SHARING_TCP_RANGES[@]}"; do
+        ip6t -A "$CHAIN6" -p tcp --dport "$port" -j REJECT
+    done
+    for port in "${FILE_SHARING_UDP_RANGES[@]}"; do
+        ip6t -A "$CHAIN6" -p udp --dport "$port" -j REJECT
+    done
+    for port in "${CRYPTO_MINING_TCP_PORTS[@]}"; do
+        ip6t -A "$CHAIN6" -p tcp --dport "$port" -j REJECT
+    done
+    for port in "${CRYPTO_MINING_UDP_PORTS[@]}"; do
+        ip6t -A "$CHAIN6" -p udp --dport "$port" -j REJECT
+    done
     ip6t -A "$CHAIN6" -d ::/128 -j REJECT
     ip6t -A "$CHAIN6" -d fc00::/7 -j REJECT
     ip6t -A "$CHAIN6" -d fe80::/10 -j REJECT
@@ -151,4 +247,4 @@ if command -v ip6tables >/dev/null 2>&1; then
     fi
 fi
 
-log "sandbox egress filter active (private, link-local and reserved networks blocked)"
+log "sandbox egress filter active (private/link-local/reserved networks, file sharing and crypto mining blocked)"

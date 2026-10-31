@@ -224,12 +224,10 @@ class ProviderLoader:
         elif name == "OrcaRouter":
             from ..client.factory import AbstractClientFactory
             cls.loaded[name] = AbstractClientFactory.create_provider(
-                None, name.lower()
+                name, "https://api.orcarouter.ai/v1"
             )
             cls.loaded[name].__name__ = name
             cls.loaded[name].url = "https://orcarouter.ai"
-            cls.loaded[name].active_by_default = True
-            cls.loaded[name].supports_native_tools = True
             return cls.loaded[name]
         elif name in ("AgentTools", "agent-tools", "agent_tools", "agent"):
             from g4f.Provider.AgentTools import AgentTools

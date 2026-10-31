@@ -323,6 +323,9 @@ class TestDomainRouterIntegration(unittest.TestCase):
     """End-to-end checks through the real app, using the Host header."""
 
     def setUp(self):
+        autostart = patch.dict("os.environ", {"G4F_DOMAIN_AUTOSTART": "0"})
+        autostart.start()
+        self.addCleanup(autostart.stop)
         self.client = TestClient(g4f.api.create_app())
 
     def _unreachable(self, name: str):
@@ -371,7 +374,7 @@ class TestDomainRouterIntegration(unittest.TestCase):
         self.assertEqual(response.json()["error"]["type"], "ollama_unavailable")
 
     def test_remote_desktop_host_rewrites_to_prefix(self):
-        with self._unreachable("remote-desktop"):
+        with patch.dict("os.environ", {"REMOTE_DESKTOP_BASE_URL": f"http://127.0.0.1:{_closed_port()}"}):
             response = self.client.get(
                 "/api/status", headers={"host": "remote-desktop.g4f.local"}
             )

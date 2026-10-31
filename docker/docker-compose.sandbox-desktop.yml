@@ -15,9 +15,12 @@
 #
 # The image also installs an egress firewall: containers can reach the public
 # internet but not private/link-local/reserved networks (the host LAN, other
-# Docker networks, cloud metadata). Replies to connections coming in from the
-# host are allowed, so the published desktop/API ports stay reachable. It needs
-# CAP_NET_ADMIN, added below; set SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable it.
+# Docker networks, cloud metadata), file-sharing protocols or crypto-mining
+# ports. Replies to connections coming in from the host are allowed, so the
+# published desktop/API ports stay reachable. It needs CAP_NET_ADMIN, added
+# below; set SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable it. If the filter cannot
+# be installed, startup continues with a warning unless
+# SANDBOX_FIREWALL_STRICT=1 is set.
 #
 # Set SANDBOX_DESKTOP=0 in environment to skip the desktop stack.
 services:
@@ -43,8 +46,18 @@ services:
       - "${SANDBOX_BIND_ADDR:-0.0.0.0}:8080:8080"   # g4f API server + noVNC desktop (custom routes /desktop/, /desktop/websockify)
       - "${SANDBOX_BIND_ADDR:-0.0.0.0}:5900:5900"   # Xvnc display :0 (direct VNC clients)
     volumes:
-      - ../:/app/gpt4free
+      # Mount the app tree the API serves and the agents edit. Override with
+      # G4F_APP_DIR=/absolute/path (start-sandbox-desktop.sh --app-dir does).
+      - ${G4F_APP_DIR:-..}:/app/gpt4free
     environment:
       - XDG_RUNTIME_DIR=/tmp/sandbox-runtime
       - SANDBOX_BLOCK_LOCAL_NETWORK=${SANDBOX_BLOCK_LOCAL_NETWORK:-1}
+      - SANDBOX_FIREWALL_STRICT=${SANDBOX_FIREWALL_STRICT:-0}
+      # Domain router: <app>.g4f.local (or the configured suffix) reaches the
+      # local apps through the API port.
+      - G4F_DOMAIN_SUFFIX=${G4F_DOMAIN_SUFFIX:-g4f.local}
+      - G4F_DOMAIN_ROUTER=${G4F_DOMAIN_ROUTER:-1}
+      # Optional password for the API, noVNC desktop and routed apps. The
+      # browser login accepts any username; the password is this key.
+      - G4F_API_KEY=${G4F_API_KEY:-}
       # - SANDBOX_DESKTOP=0

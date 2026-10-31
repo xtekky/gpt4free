@@ -10,7 +10,7 @@
 # Env knobs:
 #   SANDBOX_DESKTOP              set to 0 to skip the desktop stack (default: 1)
 #   SANDBOX_BLOCK_LOCAL_NETWORK  set to 0 to disable the egress filter (default: 1)
-#   SANDBOX_FIREWALL_STRICT      set to 0 to keep starting without the filter
+#   SANDBOX_FIREWALL_STRICT      set to 1 to stop when the filter cannot be applied (default: 0)
 #   G4F_WALLPAPER                set to 0 to skip the animated g4f wallpaper (default: 1)
 #   VNC_DISPLAY                  X display for Xvnc   (default: :0)
 #   VNC_GEOMETRY                 screen size          (default: 1920x1080)
@@ -66,11 +66,11 @@ fi
 # CAP_NET_ADMIN; compose and bin/start-sandbox-desktop.sh add it.
 if [ "${SANDBOX_BLOCK_LOCAL_NETWORK:-1}" != "0" ]; then
     if ! /usr/local/bin/sandbox-firewall.sh; then
-        if [ "${SANDBOX_FIREWALL_STRICT:-1}" = "0" ]; then
-            printf 'warning: sandbox egress filter could not be applied; local networks are reachable\n' >&2
-        else
-            printf 'error: sandbox egress filter could not be applied (run with --cap-add=NET_ADMIN or set SANDBOX_FIREWALL_STRICT=0)\n' >&2
+        if [ "${SANDBOX_FIREWALL_STRICT:-0}" = "1" ]; then
+            printf 'error: sandbox egress filter could not be applied (run with --cap-add=NET_ADMIN or leave SANDBOX_FIREWALL_STRICT=0)\n' >&2
             exit 1
+        else
+            printf 'warning: sandbox egress filter could not be applied; continuing without it (set SANDBOX_FIREWALL_STRICT=1 to stop instead)\n' >&2
         fi
     fi
 fi

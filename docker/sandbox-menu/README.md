@@ -316,16 +316,30 @@ The same entry can install this menu **inside** a Polli sandbox
 over ssh, then runs `polli-sandbox-bootstrap.sh` there. A Polli VM is headless,
 so without options the copy is useful from a terminal (`sandbox-cli list`,
 `sandbox-cli <tool>`). Pass `--desktop`, or answer yes to the prompt, to also
-install Xfce + TigerVNC; the bootstrap starts an Xvnc display bound to
-`127.0.0.1:5900` and prints the tunnel:
+install Xfce + TigerVNC, `g4f-go` and noVNC (`/usr/share/novnc`). The bootstrap
+then:
+
+- patches the Applications menu (including removing the stock Internet and
+  Development menus);
+- starts an Xvnc display bound to `127.0.0.1:5900`;
+- starts `g4f-go api` on `127.0.0.1:8080` with `G4F_VNC_PORT=5900`,
+  `G4F_NOVNC_DIR=/usr/share/novnc` and `G4F_DOMAIN_ROUTER=0` (the VM has no
+  app hostnames in `/etc/hosts`);
+- prints the two tunnels to open from your machine:
 
 ```bash
-ssh -L 5900:127.0.0.1:5900 <sandbox-id>.polli
+ssh -L 8080:127.0.0.1:8080 <sandbox-id>.polli   # http://127.0.0.1:8080/desktop/
+ssh -L 5900:127.0.0.1:5900 <sandbox-id>.polli   # direct VNC client
 ```
 
-Point a VNC client at `127.0.0.1:5900` to use the installed Applications menu.
-The tunnel keeps the VNC port off the sandbox's public interfaces, and the open
-ssh connection also keeps the sandbox from pausing.
+Open `http://127.0.0.1:8080/desktop/` for the noVNC desktop (with the clipboard
+bridge and `resize=off`), or point a VNC client at `127.0.0.1:5900` for the
+raw session. The tunnels keep both ports off the sandbox's public interfaces,
+and the open ssh connection also keeps the sandbox from pausing. The first
+`g4f-go api` start downloads its CPython + g4f runtime; watch
+`/tmp/g4f-sandbox-api.log` inside the VM if the page is not up yet. Set
+`G4F_API_KEY` before running the bootstrap to put a password on the web
+desktop (any username, password = key).
 
 ### Categories
 
@@ -352,7 +366,8 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
 (`patch-xfce-menu.py`), which inserts the thirteen `<Menu>` blocks just before its
-`<DefaultMergeDirs/>` node. Shipping them as a merged menu file under
+`<DefaultMergeDirs/>` node and removes the stock top-level **Internet** (XML
+name `Network`) and **Development** menus. Shipping them as a merged menu file under
 `/etc/xdg/menus/applications-merged/` does **not** work: garcon copies a merged
 file's elements with `g_node_traverse(..., depth=2, G_IN_ORDER)`, which never
 descends to the nested `<Menu>` nodes, so the menus are silently dropped and
@@ -538,6 +553,21 @@ The **Public URLs** entry (`sandbox-cli urls`) prints the hostname list, and
 **Host Names** (`sandbox-cli hosts`) prints the `/etc/hosts` entries the host
 needs for them. The noVNC desktop lives at `desktop.g4f.local` on the same
 port.
+
+The noVNC client bridges the **browser clipboard** to the VM: `Ctrl+V` in the
+desktop pastes into the VM, and text copied in the VM is mirrored into the
+browser clipboard where the Async Clipboard API is available (secure origins;
+the clipboard panel stays as the fallback). It defaults to **`resize=off`**,
+so opening the same session from a different device does not remotely resize
+the Xvnc desktop; each viewer can still pick `off`/`scale`/`remote` in the
+noVNC settings panel.
+
+Set `G4F_API_KEY` on the container (or `bin/start-sandbox-desktop.sh
+--api-key KEY`) to require a password for the API, the noVNC desktop and all
+routed apps. The browser's login accepts **any username**; the password is the
+key. `G4F_DOMAIN_SUFFIX` changes the `g4f.local` suffix and
+`G4F_DOMAIN_ROUTER=0` disables hostname routing. See
+[`docs/sandbox-desktop.md`](../../docs/sandbox-desktop.md) for all options.
 
 ### Domain routing
 
@@ -781,8 +811,9 @@ does.
 
 The sandbox image runs `sandbox-tray` as its main process. It starts the g4f
 API (`g4f-go api --port 8080 --debug`) as a child and puts a g4f icon in the
-Xfce panel's stock **Status Tray** plugin through `yad`, so the server can be
-managed from the desktop without a terminal:
+Xfce panel's stock **Status Tray** plugin through `yad` — the notification area
+at the **top right** of the desktop. Right-click the logo to open the menu, so
+the server can be managed from the desktop without a terminal:
 
 | Tray item | What it does |
 |-----------|--------------|

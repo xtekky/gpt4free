@@ -246,7 +246,7 @@ class TestEnsureAppRunning(unittest.IsolatedAsyncioTestCase):
         probes = iter([False, False, True])
         with patch("g4f.api.sandbox_apps.is_running", side_effect=lambda url: next(probes)), patch(
             "g4f.api.sandbox_apps.start_app", return_value=True
-        ) as start, patch("g4f.api.sandbox_apps.asyncio.sleep"):
+        ) as start, patch("g4f.api.sandbox_apps.is_starting", return_value=False), patch("g4f.api.sandbox_apps.asyncio.sleep"):
             self.assertTrue(
                 await ensure_app_running("litellm", "LiteLLM", lambda: "http://x")
             )
@@ -255,7 +255,7 @@ class TestEnsureAppRunning(unittest.IsolatedAsyncioTestCase):
     async def test_returns_false_when_the_cli_cannot_be_spawned(self):
         with patch("g4f.api.sandbox_apps.is_running", return_value=False), patch(
             "g4f.api.sandbox_apps.start_app", return_value=False
-        ), patch("g4f.api.sandbox_apps.asyncio.sleep") as sleep:
+        ), patch("g4f.api.sandbox_apps.is_starting", return_value=False), patch("g4f.api.sandbox_apps.asyncio.sleep") as sleep:
             self.assertFalse(
                 await ensure_app_running("litellm", "LiteLLM", lambda: "http://x")
             )

@@ -383,6 +383,8 @@ class ProviderRouter:
             status = AuthManager.get_auth_status(provider, api_key)
             static = _static_models(provider)
             if not broad:
+                if getattr(provider, "needs_auth", False) and not status.configured:
+                    continue
                 if not status.configured and not static:
                     continue
             elif status.source == "unknown" and not static:

@@ -96,7 +96,7 @@ Table of contents
 ## Related projects
 - [g4f-go](g4f-go/README.md) – Self-contained Go launcher for g4f (downloads CPython + g4f on demand)
 - [remote_desktop](projects/remote-desktop/) – WebRTC-based remote desktop host/viewer
-- [sandbox-desktop](docker/sandbox-menu/README.md) – TigerVNC + Xfce + noVNC desktop in Docker with preinstalled coding agents ([start script](bin/start-sandbox-desktop.sh), [Dockerfile](docker/Dockerfile-sandbox-desktop))
+- [sandbox-desktop](docs/sandbox-desktop.md) – TigerVNC + Xfce + noVNC desktop in Docker with preinstalled coding agents ([menu/tool list](docker/sandbox-menu/README.md), [start script](bin/start-sandbox-desktop.sh), [Dockerfile](docker/Dockerfile-sandbox-desktop))
 
 ---
 
@@ -154,8 +154,10 @@ Notes:
 A full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click
 **Install & Open** menu for 100+ AI tools and providers — coding agents,
 browsers, gateways, local runtimes and assistants. See
-[docker/sandbox-menu/README.md](docker/sandbox-menu/README.md) for the menu,
-the tool list and the settings.
+[docs/sandbox-desktop.md](docs/sandbox-desktop.md) for the start script,
+clipboard, scaling, app volume, user id, password and domain-routing options,
+and [docker/sandbox-menu/README.md](docker/sandbox-menu/README.md) for the
+menu, the tool list and the settings.
 
 ```bash
 docker run -d --name g4f-sandbox-desktop \
@@ -179,10 +181,14 @@ docker run -d --name g4f-sandbox-desktop \
   Replies to connections that come in from the host are allowed, so the
   published desktop/API ports stay reachable even though the host address is
   in a blocked range; the filter only stops the sandbox from starting such
-  connections itself. Host-side services reached through
+  connections itself. Outbound file-sharing/sync protocols (SMB, NetBIOS,
+  NFS, AFP, FTP/TFTP, rsync, iSCSI, rpcbind) and common crypto-mining pool
+  ports are rejected too. Host-side services reached through
   `host.docker.internal`, `172.17.0.1` or the host's LAN address are blocked
-  too; run them inside the sandbox or set `SANDBOX_BLOCK_LOCAL_NETWORK=0` to
-  disable the filter for a trusted setup.
+  as well; run them inside the sandbox or set `SANDBOX_BLOCK_LOCAL_NETWORK=0`
+  to disable the filter for a trusted setup. If the filter cannot be installed
+  the sandbox still starts with a warning; set `SANDBOX_FIREWALL_STRICT=1` to
+  make that fatal.
 - `-v ${PWD}:/app/gpt4free` mounts your app into the sandbox at the path the
   image's editable g4f install points at, so the API serves your code and the
   agents can edit it. Mount at `/app/gpt4free`, not `/app`.
@@ -196,7 +202,11 @@ docker run -d --name g4f-sandbox-desktop \
   `sandbox-cli settings --home /home/pn/work`.
 - `bin/start-sandbox-desktop.sh` wraps the same run (and
   `docker/docker-compose.sandbox-desktop.yml`) with `--build`, `--pull`,
-  `--port`, `--bind`, `shell`, `logs` and `stop`.
+  `--port`, `--bind`, `--app-dir`, `--user-id`, `--api-key`,
+  `--domain-suffix`, `--no-domain-router`, `shell`, `logs` and `stop`.
+  `--api-key KEY` protects the desktop/API with a password (any username
+  works in the browser login); see
+  [docs/sandbox-desktop.md](docs/sandbox-desktop.md).
 - The sandbox user (`pn`) runs with uid/gid 1000 by default. On a host whose
   user has another id, build the image with
   `--build-arg G4F_USER_ID="$(id -u)"` (or run

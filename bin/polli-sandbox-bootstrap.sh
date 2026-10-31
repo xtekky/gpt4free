@@ -8,16 +8,18 @@
 # patch and the icons) into the sandbox and runs this script there as root.
 #
 #   polli-sandbox-bootstrap.sh              menu assets only (terminal use)
-#   polli-sandbox-bootstrap.sh --desktop    also install Xfce + TigerVNC and
-#                                           start a local desktop on 127.0.0.1:5900
+#   polli-sandbox-bootstrap.sh --desktop    also install Xfce + TigerVNC,
+#                                           g4f-go and noVNC; start the desktop
+#                                           on 127.0.0.1:5900 and the g4f API +
+#                                           web desktop on 127.0.0.1:8080
 #
 # A Polli sandbox is a headless Debian VM, so the menu's .desktop files only
 # have a visible effect with --desktop. Without it, `sandbox-cli list` and the
 # individual `sandbox-cli <tool>` commands still work from any ssh session.
-# With --desktop, connect through the ssh tunnel printed at the end and point
-# a VNC client at 127.0.0.1:5900:
+# With --desktop, connect through the ssh tunnels printed at the end:
 #
-#   ssh -L 5900:127.0.0.1:5900 <sandbox-id>.polli
+#   ssh -L 8080:127.0.0.1:8080 <sandbox-id>.polli   # http://127.0.0.1:8080/desktop/
+#   ssh -L 5900:127.0.0.1:5900 <sandbox-id>.polli   # direct VNC client
 #
 set -euo pipefail
 
@@ -27,7 +29,7 @@ for arg in "$@"; do
         --desktop)
             DESKTOP=1 ;;
         -h|--help|help)
-            sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'
             exit 0 ;;
         *)
             printf 'polli-sandbox-bootstrap: unknown option "%s"\n' "$arg" >&2
@@ -54,7 +56,7 @@ apt-get install -y -qq --no-install-recommends ca-certificates curl
 chmod 0755 /usr/local/bin/sandbox-cli 2>/dev/null || true
 chmod 0755 /usr/local/bin/patch-xfce-menu.py 2>/dev/null || true
 chmod 0755 /usr/local/bin/sandbox-docs /usr/local/bin/sandbox-discover \
-    /usr/local/bin/start-browser 2>/dev/null || true
+    /usr/local/bin/start-browser /usr/local/bin/g4f-go 2>/dev/null || true
 chmod 0644 /usr/share/applications/g4f-sandbox-*.desktop 2>/dev/null || true
 chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory 2>/dev/null || true
 
@@ -91,6 +93,7 @@ set -eu
 
 display="${G4F_SANDBOX_DISPLAY:-:1}"
 port="${G4F_SANDBOX_VNC_PORT:-5900}"
+api_port="${G4F_SANDBOX_API_PORT:-8080}"
 geometry="${G4F_SANDBOX_GEOMETRY:-1280x800}"
 runtime="${XDG_RUNTIME_DIR:-/tmp/g4f-sandbox-runtime}"
 
@@ -121,8 +124,29 @@ nohup xfwm4 >/tmp/g4f-sandbox-xfwm4.log 2>&1 &
 nohup xfce4-panel >/tmp/g4f-sandbox-panel.log 2>&1 &
 nohup xfdesktop >/tmp/g4f-sandbox-xfdesktop.log 2>&1 &
 
+# g4f-go serves the API and, with G4F_VNC_PORT/G4F_NOVNC_DIR, the noVNC web
+# desktop and its WebSocket -> VNC bridge on the same port. The domain router
+# is off by default (the Polli sandbox has no /etc/hosts entries for the app
+# hostnames); set G4F_DOMAIN_ROUTER=1 to enable it.
+if [ -x /usr/local/bin/g4f-go ]; then
+    if ! pgrep -f '/usr/local/bin/g4f-go api' >/dev/null 2>&1; then
+        (
+            export G4F_VNC_PORT="$port"
+            export G4F_NOVNC_DIR="${G4F_NOVNC_DIR:-/usr/share/novnc}"
+            export G4F_DOMAIN_ROUTER="${G4F_DOMAIN_ROUTER:-0}"
+            nohup /usr/local/bin/g4f-go api --port "$api_port" \
+                >/tmp/g4f-sandbox-api.log 2>&1 &
+        )
+    fi
+else
+    printf 'warning: /usr/local/bin/g4f-go is missing; the web desktop is unavailable\n' >&2
+fi
+
 printf 'Xfce is running on display %s; VNC is listening on 127.0.0.1:%s\n' \
     "$display" "$port"
+if [ -x /usr/local/bin/g4f-go ]; then
+    printf 'g4f API and noVNC desktop: http://127.0.0.1:%s/desktop/\n' "$api_port"
+fi
 LAUNCHER
 chmod 0755 /usr/local/bin/g4f-sandbox-desktop
 
@@ -137,19 +161,28 @@ install -d -m 700 -o "$user_name" -g "$(id -gn "$user_name")" "$runtime" 2>/dev/
 
 log "starting the desktop as $user_name..."
 runuser -u "$user_name" -- env HOME="$user_home" XDG_RUNTIME_DIR="$runtime" \
+    G4F_API_KEY="${G4F_API_KEY:-}" G4F_NOVNC_DIR="${G4F_NOVNC_DIR:-/usr/share/novnc}" \
+    G4F_DOMAIN_ROUTER="${G4F_DOMAIN_ROUTER:-0}" \
     setsid /usr/local/bin/g4f-sandbox-desktop \
     >/tmp/g4f-sandbox-desktop.log 2>&1 </dev/null &
 
 sleep 2
 cat <<EOF
 
-The g4f sandbox menu is installed in this Polli sandbox.
+The g4f sandbox menu, Xfce desktop, g4f-go and noVNC are installed in this
+Polli sandbox.
 
-Open an ssh tunnel from your machine (replace <id> with this sandbox's id):
+Open the ssh tunnels from your machine (replace <id> with this sandbox's id):
 
-    ssh -L 5900:127.0.0.1:5900 <id>.polli
+    ssh -L 8080:127.0.0.1:8080 <id>.polli   # browser desktop + g4f API
+    ssh -L 5900:127.0.0.1:5900 <id>.polli   # direct VNC client
 
-Then point a VNC client at 127.0.0.1:5900. The Applications menu carries the
-g4f menus (Media > Polli, Coding Agents, ...). For terminal-only use without
-the desktop, run `sandbox-cli list` in the sandbox.
+Then open http://127.0.0.1:8080/desktop/ in a browser (noVNC), or point a VNC
+client at 127.0.0.1:5900. If G4F_API_KEY was set when this script ran, the
+browser asks for a password: any username works, the password is the key.
+
+The Applications menu carries the g4f menus (Media > Polli, Coding Agents,
+...). The first `g4f-go api` start downloads its CPython + g4f runtime; watch
+/tmp/g4f-sandbox-api.log in the sandbox if the page is not up yet. For
+terminal-only use without the desktop, run `sandbox-cli list` in the sandbox.
 EOF

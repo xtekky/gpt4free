@@ -147,10 +147,10 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
         "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.tar.gz" && \
     echo "5066103959ef4e9b10f37e5a148627360dd8414e4cf8a7db92bdbd022e728aaa  /tmp/novnc.tar.gz" \
         | sha256sum -c - && \
-    mkdir -p /usr/share/novnc && \
-    tar -xzf /tmp/novnc.tar.gz -C /usr/share/novnc --strip-components=1 && \
+    mkdir -p novnc && \
+    tar -xzf /tmp/novnc.tar.gz -C novnc --strip-components=1 && \
     rm /tmp/novnc.tar.gz && \
-    test -f /usr/share/novnc/vnc.html
+    test -f novnc/vnc.html
 
 # Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
@@ -236,9 +236,10 @@ RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
 # own). The g4f branding lives inside the stock client itself:
 # novnc-brand.sh swaps vnc.html's logos (and the icon SVGs) for g4f.svg,
 # repaints the accent palette with the g4f colors, stacks the connect
-# dialog's logo above its button and defaults the client to server-side
-# scaling (resize=remote in defaults.json), leaving the rest of noVNC
-# untouched. It verifies each patch, so a changed noVNC layout fails the build.
+# dialog's logo above its button, bridges the browser clipboard to the VM
+# (app/ui.js) and keeps the desktop geometry fixed (resize=off in
+# defaults.json), leaving the rest of noVNC untouched. It verifies each
+# patch, so a changed noVNC layout fails the build.
 COPY docker/novnc-index.html /usr/share/novnc/index.html
 COPY docker/g4f.svg /usr/share/novnc/g4f.svg
 RUN chmod 0775 /usr/share/novnc/ -R
@@ -362,8 +363,10 @@ EXPOSE 8080 5900
 
 # Egress filter for the sandbox: public internet stays reachable, but private,
 # link-local and reserved destinations (the Docker host's LAN, other
-# containers, cloud metadata) are rejected. The entrypoint installs it before
-# starting the desktop; the container needs CAP_NET_ADMIN for the rules.
+# containers, cloud metadata), file-sharing protocols and crypto-mining ports
+# are rejected. The entrypoint installs it before starting the desktop; the
+# container needs CAP_NET_ADMIN for the rules. If the filter cannot be applied
+# the desktop still starts with a warning unless SANDBOX_FIREWALL_STRICT=1.
 # See bin/sandbox-firewall.sh and docker-compose.sandbox-desktop.yml.
 #
 # Entrypoint seeds /etc/machine-id, starts a system bus, applies the egress

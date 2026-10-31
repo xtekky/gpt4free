@@ -11,9 +11,11 @@
 # The ports are published on SANDBOX_BIND_ADDR (default: 127.0.0.1, localhost),
 # not on every host interface. Set it to 0.0.0.0 to expose the desktop on the
 # LAN. The container also gets an egress firewall that blocks private,
-# link-local and reserved networks; inbound connections from the host still
-# work (their replies are classified ESTABLISHED). Set
-# SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable the filter.
+# link-local and reserved networks plus file-sharing and crypto-mining ports;
+# inbound connections from the host still work (their replies are classified
+# ESTABLISHED). Set SANDBOX_BLOCK_LOCAL_NETWORK=0 to disable the filter. If the
+# filter cannot be installed the desktop still starts with a warning unless
+# SANDBOX_FIREWALL_STRICT=1.
 #
 # Usage:
 #   ./bin/start-desktop.sh              start in foreground
@@ -48,6 +50,17 @@ VNC_PORT="${VNC_PORT:-5900}"
 # (0.0.0.0 for the LAN).
 BIND_ADDR="${SANDBOX_BIND_ADDR:-127.0.0.1}"
 BLOCK_LOCAL_NETWORK="${SANDBOX_BLOCK_LOCAL_NETWORK:-1}"
+# 0 (default) = keep starting when the egress filter cannot be applied.
+FIREWALL_STRICT="${SANDBOX_FIREWALL_STRICT:-0}"
+# Host directory mounted at /app/gpt4free (the editable app tree).
+APP_DIR="${G4F_APP_DIR:-$REPO_ROOT}"
+# Hostnames used by the domain router and the suffix it accepts.
+DOMAIN_SUFFIX="${G4F_DOMAIN_SUFFIX:-g4f.local}"
+DOMAIN_ROUTER="${G4F_DOMAIN_ROUTER:-1}"
+# Optional password: the g4f API (and therefore /desktop/, the menu apps and
+# the WebSocket bridge) requires it. In the browser's login dialog the
+# username can be anything; the password is this key.
+API_KEY="${G4F_API_KEY:-}"
 # uid of the unprivileged sandbox user; must match the image's G4F_USER_ID.
 USER_ID="${G4F_USER_ID:-1000}"
 # 1 = install this checkout as an editable g4f; 0 (default) = PyPI g4f only.
@@ -86,6 +99,13 @@ Options:
       --bind ADDR     Host address to publish the ports on (default: $BIND_ADDR)
       --vnc-port PORT Direct VNC display port (default: $VNC_PORT)
       --user-id UID   uid for the sandbox user (default: $USER_ID)
+      --app-dir DIR   Mount DIR at /app/gpt4free (default: $APP_DIR)
+      --api-key KEY   Require KEY as the browser/API password (G4F_API_KEY);
+                      any username works in the browser login dialog
+      --domain-suffix SUFFIX
+                      Hostname suffix for the app router (default: $DOMAIN_SUFFIX)
+      --no-domain-router
+                      Disable <app>.<suffix> hostname routing
       --local-g4f     Install this checkout as an editable g4f
       --no-local-g4f  Use the PyPI g4f only (default)
       --allow-local-network  Let the sandbox reach private/link-local networks
@@ -162,6 +182,37 @@ while [ $# -gt 0 ]; do
             USER_ID="${1#*=}"
             shift
             ;;
+        --app-dir)
+            [ $# -ge 2 ] || die "$1 requires an argument"
+            APP_DIR="$2"
+            shift 2
+            ;;
+        --app-dir=*)
+            APP_DIR="${1#*=}"
+            shift
+            ;;
+        --api-key)
+            [ $# -ge 2 ] || die "$1 requires an argument"
+            API_KEY="$2"
+            shift 2
+            ;;
+        --api-key=*)
+            API_KEY="${1#*=}"
+            shift
+            ;;
+        --domain-suffix)
+            [ $# -ge 2 ] || die "$1 requires an argument"
+            DOMAIN_SUFFIX="$2"
+            shift 2
+            ;;
+        --domain-suffix=*)
+            DOMAIN_SUFFIX="${1#*=}"
+            shift
+            ;;
+        --no-domain-router)
+            DOMAIN_ROUTER=0
+            shift
+            ;;
         --local-g4f)
             INSTALL_LOCAL=1
             shift
@@ -234,6 +285,16 @@ case "$USER_ID" in
     ''|*[!0-9]*) die "user id must be numeric: $USER_ID" ;;
 esac
 [ "$USER_ID" != "0" ] || die "user id 0 (root) is not supported for the sandbox desktop"
+[ -d "$APP_DIR" ] || die "app directory does not exist: $APP_DIR"
+APP_DIR="$(cd "$APP_DIR" && pwd)"
+[ -n "$DOMAIN_SUFFIX" ] || die "domain suffix must not be empty"
+case "$DOMAIN_SUFFIX" in
+    *[!A-Za-z0-9.-]*|.*|*.) die "invalid domain suffix: $DOMAIN_SUFFIX" ;;
+esac
+case "$DOMAIN_ROUTER" in
+    0|1) ;;
+    *) die "G4F_DOMAIN_ROUTER must be 0 or 1: $DOMAIN_ROUTER" ;;
+esac
 [ -n "$BIND_ADDR" ] || die "bind address must not be empty"
 case "$BIND_ADDR" in
     *:*) die "IPv6 bind addresses are not supported by this helper; pass it through docker compose instead" ;;
@@ -241,6 +302,10 @@ esac
 case "$BLOCK_LOCAL_NETWORK" in
     0|1) ;;
     *) die "SANDBOX_BLOCK_LOCAL_NETWORK must be 0 or 1: $BLOCK_LOCAL_NETWORK" ;;
+esac
+case "$FIREWALL_STRICT" in
+    0|1) ;;
+    *) die "SANDBOX_FIREWALL_STRICT must be 0 or 1: $FIREWALL_STRICT" ;;
 esac
 case "$INSTALL_LOCAL" in
     0|1) ;;
@@ -365,13 +430,23 @@ case "$ACTION" in
         printf '  Container:   %s\n' "$CONTAINER_NAME"
         printf '  Image:       %s\n' "$IMAGE"
         printf '  User ID:     %s\n' "$USER_ID"
+        printf '  App volume:  %s -> /app/gpt4free\n' "$APP_DIR"
         printf '  Bind address: %s\n' "$BIND_ADDR"
         printf '  Desktop URL: http://%s:%s/desktop/\n' "$display_addr" "$PORT"
         printf '  API Server:  http://%s:%s/\n' "$display_addr" "$PORT"
-        printf '  App domains: http://g4f.g4f.local/ (also <port>.g4f.local)\n'
+        if [ "$DOMAIN_ROUTER" = "1" ]; then
+            printf '  App domains: http://g4f.%s/ (also <port>.%s)\n' "$DOMAIN_SUFFIX" "$DOMAIN_SUFFIX"
+        else
+            printf '  App domains: disabled (G4F_DOMAIN_ROUTER=0)\n'
+        fi
+        if [ -n "$API_KEY" ]; then
+            printf '  Password:    G4F_API_KEY is set (browser username can be anything)\n'
+        else
+            printf '  Password:    not set (G4F_API_KEY is empty)\n'
+        fi
         printf '  VNC Display: %s:%s\n' "$display_addr" "$VNC_PORT"
         if [ "$BLOCK_LOCAL_NETWORK" = "1" ]; then
-            printf '  Egress:      private/link-local networks blocked\n'
+            printf '  Egress:      private/link-local networks, file sharing and crypto mining blocked\n'
         else
             printf '  Egress:      local networks allowed (SANDBOX_BLOCK_LOCAL_NETWORK=0)\n'
         fi
@@ -390,6 +465,11 @@ case "$ACTION" in
             export SANDBOX_DESKTOP="$([ "$NO_DESKTOP" -eq 1 ] && echo 0 || echo 1)"
             export SANDBOX_BIND_ADDR="$BIND_ADDR"
             export SANDBOX_BLOCK_LOCAL_NETWORK="$BLOCK_LOCAL_NETWORK"
+            export SANDBOX_FIREWALL_STRICT="$FIREWALL_STRICT"
+            export G4F_APP_DIR="$APP_DIR"
+            export G4F_DOMAIN_SUFFIX="$DOMAIN_SUFFIX"
+            export G4F_DOMAIN_ROUTER="$DOMAIN_ROUTER"
+            export G4F_API_KEY="$API_KEY"
             export G4F_USER_ID="$USER_ID"
             exec docker compose "${COMPOSE_ARGS[@]}"
         fi
@@ -407,10 +487,14 @@ case "$ACTION" in
             --cap-add NET_ADMIN
             -p "${BIND_ADDR}:${PORT}:${PORT}"
             -p "${BIND_ADDR}:${VNC_PORT}:${VNC_PORT}"
-            -v "${REPO_ROOT}:/app/gpt4free"
+            -v "${APP_DIR}:/app/gpt4free"
             -e "XDG_RUNTIME_DIR=/tmp/sandbox-runtime"
             -e "SANDBOX_DESKTOP=$([ "$NO_DESKTOP" -eq 1 ] && echo 0 || echo 1)"
             -e "SANDBOX_BLOCK_LOCAL_NETWORK=$BLOCK_LOCAL_NETWORK"
+            -e "SANDBOX_FIREWALL_STRICT=$FIREWALL_STRICT"
+            -e "G4F_DOMAIN_SUFFIX=$DOMAIN_SUFFIX"
+            -e "G4F_DOMAIN_ROUTER=$DOMAIN_ROUTER"
+            -e "G4F_API_KEY=$API_KEY"
         )
 
         if [ "$DETACH" -eq 1 ]; then

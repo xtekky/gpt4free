@@ -2427,7 +2427,8 @@ create starts a sandbox (default template "pollinations"); timeout 0 keeps it
 running until it is paused or killed. The storage is billed to the Pollinations
 account, and a sandbox pauses itself after a few minutes without an ssh
 session. install-menu copies this menu into a Polli sandbox; --desktop also
-installs Xfce + TigerVNC and prints the ssh tunnel for a VNC client.
+installs Xfce + TigerVNC, g4f-go and the noVNC web desktop, then prints the
+ssh tunnels for the browser desktop and a direct VNC client.
 EOF
 }
 
@@ -2590,7 +2591,7 @@ polli_sandbox_install_menu() {
     [ -n "$id" ] || return 0
     polli_sandbox_valid_id "$id" || die "invalid sandbox id \"$id\""
     if [ "$desktop" = ask ] && [ -t 0 ]; then
-        read -r -p "Also install the Xfce desktop + VNC (larger, needs a VNC client)? [y/N]: " answer || true
+        read -r -p "Also install the Xfce desktop + noVNC + g4f-go (larger)? [y/N]: " answer || true
         case "$answer" in
             y|Y|yes|YES) desktop=1 ;;
             *) desktop=0 ;;
@@ -2613,6 +2614,15 @@ polli_sandbox_install_menu() {
         /usr/share/icons/hicolor/*/apps/g4f-sandbox-*; do
         [ -e "$path" ] && files+=("${path#/}")
     done || true
+
+    # The browser desktop needs the same g4f API + noVNC assets as the image:
+    # g4f-go serves the API and, with G4F_VNC_PORT/G4F_NOVNC_DIR, the noVNC
+    # client and its WebSocket bridge on the same port as the desktop.
+    if [ "$desktop" = 1 ]; then
+        for path in /usr/local/bin/g4f-go /usr/share/novnc; do
+            [ -e "$path" ] && files+=("${path#/}")
+        done || true
+    fi
 
     if [ ! -f /usr/local/bin/polli-sandbox-bootstrap.sh ]; then
         self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

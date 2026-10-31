@@ -18,10 +18,13 @@
 #                               Connect button (flex column) and centers it
 #   app/images/icons/novnc*.svg the noVNC icon marks -> g4f.svg (used by
 #                               vnc_lite.html and as apple-touch/PWA icon)
-#   defaults.json               resize=remote, so the client asks the VNC
-#                               server to resize the desktop to the browser
-#                               window (server-side scaling) instead of
-#                               noVNC's stock resize=off
+#   app/ui.js                   clipboard bridge: remote clipboard events are
+#                               mirrored into the browser clipboard, and a
+#                               paste in the noVNC window is sent to the VM
+#   defaults.json               resize=off, so the VNC desktop keeps its
+#                               configured geometry when the same session is
+#                               opened from devices with different screens
+#                               (no remote resize / server-side scaling)
 #
 # Written against noVNC 1.6.0 (the upstream release tarball the sandbox image
 # unpacks). Every substitution is verified below, so a changed noVNC layout
@@ -86,15 +89,71 @@ for icon in novnc-icon.svg novnc-icon-sm.svg novnc-ios-icon.svg; do
     fi
 done
 
-# Server-side scaling by default: noVNC's stock default is resize=off (native
-# framebuffer, scrollbars). Writing resize=remote into defaults.json makes the
-# client ask the VNC server to resize the desktop to the browser window, so
-# direct visits to vnc.html get server-side scaling too (the /desktop/ wrapper
-# page also passes resize=remote in its query string). The value stays a
-# default, not a lock: the settings panel can still change it.
+# Clipboard bridge. noVNC's stock clipboard panel copies between its textarea
+# and the remote machine; the bridge below makes the browser clipboard part of
+# that loop too, so Ctrl+V in the noVNC window pastes into the VM and text
+# copied in the VM is mirrored into the browser clipboard (the Async Clipboard
+# API only works in a secure context, so http:// LAN URLs keep the panel as the
+# fallback). Every edit is verified below; a changed noVNC layout fails the
+# build instead of silently shipping stock clipboard behaviour.
+if ! grep -q 'g4f: clipboard bridge' "$NOVNC_DIR/app/ui.js"; then
+    python3 - "$NOVNC_DIR/app/ui.js" <<'PY'
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    src = handle.read()
+
+receive_old = """    clipboardReceive(e) {
+        Log.Debug(">> UI.clipboardReceive: " + e.detail.text.substr(0, 40) + "...");
+        document.getElementById('noVNC_clipboard_text').value = e.detail.text;
+        Log.Debug("<< UI.clipboardReceive");
+    },"""
+receive_new = """    clipboardReceive(e) {
+        Log.Debug(">> UI.clipboardReceive: " + e.detail.text.substr(0, 40) + "...");
+        document.getElementById('noVNC_clipboard_text').value = e.detail.text;
+        // g4f: clipboard bridge - mirror the remote clipboard into the browser.
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(e.detail.text).catch(() => {});
+        }
+        Log.Debug("<< UI.clipboardReceive");
+    },"""
+
+handlers_old = """        document.getElementById("noVNC_clipboard_text")
+            .addEventListener('change', UI.clipboardSend);
+    },"""
+handlers_new = """        document.getElementById("noVNC_clipboard_text")
+            .addEventListener('change', UI.clipboardSend);
+        // g4f: clipboard bridge - a paste in the noVNC window goes to the VM.
+        document.addEventListener('paste', (event) => {
+            if (!UI.rfb || !event.clipboardData) {
+                return;
+            }
+            const text = event.clipboardData.getData('text/plain');
+            if (text) {
+                UI.rfb.clipboardPasteFrom(text);
+            }
+        });
+    },"""
+
+for old, new in ((receive_old, receive_new), (handlers_old, handlers_new)):
+    if old not in src:
+        raise SystemExit(f"novnc-brand: clipboard patch anchor not found in {path}")
+    src = src.replace(old, new, 1)
+
+with open(path, "w", encoding="utf-8") as handle:
+    handle.write(src)
+PY
+fi
+
+# Fixed desktop geometry by default. noVNC's resize=off keeps the framebuffer
+# at the resolution Xvnc was started with, so opening the same desktop from a
+# phone, laptop or tablet does not remotely resize the session and disturb the
+# windows of other viewers. Users can still pick a fitting mode in noVNC's
+# settings panel; the value here is only the default.
 cat > "$NOVNC_DIR/defaults.json" <<'JSON'
 {
-    "resize": "remote"
+    "resize": "off"
 }
 JSON
 
@@ -107,7 +166,9 @@ grep -q 'flex-direction: column' "$NOVNC_DIR/app/styles/base.css" \
     || fail "connect dialog rule did not apply to $NOVNC_DIR/app/styles/base.css"
 grep -q 'align-self: center' "$NOVNC_DIR/app/styles/base.css" \
     || fail "connect dialog logo centering did not apply to $NOVNC_DIR/app/styles/base.css"
-grep -q '"resize": "remote"' "$NOVNC_DIR/defaults.json" \
+grep -q 'g4f: clipboard bridge' "$NOVNC_DIR/app/ui.js" \
+    || fail "clipboard bridge did not apply to $NOVNC_DIR/app/ui.js"
+grep -q '"resize": "off"' "$NOVNC_DIR/defaults.json" \
     || fail "resize default did not apply to $NOVNC_DIR/defaults.json"
 
-echo "novnc-brand: g4f logo and colors applied to $NOVNC_DIR"
+echo "novnc-brand: g4f logo, colors, clipboard bridge and fixed scaling applied to $NOVNC_DIR"
