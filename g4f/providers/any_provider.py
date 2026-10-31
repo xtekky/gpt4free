@@ -48,6 +48,7 @@ PROVIDERS_LIST_2 = [
 PROVIDERS_LIST_3 = [
     "DeepInfra",
     "HuggingFace",
+    "PiFreeflow",
 ]
 
 

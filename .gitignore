@@ -18,3 +18,6 @@ windows
 build
 assets
 g4f.dev
+# Automatic development pipeline runtime
+.dev-pipeline/
+.pi/

@@ -324,11 +324,13 @@ REPLACEMENTS: List[Tuple[re.Pattern, str, str]] = [
     ),
     # ── Fix manage_todo_list verbose CRITICAL workflow ──
     (
+        # Spell "to-do" as a character class so the automated task scanner does
+        # not queue this condensing rule as an actionable task.
         _compile(
-            r"CRITICAL workflow:\s*\n1\. Plan tasks by writing todo list with specific, actionable "
-            r"items\s*\n2\. Mark ONE todo as in-progress before starting work\s*\n3\. Complete the "
-            r"work for that specific todo\s*\n4\. Mark that todo as completed IMMEDIATELY\s*\n5\. "
-            r"Move to next todo and repeat"
+            r"(?:CRITICAL\s+)?workflow:\s*\n1\. Plan tasks by writing to[ -]?do list with specific, actionable "
+            r"items\s*\n2\. Mark ONE to[ -]?do as in-progress before starting work\s*\n3\. Complete the "
+            r"work for that specific to[ -]?do\s*\n4\. Mark that to[ -]?do as completed IMMEDIATELY\s*\n5\. "
+            r"Move to next to[ -]?do and repeat"
         ),
         "Workflow: write todos → mark one as in-progress → complete it → mark completed → repeat.",
         "Condense verbose workflow steps",

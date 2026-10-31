@@ -20,7 +20,11 @@
 #                               vnc_lite.html and as apple-touch/PWA icon)
 #   app/ui.js                   clipboard bridge: remote clipboard events are
 #                               mirrored into the browser clipboard, and a
-#                               paste in the noVNC window is sent to the VM
+#                               paste in the noVNC window is sent to the VM;
+#                               also exposes the UI on window.g4fUI with
+#                               helpers for text, key combos, modifiers,
+#                               view-only, scaling and quality, used by the
+#                               /desktop touch controls (g4f-controls.js)
 #   defaults.json               resize=off, so the VNC desktop keeps its
 #                               configured geometry when the same session is
 #                               opened from devices with different screens
@@ -146,6 +150,200 @@ with open(path, "w", encoding="utf-8") as handle:
 PY
 fi
 
+# Touch controls bridge. The /desktop landing page (novnc-index.html) overlays
+# the Remote Desktop viewer's text input, key buttons and one-tap shortcuts on
+# the noVNC iframe. Give that page a stable handle to the UI plus helpers that
+# use noVNC's own keysym table, so it never has to reimplement RFB internals.
+if ! grep -q 'g4f: /desktop key bridge' "$NOVNC_DIR/app/ui.js"; then
+    python3 - "$NOVNC_DIR/app/ui.js" <<'PY'
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    src = handle.read()
+
+anchor = "export default UI;"
+if anchor not in src:
+    raise SystemExit(f"novnc-brand: UI export anchor not found in {path}")
+
+bridge = r"""/* g4f: /desktop key bridge
+ *
+ * The outer page (index.html) layers the Remote Desktop viewer's touch
+ * controls over this client. These helpers keep the keysym mapping, sticky
+ * modifiers and settings handling inside noVNC, where KeyTable, keysyms and
+ * RFB are already in scope; the outer page only supplies key names such as
+ * "Control", "ArrowLeft" or "F5".
+ */
+const G4F_KEY_TABLE = {
+    Alt: [KeyTable.XK_Alt_L, "AltLeft"],
+    Shift: [KeyTable.XK_Shift_L, "ShiftLeft"],
+    Control: [KeyTable.XK_Control_L, "ControlLeft"],
+    Meta: [KeyTable.XK_Super_L, "MetaLeft"],
+    Enter: [KeyTable.XK_Return, "Enter"],
+    Return: [KeyTable.XK_Return, "Enter"],
+    Backspace: [KeyTable.XK_BackSpace, "Backspace"],
+    Tab: [KeyTable.XK_Tab, "Tab"],
+    Escape: [KeyTable.XK_Escape, "Escape"],
+    Esc: [KeyTable.XK_Escape, "Escape"],
+    Delete: [KeyTable.XK_Delete, "Delete"],
+    Insert: [KeyTable.XK_Insert, "Insert"],
+    Home: [KeyTable.XK_Home, "Home"],
+    End: [KeyTable.XK_End, "End"],
+    PageUp: [KeyTable.XK_Page_Up, "PageUp"],
+    PageDown: [KeyTable.XK_Page_Down, "PageDown"],
+    ArrowUp: [KeyTable.XK_Up, "ArrowUp"],
+    ArrowDown: [KeyTable.XK_Down, "ArrowDown"],
+    ArrowLeft: [KeyTable.XK_Left, "ArrowLeft"],
+    ArrowRight: [KeyTable.XK_Right, "ArrowRight"],
+    Up: [KeyTable.XK_Up, "ArrowUp"],
+    Down: [KeyTable.XK_Down, "ArrowDown"],
+    Left: [KeyTable.XK_Left, "ArrowLeft"],
+    Right: [KeyTable.XK_Right, "ArrowRight"],
+    Space: [KeyTable.XK_space, "Space"],
+    PrintScreen: [KeyTable.XK_Print, "PrintScreen"],
+    F1: [KeyTable.XK_F1, "F1"],
+    F2: [KeyTable.XK_F2, "F2"],
+    F3: [KeyTable.XK_F3, "F3"],
+    F4: [KeyTable.XK_F4, "F4"],
+    F5: [KeyTable.XK_F5, "F5"],
+    F6: [KeyTable.XK_F6, "F6"],
+    F7: [KeyTable.XK_F7, "F7"],
+    F8: [KeyTable.XK_F8, "F8"],
+    F9: [KeyTable.XK_F9, "F9"],
+    F10: [KeyTable.XK_F10, "F10"],
+    F11: [KeyTable.XK_F11, "F11"],
+    F12: [KeyTable.XK_F12, "F12"],
+};
+
+UI.g4fDownKeys = new Set();
+
+UI.g4fKey = function (name) {
+    if (Object.prototype.hasOwnProperty.call(G4F_KEY_TABLE, name)) {
+        return G4F_KEY_TABLE[name];
+    }
+    if (typeof name === "string" && Array.from(name).length === 1) {
+        return [keysyms.lookup(name.codePointAt(0)), ""];
+    }
+    return null;
+};
+
+UI.g4fCanSend = function () {
+    return Boolean(UI.rfb && UI.connected && !UI.rfb.viewOnly);
+};
+
+UI.g4fSendKey = function (name) {
+    if (!UI.g4fCanSend()) return false;
+    const key = UI.g4fKey(name);
+    if (!key) return false;
+    UI.rfb.sendKey(key[0], key[1]);
+    return true;
+};
+
+UI.g4fToggleModifier = function (name) {
+    if (!UI.g4fCanSend()) return null;
+    const key = UI.g4fKey(name);
+    if (!key) return null;
+    if (UI.g4fDownKeys.has(name)) {
+        UI.rfb.sendKey(key[0], key[1], false);
+        UI.g4fDownKeys.delete(name);
+    } else {
+        UI.rfb.sendKey(key[0], key[1], true);
+        UI.g4fDownKeys.add(name);
+    }
+    return UI.g4fDownKeys.has(name);
+};
+
+UI.g4fReleaseModifiers = function () {
+    if (UI.rfb) {
+        for (const name of Array.from(UI.g4fDownKeys)) {
+            const key = UI.g4fKey(name);
+            if (key) UI.rfb.sendKey(key[0], key[1], false);
+        }
+    }
+    UI.g4fDownKeys.clear();
+};
+
+UI.g4fSendCombo = function (names) {
+    if (!UI.g4fCanSend() || !Array.isArray(names) || names.length === 0) {
+        return false;
+    }
+    UI.g4fReleaseModifiers();
+    const keys = [];
+    for (const name of names) {
+        const key = UI.g4fKey(name);
+        if (!key) return false;
+        keys.push(key);
+    }
+    for (const key of keys) UI.rfb.sendKey(key[0], key[1], true);
+    for (const key of keys.slice().reverse()) UI.rfb.sendKey(key[0], key[1], false);
+    return true;
+};
+
+UI.g4fSendText = function (text) {
+    if (!UI.g4fCanSend() || !text) return false;
+    UI.g4fReleaseModifiers();
+    for (const char of String(text)) {
+        const code = char.codePointAt(0);
+        if (char === "\n" || char === "\r") {
+            UI.rfb.sendKey(KeyTable.XK_Return, "Enter");
+        } else if (char === "\t") {
+            UI.rfb.sendKey(KeyTable.XK_Tab, "Tab");
+        } else if (code === 8) {
+            UI.rfb.sendKey(KeyTable.XK_BackSpace, "Backspace");
+        } else if (code >= 0x20) {
+            UI.rfb.sendKey(keysyms.lookup(code));
+        }
+    }
+    return true;
+};
+
+UI.g4fSetViewOnly = function (viewOnly) {
+    viewOnly = Boolean(viewOnly);
+    if (viewOnly) UI.g4fReleaseModifiers();
+    WebUtil.writeSetting("view_only", viewOnly);
+    if (UI.rfb) UI.rfb.viewOnly = viewOnly;
+    UI.updateViewOnly();
+    return viewOnly;
+};
+
+UI.g4fToggleFit = function () {
+    if (!UI.rfb) return false;
+    UI.rfb.scaleViewport = !UI.rfb.scaleViewport;
+    if (!UI.rfb.scaleViewport) {
+        UI.rfb.clipViewport = UI.getSetting("view_clip");
+    }
+    return UI.rfb.scaleViewport;
+};
+
+UI.g4fSetQuality = function (level) {
+    level = Math.max(0, Math.min(9, parseInt(level, 10) || 0));
+    WebUtil.writeSetting("quality", level);
+    if (UI.rfb) UI.rfb.qualityLevel = level;
+    const control = document.getElementById("noVNC_setting_quality");
+    if (control) control.value = level;
+    return level;
+};
+
+UI.g4fState = function () {
+    return {
+        connected: Boolean(UI.rfb && UI.connected),
+        viewOnly: Boolean(UI.rfb && UI.rfb.viewOnly),
+        scale: Boolean(UI.rfb && UI.rfb.scaleViewport),
+        quality: UI.rfb ? UI.rfb.qualityLevel : (parseInt(UI.getSetting("quality"), 10) || 6),
+        modifiers: Array.from(UI.g4fDownKeys),
+    };
+};
+
+window.g4fUI = UI;
+
+"""
+
+src = src.replace(anchor, bridge + anchor, 1)
+with open(path, "w", encoding="utf-8") as handle:
+    handle.write(src)
+PY
+fi
+
 # Fixed desktop geometry by default. noVNC's resize=off keeps the framebuffer
 # at the resolution Xvnc was started with, so opening the same desktop from a
 # phone, laptop or tablet does not remotely resize the session and disturb the
@@ -168,7 +366,11 @@ grep -q 'align-self: center' "$NOVNC_DIR/app/styles/base.css" \
     || fail "connect dialog logo centering did not apply to $NOVNC_DIR/app/styles/base.css"
 grep -q 'g4f: clipboard bridge' "$NOVNC_DIR/app/ui.js" \
     || fail "clipboard bridge did not apply to $NOVNC_DIR/app/ui.js"
+grep -q 'g4f: /desktop key bridge' "$NOVNC_DIR/app/ui.js" \
+    || fail "desktop key bridge did not apply to $NOVNC_DIR/app/ui.js"
+grep -q 'window.g4fUI = UI' "$NOVNC_DIR/app/ui.js" \
+    || fail "desktop key bridge was not exposed on window.g4fUI"
 grep -q '"resize": "off"' "$NOVNC_DIR/defaults.json" \
     || fail "resize default did not apply to $NOVNC_DIR/defaults.json"
 
-echo "novnc-brand: g4f logo, colors, clipboard bridge and fixed scaling applied to $NOVNC_DIR"
+echo "novnc-brand: g4f logo, colors, clipboard bridge, touch controls and fixed scaling applied to $NOVNC_DIR"

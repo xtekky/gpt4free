@@ -1,0 +1,54 @@
+{
+  "projects": {
+    "gpt4free": {
+      "path": ".",
+      "agents_file": "AGENTS.md",
+      "checks": [
+        ["python3", "-m", "compileall", "-q", "g4f"],
+        ["python3", "-m", "unittest", "tools.dev_pipeline.tests.test_status"]
+      ]
+    },
+    "g4f.dev": {
+      "path": "../g4f.dev",
+      "agents_file": "AGENTS.md",
+      "checks": [
+        ["node", "scripts/check-js.mjs"],
+        ["git", "diff", "--check"]
+      ]
+    }
+  },
+  "preferred_models": [
+    "deepseek-v4.1-flash-free",
+    "glm-5.3-flash-free",
+    "mimo-v2.6-flash-free",
+    "big-pickle",
+    "north-mini-code",
+    "qwen3.6-27b",
+    "qwen3.5-397b",
+    "gpt-oss-120b",
+    "mistral-small-3.2",
+    "llama-3.3-70b",
+    "laguna-s-2.1",
+    "xing4.0",
+    "flint-40b-free",
+    "dots-3-note-preview",
+    "nemotron-3-ultra-550b"
+  ],
+  "fallback_models": [
+    "pollinations/deepseek/deepseek-v4.1-flash-1017"
+  ],
+  "disabled_models": [
+    "nvidia/nemotron-3.5-lightning:free"
+  ],
+  "probe_limit": 10,
+  "min_models": 2,
+  "model_cache_ttl": 300,
+  "max_model_attempts": 3,
+  "repair_attempts": 1,
+  "agent": "pi",
+  "thinking": "high",
+  "task_timeout": 1800,
+  "check_timeout": 300,
+  "commit": false,
+  "push": false
+}

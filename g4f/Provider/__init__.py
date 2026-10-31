@@ -71,6 +71,7 @@ class ProviderLoader:
         "LLM7",
         "Ollama",
         "OmniRoute",
+        "PiFreeflow",
         "OpenAIFM",
         "OpenRouterFree",
         "ChatGPT",
@@ -132,6 +133,8 @@ class ProviderLoader:
         except ImportError:
             if norm_name in ("agent", "agenttools", "agent_tools"):
                 actual_name = "AgentTools"
+            elif norm_name == "freeflow":
+                actual_name = "PiFreeflow"
             else:
                 lower_map = {p.lower().replace("-", "").replace("_", ""): p for p in cls.names}
                 actual_name = lower_map.get(norm_name)

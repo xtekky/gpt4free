@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0f14">
     <title>g4f Sandbox Desktop</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='%236e48aa'/%3E%3Ctext x='256' y='330' font-family='Arial' font-size='194' font-weight='900' fill='%23f8f9fa' text-anchor='middle'%3EG4F%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="g4f-controls.css">
     <style>
         html, body { height: 100%; margin: 0; background: #000; }
         iframe { display: block; width: 100%; height: 100%; border: 0; }
@@ -17,8 +19,82 @@
          client-side; Xvnc supports the ExtendedDesktopSize extension. The g4f
          branding lives inside the client itself: bin/novnc-brand.sh swaps
          the noVNC logos for g4f.svg and applies the g4f colors at image build. -->
-    <iframe src="vnc.html?autoconnect=1&amp;resize=remote&amp;reconnect=true"
+    <iframe id="vnc" src="vnc.html?autoconnect=1&amp;resize=remote&amp;reconnect=true"
             allow="clipboard-read; clipboard-write; fullscreen"
             allowfullscreen title="g4f sandbox desktop (noVNC)"></iframe>
+
+    <!-- Touch controls copied from the Remote Desktop viewer: a text input,
+         modifier/navigation keys and one-tap desktop shortcuts. g4f-controls.js
+         talks to the noVNC client through the bridge that novnc-brand.sh
+         installs in app/ui.js. -->
+    <div id="handle" class="g4f-ui hidden" title="Show desktop controls"
+         role="button" tabindex="0" aria-label="Show desktop controls">&#9650;</div>
+
+    <div id="toolbar" class="g4f-ui">
+        <button id="btn-control" type="button" aria-pressed="false">
+            <span class="glyph">&#9995;</span><span id="control-label">View</span>
+        </button>
+        <button id="btn-shortcuts" type="button" aria-pressed="false">
+            <span class="glyph">&#8984;</span>Keys
+        </button>
+        <button id="btn-keyboard" type="button" aria-pressed="false">
+            <span class="glyph">&#9000;</span>Type
+        </button>
+        <button id="btn-quality" type="button">
+            <span class="glyph">&#9679;</span><span id="quality-label">med</span>
+        </button>
+        <button id="btn-fit" type="button" aria-pressed="false">
+            <span class="glyph">&#9635;</span>Fit
+        </button>
+        <button id="btn-fullscreen" type="button">
+            <span class="glyph">&#9974;</span>Full
+        </button>
+        <button id="btn-disconnect" type="button">
+            <span class="glyph">&#10005;</span>Leave
+        </button>
+    </div>
+
+    <div id="keyboard" class="g4f-ui">
+        <div class="row tight">
+            <input id="text-input" type="text" placeholder="Type here, then press Send" autocomplete="off"
+                   autocapitalize="sentences" spellcheck="false">
+            <button id="send-text" class="primary" type="button">Send</button>
+        </div>
+        <div class="keys">
+            <button type="button" data-key="Enter">Enter</button>
+            <button type="button" data-key="Backspace">Backspace</button>
+            <button type="button" data-key="Tab">Tab</button>
+            <button type="button" data-key="Escape">Esc</button>
+            <button type="button" data-key="ArrowUp">&uarr;</button>
+            <button type="button" data-key="ArrowDown">&darr;</button>
+            <button type="button" data-key="ArrowLeft">&larr;</button>
+            <button type="button" data-key="ArrowRight">&rarr;</button>
+            <button type="button" data-key="Delete">Del</button>
+            <button type="button" data-key="Home">Home</button>
+            <button type="button" data-key="End">End</button>
+            <button type="button" data-key="PageUp">PgUp</button>
+            <button type="button" data-key="PageDown">PgDn</button>
+            <button type="button" data-key="Control">Ctrl</button>
+            <button type="button" data-key="Alt">Alt</button>
+            <button type="button" data-key="Shift">Shift</button>
+            <button type="button" data-key="Meta">Win</button>
+            <button type="button" data-key="F5">F5</button>
+            <button type="button" data-key="F11">F11</button>
+            <button id="close-keyboard" class="danger" type="button">Hide</button>
+        </div>
+    </div>
+
+    <div id="shortcuts" class="g4f-ui">
+        <div class="row tight">
+            <strong>Shortcuts</strong>
+            <span class="spacer"></span>
+            <button id="close-shortcuts" class="danger" type="button">Hide</button>
+        </div>
+        <div class="keys" id="shortcuts-list"></div>
+    </div>
+
+    <div id="toast" class="g4f-ui" role="status" aria-live="polite"></div>
+
+    <script src="g4f-controls.js"></script>
 </body>
 </html>
