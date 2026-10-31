@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Droid
 Comment=Factory Droid agent — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Droid --icon=g4f-sandbox-droid --command="/usr/local/bin/sandbox-cli droid"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Droid --icon=g4f-sandbox-droid --command="/usr/local/bin/sandbox-cli droid"
 Icon=g4f-sandbox-droid
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

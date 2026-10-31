@@ -293,7 +293,7 @@ the page is not up yet. The applications menu carries the g4f categories
 The image patches `/etc/xdg/menus/xfce-applications.menu` with
 `bin/patch-xfce-menu.py`, which:
 
-- inserts the g4f categories (g4f, Browsers, Coding Agents, Editors, Files,
+- inserts the g4f categories (g4f, Browsers, Files & Editors, Coding Agents,
   Gateways, Chat UIs, Assistants, …) as their own top-level menus;
 - removes the stock **Internet** (XML name `Network`) and **Development**
   menus, which the sandbox entries replace.

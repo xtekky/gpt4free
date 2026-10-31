@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Open g4f Docs in Glow
 Comment=g4f.dev docs in the terminal — clickable links, copy code with c
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="g4f Docs (glow)" --icon=g4f-sandbox-glow --command="/usr/local/bin/sandbox-cli glow"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="g4f Docs (glow)" --icon=g4f-sandbox-glow --command="/usr/local/bin/sandbox-cli glow"
 Icon=g4f-sandbox-glow
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Core;

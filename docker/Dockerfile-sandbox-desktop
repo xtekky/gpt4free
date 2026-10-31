@@ -147,10 +147,10 @@ RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
         "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.tar.gz" && \
     echo "5066103959ef4e9b10f37e5a148627360dd8414e4cf8a7db92bdbd022e728aaa  /tmp/novnc.tar.gz" \
         | sha256sum -c - && \
-    mkdir -p novnc && \
-    tar -xzf /tmp/novnc.tar.gz -C novnc --strip-components=1 && \
+    mkdir -p /usr/share/novnc && \
+    tar -xzf /tmp/novnc.tar.gz -C /usr/share/novnc --strip-components=1 && \
     rm /tmp/novnc.tar.gz && \
-    test -f novnc/vnc.html
+    test -f /usr/share/novnc/vnc.html
 
 # Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
@@ -218,8 +218,8 @@ RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>
     chmod 0644 /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-applications.svg \
         /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
 
-# Group the entries into their own top-level menus (g4f, Browsers, Coding
-# Agents, Gateways, Local AI, Chat UIs, Editors, Assistants) instead of
+# Group the entries into their own top-level menus (g4f, Browsers, Files &
+# Editors, Coding Agents, Gateways, Local AI, Chat UIs, Assistants) instead of
 # dumping all 51 into Development.
 # The .directory files name and icon those menus; patch-xfce-menu.py inserts
 # the matching <Menu> blocks into the stock xfce-applications.menu. A merged

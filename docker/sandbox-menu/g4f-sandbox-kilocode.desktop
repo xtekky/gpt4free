@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Kilo
 Comment=Kilo Code terminal agent — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Kilo --icon=g4f-sandbox-kilocode --command="/usr/local/bin/sandbox-cli kilocode"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Kilo --icon=g4f-sandbox-kilocode --command="/usr/local/bin/sandbox-cli kilocode"
 Icon=g4f-sandbox-kilocode
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

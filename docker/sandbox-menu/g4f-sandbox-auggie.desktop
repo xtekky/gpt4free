@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Auggie
 Comment=Auggie by Augment Code — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Auggie --icon=g4f-sandbox-auggie --command="/usr/local/bin/sandbox-cli auggie"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Auggie --icon=g4f-sandbox-auggie --command="/usr/local/bin/sandbox-cli auggie"
 Icon=g4f-sandbox-auggie
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

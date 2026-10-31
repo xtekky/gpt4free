@@ -303,15 +303,19 @@ UI.g4fSetViewOnly = function (viewOnly) {
     WebUtil.writeSetting("view_only", viewOnly);
     if (UI.rfb) UI.rfb.viewOnly = viewOnly;
     UI.updateViewOnly();
+    UI.updateSetting("view_only");
     return viewOnly;
 };
 
 UI.g4fToggleFit = function () {
     if (!UI.rfb) return false;
-    UI.rfb.scaleViewport = !UI.rfb.scaleViewport;
-    if (!UI.rfb.scaleViewport) {
-        UI.rfb.clipViewport = UI.getSetting("view_clip");
-    }
+    // Drive noVNC's own resize setting instead of only poking scaleViewport:
+    // the stock settings panel, reconnect and the Fit button then agree, and
+    // "off" restores the fixed desktop geometry the landing page asks for.
+    WebUtil.writeSetting("resize", UI.rfb.scaleViewport ? "off" : "scale");
+    UI.updateSetting("resize");
+    UI.applyResizeMode();
+    UI.updateViewClip();
     return UI.rfb.scaleViewport;
 };
 
@@ -319,8 +323,7 @@ UI.g4fSetQuality = function (level) {
     level = Math.max(0, Math.min(9, parseInt(level, 10) || 0));
     WebUtil.writeSetting("quality", level);
     if (UI.rfb) UI.rfb.qualityLevel = level;
-    const control = document.getElementById("noVNC_setting_quality");
-    if (control) control.value = level;
+    UI.updateSetting("quality");
     return level;
 };
 

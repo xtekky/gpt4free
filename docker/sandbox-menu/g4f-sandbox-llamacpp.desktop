@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Run llama.cpp
 Comment=llama.cpp llama-server — installs on first click, then serves on 127.0.0.1:11435
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=llama.cpp --icon=g4f-sandbox-llamacpp --command="/usr/local/bin/sandbox-cli llamacpp"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=llama.cpp --icon=g4f-sandbox-llamacpp --command="/usr/local/bin/sandbox-cli llamacpp"
 Icon=g4f-sandbox-llamacpp
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-LocalAI;

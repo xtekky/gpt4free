@@ -23,7 +23,9 @@ ANCHOR = "    <DefaultMergeDirs/>"
 
 # Stock top-level menus that are not useful in the sandbox image. Xfce labels
 # the menu whose XML name is "Network" as "Internet" in its locale files.
-REMOVE_MENUS = ("Internet", "Network", "Development")
+# "Editors" is not stock: it is the separate menu older images used before
+# files and editors were merged, and re-running the patch removes it.
+REMOVE_MENUS = ("Internet", "Network", "Development", "Editors")
 
 MENUS = [
     (
@@ -126,17 +128,6 @@ MENUS = [
 """,
     ),
     (
-        "Editors",
-        """    <Menu>
-        <Name>Editors</Name>
-        <Directory>g4f-sandbox-editors.directory</Directory>
-        <Include>
-            <Category>X-G4F-Editor</Category>
-        </Include>
-    </Menu>
-""",
-    ),
-    (
         "Writing",
         """    <Menu>
         <Name>Writing</Name>
@@ -171,28 +162,50 @@ MENUS = [
     ),
 ]
 
-def remove_stock_menus(src: str) -> tuple[str, list[str]]:
-    """Drop the top-level <Menu> blocks named in REMOVE_MENUS."""
+def _menu_pattern(name: str) -> re.Pattern[str]:
+    """Match one top-level <Menu> block by its XML name."""
+    # Top-level menus are indented by four spaces; the non-greedy body reaches
+    # the first closing tag with the same indentation, so nested menus (the
+    # Settings submenu) are not cut in half.
+    return re.compile(
+        rf"^    <Menu>\s*\n\s*<Name>{re.escape(name)}</Name>.*?^    </Menu>\n",
+        re.MULTILINE | re.DOTALL,
+    )
+
+
+def remove_named_menus(src: str, names: tuple[str, ...]) -> tuple[str, list[str]]:
+    """Drop the top-level <Menu> blocks named in *names*."""
     removed: list[str] = []
-    for name in REMOVE_MENUS:
-        # Top-level menus are indented by four spaces; the non-greedy body
-        # reaches the first closing tag with the same indentation, so nested
-        # menus (the Settings submenu) are not cut in half.
-        pattern = re.compile(
-            rf"^    <Menu>\s*\n\s*<Name>{re.escape(name)}</Name>.*?^    </Menu>\n",
-            re.MULTILINE | re.DOTALL,
-        )
-        src, count = pattern.subn("", src)
+    for name in names:
+        src, count = _menu_pattern(name).subn("", src)
         if count:
             removed.append(name)
     return src, removed
+
+
+def drop_outdated_menus(src: str) -> tuple[str, list[str]]:
+    """Remove generated menus whose block no longer matches MENUS.
+
+    This upgrades a menu file patched by an older image when a menu's include
+    list or directory changes in a later release. Matching blocks stay
+    untouched, so re-running the script remains a no-op.
+    """
+    outdated: list[str] = []
+    for name, xml in MENUS:
+        pattern = _menu_pattern(name)
+        match = pattern.search(src)
+        if match and match.group(0).strip() != xml.strip():
+            src = src[: match.start()] + src[match.end():]
+            outdated.append(name)
+    return src, outdated
 
 
 def main() -> int:
     with open(MENU_PATH, encoding="utf-8") as fh:
         src = fh.read()
 
-    src, removed = remove_stock_menus(src)
+    src, removed = remove_named_menus(src, REMOVE_MENUS)
+    src, outdated = drop_outdated_menus(src)
 
     # Each menu is checked separately so an already-patched file still gains
     # menus added in a later release.
@@ -216,8 +229,11 @@ def main() -> int:
         fh.write(src)
 
     changes = []
-    if missing:
-        changes.append("added " + ", ".join(name for name, _ in missing))
+    added = [name for name, _ in missing if name not in outdated]
+    if added:
+        changes.append("added " + ", ".join(added))
+    if outdated:
+        changes.append("updated " + ", ".join(outdated))
     if removed:
         changes.append("removed " + ", ".join(removed))
     print(f"{MENU_PATH}: patched ({'; '.join(changes)})")

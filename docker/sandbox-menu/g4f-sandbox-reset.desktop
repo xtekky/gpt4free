@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Reset Sandbox Settings
 Comment=Clear the saved g4f model, API key, HOME, provider and proxy and go back to the defaults
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Reset Sandbox Settings" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli reset"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Reset Sandbox Settings" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli reset"
 Icon=g4f-sandbox-cli
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Core;

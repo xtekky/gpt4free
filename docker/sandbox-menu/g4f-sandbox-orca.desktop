@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Orca
 Comment=Orca IDE for parallel agentic development — installs on first click, then opens on the desktop
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Orca --icon=g4f-sandbox-orca --command="/usr/local/bin/sandbox-cli orca"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Orca --icon=g4f-sandbox-orca --command="/usr/local/bin/sandbox-cli orca"
 Icon=g4f-sandbox-orca
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

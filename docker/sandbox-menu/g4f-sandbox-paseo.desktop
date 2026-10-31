@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Paseo
 Comment=Paseo coding-agent orchestrator — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Paseo --icon=g4f-sandbox-paseo --command="/usr/local/bin/sandbox-cli paseo"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Paseo --icon=g4f-sandbox-paseo --command="/usr/local/bin/sandbox-cli paseo"
 Icon=g4f-sandbox-paseo
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

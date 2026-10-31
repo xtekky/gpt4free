@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 import random
 import requests
@@ -91,6 +92,28 @@ class Pollinations(AsyncGeneratorProvider, ProviderModelMixin):
     swap_model_aliases = {v: k for k, v in model_aliases.items()}
     balance: Optional[float] = None
     current_models_endpoint: Optional[str] = None
+
+    @classmethod
+    def load_stored_api_key(cls) -> Optional[str]:
+        """Read the API key stored by the Pollinations CLI (``polli auth login``)."""
+        config_dir = Path.home() / ".pollinations"
+        filename = (
+            "credentials.staging.json"
+            if os.environ.get("POLLINATIONS_ENV") == "staging"
+            else "credentials.json"
+        )
+        try:
+            credentials = json.loads(
+                (config_dir / filename).read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError, TypeError):
+            return None
+        api_key = (
+            credentials.get("apiKey") if isinstance(credentials, dict) else None
+        )
+        if isinstance(api_key, str) and api_key.strip():
+            return api_key.strip()
+        return None
 
     @classmethod
     def get_balance(

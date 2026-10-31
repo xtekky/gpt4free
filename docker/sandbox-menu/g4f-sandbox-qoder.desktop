@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Qoder
 Comment=Qoder CLI — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Qoder --icon=g4f-sandbox-qoder --command="/usr/local/bin/sandbox-cli qoder"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Qoder --icon=g4f-sandbox-qoder --command="/usr/local/bin/sandbox-cli qoder"
 Icon=g4f-sandbox-qoder
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

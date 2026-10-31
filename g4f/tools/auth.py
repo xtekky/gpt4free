@@ -57,6 +57,15 @@ class AuthManager:
                 f"Loading API key for {provider_name} from environment variable {env_var}"
             )
             return api_key
+        load_stored_key = getattr(provider, "load_stored_api_key", None)
+        if callable(load_stored_key):
+            try:
+                api_key = load_stored_key()
+            except Exception:
+                api_key = None
+            if api_key:
+                debug.log(f"Loading API key for {provider_name} from stored credentials")
+                return api_key
         return None
 
     @classmethod

@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open AI Text Detector
 Comment=AI-generated text risk analyzer (ai-detect) — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="AI Text Detector" --icon=g4f-sandbox-ai-detect --command="/usr/local/bin/sandbox-cli ai-detect"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="AI Text Detector" --icon=g4f-sandbox-ai-detect --command="/usr/local/bin/sandbox-cli ai-detect"
 Icon=g4f-sandbox-ai-detect
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Writing;

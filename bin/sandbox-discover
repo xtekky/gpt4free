@@ -84,7 +84,7 @@ sandbox menu, then add each one to the menu by editing the sandbox launcher.
      copying an existing entry and changing Name, Comment, Keywords, the tool
      id, the --title and the icon. Reuse a category already in
      /etc/xdg/menus/xfce-applications.menu (X-G4F-Agent, X-G4F-Skills,
-     X-G4F-Gateway, X-G4F-Assistant, X-G4F-Editor, X-G4F-LocalAI,
+     X-G4F-Gateway, X-G4F-Assistant, X-G4F-LocalAI,
      X-G4F-ChatUI, X-G4F-Writing, X-G4F-Media, X-G4F-Files, X-G4F-Browser or
      X-G4F-Core) and do not edit that menu file. When the gpt4free checkout
      exists, add the same desktop file under docker/sandbox-menu/ and add the

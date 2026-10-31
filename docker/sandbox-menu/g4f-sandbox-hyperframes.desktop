@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open HyperFrames
 Comment=HyperFrames HTML-to-video renderer for agents — installs on first click, then runs in the terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=HyperFrames --icon=g4f-sandbox-hyperframes --command="/usr/local/bin/sandbox-cli hyperframes"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=HyperFrames --icon=g4f-sandbox-hyperframes --command="/usr/local/bin/sandbox-cli hyperframes"
 Icon=g4f-sandbox-hyperframes
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Media;

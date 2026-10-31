@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Update or Change g4f Package
 Comment=Install the latest g4f release or pin a specific package version
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="g4f Package" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli package"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="g4f Package" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli package"
 Icon=g4f-sandbox-cli
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Core;

@@ -14,12 +14,13 @@
 </head>
 <body>
     <!-- Stock noVNC client, autoconnected, filling the page (no header of its
-         own). resize=remote asks the VNC server to resize the desktop to the
-         browser window (server-side scaling) instead of scaling the framebuffer
-         client-side; Xvnc supports the ExtendedDesktopSize extension. The g4f
-         branding lives inside the client itself: bin/novnc-brand.sh swaps
-         the noVNC logos for g4f.svg and applies the g4f colors at image build. -->
-    <iframe id="vnc" src="vnc.html?autoconnect=1&amp;resize=remote&amp;reconnect=true"
+         own). resize=off keeps the desktop at the geometry Xvnc was started
+         with, so one viewer cannot resize the session under another; the Fit
+         control in the overlay turns on noVNC's local scaling when the
+         framebuffer does not fit the browser window. The g4f branding lives
+         inside the client itself: bin/novnc-brand.sh swaps the noVNC logos for
+         g4f.svg and applies the g4f colors at image build. -->
+    <iframe id="vnc" src="vnc.html?autoconnect=1&amp;resize=off&amp;reconnect=true"
             allow="clipboard-read; clipboard-write; fullscreen"
             allowfullscreen title="g4f sandbox desktop (noVNC)"></iframe>
 

@@ -116,6 +116,7 @@
     }
     panel.classList.toggle("open", open);
     $(`btn-${name}`).classList.toggle("active", open);
+    $(`btn-${name}`).setAttribute("aria-pressed", String(open));
     if (open) {
       showToolbar();
       if (name === "keyboard") setTimeout(() => $("text-input").focus(), 50);
@@ -287,11 +288,23 @@
   /* -------------------------------------------------------------------- misc */
 
   function toggleFullscreen() {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    } else {
-      document.documentElement.requestFullscreen().catch(() => {});
+    const root = document.documentElement;
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fullscreenElement) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) {
+        const result = exit.call(document);
+        if (result && result.catch) result.catch(() => {});
+      }
+      return;
     }
+    const request = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (!request) {
+      flash("fullscreen not supported");
+      return;
+    }
+    const result = request.call(root);
+    if (result && result.catch) result.catch(() => flash("fullscreen blocked"));
   }
 
   function toggleControl() {
@@ -355,6 +368,11 @@
     $("toolbar").addEventListener("pointerdown", showToolbar);
     $("toolbar").addEventListener("focusin", showToolbar);
     $("handle").addEventListener("click", showToolbar);
+    $("handle").addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      showToolbar();
+    });
 
     frame.addEventListener("load", sync);
     setInterval(sync, 500);

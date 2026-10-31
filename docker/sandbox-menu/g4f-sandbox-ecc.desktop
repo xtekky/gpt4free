@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install ECC
 Comment=ECC skills, rules and commands for OpenCode — installs on first click
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=ECC --icon=g4f-sandbox-ecc --command="/usr/local/bin/sandbox-cli ecc"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=ECC --icon=g4f-sandbox-ecc --command="/usr/local/bin/sandbox-cli ecc"
 Icon=g4f-sandbox-ecc
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Skills;

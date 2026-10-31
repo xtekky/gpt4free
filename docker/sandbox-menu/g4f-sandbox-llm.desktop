@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open LLM CLI
 Comment=LLM CLI by Simon Willison — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="LLM CLI" --icon=g4f-sandbox-llm --command="/usr/local/bin/sandbox-cli llm"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="LLM CLI" --icon=g4f-sandbox-llm --command="/usr/local/bin/sandbox-cli llm"
 Icon=g4f-sandbox-llm
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Assistant;

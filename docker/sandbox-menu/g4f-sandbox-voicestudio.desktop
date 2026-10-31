@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open VoiceStudio
 Comment=VoiceStudio voice cloning and text-to-speech app — installs on first click, then opens on the desktop
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=VoiceStudio --icon=g4f-sandbox-voicestudio --command="/usr/local/bin/sandbox-cli voicestudio"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=VoiceStudio --icon=g4f-sandbox-voicestudio --command="/usr/local/bin/sandbox-cli voicestudio"
 Icon=g4f-sandbox-voicestudio
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Media;

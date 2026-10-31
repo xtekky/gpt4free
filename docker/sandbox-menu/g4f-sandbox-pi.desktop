@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Pi
 Comment=Pi coding agent with pi-freeflow's 35 free models — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=Pi --icon=g4f-sandbox-pi --command="/usr/local/bin/sandbox-cli pi"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Pi --icon=g4f-sandbox-pi --command="/usr/local/bin/sandbox-cli pi"
 Icon=g4f-sandbox-pi
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

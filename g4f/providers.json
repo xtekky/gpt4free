@@ -12,7 +12,7 @@
     "active_by_default": true,
     "auth": true,
     "login_url": "https://cloud.google.com/code-assist",
-    "live": 1,
+    "live": 0,
     "login": true
   },
   {
@@ -35,7 +35,7 @@
     "name": "Airforce",
     "label": "Api.Airforce",
     "parent": null,
-    "image": 85,
+    "image": 0,
     "audio": 0,
     "video": 0,
     "vision": false,
@@ -44,7 +44,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://panel.api.airforce/dashboard",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -172,7 +172,7 @@
     "active_by_default": false,
     "auth": false,
     "login_url": "https://discord.gg/qXA4Wf4Fsm",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -243,7 +243,7 @@
     "name": "DeepInfra",
     "label": "DeepInfra",
     "parent": null,
-    "image": 2,
+    "image": 0,
     "audio": 0,
     "video": 0,
     "vision": false,
@@ -252,7 +252,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://deepinfra.com/dash/api_keys",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -268,7 +268,7 @@
     "active_by_default": true,
     "auth": true,
     "login_url": null,
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -300,7 +300,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": null,
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -364,7 +364,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://aistudio.google.com/u/0/apikey",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -380,7 +380,7 @@
     "active_by_default": true,
     "auth": true,
     "login_url": "https://github.com/login",
-    "live": 1,
+    "live": 0,
     "login": true
   },
   {
@@ -428,7 +428,7 @@
     "active_by_default": false,
     "auth": true,
     "login_url": null,
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -444,7 +444,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://console.groq.com/keys",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -492,16 +492,16 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://huggingface.co/settings/tokens",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
     "name": "HuggingFaceMedia",
     "label": "HuggingFace Media",
     "parent": "HuggingFace",
-    "image": 104,
+    "image": 0,
     "audio": 0,
-    "video": 33,
+    "video": 0,
     "vision": false,
     "nodriver": false,
     "hf_space": false,
@@ -515,7 +515,7 @@
     "name": "HuggingSpace",
     "label": "HuggingSpace",
     "parent": null,
-    "image": 4,
+    "image": 0,
     "audio": 0,
     "video": 0,
     "vision": false,
@@ -531,16 +531,16 @@
     "name": "Arena",
     "label": "Arena",
     "parent": null,
-    "image": 39,
+    "image": 0,
     "audio": 0,
-    "video": 57,
+    "video": 0,
     "vision": false,
     "nodriver": false,
     "hf_space": false,
     "active_by_default": true,
     "auth": false,
     "login_url": null,
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -620,7 +620,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://google.com",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -636,7 +636,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": null,
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -652,7 +652,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": null,
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -684,12 +684,28 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://ollama.com/settings/keys",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
     "name": "OmniRoute",
     "label": "OmniRoute",
+    "parent": null,
+    "image": 0,
+    "audio": 0,
+    "video": 0,
+    "vision": false,
+    "nodriver": false,
+    "hf_space": false,
+    "active_by_default": false,
+    "auth": false,
+    "login_url": null,
+    "live": 0,
+    "login": false
+  },
+  {
+    "name": "PiFreeflow",
+    "label": "pi-freeflow",
     "parent": null,
     "image": 0,
     "audio": 0,
@@ -732,7 +748,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": "https://openrouter.ai/settings/keys",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {
@@ -784,22 +800,6 @@
     "login": false
   },
   {
-    "name": "PiFreeflow",
-    "label": "pi-freeflow",
-    "parent": null,
-    "image": 0,
-    "audio": 0,
-    "video": 0,
-    "vision": false,
-    "nodriver": false,
-    "hf_space": false,
-    "active_by_default": false,
-    "auth": false,
-    "login_url": null,
-    "live": 0,
-    "login": false
-  },
-  {
     "name": "Pi",
     "label": "Pi",
     "parent": null,
@@ -819,16 +819,16 @@
     "name": "Pollinations",
     "label": "Pollinations \ud83c\udf38",
     "parent": null,
-    "image": 75,
-    "audio": 11,
-    "video": 24,
+    "image": 0,
+    "audio": 0,
+    "video": 0,
     "vision": false,
     "nodriver": false,
     "hf_space": false,
     "active_by_default": true,
     "auth": false,
     "login_url": "https://enter.pollinations.ai",
-    "live": 2,
+    "live": 0,
     "login": false
   },
   {
@@ -851,16 +851,16 @@
     "name": "PollinationsImage",
     "label": "PollinationsImage",
     "parent": "Pollinations",
-    "image": 76,
+    "image": 0,
     "audio": 0,
-    "video": 24,
+    "video": 0,
     "vision": false,
     "nodriver": false,
     "hf_space": false,
     "active_by_default": false,
     "auth": false,
     "login_url": "https://enter.pollinations.ai",
-    "live": 2,
+    "live": 0,
     "login": false
   },
   {
@@ -876,7 +876,7 @@
     "active_by_default": true,
     "auth": true,
     "login_url": "https://github.com/HeyPuter/puter-cli",
-    "live": 1,
+    "live": 0,
     "login": false
   },
   {

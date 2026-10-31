@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open Oh My Pi
 Comment=Oh My Pi (OMP) coding agent with pi-freeflow's 35 free models — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title="Oh My Pi" --icon=g4f-sandbox-omp --command="/usr/local/bin/sandbox-cli omp"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Oh My Pi" --icon=g4f-sandbox-omp --command="/usr/local/bin/sandbox-cli omp"
 Icon=g4f-sandbox-omp
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

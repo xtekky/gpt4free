@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open gptme
 Comment=gptme terminal AI agent — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=gptme --icon=g4f-sandbox-gptme --command="/usr/local/bin/sandbox-cli gptme"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=gptme --icon=g4f-sandbox-gptme --command="/usr/local/bin/sandbox-cli gptme"
 Icon=g4f-sandbox-gptme
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Assistant;

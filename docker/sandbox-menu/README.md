@@ -5,16 +5,20 @@
 ![](sandbox.png)
 
 Entries behind the sandbox desktop's **Applications** menu
-(`docker/Dockerfile-sandbox-desktop`), grouped into thirteen top-level menus —
-**g4f**, **Browsers**, **Files**, **Coding Agents**, **Agent Skills**,
-**Gateways**, **Local AI**, **Chat UIs**, **Editors**, **Writing**, **Media**,
+(`docker/Dockerfile-sandbox-desktop`), grouped into twelve top-level menus —
+**g4f**, **Browsers**, **Files & Editors**, **Coding Agents**, **Agent Skills**,
+**Gateways**, **Local AI**, **Chat UIs**, **Writing**, **Media**,
 **Sandboxes** and **Assistants** — instead of one flat list under Development.
 Each **Install & Open …** item opens a terminal maximized to the sandbox
 screen, without window borders or menubar:
 
 ```
-xfce4-terminal --maximize --hide-borders --hide-menubar --icon=g4f-sandbox-<tool> --command="/usr/local/bin/sandbox-cli <tool>"
+xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --icon=g4f-sandbox-<tool> --command="/usr/local/bin/sandbox-cli <tool>"
 ```
+
+`--disable-server` gives every entry its own terminal window. Without it,
+xfce4-terminal hands the new window to the already running instance as a tab,
+so all apps opened from the menu end up in the same window.
 
 A multi-word `--title` must be quoted (`--title="Sandbox Settings"`): the
 desktop-entry `Exec` line is split on whitespace, so an unquoted title makes
@@ -63,7 +67,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open Cursor    | `cursor`    | cursor.com/install script   | `cursor-agent` |
 | Install & Open Chrome    | `chrome`    | Google's Chrome `.deb` (apt)| `start-browser` |
 | Install & Open File Manager | `files` | apt `thunar` (Debian)       | `thunar`       |
-| Install & Open File Manager (Nemo) | `nemo` | apt `nemo` (Debian) | `nemo`         |
+| Install & Open File Manager (Nemo) | `nemo` | apt `nemo` + gvfs/thumbnail helpers (Debian) | `nemo`         |
 | Install & Run Lightpanda | `lightpanda`| `g4f-go browser install`    | `g4f-go`       |
 | Install & Open OmniRoute | `omniroute` | npm `omniroute`             | `omniroute`    |
 | Install & Open Ollama    | `ollama`    | ollama.com install script   | `ollama`       |
@@ -358,13 +362,12 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 |------------------|-------------------|------------------------------------------------|
 | **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `package`, `glow`, `docs`, `discover`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
-| **Files**        | `X-G4F-Files`     | `files`, `nemo`                                |
+| **Files & Editors** | `X-G4F-Files`  | `files`, `nemo`, `code-server`, `kate`         |
 | **Coding Agents**| `X-G4F-Agent`     | `opencode`, `openbot`, `thinkrail`, `orca`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `omh`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent`, `dsh`, `paseo`, `t3code` |
 | **Agent Skills** | `X-G4F-Skills`    | `ecc`, `superpowers`, `graphify`, `claude-mem` |
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
 | **Chat UIs**     | `X-G4F-ChatUI`    | `librechat`, `lobechat`, `msty`, `sillytavern`, `open-webui`, `dsh`, `assistant-ui` |
-| **Editors**      | `X-G4F-Editor`    | `code-server`, `kate` |
 | **Writing**      | `X-G4F-Writing`   | `humanizer`, `ai-detect`, `aidetect` |
 | **Media**        | `X-G4F-Media`     | `polli`, `voicestudio`, `hyperframes`          |
 | **Sandboxes**    | `X-G4F-Sandboxes` | `polli-sandbox`                                |
@@ -372,7 +375,7 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 
 The menus are declared by patching the stock
 `/etc/xdg/menus/xfce-applications.menu` at build time
-(`patch-xfce-menu.py`), which inserts the thirteen `<Menu>` blocks just before its
+(`patch-xfce-menu.py`), which inserts the twelve `<Menu>` blocks just before its
 `<DefaultMergeDirs/>` node and removes the stock top-level **Internet** (XML
 name `Network`) and **Development** menus. Shipping them as a merged menu file under
 `/etc/xdg/menus/applications-merged/` does **not** work: garcon copies a merged

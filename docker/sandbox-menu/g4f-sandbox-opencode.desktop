@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=Install & Open OpenCode
 Comment=OpenCode coding agent with g4f — installs on first click, then opens in a terminal
-Exec=xfce4-terminal --maximize --hide-borders --hide-menubar --title=OpenCode --icon=g4f-sandbox-opencode --command="/usr/local/bin/sandbox-cli opencode"
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=OpenCode --icon=g4f-sandbox-opencode --command="/usr/local/bin/sandbox-cli opencode"
 Icon=g4f-sandbox-opencode
 Terminal=false
 Categories=X-G4F-Sandbox;X-G4F-Agent;

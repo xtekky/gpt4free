@@ -1807,6 +1807,26 @@ ensure_kate() {
     have kate || die "kate not on PATH after the install"
 }
 
+# Nemo is the Cinnamon file manager, but it runs fine under Xfce. Installing
+# the bare package with --no-install-recommends leaves out the helpers that
+# make it usable: gvfs-backends for trash/network mounts,
+# libgdk-pixbuf2.0-bin for thumbnails (Nemo otherwise logs "Ignoring
+# thumbnailer with missing binary") and xdg-user-dirs for the
+# Desktop/Downloads folders. Install those with Nemo; they are small runtime
+# pieces, not the Cinnamon desktop.
+ensure_nemo() {
+    local pkg missing=()
+    for pkg in nemo gvfs-backends libgdk-pixbuf2.0-bin xdg-user-dirs; do
+        dpkg -s "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+    done
+    [ ${#missing[@]} -eq 0 ] && return 0
+    log "installing Nemo and its file-manager helpers (apt)..."
+    as_root env DEBIAN_FRONTEND=noninteractive apt-get update -qq || return 1
+    as_root env DEBIAN_FRONTEND=noninteractive \
+        apt-get install -y -qq --no-install-recommends "${missing[@]}" || return 1
+    have nemo
+}
+
 # LibreChat is not packaged: it is a Node monorepo that needs MongoDB and a
 # full frontend build. The checkout lives in ~/.librechat, the database in
 # ~/.librechat-data (started by ensure_librechat, kept running by run_tool).
@@ -3384,17 +3404,24 @@ run_tool() {
             # stays. An optional argument is the folder to open.
             # Thunar is the lightweight Xfce default; if its apt install fails
             # (stale mirror, missing package), fall back to Nemo rather than
-            # leaving the entry dead.
+            # leaving the entry dead. The Nemo entry tries Nemo first and falls
+            # back to Thunar for the same reason.
             if [ "$1" = nemo ]; then
-                ensure_apt nemo nemo
-                label="File Manager (Nemo)"
-                app=nemo
+                if ensure_nemo; then
+                    label="File Manager (Nemo)"
+                    app=nemo
+                else
+                    log "Nemo could not be installed; falling back to Thunar"
+                    ensure_apt thunar thunar
+                    label="File Manager"
+                    app=thunar
+                fi
             elif ensure_apt_soft thunar thunar; then
                 label="File Manager"
                 app=thunar
             else
                 log "Thunar could not be installed; falling back to Nemo"
-                ensure_apt nemo nemo
+                ensure_nemo || die "could not install a file manager"
                 label="File Manager (Nemo)"
                 app=nemo
             fi
@@ -3751,10 +3778,12 @@ list_tools() {
     printf '  %-15s %s\n' \
         chrome      "Google Chrome browser" \
         lightpanda  "Lightpanda headless browser (CDP server)"
-    printf '%s\n' "Files"
+    printf '%s\n' "Files & Editors"
     printf '  %-15s %s\n' \
         files       "Thunar file manager" \
-        nemo        "Nemo file manager (Cinnamon)"
+        nemo        "Nemo file manager (Cinnamon)" \
+        code-server "VS Code Web (code-server)" \
+        kate        "Kate text editor (KDE)"
     printf '%s\n' "Coding Agents"
     printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
@@ -3824,10 +3853,6 @@ list_tools() {
         open-webui  "Open WebUI chat interface (backed by g4f)" \
         dsh         "DeepSeek Harness web UI (chat + coding)" \
         assistant-ui "assistant-ui web UI (Next.js, backed by the g4f API)"
-    printf '%s\n' "Editors"
-    printf '  %-15s %s\n' \
-        code-server "VS Code Web (code-server)" \
-        kate        "Kate text editor (KDE)"
     printf '%s\n' "Media"
     printf '  %-15s %s\n' \
         polli       "Pollinations CLI (text, image, audio, video, 3D)" \
