@@ -387,6 +387,54 @@ def _github_slug(url: str) -> Optional[str]:
     return f"{owner}/{repo}"
 
 
+_PROJECTS_CLASSIC_MARKERS = (
+    "projectCards",
+    "Projects (classic) is being deprecated",
+)
+
+
+def _projects_classic_error(stderr: str) -> bool:
+    """True when gh failed while querying the deprecated Projects (classic) API."""
+    return any(marker in stderr for marker in _PROJECTS_CLASSIC_MARKERS)
+
+
+def _pr_number(url: str) -> Optional[str]:
+    """Extract the pull request number from a GitHub PR URL."""
+    path = urlsplit(url.strip()).path.rstrip("/")
+    number = path.rsplit("/", 1)[-1]
+    return number if number.isdigit() else None
+
+
+def _edit_pr_via_api(
+    gh: str, cwd: Path, slug: str, url: str, title: str, body: str
+) -> Optional[subprocess.CompletedProcess]:
+    """Update a PR through the REST API when ``gh pr edit`` cannot.
+
+    Older gh releases query the removed Projects (classic) field while editing
+    a PR and fail with ``repository.pullRequests.nodes.0.projectCards``.  The
+    REST endpoint edits title/body without touching project metadata.
+    """
+    number = _pr_number(url)
+    if not slug or not number:
+        return None
+    return subprocess.run(
+        [
+            gh,
+            "api",
+            f"repos/{slug}/pulls/{number}",
+            "-X",
+            "PATCH",
+            "-f",
+            f"title={title}",
+            "-f",
+            f"body={body}",
+        ],
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+    )
+
+
 def _push_remote_order(remotes: List[str], requested: Optional[str]) -> List[str]:
     """Order remotes so a read-only origin can fall back to a writable fork."""
     if requested:
@@ -648,6 +696,21 @@ def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
             capture_output=True,
         )
         action = "updated"
+        if result.returncode != 0 and _projects_classic_error(result.stderr):
+            fallback = _edit_pr_via_api(
+                gh,
+                root,
+                base_slug or "",
+                existing.stdout.strip(),
+                title,
+                body,
+            )
+            if fallback is not None:
+                print(
+                    "dev-pipeline: pr: gh pr edit hit the removed Projects "
+                    "(classic) query; updated the PR through the REST API"
+                )
+                result = fallback
     else:
         result = subprocess.run(
             [

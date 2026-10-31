@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -565,13 +566,21 @@ class PrCommandTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("gh (GitHub CLI) not found", err)
 
-    def _fake_gh(self, existing: bool = False) -> str:
+    def _fake_gh(self, existing: bool = False, edit_error: str = "") -> str:
         remote_temp = tempfile.TemporaryDirectory()
         self.addCleanup(remote_temp.cleanup)
         bin_dir = Path(remote_temp.name) / "bin"
         bin_dir.mkdir()
         gh = bin_dir / "gh"
         view_status = "0" if existing else "1"
+        edit_block = ""
+        if edit_error:
+            edit_block = (
+                'if [ "$1" = "pr" ] && [ "$2" = "edit" ]; then\n'
+                f"  echo {shlex.quote(edit_error)} >&2\n"
+                "  exit 1\n"
+                "fi\n"
+            )
         gh.write_text(
             "#!/bin/sh\n"
             'if [ "$1" = "auth" ]; then exit 0; fi\n'
@@ -579,7 +588,8 @@ class PrCommandTests(unittest.TestCase):
             f"  echo https://github.com/x/y/pull/1\n"
             f"  exit {view_status}\n"
             "fi\n"
-            "echo https://github.com/x/y/pull/1\n",
+            + edit_block
+            + "echo https://github.com/x/y/pull/1\n",
             encoding="utf-8",
         )
         gh.chmod(0o755)
@@ -627,6 +637,24 @@ class PrCommandTests(unittest.TestCase):
         with mock.patch.dict(os.environ, env, clear=False):
             code, out, err = self._run()
         self.assertEqual(code, 0, err)
+        self.assertIn("PR updated successfully", out)
+
+    def test_updates_existing_pr_when_gh_edit_hits_projects_classic(self) -> None:
+        self._init_repo()
+        self._add_github_remote()
+        (self.root / "change.txt").write_text("change\n", encoding="utf-8")
+        env = self._fake_gh(
+            existing=True,
+            edit_error=(
+                "GraphQL: Projects (classic) is being deprecated in favor of "
+                "the new Projects experience. "
+                "(repository.pullRequests.nodes.0.projectCards)"
+            ),
+        )
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("REST API", out)
         self.assertIn("PR updated successfully", out)
 
     def test_updates_pipeline_branch_in_place(self) -> None:
