@@ -475,6 +475,7 @@ Repository: https://github.com/xtekky/gpt4free
 
 ### How AI can help you write code
 - See: [docs/guides/help_me.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/guides/help_me.md) for prompt templates and workflows to accelerate development.
+- Automatic development loop: [docs/dev-pipeline.md](docs/dev-pipeline.md) explains `bin/dev-pipeline`, which reads tasks from `AGENTS.md` and implements them with working free models from pi-freeflow.
 
 ---
 
