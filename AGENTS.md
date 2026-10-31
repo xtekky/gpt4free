@@ -105,7 +105,7 @@ The blocks below are maintained automatically. Do not edit them by hand.
 {
   "schema": 1,
   "project": "gpt4free",
-  "updated": "2026-10-31T06:40:18Z",
+  "updated": "2026-10-31T07:27:26Z",
   "tasks": [
     {
       "id": "G4F-001",
@@ -223,70 +223,83 @@ The blocks below are maintained automatically. Do not edit them by hand.
       "attempts": 1,
       "last_model": "pollinations/deepseek/deepseek-v4.1-flash-1017",
       "notes": "Completed with pollinations/deepseek/deepseek-v4.1-flash-1017; checks passed."
+    },
+    {
+      "id": "G4F-007",
+      "project": "gpt4free",
+      "priority": "P2",
+      "status": "in-progress",
+      "title": "create pr from g4f.dev",
+      "acceptance": "",
+      "created": "2026-10-31T07:26:23Z",
+      "updated": "2026-10-31T07:27:26Z",
+      "attempts": 1,
+      "last_model": "cohere/north-mini-code:free",
+      "notes": ""
     }
   ],
   "models": {
     "base_url": "http://127.0.0.1:28180/v1",
-    "checked_at": "2026-10-31T05:45:31Z",
+    "checked_at": "2026-10-31T07:27:26Z",
     "from_cache": false,
     "working": [
       {
         "id": "cohere/north-mini-code:free",
         "ok": true,
-        "latency_s": 3.84,
+        "latency_s": 1.14,
         "detail": "OK",
-        "checked_at": "2026-10-31T05:45:19Z"
+        "checked_at": "2026-10-31T07:26:44Z"
       },
       {
         "id": "ovh-free/gpt-oss-120b",
         "ok": true,
-        "latency_s": 1.09,
+        "latency_s": 2.32,
         "detail": "OK",
-        "checked_at": "2026-10-31T05:45:31Z"
+        "checked_at": "2026-10-31T07:27:26Z"
       }
     ],
     "failed": [
       {
         "id": "deepseek-v4.1-flash-free",
         "ok": false,
-        "latency_s": 2.03,
+        "latency_s": 2.47,
         "detail": "HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
-        "checked_at": "2026-10-31T05:45:14Z"
+        "checked_at": "2026-10-31T07:26:42Z"
       },
       {
         "id": "glm-5.3-flash-free",
         "ok": false,
-        "latency_s": 0.39,
+        "latency_s": 0.19,
         "detail": "HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
-        "checked_at": "2026-10-31T05:45:14Z"
+        "checked_at": "2026-10-31T07:26:42Z"
       },
       {
         "id": "mimo-v2.6-flash-free",
         "ok": false,
-        "latency_s": 0.46,
+        "latency_s": 0.16,
         "detail": "HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
-        "checked_at": "2026-10-31T05:45:15Z"
+        "checked_at": "2026-10-31T07:26:42Z"
       },
       {
         "id": "big-pickle",
         "ok": false,
-        "latency_s": 0.47,
+        "latency_s": 0.55,
         "detail": "HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {\"type\":\"error\",\"error\":{\"type\":\"FreeUsageLimitError\",\"message\":\"Free usage limit reached. Free models work in OpenCode (https://opencode.ai); subscribe to OpenCode Go to keep going: https://opencode.ai/go\"}}",
-        "checked_at": "2026-10-31T05:45:15Z"
+        "checked_at": "2026-10-31T07:26:43Z"
       },
       {
         "id": "ovh-free/Qwen3.6-27B",
         "ok": false,
-        "latency_s": 8.56,
+        "latency_s": 37.24,
         "detail": "HTTP 502 from http://127.0.0.1:28180/v1/chat/completions: {\"error\":\"upstream error\",\"detail\":\"upstream returned an empty stream\"}",
-        "checked_at": "2026-10-31T05:45:28Z"
+        "checked_at": "2026-10-31T07:27:21Z"
       },
       {
         "id": "ovh-free/Qwen3.5-397B-A17B",
         "ok": false,
-        "latency_s": 2.1,
+        "latency_s": 2.65,
         "detail": "HTTP 502 from http://127.0.0.1:28180/v1/chat/completions: {\"error\":\"upstream error\",\"detail\":\"upstream returned an empty stream\"}",
-        "checked_at": "2026-10-31T05:45:30Z"
+        "checked_at": "2026-10-31T07:27:24Z"
       }
     ]
   },
@@ -439,6 +452,7 @@ The blocks below are maintained automatically. Do not edit them by hand.
 | G4F-004 | gpt4free | P2 | done | push/create/updated pr |  | 2026-10-31T05:23:35Z |
 | G4F-005 | gpt4free | P2 | done | create new pr #3553 |  | 2026-10-31T05:53:04Z |
 | G4F-006 | gpt4free | P2 | done | github codeql check failed, update pr |  | 2026-10-31T05:54:37Z |
+| G4F-007 | gpt4free | P2 | in-progress | create pr from g4f.dev |  | 2026-10-31T07:27:26Z |
 | G4F-016 | gpt4free | P2 | done | add models from pi-freeflow in gpt4free too |  | 2026-10-31T06:20:14Z |
 | G4F-017 | gpt4free | P2 | in-progress | improve stabillty of gpt4free |  | 2026-10-31T06:20:26Z |
 | G4F-018 | gpt4free | P2 | done | move docs from gpt4free to g4f.dev, gen html docs |  | 2026-10-31T06:40:18Z |
@@ -446,12 +460,12 @@ The blocks below are maintained automatically. Do not edit them by hand.
 
 ### Free model health
 
-Checked `2026-10-31T05:45:31Z` at `http://127.0.0.1:28180/v1`.
+Checked `2026-10-31T07:27:26Z` at `http://127.0.0.1:28180/v1`.
 
 | Model | Status | Latency | Detail |
 | --- | --- | --- | --- |
-| cohere/north-mini-code:free | working | 3.84s | OK |
-| ovh-free/gpt-oss-120b | working | 1.09s | OK |
+| cohere/north-mini-code:free | working | 1.14s | OK |
+| ovh-free/gpt-oss-120b | working | 2.32s | OK |
 | deepseek-v4.1-flash-free | failed | - | HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {"type":"error","error":{"type":"FreeUsageLimitError","mess... |
 | glm-5.3-flash-free | failed | - | HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {"type":"error","error":{"type":"FreeUsageLimitError","mess... |
 | mimo-v2.6-flash-free | failed | - | HTTP 429 from http://127.0.0.1:28180/v1/chat/completions: {"type":"error","error":{"type":"FreeUsageLimitError","mess... |
