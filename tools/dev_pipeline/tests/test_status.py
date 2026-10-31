@@ -12,9 +12,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from tools.dev_pipeline.cli import _pr_command
+from tools.dev_pipeline.cli import (
+    _build_parser,
+    _github_slug,
+    _pr_command,
+    _push_command,
+)
 from tools.dev_pipeline.config import ConfigError, load_config
 from tools.dev_pipeline.freeflow import rank_models
+from tools.dev_pipeline.orchestrator import Pipeline, effective_fallbacks
 from tools.dev_pipeline.runner import AgentRunner, _message_text, _summarise_tool_args
 from tools.dev_pipeline.status import (
     BOARD_BEGIN,
@@ -214,6 +220,96 @@ class FallbackModelTests(unittest.TestCase):
         )
 
 
+class FallbackOptionTests(unittest.TestCase):
+    def test_run_parser_accepts_fallback_options(self) -> None:
+        args = _build_parser().parse_args(
+            [
+                "run",
+                "--fallback-model",
+                "pollinations/deepseek/deepseek-v4.1-flash-1017",
+                "--fallback-model",
+                "other/model",
+                "--fallback-only",
+            ]
+        )
+        self.assertEqual(
+            args.fallback_model,
+            ["pollinations/deepseek/deepseek-v4.1-flash-1017", "other/model"],
+        )
+        self.assertTrue(args.fallback_only)
+
+    def test_run_parser_defaults_to_no_fallback_overrides(self) -> None:
+        args = _build_parser().parse_args(["run"])
+        self.assertIsNone(args.fallback_model)
+        self.assertFalse(args.fallback_only)
+
+    def test_effective_fallbacks_appends_config_and_deduplicates(self) -> None:
+        config = SimpleNamespace(fallback_models=["configured/model", "shared/model"])
+        models = effective_fallbacks(
+            config, ["run/model", "shared/model", "  "]
+        )
+        self.assertEqual(
+            models, ["run/model", "shared/model", "configured/model"]
+        )
+
+    def test_effective_fallbacks_uses_config_without_overrides(self) -> None:
+        config = SimpleNamespace(fallback_models=["configured/model"])
+        self.assertEqual(effective_fallbacks(config), ["configured/model"])
+
+
+class FallbackOnlyPipelineTests(unittest.TestCase):
+    def _pipeline(self, fallback_models):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        project_dir = root / "project"
+        project_dir.mkdir()
+        agents = project_dir / "AGENTS.md"
+        agents.write_text("# AGENTS.md\n", encoding="utf-8")
+        store = StatusStore("gpt4free", agents)
+        store.add_task("Test fallback run", project="gpt4free")
+        store.save()
+        config_path = root / "dev-pipeline.json"
+        config_path.write_text(
+            json.dumps(
+                {
+                    "projects": {
+                        "gpt4free": {"path": "project", "checks": []}
+                    },
+                    "fallback_models": fallback_models,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return Pipeline(
+            load_config(root, config_path),
+            reporter=lambda *_: None,
+            fallback_models=fallback_models,
+            fallback_only=True,
+        )
+
+    def test_dry_run_skips_freeflow_and_uses_configured_fallback(self) -> None:
+        pipeline = self._pipeline(["pollinations/model"])
+        with mock.patch.object(
+            Pipeline,
+            "models",
+            side_effect=AssertionError("freeflow discovery must be skipped"),
+        ):
+            self.assertTrue(pipeline.run_once(dry_run=True))
+
+    def test_without_fallback_blocks_the_task(self) -> None:
+        pipeline = self._pipeline([])
+        with mock.patch.object(
+            Pipeline,
+            "models",
+            side_effect=AssertionError("freeflow discovery must be skipped"),
+        ):
+            self.assertFalse(pipeline.run_once())
+        task = pipeline.stores["gpt4free"].tasks[0]
+        self.assertEqual(task["status"], "blocked")
+        self.assertIn("no fallback model configured", task["notes"])
+
+
 class StreamingProgressTests(unittest.TestCase):
     def test_streaming_forwards_lines(self) -> None:
         lines = []
@@ -245,6 +341,168 @@ class StreamingProgressTests(unittest.TestCase):
             ),
             "hello world",
         )
+
+
+class GithubRemoteTests(unittest.TestCase):
+    def test_extracts_slug_from_github_urls(self) -> None:
+        for url in (
+            "https://github.com/x/y.git",
+            "https://GitHub.com/x/y.git",
+            "https://github.com/x/y",
+            "https://github.com/x/y.git/",
+            "git@github.com:x/y.git",
+            "ssh://git@github.com/x/y.git",
+            "ssh://git@github.com:22/x/y.git",
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(_github_slug(url), "x/y")
+
+    def test_rejects_github_lookalike_urls(self) -> None:
+        for url in (
+            "https://github.com.evil.example/x/y.git",
+            "https://example.com/github.com/x/y.git",
+            "https://notgithub.com/x/y.git",
+            "https://github.com@evil.example/x/y.git",
+            "https://evil.example/?repo=github.com/x/y.git",
+            "https://evil.example\\@github.com/x/y.git",
+            "https://[::1/x/y.git",
+            "git@github.com.evil.example:x/y.git",
+            "/tmp/github.com/x/y.git",
+        ):
+            with self.subTest(url=url):
+                self.assertIsNone(_github_slug(url))
+
+
+
+class PushCommandTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def _git(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", *args], cwd=self.root, text=True, capture_output=True
+        )
+
+    def _init_repo(self) -> None:
+        self._git("init", "-q")
+        self._git("config", "user.email", "test@example.com")
+        self._git("config", "user.name", "Test")
+        (self.root / "README.md").write_text("x\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "init")
+
+    def _run(self, remote=None):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = _push_command(SimpleNamespace(root=self.root), remote)
+        return code, out.getvalue(), err.getvalue()
+
+    def _add_remote(self, name: str) -> Path:
+        remote_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(remote_temp.cleanup)
+        bare = Path(remote_temp.name) / f"{name}.git"
+        subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+        self._git("remote", "add", name, str(bare))
+        return bare
+
+    def test_parser_accepts_push_options(self) -> None:
+        args = _build_parser().parse_args(["push"])
+        self.assertIsNone(args.remote)
+        args = _build_parser().parse_args(["push", "--remote", "fork"])
+        self.assertEqual(args.remote, "fork")
+
+    def test_rejects_non_git_directory(self) -> None:
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("not a git repository", err)
+
+    def test_rejects_missing_remote(self) -> None:
+        self._init_repo()
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("no git remote", err)
+
+    def test_rejects_unknown_requested_remote(self) -> None:
+        self._init_repo()
+        self._add_remote("origin")
+        code, _, err = self._run("fork")
+        self.assertEqual(code, 1)
+        self.assertIn("remote 'fork' is not configured", err)
+        self.assertIn("origin", err)
+
+    def test_rejects_detached_head(self) -> None:
+        self._init_repo()
+        self._add_remote("origin")
+        self._git("checkout", "--detach", "HEAD")
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("detached HEAD", err)
+
+    def test_pushes_current_branch_and_sets_upstream(self) -> None:
+        self._init_repo()
+        bare = self._add_remote("origin")
+        self._git("switch", "-c", "feature")
+        code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("pushed feature to origin", out)
+        self.assertEqual(
+            self._git("rev-parse", "--abbrev-ref", "feature@{u}").stdout.strip(),
+            "origin/feature",
+        )
+        remote_branches = subprocess.run(
+            ["git", "--git-dir", str(bare), "for-each-ref", "--format=%(refname:short)"],
+            text=True,
+            capture_output=True,
+        ).stdout
+        self.assertIn("feature", remote_branches)
+
+    def test_falls_back_to_writable_remote(self) -> None:
+        self._init_repo()
+        self._git(
+            "remote", "add", "origin", str(self.root / "missing" / "origin.git")
+        )
+        fork = self._add_remote("fork")
+        code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("origin is not writable", err)
+        self.assertIn("pushed", out)
+        self.assertIn("to fork", out)
+        remote_branches = subprocess.run(
+            ["git", "--git-dir", str(fork), "for-each-ref", "--format=%(refname:short)"],
+            text=True,
+            capture_output=True,
+        ).stdout
+        branch = self._git("branch", "--show-current").stdout.strip()
+        self.assertIn(branch, remote_branches)
+
+    def test_pushes_to_tracked_remote_first(self) -> None:
+        self._init_repo()
+        origin = self._add_remote("origin")
+        fork = self._add_remote("fork")
+        self._git("switch", "-c", "feature")
+        self._git("push", "-q", "-u", "fork", "feature")
+        (self.root / "change.txt").write_text("change\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "change")
+
+        code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("pushed feature to fork", out)
+        local_head = self._git("rev-parse", "HEAD").stdout.strip()
+        fork_head = subprocess.run(
+            ["git", "--git-dir", str(fork), "rev-parse", "feature"],
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+        self.assertEqual(fork_head, local_head)
+        origin_branches = subprocess.run(
+            ["git", "--git-dir", str(origin), "for-each-ref", "--format=%(refname:short)"],
+            text=True,
+            capture_output=True,
+        ).stdout
+        self.assertNotIn("feature", origin_branches)
 
 
 class PrCommandTests(unittest.TestCase):
@@ -290,6 +548,15 @@ class PrCommandTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("no GitHub remote", err)
 
+    def test_rejects_github_substring_in_remote_path(self) -> None:
+        self._init_repo()
+        self._git(
+            "remote", "add", "origin", "https://example.com/github.com/x/y.git"
+        )
+        code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("no GitHub remote", err)
+
     def test_rejects_missing_gh(self) -> None:
         self._init_repo()
         self._git("remote", "add", "origin", "https://github.com/x/y.git")
@@ -326,7 +593,8 @@ class PrCommandTests(unittest.TestCase):
         bare = Path(remote_temp.name) / "github.com" / "x" / "y.git"
         bare.parent.mkdir(parents=True)
         subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
-        self._git("remote", "add", "origin", str(bare))
+        self._git("remote", "add", "origin", "https://github.com/x/y.git")
+        self._git("remote", "set-url", "--push", "origin", str(bare))
         return bare
 
     def test_creates_branch_commit_pushes_and_opens_pr(self) -> None:
@@ -361,12 +629,62 @@ class PrCommandTests(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertIn("PR updated successfully", out)
 
-    def test_falls_back_to_writable_fork_when_origin_is_read_only(self) -> None:
+    def test_updates_pipeline_branch_in_place(self) -> None:
         self._init_repo()
-        # A read-only upstream URL still looks like GitHub but cannot be pushed.
+        bare = self._add_github_remote()
+        self._git("switch", "-c", "pipeline/pr-existing")
+        (self.root / "change.txt").write_text("change\n", encoding="utf-8")
+        env = self._fake_gh(existing=True)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("updating branch pipeline/pr-existing", out)
+        self.assertNotIn("created branch pipeline/pr-", out)
+        self.assertIn("PR updated successfully", out)
+        branches = self._git("branch", "--list", "pipeline/pr-*").stdout
+        self.assertEqual(
+            [line.strip("* ") for line in branches.splitlines()],
+            ["pipeline/pr-existing"],
+        )
+        remote_branches = subprocess.run(
+            ["git", "--git-dir", str(bare), "for-each-ref", "--format=%(refname:short)"],
+            text=True,
+            capture_output=True,
+        ).stdout
+        self.assertIn("pipeline/pr-existing", remote_branches)
+
+    def test_updates_pipeline_pr_without_new_changes(self) -> None:
+        self._init_repo()
+        self._add_github_remote()
+        self._git("switch", "-c", "pipeline/pr-existing")
+        head_before = self._git("rev-parse", "HEAD").stdout
+        env = self._fake_gh(existing=True)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("updating branch pipeline/pr-existing", out)
+        self.assertNotIn("committed", out)
+        self.assertIn("PR updated successfully", out)
+        self.assertEqual(self._git("rev-parse", "HEAD").stdout, head_before)
+
+    def test_clean_non_pipeline_branch_still_needs_changes(self) -> None:
+        self._init_repo()
+        self._add_github_remote()
+        env = self._fake_gh(existing=True)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, _, err = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("no changes to commit", err)
+
+    def test_pipeline_branch_pushes_to_tracked_remote_first(self) -> None:
+        self._init_repo()
+        self._git(
+            "remote", "add", "origin", "https://github.com/xtekky/gpt4free.git"
+        )
         self._git(
             "remote",
-            "add",
+            "set-url",
+            "--push",
             "origin",
             str(self.root / "missing" / "github.com" / "xtekky" / "gpt4free.git"),
         )
@@ -375,7 +693,44 @@ class PrCommandTests(unittest.TestCase):
         fork = Path(remote_temp.name) / "github.com" / "g4f-copilot" / "gpt4free.git"
         fork.parent.mkdir(parents=True)
         subprocess.run(["git", "init", "--bare", "-q", str(fork)], check=True)
-        self._git("remote", "add", "fork", str(fork))
+        self._git(
+            "remote", "add", "fork", "https://github.com/g4f-copilot/gpt4free.git"
+        )
+        self._git("remote", "set-url", "--push", "fork", str(fork))
+
+        self._git("switch", "-c", "pipeline/pr-existing")
+        self._git("push", "-u", "fork", "pipeline/pr-existing")
+        (self.root / "change.txt").write_text("change\n", encoding="utf-8")
+        env = self._fake_gh(existing=True)
+        with mock.patch.dict(os.environ, env, clear=False):
+            code, out, err = self._run()
+        self.assertEqual(code, 0, err)
+        self.assertIn("updating branch pipeline/pr-existing", out)
+        self.assertIn("to fork", out)
+        self.assertIn("PR updated successfully", out)
+
+    def test_falls_back_to_writable_fork_when_origin_is_read_only(self) -> None:
+        self._init_repo()
+        # A read-only upstream URL still looks like GitHub but cannot be pushed.
+        self._git(
+            "remote", "add", "origin", "https://github.com/xtekky/gpt4free.git"
+        )
+        self._git(
+            "remote",
+            "set-url",
+            "--push",
+            "origin",
+            str(self.root / "missing" / "github.com" / "xtekky" / "gpt4free.git"),
+        )
+        remote_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(remote_temp.cleanup)
+        fork = Path(remote_temp.name) / "github.com" / "g4f-copilot" / "gpt4free.git"
+        fork.parent.mkdir(parents=True)
+        subprocess.run(["git", "init", "--bare", "-q", str(fork)], check=True)
+        self._git(
+            "remote", "add", "fork", "https://github.com/g4f-copilot/gpt4free.git"
+        )
+        self._git("remote", "set-url", "--push", "fork", str(fork))
 
         (self.root / "change.txt").write_text("main\n", encoding="utf-8")
         env = self._fake_gh(existing=False)

@@ -8,6 +8,17 @@ from urllib.parse import parse_qs, urlparse, unquote
 from markitdown._base_converter import DocumentConverter, DocumentConverterResult
 from markitdown._stream_info import StreamInfo
 
+# Values produced by ``json.loads``; used to type the recursive metadata search.
+JsonValue = Union[
+    None,
+    bool,
+    int,
+    float,
+    str,
+    List["JsonValue"],
+    Dict[str, "JsonValue"],
+]
+
 # Hosts that serve YouTube content we can transcribe
 _YOUTUBE_HOSTS = (
     "www.youtube.com",
@@ -285,17 +296,17 @@ class YouTubeConverter(DocumentConverter):
                 return metadata[k]
         return default
 
-    def _findKey(self, json: Any, key: str) -> Union[str, None]:  # TODO: Fix json type
+    def _findKey(self, data: JsonValue, key: str) -> Optional[JsonValue]:
         """Recursively search for a key in nested dictionary/list structures."""
-        if isinstance(json, list):
-            for elm in json:
+        if isinstance(data, list):
+            for elm in data:
                 ret = self._findKey(elm, key)
                 if ret is not None:
                     return ret
-        elif isinstance(json, dict):
-            for k, v in json.items():
+        elif isinstance(data, dict):
+            for k, v in data.items():
                 if k == key:
-                    return json[k]
+                    return data[k]
                 if result := self._findKey(v, key):
                     return result
         return None

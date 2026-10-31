@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import urlsplit
 
 from .config import ConfigError, PipelineConfig, load_config
 from .freeflow import FreeflowError
@@ -72,6 +72,21 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--task", default=None, help="run a specific task id")
     run.add_argument("--project", default=None, help="restrict to one project")
     run.add_argument("--model", default=None, help="use one explicit freeflow model id")
+    run.add_argument(
+        "--fallback-model",
+        action="append",
+        default=None,
+        metavar="MODEL",
+        help=(
+            "provider-qualified model tried after freeflow models fail "
+            "(repeatable; added before configured fallback_models)"
+        ),
+    )
+    run.add_argument(
+        "--fallback-only",
+        action="store_true",
+        help="skip freeflow discovery and run with fallback models only",
+    )
     run.add_argument("--dry-run", action="store_true", help="show the plan without editing files")
     run.add_argument("--max-tasks", type=int, default=1, help="tasks to run in this invocation")
     run.add_argument("--loop", action="store_true", help="keep running tasks")
@@ -101,11 +116,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     doctor = sub.add_parser("doctor", help="check projects, agent, and freeflow health")
 
-    pr = sub.add_parser("pr", help="create a branch, commit, and open a PR with gh")
+    pr = sub.add_parser(
+        "pr", help="create or update a PR from the working tree with gh"
+    )
     pr.add_argument(
         "--remote",
         default=None,
         help="remote to push to (default: origin, then any other GitHub remote)",
+    )
+
+    push = sub.add_parser("push", help="push the current branch without opening a PR")
+    push.add_argument(
+        "--remote",
+        default=None,
+        help="remote to push to (default: the tracked remote, then origin, then others)",
     )
 
     return parser
@@ -239,6 +263,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 explicit_model=args.model,
                 commit=args.commit,
                 push=args.push,
+                fallback_models=args.fallback_model,
+                fallback_only=args.fallback_only,
             )
             if not args.no_lock:
                 with file_lock(config.lock_path):
@@ -313,6 +339,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.command == "pr":
             return _pr_command(config, args.remote)
 
+        if args.command == "push":
+            return _push_command(config, args.remote)
+
         parser.error(f"unknown command {args.command}")
         return 2
     except (ConfigError, FreeflowError, StatusError, LockError) as exc:
@@ -324,11 +353,38 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 
 def _github_slug(url: str) -> Optional[str]:
-    """Return ``owner/repo`` for a github.com remote URL, if it is one."""
-    match = re.search(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/?$", url.strip())
-    if not match:
+    """Return ``owner/repo`` for a GitHub remote URL, if it is one.
+
+    The host is compared exactly so that lookalike domains and paths that
+    merely contain ``github.com`` are not treated as GitHub remotes.
+    """
+    value = url.strip()
+    # Backslashes make URL parsers disagree about where the authority ends.
+    if not value or "\\" in value:
         return None
-    return f"{match.group(1)}/{match.group(2)}"
+    try:
+        if "://" in value:
+            parsed = urlsplit(value)
+            host = parsed.hostname
+            path = parsed.path
+        else:
+            # scp-like syntax: git@github.com:owner/repo.git
+            host_part, separator, path = value.partition(":")
+            if not separator:
+                return None
+            host = host_part.rsplit("@", 1)[-1]
+    except ValueError:
+        return None
+    if not host or host.lower() != "github.com":
+        return None
+    path = path.strip("/")
+    if path.endswith(".git"):
+        path = path[:-4]
+    parts = [part for part in path.split("/") if part]
+    if len(parts) != 2:
+        return None
+    owner, repo = parts
+    return f"{owner}/{repo}"
 
 
 def _push_remote_order(remotes: List[str], requested: Optional[str]) -> List[str]:
@@ -351,6 +407,75 @@ def _default_branch(git, remote: str) -> str:
         if check.returncode == 0:
             return candidate
     return ""
+
+
+def _push_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
+    """Push the current branch without creating a commit or a pull request."""
+    root = config.root
+
+    def fail(message: str) -> int:
+        print(f"dev-pipeline: push: {message}", file=sys.stderr)
+        return 1
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", *args],
+            cwd=root,
+            text=True,
+            capture_output=True,
+        )
+
+    if not (root / ".git").exists():
+        return fail("not a git repository (no .git directory)")
+
+    remotes_result = git("remote")
+    if remotes_result.returncode != 0:
+        return fail("could not list git remotes")
+    remotes = [
+        entry.strip() for entry in remotes_result.stdout.splitlines() if entry.strip()
+    ]
+    if not remotes:
+        return fail(
+            "no git remote configured; add one with: "
+            "git remote add origin https://github.com/<owner>/<repo>.git"
+        )
+    if remote is not None and remote not in remotes:
+        return fail(
+            f"remote {remote!r} is not configured; choose one of: "
+            + ", ".join(sorted(remotes))
+        )
+
+    branch_result = git("branch", "--show-current")
+    branch = branch_result.stdout.strip()
+    if branch_result.returncode != 0 or not branch:
+        return fail("could not determine the current branch (detached HEAD?)")
+
+    push_order = _push_remote_order(sorted(remotes), remote)
+    if remote is None:
+        upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+        if upstream.returncode == 0:
+            tracked = upstream.stdout.strip().split("/", 1)[0]
+            if tracked in remotes:
+                push_order = [tracked] + [
+                    name for name in push_order if name != tracked
+                ]
+
+    push_error = ""
+    for name in push_order:
+        attempt = git("push", "-u", name, branch)
+        if attempt.returncode == 0:
+            print(f"dev-pipeline: push: pushed {branch} to {name}")
+            return 0
+        push_error = one_line(attempt.stderr, 300)
+        if name != push_order[-1]:
+            print(
+                f"dev-pipeline: push: {name} is not writable, trying the next remote",
+                file=sys.stderr,
+            )
+    return fail(
+        f"failed to push {branch} to any remote ({', '.join(push_order)}): "
+        + push_error
+    )
 
 
 def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
@@ -384,7 +509,9 @@ def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
     github_remotes = {}
     for line in remote_lines:
         parts = line.split()
-        if len(parts) >= 2 and "github.com" in parts[1]:
+        if len(parts) < 2:
+            continue
+        if _github_slug(parts[1]) is not None:
             github_remotes.setdefault(parts[0], parts[1])
     if not github_remotes:
         return fail("no GitHub remote configured; `gh pr create` needs a github.com remote")
@@ -419,27 +546,48 @@ def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
     status = git("status", "--porcelain")
     if status.returncode != 0:
         return fail("could not read git status")
-    if not status.stdout.strip():
+    has_changes = bool(status.stdout.strip())
+    reusing_branch = branch.startswith("pipeline/pr-")
+    if not has_changes and not reusing_branch:
         return fail("no changes to commit")
 
-    pr_branch = "pipeline/pr-" + utc_now().replace("-", "").replace(":", "").replace("Z", "")
+    if reusing_branch:
+        # Already on a pipeline PR branch: update that PR in place instead of
+        # opening another one for the same change.
+        pr_branch = branch
+        print(f"dev-pipeline: pr: updating branch {pr_branch}")
+    else:
+        pr_branch = "pipeline/pr-" + utc_now().replace("-", "").replace(":", "").replace("Z", "")
+        created = git("switch", "-c", pr_branch)
+        if created.returncode != 0:
+            return fail("failed to create branch: " + one_line(created.stderr, 300))
+        print(f"dev-pipeline: pr: created branch {pr_branch}")
 
-    created = git("switch", "-c", pr_branch)
-    if created.returncode != 0:
-        return fail("failed to create branch: " + one_line(created.stderr, 300))
-    print(f"dev-pipeline: pr: created branch {pr_branch}")
+    if has_changes:
+        added = git("add", "-A")
+        if added.returncode != 0:
+            if not reusing_branch:
+                git("switch", branch)
+            return fail("failed to stage changes: " + one_line(added.stderr, 300))
 
-    added = git("add", "-A")
-    if added.returncode != 0:
-        git("switch", branch)
-        return fail("failed to stage changes: " + one_line(added.stderr, 300))
+        message = "pipeline: prepare PR"
+        committed = git("commit", "-m", message)
+        if committed.returncode != 0:
+            if not reusing_branch:
+                git("switch", branch)
+            return fail("failed to commit: " + one_line(committed.stderr, 300))
+        print(f"dev-pipeline: pr: committed {message}")
 
-    message = "pipeline: prepare PR"
-    committed = git("commit", "-m", message)
-    if committed.returncode != 0:
-        git("switch", branch)
-        return fail("failed to commit: " + one_line(committed.stderr, 300))
-    print(f"dev-pipeline: pr: committed {message}")
+    # Keep pushing to the remote that already tracks the existing PR branch
+    # before trying the default origin-first order.
+    if reusing_branch and remote is None:
+        upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+        if upstream.returncode == 0:
+            tracked = upstream.stdout.strip().split("/", 1)[0]
+            if tracked in github_remotes:
+                push_order = [tracked] + [
+                    name for name in push_order if name != tracked
+                ]
 
     pushed = None
     pushed_remote = None
@@ -458,7 +606,8 @@ def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
                 file=sys.stderr,
             )
     if pushed is None or pushed_remote is None:
-        git("switch", branch)
+        if not reusing_branch:
+            git("switch", branch)
         return fail(
             f"failed to push {pr_branch} to any GitHub remote "
             f"({', '.join(push_order)}): {push_error}"

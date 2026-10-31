@@ -109,6 +109,13 @@ bin/dev-pipeline run --dry-run --task G4F-003
 bin/dev-pipeline run --max-tasks 1
 bin/dev-pipeline run --max-tasks 3 --retry-blocked
 
+# Try an extra fallback model after the freeflow candidates fail
+bin/dev-pipeline run --fallback-model pollinations/deepseek/deepseek-v4.1-flash-1017
+
+# Skip freeflow discovery and run with fallbacks only (requires a fallback)
+bin/dev-pipeline run --fallback-only \
+  --fallback-model pollinations/deepseek/deepseek-v4.1-flash-1017
+
 # Run forever, one task every 15 minutes
 bin/dev-pipeline run --loop --max-tasks 1000 --interval 900
 
@@ -125,16 +132,29 @@ bin/dev-pipeline doctor
 
 # Create/update a PR from the current working tree
 bin/dev-pipeline pr
+
+# Push the current branch without creating or updating a PR
+bin/dev-pipeline push
+bin/dev-pipeline push --remote fork
 ```
 
+`push` pushes the current branch to a git remote without committing anything or
+requiring `gh`. It prefers the branch's tracked remote, then `origin`, and falls
+back to the other configured remotes when one is not writable. Use
+`--remote <name>` to force a specific remote.
+
 `pr` creates `pipeline/pr-<timestamp>`, commits the working tree, pushes it to
-a GitHub remote, then creates or updates the PR with `gh`. It tries `origin`
-first and falls back to another configured GitHub remote (typically a fork) when
-`origin` is read-only; cross-repo PRs use `owner:branch` as the head. Use
-`--remote <name>` to force a specific remote. Install `gh` and run
-`gh auth login`, or set `GH_TOKEN`/`GITHUB_TOKEN` (for example in CI). The
-command validates the repository, remote, `gh` availability, and authentication
-before it changes any branch, so a missing tool never leaves a half-made commit.
+a GitHub remote, then creates or updates the PR with `gh`. When the current
+branch is already a `pipeline/pr-*` branch, it commits and pushes that branch in
+place, so the existing PR is updated instead of a second PR being opened (a
+clean branch is allowed in that case). It tries `origin` first and falls back to
+another configured GitHub remote (typically a fork) when `origin` is read-only;
+cross-repo PRs use `owner:branch` as the head, and an existing branch keeps
+pushing to its tracked remote first. Use `--remote <name>` to force a specific
+remote. Install `gh` and run `gh auth login`, or set `GH_TOKEN`/`GITHUB_TOKEN`
+(for example in CI). The command validates the repository, remote, `gh`
+availability, and authentication before it changes any branch, so a missing
+tool never leaves a half-made commit.
 
 During `run`, the agent is invoked in Pi's JSON event mode. The pipeline prints
 each tool call as it happens and a heartbeat every 30 seconds, so a long agent
@@ -244,6 +264,11 @@ one because free lanes are rate-limited and occasionally return empty streams:
    Pollinations models can be paid. Fallbacks are opt-in and empty by default,
    so the free-only guarantee holds unless an operator adds them.
 
+   `run --fallback-model <id>` adds a fallback for one invocation (repeatable);
+   these are tried before the configured `fallback_models`. `run
+   --fallback-only` skips freeflow discovery entirely and uses only fallback
+   models, which is useful when the proxy is down or rate-limited.
+
 Probing stops as soon as `min_models` working models are found, to conserve free
 quotas. The default preferred order starts with OpenCode Zen and Kilo coding
 models, then OVHcloud models as keyless fallbacks.
@@ -331,7 +356,8 @@ The run lock prevents overlapping invocations.
 ## Safety notes
 
 - `--dry-run` does not edit `AGENTS.md`, does not run checks, and does not invoke
-  the agent. It does probe/list models unless a fresh cache exists.
+  the agent. It does probe/list models unless a fresh cache exists, or unless
+  `--fallback-only` is set.
 - Baseline checks run before the model is invoked. A broken checkout is marked
   `blocked` instead of burning model attempts on an unrelated failure.
 - Commits are opt-in (`--commit`); pushes require both `--commit` and `--push`.

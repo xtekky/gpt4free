@@ -227,6 +227,18 @@ def discover_todos(
     return created
 
 
+def effective_fallbacks(
+    config: PipelineConfig, extra: Optional[Sequence[str]] = None
+) -> List[str]:
+    """Merge per-run fallback models with the configured ones, preserving order."""
+    models: List[str] = []
+    for model in list(extra or []) + list(config.fallback_models):
+        model = str(model).strip()
+        if model and model not in models:
+            models.append(model)
+    return models
+
+
 class Pipeline:
     def __init__(
         self,
@@ -236,6 +248,8 @@ class Pipeline:
         explicit_model: Optional[str] = None,
         commit: Optional[bool] = None,
         push: Optional[bool] = None,
+        fallback_models: Optional[Sequence[str]] = None,
+        fallback_only: bool = False,
     ):
         self.config = config
         self.reporter = reporter
@@ -243,6 +257,10 @@ class Pipeline:
         self.explicit_model = explicit_model
         self.commit = config.commit if commit is None else commit
         self.push = config.push if push is None else push
+        self.fallback_models = (
+            None if fallback_models is None else list(fallback_models)
+        )
+        self.fallback_only = fallback_only
         self.stores = load_stores(config)
         self.runner: Optional[AgentRunner] = None
 
@@ -370,29 +388,41 @@ class Pipeline:
         self.log(f"Priority: {task.get('priority')}  Attempts: {task.get('attempts', 0)}")
 
         freeflow_error = ""
-        try:
-            client, working, failed, from_cache = self.models(
-                refresh=self.refresh_models, project_name=owner
-            )
-        except FreeflowError as exc:
-            client = None
-            working, failed, from_cache = [], [], False
-            freeflow_error = str(exc)
+        client = None
+        working, failed, from_cache = [], [], False
+        if self.fallback_only:
+            self.log("Fallback-only run: skipping freeflow model discovery.")
+        else:
+            try:
+                client, working, failed, from_cache = self.models(
+                    refresh=self.refresh_models, project_name=owner
+                )
+            except FreeflowError as exc:
+                freeflow_error = str(exc)
 
         candidates = [str(item.get("id")) for item in working if item.get("id")]
-        fallbacks = [model for model in self.config.fallback_models if model]
+        fallbacks = effective_fallbacks(self.config, self.fallback_models)
         if not candidates and not fallbacks:
-            if freeflow_error:
+            if self.fallback_only:
+                self.log(
+                    "Fallback-only run requested, but no fallback model is configured. "
+                    "Use --fallback-model or add 'fallback_models' to dev-pipeline.json."
+                )
+            elif freeflow_error:
                 self.log(f"No working free model: {freeflow_error}")
             else:
                 self.log("No working free model returned by the proxy.")
             if dry_run:
                 return False
+            reason = (
+                "no fallback model configured for --fallback-only"
+                if self.fallback_only
+                else one_line(freeflow_error or "empty proxy catalog", 300)
+            )
             store.update_task(
                 str(task.get("id")),
                 status="blocked",
-                notes="No working freeflow model: "
-                + one_line(freeflow_error or "empty proxy catalog", 300),
+                notes="No usable model: " + reason,
             )
             store.record_run(
                 {
@@ -402,8 +432,7 @@ class Pipeline:
                     "result": "blocked",
                     "started": utc_now(),
                     "finished": utc_now(),
-                    "detail": "no working free model: "
-                    + one_line(freeflow_error or "empty proxy catalog", 250),
+                    "detail": "no usable model: " + one_line(reason, 250),
                 }
             )
             store.save()
