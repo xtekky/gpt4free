@@ -711,6 +711,11 @@ def _pr_command(config: PipelineConfig, remote: Optional[str] = None) -> int:
                     "(classic) query; updated the PR through the REST API"
                 )
                 result = fallback
+                if fallback.returncode == 0:
+                    # gh pr edit is quiet; do not dump the API response.
+                    result = subprocess.CompletedProcess(
+                        fallback.args, fallback.returncode, "", fallback.stderr
+                    )
     else:
         result = subprocess.run(
             [

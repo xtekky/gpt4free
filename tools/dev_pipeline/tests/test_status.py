@@ -656,6 +656,7 @@ class PrCommandTests(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertIn("REST API", out)
         self.assertIn("PR updated successfully", out)
+        self.assertNotIn('"url"', out)
 
     def test_updates_pipeline_branch_in_place(self) -> None:
         self._init_repo()
