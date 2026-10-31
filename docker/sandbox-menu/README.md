@@ -116,7 +116,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open AI Image Detector | `aidetect` | pip `git+lynote-ai/ai-image-detector` | `aidetect` |
 | Install & Open OpenBot   | `openbot`   | GitHub release AppImage     | `openbot`      |
 | Install & Open ThinkRail | `thinkrail` | JetBrains install script    | `thinkrail`    |
-| Install & Open Orca      | `orca`      | GitHub release AppImage     | `orca`         |
+| Install & Open Orca      | `orca`      | GitHub latest AppImage (stable URL) | `orca`, `orca-ide` |
 | Install & Open VoiceStudio | `voicestudio` | GitHub release AppImage (x64) | `voicestudio` |
 | Install & Open HyperFrames | `hyperframes` | npm `hyperframes`         | `hyperframes`  |
 | Install & Open DeepTutor | `deeptutor` | pip `deeptutor[full]`       | `deeptutor`    |
@@ -182,7 +182,12 @@ resolved from the GitHub API, the AppImage is unpacked into
 `~/.local/bin` pins `APPDIR` and adds `--no-sandbox` only when unprivileged
 user namespaces are unavailable. OpenBot and Orca ship x64 and arm64 assets;
 VoiceStudio only ships x64. The entries open the apps detached on the desktop,
-like Jan and LobeChat. **ThinkRail** instead uses JetBrains' own installer,
+like Jan and LobeChat. Orca instead uses its stable
+`/releases/latest/download/` AppImage URL (the API lookup is rate-limited) and
+installs a launcher that turns on software rendering and disables the GPU,
+because Orca's Chromium GPU process crashes on the sandbox's virtual display.
+It is also available as `orca-ide`, the upstream name for the Linux CLI.
+**ThinkRail** instead uses JetBrains' own installer,
 which verifies a SHA-256 and writes `~/.local/bin/thinkrail`; the entry installs
 `git` too, because ThinkRail needs it to open a project.
 

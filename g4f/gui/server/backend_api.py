@@ -98,6 +98,20 @@ from .api import Api
 logger = logging.getLogger(__name__)
 storage = FileStorage()
 
+
+@lru_cache(maxsize=1)
+def _get_webmcp_server():
+    """Return the shared MCP server used by the WebMCP endpoint.
+
+    Building a new ``MCPServer`` (and its full tool registry) for every
+    request made listing tools unnecessarily expensive. The registry is
+    immutable, so one instance can safely serve every request.
+    """
+    from ...mcp.server import MCPServer
+
+    return MCPServer(github_token=os.environ.get("GITHUB_TOKEN"))
+
+
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -133,6 +147,14 @@ class Backend_Api(Api):
         self.app: Flask = app
         self.chat_cache = {}
         self.client = Client()
+
+        # Warm the shared MCP registry during startup so the first
+        # /backend-api/v2/webmcp/tools request is served from cache instead of
+        # paying the import and schema-building cost.
+        try:
+            _get_webmcp_server().get_tool_list()
+        except Exception as error:  # pragma: no cover - optional dependencies
+            logging.getLogger(__name__).debug("MCP warm-up skipped: %s", error)
 
         if has_crypto:
             private_key_obj = get_session_key()
@@ -209,10 +231,9 @@ class Backend_Api(Api):
         async def handle_webmcp_tools():
             """WebMCP API endpoint for listing and executing backend tools."""
             try:
-                from g4f.mcp.server import MCPServer
                 from g4f.mcp.server import MCPRequest
 
-                mcp_server = MCPServer()
+                mcp_server = _get_webmcp_server()
                 if request.method == "GET":
                     tool_list = mcp_server.get_tool_list()
                     return jsonify({

@@ -712,6 +712,15 @@ def create_app():
     api.register_authorization()
     api.register_validation_exception_handler()
 
+    # Warm the MCP server and its tool registry while the app starts, so the
+    # first tools/list request does not have to import the MCP modules and
+    # rebuild every tool schema. This keeps the MCP tools panel fast even on a
+    # cold backend.
+    try:
+        api.get_mcp_server().get_tool_list()
+    except Exception as error:  # pragma: no cover - optional tool dependencies
+        logger.debug("MCP server warm-up skipped: %s", error)
+
     # Optional noVNC desktop: serve the client at /desktop/ and the VNC bridge
     # on the same port. Opt-in via G4F_VNC_PORT (see vnc_relay).
     from .vnc_relay import register_vnc_routes

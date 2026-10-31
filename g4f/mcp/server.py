@@ -218,19 +218,26 @@ class MCPServer:
             "sandboxed": self.sandboxed,
             "safe_mode": self.safe_mode,
         }
+        self._tool_list_cache: Optional[List[Dict[str, Any]]] = None
 
     def get_tool_list(self) -> List[Dict[str, Any]]:
-        """Get list of available tools with their schemas"""
-        tool_list = []
-        for name, tool in self.tools.items():
-            tool_list.append(
+        """Get list of available tools with their schemas.
+
+        The registry is immutable for the lifetime of the server, so build the
+        schemas once and reuse them. Rebuilding several dozen dictionaries on
+        every ``tools/list`` request adds avoidable latency to the MCP tools
+        panel (and to clients that poll it).
+        """
+        if self._tool_list_cache is None:
+            self._tool_list_cache = [
                 {
                     "name": name,
                     "description": tool.description,
                     "inputSchema": tool.input_schema,
                 }
-            )
-        return tool_list
+                for name, tool in self.tools.items()
+            ]
+        return self._tool_list_cache
 
     async def handle_request(self, request: MCPRequest) -> Optional[MCPResponse]:
         """Handle incoming MCP request.
