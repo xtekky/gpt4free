@@ -40,6 +40,7 @@ from .tools import (
     ImageGenerationTool,
     PythonExecuteTool,
     ShellExecuteTool,
+    PolliPublishAppTool,
     FileReadTool,
     FileListTool,
     FileDeleteTool,
@@ -175,6 +176,7 @@ class MCPServer:
             "text_to_audio": TextToAudioTool(),
             "mark_it_down": MarkItDownTool(),
             "python_execute": PythonExecuteTool(safe_mode=safe_mode),
+            "polli_publish_app": PolliPublishAppTool(),
             "apply_patch": ApplyPatchTool(),
             "file_read": FileReadTool(),
             "file_list": FileListTool(safe_mode=safe_mode),
@@ -207,7 +209,8 @@ class MCPServer:
             self.tools["shell_execute"] = ShellExecuteTool()
         description = (
             "MCP server providing web search, scraping, image generation, "
-            "safe Python execution, and workspace file management capabilities"
+            "safe Python execution, workspace file management, and "
+            "Pollinations app publishing capabilities"
         )
         if self.shell_enabled:
             description += ", plus shell/terminal command execution (host mode)"

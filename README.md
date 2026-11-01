@@ -335,6 +335,8 @@ Add to your `claude_desktop_config.json`:
 - `web_search` - Search the web using DuckDuckGo
 - `web_scrape` - Extract text content from web pages  
 - `image_generation` - Generate images from text prompts
+- `polli_publish_app` - Publish a built app from the workspace to
+  `https://<name>.pollinations.app` with the Pollinations CLI
 
 For detailed MCP documentation, see [g4f/mcp/README.md](g4f/mcp/README.md)
 

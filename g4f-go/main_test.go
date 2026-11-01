@@ -53,3 +53,28 @@ func TestEnsureG4FPackage_NoLookupNeededForMatchingPin(t *testing.T) {
 		t.Fatal("ensureG4FPackage() with a changed pin expected an error (reinstall attempted), got nil")
 	}
 }
+
+func TestEnsureG4FPackage_BuiltinSkipsAutoUpgrade(t *testing.T) {
+	if IsTermuxSystem() {
+		t.Skip("termux runtime path uses system python flow")
+	}
+
+	binDir := t.TempDir()
+	if err := markBuiltinG4F(binDir); err != nil {
+		t.Fatalf("markBuiltinG4F: %v", err)
+	}
+	if !builtinG4F(binDir) {
+		t.Fatal("builtin marker was not written")
+	}
+
+	// The image ships g4f from a local checkout: api must use it as-is and
+	// must not run pip (the interpreter path does not exist).
+	if err := ensureG4FPackage(binDir, "/missing/python", []string{"api"}, ""); err != nil {
+		t.Fatalf("ensureG4FPackage() touched a builtin g4f: %v", err)
+	}
+
+	// An explicit pin still wins over the builtin package.
+	if err := ensureG4FPackage(binDir, "/missing/python", []string{"api"}, "1.5.0"); err == nil {
+		t.Fatal("explicit pin should attempt a pinned install instead of using the builtin g4f")
+	}
+}

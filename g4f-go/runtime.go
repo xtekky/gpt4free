@@ -157,6 +157,9 @@ func installG4F(binDir, exe, pin string, start time.Time) error {
 	if err := writePinnedG4FVersion(binDir, pin); err != nil {
 		return err
 	}
+	// This was a PyPI install, so the runtime no longer holds the image's
+	// builtin/editable checkout.
+	clearBuiltinG4F(binDir)
 	fmt.Printf("gpt4free installed in %.1fs\n", time.Since(start).Seconds())
 	return nil
 }
@@ -176,6 +179,8 @@ func upgradeG4F(binDir, exe string, start time.Time) error {
 	if err != nil || code != 0 {
 		return fmt.Errorf("pip upgrade g4f failed (exit %d): %w", code, err)
 	}
+	// An explicit upgrade replaces the builtin checkout with PyPI's release.
+	clearBuiltinG4F(binDir)
 	fmt.Printf("gpt4free upgraded in %.1fs\n", time.Since(start).Seconds())
 	return nil
 }

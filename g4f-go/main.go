@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"g4f-go/freeflow"
 	"g4f-go/polli"
 	"g4f-go/sandbox"
 )
@@ -33,6 +34,9 @@ Usage:
   g4f-go sandbox --desktop exec <cmd...>  run a command in the desktop sandbox
   g4f-go sandbox-cli [args]   run sandbox-cli in the desktop container
   g4f-go polli-sandbox        create a Polli cloud sandbox with g4f-go + sandbox-cli
+  g4f-go freeflow             run the pi-freeflow proxy without Pi/OMP
+  g4f-go freeflow status      show the standalone freeflow endpoint and API key
+  g4f-go freeflow install     install/update the pi-freeflow npm package
   g4f-go turn serve           run the embedded STUN/TURN relay (pion/turn)
   g4f-go turn status          show the embedded STUN/TURN relay
   g4f-go turn credentials     mint TURN REST credentials for a client
@@ -112,6 +116,12 @@ func runMain() int {
 		return polli.Run(args[1:])
 	}
 
+	// `freeflow` installs and runs the pi-freeflow proxy on its own, without
+	// the Pi/OMP host (and without the Python runtime).
+	if args[0] == "freeflow" || args[0] == "pi-freeflow" {
+		return freeflow.Run(args[1:])
+	}
+
 	// `update` replaces the launcher itself and `uninstall` removes the
 	// launcher plus its managed data. Neither needs the Python runtime.
 	// `uninstall <package>` stays a pip passthrough (handled below).
@@ -171,7 +181,11 @@ func runMain() int {
 			fmt.Println("runtime:    not downloaded yet (will download on first run)")
 		}
 		if _, serr := os.Stat(stamp); serr == nil {
-			fmt.Println("g4f:        installed")
+			if builtinG4F(binDir) {
+				fmt.Println("g4f:        installed (builtin/local checkout)")
+			} else {
+				fmt.Println("g4f:        installed")
+			}
 		} else {
 			fmt.Println("g4f:        not installed (will install on first run)")
 		}
@@ -209,6 +223,13 @@ func runMain() int {
 			// Keep the -v pin in sync with an explicit pip passthrough
 			// (`install g4f` unpins, `install g4f==X.Y.Z` pins).
 			syncPinWithInstallSpec(binDir, args)
+			// An editable checkout (`install -e /path`) is the image's own
+			// g4f: record it so api/gui never replace it with PyPI's latest.
+			if isEditableG4FInstall(args) {
+				if merr := markBuiltinG4F(binDir); merr != nil {
+					fmt.Fprintln(os.Stderr, "g4f-go: recording builtin g4f:", merr)
+				}
+			}
 		}
 		return code
 	case "bootstrap":
@@ -216,6 +237,10 @@ func runMain() int {
 		code, err := runPython(ctx, py, []string{"-m", "pip", "install", "--no-input", g4fSpec(pin)}, pipEnv(binDir)...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
+		}
+		if code == 0 {
+			// bootstrap installs g4f from PyPI, replacing a builtin checkout.
+			clearBuiltinG4F(binDir)
 		}
 		return code
 	}
@@ -300,6 +325,11 @@ func ensureG4FPackage(binDir, py string, args []string, pin string) error {
 		// First call, or the pin changed: (re)install g4f.
 		start := time.Now()
 		return installG4F(binDir, py, pin, start)
+	}
+	if pin == "" && builtinG4F(binDir) {
+		// The runtime holds a local/editable g4f (sandbox image). Never
+		// replace it with the latest PyPI release on api/gui runs.
+		return nil
 	}
 	if pin == "" && len(args) > 0 && isUpgradeCommand(args[0]) {
 		// Subsequent call with gui/api/dev: upgrade g4f. Skipped while a

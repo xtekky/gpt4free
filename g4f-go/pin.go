@@ -65,6 +65,66 @@ func pinnedVersionStamp(binDir string) string {
 	return filepath.Join(binDir, ".g4f-runtime", ".g4f-version")
 }
 
+// builtinStamp marks a runtime whose g4f came from a local checkout (an
+// editable install, as in the sandbox desktop image) instead of PyPI. The
+// package is authoritative: the launcher must not replace it with the latest
+// PyPI release on api/gui runs.
+func builtinStamp(binDir string) string {
+	return filepath.Join(binDir, ".g4f-runtime", ".builtin")
+}
+
+func builtinG4F(binDir string) bool {
+	_, err := os.Stat(builtinStamp(binDir))
+	return err == nil
+}
+
+// markBuiltinG4F records that the runtime holds a local/editable g4f and that
+// it is installed. Explicit PyPI installs and upgrades clear the marker again.
+func markBuiltinG4F(binDir string) error {
+	dir := filepath.Join(binDir, ".g4f-runtime")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".installed"), []byte("g4f installed"), 0o644); err != nil {
+		return err
+	}
+	return os.WriteFile(builtinStamp(binDir), []byte("builtin\n"), 0o644)
+}
+
+func clearBuiltinG4F(binDir string) {
+	if err := os.Remove(builtinStamp(binDir)); err != nil && !os.IsNotExist(err) {
+		fmt.Fprintln(os.Stderr, "g4f-go: clearing builtin marker:", err)
+	}
+}
+
+// isEditableG4FInstall reports whether a `g4f-go install ...` passthrough
+// installs g4f from a local checkout, e.g. `install -e /app/gpt4free[all]`.
+// Those installs are treated as the image's builtin package.
+func isEditableG4FInstall(args []string) bool {
+	if len(args) == 0 || args[0] != "install" {
+		return false
+	}
+	for _, arg := range args[1:] {
+		switch {
+		case arg == "-e", arg == "--editable":
+			return true
+		case strings.HasPrefix(arg, "--editable="):
+			return true
+		}
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+		name := arg
+		if i := strings.IndexByte(name, '['); i >= 0 {
+			name = name[:i]
+		}
+		if strings.HasPrefix(name, ".") || strings.HasPrefix(name, "/") || strings.HasPrefix(name, "~") {
+			return true
+		}
+	}
+	return false
+}
+
 // readPinnedG4FVersion returns the persisted pin ("" when unpinned).
 func readPinnedG4FVersion(binDir string) string {
 	data, err := os.ReadFile(pinnedVersionStamp(binDir))
@@ -132,6 +192,8 @@ func syncPinWithInstallSpec(binDir string, pipArgs []string) {
 		if err := writePinnedG4FVersion(binDir, pin); err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go: writing version pin:", err)
 		}
+		// An explicit PyPI g4f install replaces the image's builtin package.
+		clearBuiltinG4F(binDir)
 		return
 	}
 }

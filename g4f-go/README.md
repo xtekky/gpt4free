@@ -87,6 +87,8 @@ g4f-go sandbox [command]    run the g4f sandbox container (g4f-sandbox)
 g4f-go start-desktop-sandbox [--app TOOL] [options]  start the desktop sandbox
 g4f-go sandbox-cli [args]   run sandbox-cli in the desktop container
 g4f-go polli-sandbox        create a Polli cloud sandbox with g4f-go + sandbox-cli
+g4f-go freeflow             run the pi-freeflow proxy without Pi/OMP
+g4f-go freeflow status      show the standalone freeflow endpoint and API key
 g4f-go turn serve           run the embedded STUN/TURN server in the foreground
 g4f-go turn status          show the configured/running STUN/TURN server
 g4f-go turn credentials     mint TURN REST credentials for a client
@@ -122,6 +124,13 @@ version, as does `--version`.
 
 An explicit `g4f-go install g4f` (unpinned) or `g4f-go install g4f==X.Y.Z`
 updates the stored pin to match what was installed.
+
+Installing a local checkout (`g4f-go install -e /path/to/gpt4free`) marks the
+runtime as **builtin**. The launcher then serves that package as-is: the
+`api`/`gui` auto-upgrade never replaces it with PyPI's latest. This is what the
+sandbox desktop image uses, so its first `g4f-go api` call does not download or
+upgrade g4f. An explicit `g4f-go install g4f`, `g4f-go upgrade` or `g4f-go
+bootstrap` opts back into PyPI and clears the marker.
 
 ## Updating and uninstalling
 
@@ -211,6 +220,29 @@ a preinstalled binary and tools. The older native Termux Python backend remains
 available with `--backend termux` (API-only). Selecting another backend
 explicitly, for example `--engine docker`, still wins over the Termux
 autodetection.
+
+## Standalone pi-freeflow (`freeflow`)
+
+The free-model catalog behind `bin/dev-pipeline` is normally loaded as an
+extension by Pi or Oh My Pi (OMP). `g4f-go freeflow` installs the same
+[`pi-freeflow`](https://github.com/trefeon/pi-freeflow) npm package into
+`~/.g4f/freeflow` and runs its proxy daemon directly, with no Pi/OMP host and
+no Python runtime:
+
+```
+g4f-go freeflow                    # install (first run) and serve on :28180
+g4f-go freeflow --port 9090        # use another loopback port
+g4f-go freeflow install --force    # update the npm package
+g4f-go freeflow status             # package, base URL, API key, daemon health
+```
+
+It exposes the OpenAI-compatible endpoint `http://127.0.0.1:28180/v1` and
+prints the bearer token from `~/.pi/agent/token`. The daemon stays in the
+foreground until Ctrl-C, and logs to `~/.pi/agent/pi-freeflow.log`. Existing
+OMP/Pi installs are reused when present; otherwise the package is installed
+with `npm` (Node.js >= 22.19 is required). Set `G4F_FREEFLOW_HOME` to move the
+private install, or `PI_FREEFLOW_DATA_DIR`/`PI_FREEFLOW_PORT` to match the
+extension's own settings.
 
 ## Polli cloud sandbox (`polli-sandbox`)
 

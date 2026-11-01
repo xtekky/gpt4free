@@ -15,6 +15,8 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 - BrowserNavigateTool / BrowserEvaluateTool / BrowserScreenshotTool / BrowserCloseTool:
   Browser automation over a shared Chrome DevTools Protocol session that is
   closed automatically after an idle period
+- PolliPublishAppTool: Publish a static app from the workspace to
+  ``https://<name>.pollinations.app`` through the Pollinations CLI
 """
 
 from __future__ import annotations
@@ -24,8 +26,10 @@ from abc import ABC, abstractmethod
 import asyncio
 import base64
 import fnmatch
+import json
 import os
 import re
+import shutil
 import time
 import urllib.parse
 
@@ -632,6 +636,222 @@ class ShellExecuteTool(MCPTool):
             "stdout": _decode(stdout),
             "stderr": _decode(stderr),
         }
+
+
+#: Maximum wall-clock seconds a Pollinations site deploy may run.
+POLLI_MAX_TIMEOUT = 900.0
+#: Default wall-clock seconds before a Pollinations site deploy is killed.
+POLLI_DEFAULT_TIMEOUT = 300.0
+#: Maximum characters kept from polli stdout / stderr each.
+POLLI_MAX_OUTPUT = 40_000
+
+
+def _truncate_output(text: str, limit: int = POLLI_MAX_OUTPUT) -> str:
+    if len(text) <= limit:
+        return text
+    omitted = len(text) - limit
+    return text[:limit] + f"\n… [{omitted} characters truncated]"
+
+
+class PolliPublishAppTool(MCPTool):
+    """Publish a static app from the workspace with the Pollinations CLI.
+
+    Wraps ``polli sites deploy <dir> --name <name>`` so agents can publish a
+    built app from the workspace without using the general shell tool. The
+    folder must live inside the workspace and contain an ``index.html``.
+    """
+
+    @property
+    def description(self) -> str:
+        return (
+            "Publish a static app/website from a folder inside the workspace "
+            "to https://<name>.pollinations.app using the Pollinations CLI. "
+            "The folder must contain an index.html. Requires the 'polli' CLI "
+            "to be installed and authenticated (run 'polli auth login'). "
+            "Returns the public site URL; publishing the same name replaces "
+            "the existing site."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": (
+                        "Site name: 3-32 lowercase letters, digits and hyphens, "
+                        "starting with a letter"
+                    ),
+                },
+                "path": {
+                    "type": "string",
+                    "description": (
+                        "Folder to publish, relative to the workspace root "
+                        "(default: the workspace root)"
+                    ),
+                    "default": ".",
+                },
+                "verify": {
+                    "type": "boolean",
+                    "description": (
+                        "Check every published file against the local build "
+                        "after deploying (default: false)"
+                    ),
+                    "default": False,
+                },
+                "timeout": {
+                    "type": "number",
+                    "description": (
+                        "Wall-clock seconds to allow before the deploy is "
+                        f"killed (max {POLLI_MAX_TIMEOUT:.0f}s; "
+                        f"default {POLLI_DEFAULT_TIMEOUT:.0f}s)"
+                    ),
+                },
+            },
+            "required": ["name"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from .pa_provider import get_workspace_dir
+
+        name = str(arguments.get("name", "") or "").strip()
+        if not name:
+            return {"error": "name parameter is required"}
+        if not re.fullmatch(r"[a-z][a-z0-9-]{2,31}", name):
+            return {
+                "error": (
+                    "Invalid site name. Use 3-32 lowercase letters, digits and "
+                    "hyphens, starting with a letter."
+                )
+            }
+
+        rel_path = str(arguments.get("path", ".") or ".").strip() or "."
+        workspace = get_workspace_dir().resolve()
+        try:
+            target = (workspace / rel_path).resolve()
+            target.relative_to(workspace)
+        except (ValueError, OSError):
+            return {"error": "Access outside the workspace is not allowed"}
+        if not target.is_dir():
+            return {"error": f"Directory not found: {rel_path}"}
+        if not (target / "index.html").is_file():
+            return {
+                "error": (
+                    f"No index.html found in {rel_path!r}. Publish a folder "
+                    "that contains the built app entry point."
+                )
+            }
+
+        polli_bin = os.environ.get("POLLI_BIN", "").strip() or shutil.which("polli")
+        if not polli_bin:
+            return {
+                "error": (
+                    "The 'polli' CLI was not found. Install it with "
+                    "'npm i -g @pollinations/cli@latest' and run "
+                    "'polli auth login'."
+                )
+            }
+
+        timeout = POLLI_DEFAULT_TIMEOUT
+        requested_timeout = arguments.get("timeout")
+        if requested_timeout is not None:
+            try:
+                timeout = min(
+                    max(float(requested_timeout), 0.1), POLLI_MAX_TIMEOUT
+                )
+            except (TypeError, ValueError):
+                return {"error": "timeout must be a number"}
+
+        verify = bool(arguments.get("verify", False))
+        command = [
+            polli_bin,
+            "--json",
+            "sites",
+            "deploy",
+            str(target),
+            "--name",
+            name,
+        ]
+        if verify:
+            command.append("--verify")
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                cwd=str(target),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                stdin=asyncio.subprocess.DEVNULL,
+            )
+        except (OSError, ValueError) as exc:
+            return {"error": f"Failed to start polli: {exc}"}
+
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            try:
+                process.kill()
+                await process.wait()
+            except OSError:
+                pass
+            return {
+                "error": (
+                    f"polli sites deploy timed out after {timeout:g}s "
+                    "and was killed"
+                ),
+                "name": name,
+                "path": rel_path,
+                "timed_out": True,
+            }
+        except Exception as exc:
+            try:
+                process.kill()
+                await process.wait()
+            except OSError:
+                pass
+            return {"error": f"polli sites deploy failed: {exc}"}
+
+        stdout_text = _truncate_output(
+            (stdout or b"").decode("utf-8", errors="replace")
+        )
+        stderr_text = _truncate_output(
+            (stderr or b"").decode("utf-8", errors="replace")
+        )
+
+        site: Any = None
+        if stdout_text.strip():
+            try:
+                site = json.loads(stdout_text)
+            except (json.JSONDecodeError, ValueError):
+                site = None
+
+        result: Dict[str, Any] = {
+            "name": name,
+            "path": rel_path,
+            "verified": verify,
+            "exit_code": process.returncode,
+        }
+        if isinstance(site, dict):
+            result["site"] = site
+            if site.get("url"):
+                result["url"] = site["url"]
+        elif stdout_text.strip():
+            result["stdout"] = stdout_text
+        if stderr_text.strip():
+            result["stderr"] = stderr_text
+
+        if process.returncode != 0:
+            result["error"] = (
+                stderr_text.strip()
+                or (stdout_text.strip() if not isinstance(site, dict) else "")
+                or f"polli exited with code {process.returncode}"
+            )
+            if "auth" in result["error"].lower():
+                result["error"] += " (run `polli auth login` and retry)"
+        return result
 
 
 class FileReadTool(MCPTool):

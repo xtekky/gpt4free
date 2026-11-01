@@ -11,6 +11,7 @@ through the Model Context Protocol standard, allowing AI assistants to access:
 - Workspace file management (read, write, list, delete) in the workspace
   directory (``~/.g4f/workspace`` by default, overridable with ``G4F_DIR``)
 - .pa.py custom provider loading and execution
+- Publishing workspace apps to Pollinations sites with the ``polli`` CLI
 """
 
 from .server import MCPServer
@@ -27,6 +28,7 @@ from .tools import (
     ImageGenerationTool,
     PythonExecuteTool,
     ShellExecuteTool,
+    PolliPublishAppTool,
     FileReadTool,
     FileListTool,
     FileDeleteTool,
@@ -60,6 +62,7 @@ __all__ = [
     # New tools
     "PythonExecuteTool",
     "ShellExecuteTool",
+    "PolliPublishAppTool",
     "FileReadTool",
     "FileListTool",
     "FileDeleteTool",

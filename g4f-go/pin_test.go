@@ -188,3 +188,47 @@ func TestSyncPinWithInstallSpec(t *testing.T) {
 		t.Fatalf("pin after uninstall = %q, want 1.6.1", got)
 	}
 }
+
+func TestIsEditableG4FInstall(t *testing.T) {
+	cases := []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"install", "-e", "/app/gpt4free[all]"}, true},
+		{[]string{"install", "--editable", "./gpt4free"}, true},
+		{[]string{"install", "--editable=."}, true},
+		{[]string{"install", "/app/gpt4free[all]"}, true},
+		{[]string{"install", "./"}, true},
+		{[]string{"install", "g4f"}, false},
+		{[]string{"install", "g4f[slim]==1.5.0"}, false},
+		{[]string{"uninstall", "-e", "/app/gpt4free"}, false},
+		{nil, false},
+	}
+	for _, tc := range cases {
+		if got := isEditableG4FInstall(tc.args); got != tc.want {
+			t.Errorf("isEditableG4FInstall(%v) = %v, want %v", tc.args, got, tc.want)
+		}
+	}
+}
+
+func TestBuiltinMarkerLifecycle(t *testing.T) {
+	binDir := t.TempDir()
+	if builtinG4F(binDir) {
+		t.Fatal("fresh runtime reported as builtin")
+	}
+	if err := markBuiltinG4F(binDir); err != nil {
+		t.Fatal(err)
+	}
+	if !builtinG4F(binDir) {
+		t.Fatal("builtin marker missing after markBuiltinG4F")
+	}
+	if !g4fIsInstalled(binDir) {
+		t.Fatal("markBuiltinG4F did not write the installed stamp")
+	}
+	clearBuiltinG4F(binDir)
+	if builtinG4F(binDir) {
+		t.Fatal("builtin marker still present after clearBuiltinG4F")
+	}
+	// Clearing twice is fine.
+	clearBuiltinG4F(binDir)
+}
