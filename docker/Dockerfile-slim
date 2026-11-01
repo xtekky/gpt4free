@@ -1,5 +1,5 @@
 # Build stage
-FROM python:slim-bookworm AS builder
+FROM python:3.15-slim-bookworm AS builder
 
 WORKDIR /build
 
@@ -10,10 +10,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements-slim.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements-slim.txt
+# --no-cache-dir avoids the pip wheel cache; the __pycache__/.pyc sweep keeps
+# compiled bytecode that wheels occasionally ship out of the runtime layer.
+RUN pip install --no-cache-dir --prefix=/install -r requirements-slim.txt && \
+    find /install -type d -name '__pycache__' -prune -exec rm -rf {} + && \
+    find /install -type f -name '*.pyc' -delete
 
 # Final runtime stage
-FROM python:slim-bookworm
+FROM python:3.15-slim-bookworm
 
 ARG G4F_VERSION
 ARG G4F_USER=g4f
@@ -33,7 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && groupadd -g $G4F_USER_ID $G4F_USER \
     && useradd -rm -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/* \
+              /usr/share/doc/* /usr/share/man/* /usr/share/info/*
 
 # Copy pre-compiled dependencies from builder stage
 COPY --from=builder /install /usr/local

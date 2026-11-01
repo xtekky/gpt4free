@@ -25,6 +25,39 @@ bin/start-sandbox-desktop.sh -d
 The script stores no state of its own. `docker compose` is used when available;
 pass `--no-compose` to use a direct `docker run` instead.
 
+## Standalone launcher (no checkout required)
+
+[`sandbox-launcher`](../sandbox-launcher/README.md) builds a small standalone
+executable (`g4f-sandbox`) for Windows, Linux and macOS on amd64 and arm64. It
+requires only Docker or Podman and does not embed the image, so the download is
+a few MB and the image is pulled on demand.
+
+```bash
+g4f-sandbox                    # small API-only sandbox (latest-slim)
+g4f-sandbox --desktop          # full Xfce/VNC desktop, pulled on first use
+g4f-sandbox --desktop install chrome
+g4f-sandbox status
+g4f-sandbox down
+```
+
+- **API-only is the default.** It uses the multi-arch `latest-slim` image and
+  maps the API to `http://127.0.0.1:8080/`.
+- **The desktop image is opt-in.** `--desktop` pulls
+  `latest-sandbox-desktop` (linux/amd64 or linux/arm64, selected by Docker) and
+  serves the desktop at `/desktop/`, with direct VNC on `5900`.
+- **Tools install on demand.** The image ships the menu and `sandbox-cli`, not
+  the individual tools. `g4f-sandbox --desktop install <tool>` installs one
+  when it is first needed; `g4f-sandbox --desktop cli list` lists them.
+- **State is persistent** under `~/.g4f-sandbox` (`--data-dir` to change it):
+  cookies and media in API mode, `.config`/`.local` in desktop mode.
+- `--app-dir DIR` mounts a checkout at `/app/gpt4free`; `--port`,
+  `--vnc-port`, `--bind`, `--api-key`, `--pull`, `--no-pull`, `--engine`,
+  `--recreate` and `--no-open` mirror the start script where they overlap.
+- **Termux/Android** is detected automatically. The launcher runs the API
+  natively with Termux's Python (no Docker), installs `g4f[slim]` on first run,
+  and manages the process with `up`, `down`, `status` and `logs`. The desktop
+  mode still requires Docker/Podman.
+
 ## `start-sandbox-desktop.sh`
 
 ```text
@@ -147,6 +180,29 @@ is awkward on a phone:
 The overlay is served from `docker/novnc-controls.{js,css}` and talks to
 noVNC through `window.g4fUI`, exposed by `bin/novnc-brand.sh`; the stock
 client is otherwise unchanged.
+
+## Install the desktop as an app (PWA)
+
+`/desktop/` is an installable progressive web app. The page links a web app
+manifest (`/desktop/manifest.webmanifest`), registers a service worker
+(`/desktop/sw.js`) and uses the g4f SVG as its icon. Chrome, Edge, Brave and
+other Chromium browsers offer **Install app** in the address bar or browser
+menu. When the browser fires `beforeinstallprompt`, the touch toolbar also
+shows an **Install** button; on iPhone and iPad use **Share → Add to Home
+Screen** instead, because Safari does not support the install prompt.
+
+The installed app opens at `/desktop/` in a standalone window, with the same
+noVNC client and touch controls as the browser tab. It also works through the
+`desktop.g4f.local` host route: the manifest, service worker and icons use
+relative URLs, so the host rewrite does not change their scope.
+
+The service worker caches only the page shell (the landing page, controls,
+manifest and icons) so an installed app can start while the network is down.
+The VNC stream is live: `/desktop/websockify` and every WebSocket are excluded
+from the cache, and reconnecting still needs the sandbox to be reachable. The
+browser's **Install** affordance requires a secure context, so use
+`http://127.0.0.1`/`http://localhost` or HTTPS; `http://` on a plain LAN
+address cannot install the app.
 
 ## Password protection (`G4F_API_KEY`)
 

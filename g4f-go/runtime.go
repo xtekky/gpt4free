@@ -201,23 +201,24 @@ func ensurePip(binDir, exe string) error {
 // On Termux we use the system python, so we must NOT override PYTHONHOME
 // (that would break the system interpreter); only set user-site isolation.
 func pipEnv(binDir string) []string {
+	cache := []string{"PIP_CACHE_DIR=" + filepath.Join(pythonCacheDir(), "pip"), "PIP_NO_CACHE_DIR=0"}
 	if IsTermuxSystem() {
-		return []string{
+		return append(cache, []string{
 			"PYTHONNOUSERSITE=1",
 			"PYTHONDONTWRITEBYTECODE=1",
 			"PYTHONUTF8=1",
-		}
+		}...)
 	}
 	home := pythonHome(binDir)
 	lib := filepath.Join(home, "Lib", "site-packages")
 	if runtime.GOOS != "windows" {
 		lib = filepath.Join(home, "lib", "python"+PythonLibVer, "site-packages")
 	}
-	return []string{
+	return append(cache, []string{
 		"PYTHONHOME=" + home,
 		"PYTHONNOUSERSITE=1",
 		"PYTHONDONTWRITEBYTECODE=1",
 		"PYTHONUTF8=1",
 		"PYTHONPATH=" + lib,
-	}
+	}...)
 }

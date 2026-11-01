@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "g4f Sandbox Desktop",
+  "short_name": "g4f Desktop",
+  "description": "Open and control the g4f sandbox Xfce desktop from a browser or an installed app.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "g4f.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

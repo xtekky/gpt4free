@@ -8,6 +8,8 @@ API share a single port:
 
     /desktop/              the noVNC client, served from G4F_NOVNC_DIR
     /desktop/websockify    the WebSocket <-> VNC-server TCP bridge noVNC connects to
+    /desktop/manifest.webmanifest, /desktop/sw.js
+                           the installable PWA shell and its service worker
 
 Both routes are the image's only bridge: the sandbox image installs neither
 the Debian ``novnc`` package nor websockify, and its client files come from the
@@ -25,7 +27,7 @@ import os
 from typing import Optional, Tuple
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +133,30 @@ def register_vnc_routes(app: FastAPI) -> None:
         @app.api_route("/desktop", methods=["GET"])
         async def serve_desktop():
             return RedirectResponse(url="/desktop/")
+
+        # Serve the PWA files explicitly with their registered media types.
+        # Python's mimetypes table is not uniform across the versions g4f
+        # supports; a manifest sent as text/plain is ignored by browsers.
+        manifest_path = os.path.join(novnc_dir, "manifest.webmanifest")
+        worker_path = os.path.join(novnc_dir, "sw.js")
+
+        if os.path.isfile(manifest_path):
+            @app.get("/desktop/manifest.webmanifest", include_in_schema=False)
+            async def serve_manifest():
+                return FileResponse(
+                    manifest_path,
+                    media_type="application/manifest+json",
+                    headers={"Cache-Control": "no-cache"},
+                )
+
+        if os.path.isfile(worker_path):
+            @app.get("/desktop/sw.js", include_in_schema=False)
+            async def serve_service_worker():
+                return FileResponse(
+                    worker_path,
+                    media_type="application/javascript; charset=utf-8",
+                    headers={"Cache-Control": "no-cache"},
+                )
 
         from fastapi.staticfiles import StaticFiles
 

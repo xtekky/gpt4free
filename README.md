@@ -95,6 +95,7 @@ Table of contents
 
 ## Related projects
 - [g4f-go](g4f-go/README.md) – Self-contained Go launcher for g4f (downloads CPython + g4f on demand)
+- [sandbox-launcher](sandbox-launcher/README.md) – Small standalone `g4f-sandbox` executable for the sandbox image (Docker/Podman, image pulled on demand)
 - [remote_desktop](projects/remote-desktop/) – WebRTC-based remote desktop host/viewer
 - [sandbox-desktop](https://g4f.dev/docs/sandbox-desktop) – TigerVNC + Xfce + noVNC desktop in Docker with preinstalled coding agents ([menu/tool list](docker/sandbox-menu/README.md), [start script](bin/start-sandbox-desktop.sh), [Dockerfile](docker/Dockerfile-sandbox-desktop))
 
@@ -214,6 +215,27 @@ docker run -d --name g4f-sandbox-desktop \
   existing image was built for a different id). Matching the id keeps the
   bind-mounted `sandbox-home` and files written under `/app/gpt4free` owned by
   your host user.
+
+#### Standalone launcher (no checkout)
+
+Download `g4f-sandbox` from the release assets for Windows, Linux or macOS
+(amd64/arm64). It is a few MB, requires only Docker or Podman, and pulls the
+image on demand:
+
+```bash
+g4f-sandbox                    # small API-only sandbox (latest-slim)
+g4f-sandbox --desktop          # full desktop image, pulled on first use
+g4f-sandbox --desktop install chrome
+g4f-sandbox status
+g4f-sandbox down
+```
+
+The default API-only mode uses the multi-arch `latest-slim` image; `--desktop`
+pulls `latest-sandbox-desktop` only when the desktop is requested. Tools are
+installed on demand from the sandbox menu or with
+`g4f-sandbox --desktop install <tool>`. On Termux/Android the same executable
+runs the API natively with Termux's Python (no Docker) and installs g4f on
+first run. See [sandbox-launcher](sandbox-launcher/README.md).
 
 ### Python Installation (pip / from source / partial installs)
 

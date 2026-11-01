@@ -19,5 +19,4 @@ markitdown[all]
 a2wsgi
 python-dotenv
 ddgs
-PyYAML
 pystray

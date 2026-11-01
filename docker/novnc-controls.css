@@ -96,6 +96,8 @@
   pointer-events: none;
 }
 
+#toolbar button.hidden { display: none; }
+
 #toolbar button {
   flex: 1;
   min-width: 0;

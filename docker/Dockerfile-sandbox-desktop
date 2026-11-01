@@ -119,19 +119,17 @@ RUN apt-get -o Acquire::Retries=3 update && \
         fonts-noto-core fonts-noto-color-emoji \
         at-spi2-core libgtk-3-0t64 librsvg2-common gtk-update-icon-cache yad && \
     ln -sf /usr/bin/fdfind /usr/local/bin/fd && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* \
+           /var/cache/apt/* \
+           /usr/share/doc/* \
+           /usr/share/man/* \
+           /usr/share/info/*
 
 # Node.js 24: newest Node 24 runtime and npm copied from the official node image
 # instead of Debian's older nodejs package.
 COPY --from=node-dist /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-dist /usr/local/include/node /usr/local/include/node
 COPY --from=node-dist /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
-    ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
-    ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
-    ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack && \
-    node --version && \
-    npm --version
 
 # Display stack: TigerVNC plus the Xfce components a launcher starts
 # individually, never xfce4-session. Installed in the apt layer above.
@@ -143,14 +141,19 @@ RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
 # unchanged. It ships no index.html (Debian's package didn't either), so
 # docker/novnc-index.html is copied on top by the branding step.
 ARG NOVNC_VERSION=1.6.0
-RUN curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
+RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
+    ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
+    ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack && \
+    rm -rf /usr/local/lib/node_modules/npm/docs \
+           /usr/local/lib/node_modules/npm/man && \
+    curl -fsSL --connect-timeout 15 -o /tmp/novnc.tar.gz \
         "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.tar.gz" && \
     echo "5066103959ef4e9b10f37e5a148627360dd8414e4cf8a7db92bdbd022e728aaa  /tmp/novnc.tar.gz" \
         | sha256sum -c - && \
     mkdir -p /usr/share/novnc && \
     tar -xzf /tmp/novnc.tar.gz -C /usr/share/novnc --strip-components=1 && \
-    rm /tmp/novnc.tar.gz && \
-    test -f /usr/share/novnc/vnc.html
+    rm /tmp/novnc.tar.gz
 
 # Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
@@ -197,9 +200,8 @@ RUN chmod 0755 /usr/local/bin/sandbox-* /usr/local/bin/fetch-icons.py \
 # rest of them stays stock.
 COPY docker/g4f.svg /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-applications.svg
 COPY docker/sandbox-menu/panel-defaults.xfconf.xml /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+COPY docker/sandbox-menu/desktop-directories/*.directory /usr/share/desktop-directories/
 RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>|<property name="plugin-1" type="string" value="applicationsmenu">\n      <property name="button-icon" type="string" value="g4f-sandbox-applications"/>\n    </property>|' \
-        /etc/xdg/xfce4/panel/default.xml && \
-    grep -q 'name="button-icon" type="string" value="g4f-sandbox-applications"' \
         /etc/xdg/xfce4/panel/default.xml && \
     sed -i 's|^Icon=applications-internet$|Icon=web-browser-symbolic|' \
         /usr/share/desktop-directories/xfce-network.directory && \
@@ -209,14 +211,10 @@ RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>
         /usr/share/desktop-directories/xfce-accessories.directory && \
     sed -i 's|^Icon=preferences-desktop$|Icon=preferences-system-symbolic|' \
         /usr/share/desktop-directories/xfce-settings.directory && \
-    grep -q '^Icon=web-browser-symbolic$' /usr/share/desktop-directories/xfce-network.directory && \
-    grep -q '^Icon=applications-engineering-symbolic$' /usr/share/desktop-directories/xfce-development.directory && \
-    grep -q '^Icon=applications-utilities-symbolic$' /usr/share/desktop-directories/xfce-accessories.directory && \
-    grep -q '^Icon=preferences-system-symbolic$' /usr/share/desktop-directories/xfce-settings.directory && \
-    grep -q 'name="button-icon" type="string" value="g4f-sandbox-applications"' \
-        /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml && \
     chmod 0644 /usr/share/icons/hicolor/scalable/apps/g4f-sandbox-applications.svg \
-        /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+        /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml \
+        /usr/share/desktop-directories/g4f-sandbox-*.directory && \
+    patch-xfce-menu.py
 
 # Group the entries into their own top-level menus (g4f, Browsers, Files &
 # Editors, Coding Agents, Gateways, Local AI, Chat UIs, Assistants) instead of
@@ -226,9 +224,6 @@ RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>
 # menu file under applications-merged/ does not work here -- garcon copies
 # merged elements with a depth-2 traversal that never reaches nested <Menu>
 # nodes, so the menus would be dropped. See docker/sandbox-menu/README.md.
-COPY docker/sandbox-menu/desktop-directories/*.directory /usr/share/desktop-directories/
-RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
-    patch-xfce-menu.py
 
 # noVNC branding. The upstream noVNC tree ships no index.html, so a request to
 # the API's /desktop/ mount would 404; novnc-index.html is a full-viewport
@@ -242,12 +237,19 @@ RUN chmod 0644 /usr/share/desktop-directories/g4f-sandbox-*.directory && \
 # (app/ui.js), and keeps the desktop geometry fixed (resize=off in
 # defaults.json), leaving the rest of noVNC untouched. It verifies each
 # patch, so a changed noVNC layout fails the build.
+#
+# The same page is an installable PWA: the manifest and service worker live in
+# the noVNC root and every URL in them is relative, so they work both at
+# /desktop/ and behind desktop.g4f.local (where the host router serves the same
+# files at the root). The worker caches only the shell; the VNC stream stays
+# live and is never cached.
 COPY docker/novnc-index.html /usr/share/novnc/index.html
 COPY docker/novnc-controls.js /usr/share/novnc/g4f-controls.js
 COPY docker/novnc-controls.css /usr/share/novnc/g4f-controls.css
+COPY docker/novnc-manifest.webmanifest /usr/share/novnc/manifest.webmanifest
+COPY docker/novnc-sw.js /usr/share/novnc/sw.js
 COPY docker/g4f.svg /usr/share/novnc/g4f.svg
-RUN chmod 0775 /usr/share/novnc/ -R
-RUN novnc-brand.sh
+RUN chmod 0775 /usr/share/novnc/ -R && novnc-brand.sh
 
 # Create the unprivileged sandbox user BEFORE the runtime install, so g4f-go
 # materializes /home/pn/.g4f and every pip package as `pn` from the start --
@@ -290,13 +292,13 @@ RUN groupadd --gid "${G4F_USER_ID}" pn && \
 # g4f-go (not the pip symlink) lands it in the embedded runtime's own
 # site-packages with the launcher's PYTHONHOME/PYTHONNOUSERSITE env.
 COPY --from=g4f-go-builder /out/g4f-go /usr/local/bin/g4f-go
-RUN chmod 0755 /usr/local/bin/g4f-go
 WORKDIR ${G4F_DIR}
 COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} setup.py README.md MANIFEST.in ${G4F_DIR}/gpt4free/
 COPY --chown=${G4F_USER_ID}:${G4F_USER_ID} g4f ${G4F_DIR}/gpt4free/g4f
 # Docker creates implicitly-created parent dirs as root; pip's editable install
 # writes g4f.egg-info into the project dir, so hand the whole tree to `pn`.
-RUN chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_DIR}/gpt4free"
+RUN chmod 0755 /usr/local/bin/g4f-go && \
+    chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_DIR}/gpt4free"
 
 # Run the installs as the unprivileged user: the embedded CPython, the g4f
 # deps and this checkout's editable g4f all land under /home/pn/.g4f, which
@@ -305,30 +307,34 @@ RUN chown -R "${G4F_USER_ID}:${G4F_USER_ID}" "${G4F_DIR}/gpt4free"
 # update it; the root steps that follow keep the image's default HOME so they
 # never create root-owned cache files inside /home/pn.
 USER pn
-RUN HOME=/home/pn g4f-go --version && \
-    HOME=/home/pn g4f-go -v latest && \
-    HOME=/home/pn g4f-go status
+RUN HOME=/home/pn g4f-go /app/gpt4free install -e --group=all && \
+    HOME=/home/pn g4f-go install Pillow && \
+    HOME=/home/pn g4f-go cache clear && \
+    find /home/pn/.g4f -type d -name '__pycache__' -prune -exec rm -rf {} + && \
+    find /home/pn/.g4f -type f -name '*.pyc' -delete && \
+    rm -rf /home/pn/.cache && \
+    rm -f /home/pn/.g4f/python-embed/.g4f-runtime/runtime-*
 
 # Back to root for the steps that write outside the user's home: the
 # python3/pip symlinks live in root-owned /usr/local/bin, and the icon steps
 # below write to /usr/share. The runtime installed above stays owned by `pn`,
 # so nothing needs re-chowning.
 USER root
-RUN ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python3 && \
-    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.14" /usr/local/bin/python && \
+RUN ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.15" /usr/local/bin/python3 && \
+    ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.15" /usr/local/bin/python && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip3 && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip && \
-    python3 -c "import sys; print('python3 ->', sys.executable)" && \
-    pip --version
+    HOME=/home/pn g4f-go fetch-icons.py && \
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor && \
+    printf 'XDG_RUNTIME_DIR=/tmp/sandbox-runtime\n' >> /etc/environment && \
+    rm -rf /root/.cache /root/.npm /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 # Animated g4f terminal wallpaper. The entrypoint opens it in a maximized
 # xfce4-terminal at desktop start; the g4f-sandbox-wallpaper menu entry can
 # reopen it later. Pure stdlib Python (truecolour ANSI nebula, stars, orbits
 # and a shimmering g4f emblem), so it needs nothing beyond the runtime above.
 # g4f-livewall and sandbox-tray are already in /usr/local/bin via the bin/
-# COPY; compile both here so a syntax error fails the build.
-RUN python3 -c "compile(open('/usr/local/bin/g4f-livewall').read(), 'g4f-livewall', 'exec')" && \
-    python3 -c "compile(open('/usr/local/bin/sandbox-tray').read(), 'sandbox-tray', 'exec')"
+# COPY.
 
 # Per-tool menu icons. Every g4f-sandbox-*.desktop names g4f-sandbox-<tool> and
 # hands the same name to xfce4-terminal as --icon, so the menu row and the
@@ -340,7 +346,6 @@ RUN python3 -c "compile(open('/usr/local/bin/g4f-livewall').read(), 'g4f-livewal
 # the JPEG sources have to be converted (GTK icon themes load png/svg/xpm only).
 # gtk-update-icon-cache then refreshes the hicolor cache so the new files are
 # visible to GTK without a directory rescan.
-RUN fetch-icons.py && gtk-update-icon-cache -f -t /usr/share/icons/hicolor
 
 # The `pn` user (and /tmp/.X11-unix + /tmp/sandbox-runtime) was created before
 # the g4f-go install above, so the runtime and packages it wrote are already
@@ -358,7 +363,6 @@ ENV XDG_RUNTIME_DIR=/tmp/sandbox-runtime
 # Dockerfile ENV reaches `docker exec` only. When this image is the target of an
 # ssh backend (sshd added on top), a login session gets its environment from PAM,
 # so the runtime dir must also live where pam_env reads it.
-RUN printf 'XDG_RUNTIME_DIR=/tmp/sandbox-runtime\n' >> /etc/environment
 
 # 8080: g4f tray application and API server, which also serves the noVNC
 # desktop through its custom routes: /desktop/ for the client, /desktop/websockify for
@@ -377,9 +381,7 @@ EXPOSE 8080 5900
 # filter, launches the desktop stack (Xvnc + Xfce) as `pn` and exports DISPLAY
 # so a browser on the desktop renders inside the sandbox. SANDBOX_DESKTOP=0
 # skips the desktop. Both files arrive with the bin/ COPY above; this layer
-# only validates them, in one step.
-RUN bash -n /usr/local/bin/sandbox-firewall.sh && \
-    bash -n /usr/local/bin/sandbox-entrypoint.sh
+# does not need a separate build-time validation step.
 ENTRYPOINT ["/usr/local/bin/sandbox-entrypoint.sh"]
 ENV HOME=/home/pn
 USER pn

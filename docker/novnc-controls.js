@@ -326,6 +326,56 @@
     sync();
   }
 
+  /* ---------------------------------------------------------------- install */
+
+  let installPrompt = null;
+
+  function isInstalled() {
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      window.navigator.standalone === true
+    );
+  }
+
+  function isIos() {
+    return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  }
+
+  function showInstallButton(show) {
+    const button = $("btn-install");
+    if (button) button.classList.toggle("hidden", !show || isInstalled());
+  }
+
+  async function installApp() {
+    if (installPrompt) {
+      const prompt = installPrompt;
+      installPrompt = null;
+      showInstallButton(false);
+      prompt.prompt();
+      const choice = await prompt.userChoice.catch(() => null);
+      if (!choice || choice.outcome !== "accepted") {
+        showInstallButton(true);
+        flash("install dismissed");
+      }
+      return;
+    }
+    if (isInstalled()) {
+      flash("desktop already installed");
+    } else if (isIos()) {
+      flash("Share > Add to Home Screen");
+    } else {
+      flash("browser menu > Install app");
+    }
+  }
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+    const script = new URL("sw.js", document.baseURI);
+    const scope = new URL("./", document.baseURI).pathname;
+    navigator.serviceWorker.register(script, { scope }).catch(() => {});
+  }
+
   /* -------------------------------------------------------------------- boot */
 
   function boot() {
@@ -345,7 +395,22 @@
       sync();
     });
     $("btn-fullscreen").addEventListener("click", toggleFullscreen);
+    $("btn-install").addEventListener("click", installApp);
     $("btn-disconnect").addEventListener("click", disconnect);
+
+    if (!isInstalled() && isIos()) showInstallButton(true);
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      installPrompt = event;
+      showInstallButton(true);
+      showToolbar();
+    });
+    window.addEventListener("appinstalled", () => {
+      installPrompt = null;
+      showInstallButton(false);
+      flash("desktop installed");
+    });
+    registerServiceWorker();
 
     $("close-keyboard").addEventListener("click", () => togglePanel("keyboard", false));
     $("close-shortcuts").addEventListener("click", () => togglePanel("shortcuts", false));

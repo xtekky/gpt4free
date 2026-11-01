@@ -36,6 +36,10 @@ Downloads go to:
 | Linux / macOS / Windows | `~/.g4f/python-embed/` |
 | Android (Termux) | app-private dir (`G4F_ANDROID_FILES_DIR`, defaults to `$HOME/g4f-go-runtime`) |
 
+Pip downloads used by the launcher (including bundled module dependencies) are
+cached in `~/.g4f/cache/pip` (`G4F_CACHE_DIR/pip` when overridden). To remove
+them, delete that directory or run `g4f-go cache clear`.
+
 `G4F_PYTHON_ONLY=1 g4f-go --version` prints the downloaded interpreter path
 without running gpt4free (useful for wrapping the runtime from other tools).
 
@@ -315,7 +319,7 @@ so existing installations re-extract it.
 | macOS | amd64, arm64 | python-build-standalone install-only tarball |
 | Android | arm64 (Termux) | official python.org `*-linux-android` package |
 
-Android note: the python.org Android package ships `libpython3.14.so` +
+Android note: the python.org Android package ships `libpython3.15.so` +
 stdlib but no `python` executable. `g4f-go` detects Termux
 (`pm list packages`), merges the tarball into the app dir, and compiles a tiny
 C runner with Termux's clang that `dlopen`s libpython — the same technique as
@@ -325,7 +329,7 @@ CPython's own android testbed.
 
 ```
 python-home/bin/python     interpreter (pbs layout)
-python-home/lib/python3.14 stdlib + site-packages (g4f installed here)
+python-home/lib/python3.15 stdlib + site-packages (g4f installed here)
 python (launcher)          shell wrapper that sets PYTHONHOME/PYTHONPATH
 bundle/                    extracted embedded Python bundle (remote_desktop, web)
 .g4f-runtime/.runtime-ok   stamp: download+extract complete

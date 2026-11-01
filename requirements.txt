@@ -20,6 +20,5 @@ a2wsgi
 python-dotenv
 ddgs
 numpy
-PyYAML
 cryptography
 wasmtime

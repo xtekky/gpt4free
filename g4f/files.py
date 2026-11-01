@@ -7,6 +7,14 @@ from urllib.parse import unquote
 from .cookies import get_cookies_dir
 
 
+# Device names that Windows reserves regardless of extension (e.g. "CON.txt").
+_WINDOWS_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{i}" for i in range(10)}
+    | {f"LPT{i}" for i in range(10)}
+)
+
+
 def secure_filename(filename: str, max_length: int = 100) -> str:
     """Sanitize a filename for safe filesystem storage."""
     if filename is None:
@@ -19,7 +27,11 @@ def secure_filename(filename: str, max_length: int = 100) -> str:
     if len(encoded) > max_length:
         encoded = encoded[:max_length-4] + encoded[-4:]
     decoded = encoded.decode(encoding, "ignore")
-    return decoded.strip(".,_+-")
+    decoded = decoded.strip(".,_+-")
+    # Prefix reserved device names so they cannot refer to a Windows device.
+    if decoded.split(".", 1)[0].upper() in _WINDOWS_RESERVED_NAMES:
+        decoded = f"_{decoded}"
+    return decoded
 
 
 def get_bucket_dir(*parts: str) -> str:

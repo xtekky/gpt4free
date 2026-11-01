@@ -13,7 +13,7 @@ from ..helper import format_media_prompt
 from ... import debug
 
 FLIM_SEARCH_URL = "https://api.flim.ai/2.0.0/search"
-TRANSLATE_URL = "https://g4f.space/ai/auto/Translate%20the%20given%20prompt%20into%20English%20and%20reply%20with%20only%20the%20translated%20text%E2%80%94no%20explanations,%20introductions,%20or%20additional%20content:%20{prompt}"
+TRANSLATE_URL = "https://g4f.space/api/pollinations/text/Translate%20the%20given%20prompt%20into%20English%20and%20reply%20with%20only%20the%20translated%20text%E2%80%94no%20explanations,%20introductions,%20or%20additional%20content:%20{prompt}"
 FLIM_HEADERS = {
     "accept": "application/json",
     "content-type": "application/json",
@@ -40,7 +40,7 @@ class RequestConfig:
 
     @classmethod
     async def translate_prompt(cls, prompt: str) -> str:
-        """Translate the prompt into English via the g4f.space auto endpoint."""
+        """Translate the prompt into English via the g4f.space Pollinations text endpoint."""
         try:
             url = TRANSLATE_URL.format(prompt=quote(prompt, safe=""))
             async with ClientSession() as session:

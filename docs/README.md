@@ -29,8 +29,9 @@ git clone --depth 1 https://github.com/gpt4free/g4f.dev.git ../g4f.dev
 
 ## Guides
 
-- [Sandbox desktop](sandbox-desktop.md) — start script, clipboard, scaling,
-  app volume, user id, `G4F_API_KEY`, domain routing, tray and Polli install
+- [Sandbox desktop](sandbox-desktop.md) — standalone launcher, start script,
+  clipboard, scaling, app volume, user id, `G4F_API_KEY`, domain routing, tray
+  and Polli install
 - [Qwen Chat sessions and automatic token refresh](qwen-sessions.md)
 - [API Route authenticated provider](api-route.md)
 - [Custom model routing with `config.yaml`](config-yaml-routing.md)

@@ -148,6 +148,19 @@ func TestBundleEnvPrependsBundleToPythonPath(t *testing.T) {
 	}
 }
 
+func TestBundlePipCacheDir(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("G4F_CONFIG_DIR", config)
+	t.Setenv("G4F_CACHE_DIR", "")
+	want := "PIP_CACHE_DIR=" + filepath.Join(config, "cache", "pip")
+	for _, entry := range bundleEnv(t.TempDir()) {
+		if entry == want {
+			return
+		}
+	}
+	t.Fatalf("bundle env missing %q", want)
+}
+
 func TestMergeEnvOverridesExistingKeys(t *testing.T) {
 	base := []string{"PATH=/bin", "PYTHONPATH=/old", "HOME=/home/x"}
 	got := mergeEnv(base, "PYTHONPATH=/new", "PYTHONUTF8=1")

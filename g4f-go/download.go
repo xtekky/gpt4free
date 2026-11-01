@@ -348,7 +348,7 @@ func extractRuntime(binDir, cachePath string) error {
 				continue
 			}
 			// Symlinks in pbs installs point within the tree; recreate them
-			// (libpython3.so -> libpython3.14.so etc).
+			// (libpython3.so -> libpython3.15.so etc).
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
