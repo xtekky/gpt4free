@@ -24,6 +24,7 @@ from urllib.parse import quote, unquote, urlsplit
 import requests
 
 from ...config import ORGANIZATION, STATIC_DOMAIN, get_cache_dir
+from ...tools.files import secure_filename
 
 GITHUB_API = "https://api.github.com"
 SITE_REPOSITORY = f"{ORGANIZATION}/{STATIC_DOMAIN}"
@@ -302,9 +303,9 @@ def _read_remote_file(sha: str, filename: str) -> bytes | None:
     return None
 
 
-def _cache_path(sha: str, filename: str) -> str:
-    # ``filename`` is already normalised and cannot contain ``..``.
-    return os.path.join(get_cache_dir(), "gui_versions", sha, filename)
+def _cache_path(sha: str, filename: str, version: str) -> str:
+    # ``filename`` is already normalised and cannot contain
+    return os.path.join(get_cache_dir(), "gui_versions", version, sha, secure_filename(filename))
 
 
 def load_versioned_file(version: str, filename: str) -> tuple[bytes, str, str]:
@@ -315,7 +316,7 @@ def load_versioned_file(version: str, filename: str) -> tuple[bytes, str, str]:
     """
     filename = normalize_site_path(filename)
     sha = resolve_site_ref(version)
-    path = _cache_path(sha, filename)
+    path = _cache_path(sha, filename, version)
 
     if os.path.isfile(path):
         try:
