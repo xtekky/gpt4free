@@ -3,7 +3,6 @@ pycryptodome
 curl_cffi>=0.6.2
 aiohttp
 certifi
-browser_cookie3
 nest-asyncio2
 werkzeug
 pillow

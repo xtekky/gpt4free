@@ -307,8 +307,7 @@ RUN chmod 0755 /usr/local/bin/g4f-go && \
 # update it; the root steps that follow keep the image's default HOME so they
 # never create root-owned cache files inside /home/pn.
 USER pn
-RUN HOME=/home/pn g4f-go /app/gpt4free install -e --group=all && \
-    HOME=/home/pn g4f-go install Pillow && \
+RUN HOME=/home/pn g4f-go /app/gpt4free install -e && \
     HOME=/home/pn g4f-go cache clear && \
     find /home/pn/.g4f -type d -name '__pycache__' -prune -exec rm -rf {} + && \
     find /home/pn/.g4f -type f -name '*.pyc' -delete && \

@@ -21,7 +21,6 @@ EXTRA_REQUIRE = {
     "all": [
         "curl_cffi>=0.6.2",
         "certifi",
-        "browser_cookie3",  # get_cookies
         "ddgs",  # web_search
         "beautifulsoup4",  # web_search and bing.create_images
         "platformdirs",
@@ -44,7 +43,6 @@ EXTRA_REQUIRE = {
     "slim": [
         "curl_cffi>=0.6.2",
         "certifi",
-        "browser_cookie3",
         "ddgs",  # web_search
         "beautifulsoup4",  # web_search and bing.create_images
         "aiohttp_socks",  # proxy
