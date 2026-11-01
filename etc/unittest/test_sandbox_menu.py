@@ -15,6 +15,13 @@ def _exec_line(entry: Path) -> str:
     raise AssertionError(f"{entry.name} has no Exec line")
 
 
+def _name(entry: Path) -> str:
+    for line in entry.read_text(encoding="utf-8").splitlines():
+        if line.startswith("Name="):
+            return line[len("Name="):]
+    raise AssertionError(f"{entry.name} has no Name line")
+
+
 def _categories(entry: Path) -> set[str]:
     for line in entry.read_text(encoding="utf-8").splitlines():
         if line.startswith("Categories="):
@@ -43,6 +50,14 @@ class TestSandboxMenuEntries(unittest.TestCase):
                 "--disable-server",
                 argv,
                 f"{entry.name} would open as a tab in an existing terminal window",
+            )
+
+    def test_entry_names_do_not_mention_installing(self):
+        """Menu entries name the tool, not the install-and-open flow."""
+        for entry in sorted(MENU_DIR.glob("g4f-sandbox-*.desktop")):
+            self.assertFalse(
+                _name(entry).startswith("Install"),
+                f"{entry.name} still prefixes its name with Install",
             )
 
     def test_files_and_editors_share_one_menu_category(self):
