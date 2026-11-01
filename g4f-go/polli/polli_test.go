@@ -1,6 +1,9 @@
 package polli
 
 import (
+	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -83,6 +86,30 @@ func TestEmbeddedSandboxAssets(t *testing.T) {
 	}
 	if len(bootstrapScript) == 0 || !strings.HasPrefix(string(bootstrapScript), "#!/usr/bin/env bash") {
 		t.Fatal("embedded polli bootstrap is missing or not a bash script")
+	}
+}
+
+func TestEmbeddedSandboxAssetsMatchBin(t *testing.T) {
+	for _, asset := range []struct {
+		name string
+		data []byte
+	}{
+		{"sandbox-cli", sandboxCLI},
+		{"polli-sandbox-bootstrap.sh", bootstrapScript},
+		{"patch-xfce-menu.py", patchXfceMenu},
+		{"sandbox-discover", sandboxDiscover},
+		{"sandbox-docs", sandboxDocs},
+		{"start-browser", startBrowser},
+	} {
+		t.Run(asset.name, func(t *testing.T) {
+			source, err := os.ReadFile(filepath.Join("..", "..", "bin", asset.name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(asset.data, source) {
+				t.Fatalf("embedded %s differs from bin/%s; copy the updated file to g4f-go/polli/assets/", asset.name, asset.name)
+			}
+		})
 	}
 }
 

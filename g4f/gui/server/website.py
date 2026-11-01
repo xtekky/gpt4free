@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import os
 import inspect
 import requests
@@ -20,6 +19,13 @@ from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
 from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR, GITHUB_URL
 from ... import version
+from .versioned import (
+    VersionedError,
+    load_versioned_file,
+    normalize_version,
+    request_candidates,
+    rewrite_versioned_html,
+)
 
 _gui_session = requests.Session()
 _CONTENT_PATTERN = re.compile(r"<!-- CONTENT_START -->.*?<!-- CONTENT_END -->", re.DOTALL)
@@ -121,7 +127,7 @@ def render(filename="home", download_url: str = GITHUB_URL):
                 "Content-Type", ""
             ).startswith("application/javascript"):
                 cache_file += ".js"
-            if filename.endswith(".html"):
+            if filename.endswith(".html") or filename.endswith("/"):
                 html = response.text
                 dist_url = (
                     "/dist/" if os.path.exists(DIST_DIR) else f"{STATIC_URL}dist/"
@@ -154,6 +160,12 @@ class Website:
             "/chat/": {"function": self._chat, "methods": ["GET", "POST"]},
             "/<filename>.html": {"function": self._index, "methods": ["GET", "POST"]},
             "/chat/<filename>": {"function": self._chat, "methods": ["GET", "POST"]},
+            "/v<version>": {"function": self._versioned, "methods": ["GET"]},
+            "/v<version>/": {"function": self._versioned, "methods": ["GET"]},
+            "/v<version>/<path:filename>": {
+                "function": self._versioned,
+                "methods": ["GET"],
+            },
             "/private/": {"function": self._private, "methods": ["GET", "POST"]},
             "/private/<path:filename>": {
                 "function": self._private,
@@ -631,6 +643,45 @@ class Website:
             f"<title>{escape(p['name'])} – Provider Details</title>"
         )
         return html
+
+    def _versioned(self, version: str, filename: str = ""):
+        """Serve the GUI files that were current for ``version``.
+
+        ``/v8.8.12/chat/`` renders the chat page from the g4f.dev snapshot that
+        followed the v8.8.12 release. Root-relative assets are rewritten to the
+        same snapshot so an old page never mixes in new JavaScript or CSS.
+        """
+        try:
+            version = normalize_version(version)
+        except ValueError:
+            abort(404)
+
+        content = None
+        mimetype = None
+        commit = None
+        for candidate in request_candidates(filename):
+            try:
+                content, mimetype, commit = load_versioned_file(version, candidate)
+                break
+            except VersionedError:
+                continue
+        if content is None:
+            abort(404)
+
+        if mimetype == "text/html":
+            html = content.decode("utf-8", errors="replace")
+            html = rewrite_versioned_html(html, version)
+            response = Response(html, mimetype="text/html")
+            response.headers["Cache-Control"] = "public, max-age=3600"
+        else:
+            response = Response(content, mimetype=mimetype)
+            response.headers["Cache-Control"] = (
+                "public, max-age=31536000, immutable"
+            )
+        response.headers["X-G4F-Version"] = version
+        if commit:
+            response.headers["X-G4F-Gui-Commit"] = commit
+        return response
 
     def _chat(self, filename=""):
         filename = f"chat/{filename}" if filename else "chat/index"

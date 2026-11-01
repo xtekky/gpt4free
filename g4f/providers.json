@@ -316,7 +316,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": null,
-    "live": 1,
+    "live": -1,
     "login": false
   },
   {

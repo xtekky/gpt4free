@@ -27,8 +27,9 @@ ARG SANDBOX_BASE=debian:trixie-slim
 # Compiled from the g4f-go/ sources rather than copied out of the repo's
 # prebuilt dist/ tree, so the binary always matches the checkout. Go
 # cross-compiles, so the stage runs on the build platform and emits a static
-# binary for the target arch. g4f-go/bundle and g4f-go/embed are committed, so
-# a plain `go build` works without sync-bundle.sh or fetch-python.sh.
+# binary for the target arch. g4f-go/bundle, g4f-go/embed and the Polli
+# embedded assets are committed, so a plain `go build` works without a
+# preparation step.
 # ---------------------------------------------------------------------------
 # hadolint ignore=DL3006
 FROM --platform=$BUILDPLATFORM ${GO_BUILDER} AS g4f-go-builder

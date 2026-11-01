@@ -17,6 +17,8 @@ playground
 windows
 build
 assets
+# Polli's Go embeds need these snapshots in clean checkouts and Docker builds.
+!/g4f-go/polli/assets/
 g4f.dev
 # Automatic development pipeline runtime
 .dev-pipeline/
