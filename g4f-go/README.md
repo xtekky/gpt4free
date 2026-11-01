@@ -93,6 +93,8 @@ g4f-go turn serve           run the embedded STUN/TURN server in the foreground
 g4f-go turn status          show the configured/running STUN/TURN server
 g4f-go turn credentials     mint TURN REST credentials for a client
 g4f-go install g4f          (re)install the g4f package (network)
+g4f-go install              install the g4f-go launcher into a bin on PATH
+g4f-go install --prefix DIR install the launcher into DIR
 g4f-go upgrade              upgrade the g4f package to the latest release
 g4f-go update               update the g4f-go launcher itself
 g4f-go uninstall            remove g4f-go, its runtime, browser and caches
@@ -131,6 +133,25 @@ runtime as **builtin**. The launcher then serves that package as-is: the
 sandbox desktop image uses, so its first `g4f-go api` call does not download or
 upgrade g4f. An explicit `g4f-go install g4f`, `g4f-go upgrade` or `g4f-go
 bootstrap` opts back into PyPI and clears the marker.
+
+## Installing the launcher on PATH (`install`)
+
+`g4f-go install` copies the running launcher into a bin directory that is
+already on `PATH`, so a downloaded or locally built binary can be put on
+`PATH` without re-downloading a release:
+
+```
+g4f-go install                     # install into a writable bin directory on PATH
+g4f-go install --prefix ~/bin      # install into a specific directory
+g4f-go install --dry-run           # show the destination without writing
+```
+
+The default destination is `$G4F_GO_PREFIX` when set, otherwise `$PREFIX/bin`
+on Termux, `~/.local/bin` when it is on `PATH`, or the first writable
+directory on `PATH`. The binary is copied atomically and keeps its executable
+mode; the downloaded CPython runtime and the installed g4f package are not
+touched. `g4f-go install g4f` remains the pip passthrough for the Python
+package.
 
 ## Updating and uninstalling
 

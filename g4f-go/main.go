@@ -42,6 +42,8 @@ Usage:
   g4f-go turn credentials     mint TURN REST credentials for a client
   g4f-go cache clear          remove all cached g4f data (model lists, scrape caches)
   g4f-go install g4f         (re)install the g4f package (network)
+  g4f-go install             install the g4f-go launcher into a bin on PATH
+  g4f-go install --prefix DIR  install the launcher into DIR
   g4f-go upgrade              upgrade the g4f package to the latest release
   g4f-go update               update the g4f-go launcher itself
   g4f-go uninstall            remove g4f-go, its runtime, browser and caches
@@ -120,6 +122,12 @@ func runMain() int {
 	// the Pi/OMP host (and without the Python runtime).
 	if args[0] == "freeflow" || args[0] == "pi-freeflow" {
 		return freeflow.Run(args[1:])
+	}
+
+	// `install` without a package installs the launcher itself into a bin
+	// directory on PATH. `install g4f ...` stays a pip passthrough below.
+	if args[0] == "install" && launcherSelfInstall(args[1:]) {
+		return runInstallCommand(args[1:])
 	}
 
 	// `update` replaces the launcher itself and `uninstall` removes the
