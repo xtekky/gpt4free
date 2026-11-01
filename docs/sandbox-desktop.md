@@ -58,6 +58,24 @@ g4f-sandbox down
   and manages the process with `up`, `down`, `status` and `logs`. The desktop
   mode still requires Docker/Podman.
 
+`g4f-go` embeds the same launcher (`g4f-go sandbox ...`) and adds
+`g4f-go sandbox-cli` for running `sandbox-cli` inside the desktop container.
+
+### Hosted Polli sandbox
+
+`g4f-go polli-sandbox --desktop` installs the Pollinations CLI locally, creates
+a hosted Polli (E2B) sandbox, and installs `g4f-go`, `sandbox-cli`, Xfce,
+TigerVNC and noVNC inside it. No Docker is needed on the host:
+
+```bash
+g4f-go polli-sandbox --desktop
+g4f-go polli-sandbox install-menu <id> --desktop
+g4f-go polli-sandbox connect <id>
+```
+
+The command prints the SSH tunnels for the browser desktop
+(`http://127.0.0.1:8080/desktop/`) and a direct VNC client.
+
 ## `start-sandbox-desktop.sh`
 
 ```text
@@ -153,13 +171,14 @@ clipboard and the VM clipboard:
   API. Browsers only grant that API on secure origins: `http://127.0.0.1` and
   `https://` work, a plain `http://` LAN address does not.
 
-**Scaling.** The client defaults to `resize=off`: the desktop keeps the
-geometry Xvnc was started with, so opening the same session from a phone,
-laptop or tablet does not remotely resize the session and disturb other
-viewers. Any viewer can still choose `off`, `scale` or `remote` in noVNC's
-settings panel for their own session. To use a different default, edit the
-`defaults.json` written by `novnc-brand.sh` or pass `resize=<mode>` in the
-`vnc.html` URL. The direct VNC port (`5900`) is unaffected.
+**Scaling.** The client defaults to `resize=remote`: noVNC asks the VNC server
+to resize the desktop to the viewer's window, so the same session fills a
+phone, laptop or tablet without manual zooming. The overlay's **Fit** button
+switches a viewer between local scaling (`scale`) and remote resize (`remote`);
+the stock noVNC settings panel also offers `off`/`scale`/`remote` for that
+viewer. To use a different default, edit the `defaults.json` written by
+`novnc-brand.sh` or pass `resize=<mode>` in the `vnc.html` URL. The direct VNC
+port (`5900`) is unaffected.
 
 **Touch controls.** The `/desktop/` landing page also overlays the input
 controls from the Remote Desktop viewer, because the stock noVNC control bar
@@ -173,9 +192,14 @@ is awkward on a phone:
   PrintScreen, and the rest of the Remote Desktop set), pressing the modifiers
   around the key and releasing them in reverse.
 - **View/Control** toggles noVNC's view-only mode, **med** cycles the JPEG
-  quality, **Fit** toggles local scaling, **Full** enters fullscreen and
-  **Leave** disconnects. The bar hides after a few idle seconds; tap the
+  quality, **Fit** toggles local scaling against the default remote resize,
+  **Full** enters fullscreen and **Leave** disconnects. Leave also breaks a
+  connect/reconnect loop, so it works while the desktop is unreachable and not
+  only during a live session. The bar hides after a few idle seconds; tap the
   arrow at the bottom to bring it back.
+- The Type/Keys panels follow the on-screen keyboard (`visualViewport`) so
+  Send and the key rows stay above it, and closing Type releases the keyboard
+  instead of covering the next panel.
 
 The overlay is served from `docker/novnc-controls.{js,css}` and talks to
 noVNC through `window.g4fUI`, exposed by `bin/novnc-brand.sh`; the stock
@@ -240,6 +264,7 @@ Apps in the menu are reachable by hostname through the same API port:
 | `g4f.g4f.local` | g4f API / GUI |
 | `<port>.g4f.local` | the app listening on that local port, e.g. `20128.g4f.local` |
 | `desktop.g4f.local` | the noVNC desktop |
+| `opencode.g4f.local` | the headless OpenCode server API (`opencode serve`) |
 | `omniroute.g4f.local`, `litellm.g4f.local`, `ollama.g4f.local`, … | the matching local app |
 
 `bin/sandbox-entrypoint.sh` seeds `/etc/hosts` inside the container from
@@ -302,6 +327,7 @@ sandbox-cli reset           clear the saved settings
 sandbox-cli package         show, update or pin the g4f package
 sandbox-cli urls            print the public URLs served by the API
 sandbox-cli hosts           print the /etc/hosts entries for the app domains
+sandbox-cli harness         pick a coding agent and a model from the g4f API
 sandbox-cli polli-sandbox   create/connect/manage hosted Polli sandboxes
 ```
 

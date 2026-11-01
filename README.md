@@ -155,7 +155,7 @@ Notes:
 A full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click
 **Install & Open** menu for 100+ AI tools and providers — coding agents,
 browsers, gateways, local runtimes and assistants. See
-[docs/sandbox-desktop.md](https://g4f.dev/docs/sandbox-desktop) for the start script,
+[docs/sandbox-desktop](https://g4f.dev/docs/sandbox-desktop) for the start script,
 clipboard, scaling, app volume, user id, password and domain-routing options,
 and [docker/sandbox-menu/README.md](docker/sandbox-menu/README.md) for the
 menu, the tool list and the settings.
@@ -207,7 +207,7 @@ docker run -d --name g4f-sandbox-desktop \
   `--domain-suffix`, `--no-domain-router`, `shell`, `logs` and `stop`.
   `--api-key KEY` protects the desktop/API with a password (any username
   works in the browser login); see
-  [docs/sandbox-desktop.md](https://g4f.dev/docs/sandbox-desktop).
+  [docs/sandbox-desktop](https://g4f.dev/docs/sandbox-desktop).
 - The sandbox user (`pn`) runs with uid/gid 1000 by default. On a host whose
   user has another id, build the image with
   `--build-arg G4F_USER_ID="$(id -u)"` (or run
@@ -249,7 +249,7 @@ pip install -U g4f[all]
 ```
 
 Partial installs
-- To install only specific functionality, use optional extras groups. See docs/requirements.md in the project docs.
+- To install only specific functionality, use optional extras groups. See [docs/requirements](https://g4f.dev/docs/requirements) in the project docs.
 
 Install from source:
 ```bash
@@ -440,27 +440,27 @@ Provider requirements may include:
 ---
 
 ## Local inference & media
-- GPT4Free supports local inference backends. See [docs/local.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/local.md) for supported runtimes and hardware guidance.
-- Media generation (image, audio, video) is supported through providers (e.g., Pollinations). See [docs/media.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/media.md) for formats, options, and sample usage.
+- GPT4Free supports local inference backends. See [docs/local](https://g4f.dev/docs/local) for supported runtimes and hardware guidance.
+- Media generation (image, audio, video) is supported through providers (e.g., Pollinations). See [docs/media](https://g4f.dev/docs/media) for formats, options, and sample usage.
 
 ---
 
 ## Configuration & customization
-- Configure via environment variables, CLI flags, or config files. See [docs/config.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/config.md).
-- To reduce install size, use partial requirement groups. See [docs/requirements.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/requirements.md).
-- Provider selection: learn how to set defaults and override per-request at [docs/selecting_a_provider.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/selecting_a_provider.md).
+- Configure via environment variables, CLI flags, or config files. See [docs/config](https://g4f.dev/docs/config).
+- To reduce install size, use partial requirement groups. See [docs/requirements](https://g4f.dev/docs/requirements).
+- Provider selection: learn how to set defaults and override per-request at [docs/selecting_a_provider](https://g4f.dev/docs/selecting_a_provider).
 - Persistence: HAR files, cookies, and generated media persist in mapped directories (e.g., har_and_cookies, generated_media).
 
 ---
 
 ## Running on smartphone
-- The web GUI is responsive and can be accessed from a phone by visiting your host IP:8080 or via a tunnel. See [docs/guides/phone.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/guides/phone.md).
+- The web GUI is responsive and can be accessed from a phone by visiting your host IP:8080 or via a tunnel. See [docs/guides/phone](https://g4f.dev/docs/guides/phone).
 
 ---
 
 ## Inference API (OpenAI‑compatible)
 - The Inference API enables OpenAI-like workflows routed through GPT4Free provider selection.
-- Docs: [docs/interference-api.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/interference-api.md)
+- Docs: [docs/interference-api](https://g4f.dev/docs/interference-api)
 - Default endpoint (example slim docker): `http://localhost:1337/v1`
 - Swagger UI: `http://localhost:1337/docs`
 
@@ -468,11 +468,11 @@ Provider requirements may include:
 
 ## Examples & common patterns
 - Streaming completions, stopping criteria, system messages, and tool-calling patterns are documented in:
-  - [docs/client.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/client.md)
-  - [docs/async_client.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/async_client.md)
-  - [docs/requests.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/requests.md)
-- Integrations (LangChain, PydanticAI): [docs/pydantic_ai.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/pydantic_ai.md)
-- Legacy examples: [docs/legacy.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/legacy.md)
+  - [docs/client](https://g4f.dev/docs/client)
+  - [docs/async_client](https://g4f.dev/docs/async_client)
+  - [docs/requests](https://g4f.dev/docs/requests)
+- Integrations (LangChain, PydanticAI): [docs/pydantic_ai](https://g4f.dev/docs/pydantic_ai)
+- Legacy examples: [docs/legacy](https://g4f.dev/docs/legacy)
 
 ---
 
@@ -488,7 +488,7 @@ How to contribute:
 Repository: https://github.com/xtekky/gpt4free
 
 ### How to create a new provider
-- Read the guide: [docs/guides/create_provider.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/guides/create_provider.md)
+- Read the guide: [docs/guides/create_provider](https://g4f.dev/docs/guides/create_provider)
 - Typical steps:
   - Implement a provider adapter in `g4f/Provider/`
   - Add configuration and dependency notes
@@ -496,8 +496,8 @@ Repository: https://github.com/xtekky/gpt4free
   - Respect third‑party code licenses and attribute appropriately
 
 ### How AI can help you write code
-- See: [docs/guides/help_me.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/guides/help_me.md) for prompt templates and workflows to accelerate development.
-- Automatic development loop: [docs/dev-pipeline.md](https://g4f.dev/docs/dev-pipeline) explains `bin/dev-pipeline`, which reads tasks from `AGENTS.md` and implements them with working free models from pi-freeflow.
+- See: [docs/guides/help_me](https://g4f.dev/docs/guides/help_me) for prompt templates and workflows to accelerate development.
+- Automatic development loop: [docs/dev-pipeline](https://g4f.dev/docs/dev-pipeline) explains `bin/dev-pipeline`, which reads tasks from `AGENTS.md` and implements them with working free models from pi-freeflow.
 
 ---
 
@@ -520,7 +520,7 @@ Many more contributors are acknowledged in the repository.
 ## Powered-by highlights
 - Pollinations AI — generative media: https://github.com/pollinations/pollinations
 - MoneyPrinter V2 — example project using GPT4Free: https://github.com/FujiwaraChoki/MoneyPrinterV2
-- For a full list of projects and sites using GPT4Free, see: [docs/powered-by.md](https://github.com/gpt4free/g4f.dev/blob/main/docs/powered-by.md)
+- For a full list of projects and sites using GPT4Free, see: [docs/powered-by](https://g4f.dev/docs/powered-by)
 
 ---
 

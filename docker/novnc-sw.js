@@ -8,7 +8,7 @@
  * is resolved against the registration scope instead of a hard-coded prefix.
  */
 
-const CACHE_NAME = "g4f-desktop-v2";
+const CACHE_NAME = "g4f-desktop-v3";
 const CACHE_PREFIX = "g4f-desktop-";
 const SHELL = [
   "./",

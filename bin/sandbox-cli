@@ -11,6 +11,7 @@
 #   sandbox-cli list            list the tools the desktop menu knows about
 #   sandbox-cli urls            print the public URLs served by the g4f API
 #   sandbox-cli hosts           print the /etc/hosts entries for the app domains
+#   sandbox-cli harness         run a coding agent on the g4f API and models
 #   sandbox-cli polli-sandbox   create/connect/manage hosted Polli sandboxes
 #
 # Each menu item runs:
@@ -38,6 +39,9 @@ export PATH
 
 ANTIGRAVITY_INSTALLER="https://antigravity.google/cli/install.sh"
 OPENCODE_INSTALLER="https://opencode.ai/v2/install"
+# The headless OpenCode API behind opencode.g4f.local. Keep the port in step
+# with the host router, which reads the same OPENCODE_PORT variable.
+OPENCODE_PORT="${OPENCODE_PORT:-4096}"
 # pi-freeflow is an extension for Pi and Oh My Pi (OMP), not a standalone CLI:
 # the OMP and Pi entries install their host and add the extension to it, and
 # the API entry runs the extension's own daemon on 28180. OMP ships a prebuilt
@@ -2536,6 +2540,7 @@ public_urls() {
         "http://open-webui.g4f.local/ (also http://8603.g4f.local/)" \
         "http://cptr.g4f.local/ (also http://8000.g4f.local/)" \
         "http://code-server.g4f.local/ (also http://8602.g4f.local/)" \
+        "http://opencode.g4f.local/ (also http://$OPENCODE_PORT.g4f.local/)" \
         "http://assistant-ui.g4f.local/ (also http://$ASSISTANT_UI_PORT.g4f.local/)" \
         "http://llamacpp.g4f.local/ (also http://11435.g4f.local/)" \
         "http://lmstudio.g4f.local/ (also http://1234.g4f.local/)" \
@@ -2559,12 +2564,14 @@ print('\n'.join(hosts_entries()))
     printf '127.0.0.1 %s\n' \
         "g4f.$suffix" "omniroute.$suffix" "ollama.$suffix" "litellm.$suffix" \
         "librechat.$suffix" "sillytavern.$suffix" "open-webui.$suffix" \
-        "cptr.$suffix" "code-server.$suffix" "assistant-ui.$suffix" \
+        "cptr.$suffix" "code-server.$suffix" "opencode.$suffix" \
+        "assistant-ui.$suffix" \
         "llamacpp.$suffix" "lmstudio.$suffix" \
         "remote-desktop.$suffix" "desktop.$suffix" "pi-freeflow.$suffix" \
         "1234.$suffix" "$ASSISTANT_UI_PORT.$suffix" "3080.$suffix" "4000.$suffix" \
-        "8000.$suffix" "8080.$suffix" "8601.$suffix" "8602.$suffix" "8603.$suffix" \
-        "8765.$suffix" "11434.$suffix" "11435.$suffix" "20128.$suffix" "28180.$suffix"
+        "4096.$suffix" "8000.$suffix" "8080.$suffix" "8601.$suffix" \
+        "8602.$suffix" "8603.$suffix" "8765.$suffix" "11434.$suffix" \
+        "11435.$suffix" "20128.$suffix" "28180.$suffix"
 }
 
 # Print the /etc/hosts block for the host, ready to paste (see the "Host Names"
@@ -2932,6 +2939,26 @@ run_tool() {
                 configure_opencode_service
             fi
             launch OpenCode opencode "${@:2}" ;;
+        opencode-server)
+            # The headless API served at opencode.g4f.local. The host router
+            # starts this entry on demand, so opening the hostname installs
+            # OpenCode if needed and then leaves this server running in a
+            # terminal window (closing the window stops it).
+            ensure_script "$OPENCODE_INSTALLER" opencode "OpenCode"
+            if [ "$INSTALL_ONLY" = 1 ]; then
+                log "OpenCode is installed and ready (run: sandbox-cli opencode-server)"
+                exit 0
+            fi
+            configure_g4f
+            configure_opencode_g4f
+            local suffix="${G4F_DOMAIN_SUFFIX:-g4f.local}"
+            log "starting the OpenCode server on http://127.0.0.1:$OPENCODE_PORT (Ctrl-C to stop)"
+            # The browser reaches the proxy as opencode.<suffix>; OpenCode's
+            # CORS check sees that Origin, so allow the host and port names.
+            launch "OpenCode server" opencode serve --hostname 127.0.0.1 \
+                --port "$OPENCODE_PORT" \
+                --cors "http://opencode.$suffix" \
+                --cors "http://$OPENCODE_PORT.$suffix" "${@:2}" ;;
         omp)
             ensure_omp
             ensure_pi_freeflow_omp
@@ -3035,6 +3062,12 @@ run_tool() {
             launch Goose goose "${@:2}" ;;
         aider)
             ensure_pip aider-chat aider
+            if [ -n "${G4F_HARNESS:-}" ]; then
+                # Aider has no model environment variable; select the g4f
+                # model on the command line. OPENAI_API_BASE/KEY are exported
+                # by the harness entry.
+                launch Aider aider --model "openai/$G4F_PROVIDER_MODEL" "${@:2}"
+            fi
             launch Aider aider "${@:2}" ;;
         cursor)
             ensure_script "$CURSOR_INSTALLER" cursor-agent "Cursor CLI"
@@ -3720,6 +3753,252 @@ run_tool() {
     esac
 }
 
+# ---------------------------------------------------------------------------
+# Coding harnesses on the g4f API
+#
+# A "harness" is a coding agent (OpenCode, Claude Code, Codex, Pi, ...) that
+# this CLI can launch with the sandbox's g4f API as its model provider. The
+# harness command lists the agents, reads the available models straight from
+# the API's /v1/models endpoint and saves a per-agent model in the same
+# settings file the rest of the menu uses (HARNESS_<AGENT>=<model>). Only that
+# launch is affected: the global model in Sandbox Settings stays the default
+# for every other tool. The model is passed to the launchers through
+# G4F_SANDBOX_MODEL, which configure_g4f already gives precedence over the
+# saved settings and which the launchers prefix with the optional provider.
+# ---------------------------------------------------------------------------
+HARNESS_AGENTS="opencode claude-code kilocode copilot hermes omh aider"
+
+harness_usage() {
+    cat <<'EOF'
+usage: sandbox-cli harness                         interactive menu
+       sandbox-cli harness list                    harnesses and their saved model
+       sandbox-cli harness models [query]          models from the g4f API
+       sandbox-cli harness model <agent> [model]   save a model for one harness
+       sandbox-cli harness clear <agent>           use the global model again
+       sandbox-cli harness <agent> [--provider P] [--model M]
+                                                   launch it against the g4f API
+
+models reads the running g4f API (http://127.0.0.1:8080/v1 by default, or
+G4F_API_BASE_URL) and prints the ids from /v1/models. A saved harness model
+overrides the global model from Sandbox Settings for that agent only; without
+one the launchers keep using the global model or g4f's "auto".
+
+Harnesses with a built-in g4f integration: opencode, claude-code, kilocode,
+copilot, hermes, omh and aider. Every harness also gets the g4f endpoint as
+OPENAI_API_BASE / ANTHROPIC_BASE_URL, so other agents can pick it up too.
+EOF
+}
+
+harness_env_file() {
+    printf '%s' "${G4F_SANDBOX_ENV:-$(real_home)/.config/g4f-sandbox/env}"
+}
+
+harness_model_key() { # <agent>
+    printf 'HARNESS_%s' \
+        "$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_')"
+}
+
+harness_saved_model() { # <agent>
+    local file key
+    file="$(harness_env_file)"
+    key="$(harness_model_key "$1")"
+    [ -f "$file" ] || return 0
+    sed -n "s/^${key}=//p" "$file" | tail -n 1
+}
+
+harness_save_model() { # <agent> <model>
+    local file key tmp
+    file="$(harness_env_file)"
+    key="$(harness_model_key "$1")"
+    mkdir -p "$(dirname "$file")" || die "cannot create $(dirname "$file")"
+    tmp="${file}.tmp.$$"
+    {
+        grep -v "^${key}=" "$file" 2>/dev/null || true
+        if [ -n "$2" ]; then
+            printf '%s=%s\n' "$key" "$2"
+        fi
+    } > "$tmp" || die "cannot write $tmp"
+    mv "$tmp" "$file" || die "cannot write $file"
+    chmod 600 "$file" 2>/dev/null || true
+}
+
+harness_api_ready() {
+    apply_sandbox_api_key
+    configure_g4f
+}
+
+# Export the g4f endpoint in the shapes the harnesses read. OpenAI-compatible
+# CLIs use OPENAI_API_BASE/OPENAI_BASE_URL and OPENAI_API_KEY; Claude Code
+# speaks the Anthropic Messages API (/v1/messages on the same server) and wants
+# the base URL without the /v1 suffix. G4F_HARNESS tells the agent branches in
+# run_tool that a per-harness model is active, so they can pass it on the
+# command line where the tool has no environment variable for the model.
+harness_export_env() {
+    export OPENAI_API_BASE="$G4F_API_BASE_URL"
+    export OPENAI_BASE_URL="$G4F_API_BASE_URL"
+    export OPENAI_API_KEY="$G4F_API_KEY"
+    export OPENAI_MODEL="$G4F_PROVIDER_MODEL"
+    export ANTHROPIC_BASE_URL="${G4F_API_BASE_URL%/v1}"
+    export ANTHROPIC_API_KEY="$G4F_API_KEY"
+    export ANTHROPIC_AUTH_TOKEN="$G4F_API_KEY"
+    export ANTHROPIC_MODEL="$G4F_PROVIDER_MODEL"
+    export ANTHROPIC_SMALL_FAST_MODEL="$G4F_PROVIDER_MODEL"
+    export G4F_HARNESS=1
+}
+
+harness_models() { # [query]
+    local query="${1:-}" json models
+    harness_api_ready
+    json="$(curl -fsS --connect-timeout 2 --max-time 15 \
+        -H "Authorization: Bearer ${G4F_API_KEY:-}" \
+        "$G4F_API_BASE_URL/models" 2>/dev/null)" \
+        || die "could not read models from $G4F_API_BASE_URL — start the g4f API first"
+    if have jq; then
+        models="$(printf '%s' "$json" | jq -r '.data[]?.id // empty' 2>/dev/null)"
+    else
+        models="$(printf '%s' "$json" | python3 -c '
+import json, sys
+doc = json.load(sys.stdin)
+items = doc.get("data", doc) if isinstance(doc, dict) else doc
+for item in items or []:
+    print(item.get("id", "") if isinstance(item, dict) else item)
+' 2>/dev/null)"
+    fi
+    models="$(printf '%s\n' "$models" | sed '/^$/d')"
+    if [ -n "$query" ]; then
+        models="$(printf '%s\n' "$models" | grep -i -- "$query" || true)"
+    fi
+    [ -n "$models" ] \
+        || die "the g4f API at $G4F_API_BASE_URL returned no models${query:+ matching \"$query\"}"
+    printf '%s\n' "$models"
+}
+
+harness_pick_agent() { # <prompt> [default]
+    local agent=""
+    printf 'Harnesses: %s\n' "$HARNESS_AGENTS" >&2
+    read -r -p "$1${2:+ [$2]}: " agent || true
+    printf '%s' "${agent:-${2:-}}"
+}
+
+harness_pick_model() { # [query]
+    local query="${1:-}" models choice
+    models="$(harness_models "$query")" || return 1
+    printf 'Models from %s:\n' "$G4F_API_BASE_URL" >&2
+    printf '%s\n' "$models" | awk '{printf "  %3d) %s\n", NR, $0}' >&2
+    read -r -p "Model number or id (blank to keep the current one): " choice || true
+    [ -n "$choice" ] || return 0
+    case "$choice" in
+        *[!0-9]*) printf '%s' "$choice" ;;
+        *)
+            printf '%s\n' "$models" | sed -n "${choice}p" \
+                | grep . || log "there is no model number $choice" >&2 ;;
+    esac
+}
+
+harness_list() {
+    local agent model
+    harness_api_ready
+    printf 'g4f API:      %s\n' "$G4F_API_BASE_URL"
+    printf 'global model: %s\n\n' "${G4F_PROVIDER_MODEL:-auto}"
+    printf '%-14s %s\n' HARNESS MODEL
+    for agent in $HARNESS_AGENTS; do
+        model="$(harness_saved_model "$agent")"
+        printf '%-14s %s\n' "$agent" "${model:-(global/default)}"
+    done
+}
+
+harness_set_model() { # [agent] [model]
+    local agent="${1:-}" model="${2:-}"
+    [ -n "$agent" ] || agent="$(harness_pick_agent "Harness" opencode)"
+    [ -n "$agent" ] || return 0
+    if [ -z "$model" ]; then
+        model="$(harness_pick_model)" || return 1
+    fi
+    [ -n "$model" ] || return 0
+    harness_save_model "$agent" "$model"
+    log "$agent now uses the g4f model \"$model\" (saved in $(harness_env_file))."
+}
+
+harness_clear_model() { # [agent]
+    local agent="${1:-}"
+    [ -n "$agent" ] || agent="$(harness_pick_agent "Harness to clear" opencode)"
+    [ -n "$agent" ] || return 0
+    harness_save_model "$agent" ""
+    log "$agent will use the global model again."
+}
+
+harness_launch() { # [agent] [--provider P] [--model M]
+    local agent="${1:-}" provider="" model="" saved="" explicit_model=0 no_save=0
+    if [ -z "$agent" ]; then
+        agent="$(harness_pick_agent "Harness to launch" opencode)"
+    else
+        shift
+    fi
+    [ -n "$agent" ] || { harness_menu; return 0; }
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --provider) provider="${2:-}"; shift 2 ;;
+            --model) model="${2:-}"; explicit_model=1; shift 2 ;;
+            --no-save) no_save=1; shift ;;
+            *) shift ;;
+        esac
+    done
+    saved="$(harness_saved_model "$agent")"
+    [ -n "$model" ] || model="$saved"
+    if [ -n "$model" ] && { [ "$explicit_model" = 1 ] || [ -z "${G4F_SANDBOX_MODEL+x}" ]; }; then
+        export G4F_SANDBOX_MODEL="$model"
+        if [ "$no_save" = 0 ] && [ "$model" != "$saved" ]; then
+            harness_save_model "$agent" "$model"
+        fi
+    fi
+    [ -n "$provider" ] && export G4F_SANDBOX_PROVIDER="$provider"
+    harness_api_ready
+    harness_export_env
+    exec "$0" "$agent"
+}
+
+harness_menu() {
+    local choice
+    while :; do
+        printf '\nCoding harnesses on the g4f API\n'
+        harness_list
+        cat <<'EOF'
+
+  1) Set a harness model from the g4f API
+  2) Launch a harness
+  3) List the g4f models
+  4) Clear a harness model
+  5) Show the g4f endpoint and key
+  q) Quit
+EOF
+        read -r -p "Choice: " choice || { printf '\n'; return 0; }
+        case "$choice" in
+            1) harness_set_model ;;
+            2) harness_launch ;;
+            3) harness_models | sed 's/^/  /' || true ;;
+            4) harness_clear_model ;;
+            5) harness_api_ready
+               printf '  API: %s\n  key: %s\n' \
+                   "$G4F_API_BASE_URL" "$(mask_secret "${G4F_API_KEY:-}")" ;;
+            q|Q|quit|exit) return 0 ;;
+            *) log "unknown choice: $choice" ;;
+        esac
+        printf '\n'
+    done
+}
+
+harness_dispatch() {
+    case "${1:-}" in
+        '') harness_menu; hold_open ;;
+        list) harness_list; hold_open ;;
+        models) shift; harness_models "$@"; hold_open ;;
+        model|set) shift; harness_set_model "$@"; hold_open ;;
+        clear|reset) shift; harness_clear_model "$@"; hold_open ;;
+        -h|--help|help) harness_usage ;;
+        *) harness_launch "$@" ;;
+    esac
+}
+
 run_configure() { # <agent>
     local agent="${1:-}"
     [ -n "$agent" ] || die "usage: sandbox-cli configure <agent>"
@@ -3750,6 +4029,7 @@ usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop to
        sandbox-cli list               list the tools behind the desktop menu
        sandbox-cli urls               print the public URLs served by the g4f API
        sandbox-cli hosts              print the /etc/hosts entries for the app domains
+       sandbox-cli harness            run a coding agent on the g4f API and models
        sandbox-cli polli-sandbox      create/connect/manage hosted Polli sandboxes
        sandbox-cli help               this help
 
@@ -3787,6 +4067,7 @@ list_tools() {
     printf '%s\n' "Coding Agents"
     printf '  %-15s %s\n' \
         opencode    "OpenCode coding agent" \
+        opencode-server "OpenCode headless API (opencode.g4f.local)" \
         cindy       "Cindy desktop AI agent" \
         openbot     "OpenBot multi-agent desktop workspace" \
         thinkrail   "ThinkRail agentic IDE by JetBrains" \
@@ -3822,6 +4103,7 @@ list_tools() {
         vibe        "Mistral Vibe" \
         sweagent    "SWE-agent by Princeton" \
         dsh         "DeepSeek Harness (dsh) coding agent" \
+        harness     "run a coding agent on the g4f API with a chosen model" \
         paseo       "Paseo coding-agent orchestrator" \
         t3code      "T3 Code agent control surface"
     printf '%s\n' "Agent Skills"
@@ -3885,29 +4167,8 @@ case "${1:-}" in
     ""|help|-h|--help)
         usage ;;
     harness)
-        agent="${2:-}"
-        shift 2 2>/dev/null || true
-        harness_provider=""
-        harness_model=""
-        while [ $# -gt 0 ]; do
-            case "$1" in
-                --provider) harness_provider="${2:-}"; shift 2 ;;
-                --model) harness_model="${2:-}"; shift 2 ;;
-                *) shift ;;
-            esac
-        done
-        [ -n "$harness_provider" ] && export G4F_PROVIDER="$harness_provider"
-        [ -n "$harness_model" ] && export G4F_MODEL="$harness_model"
-        if [ -n "$agent" ]; then
-            settings_file="${G4F_SANDBOX_ENV:-$HOME/.config/g4f-sandbox/env}"
-            mkdir -p "$(dirname "$settings_file")"
-            key="HARNESS_$(printf '%s' "$agent" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9' '_')"
-            tmp="${settings_file}.tmp.$$"
-            ( [ -f "$settings_file" ] && grep -v "^${key}=" "$settings_file" || true
-              [ -n "$harness_provider$harness_model" ] && printf '%s=%s:%s\n' "$key" "$harness_provider" "$harness_model" ) > "$tmp"
-            mv "$tmp" "$settings_file"
-        fi
-        exec "$0" "$agent" ;;
+        shift
+        harness_dispatch "$@" ;;
     list)
         list_tools ;;
     urls)

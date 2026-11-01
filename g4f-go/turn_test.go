@@ -28,6 +28,9 @@ func isolateTurnConfig(t *testing.T) string {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("APPDATA", filepath.Join(home, "AppData", "Roaming"))
+	// configDir() prefers G4F_CONFIG_DIR over HOME; clear it so the test never
+	// touches the real ~/.g4f when the variable is set in the environment.
+	t.Setenv("G4F_CONFIG_DIR", "")
 	return filepath.Join(home, ".g4f", "turn")
 }
 

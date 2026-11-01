@@ -200,6 +200,14 @@ def routes() -> Dict[str, DomainRoute]:
                 8602,
             ),
         ),
+        "opencode": DomainRoute(
+            "opencode",
+            "OpenCode server",
+            port=4096,
+            root_url=_local_root_url(
+                "OPENCODE_BASE_URL", "OPENCODE_HOST", "OPENCODE_PORT", 4096
+            ),
+        ),
         "assistant-ui": DomainRoute(
             "assistant-ui",
             "assistant-ui",

@@ -9,6 +9,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"g4f-go/polli"
+	"g4f-go/sandbox"
 )
 
 // printHelp shows the g4f-go usage.
@@ -24,11 +27,20 @@ Usage:
   g4f-go status               show runtime download/install status
   g4f-go browser install      install the headless browser (Lightpanda) for this OS
   g4f-go browser serve        run the browser's CDP server in the foreground
+  g4f-go sandbox [command]    run the g4f sandbox container (g4f-sandbox)
+  g4f-go start-desktop-sandbox [--app TOOL] [options]  start the desktop sandbox
+  g4f-go sandbox --desktop connect        open a shell in the desktop sandbox
+  g4f-go sandbox --desktop exec <cmd...>  run a command in the desktop sandbox
+  g4f-go sandbox-cli [args]   run sandbox-cli in the desktop container
+  g4f-go polli-sandbox        create a Polli cloud sandbox with g4f-go + sandbox-cli
   g4f-go turn serve           run the embedded STUN/TURN relay (pion/turn)
   g4f-go turn status          show the embedded STUN/TURN relay
   g4f-go turn credentials     mint TURN REST credentials for a client
   g4f-go cache clear          remove all cached g4f data (model lists, scrape caches)
   g4f-go install g4f         (re)install the g4f package (network)
+  g4f-go upgrade              upgrade the g4f package to the latest release
+  g4f-go update               update the g4f-go launcher itself
+  g4f-go uninstall            remove g4f-go, its runtime, browser and caches
   g4f-go bootstrap            refresh the g4f package installation
   g4f-go -v <version> <cmd>   pin the g4f package version (e.g. g4f-go -v 1.5.0 api)
   g4f-go -v latest            stop pinning (track the latest g4f release)
@@ -60,7 +72,7 @@ func runMain() int {
 	// `-v <version>` pins the g4f package version. Strip it here so the pin
 	// works in front of any subcommand; a bare `-v` still prints the
 	// g4f-go version (handled by the switch below).
-	pin, args := g4fPin(binDir, args)
+	pin, pinExplicit, args := g4fPin(binDir, args)
 	if len(args) == 0 {
 		// `g4f-go -v <version>` without a command: make sure that exact
 		// g4f version is installed.
@@ -79,6 +91,35 @@ func runMain() int {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		return runTurnCommand(ctx, args[1:])
+	}
+
+	// `sandbox` and `sandbox-cli` drive the sandbox container and need no
+	// Python runtime either. `g4f-sandbox` is accepted as an alias so users
+	// can type the standalone launcher's name.
+	if args[0] == "sandbox" || args[0] == "g4f-sandbox" {
+		return sandbox.Run(args[1:])
+	}
+	if args[0] == "start-desktop-sandbox" {
+		return sandbox.Run(desktopSandboxArgs(args[1:]))
+	}
+	if args[0] == "sandbox-cli" {
+		return sandbox.RunCLI(args[1:])
+	}
+
+	// `polli-sandbox` installs Polli, creates a hosted E2B sandbox and sets up
+	// g4f-go + sandbox-cli there. It needs no Python runtime either.
+	if args[0] == "polli-sandbox" || args[0] == "polli" || args[0] == "sandbox-polli" {
+		return polli.Run(args[1:])
+	}
+
+	// `update` replaces the launcher itself and `uninstall` removes the
+	// launcher plus its managed data. Neither needs the Python runtime.
+	// `uninstall <package>` stays a pip passthrough (handled below).
+	if args[0] == "update" {
+		return runUpdateCommand(args[1:])
+	}
+	if args[0] == "uninstall" && (len(args) == 1 || args[1] == "help" || strings.HasPrefix(args[1], "-")) {
+		return runUninstallCommand(args[1:])
 	}
 
 	py, err := ensureRuntime()
@@ -154,6 +195,8 @@ func runMain() int {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)
 		}
 		return code
+	case "upgrade":
+		return runUpgradeCommand(binDir, py, pin, pinExplicit)
 	case "install", "uninstall":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "usage: g4f-go install g4f")
@@ -213,6 +256,13 @@ func runMain() int {
 		fmt.Fprintln(os.Stderr, "g4f-go:", err)
 	}
 	return code
+}
+
+// desktopSandboxArgs keeps the normal sandbox options available for the
+// desktop shortcut, while selecting the desktop image regardless of the
+// caller's G4F_SANDBOX_MODE setting.
+func desktopSandboxArgs(args []string) []string {
+	return append(append([]string{"up"}, args...), "--desktop")
 }
 
 // runPinOnly handles `g4f-go -v <version>` with no command: make sure the
@@ -285,7 +335,7 @@ func hasSubcommand(args []string) bool {
 		return true
 	}
 	switch args[0] {
-	case "help", "--help", "-h", "--version", "-v", "status", "install", "bootstrap", "cache", "browser", "turn":
+	case "help", "--help", "-h", "--version", "-v", "status", "install", "upgrade", "update", "uninstall", "bootstrap", "cache", "browser", "turn", "sandbox", "g4f-sandbox", "start-desktop-sandbox", "sandbox-cli", "polli-sandbox", "polli", "sandbox-polli":
 		return true
 	}
 	if strings.HasPrefix(args[0], "-") {

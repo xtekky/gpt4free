@@ -67,10 +67,17 @@ g4f-go gui                  launch the web GUI
 g4f-go status               show runtime download/install status
 g4f-go browser install      install the headless browser (Lightpanda) for this OS
 g4f-go browser serve        run the browser's CDP server in the foreground
+g4f-go sandbox [command]    run the g4f sandbox container (g4f-sandbox)
+g4f-go start-desktop-sandbox [--app TOOL] [options]  start the desktop sandbox
+g4f-go sandbox-cli [args]   run sandbox-cli in the desktop container
+g4f-go polli-sandbox        create a Polli cloud sandbox with g4f-go + sandbox-cli
 g4f-go turn serve           run the embedded STUN/TURN server in the foreground
 g4f-go turn status          show the configured/running STUN/TURN server
 g4f-go turn credentials     mint TURN REST credentials for a client
 g4f-go install g4f          (re)install the g4f package (network)
+g4f-go upgrade              upgrade the g4f package to the latest release
+g4f-go update               update the g4f-go launcher itself
+g4f-go uninstall            remove g4f-go, its runtime, browser and caches
 g4f-go -v <version> <cmd>   pin the g4f package version (e.g. g4f-go -v 1.5.0 api)
 g4f-go -v latest            stop pinning (track the latest g4f release)
 g4f-go help                 show help
@@ -99,6 +106,113 @@ version, as does `--version`.
 
 An explicit `g4f-go install g4f` (unpinned) or `g4f-go install g4f==X.Y.Z`
 updates the stored pin to match what was installed.
+
+## Updating and uninstalling
+
+`g4f-go update` is for the launcher, `g4f-go upgrade` is for the Python
+package, and `g4f-go uninstall` removes both:
+
+```
+g4f-go update                  install the latest g4f-go GitHub release
+g4f-go update --check          only report whether a newer launcher exists
+g4f-go update --force          reinstall even when already up to date
+g4f-go update --version TAG    install a specific release (e.g. v0.2.0)
+
+g4f-go upgrade                 upgrade g4f to the latest release and clear the pin
+g4f-go -v 1.5.0 upgrade        install exactly g4f 1.5.0 and keep that pin
+
+g4f-go uninstall               remove the binary, runtime, browser and caches
+g4f-go uninstall --keep-binary keep the executable, remove only managed data
+g4f-go uninstall --keep-data   keep the runtime/data, remove only the executable
+g4f-go uninstall --dry-run     show what would be removed
+```
+
+`update` replaces the executable in place; the downloaded CPython runtime and
+the installed `g4f` package are left untouched. It selects the
+`g4f-go-<version>-<os>-<arch>.zip` asset for the current platform and verifies
+the published sha256 digest when GitHub provides one. A copy installed through
+a package manager may need that manager's update command instead.
+
+`uninstall` removes `python-embed` (which contains the g4f package and the
+extracted bundle), the browser directory, and the g4f cache. User
+configuration such as cookies and model settings in the g4f config directory is
+left in place, and `g4f-go uninstall g4f` still works as a pip passthrough for
+removing just the Python package.
+
+## Sandbox container (`sandbox`, `sandbox-cli`)
+
+`g4f-go` embeds the `g4f-sandbox` launcher, so one binary can also run the
+sandbox desktop/API container:
+
+```
+g4f-go sandbox                    # API-only sandbox on http://127.0.0.1:8080/
+g4f-go sandbox --desktop          # full desktop image, pulled on first use
+g4f-go start-desktop-sandbox       # shorthand for starting the desktop image
+g4f-go start-desktop-sandbox --app opencode  # run a tool instead of the live wallpaper
+g4f-go start-desktop-sandbox --no-open --port 9090
+g4f-go sandbox --desktop connect  # interactive bash shell in the running desktop
+g4f-go sandbox --desktop exec ls /home/pn
+g4f-go sandbox --desktop cli list # list installable sandbox tools
+g4f-go sandbox --desktop install chrome
+g4f-go sandbox status
+g4f-go sandbox down
+```
+
+`connect` is an alias for `shell`; both it and `exec` require the selected
+container to exist. Use `--desktop` for the desktop container (without it,
+`sandbox` targets the API-only container). Start it first with
+`start-desktop-sandbox` or `sandbox --desktop up`.
+
+`--app TOOL` starts a `sandbox-cli` desktop tool (for example `opencode` or
+`chrome`) in a maximized terminal instead of opening the live wallpaper. The
+tool is installed on first use if needed. Changing or removing `--app` when
+starting again recreates the desktop container so the startup choice takes
+effect; persistent sandbox data remains in the data directory. It also works
+with `g4f-go sandbox --desktop --app TOOL`.
+
+`g4f-go sandbox-cli <args...>` is shorthand for
+`g4f-go sandbox --desktop cli <args...>`: it starts the desktop container when
+needed (without opening a browser) and runs `sandbox-cli` inside it, for
+example `g4f-go sandbox-cli settings` or `g4f-go sandbox-cli hosts`.
+
+The launcher uses Docker when it is installed and falls back to Podman. If
+neither CLI is present, `g4f-go sandbox` installs Podman with the host package
+manager (`apt`, `dnf`, `pacman`, `zypper`, `apk`, Homebrew, `winget`, Chocolatey
+or Scoop) before pulling the image. Set `G4F_SANDBOX_INSTALL_PODMAN=0` to
+disable that automatic install. The full launcher options and environment
+variables are the same as [`sandbox-launcher`](../sandbox-launcher/README.md).
+
+## Polli cloud sandbox (`polli-sandbox`)
+
+`g4f-go polli-sandbox` installs the [Pollinations CLI](https://github.com/pollinations/pollinations)
+and the OpenSSH client, creates a hosted Polli (E2B) sandbox, and installs
+`g4f-go` plus `sandbox-cli` inside it:
+
+```
+g4f-go polli-sandbox                    # create a sandbox, install g4f-go + sandbox-cli
+g4f-go polli-sandbox --desktop          # also install Xfce + TigerVNC + noVNC
+g4f-go polli-sandbox --template pollinations-large --timeout 3600 --desktop
+g4f-go polli-sandbox install-menu <id> --desktop   # set up an existing sandbox
+g4f-go polli-sandbox list|connect|logs|pause|kill|timeout|ssh-config ...
+```
+
+`--connect` opens an SSH session after setup. `--no-setup` only creates the
+sandbox. When g4f-go is running as a Linux binary and the remote architecture
+matches, the running binary is uploaded; otherwise (or with `--remote`) the
+latest release is installed remotely with `bin/install.sh`. Use
+`--g4f-go-version V` to pin that release.
+
+With `--desktop`, the sandbox gets the Xfce + TigerVNC desktop and the noVNC web
+client. The command prints the SSH tunnels:
+
+```
+ssh -L 8080:127.0.0.1:8080 <id>.polli   # http://127.0.0.1:8080/desktop/
+ssh -L 5900:127.0.0.1:5900 <id>.polli   # direct VNC client
+```
+
+The embedded `sandbox-cli` and desktop bootstrap are synced from `bin/`; the
+`g4f-go sandbox` and `polli-sandbox` commands share the same generated images
+and environment variables.
 
 ## Headless browser (`browser`)
 

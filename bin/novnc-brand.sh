@@ -25,10 +25,10 @@
 #                               helpers for text, key combos, modifiers,
 #                               view-only, scaling and quality, used by the
 #                               /desktop touch controls (g4f-controls.js)
-#   defaults.json               resize=off, so the VNC desktop keeps its
-#                               configured geometry when the same session is
-#                               opened from devices with different screens
-#                               (no remote resize / server-side scaling)
+#   defaults.json               resize=remote, so the VNC server resizes the
+#                               desktop to the viewer's window; the Fit button
+#                               on the touch overlay switches to local scaling
+#                               for viewers that prefer the fixed geometry
 #
 # Written against noVNC 1.6.0 (the upstream release tarball the sandbox image
 # unpacks). Every substitution is verified below, so a changed noVNC layout
@@ -154,7 +154,12 @@ fi
 # the Remote Desktop viewer's text input, key buttons and one-tap shortcuts on
 # the noVNC iframe. Give that page a stable handle to the UI plus helpers that
 # use noVNC's own keysym table, so it never has to reimplement RFB internals.
-if ! grep -q 'g4f: /desktop key bridge' "$NOVNC_DIR/app/ui.js"; then
+#
+# The patch is versioned and replaces any earlier g4f bridge (including the
+# unversioned one written by older images), so rebuilding over an already
+# branded directory still ships the current helpers instead of silently
+# keeping stale event handlers.
+if ! grep -q 'g4f: /desktop key bridge v3' "$NOVNC_DIR/app/ui.js"; then
     python3 - "$NOVNC_DIR/app/ui.js" <<'PY'
 import sys
 
@@ -166,7 +171,19 @@ anchor = "export default UI;"
 if anchor not in src:
     raise SystemExit(f"novnc-brand: UI export anchor not found in {path}")
 
-bridge = r"""/* g4f: /desktop key bridge
+# Drop a bridge installed by an older run before inserting this one. Legacy
+# bridges had no end marker and ran up to the export statement.
+legacy_start = src.find("/* g4f: /desktop key bridge")
+end_marker = "/* g4f: end /desktop key bridge */"
+if legacy_start != -1:
+    marker_end = src.find(end_marker, legacy_start)
+    if marker_end != -1:
+        remove_end = src.index("\n", marker_end) + 1
+    else:
+        remove_end = src.index(anchor, legacy_start)
+    src = src[:legacy_start] + src[remove_end:].lstrip("\n")
+
+bridge = r"""/* g4f: /desktop key bridge v3
  *
  * The outer page (index.html) layers the Remote Desktop viewer's touch
  * controls over this client. These helpers keep the keysym mapping, sticky
@@ -235,7 +252,12 @@ UI.g4fSendKey = function (name) {
     if (!UI.g4fCanSend()) return false;
     const key = UI.g4fKey(name);
     if (!key) return false;
-    UI.rfb.sendKey(key[0], key[1]);
+    try {
+        UI.rfb.sendKey(key[0], key[1]);
+    } catch (error) {
+        Log.Error("g4f: could not send key " + name + ": " + error);
+        return false;
+    }
     return true;
 };
 
@@ -254,13 +276,51 @@ UI.g4fToggleModifier = function (name) {
 };
 
 UI.g4fReleaseModifiers = function () {
-    if (UI.rfb) {
-        for (const name of Array.from(UI.g4fDownKeys)) {
-            const key = UI.g4fKey(name);
-            if (key) UI.rfb.sendKey(key[0], key[1], false);
+    const held = Array.from(UI.g4fDownKeys);
+    UI.g4fDownKeys.clear();
+    if (!UI.rfb) return;
+    for (const name of held) {
+        const key = UI.g4fKey(name);
+        if (!key) continue;
+        try {
+            UI.rfb.sendKey(key[0], key[1], false);
+        } catch (error) {
+            Log.Error("g4f: could not release key " + name + ": " + error);
         }
     }
-    UI.g4fDownKeys.clear();
+};
+
+UI.g4fDisconnect = function () {
+    // Leave must work in every connection state, not only while a session is
+    // live: a failed or unreachable desktop sits in noVNC's reconnect loop,
+    // where UI.rfb is either still connecting or undefined. Cancel the pending
+    // reconnect, stop any live session, and return to the connect panel.
+    UI.g4fReleaseModifiers();
+    UI.inhibitReconnect = true;
+    if (UI.reconnectCallback) {
+        clearTimeout(UI.reconnectCallback);
+        UI.reconnectCallback = null;
+    }
+    if (UI.rfb) {
+        try {
+            UI.disconnect();
+        } catch (error) {
+            Log.Error("g4f: could not disconnect: " + error);
+            UI.rfb = undefined;
+            UI.connected = false;
+            UI.updateVisualState("disconnected");
+            UI.openControlbar();
+            UI.openConnectPanel();
+        }
+    } else {
+        UI.connected = false;
+        UI.updateVisualState("disconnected");
+        UI.showStatus(_("Disconnected"), "normal");
+        document.title = PAGE_TITLE;
+        UI.openControlbar();
+        UI.openConnectPanel();
+    }
+    return true;
 };
 
 UI.g4fSendCombo = function (names) {
@@ -274,27 +334,57 @@ UI.g4fSendCombo = function (names) {
         if (!key) return false;
         keys.push(key);
     }
-    for (const key of keys) UI.rfb.sendKey(key[0], key[1], true);
-    for (const key of keys.slice().reverse()) UI.rfb.sendKey(key[0], key[1], false);
-    return true;
+    // Press in order (modifiers first), release in reverse. The finally block
+    // guarantees a thrown send never leaves a modifier stuck down remotely.
+    const pressed = [];
+    try {
+        for (const key of keys) {
+            UI.rfb.sendKey(key[0], key[1], true);
+            pressed.push(key);
+        }
+        return true;
+    } catch (error) {
+        Log.Error("g4f: could not send combo: " + error);
+        return false;
+    } finally {
+        for (const key of pressed.reverse()) {
+            try {
+                UI.rfb.sendKey(key[0], key[1], false);
+            } catch (error) {
+                Log.Error("g4f: could not release combo key: " + error);
+            }
+        }
+    }
 };
 
 UI.g4fSendText = function (text) {
     if (!UI.g4fCanSend() || !text) return false;
     UI.g4fReleaseModifiers();
-    for (const char of String(text)) {
+    // Sending "Enter" twice for CRLF would submit dialogs twice; normalise the
+    // text first, then treat every remaining line break as one Return.
+    const value = String(text).replace(/\r\n?/g, "\n");
+    let sent = 0;
+    for (const char of value) {
         const code = char.codePointAt(0);
-        if (char === "\n" || char === "\r") {
-            UI.rfb.sendKey(KeyTable.XK_Return, "Enter");
-        } else if (char === "\t") {
-            UI.rfb.sendKey(KeyTable.XK_Tab, "Tab");
-        } else if (code === 8) {
-            UI.rfb.sendKey(KeyTable.XK_BackSpace, "Backspace");
-        } else if (code >= 0x20) {
-            UI.rfb.sendKey(keysyms.lookup(code));
+        try {
+            if (char === "\n") {
+                UI.rfb.sendKey(KeyTable.XK_Return, "Enter");
+            } else if (char === "\t") {
+                UI.rfb.sendKey(KeyTable.XK_Tab, "Tab");
+            } else if (code === 8) {
+                UI.rfb.sendKey(KeyTable.XK_BackSpace, "Backspace");
+            } else if (code >= 0x20) {
+                UI.rfb.sendKey(keysyms.lookup(code));
+            } else {
+                continue;
+            }
+        } catch (error) {
+            Log.Error("g4f: could not send text: " + error);
+            return false;
         }
+        sent += 1;
     }
-    return true;
+    return sent > 0;
 };
 
 UI.g4fSetViewOnly = function (viewOnly) {
@@ -307,16 +397,24 @@ UI.g4fSetViewOnly = function (viewOnly) {
     return viewOnly;
 };
 
-UI.g4fToggleFit = function () {
-    if (!UI.rfb) return false;
-    // Drive noVNC's own resize setting instead of only poking scaleViewport:
-    // the stock settings panel, reconnect and the Fit button then agree, and
-    // "off" restores the fixed desktop geometry the landing page asks for.
-    WebUtil.writeSetting("resize", UI.rfb.scaleViewport ? "off" : "scale");
+UI.g4fSetResize = function (mode) {
+    if (mode !== "off" && mode !== "scale") mode = "remote";
+    WebUtil.writeSetting("resize", mode);
     UI.updateSetting("resize");
     UI.applyResizeMode();
     UI.updateViewClip();
-    return UI.rfb.scaleViewport;
+    return mode;
+};
+
+UI.g4fToggleFit = function () {
+    if (!UI.rfb) return false;
+    // Drive noVNC's own resize setting instead of only poking scaleViewport:
+    // the stock settings panel, reconnect and the Fit button then agree.
+    // The default is remote (server-side resize), so Fit toggles local scaling
+    // and returns to remote geometry on the next tap.
+    const current = String(UI.getSetting("resize") || "remote");
+    const next = current === "scale" ? "remote" : "scale";
+    return UI.g4fSetResize(next);
 };
 
 UI.g4fSetQuality = function (level) {
@@ -330,8 +428,13 @@ UI.g4fSetQuality = function (level) {
 UI.g4fState = function () {
     return {
         connected: Boolean(UI.rfb && UI.connected),
+        // A connection attempt, or the delay before noVNC retries, is not a
+        // dead desktop: the controls use these flags for a useful status.
+        connecting: Boolean(UI.rfb && !UI.connected),
+        reconnecting: Boolean(UI.reconnectCallback),
         viewOnly: Boolean(UI.rfb && UI.rfb.viewOnly),
         scale: Boolean(UI.rfb && UI.rfb.scaleViewport),
+        resize: String(UI.getSetting("resize") || "remote"),
         quality: UI.rfb ? UI.rfb.qualityLevel : (parseInt(UI.getSetting("quality"), 10) || 6),
         modifiers: Array.from(UI.g4fDownKeys),
     };
@@ -339,6 +442,7 @@ UI.g4fState = function () {
 
 window.g4fUI = UI;
 
+/* g4f: end /desktop key bridge */
 """
 
 src = src.replace(anchor, bridge + anchor, 1)
@@ -347,14 +451,13 @@ with open(path, "w", encoding="utf-8") as handle:
 PY
 fi
 
-# Fixed desktop geometry by default. noVNC's resize=off keeps the framebuffer
-# at the resolution Xvnc was started with, so opening the same desktop from a
-# phone, laptop or tablet does not remotely resize the session and disturb the
-# windows of other viewers. Users can still pick a fitting mode in noVNC's
-# settings panel; the value here is only the default.
+# Remote resize by default: noVNC asks the VNC server to resize the desktop to
+# the browser window, so the session fills a phone, laptop or tablet without a
+# manual zoom. The touch overlay's Fit button switches a viewer to local
+# scaling (and back to remote) without touching the server-side default.
 cat > "$NOVNC_DIR/defaults.json" <<'JSON'
 {
-    "resize": "off"
+    "resize": "remote"
 }
 JSON
 
@@ -369,11 +472,19 @@ grep -q 'align-self: center' "$NOVNC_DIR/app/styles/base.css" \
     || fail "connect dialog logo centering did not apply to $NOVNC_DIR/app/styles/base.css"
 grep -q 'g4f: clipboard bridge' "$NOVNC_DIR/app/ui.js" \
     || fail "clipboard bridge did not apply to $NOVNC_DIR/app/ui.js"
-grep -q 'g4f: /desktop key bridge' "$NOVNC_DIR/app/ui.js" \
+grep -q 'g4f: /desktop key bridge v3' "$NOVNC_DIR/app/ui.js" \
     || fail "desktop key bridge did not apply to $NOVNC_DIR/app/ui.js"
+grep -q 'g4f: end /desktop key bridge' "$NOVNC_DIR/app/ui.js" \
+    || fail "desktop key bridge is missing its end marker in $NOVNC_DIR/app/ui.js"
 grep -q 'window.g4fUI = UI' "$NOVNC_DIR/app/ui.js" \
     || fail "desktop key bridge was not exposed on window.g4fUI"
-grep -q '"resize": "off"' "$NOVNC_DIR/defaults.json" \
+grep -q 'UI.g4fSendCombo' "$NOVNC_DIR/app/ui.js" \
+    || fail "desktop key bridge is missing the combo helper"
+grep -q 'UI.g4fSendText' "$NOVNC_DIR/app/ui.js" \
+    || fail "desktop key bridge is missing the text helper"
+grep -q 'UI.g4fSetResize' "$NOVNC_DIR/app/ui.js" \
+    || fail "desktop key bridge is missing the resize helper"
+grep -q '"resize": "remote"' "$NOVNC_DIR/defaults.json" \
     || fail "resize default did not apply to $NOVNC_DIR/defaults.json"
 
-echo "novnc-brand: g4f logo, colors, clipboard bridge, touch controls and fixed scaling applied to $NOVNC_DIR"
+echo "novnc-brand: g4f logo, colors, clipboard bridge, touch controls and remote resize applied to $NOVNC_DIR"

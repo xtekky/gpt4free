@@ -234,9 +234,10 @@ RUN sed -i 's|<property name="plugin-1" type="string" value="applicationsmenu"/>
 # the icon SVGs) for g4f.svg, repaints the accent palette with the g4f colors,
 # stacks the connect dialog's logo above its button, bridges the browser
 # clipboard to the VM and exposes the key/text bridge the overlay uses
-# (app/ui.js), and keeps the desktop geometry fixed (resize=off in
-# defaults.json), leaving the rest of noVNC untouched. It verifies each
-# patch, so a changed noVNC layout fails the build.
+# (app/ui.js), and defaults the viewer to remote resize (resize=remote in
+# defaults.json) so the desktop matches the browser window, leaving the rest
+# of noVNC untouched. It verifies each patch, so a changed noVNC layout fails
+# the build.
 #
 # The same page is an installable PWA: the manifest and service worker live in
 # the noVNC root and every URL in them is relative, so they work both at

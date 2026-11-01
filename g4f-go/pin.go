@@ -47,17 +47,17 @@ func looksLikeVersion(s string) bool {
 // effective pin. An explicit `-v latest` clears a previously stored pin right
 // away; a version pin is persisted by installG4F only once that version is
 // actually installed, so the stored pin always matches the installed package.
-func g4fPin(binDir string, args []string) (string, []string) {
-	pin, explicit, rest := parseVersionFlag(args)
+func g4fPin(binDir string, args []string) (pin string, explicit bool, rest []string) {
+	pin, explicit, rest = parseVersionFlag(args)
 	if !explicit {
-		return readPinnedG4FVersion(binDir), rest
+		return readPinnedG4FVersion(binDir), false, rest
 	}
 	if pin == "" {
 		if err := writePinnedG4FVersion(binDir, ""); err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go: clearing version pin:", err)
 		}
 	}
-	return pin, rest
+	return pin, true, rest
 }
 
 // pinnedVersionStamp is the file recording the g4f version pinned via -v.

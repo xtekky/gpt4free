@@ -50,7 +50,7 @@ UA = (
 # reset, urls and hosts entries keep the shared g4f-sandbox-cli.svg;
 # remote-desktop ships its own icon, copied from
 # projects/remote-desktop/web/icon.svg at build time.
-SHARED = {"g4f-go", "settings", "reset", "urls", "hosts", "remote-desktop"}
+SHARED = {"g4f-go", "harness", "settings", "reset", "urls", "hosts", "remote-desktop"}
 
 
 def google(domain: str) -> str:

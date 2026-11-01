@@ -19,6 +19,20 @@
   const $ = (id) => document.getElementById(id);
   const frame = $("vnc");
 
+  /* Bind an event without taking the whole page down when one control is
+     missing (an older landing page, a partial deploy). A single missing node
+     used to throw during boot and leave every later handler unattached, which
+     made the toolbar's Keys/Type panels look completely dead. */
+  function bind(id, event, handler, options) {
+    const element = $(id);
+    if (!element) {
+      console.warn(`g4f controls: missing #${id} for ${event}`);
+      return null;
+    }
+    element.addEventListener(event, handler, options);
+    return element;
+  }
+
   const QUALITY = {
     low: { label: "low", value: 2 },
     medium: { label: "med", value: 6 },
@@ -30,6 +44,25 @@
   let quality = "medium";
   let toolbarTimer = null;
   let toastTimer = null;
+
+  /* The on-screen keyboard shrinks the *visual* viewport on iOS/Android but
+     leaves fixed elements anchored to the layout viewport, so the toolbar and
+     the Type/Keys panels ended up behind the keyboard. Publish the overlap as
+     a CSS variable and let the stylesheet lift the controls above it. */
+  function updateKeyboardInset() {
+    const viewport = window.visualViewport;
+    const height = viewport ? viewport.height : window.innerHeight;
+    const top = viewport ? viewport.offsetTop : 0;
+    const inset = viewport
+      ? Math.max(0, window.innerHeight - height - top)
+      : 0;
+    // Only lift the controls for a real keyboard (a focused text field and a
+    // large overlap). Mobile URL-bar jitter is smaller and must not move the
+    // toolbar around while scrolling.
+    const typing = document.activeElement === $("text-input");
+    const clamped = inset > 120 && typing ? Math.round(inset) : 0;
+    document.documentElement.style.setProperty("--g4f-keyboard-inset", `${clamped}px`);
+  }
 
   /* The iframe is same-origin, so the bridge installed by novnc-brand.sh is
      reachable directly. A missing bridge means noVNC is still loading (or the
@@ -58,6 +91,19 @@
     return Boolean(current && current.connected);
   }
 
+  /* The controls stay usable while noVNC is still connecting or retrying, so
+     say which of those is happening instead of always blaming a missing
+     desktop. A missing bridge means the client has not finished loading (or an
+     older image did not install it). */
+  function statusMessage() {
+    if (!ui()) return "desktop still loading";
+    const current = state();
+    if (!current) return "desktop still loading";
+    if (current.reconnecting) return "desktop reconnecting";
+    if (current.connecting) return "desktop connecting";
+    return "desktop not connected";
+  }
+
   function flash(text) {
     const toast = $("toast");
     toast.textContent = text;
@@ -76,7 +122,7 @@
   function setQuality(level) {
     const api = ui();
     if (!api) {
-      flash("desktop not connected");
+      flash(statusMessage());
       return;
     }
     if (!QUALITY[level]) level = "medium";
@@ -103,6 +149,13 @@
     return Object.values(panels).some((panel) => panel.classList.contains("open"));
   }
 
+  function blurTextInput() {
+    const input = $("text-input");
+    // Do not leave the soft keyboard up when the user closes the Type panel or
+    // switches to Keys: on a phone it would cover the shortcuts instead.
+    if (input && document.activeElement === input) input.blur();
+  }
+
   function togglePanel(name, force) {
     const panel = panels[name];
     const open = force !== undefined ? force : !panel.classList.contains("open");
@@ -110,7 +163,8 @@
       for (const [otherName, other] of Object.entries(panels)) {
         if (otherName !== name) {
           other.classList.remove("open");
-          $(`btn-${otherName}`).classList.remove("active");
+          $(`btn-${otherName}`).classList.toggle("active", false);
+          $(`btn-${otherName}`).setAttribute("aria-pressed", "false");
         }
       }
     }
@@ -119,8 +173,18 @@
     $(`btn-${name}`).setAttribute("aria-pressed", String(open));
     if (open) {
       showToolbar();
-      if (name === "keyboard") setTimeout(() => $("text-input").focus(), 50);
+      if (name === "keyboard") {
+        // Focus synchronously: iOS only opens the soft keyboard when the
+        // focus() happens inside the tap gesture, not in a later timer.
+        const input = $("text-input");
+        if (input) input.focus({ preventScroll: true });
+      } else {
+        blurTextInput();
+      }
+    } else if (name === "keyboard") {
+      blurTextInput();
     }
+    updateKeyboardInset();
   }
 
   /* ---------------------------------------------------------------- toolbar */
@@ -158,8 +222,10 @@
     $("btn-control").setAttribute("aria-pressed", String(isConnected && !viewOnly));
     $("control-label").textContent = isConnected && !viewOnly ? "Control" : "View";
 
-    $("btn-fit").classList.toggle("active", Boolean(current && current.scale));
-    $("btn-fit").setAttribute("aria-pressed", String(Boolean(current && current.scale)));
+    const resize = (current && current.resize) || "remote";
+    const fit = Boolean(current && (current.scale || resize === "scale"));
+    $("btn-fit").classList.toggle("active", fit);
+    $("btn-fit").setAttribute("aria-pressed", String(fit));
 
     if (current && typeof current.quality === "number") {
       quality = qualityName(current.quality);
@@ -180,7 +246,7 @@
   function guard() {
     const current = state();
     if (!current || !current.connected) {
-      flash("desktop not connected");
+      flash(statusMessage());
       return false;
     }
     if (current.viewOnly) {
@@ -201,6 +267,9 @@
       return;
     }
     input.value = "";
+    // Keep the field focused so the soft keyboard stays open for the next
+    // chunk on a phone; the bridge sends straight to RFB and does not need
+    // the noVNC canvas to take focus.
     sync();
   }
 
@@ -208,7 +277,7 @@
     const api = ui();
     const key = button.dataset.key;
     if (!api) {
-      flash("desktop not connected");
+      flash(statusMessage());
       return;
     }
     if (MODIFIERS.includes(key)) {
@@ -219,8 +288,11 @@
     }
     if (!guard()) return;
     if (api.g4fSendKey(key)) {
-      api.rfb.focus();
+      // Do not call rfb.focus() here: it steals focus from the Type input and
+      // dismisses the on-screen keyboard in the middle of a typing session.
       sync();
+    } else {
+      flash(`could not send ${key}`);
     }
   }
 
@@ -262,10 +334,9 @@
     const api = ui();
     if (!api || !guard()) return;
     if (api.g4fSendCombo(shortcut.keys)) {
-      // The combo releases its own keys; drop any sticky modifiers too so the
-      // next tap starts from a clean keyboard state.
+      // g4fSendCombo releases the combo keys itself; drop any sticky
+      // modifiers too so the next tap starts from a clean keyboard state.
       api.g4fReleaseModifiers();
-      api.rfb.focus();
       flash(shortcut.label);
       sync();
     } else {
@@ -311,7 +382,7 @@
     const api = ui();
     const current = state();
     if (!api || !current || !current.connected) {
-      flash("desktop not connected");
+      flash(statusMessage());
       return;
     }
     api.g4fSetViewOnly(!current.viewOnly);
@@ -321,7 +392,32 @@
 
   function disconnect() {
     const api = ui();
-    if (api && api.rfb && api.connected) api.disconnect();
+    let left = false;
+    if (api && typeof api.g4fDisconnect === "function") {
+      // Cancels a pending reconnect too, so Leave works even when the desktop
+      // never connected (the common case when the VNC server is unreachable).
+      left = Boolean(api.g4fDisconnect());
+    } else if (api && typeof api.disconnect === "function" && api.rfb) {
+      // Fallback for a client branded by an older image.
+      api.disconnect();
+      left = true;
+    }
+    if (!left) {
+      // No usable bridge: the iframe owns the connection, so reload it to
+      // stop a stuck connect/reconnect loop instead of leaving a dead page.
+      if (api) {
+        api.inhibitReconnect = true;
+        if (api.reconnectCallback) {
+          clearTimeout(api.reconnectCallback);
+          api.reconnectCallback = null;
+        }
+      }
+      try {
+        frame.contentWindow.location.reload();
+      } catch {
+        frame.src = frame.src;
+      }
+    }
     flash("disconnected");
     sync();
   }
@@ -381,22 +477,23 @@
   function boot() {
     buildShortcuts();
 
-    $("btn-control").addEventListener("click", toggleControl);
-    $("btn-keyboard").addEventListener("click", () => togglePanel("keyboard"));
-    $("btn-shortcuts").addEventListener("click", () => togglePanel("shortcuts"));
-    $("btn-quality").addEventListener("click", cycleQuality);
-    $("btn-fit").addEventListener("click", () => {
+    bind("btn-control", "click", toggleControl);
+    bind("btn-keyboard", "click", () => togglePanel("keyboard"));
+    bind("btn-shortcuts", "click", () => togglePanel("shortcuts"));
+    bind("btn-quality", "click", cycleQuality);
+    bind("btn-fit", "click", () => {
       const api = ui();
       if (!api || !api.rfb) {
-        flash("desktop not connected");
+        flash(statusMessage());
         return;
       }
-      api.g4fToggleFit();
+      const mode = api.g4fToggleFit();
+      flash(mode === "scale" ? "fit: local scale" : "fit: remote resize");
       sync();
     });
-    $("btn-fullscreen").addEventListener("click", toggleFullscreen);
-    $("btn-install").addEventListener("click", installApp);
-    $("btn-disconnect").addEventListener("click", disconnect);
+    bind("btn-fullscreen", "click", toggleFullscreen);
+    bind("btn-install", "click", installApp);
+    bind("btn-disconnect", "click", disconnect);
 
     if (!isInstalled() && isIos()) showInstallButton(true);
     window.addEventListener("beforeinstallprompt", (event) => {
@@ -412,11 +509,11 @@
     });
     registerServiceWorker();
 
-    $("close-keyboard").addEventListener("click", () => togglePanel("keyboard", false));
-    $("close-shortcuts").addEventListener("click", () => togglePanel("shortcuts", false));
-    $("send-text").addEventListener("click", sendText);
+    bind("close-keyboard", "click", () => togglePanel("keyboard", false));
+    bind("close-shortcuts", "click", () => togglePanel("shortcuts", false));
+    bind("send-text", "click", sendText);
 
-    $("text-input").addEventListener("keydown", (event) => {
+    bind("text-input", "keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         sendText();
@@ -425,21 +522,45 @@
         togglePanel("keyboard", false);
       }
     });
+    bind("text-input", "focus", updateKeyboardInset);
+    bind("text-input", "blur", updateKeyboardInset);
 
     for (const button of document.querySelectorAll("#keyboard .keys button[data-key]")) {
       button.addEventListener("click", () => pressKey(button));
     }
 
-    $("toolbar").addEventListener("pointerdown", showToolbar);
-    $("toolbar").addEventListener("focusin", showToolbar);
-    $("handle").addEventListener("click", showToolbar);
-    $("handle").addEventListener("keydown", (event) => {
+    bind("toolbar", "pointerdown", showToolbar);
+    bind("toolbar", "focusin", showToolbar);
+    bind("handle", "click", showToolbar);
+    bind("handle", "keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       showToolbar();
     });
 
-    frame.addEventListener("load", sync);
+    // Escape closes whichever overlay panel is open, matching the desktop
+    // viewer. The text field handles its own Escape above.
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (event.target === $("text-input")) return;
+      if ($("keyboard").classList.contains("open")) togglePanel("keyboard", false);
+      else if ($("shortcuts").classList.contains("open")) togglePanel("shortcuts", false);
+    });
+
+    // Keep the fixed controls above the soft keyboard. visualViewport is the
+    // only reliable signal on iOS, where window.innerHeight does not shrink.
+    updateKeyboardInset();
+    window.addEventListener("resize", updateKeyboardInset);
+    window.addEventListener("orientationchange", updateKeyboardInset);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateKeyboardInset);
+      window.visualViewport.addEventListener("scroll", updateKeyboardInset);
+    }
+
+    frame.addEventListener("load", () => {
+      updateKeyboardInset();
+      sync();
+    });
     setInterval(sync, 500);
     sync();
     showToolbar();

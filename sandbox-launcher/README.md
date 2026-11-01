@@ -3,8 +3,11 @@
 A small, standalone launcher for the [g4f sandbox](../docs/sandbox-desktop.md)
 container image. It is a single executable for Windows, Linux and macOS (amd64
 and arm64) and requires only Docker or Podman (Docker Desktop on Windows and
-macOS). On **Termux/Android** it detects the environment and runs the API
-natively with Termux's Python — no Docker required.
+macOS). When neither is installed it installs the Podman CLI with the host
+package manager (apt, dnf, pacman, zypper, apk, Homebrew, winget, Chocolatey or
+Scoop); set `G4F_SANDBOX_INSTALL_PODMAN=0` to opt out. On **Termux/Android** it
+detects the environment and runs the API natively with Termux's Python — no
+Docker required.
 
 The executable does **not** embed the image. On first run it pulls only the
 image for the selected mode and the host architecture:

@@ -110,7 +110,21 @@ if [ "${SANDBOX_DESKTOP:-1}" = "1" ]; then
         nohup xfwm4 >/tmp/xfwm4.log 2>&1 &
         nohup xfce4-panel >/tmp/xfce4-panel.log 2>&1 &
         nohup xfdesktop >/tmp/xfdesktop.log 2>&1 &
-        if [ "${G4F_WALLPAPER:-1}" = "1" ]; then
+        if [ -n "${G4F_DESKTOP_APP:-}" ]; then
+            # The terminal executes --command through a shell. Accept only a
+            # sandbox-cli tool name, never arbitrary shell syntax from the env.
+            case "$G4F_DESKTOP_APP" in
+                -*|*[!a-z0-9-]*)
+                    printf "invalid G4F_DESKTOP_APP: %s\n" "$G4F_DESKTOP_APP" >&2 ;;
+                *)
+                    nohup xfce4-terminal --disable-server --maximize \
+                        --hide-menubar --hide-borders --hide-scrollbar \
+                        --title="$G4F_DESKTOP_APP" \
+                        --icon=g4f-sandbox-applications \
+                        --command="/usr/local/bin/sandbox-cli $G4F_DESKTOP_APP" \
+                        >/tmp/g4f-desktop-app.log 2>&1 & ;;
+            esac
+        elif [ "${G4F_WALLPAPER:-1}" = "1" ]; then
             nohup xfce4-terminal --disable-server --maximize \
                 --hide-menubar --hide-borders --hide-scrollbar \
                 --title="g4f live wallpaper" \

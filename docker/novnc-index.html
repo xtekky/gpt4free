@@ -19,20 +19,22 @@
 </head>
 <body>
     <!-- Stock noVNC client, autoconnected, filling the page (no header of its
-         own). resize=off keeps the desktop at the geometry Xvnc was started
-         with, so one viewer cannot resize the session under another; the Fit
-         control in the overlay turns on noVNC's local scaling when the
-         framebuffer does not fit the browser window. The g4f branding lives
-         inside the client itself: bin/novnc-brand.sh swaps the noVNC logos for
+         own). resize=remote asks the VNC server to resize the desktop to this
+         viewer's window, so phones, laptops and tablets all get a usable
+         picture; the Fit control in the overlay switches to local scaling for
+         viewers that prefer a fixed geometry. The g4f branding lives inside
+         the client itself: bin/novnc-brand.sh swaps the noVNC logos for
          g4f.svg and applies the g4f colors at image build. -->
-    <iframe id="vnc" src="vnc.html?autoconnect=1&amp;resize=off&amp;reconnect=true"
+    <iframe id="vnc" src="vnc.html?autoconnect=1&amp;resize=remote&amp;reconnect=true"
             allow="clipboard-read; clipboard-write; fullscreen"
             allowfullscreen title="g4f sandbox desktop (noVNC)"></iframe>
 
     <!-- Touch controls copied from the Remote Desktop viewer: a text input,
-         modifier/navigation keys and one-tap desktop shortcuts. g4f-controls.js
-         talks to the noVNC client through the bridge that novnc-brand.sh
-         installs in app/ui.js. -->
+         modifier/navigation keys and one-tap desktop shortcuts. The controls
+         follow the on-screen keyboard (visualViewport) so the Send button and
+         the key rows stay reachable while typing. g4f-controls.js talks to the
+         noVNC client through the bridge that novnc-brand.sh installs in
+         app/ui.js. -->
     <div id="handle" class="g4f-ui hidden" title="Show desktop controls"
          role="button" tabindex="0" aria-label="Show desktop controls">&#9650;</div>
 

@@ -17,6 +17,7 @@
   --g4f-accent: #4776e6;
   --g4f-accent-2: #6e48aa;
   --g4f-danger: #ff5c5c;
+  --g4f-keyboard-inset: 0px;
 }
 
 .g4f-ui,
@@ -45,6 +46,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: background .15s, border-color .15s, opacity .15s;
+  /* Remove the 300 ms double-tap delay and stray zoom on touch devices. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .g4f-ui button:hover:not(:disabled) { background: #24303f; }
@@ -70,6 +74,7 @@
   border: 1px solid var(--g4f-line);
   background: #0e141b;
   color: var(--g4f-text);
+  touch-action: manipulation;
 }
 
 .g4f-ui .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -80,14 +85,14 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--g4f-keyboard-inset, 0px);
   display: flex;
   gap: 6px;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, rgba(11, 15, 20, .97), rgba(11, 15, 20, .76));
   border-top: 1px solid var(--g4f-line);
   z-index: 15;
-  transition: transform .2s ease, opacity .2s ease;
+  transition: transform .2s ease, opacity .2s ease, bottom .15s ease;
 }
 
 #toolbar.hidden {
@@ -117,7 +122,7 @@
 #handle.g4f-ui {
   position: fixed;
   left: 50%;
-  bottom: calc(4px + env(safe-area-inset-bottom));
+  bottom: calc(4px + var(--g4f-keyboard-inset, 0px) + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 14;
   display: none;
@@ -128,6 +133,7 @@
   color: var(--g4f-muted);
   font-size: 13px;
   line-height: 1.4;
+  touch-action: manipulation;
 }
 
 #handle.g4f-ui:not(.hidden) { display: block; }
@@ -137,14 +143,19 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(78px + env(safe-area-inset-bottom));
+  bottom: calc(78px + var(--g4f-keyboard-inset, 0px) + env(safe-area-inset-bottom));
   z-index: 16;
   display: none;
   background: rgba(20, 27, 36, .98);
   border-top: 1px solid var(--g4f-line);
   padding: 10px 10px 12px;
+  /* Keep the panel (and its Send/key rows) between the toolbar and the
+     on-screen keyboard instead of letting the keyboard cover it. */
   max-height: calc(62vh - 78px);
+  max-height: min(62vh, calc(100dvh - 78px - var(--g4f-keyboard-inset, 0px)));
   overflow: auto;
+  transition: bottom .15s ease;
+  touch-action: manipulation;
 }
 
 #keyboard.open,

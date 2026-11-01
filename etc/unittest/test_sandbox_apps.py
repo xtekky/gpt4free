@@ -62,6 +62,11 @@ class TestAutostartConfig(unittest.TestCase):
         for name in ("g4f", "desktop", "evil", ""):
             self.assertIsNone(tool_for(name))
 
+    def test_tool_for_opencode_runs_the_server_entry(self):
+        # opencode.g4f.local serves the headless API, not the interactive TUI
+        # that the opencode menu entry starts.
+        self.assertEqual(tool_for("opencode"), "opencode-server")
+
     def test_cli_path_prefers_the_image_location(self):
         with patch("g4f.api.sandbox_apps.os.path.isfile", return_value=True), patch(
             "g4f.api.sandbox_apps.os.access", return_value=True
@@ -153,6 +158,18 @@ class TestStartApp(unittest.TestCase):
         self.assertTrue(kwargs["start_new_session"])
         self.assertEqual(kwargs["stdin"], sandbox_apps.subprocess.DEVNULL)
         self.assertTrue(is_starting("litellm"))
+
+    def test_spawns_the_server_tool_for_the_opencode_host(self):
+        popen = MagicMock(return_value=_FakeProcess())
+        with patch("g4f.api.sandbox_apps.cli_path", return_value="/usr/local/bin/sandbox-cli"), patch(
+            "g4f.api.sandbox_apps.terminal_argv", return_value=None
+        ), patch("g4f.api.sandbox_apps.subprocess.Popen", popen):
+            self.assertTrue(start_app("opencode", "OpenCode server"))
+        args, kwargs = popen.call_args
+        self.assertEqual(
+            args[0], ["/usr/local/bin/sandbox-cli", "opencode-server"]
+        )
+        self.assertTrue(is_starting("opencode"))
 
     def test_spawns_the_cli_in_a_desktop_terminal(self):
         argv = [

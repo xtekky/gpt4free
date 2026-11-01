@@ -117,6 +117,13 @@ class TestDomainRouterMatching(unittest.TestCase):
         self.assertIsNotNone(route)
         self.assertEqual(route.prefix, "/remote_desktop")
 
+    def test_match_opencode_server(self):
+        route = self.middleware._match("opencode.g4f.local")
+        self.assertIsNotNone(route)
+        self.assertEqual(route.name, "opencode")
+        self.assertEqual(route.port, 4096)
+        self.assertIsNone(route.prefix)
+
     def test_match_ignores_port_suffix(self):
         route = self.middleware._match("omniroute.g4f.local:8080")
         self.assertIsNotNone(route)
@@ -378,6 +385,16 @@ class TestDomainRouterIntegration(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json()["error"]["type"], "ollama_unavailable")
+
+    def test_opencode_host_reports_unavailable(self):
+        with self._unreachable("opencode"):
+            response = self.client.get(
+                "/global/health", headers={"host": "opencode.g4f.local"}
+            )
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(
+            response.json()["error"]["type"], "opencode server_unavailable"
+        )
 
     def test_remote_desktop_host_rewrites_to_prefix(self):
         with patch.dict("os.environ", {"REMOTE_DESKTOP_BASE_URL": f"http://127.0.0.1:{_closed_port()}"}):

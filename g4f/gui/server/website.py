@@ -7,9 +7,13 @@ import requests
 import re
 import time
 import hashlib
+import ipaddress
 from datetime import datetime
 from urllib.parse import quote_plus
-from flask import jsonify, send_from_directory, redirect, request
+from flask import jsonify, send_from_directory, redirect, request, abort, Response
+from html import escape
+
+from .locale import BASE_URL, COPY, LOCALES, PAGES, localized_response, page_path
 
 from ...files import secure_filename
 from ...cookies import get_cookies_dir
@@ -177,10 +181,93 @@ class Website:
             "/providers": {"function": self._providers, "methods": ["GET"]},
             "/providers/": {"function": self._providers, "methods": ["GET"]},
             "/providers/<name>": {"function": self._provider_detail, "methods": ["GET"]},
+            "/headers": {"function": self._headers, "methods": ["GET"]},
+            "/country-ip": {"function": self._country_ip, "methods": ["GET"]},
+            "/meta": {"function": self._meta, "methods": ["GET"]},
+            "/<locale>/meta": {"function": self._meta, "methods": ["GET"]},
+            "/sitemap.xml": {"function": self._sitemap, "methods": ["GET"]},
+            "/<locale>/": {"function": self._localized_home, "methods": ["GET"]},
+            "/<locale>/<page>": {"function": self._localized_page, "methods": ["GET"]},
+            "/<locale>/<page>/": {"function": self._localized_page, "methods": ["GET"]},
+            "/<locale>/<page>.html": {"function": self._localized_page, "methods": ["GET"]},
         }
 
+    def _headers(self):
+        # Avoid reflecting credentials or session cookies in a public endpoint.
+        hidden = {"authorization", "proxy-authorization", "cookie", "x-api-key", "x-auth-token"}
+        response = jsonify({key: "[redacted]" if key.lower() in hidden or any(
+                                word in key.lower() for word in ("token", "secret", "key", "credential")) else value
+                            for key, value in request.headers.items()})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    def _country_ip(self):
+        # remote_addr is set by the web server; never trust client-supplied X-Forwarded-For.
+        ip = request.remote_addr
+        try:
+            ip = str(ipaddress.ip_address(ip))
+        except (ValueError, TypeError):
+            ip = None
+        # This header is meaningful only when a trusted edge strips incoming
+        # copies and supplies its own country code.
+        country = request.headers.get("CF-IPCountry", "").upper()
+        if not re.fullmatch(r"[A-Z]{2}", country):
+            country = None
+        response = jsonify({"ip": ip, "country": country})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    def _localized_home(self, locale):
+        return self._localized_page(locale, "home")
+
+    def _meta(self, locale="en"):
+        if locale not in LOCALES:
+            abort(404)
+        response = jsonify({
+            "locale": locale,
+            "routes": {
+                page: {
+                    "url": BASE_URL + page_path(page, locale),
+                    "title": COPY[locale][page][0],
+                    "description": COPY[locale][page][1],
+                    "alternates": {lang: BASE_URL + page_path(page, lang) for lang in LOCALES},
+                }
+                for page in PAGES
+            },
+        })
+        response.headers["Content-Language"] = locale
+        return response
+
+    def _sitemap(self):
+        entries = []
+        for page in PAGES:
+            for locale in LOCALES:
+                url = BASE_URL + page_path(page, locale)
+                alternates = "".join(
+                    f'<xhtml:link rel="alternate" hreflang="{lang}" href="{escape(BASE_URL + page_path(page, lang), quote=True)}"/>'
+                    for lang in LOCALES
+                )
+                entries.append(f"<url><loc>{escape(url)}</loc>{alternates}</url>")
+        xml = ('<?xml version="1.0" encoding="UTF-8"?>'
+               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+               'xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+               + "".join(entries) + "</urlset>")
+        return Response(xml, mimetype="application/xml")
+
+    def _localized_page(self, locale, page):
+        if locale not in LOCALES or page not in PAGES:
+            abort(404)
+        if page == "providers":
+            return self._providers(locale=locale)
+        else:
+            result = render(page)
+        return localized_response(result, page, locale)
+
     def _index(self, filename="home"):
-        return render(filename)
+        result = render(filename)
+        if request.method == "GET" and filename in PAGES:
+            return localized_response(result, filename, "en")
+        return result
 
     def _agent(self):
         return render("agent")
@@ -243,7 +330,7 @@ class Website:
         _providers_cache_time = now
         return providers
 
-    def _providers(self):
+    def _providers(self, locale="en"):
         global _providers_cards_cache
         providers = self._get_providers()
 
@@ -300,7 +387,8 @@ class Website:
         else:
             cards_html = _providers_cards_cache
 
-        return _CONTENT_PATTERN.sub(f"<!-- CONTENT_START -->{cards_html}<!-- CONTENT_END -->", html)
+        result = _CONTENT_PATTERN.sub(f"<!-- CONTENT_START -->{cards_html}<!-- CONTENT_END -->", html)
+        return localized_response(result, "providers", locale)
 
     def _provider_detail(self, name: str = ""):
         from html import escape

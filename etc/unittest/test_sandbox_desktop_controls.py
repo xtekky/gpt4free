@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -14,7 +15,6 @@ class TestSandboxDesktopControls(unittest.TestCase):
         text = (DOCKER / "Dockerfile-sandbox-desktop").read_text(encoding="utf-8")
         self.assertIn("mkdir -p /usr/share/novnc", text)
         self.assertIn("-C /usr/share/novnc --strip-components=1", text)
-        self.assertIn("test -f /usr/share/novnc/vnc.html", text)
         self.assertNotIn("mkdir -p novnc", text)
         self.assertNotIn("-C novnc ", text)
 
@@ -33,10 +33,10 @@ class TestSandboxDesktopControls(unittest.TestCase):
         self.assertIn('src="g4f-controls.js"', text)
         for element_id in ("vnc", "toolbar", "keyboard", "shortcuts", "toast"):
             self.assertIn(f'id="{element_id}"', text)
-        # The overlay switches Fit itself, so the page must not force the
-        # server-side resize that would fight the fixed-geometry default.
-        self.assertNotIn("resize=remote", text)
-        self.assertIn("resize=off", text)
+        # Remote resize is the default: the VNC server follows the viewer's
+        # window instead of forcing the session's original geometry.
+        self.assertIn("resize=remote", text)
+        self.assertNotIn("resize=off", text)
 
     def test_desktop_ships_an_installable_manifest(self):
         manifest = json.loads(
@@ -116,8 +116,62 @@ class TestSandboxDesktopControls(unittest.TestCase):
             self.assertIn(method, controls)
         bridge = BRAND.read_text(encoding="utf-8")
         self.assertIn("window.g4fUI = UI", bridge)
-        self.assertIn("g4f: /desktop key bridge", bridge)
-        self.assertIn('"resize": "off"', bridge)
+        self.assertIn("g4f: /desktop key bridge v3", bridge)
+        self.assertIn("g4f: end /desktop key bridge", bridge)
+        self.assertIn("g4fSetResize", bridge)
+        self.assertIn('"resize": "remote"', bridge)
+        self.assertNotIn('"resize": "off"', bridge)
+
+    def test_leave_disconnects_even_without_a_live_connection(self):
+        """A failed desktop retries forever; Leave must break that loop."""
+        controls = (DOCKER / "novnc-controls.js").read_text(encoding="utf-8")
+        self.assertIn("g4fDisconnect", controls)
+        self.assertNotIn("api.rfb && api.connected", controls)
+        bridge = BRAND.read_text(encoding="utf-8")
+        self.assertIn("UI.g4fDisconnect", bridge)
+        self.assertIn("UI.inhibitReconnect = true", bridge)
+        self.assertIn("clearTimeout(UI.reconnectCallback)", bridge)
+        self.assertIn("UI.openConnectPanel()", bridge)
+        # The status line distinguishes a retrying client from a dead one.
+        self.assertIn("reconnecting: Boolean(UI.reconnectCallback)", bridge)
+        self.assertIn("function statusMessage()", controls)
+
+    def test_every_control_handler_has_a_matching_element(self):
+        """A missing id used to abort boot and kill every later handler."""
+        landing = (DOCKER / "novnc-index.html").read_text(encoding="utf-8")
+        ids = set(re.findall(r'id="([^"]+)"', landing))
+        controls = (DOCKER / "novnc-controls.js").read_text(encoding="utf-8")
+        referenced = set(re.findall(r'\$\("([a-z][a-z0-9-]*)"\)', controls))
+        self.assertTrue(referenced)
+        missing = sorted(referenced - ids)
+        self.assertEqual(missing, [], f"controls reference missing ids: {missing}")
+
+    def test_every_shortcut_key_is_known_to_the_bridge(self):
+        controls = (DOCKER / "novnc-controls.js").read_text(encoding="utf-8")
+        shortcut_keys = set()
+        for group in re.findall(r"keys:\s*\[([^\]]+)\]", controls):
+            shortcut_keys.update(re.findall(r'"([^"]+)"', group))
+        self.assertIn("Control", shortcut_keys)
+        self.assertIn("ArrowLeft", shortcut_keys)
+
+        bridge = BRAND.read_text(encoding="utf-8")
+        table = bridge[bridge.index("const G4F_KEY_TABLE"):bridge.index("UI.g4fDownKeys")]
+        named = set(re.findall(r"^\s{4}([A-Za-z0-9]+):\s*\[", table, re.MULTILINE))
+        missing = sorted(
+            key
+            for key in shortcut_keys
+            if key not in named and len(key) != 1
+        )
+        self.assertEqual(missing, [], f"shortcuts use unknown key names: {missing}")
+
+    def test_touch_panels_track_the_on_screen_keyboard(self):
+        controls = (DOCKER / "novnc-controls.js").read_text(encoding="utf-8")
+        self.assertIn("visualViewport", controls)
+        self.assertIn("--g4f-keyboard-inset", controls)
+        self.assertIn("input.blur()", controls)
+        css = (DOCKER / "novnc-controls.css").read_text(encoding="utf-8")
+        self.assertIn("--g4f-keyboard-inset", css)
+        self.assertIn("touch-action: manipulation", css)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Run a Coding Harness on g4f
+Comment=Pick a coding agent and a model from the sandbox's g4f API, then launch it with g4f as its provider
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="g4f Harness" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli harness"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Agent;
+Keywords=g4f;harness;agent;coding;model;opencode;claude;codex;pi;dsh;hermes;;
+StartupNotify=false

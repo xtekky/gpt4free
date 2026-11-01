@@ -130,12 +130,8 @@ func run(args []string) int {
 		return 0
 	}
 
-	e, err := findEngine(o.engine)
+	e, err := resolveEngine(o)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "g4f-sandbox:", err)
-		return 1
-	}
-	if err := e.checkReady(); err != nil {
 		fmt.Fprintln(os.Stderr, "g4f-sandbox:", err)
 		return 1
 	}
@@ -596,7 +592,14 @@ func findEngine(preferred string) (engine, error) {
 	}
 	var tried []string
 	for _, name := range candidates {
-		if path, err := exec.LookPath(name); err == nil {
+		var path string
+		var err error
+		if name == "podman" {
+			path, err = findPodmanBinary()
+		} else {
+			path, err = exec.LookPath(name)
+		}
+		if err == nil {
 			return engine{bin: path}, nil
 		}
 		tried = append(tried, name)
@@ -605,10 +608,43 @@ func findEngine(preferred string) (engine, error) {
 		strings.Join(tried, ", "), "https://docs.docker.com/get-docker/")
 }
 
+// resolveEngine finds a usable container engine, installing Podman on a host
+// that has neither Docker nor Podman, and verifies that its daemon works.
+func resolveEngine(o options) (engine, error) {
+	e, err := findEngine(o.engine)
+	if err != nil {
+		// No Docker and no Podman: install the Podman CLI so a fresh host can
+		// run the sandbox without a manual setup step. An explicit
+		// --engine docker is respected (no surprise Podman install).
+		if o.engine == "" || o.engine == "podman" {
+			if ierr := installPodman(); ierr == nil {
+				e, err = findEngine("podman")
+			} else {
+				err = fmt.Errorf("%w; automatic Podman install failed: %v", err, ierr)
+			}
+		}
+		if err != nil {
+			return engine{}, err
+		}
+	}
+	if err := e.checkReady(); err != nil {
+		return engine{}, err
+	}
+	return e, nil
+}
+
 // checkReady distinguishes "CLI installed" from "daemon running", which is the
 // most common failure on a fresh Windows/macOS install.
 func (e engine) checkReady() error {
 	if _, err := e.output("info"); err != nil {
+		// A freshly installed Podman on macOS/Windows has no machine yet;
+		// create and start the default one before giving up.
+		if filepath.Base(e.bin) == "podman" && (runtime.GOOS == "darwin" || runtime.GOOS == "windows") {
+			preparePodmanMachine()
+			if _, retry := e.output("info"); retry == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("%s is installed but its daemon is not reachable; start Docker Desktop or the Docker/Podman service", filepath.Base(e.bin))
 	}
 	return nil
@@ -1132,6 +1168,9 @@ Options:
       --pull             Pull the image even when it exists locally
       --no-pull          Never pull; fail when the image is missing
       --engine NAME      docker or podman (default: autodetect)
+                         (when neither is installed, Podman is installed with
+                          the host package manager; opt out with
+                          G4F_SANDBOX_INSTALL_PODMAN=0)
       --backend NAME     auto, docker, podman or termux (default: auto)
       --termux           Force the native Termux backend (no Docker)
   -b, --build            Build the desktop image before starting
@@ -1143,6 +1182,7 @@ Environment:
   G4F_SANDBOX_MODE=api|desktop   G4F_SANDBOX_IMAGE   G4F_SANDBOX_NAME
   G4F_SANDBOX_DATA_DIR           G4F_SANDBOX_ENGINE  G4F_SANDBOX_NO_OPEN
   G4F_SANDBOX_BACKEND=auto|docker|podman|termux      G4F_SANDBOX_TERMUX=1
+  G4F_SANDBOX_INSTALL_PODMAN=0 disables the automatic Podman install
   PORT VNC_PORT SANDBOX_BIND_ADDR G4F_API_KEY G4F_APP_DIR G4F_DOMAIN_SUFFIX
   G4F_DOMAIN_ROUTER SANDBOX_BLOCK_LOCAL_NETWORK SANDBOX_FIREWALL_STRICT
 

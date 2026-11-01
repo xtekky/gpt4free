@@ -44,16 +44,16 @@ func TestG4fPin_PersistsInstalledPinAndClearsOnLatest(t *testing.T) {
 	binDir := t.TempDir()
 
 	// No flag and no stored pin: unpinned.
-	pin, rest := g4fPin(binDir, []string{"client", "hi"})
-	if pin != "" || len(rest) != 2 {
-		t.Fatalf("g4fPin() = (%q, %q), want (\"\", [client hi])", pin, rest)
+	pin, explicit, rest := g4fPin(binDir, []string{"client", "hi"})
+	if pin != "" || explicit || len(rest) != 2 {
+		t.Fatalf("g4fPin() = (%q, %v, %q), want (\"\", false, [client hi])", pin, explicit, rest)
 	}
 
 	// A flag selects the pin but is not persisted before the matching version
 	// is installed — the stamp records what is installed, not what was asked.
-	pin, rest = g4fPin(binDir, []string{"-v", "1.5.0", "client"})
-	if pin != "1.5.0" || len(rest) != 1 || rest[0] != "client" {
-		t.Fatalf("g4fPin() = (%q, %q), want (1.5.0, [client])", pin, rest)
+	pin, explicit, rest = g4fPin(binDir, []string{"-v", "1.5.0", "client"})
+	if pin != "1.5.0" || !explicit || len(rest) != 1 || rest[0] != "client" {
+		t.Fatalf("g4fPin() = (%q, %v, %q), want (1.5.0, true, [client])", pin, explicit, rest)
 	}
 	if got := readPinnedG4FVersion(binDir); got != "" {
 		t.Fatalf("persisted pin before install = %q, want empty", got)
@@ -65,15 +65,15 @@ func TestG4fPin_PersistsInstalledPinAndClearsOnLatest(t *testing.T) {
 	}
 
 	// Later runs without the flag keep the pin.
-	pin, _ = g4fPin(binDir, []string{"client"})
-	if pin != "1.5.0" {
-		t.Fatalf("g4fPin() without flag = %q, want stored pin 1.5.0", pin)
+	pin, explicit, _ = g4fPin(binDir, []string{"client"})
+	if pin != "1.5.0" || explicit {
+		t.Fatalf("g4fPin() without flag = (%q, %v), want stored pin 1.5.0, false", pin, explicit)
 	}
 
 	// `-v latest` drops it again.
-	pin, rest = g4fPin(binDir, []string{"-v", "latest", "api"})
-	if pin != "" || len(rest) != 1 || rest[0] != "api" {
-		t.Fatalf("g4fPin(-v latest) = (%q, %q), want (\"\", [api])", pin, rest)
+	pin, explicit, rest = g4fPin(binDir, []string{"-v", "latest", "api"})
+	if pin != "" || !explicit || len(rest) != 1 || rest[0] != "api" {
+		t.Fatalf("g4fPin(-v latest) = (%q, %v, %q), want (\"\", true, [api])", pin, explicit, rest)
 	}
 	if got := readPinnedG4FVersion(binDir); got != "" {
 		t.Fatalf("persisted pin after -v latest = %q, want empty", got)
@@ -95,7 +95,7 @@ func TestG4fPinChangeTriggersReinstall(t *testing.T) {
 
 	// Pinning to a different version than the installed one must reinstall,
 	// even though the flag itself is not persisted up front.
-	pin, _ := g4fPin(binDir, []string{"-v", "1.6.0", "client"})
+	pin, _, _ := g4fPin(binDir, []string{"-v", "1.6.0", "client"})
 	if pin != "1.6.0" {
 		t.Fatalf("g4fPin() = %q, want 1.6.0", pin)
 	}
@@ -104,7 +104,7 @@ func TestG4fPinChangeTriggersReinstall(t *testing.T) {
 	}
 
 	// Re-pin to the installed version: nothing to do.
-	pin, _ = g4fPin(binDir, []string{"-v", "1.5.0", "client"})
+	pin, _, _ = g4fPin(binDir, []string{"-v", "1.5.0", "client"})
 	if needsInstall(binDir, pin) {
 		t.Fatal("needsInstall() with matching pin = true, want false")
 	}

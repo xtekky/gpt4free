@@ -101,6 +101,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Install & Open Mistral Vibe | `vibe`   | mistral.ai/vibe install script | `vibe`      |
 | Install & Open SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
 | Install & Open DeepSeek Harness | `dsh` | npm `@deepseek-ai/dsh` (listed under Chat UIs, Assistants and Coding Agents) | `dsh` |
+| Run a Coding Harness on g4f | `harness` | none (uses the g4f API and its `/v1/models`) | — |
 | Install & Open Paseo     | `paseo`     | npm `@getpaseo/cli`         | `paseo`        |
 | Install & Open T3 Code   | `t3code`    | t3.codes install script     | `t3`           |
 | Install & Open Fabric    | `fabric`    | fabric installer script     | `fabric`       |
@@ -344,13 +345,33 @@ ssh -L 5900:127.0.0.1:5900 <sandbox-id>.polli   # direct VNC client
 ```
 
 Open `http://127.0.0.1:8080/desktop/` for the noVNC desktop (with the clipboard
-bridge and `resize=off`), or point a VNC client at `127.0.0.1:5900` for the
+bridge and `resize=remote`), or point a VNC client at `127.0.0.1:5900` for the
 raw session. The tunnels keep both ports off the sandbox's public interfaces,
 and the open ssh connection also keeps the sandbox from pausing. The first
 `g4f-go api` start downloads its CPython + g4f runtime; watch
 `/tmp/g4f-sandbox-api.log` inside the VM if the page is not up yet. Set
 `G4F_API_KEY` before running the bootstrap to put a password on the web
 desktop (any username, password = key).
+
+### g4f harnesses
+
+**Run a Coding Harness on g4f** (under **Coding Agents**) launches an already
+installed coding agent against the sandbox's own g4f API. The interactive menu
+shows the detected API endpoint, the global model and a per-harness model for
+`opencode`, `claude-code`, `kilocode`, `copilot`, `hermes`, `omh` and `aider`.
+It reads the choices from the API's `/v1/models` (so only models the running
+server actually serves are offered) and stores one model per agent as
+`HARNESS_<AGENT>` in the sandbox settings file; the global model from
+**Sandbox Settings** stays the default for every other tool. The launchers
+install the agent on first launch, register the g4f provider and pass the
+selected model through `G4F_SANDBOX_MODEL`, the same override **Sandbox
+Settings** uses. OpenCode, Kilo, Copilot, Hermes, OMH and Aider get their native
+g4f configuration; Claude Code uses g4f's Anthropic-compatible `/v1/messages`
+endpoint. Other agents can still be launched by name and inherit the g4f
+endpoint as `OPENAI_API_BASE` / `ANTHROPIC_BASE_URL`. The non-interactive forms
+are `sandbox-cli harness list`, `harness models [query]`,
+`harness model <agent> [model]`, `harness clear <agent>` and
+`harness <agent> [--provider <name>] [--model <id>]`.
 
 ### Categories
 
@@ -363,7 +384,7 @@ Each `.desktop` file carries `Categories=X-G4F-Sandbox;X-G4F-<Cat>;` instead of
 | **g4f**          | `X-G4F-Core`      | `remote-desktop`, `g4f-go`, `package`, `glow`, `docs`, `discover`, `settings`, `reset` |
 | **Browsers**     | `X-G4F-Browser`   | `chrome`, `lightpanda`                         |
 | **Files & Editors** | `X-G4F-Files`  | `files`, `nemo`, `code-server`, `kate`         |
-| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `openbot`, `thinkrail`, `orca`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `omh`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent`, `dsh`, `paseo`, `t3code` |
+| **Coding Agents**| `X-G4F-Agent`     | `opencode`, `openbot`, `thinkrail`, `orca`, `omp`, `pi`, `kilocode`, `antigravity`, `gemini-cli`, `qwencode`, `claude-code`, `codex`, `copilot`, `cline`, `amp`, `goose`, `aider`, `cursor`, `crush`, `continue-cli`, `grok`, `droid`, `openhands`, `plandex`, `hermes`, `omh`, `kiro`, `kimi`, `roomote`, `auggie`, `qoder`, `iflow`, `vibe`, `sweagent`, `dsh`, `harness`, `paseo`, `t3code` |
 | **Agent Skills** | `X-G4F-Skills`    | `ecc`, `superpowers`, `graphify`, `claude-mem` |
 | **Gateways**     | `X-G4F-Gateway`   | `omniroute`, `litellm`, `langfuse`, `pi-freeflow`, `proxy`, `tunnel`      |
 | **Local AI**     | `X-G4F-LocalAI`   | `ollama`, `llamacpp`, `lmstudio`, `jan` |
@@ -571,10 +592,10 @@ port.
 The noVNC client bridges the **browser clipboard** to the VM: `Ctrl+V` in the
 desktop pastes into the VM, and text copied in the VM is mirrored into the
 browser clipboard where the Async Clipboard API is available (secure origins;
-the clipboard panel stays as the fallback). It defaults to **`resize=off`**,
-so opening the same session from a different device does not remotely resize
-the Xvnc desktop; each viewer can still pick `off`/`scale`/`remote` in the
-noVNC settings panel.
+the clipboard panel stays as the fallback). It defaults to **`resize=remote`**,
+so the desktop resizes to the viewer's window; the touch overlay's Fit button
+switches a viewer to local scaling, and each viewer can still pick
+`off`/`scale`/`remote` in the noVNC settings panel.
 
 Set `G4F_API_KEY` on the container (or `bin/start-sandbox-desktop.sh
 --api-key KEY`) to require a password for the API, the noVNC desktop and all
@@ -599,6 +620,7 @@ which is what the **Public URLs** entry (`sandbox-cli urls`) lists:
 | `open-webui.g4f.local` | Open WebUI | `8603.g4f.local` |
 | `cptr.g4f.local` | Open WebUI Computer | `8000.g4f.local` |
 | `code-server.g4f.local` | code-server | `8602.g4f.local` |
+| `opencode.g4f.local` | OpenCode server API | `4096.g4f.local` |
 | `llamacpp.g4f.local` | llama.cpp server | `11435.g4f.local` |
 | `lmstudio.g4f.local` | LM Studio | `1234.g4f.local` |
 | `remote-desktop.g4f.local` | Remote Desktop | `8765.g4f.local` |
@@ -678,12 +700,16 @@ Ctrl-C in a menu entry). Without a desktop — no `DISPLAY` or no
 `/tmp/g4f-autostart-<app>.log`. Only one install per app runs at a time, and
 only the apps in the table above that `sandbox-cli` knows how to install are
 started — `g4f` (the API itself) and `desktop` (the noVNC client, part of the
-image) are never started this way. Outside the sandbox image, where
-`sandbox-cli` does not exist, the hook does nothing and the proxy keeps
-answering its usual `502` "is not running".
+image) are never started this way. `opencode.g4f.local` is special: it starts
+the headless server (`sandbox-cli opencode-server`, i.e. `opencode serve` on
+port 4096), while the **Install & Open OpenCode** menu entry still starts the
+interactive TUI. Outside the sandbox image, where `sandbox-cli` does not exist,
+the hook does nothing and the proxy keeps answering its usual `502` "is not
+running".
 
 The per-app target can be redirected with the same variables the providers use
-(`OMNIROUTE_BASE_URL`, `OLLAMA_HOST`, `LITELLM_PORT`, ...).
+(`OMNIROUTE_BASE_URL`, `OLLAMA_HOST`, `LITELLM_PORT`, `OPENCODE_BASE_URL`,
+`OPENCODE_HOST`, `OPENCODE_PORT`, ...).
 
 #### Multicast discovery (mDNS)
 

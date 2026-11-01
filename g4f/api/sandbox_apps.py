@@ -63,6 +63,7 @@ _TOOLS = frozenset(
         "cptr",
         "open-webui",
         "code-server",
+        "opencode-server",
         "assistant-ui",
         "llamacpp",
         "lmstudio",
@@ -91,8 +92,16 @@ def cli_path() -> Optional[str]:
         return CLI_PATH
     return shutil.which(CLI_NAME)
 
+#: Routed apps whose ``sandbox-cli`` tool has a different name. The
+#: ``opencode`` host serves the headless ``opencode serve`` API, while the
+#: ``opencode`` menu entry starts the interactive TUI.
+_TOOL_ALIASES = {"opencode": "opencode-server"}
+
+
 def tool_for(name: str) -> Optional[str]:
     """Return the ``sandbox-cli`` tool that serves ``name``, if there is one."""
+    if name in _TOOL_ALIASES:
+        return _TOOL_ALIASES[name]
     return name if name in _TOOLS else None
 
 def is_running(root_url: str) -> bool:
