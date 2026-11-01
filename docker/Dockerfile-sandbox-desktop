@@ -307,7 +307,7 @@ RUN chmod 0755 /usr/local/bin/g4f-go && \
 # update it; the root steps that follow keep the image's default HOME so they
 # never create root-owned cache files inside /home/pn.
 USER pn
-RUN HOME=/home/pn g4f-go /app/gpt4free install -e && \
+RUN HOME=/home/pn g4f-go install -e /app/gpt4free[all] && \
     HOME=/home/pn g4f-go cache clear && \
     find /home/pn/.g4f -type d -name '__pycache__' -prune -exec rm -rf {} + && \
     find /home/pn/.g4f -type f -name '*.pyc' -delete && \
@@ -323,7 +323,7 @@ RUN ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.15" /usr/loca
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.15" /usr/local/bin/python && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip3 && \
     ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/pip3" /usr/local/bin/pip && \
-    HOME=/home/pn g4f-go fetch-icons.py && \
+    fetch-icons.py && \
     gtk-update-icon-cache -f -t /usr/share/icons/hicolor && \
     printf 'XDG_RUNTIME_DIR=/tmp/sandbox-runtime\n' >> /etc/environment && \
     rm -rf /root/.cache /root/.npm /var/cache/apt/archives/* /var/lib/apt/lists/*
