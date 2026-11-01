@@ -1,7 +1,7 @@
 # Sandbox desktop
 
 The sandbox desktop is a full Xfce session (TigerVNC + noVNC) with the g4f API
-and a one-click **Install & Open** menu for coding agents, browsers, gateways,
+and a one-click menu for coding agents, browsers, gateways,
 local runtimes and assistants. Everything runs in one container and the API,
 the web desktop and the routed apps share a single published port.
 
@@ -53,10 +53,16 @@ g4f-sandbox down
 - `--app-dir DIR` mounts a checkout at `/app/gpt4free`; `--port`,
   `--vnc-port`, `--bind`, `--api-key`, `--pull`, `--no-pull`, `--engine`,
   `--recreate` and `--no-open` mirror the start script where they overlap.
-- **Termux/Android** is detected automatically. The launcher runs the API
-  natively with Termux's Python (no Docker), installs `g4f[slim]` on first run,
-  and manages the process with `up`, `down`, `status` and `logs`. The desktop
-  mode still requires Docker/Podman.
+- **Termux/Android** is detected automatically. The standalone
+  `g4f-sandbox` launcher runs the API natively with Termux's Python (no
+  Docker), installs `g4f[slim]` on first run, and manages the process with
+  `up`, `down`, `status` and `logs`. `g4f-go sandbox` instead uses
+  [udocker](https://github.com/indigo-dc/udocker), installed with pip and set up
+  with `udocker install` on first use, so it runs the same slim and desktop
+  images without root; the native backend remains available with `--backend
+  termux`. `G4F_SANDBOX_UDOCKER_DIR` moves the udocker root (default
+  `~/.udocker`) and `G4F_SANDBOX_UDOCKER_EXECMODE` selects the execution mode
+  (`P1`, `P2`, `F1`-`F4`, `R1`-`R3`, `S1`).
 
 `g4f-go` embeds the same launcher (`g4f-go sandbox ...`) and adds
 `g4f-go sandbox-cli` for running `sandbox-cli` inside the desktop container.
@@ -325,6 +331,9 @@ sandbox-cli list            list the known tools
 sandbox-cli settings        model, API key, HOME, provider and proxy
 sandbox-cli reset           clear the saved settings
 sandbox-cli package         show, update or pin the g4f package
+sandbox-cli update          update the g4f-go launcher itself
+sandbox-cli upgrade         update the g4f package in the runtime
+sandbox-cli uninstall       remove g4f-go and its managed data
 sandbox-cli urls            print the public URLs served by the API
 sandbox-cli hosts           print the /etc/hosts entries for the app domains
 sandbox-cli harness         pick a coding agent and a model from the g4f API
@@ -336,6 +345,13 @@ Tools install on first click (vendor installer, npm package,
 settings commands accept flags for scripting, for example
 `sandbox-cli settings --api-key 'key' --model gpt-4o`,
 `sandbox-cli settings --show` and `sandbox-cli settings --json`.
+
+The launcher and its Python runtime are owned by `g4f-go`, so the management
+commands forward to it: `sandbox-cli update` updates the `g4f-go` binary
+(`--check` reports without installing, `--version <tag>` picks a release),
+`sandbox-cli upgrade` updates the g4f package in the runtime, and
+`sandbox-cli uninstall` removes the launcher and its managed runtime, browser
+and caches (`--keep-binary`, `--keep-data` and `--dry-run` are passed through).
 
 ## Polli sandbox install
 

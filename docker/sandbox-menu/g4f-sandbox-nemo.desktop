@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open File Manager (Nemo)
+Name=File Manager (Nemo)
 Comment=Nemo file manager — installs on first click, then opens on the desktop
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="File Manager (Nemo)" --icon=folder --command="/usr/local/bin/sandbox-cli nemo"
 Icon=folder

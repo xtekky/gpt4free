@@ -40,3 +40,14 @@ func forceKillProcess(pid int) error {
 	}
 	return p.Signal(syscall.SIGKILL)
 }
+
+// udocker is a Python wrapper that waits for a PRoot child, so stopping only
+// the wrapper leaves the container running. configureDetached puts the wrapper
+// in its own session; signal the whole group instead.
+func terminateProcessGroup(pid int) error {
+	return syscall.Kill(-pid, syscall.SIGTERM)
+}
+
+func forceKillProcessGroup(pid int) error {
+	return syscall.Kill(-pid, syscall.SIGKILL)
+}

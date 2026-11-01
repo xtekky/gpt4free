@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Goose
+Name=Goose
 Comment=Goose by Block — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Goose --icon=g4f-sandbox-goose --command="/usr/local/bin/sandbox-cli goose"
 Icon=g4f-sandbox-goose

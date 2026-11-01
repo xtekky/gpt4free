@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open ThinkRail
+Name=ThinkRail
 Comment=ThinkRail agentic IDE by JetBrains — installs on first click, then starts in the terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=ThinkRail --icon=g4f-sandbox-thinkrail --command="/usr/local/bin/sandbox-cli thinkrail"
 Icon=g4f-sandbox-thinkrail

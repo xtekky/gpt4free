@@ -43,6 +43,22 @@ them, delete that directory or run `g4f-go cache clear`.
 `G4F_PYTHON_ONLY=1 g4f-go --version` prints the downloaded interpreter path
 without running gpt4free (useful for wrapping the runtime from other tools).
 
+## Installing on Termux
+
+The installer detects Android/Termux and installs the `android-arm64` release
+into `$PREFIX/bin` (`/data/data/com.termux/files/usr/bin`), which Termux
+already puts on `PATH`:
+
+```
+pkg install curl unzip
+curl -fsSL https://raw.githubusercontent.com/xtekky/gpt4free/main/bin/install.sh | bash
+g4f-go sandbox
+```
+
+Pass `--prefix DIR` (or `G4F_GO_PREFIX`) to install somewhere else. On Termux
+the sandbox launcher uses udocker automatically; it is installed with pip on
+first use (run `pkg install python` first).
+
 ## Building
 
 ```
@@ -181,6 +197,20 @@ manager (`apt`, `dnf`, `pacman`, `zypper`, `apk`, Homebrew, `winget`, Chocolatey
 or Scoop) before pulling the image. Set `G4F_SANDBOX_INSTALL_PODMAN=0` to
 disable that automatic install. The full launcher options and environment
 variables are the same as [`sandbox-launcher`](../sandbox-launcher/README.md).
+
+On **Termux/Android** the launcher selects [udocker](https://github.com/indigo-dc/udocker)
+instead: it pulls and runs the same sandbox images in user space, without root
+or a Docker daemon. On first use the launcher installs the pip package (with
+`pkg install python` first) and runs `udocker install` for the tools, so the
+first sandbox start does not stop halfway through. The desktop image works with
+`g4f-go sandbox --desktop`. The udocker root defaults to `~/.udocker` and can
+be moved with `G4F_SANDBOX_UDOCKER_DIR` (useful when `$HOME` is small);
+`G4F_SANDBOX_UDOCKER_EXECMODE` selects the execution mode (`P1`, `P2`, `F1`-`F4`,
+`R1`-`R3` or `S1`, default `P1`). Set `G4F_SANDBOX_INSTALL_UDOCKER=0` to require
+a preinstalled binary and tools. The older native Termux Python backend remains
+available with `--backend termux` (API-only). Selecting another backend
+explicitly, for example `--engine docker`, still wins over the Termux
+autodetection.
 
 ## Polli cloud sandbox (`polli-sandbox`)
 

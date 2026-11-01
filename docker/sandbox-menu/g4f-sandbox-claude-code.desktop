@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Claude
+Name=Claude
 Comment=Anthropic Claude Code — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Claude --icon=g4f-sandbox-claude-code --command="/usr/local/bin/sandbox-cli claude-code"
 Icon=g4f-sandbox-claude-code

@@ -9,7 +9,7 @@ Entries behind the sandbox desktop's **Applications** menu
 **g4f**, **Browsers**, **Files & Editors**, **Coding Agents**, **Agent Skills**,
 **Gateways**, **Local AI**, **Chat UIs**, **Writing**, **Media**,
 **Sandboxes** and **Assistants** — instead of one flat list under Development.
-Each **Install & Open …** item opens a terminal maximized to the sandbox
+Each menu item opens a terminal maximized to the sandbox
 screen, without window borders or menubar:
 
 ```
@@ -40,18 +40,18 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 
 | Menu entry               | Tool id     | Install recipe              | Binary         |
 |--------------------------|-------------|-----------------------------|----------------|
-| Install & Open OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
-| Install & Open Cindy     | `cindy`     | GitHub release Debian package, unpacked by its user installer; adds the g4f provider on first run | `cindy` |
-| Install & Open Oh My Pi  | `omp`       | omp.sh install script + `omp plugin install pi-freeflow` | `omp` |
-| Install & Open Pi        | `pi`        | pi.dev install script + `pi install npm:pi-freeflow` | `pi` |
-| Install & Run Freeflow API | `pi-freeflow` | Pi/OMP package, daemon on port 28180 | `node` |
-| Install & Open Kilo      | `kilocode`  | npm `@kilocode/cli`         | `kilo`         |
-| Install & Open Antigravity | `antigravity` | antigravity.google install script | `agy`    |
-| Install & Open Gemini    | `gemini-cli`| npm `@google/gemini-cli`    | `gemini`       |
-| Install & Open Qwen      | `qwencode`  | npm `@qwen-code/qwen-code`  | `qwen`         |
-| Install & Open Claude    | `claude-code`| npm `@anthropic-ai/claude-code` | `claude`   |
-| Install & Open Codex     | `codex`     | npm `@openai/codex`         | `codex`        |
-| Install & Open Copilot   | `copilot`   | npm `@github/copilot`       | `copilot`      |
+| OpenCode  | `opencode`  | opencode.ai v2 install script | `opencode`     |
+| Cindy     | `cindy`     | GitHub release Debian package, unpacked by its user installer; adds the g4f provider on first run | `cindy` |
+| Oh My Pi  | `omp`       | omp.sh install script + `omp plugin install pi-freeflow` | `omp` |
+| Pi        | `pi`        | pi.dev install script + `pi install npm:pi-freeflow` | `pi` |
+| Freeflow API | `pi-freeflow` | Pi/OMP package, daemon on port 28180 | `node` |
+| Kilo      | `kilocode`  | npm `@kilocode/cli`         | `kilo`         |
+| Antigravity | `antigravity` | antigravity.google install script | `agy`    |
+| Gemini    | `gemini-cli`| npm `@google/gemini-cli`    | `gemini`       |
+| Qwen      | `qwencode`  | npm `@qwen-code/qwen-code`  | `qwen`         |
+| Claude    | `claude-code`| npm `@anthropic-ai/claude-code` | `claude`   |
+| Codex     | `codex`     | npm `@openai/codex`         | `codex`        |
+| Copilot   | `copilot`   | npm `@github/copilot`       | `copilot`      |
 | Open g4f-go CLI          | `g4f-go`    | preinstalled in the image   | `g4f-go`       |
 | Open Remote Desktop      | `remote-desktop` | g4f-go bundled module + pip `qrcode`, `python-xlib`, `pynput` | `g4f-go` |
 | Sandbox Settings         | `settings`  | none (writes a settings file) | —            |
@@ -60,77 +60,77 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Public URLs              | `urls`      | none (prints the g4f API URLs) | —           |
 | Host Names               | `hosts`     | none (prints the `/etc/hosts` entries) | —    |
 | g4f Live Wallpaper       | `wallpaper` | none (runs `/usr/local/bin/g4f-livewall`) | —  |
-| Install & Open Cline     | `cline`     | npm `cline`                 | `cline`        |
-| Install & Open Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
-| Install & Open Goose     | `goose`     | block/goose install script  | `goose`        |
-| Install & Open Aider     | `aider`     | pip `aider-chat` (user)     | `aider`        |
-| Install & Open Cursor    | `cursor`    | cursor.com/install script   | `cursor-agent` |
-| Install & Open Chrome    | `chrome`    | Google's Chrome `.deb` (apt)| `start-browser` |
-| Install & Open File Manager | `files` | apt `thunar` (Debian)       | `thunar`       |
-| Install & Open File Manager (Nemo) | `nemo` | apt `nemo` + gvfs/thumbnail helpers (Debian) | `nemo`         |
-| Install & Run Lightpanda | `lightpanda`| `g4f-go browser install`    | `g4f-go`       |
-| Install & Open OmniRoute | `omniroute` | npm `omniroute`             | `omniroute`    |
-| Install & Open Ollama    | `ollama`    | ollama.com install script   | `ollama`       |
-| Install & Open llama.cpp | `llamacpp`  | GitHub release tarball      | `llama-server` |
-| Install & Open LM Studio | `lmstudio`  | lmstudio.ai install script  | `lms`          |
-| Install & Open Jan       | `jan`       | GitHub release AppImage     | `jan`          |
-| Install & Open LibreChat | `librechat` | git clone + `npm run reinstall` + MongoDB | `npm` |
-| Install & Open LobeChat  | `lobechat`  | GitHub release AppImage     | `lobechat`     |
-| Install & Open Msty Studio | `msty`    | vendor "latest" AppImage    | `msty`         |
-| Install & Open SillyTavern | `sillytavern` | git clone + `npm install` | `node`       |
-| Install & Open Open WebUI | `open-webui` | pip `open-webui` (user) | `open-webui` |
-| Install & Open Open WebUI Computer | `cptr` | pip `cptr` (user)     | `cptr`         |
-| Install & Open VS Code Web | `code-server` | code-server.dev install script | `code-server` |
-| Install & Open Kate      | `kate`      | apt `kate` (Debian)         | `kate`         |
-| Install & Open OpenClaw  | `openclaw`  | openclaw.ai install script  | `openclaw`     |
-| Install & Open Crush     | `crush`     | npm `@charmland/crush`      | `crush`        |
-| Install & Open Continue  | `continue-cli` | npm `@continuedev/cli`   | `cn`           |
-| Install & Open Grok      | `grok`      | x.ai/cli install script     | `grok`         |
-| Install & Open Droid     | `droid`     | app.factory.ai/cli script   | `droid`        |
-| Install & Open OpenHands | `openhands` | install.openhands.dev script| `openhands`    |
-| Install & Open gptme     | `gptme`     | pip `gptme`                 | `gptme`        |
-| Install & Open Plandex   | `plandex`   | plandex.ai install script   | `plandex`      |
-| Install & Open Hermes    | `hermes`    | hermes-agent.nousresearch.com script | `hermes` |
-| Install & Open Oh My Hermes | `omh`    | npm `oh-my-hermes` + `omh setup --yes` | `omh` |
-| Install & Open Kiro      | `kiro`      | cli.kiro.dev install script | `kiro-cli`     |
-| Install & Open Kimi      | `kimi`      | code.kimi.com install script| `kimi`         |
-| Install & Open Roomote   | `roomote`   | get.roomote.dev install script | `roomote`      |
-| Install & Open Auggie    | `auggie`    | npm `@augmentcode/auggie`   | `auggie`       |
-| Install & Open Qoder     | `qoder`     | qoder.com install script    | `qodercli`     |
-| Install & Open iFlow     | `iflow`     | npm `@iflow-ai/iflow-cli`   | `iflow`        |
-| Install & Open Mistral Vibe | `vibe`   | mistral.ai/vibe install script | `vibe`      |
-| Install & Open SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
-| Install & Open DeepSeek Harness | `dsh` | npm `@deepseek-ai/dsh` (listed under Chat UIs, Assistants and Coding Agents) | `dsh` |
+| Cline     | `cline`     | npm `cline`                 | `cline`        |
+| Amp       | `amp`       | npm `@ampcode/cli`          | `amp`          |
+| Goose     | `goose`     | block/goose install script  | `goose`        |
+| Aider     | `aider`     | pip `aider-chat` (user)     | `aider`        |
+| Cursor    | `cursor`    | cursor.com/install script   | `cursor-agent` |
+| Chrome    | `chrome`    | Google's Chrome `.deb` (apt)| `start-browser` |
+| File Manager | `files` | apt `thunar` (Debian)       | `thunar`       |
+| File Manager (Nemo) | `nemo` | apt `nemo` + gvfs/thumbnail helpers (Debian) | `nemo`         |
+| Lightpanda | `lightpanda`| `g4f-go browser install`    | `g4f-go`       |
+| OmniRoute | `omniroute` | npm `omniroute`             | `omniroute`    |
+| Ollama    | `ollama`    | ollama.com install script   | `ollama`       |
+| llama.cpp | `llamacpp`  | GitHub release tarball      | `llama-server` |
+| LM Studio | `lmstudio`  | lmstudio.ai install script  | `lms`          |
+| Jan       | `jan`       | GitHub release AppImage     | `jan`          |
+| LibreChat | `librechat` | git clone + `npm run reinstall` + MongoDB | `npm` |
+| LobeChat  | `lobechat`  | GitHub release AppImage     | `lobechat`     |
+| Msty Studio | `msty`    | vendor "latest" AppImage    | `msty`         |
+| SillyTavern | `sillytavern` | git clone + `npm install` | `node`       |
+| Open WebUI | `open-webui` | pip `open-webui` (user) | `open-webui` |
+| Open WebUI Computer | `cptr` | pip `cptr` (user)     | `cptr`         |
+| VS Code Web | `code-server` | code-server.dev install script | `code-server` |
+| Kate      | `kate`      | apt `kate` (Debian)         | `kate`         |
+| OpenClaw  | `openclaw`  | openclaw.ai install script  | `openclaw`     |
+| Crush     | `crush`     | npm `@charmland/crush`      | `crush`        |
+| Continue  | `continue-cli` | npm `@continuedev/cli`   | `cn`           |
+| Grok      | `grok`      | x.ai/cli install script     | `grok`         |
+| Droid     | `droid`     | app.factory.ai/cli script   | `droid`        |
+| OpenHands | `openhands` | install.openhands.dev script| `openhands`    |
+| gptme     | `gptme`     | pip `gptme`                 | `gptme`        |
+| Plandex   | `plandex`   | plandex.ai install script   | `plandex`      |
+| Hermes    | `hermes`    | hermes-agent.nousresearch.com script | `hermes` |
+| Oh My Hermes | `omh`    | npm `oh-my-hermes` + `omh setup --yes` | `omh` |
+| Kiro      | `kiro`      | cli.kiro.dev install script | `kiro-cli`     |
+| Kimi      | `kimi`      | code.kimi.com install script| `kimi`         |
+| Roomote   | `roomote`   | get.roomote.dev install script | `roomote`      |
+| Auggie    | `auggie`    | npm `@augmentcode/auggie`   | `auggie`       |
+| Qoder     | `qoder`     | qoder.com install script    | `qodercli`     |
+| iFlow     | `iflow`     | npm `@iflow-ai/iflow-cli`   | `iflow`        |
+| Mistral Vibe | `vibe`   | mistral.ai/vibe install script | `vibe`      |
+| SWE-agent | `sweagent`  | uv tool `--editable` clone of SWE-agent (Python 3.13) | `sweagent` |
+| DeepSeek Harness | `dsh` | npm `@deepseek-ai/dsh` (listed under Chat UIs, Assistants and Coding Agents) | `dsh` |
 | Run a Coding Harness on g4f | `harness` | none (uses the g4f API and its `/v1/models`) | — |
-| Install & Open Paseo     | `paseo`     | npm `@getpaseo/cli`         | `paseo`        |
-| Install & Open T3 Code   | `t3code`    | t3.codes install script     | `t3`           |
-| Install & Open Fabric    | `fabric`    | fabric installer script     | `fabric`       |
-| Install & Open LiteLLM   | `litellm`   | pip `litellm[proxy]`        | `litellm`      |
-| Install & Open Langfuse CLI | `langfuse` | npm `@langfuse/cli`      | `langfuse`     |
-| Install & Run Proxy Server | `proxy`   | pip `mitmproxy`             | `mitmproxy`    |
-| Install & Run Tunnel Client | `tunnel` | GitHub release `cloudflared` | `cloudflared`  |
-| Install & Open ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
-| Install & Open LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
-| Install & Open Hugging Face Spaces | `huggingface` | hf.co standalone CLI | `hf` |
-| Install & Open assistant-ui | `assistant-ui` | npx `assistant-ui@latest create` + `npm install` | `npm`      |
-| Install & Open Polli     | `polli`     | npm `@pollinations/cli`     | `polli`        |
-| Install & Open Polli Sandboxes | `polli-sandbox` | npm `@pollinations/cli` + apt `openssh-client` | `polli` |
+| Paseo     | `paseo`     | npm `@getpaseo/cli`         | `paseo`        |
+| T3 Code   | `t3code`    | t3.codes install script     | `t3`           |
+| Fabric    | `fabric`    | fabric installer script     | `fabric`       |
+| LiteLLM   | `litellm`   | pip `litellm[proxy]`        | `litellm`      |
+| Langfuse CLI | `langfuse` | npm `@langfuse/cli`      | `langfuse`     |
+| Proxy Server | `proxy`   | pip `mitmproxy`             | `mitmproxy`    |
+| Tunnel Client | `tunnel` | GitHub release `cloudflared` | `cloudflared`  |
+| ShellGPT  | `sgpt`      | pip `shell-gpt`             | `sgpt`         |
+| LLM CLI   | `llm`       | pip `llm`                   | `llm`          |
+| Hugging Face Spaces | `huggingface` | hf.co standalone CLI | `hf` |
+| assistant-ui | `assistant-ui` | npx `assistant-ui@latest create` + `npm install` | `npm`      |
+| Polli     | `polli`     | npm `@pollinations/cli`     | `polli`        |
+| Polli Sandboxes | `polli-sandbox` | npm `@pollinations/cli` + apt `openssh-client` | `polli` |
 | Find & Add AI Tools      | `discover`  | uses OpenCode (installed if needed) + the g4f API | `opencode` |
-| Install Humanizer        | `humanizer` | npx `skills add blader/humanizer` | — |
-| Install & Open AI Text Detector | `ai-detect` | pip `git+lynote-ai/ai-text-detector` | `ai-detect` |
-| Install & Open AI Image Detector | `aidetect` | pip `git+lynote-ai/ai-image-detector` | `aidetect` |
-| Install & Open OpenBot   | `openbot`   | GitHub release AppImage     | `openbot`      |
-| Install & Open ThinkRail | `thinkrail` | JetBrains install script    | `thinkrail`    |
-| Install & Open Orca      | `orca`      | GitHub latest AppImage (stable URL) | `orca`, `orca-ide` |
-| Install & Open VoiceStudio | `voicestudio` | GitHub release AppImage (x64) | `voicestudio` |
-| Install & Open HyperFrames | `hyperframes` | npm `hyperframes`         | `hyperframes`  |
-| Install & Open DeepTutor | `deeptutor` | pip `deeptutor[full]`       | `deeptutor`    |
-| Install & Open nanobot   | `nanobot`   | pip `nanobot-ai`            | `nanobot`      |
-| Install & Open Agent Reach | `agent-reach` | uv tool install (GitHub release zip) | `agent-reach` |
-| Install ECC              | `ecc`       | npx `ecc-universal@2.2.3`   | —              |
-| Install Superpowers      | `superpowers` | `opencode plugin add` (git) | —            |
-| Install Graphify         | `graphify`  | pip `graphifyy` + `graphify install --platform agents` | `graphify` |
-| Install Claude-Mem       | `claude-mem` | npx `claude-mem@15.4.0 install --ide opencode` | — |
+| Humanizer        | `humanizer` | npx `skills add blader/humanizer` | — |
+| AI Text Detector | `ai-detect` | pip `git+lynote-ai/ai-text-detector` | `ai-detect` |
+| AI Image Detector | `aidetect` | pip `git+lynote-ai/ai-image-detector` | `aidetect` |
+| OpenBot   | `openbot`   | GitHub release AppImage     | `openbot`      |
+| ThinkRail | `thinkrail` | JetBrains install script    | `thinkrail`    |
+| Orca      | `orca`      | GitHub latest AppImage (stable URL) | `orca`, `orca-ide` |
+| VoiceStudio | `voicestudio` | GitHub release AppImage (x64) | `voicestudio` |
+| HyperFrames | `hyperframes` | npm `hyperframes`         | `hyperframes`  |
+| DeepTutor | `deeptutor` | pip `deeptutor[full]`       | `deeptutor`    |
+| nanobot   | `nanobot`   | pip `nanobot-ai`            | `nanobot`      |
+| Agent Reach | `agent-reach` | uv tool install (GitHub release zip) | `agent-reach` |
+| ECC              | `ecc`       | npx `ecc-universal@2.2.3`   | —              |
+| Superpowers      | `superpowers` | `opencode plugin add` (git) | —            |
+| Graphify         | `graphify`  | pip `graphifyy` + `graphify install --platform agents` | `graphify` |
+| Claude-Mem       | `claude-mem` | npx `claude-mem@15.4.0 install --ide opencode` | — |
 | Open g4f Docs in Glow   | `glow`      | apt `glow` + `chafa` (installed on first open) | `glow` |
 | Open g4f Docs           | `docs`      | Google Chrome (installed on first open) | `google-chrome` |
 
@@ -702,7 +702,7 @@ only the apps in the table above that `sandbox-cli` knows how to install are
 started — `g4f` (the API itself) and `desktop` (the noVNC client, part of the
 image) are never started this way. `opencode.g4f.local` is special: it starts
 the headless server (`sandbox-cli opencode-server`, i.e. `opencode serve` on
-port 4096), while the **Install & Open OpenCode** menu entry still starts the
+port 4096), while the **OpenCode** menu entry still starts the
 interactive TUI. Outside the sandbox image, where `sandbox-cli` does not exist,
 the hook does nothing and the proxy keeps answering its usual `502` "is not
 running".
@@ -729,7 +729,7 @@ or Bonjour on macOS) and keep the `/etc/hosts` entries as the fallback.
 
 ### Proxy server (mitmproxy)
 
-The **Install & Run Proxy Server** entry (`Gateways` menu) installs
+The **Proxy Server** entry (`Gateways` menu) installs
 [mitmproxy](https://mitmproxy.org) with `pip install --user` on first click and
 then runs its console UI, listening on `127.0.0.1:8081`:
 
@@ -753,7 +753,7 @@ launchers trust the CA from there — see
 
 ### Tunnel client (cloudflared)
 
-The **Install & Run Tunnel Client** entry (`Gateways` menu) is the sandbox's
+The **Tunnel Client** entry (`Gateways` menu) is the sandbox's
 one-click tunnel: it installs Cloudflare's
 [cloudflared](https://github.com/cloudflare/cloudflared) from its latest GitHub
 release over HTTPS on first click, then opens a public, encrypted
@@ -779,7 +779,7 @@ The terminal stays open as cloudflared's console and prints the public URL
 
 ### Langfuse tracing
 
-The **Install & Open Langfuse CLI** entry (`Gateways` menu) installs the
+The **Langfuse CLI** entry (`Gateways` menu) installs the
 official [Langfuse CLI](https://github.com/langfuse/langfuse-cli) from npm on
 first click and opens it in the terminal:
 
@@ -1087,7 +1087,8 @@ the first open quick; run `sandbox-docs render --all` (or `sandbox-docs open
 - `bin/sandbox-cli` — installed as `/usr/local/bin/sandbox-cli` (the image
   copies the whole repo `bin/` into `/usr/local/bin`); also usable by
   hand: `sandbox-cli list`, `sandbox-cli install <tool>`, `sandbox-cli <tool>`,
-  `sandbox-cli settings`, `sandbox-cli package`, `sandbox-cli reset`,
+  `sandbox-cli settings`, `sandbox-cli package`, `sandbox-cli update`,
+  `sandbox-cli upgrade`, `sandbox-cli uninstall`, `sandbox-cli reset`,
   `sandbox-cli urls`, `sandbox-cli hosts`.
 - `bin/sandbox-tray` — installed as `/usr/local/bin/sandbox-tray`; the image's
   main process. It runs the g4f API as a child and shows the tray menu (server

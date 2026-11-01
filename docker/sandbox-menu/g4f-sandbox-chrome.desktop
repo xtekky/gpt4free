@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Chrome
+Name=Chrome
 Comment=Google Chrome — installs on first click, then opens on the desktop
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Chrome --icon=g4f-sandbox-chrome --command="/usr/local/bin/sandbox-cli chrome"
 Icon=g4f-sandbox-chrome

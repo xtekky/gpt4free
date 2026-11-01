@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Crush
+Name=Crush
 Comment=Crush agentic coding by Charm — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Crush --icon=g4f-sandbox-crush --command="/usr/local/bin/sandbox-cli crush"
 Icon=g4f-sandbox-crush

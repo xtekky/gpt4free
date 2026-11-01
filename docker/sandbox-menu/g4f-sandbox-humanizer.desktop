@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install Humanizer
+Name=Humanizer
 Comment=Humanizer agent skill — removes signs of AI-generated writing; installs for the sandbox's agents on first click
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Humanizer" --icon=g4f-sandbox-humanizer --command="/usr/local/bin/sandbox-cli humanizer"
 Icon=g4f-sandbox-humanizer

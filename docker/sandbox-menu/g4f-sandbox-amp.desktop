@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Amp
+Name=Amp
 Comment=Amp by Sourcegraph — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Amp --icon=g4f-sandbox-amp --command="/usr/local/bin/sandbox-cli amp"
 Icon=g4f-sandbox-amp

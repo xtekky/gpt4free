@@ -1,7 +1,7 @@
 // g4f-sandbox is a small, self-contained launcher for the g4f sandbox
-// container image. It never embeds the image: it finds Docker or Podman,
-// pulls only the image for the selected mode and the host architecture, and
-// then creates or reuses the container.
+// container image. It never embeds the image: it finds Docker, Podman or, on
+// Termux, udocker, pulls only the image for the selected mode and the host
+// architecture, and then creates or reuses the container.
 //
 // The default mode is API-only and uses the small `latest-slim` image. The
 // full Xfce + TigerVNC desktop image is pulled only when --desktop is passed,
@@ -48,8 +48,8 @@ type options struct {
 	action string
 	mode   sandboxMode
 
-	engine  string // docker, podman, or empty for autodetect
-	backend string // "", "termux" (native Termux Python) or "auto"
+	engine  string // docker, podman, udocker, or empty for autodetect
+	backend string // "", "udocker", "termux" (native Termux Python) or "auto"
 	image   string
 	name    string
 	app     string // desktop tool to launch instead of the live wallpaper
@@ -112,7 +112,9 @@ func run(args []string) int {
 
 	// `open` only needs the computed URL, not a container engine.
 	if o.action == "open" {
-		if useTermux(o) {
+		if useUdocker(o) {
+			o = udockerApplyState(o)
+		} else if useTermux(o) {
 			o = termuxApplyState(o)
 		}
 		u := modeURL(o)
@@ -120,6 +122,14 @@ func run(args []string) int {
 		if err := openBrowser(u); err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-sandbox: could not open a browser:", err)
 			fmt.Fprintln(os.Stderr, "g4f-sandbox: open this URL manually:", u)
+			return 1
+		}
+		return 0
+	}
+
+	if useUdocker(o) {
+		if err := runUdocker(o); err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-sandbox:", err)
 			return 1
 		}
 		return 0
@@ -335,6 +345,8 @@ func parseArgs(args []string) (options, error) {
 			o.backend = s
 		case "termux":
 			o.backend = "termux"
+		case "udocker":
+			o.backend = "udocker"
 		case "user-id", "uid":
 			s, err := nextValue()
 			if err != nil {
@@ -489,18 +501,27 @@ func (o *options) finish() error {
 		}
 		return fmt.Errorf("invalid domain suffix: %s", o.domainSuffix)
 	}
-	if o.engine != "" && o.engine != "docker" && o.engine != "podman" {
-		return fmt.Errorf("engine must be docker or podman: %s", o.engine)
+	if o.engine != "" && o.engine != "docker" && o.engine != "podman" && o.engine != "udocker" {
+		return fmt.Errorf("engine must be docker, podman or udocker: %s", o.engine)
+	}
+	if o.engine == "udocker" &&
+		(o.backend == "docker" || o.backend == "podman" || o.backend == "container") {
+		return fmt.Errorf("--engine udocker cannot be combined with --backend %s", o.backend)
 	}
 	switch o.backend {
 	case "", "auto":
 		o.backend = ""
+	case "udocker":
+		if o.engine != "" && o.engine != "udocker" {
+			return fmt.Errorf("--backend udocker cannot be combined with --engine %s", o.engine)
+		}
+		o.engine = ""
 	case "termux":
 		if o.engine != "" {
 			return fmt.Errorf("--termux cannot be combined with --engine %s", o.engine)
 		}
 		if o.mode == modeDesktop {
-			return fmt.Errorf("Termux runs the API only; omit --desktop")
+			return fmt.Errorf("the native Termux backend runs the API only; use --backend udocker for desktop mode")
 		}
 	case "docker", "podman", "container":
 		if o.backend != "container" && o.engine == "" {
@@ -508,7 +529,14 @@ func (o *options) finish() error {
 		}
 		o.backend = ""
 	default:
-		return fmt.Errorf("backend must be auto, docker, podman or termux: %s", o.backend)
+		return fmt.Errorf("backend must be auto, docker, podman, udocker or termux: %s", o.backend)
+	}
+	if o.engine == "udocker" {
+		if o.backend != "" {
+			return fmt.Errorf("--engine udocker cannot be combined with --backend %s", o.backend)
+		}
+		o.backend = "udocker"
+		o.engine = ""
 	}
 	if o.buildFirst && o.mode != modeDesktop && o.backend != "termux" {
 		return fmt.Errorf("--build is only available in desktop mode; pass --desktop")
@@ -1146,12 +1174,14 @@ func browserCommand(goos, u string) (string, []string) {
 func printHelp() {
 	fmt.Printf(`g4f-sandbox %s - launcher for the g4f sandbox image (g4f-go sandbox)
 
-The launcher is under 1 MB compressed. It never embeds the image: Docker or
-Podman pulls only the image for the selected mode and the host architecture
-(about 400 MB for API-only, 675 MB for the desktop).
+The launcher is under 1 MB compressed. It never embeds the image: Docker,
+Podman or udocker pulls only the image for the selected mode and the host
+architecture (about 400 MB for API-only, 675 MB for the desktop).
 
-On Termux/Android it detects the environment and runs the API natively with
-Termux's Python instead (no Docker, first run installs g4f with pip).
+On Termux/Android it detects the environment and uses udocker, the user-space
+container runner, so the same sandbox images work without root. udocker is
+installed with pip on first use. The older native Termux Python backend is
+still available with --backend termux (API only).
 
 Usage:
   g4f-sandbox [COMMAND] [OPTIONS]
@@ -1165,7 +1195,7 @@ Commands:
   shell, connect  Open a bash shell in the running container
   exec <cmd...>   Run a command in the container
   cli <args...>   Run sandbox-cli in a desktop container
-  install <x...>  Desktop: install a menu tool; Termux: pip install a package
+  install <x...>  Desktop: install a menu tool; native Termux: pip install a package
   open            Open the web UI in a browser
   pull            Pull the image for the selected mode
   build           Build the desktop image from a source checkout
@@ -1197,12 +1227,13 @@ Options:
       --keep             With down/stop, stop without removing
       --pull             Pull the image even when it exists locally
       --no-pull          Never pull; fail when the image is missing
-      --engine NAME      docker or podman (default: autodetect)
-                         (when neither is installed, Podman is installed with
-                          the host package manager; opt out with
-                          G4F_SANDBOX_INSTALL_PODMAN=0)
-      --backend NAME     auto, docker, podman or termux (default: auto)
-      --termux           Force the native Termux backend (no Docker)
+      --engine NAME      docker, podman or udocker (default: autodetect)
+                         (when neither Docker nor Podman is installed, Podman
+                          is installed with the host package manager; opt out
+                          with G4F_SANDBOX_INSTALL_PODMAN=0)
+      --backend NAME     auto, docker, podman, udocker or termux (default: auto)
+      --udocker          Force the udocker backend (user-space containers)
+      --termux           Force the native Termux Python backend (API only)
   -b, --build            Build the desktop image before starting
       --user-id UID      Sandbox user id for a build (default 1000)
       --context DIR      Source checkout for build (default .)
@@ -1211,8 +1242,11 @@ Options:
 Environment:
   G4F_SANDBOX_MODE=api|desktop   G4F_SANDBOX_IMAGE   G4F_SANDBOX_NAME
   G4F_SANDBOX_DATA_DIR           G4F_SANDBOX_ENGINE  G4F_SANDBOX_NO_OPEN
-  G4F_SANDBOX_BACKEND=auto|docker|podman|termux      G4F_SANDBOX_TERMUX=1
+  G4F_SANDBOX_BACKEND=auto|docker|podman|udocker|termux  G4F_SANDBOX_TERMUX=1
   G4F_SANDBOX_INSTALL_PODMAN=0 disables the automatic Podman install
+  G4F_SANDBOX_INSTALL_UDOCKER=0 disables the automatic udocker (pip+tools) install
+  G4F_SANDBOX_UDOCKER_DIR=/path     udocker root (default ~/.udocker)
+  G4F_SANDBOX_UDOCKER_EXECMODE=P1   udocker mode (P1, P2, F1-F4, R1-R3, S1)
   PORT VNC_PORT SANDBOX_BIND_ADDR G4F_API_KEY G4F_APP_DIR G4F_DOMAIN_SUFFIX
   G4F_DOMAIN_ROUTER SANDBOX_BLOCK_LOCAL_NETWORK SANDBOX_FIREWALL_STRICT
 
@@ -1223,10 +1257,10 @@ Examples:
   g4f-sandbox --desktop cli list
   g4f-sandbox logs
 
-  # Termux: API only, Python installed on demand
-  pkg install python
-  g4f-sandbox                 # auto-detects Termux
-  g4f-sandbox install pillow
+  # Termux: udocker is installed on demand, no root required
+  g4f-sandbox                 # auto-detects Termux and uses udocker
+  g4f-sandbox --desktop       # full desktop image under udocker
+  g4f-sandbox --backend termux  # legacy native API backend
   g4f-sandbox down
 `, Version, defaultPort, defaultVNCPort)
 }

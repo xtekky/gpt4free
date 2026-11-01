@@ -1,23 +1,86 @@
-# Build stage
-FROM python:3.15-slim-bookworm AS builder
+# Slim API-only sandbox image built like Dockerfile-sandbox-desktop: the
+# g4f-go launcher is compiled from source in a throwaway Go stage, Python comes
+# from the Debian base, and Node.js is copied from the official node image
+# instead of Debian's older distro package.
+#
+#   docker build -f docker/Dockerfile-slim -t g4f-slim .
+#
+# Unlike the desktop image this has no Xfce/VNC stack and keeps g4f installed
+# in the Debian interpreter (via a venv), so the container starts the API with
+# `python3 -m g4f` instead of g4f-go's downloaded CPython runtime. The g4f-go
+# binary is still available on PATH for its sandbox/client helpers.
 
-WORKDIR /build
+ARG GO_BUILDER=golang:1.25-bookworm
+ARG NODE_IMAGE=node:24-bookworm-slim
+ARG SANDBOX_BASE=debian:trixie-slim
+
+# ---------------------------------------------------------------------------
+# Stage 1: g4f-go launcher
+#
+# Compiled from the g4f-go/ sources so the binary always matches the checkout.
+# Go cross-compiles, so the stage runs on the build platform and emits a static
+# binary for the target arch. g4f-go/bundle, g4f-go/embed and the Polli
+# embedded assets are committed, so a plain `go build` works without a
+# preparation step.
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM --platform=$BUILDPLATFORM ${GO_BUILDER} AS g4f-go-builder
+
+ARG TARGETOS=linux
+ARG TARGETARCH
+
+WORKDIR /src
+# Dependency layer first: it only invalidates when go.mod/go.sum change.
+COPY g4f-go/go.mod g4f-go/go.sum ./
+RUN go mod download
+COPY g4f-go/ ./
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+        go build -trimpath -ldflags "-s -w" -o /out/g4f-go .
+
+# ---------------------------------------------------------------------------
+# Stage 2: Node.js 24 distribution
+#
+# Staged from the official Node 24 image so the slim image carries the newest
+# Node.js 24 runtime and npm without depending on Debian's older distro package.
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM ${NODE_IMAGE} AS node-dist
+
+# ---------------------------------------------------------------------------
+# Stage 3: Python dependencies from the Debian interpreter
+#
+# A venv keeps pip out of Debian's externally-managed system Python (PEP 668)
+# and gives the runtime stage a self-contained tree to copy. Built on the same
+# base as the runtime stage so compiled wheels match the final interpreter.
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM ${SANDBOX_BASE} AS builder
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
+    python3 \
     python3-dev \
+    python3-venv \
+    gcc \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m venv /venv
+
+WORKDIR /build
 COPY requirements-slim.txt .
 # --no-cache-dir avoids the pip wheel cache; the __pycache__/.pyc sweep keeps
 # compiled bytecode that wheels occasionally ship out of the runtime layer.
-RUN pip install --no-cache-dir --prefix=/install -r requirements-slim.txt && \
-    find /install -type d -name '__pycache__' -prune -exec rm -rf {} + && \
-    find /install -type f -name '*.pyc' -delete
+RUN /venv/bin/pip install --no-cache-dir -r requirements-slim.txt && \
+    find /venv -type d -name '__pycache__' -prune -exec rm -rf {} + && \
+    find /venv -type f -name '*.pyc' -delete
 
-# Final runtime stage
-FROM python:3.15-slim-bookworm
+# ---------------------------------------------------------------------------
+# Stage 4: minimal runtime
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM ${SANDBOX_BASE}
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ARG G4F_VERSION
 ARG G4F_USER=g4f
@@ -27,21 +90,44 @@ ENV G4F_VERSION=$G4F_VERSION \
     G4F_USER=$G4F_USER \
     G4F_USER_ID=$G4F_USER_ID \
     G4F_DIR=/app \
+    HOME=/home/${G4F_USER} \
+    PATH=/venv/bin:${PATH} \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
     ffmpeg \
     flac \
     curl \
+    ca-certificates \
+    libstdc++6 \
     && groupadd -g $G4F_USER_ID $G4F_USER \
     && useradd -rm -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /tmp/* /var/tmp/* \
               /usr/share/doc/* /usr/share/man/* /usr/share/info/*
 
-# Copy pre-compiled dependencies from builder stage
-COPY --from=builder /install /usr/local
+# Copy the pre-built Python environment from the builder stage
+COPY --from=builder /venv /venv
+
+# Node.js 24: newest Node 24 runtime and npm copied from the official node image
+# instead of Debian's older nodejs package. The npm/npx/corepack symlinks match
+# the layout of the desktop image.
+COPY --from=node-dist /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-dist /usr/local/include/node /usr/local/include/node
+COPY --from=node-dist /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
+    ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
+    ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack && \
+    rm -rf /usr/local/lib/node_modules/npm/docs \
+           /usr/local/lib/node_modules/npm/man
+
+# The g4f-go launcher compiled in the first stage. It stays available for the
+# sandbox/client helpers; the API itself runs on the Debian interpreter above.
+COPY --from=g4f-go-builder /out/g4f-go /usr/local/bin/g4f-go
+RUN chmod 0755 /usr/local/bin/g4f-go
 
 WORKDIR $G4F_DIR
 
@@ -52,4 +138,4 @@ USER $G4F_USER_ID
 
 EXPOSE 8080
 
-CMD ["python", "-m", "g4f", "--port", "8080"]
+CMD ["python3", "-m", "g4f", "--port", "8080"]

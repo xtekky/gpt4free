@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Kate
+Name=Kate
 Comment=Kate text editor — installs on first click, then opens on the desktop
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Kate --icon=g4f-sandbox-kate --command="/usr/local/bin/sandbox-cli kate"
 Icon=g4f-sandbox-kate

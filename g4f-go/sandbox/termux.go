@@ -14,10 +14,10 @@ import (
 	"time"
 )
 
-// Termux cannot run the OCI image locally (no Docker daemon or kernel
-// namespaces), so the Termux backend runs the same g4f API directly with
-// Termux's Python. It installs Python/g4f on demand and keeps the process in
-// the selected data directory.
+// The native Termux backend runs the g4f API directly with Termux's Python
+// instead of a container. It is used when --backend termux is requested
+// explicitly; Termux otherwise auto-selects udocker. It installs Python/g4f on
+// demand and keeps the process in the selected data directory.
 
 const termuxPythonHint = "pkg install python"
 
@@ -31,17 +31,11 @@ func isTermux() bool {
 	return strings.Contains(os.Getenv("PREFIX"), "com.termux")
 }
 
-// useTermux returns true when the native Termux backend should run. An
-// explicit engine (docker/podman) always wins, so a Termux user can still
-// drive a remote daemon with --engine docker.
+// useTermux returns true only when the native Termux Python backend was
+// requested explicitly. Termux now auto-selects udocker (see useUdocker), so
+// the native path stays available as an API-only fallback via --backend termux.
 func useTermux(o options) bool {
-	if o.backend == "termux" {
-		return true
-	}
-	if o.engine != "" {
-		return false
-	}
-	return o.backend == "" && isTermux()
+	return o.backend == "termux"
 }
 
 func termuxPaths(o options) (pidPath, logPath string) {
@@ -161,10 +155,10 @@ func runTermux(o options) error {
 
 func termuxUp(o options) error {
 	if o.mode == modeDesktop {
-		return fmt.Errorf("the desktop image needs Docker/Podman; Termux runs the API only (omit --desktop)")
+		return fmt.Errorf("the native Termux backend runs the API only; use --backend udocker for desktop mode")
 	}
 	if o.buildFirst {
-		return fmt.Errorf("--build requires Docker/Podman; Termux runs the API only")
+		return fmt.Errorf("--build needs Docker or Podman; the native Termux backend runs the API only")
 	}
 
 	py, err := ensureTermuxPython()

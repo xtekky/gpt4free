@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open DeepSeek Harness
+Name=DeepSeek Harness
 Comment=DeepSeek Harness (dsh) coding agent — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="DeepSeek Harness" --icon=g4f-sandbox-dsh --command="/usr/local/bin/sandbox-cli dsh"
 Icon=g4f-sandbox-dsh

@@ -24,8 +24,16 @@ func RunCLI(args []string) int {
 		return 1
 	}
 
+	if useUdocker(o) {
+		if err := runUdocker(o); err != nil {
+			fmt.Fprintln(os.Stderr, "g4f-sandbox:", err)
+			return 1
+		}
+		return 0
+	}
+
 	if useTermux(o) {
-		fmt.Fprintln(os.Stderr, "g4f-sandbox: sandbox-cli needs the desktop container; Termux runs the API only")
+		fmt.Fprintln(os.Stderr, "g4f-sandbox: sandbox-cli needs the desktop container; the native Termux backend runs the API only")
 		return 1
 	}
 

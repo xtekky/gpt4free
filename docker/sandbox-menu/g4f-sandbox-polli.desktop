@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Polli
+Name=Polli
 Comment=Pollinations CLI — text, image, audio, video and 3D generation from the terminal; installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Polli --icon=g4f-sandbox-polli --command="/usr/local/bin/sandbox-cli polli"
 Icon=g4f-sandbox-polli

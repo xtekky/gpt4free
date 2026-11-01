@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Polli Sandboxes
+Name=Polli Sandboxes
 Comment=Create, connect to and manage hosted Polli (E2B) sandboxes; installs Polli + OpenSSH on first click
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Polli Sandboxes" --icon=g4f-sandbox-polli-sandbox --command="/usr/local/bin/sandbox-cli polli-sandbox"
 Icon=g4f-sandbox-polli-sandbox

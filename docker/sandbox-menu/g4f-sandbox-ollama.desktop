@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Run Ollama
+Name=Ollama
 Comment=Ollama local model server — installs on first click, then serves on 127.0.0.1:11434
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Ollama --icon=g4f-sandbox-ollama --command="/usr/local/bin/sandbox-cli ollama"
 Icon=g4f-sandbox-ollama

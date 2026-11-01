@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Msty Studio
+Name=Msty Studio
 Comment=Msty Studio desktop app — installs on first click, then opens on the desktop
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Msty Studio" --icon=g4f-sandbox-msty --command="/usr/local/bin/sandbox-cli msty"
 Icon=g4f-sandbox-msty

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open OpenClaw
+Name=OpenClaw
 Comment=OpenClaw personal AI agent — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=OpenClaw --icon=g4f-sandbox-openclaw --command="/usr/local/bin/sandbox-cli openclaw"
 Icon=g4f-sandbox-openclaw

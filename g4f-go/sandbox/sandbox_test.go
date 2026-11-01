@@ -1,6 +1,8 @@
 package sandbox
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -12,6 +14,8 @@ func clearEnv(t *testing.T) {
 		"G4F_SANDBOX_MODE", "G4F_SANDBOX_IMAGE", "G4F_SANDBOX_NAME",
 		"G4F_SANDBOX_DATA_DIR", "G4F_SANDBOX_ENGINE", "G4F_SANDBOX_NO_OPEN",
 		"G4F_SANDBOX_BACKEND", "G4F_SANDBOX_TERMUX", "G4F_SANDBOX_INSTALL_PODMAN",
+		"G4F_SANDBOX_INSTALL_UDOCKER",
+		"G4F_SANDBOX_UDOCKER_DIR", "G4F_SANDBOX_UDOCKER_EXECMODE",
 		"TERMUX_VERSION", "PREFIX",
 		"PORT", "VNC_PORT", "SANDBOX_BIND_ADDR", "G4F_API_KEY", "G4F_APP_DIR",
 		"G4F_DOMAIN_SUFFIX", "G4F_DOMAIN_ROUTER", "SANDBOX_BLOCK_LOCAL_NETWORK",
@@ -198,6 +202,9 @@ func TestParseRejectsBadValues(t *testing.T) {
 		{"--backend", "nope"},
 		{"--termux", "--desktop"},
 		{"--termux", "--engine", "docker"},
+		{"--termux", "--engine", "udocker"},
+		{"--backend", "udocker", "--engine", "docker"},
+		{"--backend", "docker", "--engine", "udocker"},
 		{"--build"},
 		{"--unknown-flag"},
 		{"unknown-command"},
@@ -343,15 +350,18 @@ func TestUseTermuxBackend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !useTermux(o) {
-		t.Fatal("Termux environment should use the native backend")
+	if !useUdocker(o) {
+		t.Fatal("Termux environment should use the udocker backend")
+	}
+	if useTermux(o) {
+		t.Fatal("Termux autodetection must not select the native backend")
 	}
 
 	o, err = parseArgs([]string{"--engine", "docker"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if useTermux(o) {
+	if useUdocker(o) || useTermux(o) {
 		t.Fatal("explicit --engine docker should win over Termux autodetection")
 	}
 
@@ -359,16 +369,161 @@ func TestUseTermuxBackend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !useTermux(o) {
+	if !useTermux(o) || useUdocker(o) {
 		t.Fatal("--backend termux was not honored")
+	}
+
+	o, err = parseArgs([]string{"--backend", "udocker"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !useUdocker(o) || useTermux(o) {
+		t.Fatal("--backend udocker was not honored")
+	}
+
+	o, err = parseArgs([]string{"--engine", "udocker"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !useUdocker(o) || o.engine != "" {
+		t.Fatalf("--engine udocker should select the udocker backend, got backend=%q engine=%q", o.backend, o.engine)
 	}
 
 	o, err = parseArgs([]string{"--backend", "docker"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if useTermux(o) || o.engine != "docker" {
+	if useUdocker(o) || useTermux(o) || o.engine != "docker" {
 		t.Fatalf("--backend docker should select Docker, got backend=%q engine=%q", o.backend, o.engine)
+	}
+}
+
+func TestUdockerRunArgs(t *testing.T) {
+	clearEnv(t)
+
+	o, err := parseArgs([]string{"--udocker", "--data-dir", "/tmp/g4f-udocker-test", "--port", "8123", "--api-key", "secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := strings.Join(udockerRunArgs(o, nil), " ")
+	for _, want := range []string{
+		"run",
+		"--publish=8123:8080",
+		"--volume=/tmp/g4f-udocker-test/har_and_cookies:/app/har_and_cookies",
+		"--volume=/tmp/g4f-udocker-test/generated_media:/app/generated_media",
+		"--env=G4F_API_KEY=secret",
+		defaultAPIName,
+	} {
+		if !strings.Contains(args, want) {
+			t.Errorf("udocker api args missing %q:\n%s", want, args)
+		}
+	}
+
+	o, err = parseArgs([]string{
+		"--desktop", "--udocker", "--data-dir", "/tmp/g4f-udocker-test",
+		"--port", "8123", "--vnc-port", "5923", "--app", "opencode",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	args = strings.Join(udockerExecArgs(o, []string{"sandbox-cli", "list"}), " ")
+	for _, want := range []string{
+		"--publish=8123:8080",
+		"--publish=5923:5900",
+		"--volume=/tmp/g4f-udocker-test/config:/home/pn/.config",
+		"--env=SANDBOX_DESKTOP=1",
+		"--env=G4F_DESKTOP_APP=opencode",
+		"--entrypoint=",
+		defaultDesktopName,
+		"sandbox-cli list",
+	} {
+		if !strings.Contains(args, want) {
+			t.Errorf("udocker desktop args missing %q:\n%s", want, args)
+		}
+	}
+	if strings.Contains(args, "--cap-add") || strings.Contains(args, "--shm-size") {
+		t.Errorf("udocker args must not carry unsupported Docker options:\n%s", args)
+	}
+
+	o2 := o
+	o2.port++
+	if udockerSpec(o) == udockerSpec(o2) {
+		t.Fatal("udocker spec did not change with the port")
+	}
+}
+
+func TestUdockerConfig(t *testing.T) {
+	clearEnv(t)
+	o, err := parseArgs([]string{"--udocker", "--data-dir", "/tmp/g4f-udocker-test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// No configuration: no setup step and no UDOCKER_DIR override.
+	if args, err := udockerSetupArgs(o); err != nil || args != nil {
+		t.Fatalf("udockerSetupArgs() = %v, %v; want nil, nil", args, err)
+	}
+	for _, entry := range udockerEnv() {
+		if strings.HasPrefix(entry, "UDOCKER_DIR=") {
+			t.Fatalf("unexpected UDOCKER_DIR in env: %s", entry)
+		}
+	}
+
+	baseSpec := udockerSpec(o)
+
+	t.Setenv("G4F_SANDBOX_UDOCKER_DIR", "/tmp/udocker-root")
+	t.Setenv("G4F_SANDBOX_UDOCKER_EXECMODE", "p2")
+	args, err := udockerSetupArgs(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if udockerSpec(o) == baseSpec {
+		t.Fatal("udocker spec did not change with the udocker configuration")
+	}
+	if got := strings.Join(args, " "); got != "setup --execmode=P2 "+defaultAPIName {
+		t.Fatalf("setup args = %q", got)
+	}
+	if got := udockerToolsDir(); got != "/tmp/udocker-root" {
+		t.Fatalf("udockerToolsDir() = %q", got)
+	}
+	env := strings.Join(udockerEnv(), "\n")
+	if !strings.Contains(env, "UDOCKER_DIR=/tmp/udocker-root") {
+		t.Fatalf("env missing UDOCKER_DIR:\n%s", env)
+	}
+	count := 0
+	for _, entry := range strings.Split(env, "\n") {
+		if strings.HasPrefix(entry, "UDOCKER_DIR=") {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("UDOCKER_DIR should appear once:\n%s", env)
+	}
+
+	t.Setenv("G4F_SANDBOX_UDOCKER_EXECMODE", "X9")
+	if _, err := udockerSetupArgs(o); err == nil {
+		t.Fatal("invalid execution mode was accepted")
+	}
+}
+
+func TestUdockerToolsInstalled(t *testing.T) {
+	clearEnv(t)
+	root := t.TempDir()
+	t.Setenv("G4F_SANDBOX_UDOCKER_DIR", root)
+	if udockerToolsInstalled() {
+		t.Fatal("empty udocker root reported as installed")
+	}
+	if err := os.MkdirAll(filepath.Join(root, "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if udockerToolsInstalled() {
+		t.Fatal("empty bin directory reported as installed")
+	}
+	if err := os.WriteFile(filepath.Join(root, "bin", "proot"), []byte("x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !udockerToolsInstalled() {
+		t.Fatal("udocker tools not detected")
 	}
 }
 

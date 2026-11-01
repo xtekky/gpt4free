@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Grok
+Name=Grok
 Comment=xAI Grok Build CLI — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Grok --icon=g4f-sandbox-grok --command="/usr/local/bin/sandbox-cli grok"
 Icon=g4f-sandbox-grok

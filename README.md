@@ -153,7 +153,7 @@ Notes:
 
 ### Sandbox desktop (Docker)
 A full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click
-**Install & Open** menu for 100+ AI tools and providers — coding agents,
+**one-click** menu for 100+ AI tools and providers — coding agents,
 browsers, gateways, local runtimes and assistants. See
 [docs/sandbox-desktop](https://g4f.dev/docs/sandbox-desktop) for the start script,
 clipboard, scaling, app volume, user id, password and domain-routing options,

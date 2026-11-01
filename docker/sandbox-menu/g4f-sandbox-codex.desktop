@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Codex
+Name=Codex
 Comment=OpenAI Codex CLI — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Codex --icon=g4f-sandbox-codex --command="/usr/local/bin/sandbox-cli codex"
 Icon=g4f-sandbox-codex

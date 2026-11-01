@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open iFlow
+Name=iFlow
 Comment=iFlow CLI — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=iFlow --icon=g4f-sandbox-iflow --command="/usr/local/bin/sandbox-cli iflow"
 Icon=g4f-sandbox-iflow

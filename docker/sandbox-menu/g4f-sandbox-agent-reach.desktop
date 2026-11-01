@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Agent Reach
+Name=Agent Reach
 Comment=Agent Reach internet access for AI agents — installs on first click, then shows its channels in the terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Agent Reach" --icon=g4f-sandbox-agent-reach --command="/usr/local/bin/sandbox-cli agent-reach"
 Icon=g4f-sandbox-agent-reach

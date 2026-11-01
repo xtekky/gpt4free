@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Continue
+Name=Continue
 Comment=Continue CLI (cn) coding agent — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Continue --icon=g4f-sandbox-continue-cli --command="/usr/local/bin/sandbox-cli continue-cli"
 Icon=g4f-sandbox-continue-cli

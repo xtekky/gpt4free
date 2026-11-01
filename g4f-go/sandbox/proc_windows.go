@@ -21,3 +21,11 @@ func terminateProcess(pid int) error {
 func forceKillProcess(pid int) error {
 	return fmt.Errorf("the Termux backend is not supported on Windows")
 }
+
+func terminateProcessGroup(pid int) error {
+	return fmt.Errorf("the udocker backend is not supported on Windows")
+}
+
+func forceKillProcessGroup(pid int) error {
+	return fmt.Errorf("the udocker backend is not supported on Windows")
+}

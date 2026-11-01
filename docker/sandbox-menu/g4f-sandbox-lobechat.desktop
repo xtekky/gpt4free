@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open LobeChat
+Name=LobeChat
 Comment=LobeChat desktop app — installs on first click, then opens on the desktop
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=LobeChat --icon=g4f-sandbox-lobechat --command="/usr/local/bin/sandbox-cli lobechat"
 Icon=g4f-sandbox-lobechat

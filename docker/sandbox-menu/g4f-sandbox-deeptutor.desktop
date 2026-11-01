@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open DeepTutor
+Name=DeepTutor
 Comment=DeepTutor personalized learning web app — installs on first click, then starts on port 3782
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=DeepTutor --icon=g4f-sandbox-deeptutor --command="/usr/local/bin/sandbox-cli deeptutor"
 Icon=g4f-sandbox-deeptutor

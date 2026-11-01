@@ -156,7 +156,7 @@ RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
     tar -xzf /tmp/novnc.tar.gz -C /usr/share/novnc --strip-components=1 && \
     rm /tmp/novnc.tar.gz
 
-# Desktop menu: "Install & Open ..." entries for the coding CLIs (OpenCode,
+# Desktop menu entries for the coding CLIs (OpenCode,
 # Antigravity, Kilo Code, Gemini CLI, Claude Code, ...), browsers (Google
 # Chrome), local gateways/agents (OmniRoute, OpenClaw), chat UIs (LibreChat,
 # LobeChat, Msty Studio, SillyTavern, Open WebUI) and VS Code Web
@@ -356,7 +356,10 @@ RUN ln -sf "${G4F_CONFIG_DIR}/python-embed/python-home/bin/python3.15" /usr/loca
 # always passes --no-sandbox (see link_chrome_no_sandbox), and both
 # start-browser and g4f's own browser lookup (shutil.which) must find the
 # wrapper instead of the real /usr/bin binary.
-ENV PATH=/home/pn/.local/bin:${PATH}
+# ~/.opencode/bin is where the OpenCode installer puts its binary; keeping it
+# on the image PATH makes `opencode` available in any exec/terminal session
+# after the menu has installed it, not only inside sandbox-cli.
+ENV PATH=/home/pn/.local/bin:/home/pn/.opencode/bin:${PATH}
 
 # Runtime dir for dbus/Xvnc; containers have no logind to create it. Both /tmp
 # paths above are fixed by the X11 protocol / seeded per container, never shared.

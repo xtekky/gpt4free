@@ -3,7 +3,7 @@
 # Chrome needs (non-empty /etc/machine-id, system bus), starts the desktop
 # stack (Xvnc, Xfce) as the unprivileged `pn` user, then execs the container
 # command with DISPLAY pointing at the sandbox display — so a headed browser
-# launched on the desktop (menu → Install & Open Chrome) or by the g4f API
+# launched on the desktop (menu → Chrome) or by the g4f API
 # shows up there. The noVNC web client is served by the g4f API itself (see
 # g4f/api/vnc_relay) on its own port, so no websockify process runs here.
 #

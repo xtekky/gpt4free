@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Aider
+Name=Aider
 Comment=Aider pair-programming CLI — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Aider --icon=g4f-sandbox-aider --command="/usr/local/bin/sandbox-cli aider"
 Icon=g4f-sandbox-aider

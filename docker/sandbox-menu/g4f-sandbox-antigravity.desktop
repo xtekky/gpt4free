@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Antigravity
+Name=Antigravity
 Comment=Antigravity CLI (Google) — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Antigravity --icon=g4f-sandbox-antigravity --command="/usr/local/bin/sandbox-cli antigravity"
 Icon=g4f-sandbox-antigravity

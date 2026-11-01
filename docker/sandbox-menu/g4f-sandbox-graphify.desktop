@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install Graphify
+Name=Graphify
 Comment=Graphify codebase knowledge-graph skill — installs on first click
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Graphify --icon=g4f-sandbox-graphify --command="/usr/local/bin/sandbox-cli graphify"
 Icon=g4f-sandbox-graphify

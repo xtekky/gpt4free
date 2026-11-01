@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# sandbox-cli — the installer behind the sandbox desktop's "Install & Open ..."
+# sandbox-cli — the installer behind the sandbox desktop's menu
 # menu entries (docker/sandbox-menu/).
 #
 #   sandbox-cli <tool>          install <tool> if missing, then run it here
@@ -8,6 +8,9 @@
 #   sandbox-cli settings        choose the g4f model, API key, HOME, provider and proxy
 #   sandbox-cli reset           clear the saved settings, back to the defaults
 #   sandbox-cli package         show, update or pin the g4f package
+#   sandbox-cli update          update the g4f-go launcher itself
+#   sandbox-cli upgrade         update the g4f package in the runtime
+#   sandbox-cli uninstall       remove g4f-go and its managed data
 #   sandbox-cli list            list the tools the desktop menu knows about
 #   sandbox-cli urls            print the public URLs served by the g4f API
 #   sandbox-cli hosts           print the /etc/hosts entries for the app domains
@@ -190,7 +193,7 @@ OPEN_WEBUI_PORT="${OPEN_WEBUI_PORT:-8603}"
 # the g4f API's, so it listens on 8602 instead (see the code-server case).
 CODE_SERVER_INSTALLER="https://code-server.dev/install.sh"
 CODE_SERVER_PORT="8602"
-# The tunnel entry ("Install & Run Tunnel Client") is backed by Cloudflare's
+# The tunnel entry ("Tunnel Client") is backed by Cloudflare's
 # cloudflared: `cloudflared tunnel --url <target>` opens a public HTTPS URL
 # (trycloudflare.com) for a local port with no account and no config file. The
 # per-architecture static binary is fetched from the latest release over HTTPS;
@@ -282,7 +285,7 @@ set_env_var() { # <file> <key> <value>
 # PROXY applies to every menu entry too (see apply_sandbox_proxy): it is
 # exported as G4F_PROXY (read by g4f itself) and as the conventional
 # HTTP_PROXY/HTTPS_PROXY/ALL_PROXY variables (read by the agents and the tools
-# they shell out to). It typically points at the local "Install & Run Proxy
+# they shell out to). It typically points at the local "Proxy
 # Server" entry (mitmproxy on 127.0.0.1:8081); loopback stays direct. The
 # proxy's CA is trusted at the same time (see trust_proxy_ca), and OpenCode's
 # background server is told about both (see configure_opencode_service).
@@ -757,6 +760,45 @@ run_package() {
     hold_open
 }
 
+# ---------------------------------------------------------------------------
+# g4f-go management
+#
+# sandbox-cli owns the desktop tools; g4f-go owns the launcher binary, its
+# downloaded CPython runtime and the g4f package inside it. These subcommands
+# forward to g4f-go so the sandbox can be updated or removed from the same CLI.
+# ---------------------------------------------------------------------------
+management_usage() {
+    cat <<'EOF'
+usage: sandbox-cli update [--check] [--force] [--version <tag>]
+                                      update the g4f-go launcher itself
+       sandbox-cli upgrade            update the g4f package in the runtime
+       sandbox-cli uninstall [--keep-binary] [--keep-data] [--dry-run]
+                                      remove g4f-go and its managed data
+
+`update` replaces only the launcher binary; the runtime and the installed g4f
+package are left in place. `upgrade` updates g4f in the runtime (the pinned
+version, when one is set) and leaves the launcher alone. `uninstall` also
+accepts a Python package name, for example `sandbox-cli uninstall g4f`.
+EOF
+}
+
+run_management() { # <g4f-go command> [args...]
+    local command="$1"
+    shift
+    case "${1:-}" in
+        help|-h|--help)
+            management_usage
+            return 0 ;;
+    esac
+    have g4f-go || die "g4f-go is not installed"
+    apply_sandbox_home
+    apply_sandbox_proxy
+    g4f-go "$command" "$@"
+    local status=$?
+    [ "$status" -eq 0 ] || die "g4f-go $command failed"
+    hold_open
+}
+
 # HOME is a per-menu-entry setting, so it is applied for every tool, not just
 # the g4f-aware ones: agents keep their config, credentials and caches under
 # $HOME, and a scratch HOME gives a throwaway profile. The PATH entries added
@@ -843,7 +885,7 @@ trust_proxy_ca() {
 # exported both as G4F_PROXY, which g4f itself reads for its own requests, and
 # as the conventional HTTP_PROXY/HTTPS_PROXY/ALL_PROXY variables, which the
 # agents and the tools they shell out to honour. The typical value is the local
-# "Install & Run Proxy Server" entry (mitmproxy on 127.0.0.1:8081). Loopback is
+# "Proxy Server" entry (mitmproxy on 127.0.0.1:8081). Loopback is
 # added to NO_PROXY so the launchers can still reach the g4f API and the other
 # local servers directly instead of looping back through the proxy.
 apply_sandbox_proxy() {
@@ -2201,7 +2243,7 @@ ensure_code_server() {
     have code-server || die "code-server not on PATH after the install"
 }
 
-# mitmproxy is the "Install & Run Proxy Server" entry: a debugging HTTP(S)
+# mitmproxy is the "Proxy Server" entry: a debugging HTTP(S)
 # proxy installed with pip --user. The console binary is `mitmproxy` (the other
 # two, mitmdump/mitmweb, come with the same package).
 ensure_mitmproxy() {
@@ -2209,7 +2251,7 @@ ensure_mitmproxy() {
     ensure_pip mitmproxy mitmproxy
 }
 
-# The "Install & Run Tunnel Client" entry is backed by Cloudflare's
+# The "Tunnel Client" entry is backed by Cloudflare's
 # cloudflared. The static binary is architecture-specific, so append the dpkg
 # arch (amd64/arm64) to the release prefix and drop it in ~/.local/bin, which
 # is already first on PATH. `cloudflared tunnel --url <target>` then opens a
@@ -2523,9 +2565,8 @@ CONFIG
 
 # The addresses the sandbox serves through the g4f API: every app is reachable
 # by hostname (<app>.g4f.local, or the port form <port>.g4f.local) on the same
-# g4f API port. Printed by "sandbox-cli urls" and echoed by every install &
-# start entry (see launch), so they are visible without digging through the
-# docs. The names are seeded into the container's /etc/hosts by the entrypoint
+# g4f API port. Printed on demand by "sandbox-cli urls". The names are seeded
+# into the container's /etc/hosts by the entrypoint
 # (see g4f/api/domain_router.py); the host needs the same names, which
 # "sandbox-cli hosts" prints.
 public_urls() {
@@ -2593,7 +2634,6 @@ launch() { # <label> <command...>
         log "$1 is installed and ready"
         exit 0
     fi
-    public_urls
     shift
     exec "$@"
 }
@@ -4026,6 +4066,9 @@ usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop to
        sandbox-cli settings           choose the g4f model, API key, HOME, provider and proxy
        sandbox-cli reset              clear the saved settings, back to the defaults
        sandbox-cli package            show, update or pin the g4f package
+       sandbox-cli update             update the g4f-go launcher itself
+       sandbox-cli upgrade            update the g4f package in the runtime
+       sandbox-cli uninstall          remove g4f-go and its managed data
        sandbox-cli list               list the tools behind the desktop menu
        sandbox-cli urls               print the public URLs served by the g4f API
        sandbox-cli hosts              print the /etc/hosts entries for the app domains
@@ -4046,6 +4089,9 @@ list_tools() {
     printf '  %-15s %s\n' \
         g4f-go          "g4f Go launcher CLI (preinstalled)" \
         package         "show, update or pin the g4f package" \
+        update          "update the g4f-go launcher itself" \
+        upgrade         "update the g4f package in the runtime" \
+        uninstall       "remove g4f-go and its managed data" \
         remote-desktop  "share this sandbox screen with a phone (WebRTC)" \
         glow            "open the g4f docs in glow (clickable links, copy code with c)" \
         docs            "open the g4f docs in the browser (clickable links, copyable code)" \
@@ -4182,12 +4228,17 @@ case "${1:-}" in
         run_configure "$@" ;;
     settings)
         shift
-        run_settings "$@" ;;    reset)
+        run_settings "$@" ;;
+    reset)
         shift
         run_reset "$@" ;;
     package)
         shift
         run_package "$@" ;;
+    update|upgrade|uninstall)
+        command="$1"
+        shift
+        run_management "$command" "$@" ;;
     install)
         [ $# -ge 2 ] || die "usage: sandbox-cli install <tool>"
         INSTALL_ONLY=1

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open AI Image Detector
+Name=AI Image Detector
 Comment=AI-generated image detector (aidetect) — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="AI Image Detector" --icon=g4f-sandbox-aidetect --command="/usr/local/bin/sandbox-cli aidetect"
 Icon=g4f-sandbox-aidetect

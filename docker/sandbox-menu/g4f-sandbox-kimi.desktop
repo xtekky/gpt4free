@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Install & Open Kimi
+Name=Kimi
 Comment=Kimi Code by Moonshot AI — installs on first click, then opens in a terminal
 Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title=Kimi --icon=g4f-sandbox-kimi --command="/usr/local/bin/sandbox-cli kimi"
 Icon=g4f-sandbox-kimi

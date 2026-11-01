@@ -22,6 +22,11 @@ REPO="xtekky/gpt4free"
 BINARY="g4f-go"
 API_BASE="https://api.github.com/repos/${REPO}"
 
+# Termux already exports PREFIX (/data/data/com.termux/files/usr). Remember it
+# before the install-directory variable below shadows it; $PREFIX/bin is already
+# on PATH in every Termux shell.
+TERMUX_PREFIX="${PREFIX:-}"
+
 VERSION="${G4F_GO_VERSION:-}"
 PREFIX="${G4F_GO_PREFIX:-}"
 VERIFY=1
@@ -37,8 +42,8 @@ Install the g4f-go launcher (${REPO}).
 
 Options:
   -v, --version VERSION   Release to install (default: latest; accepts 8.7.7 or v8.7.7)
-  -p, --prefix DIR        Install directory (default: /usr/local/bin when root,
-                             otherwise ~/.local/bin)
+  -p, --prefix DIR        Install directory (default: $PREFIX/bin on Termux,
+                             /usr/local/bin when root, otherwise ~/.local/bin)
       --no-verify         Skip the SHA-256 check of the downloaded archive
       --uninstall         Remove the installed g4f-go binary
   -h, --help              Show this help
@@ -114,17 +119,18 @@ sha256_file() {
 detect_os() {
     local u
     u="$(uname -s)"
+    # Termux runs on Android's bionic libc, so the android release is required
+    # even though uname -s reports "Linux".
+    if [ -n "${TERMUX_VERSION:-}" ] || [ "$(uname -o 2>/dev/null)" = "Android" ]; then
+        echo android
+        return
+    fi
     case "$u" in
         Linux)                 echo linux ;;
         Darwin)                echo darwin ;;
         FreeBSD)               echo freebsd ;;
         CYGWIN*|MINGW*|MSYS*)  echo windows ;;
-        *)
-            if [ "$(uname -o 2>/dev/null)" = "Android" ]; then
-                die "Android/Termux is supported by building from source — see g4f-go/README.md"
-            fi
-            die "unsupported OS: $u (supported: linux, darwin, freebsd, windows)"
-            ;;
+        *)                     die "unsupported OS: $u (supported: linux, darwin, freebsd, windows, android)" ;;
     esac
 }
 
@@ -161,7 +167,10 @@ fi
 # resolve platform + release
 # ---------------------------------------------------------------------------
 if [ -z "$PREFIX" ]; then
-    if [ "$(id -u)" -eq 0 ]; then
+    if [ -n "$TERMUX_PREFIX" ]; then
+        # Termux puts $PREFIX/bin on PATH; do not touch ~/.bashrc.
+        PREFIX="$TERMUX_PREFIX/bin"
+    elif [ "$(id -u)" -eq 0 ]; then
         PREFIX="/usr/local/bin"
     else
         PREFIX="$HOME/.local/bin"
@@ -266,6 +275,9 @@ if command -v unzip >/dev/null 2>&1; then
 elif command -v python3 >/dev/null 2>&1; then
     python3 -m zipfile -e "$ARCHIVE" "$EXTRACT"
 else
+    if [ "$OS" = android ]; then
+        die "unzip (or python3) is required to extract the release archive; run: pkg install unzip"
+    fi
     die "unzip (or python3) is required to extract the release archive"
 fi
 

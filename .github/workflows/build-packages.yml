@@ -442,7 +442,7 @@ jobs:
             - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop`
 
             **Docker sandboxed AI tools sets (one-click install, 100+ different AI tools):**
-            - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop` — a full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click "Install & Open" menu for 100+ different AI tools: coding agents (OpenCode, Copilot CLI, Hermes, Aider, …), chat UIs, image/audio/video tools and gateways.
+            - `docker pull hlohaus789/g4f:${{ needs.prepare.outputs.version }}-sandbox-desktop` — a full Xfce desktop (TigerVNC + noVNC) with the g4f API and a one-click menu for 100+ different AI tools: coding agents (OpenCode, Copilot CLI, Hermes, Aider, …), chat UIs, image/audio/video tools and gateways.
             - Desktop + API: `http://localhost:8080/desktop/` — API: `http://localhost:8080`
             - Mount your own app at `/app/gpt4free` and persist agent settings:
               ```bash

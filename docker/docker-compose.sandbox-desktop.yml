@@ -1,6 +1,6 @@
 # Sandbox desktop: TigerVNC + Xfce + noVNC + g4f API in one container.
 # The entrypoint starts Xvnc and Xfce automatically and exports DISPLAY, so a
-# browser opened from the desktop menu (Install & Open Chrome) renders there.
+# browser opened from the desktop menu (Chrome) renders there.
 #   docker compose -f docker/docker-compose.sandbox-desktop.yml up -d
 # Desktop: http://127.0.0.1:8080/desktop/  (g4f-branded noVNC client -> Xvnc :0,
 #          served by the g4f API itself; index.html embeds it full-viewport)
