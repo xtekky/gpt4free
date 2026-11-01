@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import types, importlib
+import types, importlib, threading
 
 from ..providers.types import BaseProvider, ProviderType
 from ..providers.retry_provider import RetryProvider, IterListProvider, RotatedProvider, ProviderCircuitBreaker
@@ -115,35 +115,90 @@ class ProviderLoader:
     ]
     loaded = {}
     ignored = []
+    # Importing provider modules is expensive (dozens of imports and several
+    # seconds on a cold interpreter).  The GUI issues provider/model requests
+    # concurrently, so serialize cache misses instead of loading the same
+    # module several times in parallel.
+    _load_lock = threading.RLock()
+    _providers_cache = None
+    _providers_cache_key = None
+    _lower_names = None
+
+    @classmethod
+    def _name_map(cls) -> dict:
+        """Return a cached ``normalized name -> canonical name`` mapping."""
+        if cls._lower_names is None:
+            cls._lower_names = {
+                name.lower().replace("-", "").replace("_", ""): name
+                for name in cls.names
+            }
+        return cls._lower_names
+
+    @classmethod
+    def _get_loaded(cls, name: str, norm_name: str) -> ProviderType:
+        provider = cls.loaded.get(name)
+        if provider is None:
+            provider = cls.loaded.get(norm_name)
+        return provider
 
     @classmethod
     def from_name(cls, name: str) -> ProviderType:
         if not name or not isinstance(name, str):
             return None
-        if name in cls.loaded:
-            return cls.loaded[name]
         norm_name = name.lower().replace("-", "").replace("_", "")
-        if norm_name in cls.loaded:
-            return cls.loaded[norm_name]
-        try:
-            provider = cls._load(name)
-            cls.loaded[name] = provider
-            cls.loaded[norm_name] = provider
+        provider = cls._get_loaded(name, norm_name)
+        if provider is not None:
             return provider
-        except ImportError:
-            if norm_name in ("agent", "agenttools", "agent_tools"):
-                actual_name = "AgentTools"
-            elif norm_name == "freeflow":
-                actual_name = "PiFreeflow"
-            else:
-                lower_map = {p.lower().replace("-", "").replace("_", ""): p for p in cls.names}
-                actual_name = lower_map.get(norm_name)
-            if actual_name and actual_name != name:
-                provider = cls._load(actual_name)
+        with cls._load_lock:
+            # Another thread may have populated the cache while we waited.
+            provider = cls._get_loaded(name, norm_name)
+            if provider is not None:
+                return provider
+            try:
+                provider = cls._load(name)
                 cls.loaded[name] = provider
                 cls.loaded[norm_name] = provider
                 return provider
-            raise ImportError(f"Provider not found: {name}")
+            except ImportError:
+                if norm_name in ("agent", "agenttools", "agent_tools"):
+                    actual_name = "AgentTools"
+                elif norm_name == "freeflow":
+                    actual_name = "PiFreeflow"
+                else:
+                    actual_name = cls._name_map().get(norm_name)
+                if actual_name and actual_name != name:
+                    provider = cls._load(actual_name)
+                    cls.loaded[name] = provider
+                    cls.loaded[norm_name] = provider
+                    return provider
+                raise ImportError(f"Provider not found: {name}")
+
+    @classmethod
+    def all(cls) -> list:
+        """Return every non-ignored provider, loading the list only once.
+
+        ``g4f.Provider.__providers__`` is used by the GUI and the API on every
+        provider listing.  Re-walking ``names`` (and importing each provider)
+        for every request dominated cold-start latency, so the result is
+        cached and only rebuilt when ``ProviderLoader.ignored`` changes.
+        """
+        cache_key = tuple(cls.ignored)
+        if cls._providers_cache is not None and cls._providers_cache_key == cache_key:
+            return cls._providers_cache
+        with cls._load_lock:
+            if cls._providers_cache is not None and cls._providers_cache_key == cache_key:
+                return cls._providers_cache
+            providers_list = []
+            for provider_name in cls.names:
+                if provider_name in cls.ignored:
+                    continue
+                try:
+                    providers_list.append(cls.from_name(provider_name))
+                except ImportError:
+                    pass
+            cls._providers_cache = providers_list
+            cls._providers_cache_key = cache_key
+            return providers_list
 
     @classmethod
     def _load(cls, name: str) -> ProviderType:
@@ -244,7 +299,7 @@ class ProviderLoader:
             norm_name = name.lower().replace("-", "").replace("_", "")
             if norm_name == "agent":
                 return cls.from_name("AgentTools")
-            lower_map = {p.lower().replace("-", "").replace("_", ""): p for p in cls.names}
+            lower_map = cls._name_map()
             if norm_name in lower_map and lower_map[norm_name] != name:
                 return cls.from_name(lower_map[norm_name])
             raise ImportError(f"Provider '{name}' not found")
@@ -253,16 +308,8 @@ __all__ = __others__ + ProviderLoader.names + ProviderLoader.extra
 
 def __getattr__(name: str):
     if name == "__providers__":
-        # Load all providers if specifically requested
-        providers_list = []
-        for provider_name in ProviderLoader.names:
-            if provider_name in ProviderLoader.ignored:
-                continue
-            try:
-                providers_list.append(ProviderLoader.from_name(provider_name))
-            except ImportError:
-                pass
-        return providers_list
+        # Load all providers if specifically requested (cached afterwards).
+        return ProviderLoader.all()
     value = globals().get(name)
     # Importing a provider submodule (e.g. g4f.Provider.ChatGPT) sets the
     # module object as a package attribute, shadowing the provider class of

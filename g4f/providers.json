@@ -1,5 +1,21 @@
 [
   {
+    "name": "AnyProvider",
+    "label": "AnyProvider",
+    "parent": null,
+    "image": 11,
+    "audio": 2,
+    "video": 1,
+    "vision": false,
+    "nodriver": false,
+    "hf_space": false,
+    "active_by_default": true,
+    "auth": false,
+    "login_url": null,
+    "live": 0,
+    "login": false
+  },
+  {
     "name": "Antigravity",
     "label": "Google Antigravity",
     "parent": null,
@@ -300,7 +316,7 @@
     "active_by_default": true,
     "auth": false,
     "login_url": null,
-    "live": 0,
+    "live": 1,
     "login": false
   },
   {

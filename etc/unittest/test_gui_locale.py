@@ -1,7 +1,10 @@
 import unittest
 from unittest.mock import patch
 
+import requests
+
 from g4f.gui import get_gui_app
+from g4f.gui.server.locale import normalize_text, translate_text
 
 
 DOCUMENT = '''<!DOCTYPE html><html lang="en"><head><title>Original</title>
@@ -26,25 +29,57 @@ class TestGuiLocale(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
         self.assertIn('<html lang="es">', html)
+        self.assertIn('<base href="/es/">', html)
         self.assertIn('href="https://g4f.space/es/"', html)
         self.assertIn('hreflang="fr" href="https://g4f.space/fr/"', html)
-        self.assertIn('Herramientas de IA de G4F', html)
-        self.assertIn('href="/es/providers/"', html)
-        self.assertIn('src="/dist/app.js"', html)
+        self.assertIn("Herramientas de IA de G4F", html)
+        self.assertNotIn('href="/es/providers/"', html)
+        self.assertIn('href="providers/"', html)
+        self.assertIn('href="."', html)
+        self.assertIn('src="dist/app.js"', html)
+        self.assertIn("loadGlobalTranslations", html)
+        self.assertIn("data-g4f-locale-runtime", html)
+        self.assertIn("setSelectedLanguage", html)
         self.assertNotIn('href="https://g4f.dev/"', html)
         self.assertEqual(response.headers["Content-Language"], "es")
 
         meta = self.client.get("/fr/meta").json
+        self.assertEqual(meta["locale"], "fr")
         self.assertEqual(meta["routes"]["home"]["url"], "https://g4f.space/fr/")
         self.assertEqual(meta["routes"]["providers"]["alternates"]["en"],
                          "https://g4f.space/providers/")
+        self.assertEqual(meta["routes"]["chat"]["url"], "https://g4f.space/fr/chat/")
         sitemap = self.client.get("/sitemap.xml").get_data(as_text=True)
-        self.assertIn("https://g4f.space/fr/providers/", sitemap)
+        self.assertIn("https://g4f.space/fr/chat/", sitemap)
         self.assertIn('hreflang="de"', sitemap)
+
+    def test_chat_playground_and_index_routes(self):
+        with patch("g4f.gui.server.website.render", return_value=DOCUMENT):
+            for path in ("/es/chat/", "/es/index.html"):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200, path)
+                html = response.get_data(as_text=True)
+                self.assertIn('<base href="/es/">', html)
+                self.assertIn('href="providers/"', html)
+
+        response = self.client.get("/de/playground/")
+        try:
+            self.assertEqual(response.status_code, 200)
+            html = response.get_data(as_text=True)
+            self.assertIn('<html lang="de">', html)
+            self.assertIn('<base href="/de/">', html)
+            self.assertIn("KI-Playground", html)
+            self.assertNotIn('href="/css/', html)
+        finally:
+            response.close()
 
     def test_invalid_locales_and_pages(self):
         self.assertEqual(self.client.get("/xx/home.html").status_code, 404)
-        self.assertEqual(self.client.get("/fr/unknown.html").status_code, 404)
+        with patch(
+            "g4f.gui.server.website.render",
+            side_effect=requests.RequestException("missing upstream page"),
+        ):
+            self.assertEqual(self.client.get("/fr/unknown.html").status_code, 404)
         self.assertEqual(self.client.get("/xx/meta").status_code, 404)
 
     def test_provider_page_is_localized(self):
@@ -55,6 +90,7 @@ class TestGuiLocale(unittest.TestCase):
         self.assertIn('<html lang="de">', html)
         self.assertIn("Verfügbare Anbieter", html)
         self.assertIn('rel="canonical" href="https://g4f.space/de/providers/"', html)
+        self.assertIn('href="providers/"', html)
 
     def test_headers_and_country_ip(self):
         response = self.client.get("/headers", headers={"Authorization": "secret", "X-Test": "ok"})
@@ -65,6 +101,18 @@ class TestGuiLocale(unittest.TestCase):
         response = self.client.get("/country-ip", headers={"CF-IPCountry": "fr", "X-Forwarded-For": "1.2.3.4"})
         self.assertEqual(response.json, {"ip": "127.0.0.1", "country": "FR"})
         self.assertIsNone(self.client.get("/country-ip", headers={"CF-IPCountry": "<script>"}).json["country"])
+
+    def test_trim_aware_translation(self):
+        self.assertEqual(normalize_text("  Hello\n   world  "), "Hello world")
+        self.assertEqual(
+            translate_text("\n  Hello   world\n", {"Hello world": "Hola mundo"}),
+            "\n  Hola mundo\n",
+        )
+        self.assertEqual(translate_text("  ", {"": "x"}), "  ")
+        self.assertEqual(
+            translate_text("https://example.com", {"https://example.com": "x"}),
+            "https://example.com",
+        )
 
 
 if __name__ == "__main__":

@@ -628,7 +628,11 @@ class MCPServer:
             """List all PA providers from workspace."""
             from .pa_provider import get_pa_registry
 
-            providers = get_pa_registry().list_providers()
+            # Loading provider files can touch the filesystem and execute
+            # sandboxed code; keep it off the server event loop.
+            providers = await asyncio.to_thread(
+                get_pa_registry().list_providers
+            )
             return web.json_response(
                 providers, headers={"access-control-allow-origin": "*"}
             )

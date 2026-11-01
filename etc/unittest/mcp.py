@@ -784,6 +784,29 @@ class Provider:
         r2 = get_pa_registry()
         self.assertIs(r1, r2)
 
+    def test_refresh_reuses_unchanged_provider_files(self):
+        """Only new or edited .pa.py files are executed on refresh."""
+        import g4f.mcp.pa_provider as _mod
+
+        reg = _mod.PaProviderRegistry()
+        with mock.patch.object(
+            _mod, "load_pa_provider", wraps=_mod.load_pa_provider
+        ) as loader:
+            reg.refresh()
+            calls_after_first = loader.call_count
+            self.assertGreaterEqual(calls_after_first, 1)
+
+            # Unchanged files must be served from the stat-signature cache.
+            reg.refresh()
+            self.assertEqual(loader.call_count, calls_after_first)
+
+            # Editing a file invalidates only that file's cached entry.
+            self.pa_file.write_text(
+                self.pa_file.read_text() + "\n# changed\n", encoding="utf-8"
+            )
+            reg.refresh()
+            self.assertEqual(loader.call_count, calls_after_first + 1)
+
 
 class TestWorkspaceDirOverride(unittest.TestCase):
     """Tests for the G4F_DIR workspace override."""

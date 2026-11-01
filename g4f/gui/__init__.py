@@ -4,6 +4,7 @@ try:
     from .server.website import Website
     from .server.backend_api import Backend_Api
     from .server.app import create_app
+    from .server.locale import install_locale_support
 
     import_error = None
 except ImportError as e:
@@ -35,6 +36,7 @@ def get_gui_app(demo: bool = False, timeout: int = None, stream_timeout: int = N
             view_func=backend_api.routes[route]["function"],
             methods=backend_api.routes[route]["methods"],
         )
+    install_locale_support(app)
     return app
 
 

@@ -1341,8 +1341,13 @@ class PaProviderRegistry:
     TTL: float = 5.0
 
     def __init__(self) -> None:
-        # Each entry: (id, label, models, working, url, cls)
+        # Each entry: (id, label, models, working, url, cls, relative_path)
         self._entries: List[tuple] = []
+        self._entries_by_id: Dict[str, tuple] = {}
+        # id -> (absolute path, (mtime_ns, size)) for incremental refreshes.
+        self._file_stats: Dict[str, tuple] = {}
+        self._paths: Dict[str, Path] = {}
+        self._lock = threading.RLock()
         # Force a refresh on the first access.
         self._loaded_at: float = -self.TTL
 
@@ -1368,112 +1373,152 @@ class PaProviderRegistry:
     # ------------------------------------------------------------------
 
     def index(self) -> None:
-        """Re-scan the workspace and reload all ``.pa.py`` providers."""
-        entries: List[tuple] = []
-        directory, pa_paths = list_pa_providers()
-        for pa_path in pa_paths:
-            try:
-                relative_path = pa_path.relative_to(directory).as_posix()
-                provider_id = self._make_id(pa_path)
-                entries.append(
-                    (
-                        provider_id,
-                        None,
-                        None,
-                        True,
-                        None,
-                        None,
-                        relative_path,
-                    )
-                )
-            except Exception as e:
-                debug.error(f"Failed to load PA provider from {pa_path}:", e)
-                pass
-        self._entries = entries
+        """Re-scan the workspace and index all ``.pa.py`` providers.
 
+        Only metadata is collected here; provider code is executed lazily by
+        :meth:`get_provider_class` or by a later :meth:`refresh`.  This keeps
+        listing cheap when a caller only needs the provider IDs.
+        """
+        with self._lock:
+            entries: List[tuple] = []
+            paths: Dict[str, Path] = {}
+            directory, pa_paths = list_pa_providers()
+            for pa_path in pa_paths:
+                try:
+                    relative_path = pa_path.relative_to(directory).as_posix()
+                    provider_id = self._make_id(pa_path)
+                    entries.append(
+                        (
+                            provider_id,
+                            None,
+                            None,
+                            True,
+                            None,
+                            None,
+                            relative_path,
+                        )
+                    )
+                    paths[provider_id] = pa_path
+                except Exception as e:
+                    debug.error(f"Failed to index PA provider from {pa_path}:", e)
+            self._entries = entries
+            self._entries_by_id = {entry[0]: entry for entry in entries}
+            self._paths = paths
+
+    @staticmethod
+    def _build_entry(pa_path: Path, directory: Path, provider_id: str) -> Optional[tuple]:
+        """Load one ``.pa.py`` file and return its registry entry."""
+        cls = load_pa_provider(pa_path)
+        if cls is None:
+            return None
+        cls.__name__ = f"pa:{provider_id}"
+        models_list: List[str] = []
+        try:
+            if hasattr(cls, "get_models"):
+                raw = cls.get_models()
+                models_list = list(raw) if raw else []
+            elif hasattr(cls, "models"):
+                models_list = list(getattr(cls, "models") or [])
+        except Exception:
+            pass
+        relative_path = pa_path.relative_to(directory).as_posix()
+        debug.log(f"Loaded PA provider: {provider_id} ({relative_path})")
+        if is_hidden_file(relative_path):
+            relative_path = None
+        return (
+            provider_id,
+            getattr(cls, "label", cls.__name__),
+            models_list,
+            bool(getattr(cls, "working", True)),
+            getattr(cls, "url", None),
+            cls,
+            relative_path,
+        )
 
     def refresh(self) -> None:
-        """Re-scan the workspace and reload all ``.pa.py`` providers."""
-        entries: List[tuple] = []
-        directory, pa_paths = list_pa_providers()
-        for pa_path in pa_paths:
-            try:
-                cls = load_pa_provider(pa_path)
-                if cls is None:
-                    continue
-                provider_id = self._make_id(pa_path)
-                cls.__name__ = f"pa:{provider_id}"
-                models_list: List[str] = []
+        """Re-scan the workspace and reload changed ``.pa.py`` providers.
+
+        Files are sandboxed, so executing every provider on each refresh is
+        expensive.  The stat signature (mtime + size) is cached per provider
+        and unchanged files are reused as-is; only new or edited files are
+        executed again.
+        """
+        with self._lock:
+            entries: List[tuple] = []
+            entries_by_id: Dict[str, tuple] = {}
+            file_stats: Dict[str, tuple] = {}
+            paths: Dict[str, Path] = {}
+            directory, pa_paths = list_pa_providers()
+            for pa_path in pa_paths:
                 try:
-                    if hasattr(cls, "get_models"):
-                        raw = cls.get_models()
-                        models_list = list(raw) if raw else []
-                    elif hasattr(cls, "models"):
-                        models_list = list(getattr(cls, "models") or [])
-                except Exception:
-                    pass
-                relative_path = pa_path.relative_to(directory).as_posix()
-                debug.log(f"Loaded PA provider: {provider_id} ({relative_path})")
-                if is_hidden_file(relative_path):
-                    relative_path = None
-                entries.append(
-                    (
-                        provider_id,
-                        getattr(cls, "label", cls.__name__),
-                        models_list,
-                        bool(getattr(cls, "working", True)),
-                        getattr(cls, "url", None),
-                        cls,
-                        relative_path,
-                    )
-                )
-            except Exception as e:
-                debug.error(f"Failed to load PA provider from {pa_path}:", e)
-                pass
-        self._entries = entries
-        self._loaded_at = _time_module.monotonic()
+                    stat = pa_path.stat()
+                    signature = (stat.st_mtime_ns, stat.st_size)
+                    provider_id = self._make_id(pa_path)
+                    cached = self._entries_by_id.get(provider_id)
+                    cached_file = self._file_stats.get(provider_id)
+                    if (
+                        cached is not None
+                        and cached[5] is not None
+                        and cached_file == (pa_path, signature)
+                    ):
+                        entry = cached
+                    else:
+                        entry = self._build_entry(pa_path, directory, provider_id)
+                        if entry is None:
+                            continue
+                    entries.append(entry)
+                    entries_by_id[provider_id] = entry
+                    file_stats[provider_id] = (pa_path, signature)
+                    paths[provider_id] = pa_path
+                except Exception as e:
+                    debug.error(f"Failed to load PA provider from {pa_path}:", e)
+            self._entries = entries
+            self._entries_by_id = entries_by_id
+            self._file_stats = file_stats
+            self._paths = paths
+            self._loaded_at = _time_module.monotonic()
+
+    @staticmethod
+    def _entry_info(entry: tuple) -> Dict[str, Any]:
+        return {
+            "id": entry[0],
+            "object": "pa_provider",
+            "label": entry[1],
+            "models": entry[2],
+            "working": entry[3],
+            "url": entry[4],
+            "path": entry[6],
+        }
 
     def list_providers(self) -> List[Dict[str, Any]]:
         """Return a list of provider info dicts (no filesystem paths)."""
         self._ensure_fresh()
-        return [
-            {
-                "id": e[0],
-                "object": "pa_provider",
-                "label": e[1],
-                "models": e[2],
-                "working": e[3],
-                "url": e[4],
-                "path": e[6],
-            }
-            for e in self._entries
-        ]
+        with self._lock:
+            return [self._entry_info(entry) for entry in self._entries]
 
     def get_provider_class(self, provider_id: str) -> Optional[Type]:
         """Return the provider class for *provider_id*, or ``None``."""
         self._ensure_index()
-        for e in self._entries:
-            if e[0] == provider_id:
-                if e[5] is None:
-                    return load_pa_provider(get_workspace_dir() / e[6])
-                return e[5]
-        return None
+        with self._lock:
+            entry = self._entries_by_id.get(provider_id)
+            if entry is None:
+                return None
+            if entry[5] is not None:
+                return entry[5]
+            path = self._paths.get(provider_id)
+            if path is None:
+                return None
+            cls = load_pa_provider(path)
+            if cls is not None:
+                cls.__name__ = f"pa:{provider_id}"
+            return cls
 
     def get_provider_info(self, provider_id: str) -> Optional[Dict[str, Any]]:
         """Return the info dict for *provider_id*, or ``None``."""
         self._ensure_fresh()
-        for e in self._entries:
-            if e[0] == provider_id:
-                return {
-                    "id": e[0],
-                    "object": "pa_provider",
-                    "label": e[1],
-                    "models": e[2],
-                    "working": e[3],
-                    "url": e[4],
-                    "path": e[6],
-                }
-        return None
+        with self._lock:
+            entry = self._entries_by_id.get(provider_id)
+            return self._entry_info(entry) if entry is not None else None
 
 
 #: Module-level singleton.

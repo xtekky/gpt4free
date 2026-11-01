@@ -10,13 +10,46 @@ from aiohttp import (
     BaseConnector,
     TCPConnector,
     FormData,
+    TraceConfig,
 )
 from typing import AsyncIterator, Any, Optional
 
 from .defaults import DEFAULT_HEADERS, has_brotli
+from .tracking import start_request
 from ..errors import MissingRequirementsError
 
 _loop_connectors: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, TCPConnector] = weakref.WeakKeyDictionary()
+
+
+async def _on_request_start(session, trace_config_ctx, params) -> None:
+    trace_config_ctx.tracker = start_request(
+        params.method, params.url, params.headers
+    )
+
+
+async def _on_request_end(session, trace_config_ctx, params) -> None:
+    tracker = getattr(trace_config_ctx, "tracker", None)
+    if tracker is not None:
+        response = params.response
+        tracker.finish(
+            status=response.status,
+            headers=response.headers,
+            url=response.url,
+        )
+
+
+async def _on_request_exception(session, trace_config_ctx, params) -> None:
+    tracker = getattr(trace_config_ctx, "tracker", None)
+    if tracker is not None:
+        tracker.finish(error=params.exception)
+
+
+def _outgoing_trace_config() -> TraceConfig:
+    trace_config = TraceConfig()
+    trace_config.on_request_start.append(_on_request_start)
+    trace_config.on_request_end.append(_on_request_end)
+    trace_config.on_request_exception.append(_on_request_exception)
+    return trace_config
 
 
 def get_shared_connector() -> Optional[TCPConnector]:
@@ -107,6 +140,9 @@ class StreamSession:
         if connector_owner is None:
             connector_owner = True
 
+        trace_configs = list(kwargs.pop("trace_configs", None) or [])
+        trace_configs.append(_outgoing_trace_config())
+
         self.inner = ClientSession(
             **kwargs,
             timeout=timeout,
@@ -114,6 +150,7 @@ class StreamSession:
             connector=actual_connector,
             connector_owner=connector_owner,
             headers=headers,
+            trace_configs=trace_configs,
         )
 
     async def __aenter__(self) -> ClientSession:

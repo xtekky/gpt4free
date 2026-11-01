@@ -212,20 +212,24 @@ class Backend_Api(Api):
 
         @app.route("/pa/providers", methods=["GET"])
         async def pa_providers():
-            saved = storage.get(f"{version_utils.current_version}/{int(time.time()/8600)}/pa_providers")
-            async def fetch_providers():
-                try:
-                    from g4f.mcp.pa_provider import get_pa_registry
+            cache_key = f"{version_utils.current_version}/{int(time.time()/8600)}/pa_providers"
+            saved = storage.get(cache_key)
+            if saved is not None:
+                return jsonify(saved)
+            try:
+                from g4f.mcp.pa_provider import get_pa_registry
 
-                    registry = get_pa_registry()
-                    listing = registry.list_providers()
-                    storage.set(f"{version_utils.current_version}/{int(time.time()/8600)}/pa_providers", listing)
-                    return jsonify(listing)
-                except Exception as e:
-                    logger.exception(e)
-                    return jsonify({"error": {"message": "Failed to list providers"}}), 500
-            task = asyncio.create_task(fetch_providers())
-            return jsonify(saved) if saved is not None else await task
+                # Executing .pa.py files is filesystem/CPU bound.  Run it in a
+                # worker thread so the event loop (and concurrent /chat/
+                # requests) stays responsive.
+                listing = await asyncio.to_thread(
+                    get_pa_registry().list_providers
+                )
+                storage.set(cache_key, listing)
+                return jsonify(listing)
+            except Exception as e:
+                logger.exception(e)
+                return jsonify({"error": {"message": "Failed to list providers"}}), 500
 
         @app.route("/backend-api/v2/webmcp/tools", methods=["GET", "POST"])
         async def handle_webmcp_tools():

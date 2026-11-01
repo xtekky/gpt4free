@@ -10,10 +10,10 @@ import hashlib
 import ipaddress
 from datetime import datetime
 from urllib.parse import quote_plus
-from flask import jsonify, send_from_directory, redirect, request, abort, Response
+from flask import jsonify, send_from_directory, redirect, request, Response, abort
 from html import escape
 
-from .locale import BASE_URL, COPY, LOCALES, PAGES, localized_response, page_path
+from .locale import BASE_URL, COPY, LOCALES, PAGES, page_path, seo_document
 
 from ...files import secure_filename
 from ...cookies import get_cookies_dir
@@ -180,16 +180,12 @@ class Website:
             "/stats/": {"function": self._stats, "methods": ["GET"]},
             "/providers": {"function": self._providers, "methods": ["GET"]},
             "/providers/": {"function": self._providers, "methods": ["GET"]},
+            "/providers.html": {"function": self._providers, "methods": ["GET"]},
             "/providers/<name>": {"function": self._provider_detail, "methods": ["GET"]},
             "/headers": {"function": self._headers, "methods": ["GET"]},
             "/country-ip": {"function": self._country_ip, "methods": ["GET"]},
             "/meta": {"function": self._meta, "methods": ["GET"]},
-            "/<locale>/meta": {"function": self._meta, "methods": ["GET"]},
             "/sitemap.xml": {"function": self._sitemap, "methods": ["GET"]},
-            "/<locale>/": {"function": self._localized_home, "methods": ["GET"]},
-            "/<locale>/<page>": {"function": self._localized_page, "methods": ["GET"]},
-            "/<locale>/<page>/": {"function": self._localized_page, "methods": ["GET"]},
-            "/<locale>/<page>.html": {"function": self._localized_page, "methods": ["GET"]},
         }
 
     def _headers(self):
@@ -217,12 +213,10 @@ class Website:
         response.headers["Cache-Control"] = "no-store"
         return response
 
-    def _localized_home(self, locale):
-        return self._localized_page(locale, "home")
-
     def _meta(self, locale="en"):
+        locale = request.environ.get("g4f.locale", locale)
         if locale not in LOCALES:
-            abort(404)
+            locale = "en"
         response = jsonify({
             "locale": locale,
             "routes": {
@@ -254,19 +248,13 @@ class Website:
                + "".join(entries) + "</urlset>")
         return Response(xml, mimetype="application/xml")
 
-    def _localized_page(self, locale, page):
-        if locale not in LOCALES or page not in PAGES:
-            abort(404)
-        if page == "providers":
-            return self._providers(locale=locale)
-        else:
-            result = render(page)
-        return localized_response(result, page, locale)
-
     def _index(self, filename="home"):
-        result = render(filename)
+        try:
+            result = render(filename)
+        except requests.RequestException:
+            abort(404)
         if request.method == "GET" and filename in PAGES:
-            return localized_response(result, filename, "en")
+            return seo_document(result, filename, "en")
         return result
 
     def _agent(self):
@@ -330,7 +318,7 @@ class Website:
         _providers_cache_time = now
         return providers
 
-    def _providers(self, locale="en"):
+    def _providers(self):
         global _providers_cards_cache
         providers = self._get_providers()
 
@@ -388,7 +376,7 @@ class Website:
             cards_html = _providers_cards_cache
 
         result = _CONTENT_PATTERN.sub(f"<!-- CONTENT_START -->{cards_html}<!-- CONTENT_END -->", html)
-        return localized_response(result, "providers", locale)
+        return seo_document(result, "providers", "en")
 
     def _provider_detail(self, name: str = ""):
         from html import escape

@@ -15,7 +15,7 @@ import os.path
 import hashlib
 import base64
 from contextlib import asynccontextmanager
-from urllib.parse import quote_plus, unquote_plus
+from urllib.parse import quote_plus, unquote_plus, urlsplit
 from fastapi import FastAPI, Response, Request, UploadFile, Form, Depends, Header
 from fastapi.responses import (
     StreamingResponse,
@@ -80,6 +80,7 @@ except ImportError:
 
 
 from g4f.requests import has_cdp
+from g4f.requests.tracking import add_request_sink
 
 import g4f
 import g4f.debug
@@ -193,6 +194,49 @@ def _sanitize_headers(headers: dict) -> dict:
     }
 
 
+def _record_outgoing_request(entry: dict) -> None:
+    """Add an outgoing provider request to the /api/logs store.
+
+    Outgoing requests are tracked by ``g4f.requests.tracking`` and never
+    include request/response bodies, so the log stays small.
+    """
+    global _log_id_counter
+    url = str(entry.get("url") or "")
+    parsed = urlsplit(url)
+    _log_id_counter += 1
+    log_entry = {
+        "id": _log_id_counter,
+        "timestamp": entry.get("timestamp")
+        or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "method": str(entry.get("method") or "GET").upper(),
+        "path": parsed.path or "/",
+        "url": url or None,
+        "host": parsed.netloc or None,
+        "query": parsed.query or None,
+        "status": entry.get("status") if entry.get("status") is not None else 0,
+        "duration_ms": entry.get("duration_ms", 0),
+        "user": None,
+        "direction": "outgoing",
+        "streaming": False,
+        "request_headers": _sanitize_headers(entry.get("request_headers") or {}),
+        "request_body": None,
+        "response_headers": _sanitize_headers(entry.get("response_headers") or {}),
+        "response_body": None,
+    }
+    if entry.get("error"):
+        log_entry["error"] = entry["error"]
+    if g4f.debug.logging and (
+        log_entry["status"] >= _har_log_min_status() or log_entry["status"] == 0
+    ):
+        _save_har_entry(
+            log_entry,
+            url,
+            request_body=entry.get("request_body"),
+            response_body=None,
+        )
+    _request_log.append(log_entry)
+
+
 def _try_parse_body(body_bytes: bytes, content_type: str):
     if not body_bytes:
         return None
@@ -224,12 +268,17 @@ def _har_log_min_status() -> int:
             pass
     return 0 if g4f.debug.logging else 400
 
-def _get_har_log_dir() -> str:
-    """Get (and create) the date-keyed directory for HAR request logs."""
-    root = os.environ.get("G4F_HAR_LOG_DIR", "").strip() or os.path.join(
+def _get_har_log_root() -> str:
+    """Root directory that holds the date-keyed HAR request logs."""
+    return os.environ.get("G4F_HAR_LOG_DIR", "").strip() or os.path.join(
         get_cookies_dir(), "request_logs"
     )
-    path = os.path.join(root, time.strftime("%Y-%m-%d", time.gmtime()))
+
+def _get_har_log_dir() -> str:
+    """Get (and create) the date-keyed directory for HAR request logs."""
+    path = os.path.join(
+        _get_har_log_root(), time.strftime("%Y-%m-%d", time.gmtime())
+    )
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -271,13 +320,18 @@ def _sse_body_has_error(raw: bytes) -> bool:
             return True
     return False
 
-def _save_request_har(request: Request, entry: dict) -> None:
-    """Save a complete request/response pair as a HAR file.
+def _save_har_entry(
+    entry: dict,
+    url: str,
+    request_body=None,
+    response_body=None,
+) -> Optional[str]:
+    """Save a request/response pair as a HAR file.
 
     Files are named by timestamp and stored in date-keyed directories below
     the cookies dir (``request_logs/<YYYY-MM-DD>/``) or ``G4F_HAR_LOG_DIR``.
-    In debug mode all requests are saved; otherwise only failed ones
-    (see log_requests).
+    The path is remembered on the entry so the /logs UI can load the request
+    body back from disk without keeping every body in memory.
     """
     try:
         now = time.time()
@@ -292,19 +346,19 @@ def _save_request_har(request: Request, entry: dict) -> None:
 
         req_headers = entry.get("request_headers") or {}
         resp_headers = entry.get("response_headers") or {}
-        req_text = _body_to_text(entry.get("request_body"))
-        resp_text = _body_to_text(entry.get("response_body"))
+        req_text = _body_to_text(request_body)
+        resp_text = _body_to_text(response_body)
         try:
             version = g4f.version.utils.current_version
         except Exception:
             version = ""
         request_entry = {
             "method": entry.get("method"),
-            "url": str(request.url),
+            "url": url,
             "headers": _headers_to_har(req_headers),
             "cookies": [],
         }
-        if entry.get("request_body") is not None:
+        if request_body is not None:
             request_entry["postData"] = {
                 "mimeType": req_headers.get("content-type", ""),
                 "text": req_text,
@@ -333,9 +387,46 @@ def _save_request_har(request: Request, entry: dict) -> None:
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(har, f, ensure_ascii=False, indent=2)
+        entry["_har_path"] = path
         logger.debug("Saved HAR request log: %s", path)
+        return path
     except Exception as e:
         logger.warning("Failed to save HAR request log: %s", e)
+        return None
+
+def _save_request_har(request: Request, entry: dict) -> Optional[str]:
+    """Save an incoming API request/response pair as a HAR file."""
+    return _save_har_entry(
+        entry,
+        str(request.url),
+        entry.get("request_body"),
+        entry.get("response_body"),
+    )
+
+def _read_har_request_body(path: str):
+    """Read the first request body from a HAR file inside the log root."""
+    if not path:
+        return None
+    try:
+        root = os.path.abspath(_get_har_log_root())
+        target = os.path.abspath(path)
+        if os.path.commonpath([root, target]) != root:
+            return None
+        with open(target, "r", encoding="utf-8") as f:
+            har = json.load(f)
+        entries = har.get("log", {}).get("entries") or []
+        if not entries:
+            return None
+        post_data = entries[0].get("request", {}).get("postData") or {}
+        text = post_data.get("text")
+        if text is None:
+            return None
+        try:
+            return json.loads(text)
+        except (TypeError, ValueError):
+            return text
+    except Exception:
+        return None
 
 _LOGS_HTML = """<!doctype html>
 <html lang="en">
@@ -369,6 +460,8 @@ tbody tr:hover td{background:#161b22}
 .tag-sse{background:#0d2044;color:#79c0ff}
 .tag-body{background:#0d2820;color:#56d364}
 .tag-empty{background:#1c2128;color:#6e7681}
+.tag-in{background:#0d2820;color:#56d364}
+.tag-out{background:#3d1d0f;color:#ffa657}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;padding:24px;align-items:flex-start;justify-content:center;overflow-y:auto}
 .overlay.active{display:flex}
 .modal{background:#161b22;border:1px solid #30363d;border-radius:10px;width:100%;max-width:1040px;display:flex;flex-direction:column}
@@ -391,14 +484,14 @@ tbody tr:hover td{background:#161b22}
   <span class="sub">last 500 entries &middot; <a href="/v1">/v1 API</a></span>
 </div>
 <div class="toolbar">
-  <input type="text" id="q" placeholder="Filter by path, method, status, user&hellip;" oninput="render()">
+  <input type="text" id="q" placeholder="Filter by path, URL, method, status, user&hellip;" oninput="render()">
   <label><input type="checkbox" id="auto" checked onchange="toggleAuto()"> Auto&#8209;refresh&nbsp;(3s)</label>
   <button class="btn btn-danger" onclick="clearLogs()">Clear</button>
   <span class="meta" id="meta"></span>
 </div>
 <div class="table-wrap"><table>
   <thead><tr>
-    <th>#</th><th>Time (UTC)</th><th>Method</th><th>Path</th>
+    <th>#</th><th>Time (UTC)</th><th>Dir</th><th>Method</th><th>Path / URL</th>
     <th>Status</th><th>ms</th><th>User</th><th>Body</th>
   </tr></thead>
   <tbody id="tb"></tbody>
@@ -419,7 +512,7 @@ tbody tr:hover td{background:#161b22}
 <script>
 'use strict';
 var all=[], timer=null;
-function sc(s){return s>=500?'s5':s>=400?'s4':s>=300?'s3':'s2';}
+function sc(s){return (s>=500||s===0)?'s5':s>=400?'s4':s>=300?'s3':'s2';}
 function btag(e){if(e.streaming&&e.response_body==null)return\'<span class="tag tag-sse">SSE&hellip;</span>\';if(e.response_body!=null)return\'<span class="tag tag-body">\'+(e.streaming?\'SSE\':\'body\')+\'</span>\';return\'<span class="tag tag-empty">&ndash;</span>\';}
 function esc(s){return String(s??\'\'). replace(/&/g,\'&amp;\').replace(/</g,\'&lt;\').replace(/>/g,\'&gt;\');}
 function fmt(v){if(v==null)return\'(empty)\';if(typeof v===\'object\')return JSON.stringify(v,null,2);return String(v);}
@@ -429,32 +522,54 @@ async function load(){
 }
 function render(){
   var q=document.getElementById(\'q\').value.trim().toLowerCase();
-  var rows=q?all.filter(function(e){return(e.method+\' \'+e.path+\' \'+e.status+\' \'+(e.user||\'\')).toLowerCase().includes(q);}):all;
+  var rows=q?all.filter(function(e){return(e.method+\' \'+e.path+\' \'+(e.url||\'\')+\' \'+(e.host||\'\')+\' \'+e.status+\' \'+(e.direction||\'\')+\' \'+(e.user||\'\')).toLowerCase().includes(q);}):all;
   document.getElementById(\'meta\').textContent=rows.length+\' / \'+all.length+\' entries\';
   document.getElementById(\'tb\').innerHTML=rows.map(function(e){
     var t=(e.timestamp||\'\').replace(\'T\',\' \').replace(\'Z\',\'\');
-    var p=esc(e.path+(e.query?\'?\'+e.query:\'\'));
+    var p=esc(e.url||(e.path+(e.query?\'?\'+e.query:\'\')));
+    var dir=e.direction===\'outgoing\'?\'<span class="tag tag-out">out</span>\':\'<span class="tag tag-in">in</span>\';
+    var status=e.status===0?\'ERR\':e.status;
     return\'<tr onclick="detail(\'+e.id+\')">\'+
       \'<td style="color:#484f58">\'+e.id+\'</td>\'+
       \'<td style="color:#6e7681;font-size:12px">\'+esc(t)+\'</td>\'+
+      \'<td>\'+dir+\'</td>\'+
       \'<td class="\'+esc(e.method)+\'">\'+esc(e.method)+\'</td>\'+
       \'<td title="\'+p+\'">\'+p+\'</td>\'+
-      \'<td class="\'+sc(e.status)+\'">\'+e.status+\'</td>\'+
+      \'<td class="\'+sc(e.status)+\'">\'+status+\'</td>\'+
       \'<td style="color:#8b949e">\'+e.duration_ms+\'</td>\'+
       \'<td style="color:#6e7681">\'+esc(e.user||\'\')+\'</td>\'+
       \'<td>\'+btag(e)+\'</td>\'+
       \'</tr>\';
   }).join(\'\');
 }
+async function loadHarBody(e,prefix){
+  try{
+    var r=await fetch(\'/api/logs/\'+e.id+\'/request-body\',{credentials:\'include\'});
+    if(!r.ok)return;
+    var d=await r.json();
+    document.getElementById(\'preq\').textContent=prefix+\'\\nBody:\\n\'+(d.body!=null?fmt(d.body):\'(body not captured)\');
+  }catch(err){}
+}
 function detail(id){
   var e=all.find(function(x){return x.id===id;});
   if(!e)return;
-  document.getElementById(\'mtitle\').textContent=\'#\'+e.id+\'  \'+e.method+\' \'+e.path+(e.query?\'?\'+e.query:\'\')+\' \u2192 \'+e.status+\'  (\'+e.duration_ms+\'ms)\';
+  var target=e.url||(e.path+(e.query?\'?\'+e.query:\'\'));
+  document.getElementById(\'mtitle\').textContent=\'#\'+e.id+\'  \'+e.method+\' \'+target+\' \u2192 \'+(e.status===0?\'ERR\':e.status)+\'  (\'+e.duration_ms+\'ms)\';
   var req=\'\';
   if(e.request_headers){req+=\'Headers:\\n\';for(var k in e.request_headers)req+=\'  \'+k+\': \'+e.request_headers[k]+\'\\n\';}
-  if(e.request_body!=null)req+=\'\\nBody:\\n\'+fmt(e.request_body);
+  var reqBodyKnown=e.request_body!=null;
+  if(reqBodyKnown)req+=\'\\nBody:\\n\'+fmt(e.request_body);
+  else if(e.has_har)req+=\'\\nBody:\\n(loading from HAR...)\';
+  else if(e.direction===\'outgoing\')req+=\'\\nBody:\\n(body not captured)\';
   document.getElementById(\'preq\').textContent=req||\'(none)\';
-  document.getElementById(\'pres\').textContent=e.response_body!=null?fmt(e.response_body):(e.streaming?\'(streaming – collecting…)\':\'(empty)\');
+  if(!reqBodyKnown&&e.has_har)loadHarBody(e,req);
+  var body;
+  if(e.response_body!=null)body=fmt(e.response_body);
+  else if(e.streaming)body=\'(streaming - collecting...)\';
+  else if(e.error)body=\'Error: \'+e.error;
+  else if(e.direction===\'outgoing\')body=\'(body not captured)\';
+  else body=\'(empty)\';
+  document.getElementById(\'pres\').textContent=body;
   var resh=\'\';
   if(e.response_headers){resh+=\'Headers:\\n\';for(var k in e.response_headers)resh+=\'  \'+k+\': \'+e.response_headers[k]+\'\\n\';}
   document.getElementById(\'presh\').textContent=resh||\'(none)\';
@@ -501,6 +616,7 @@ from ..proxy.constants import (
 
 def create_app():
     app = FastAPI(lifespan=lifespan)
+    add_request_sink(_record_outgoing_request)
 
     # CDP relay: let the g4f browser extension act as a CDP provider.
     # Enabled via G4F_BROWSER_MODE=extension or always available on demand.
@@ -681,6 +797,7 @@ def create_app():
                 "status": response.status_code,
                 "duration_ms": duration_ms,
                 "user": user or None,
+                "direction": "incoming",
                 "streaming": is_streaming,
                 "request_headers": _sanitize_headers(dict(request.headers)),
                 "request_body": req_body,
@@ -2816,9 +2933,32 @@ class Api:
             total = len(entries)
             start = max(0, total - limit - offset)
             end = total - offset if offset < total else total
-            page = list(reversed(entries[start:end]))
+            page = [
+                {
+                    **{k: v for k, v in entry.items() if not k.startswith("_")},
+                    "has_har": bool(entry.get("_har_path")),
+                }
+                for entry in reversed(entries[start:end])
+            ]
             return JSONResponse(
                 {"total": total, "entries": page}, headers={"Cache-Control": "no-store"}
+            )
+
+        @self.app.get("/api/logs/{entry_id}/request-body")
+        async def get_log_request_body(entry_id: int):
+            entry = next(
+                (e for e in reversed(_request_log) if e.get("id") == entry_id),
+                None,
+            )
+            if entry is None:
+                return JSONResponse(
+                    {"error": "Log entry not found"}, status_code=404
+                )
+            body = entry.get("request_body")
+            if body is None:
+                body = _read_har_request_body(entry.get("_har_path"))
+            return JSONResponse(
+                {"body": body}, headers={"Cache-Control": "no-store"}
             )
 
         @self.app.delete("/api/logs")

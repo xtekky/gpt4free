@@ -54,7 +54,18 @@ def _normalize_version(version):
 
 
 class Api:
-    models_lock = threading.Lock()
+    models_lock = threading.RLock()
+    providers_lock = threading.Lock()
+    # In-memory caches: the GUI requests provider/model lists several times
+    # while initializing /chat/, so avoid re-reading the disk cache or
+    # rebuilding the same lists on every request.
+    _providers_memory_cache = None
+    _providers_memory_key = None
+    _providers_memory_at = 0.0
+    _models_memory_cache = None
+    _models_memory_at = 0.0
+    PROVIDERS_MEMORY_TTL = 30.0
+    MODELS_MEMORY_TTL = 5 * 60
 
     @staticmethod
     async def get_provider_models(
@@ -132,40 +143,82 @@ class Api:
         return []
 
     @staticmethod
-    def get_providers() -> dict[str, str]:
-        if not ProviderLoader.ignored:
-            cached = Api._read_providers_cache()
-            if cached is not None:
+    def _provider_info(provider) -> dict:
+        return {
+            "name": provider.__name__,
+            "label": getattr(provider, "label", provider.__name__),
+            "parent": getattr(provider, "parent", None),
+            "image": len(getattr(provider, "image_models", [])),
+            "audio": len(getattr(provider, "audio_models", [])),
+            "video": len(getattr(provider, "video_models", [])),
+            "vision": getattr(provider, "default_vision_model", None) is not None,
+            "nodriver": getattr(provider, "use_nodriver", False),
+            "hf_space": getattr(provider, "hf_space", False),
+            "active_by_default": False
+            if provider.active_by_default is None
+            else provider.active_by_default,
+            "auth": provider.needs_auth,
+            "login_url": getattr(provider, "login_url", None),
+            "live": provider.live,
+            "login": hasattr(provider, "login"),
+        }
+
+    @staticmethod
+    def _with_any_provider(providers: list[dict]) -> list[dict]:
+        if any(provider.get("name") == AnyProvider.__name__ for provider in providers):
+            return providers
+        return [Api._provider_info(AnyProvider), *providers]
+
+    @staticmethod
+    def get_providers() -> list[dict]:
+        cache_key = tuple(ProviderLoader.ignored)
+        now = time.monotonic()
+        cached = Api._providers_memory_cache
+        if (
+            cached is not None
+            and Api._providers_memory_key == cache_key
+            and now - Api._providers_memory_at < Api.PROVIDERS_MEMORY_TTL
+        ):
+            return cached
+        with Api.providers_lock:
+            # Re-check after acquiring the lock: concurrent GUI requests
+            # (providers, status, chat) should only build this list once.
+            now = time.monotonic()
+            cached = Api._providers_memory_cache
+            if (
+                cached is not None
+                and Api._providers_memory_key == cache_key
+                and now - Api._providers_memory_at < Api.PROVIDERS_MEMORY_TTL
+            ):
                 return cached
-            if not _providers_cache_writable:
-                saved = storage.get(f"{version_utils.current_version}/providers")
-                if saved is not None:
-                    return saved
-        result = [
-            {
-                "name": provider.__name__,
-                "label": getattr(provider, "label", provider.__name__),
-                "parent": getattr(provider, "parent", None),
-                "image": len(getattr(provider, "image_models", [])),
-                "audio": len(getattr(provider, "audio_models", [])),
-                "video": len(getattr(provider, "video_models", [])),
-                "vision": getattr(provider, "default_vision_model", None) is not None,
-                "nodriver": getattr(provider, "use_nodriver", False),
-                "hf_space": getattr(provider, "hf_space", False),
-                "active_by_default": False
-                if provider.active_by_default is None
-                else provider.active_by_default,
-                "auth": provider.needs_auth,
-                "login_url": getattr(provider, "login_url", None),
-                "live": provider.live,
-                "login": hasattr(provider, "login"),
-            }
-            for provider in Provider.__providers__
-            if provider.working
-        ]
-        storage.set(f"{version_utils.current_version}/providers", result)
-        Api._write_providers_cache(result)
-        return result
+            if not ProviderLoader.ignored:
+                on_disk = Api._read_providers_cache()
+                if on_disk is not None:
+                    result = Api._with_any_provider(on_disk)
+                    Api._providers_memory_cache = result
+                    Api._providers_memory_key = cache_key
+                    Api._providers_memory_at = now
+                    return result
+                if not _providers_cache_writable:
+                    saved = storage.get(f"{version_utils.current_version}/providers")
+                    if saved is not None:
+                        result = Api._with_any_provider(saved)
+                        Api._providers_memory_cache = result
+                        Api._providers_memory_key = cache_key
+                        Api._providers_memory_at = now
+                        return result
+            result = [
+                Api._provider_info(provider)
+                for provider in Provider.__providers__
+                if provider.working
+            ]
+            result = Api._with_any_provider(result)
+            storage.set(f"{version_utils.current_version}/providers", result)
+            Api._write_providers_cache(result)
+            Api._providers_memory_cache = result
+            Api._providers_memory_key = cache_key
+            Api._providers_memory_at = now
+            return result
 
     @staticmethod
     def _providers_cache_file() -> Path:
@@ -203,6 +256,27 @@ class Api:
             return None
 
     def get_all_models(self) -> dict[str, list]:
+        now = time.monotonic()
+        cached = Api._models_memory_cache
+        if (
+            cached is not None
+            and now - Api._models_memory_at < Api.MODELS_MEMORY_TTL
+        ):
+            return cached
+        with self.models_lock:
+            now = time.monotonic()
+            cached = Api._models_memory_cache
+            if (
+                cached is not None
+                and now - Api._models_memory_at < Api.MODELS_MEMORY_TTL
+            ):
+                return cached
+            result = self._load_all_models()
+            Api._models_memory_cache = result
+            Api._models_memory_at = now
+            return result
+
+    def _load_all_models(self) -> dict[str, list]:
         storage_key = f"{version_utils.current_version}/all_models"
         saved = storage.get(storage_key)
         if saved is not None:

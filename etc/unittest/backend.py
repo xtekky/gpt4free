@@ -26,6 +26,48 @@ except ImportError:
         pass
 
 
+class TestProviderLoaderCache(unittest.TestCase):
+    """The provider list is imported once and reused across GUI requests."""
+
+    def setUp(self):
+        from g4f.Provider import ProviderLoader
+
+        self.loader = ProviderLoader
+        self._saved_cache = ProviderLoader._providers_cache
+        self._saved_key = ProviderLoader._providers_cache_key
+        self._saved_ignored = list(ProviderLoader.ignored)
+        ProviderLoader._providers_cache = None
+        ProviderLoader._providers_cache_key = None
+        ProviderLoader.ignored = []
+
+    def tearDown(self):
+        ProviderLoader = self.loader
+        ProviderLoader._providers_cache = self._saved_cache
+        ProviderLoader._providers_cache_key = self._saved_key
+        ProviderLoader.ignored = self._saved_ignored
+
+    def test_all_caches_provider_list(self):
+        with patch.object(
+            self.loader, "from_name", side_effect=lambda name: name
+        ) as from_name:
+            first = self.loader.all()
+            second = self.loader.all()
+            expected = len(self.loader.names)
+            self.assertEqual(from_name.call_count, expected)
+            self.assertIs(first, second)
+
+    def test_all_invalidates_when_ignored_changes(self):
+        with patch.object(
+            self.loader, "from_name", side_effect=lambda name: name
+        ) as from_name:
+            self.loader.all()
+            first_count = from_name.call_count
+            self.loader.ignored = [self.loader.names[0]]
+            providers = self.loader.all()
+            self.assertEqual(from_name.call_count, first_count * 2 - 1)
+            self.assertNotIn(self.loader.names[0], providers)
+
+
 class TestBackendApi(unittest.TestCase):
     def setUp(self):
         if not has_requirements:

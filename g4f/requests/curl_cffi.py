@@ -31,11 +31,32 @@ if has_curl_cffi:
 else:
     has_curl_mime = False
     has_curl_ws = False
-from typing import AsyncGenerator, Any
+from typing import AsyncGenerator, Any, Optional
 from functools import partialmethod
 import asyncio
 import json
 from ..cookies import BrowserConfig
+from .tracking import start_request
+
+
+def _request_body_text(value) -> Optional[str]:
+    """Return a textual body for simple request payloads, ignoring streams."""
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (dict, list)):
+        try:
+            return json.dumps(value, ensure_ascii=False)
+        except Exception:
+            return None
+    return None
+
 
 if has_curl_cffi:
 
@@ -47,9 +68,10 @@ if has_curl_cffi:
             inner (Response): The original Response object.
         """
 
-        def __init__(self, inner: Response) -> None:
+        def __init__(self, inner: Response, tracker=None) -> None:
             """Initialize the StreamResponse with the provided Response object."""
             self.inner: Response = inner
+            self._tracker = tracker
 
         async def text(self) -> str:
             """Asynchronously get the response text."""
@@ -85,7 +107,12 @@ if has_curl_cffi:
 
         async def __aenter__(self):
             """Asynchronously enter the runtime context for the response object."""
-            inner: Response = await self.inner
+            try:
+                inner: Response = await self.inner
+            except BaseException as error:
+                if self._tracker is not None:
+                    self._tracker.finish(error=error)
+                raise
             self.inner = inner
             self.url = inner.url
             self.method = inner.request.method
@@ -95,6 +122,12 @@ if has_curl_cffi:
             self.ok: bool = inner.ok
             self.headers = inner.headers
             self.cookies = inner.cookies
+            if self._tracker is not None:
+                self._tracker.finish(
+                    status=inner.status_code,
+                    headers=inner.headers,
+                    url=inner.url,
+                )
             return self
 
         async def __aexit__(self, *args):
@@ -121,9 +154,22 @@ if has_curl_cffi:
             ):
                 kwargs["multipart"] = kwargs.pop("data")
             """Create and return a StreamResponse object for the given HTTP request."""
-            return StreamResponse(
-                super().request(method, url, stream=True, verify=ssl, **kwargs)
+            body = kwargs.get("json")
+            if body is None:
+                body = kwargs.get("data")
+            tracker = start_request(
+                method,
+                url,
+                kwargs.get("headers"),
+                _request_body_text(body),
             )
+            try:
+                inner = super().request(method, url, stream=True, verify=ssl, **kwargs)
+            except BaseException as error:
+                if tracker is not None:
+                    tracker.finish(error=error)
+                raise
+            return StreamResponse(inner, tracker=tracker)
 
         def ws_connect(self, url, *args, **kwargs):
             return WebSocket(self, url, **kwargs)
