@@ -78,12 +78,34 @@ class TestVersionedHelpers(unittest.TestCase):
         ]
         with patch.object(versioned, "release_date", return_value="2026-01-01T00:00:00Z"), \
              patch.object(versioned, "_resolve_local_ref", return_value=None), \
-             patch.object(versioned, "_github_json", return_value=commits) as request:
+             patch.object(versioned, "_github_get", return_value=(commits, {})) as request:
             self.assertEqual(
                 versioned.resolve_site_ref(version),
                 "earliest-after-release",
             )
         self.assertIn("since=", request.call_args.args[0])
+        versioned._REF_CACHE.pop(version, None)
+
+    def test_resolve_site_ref_reads_last_page_for_old_releases(self):
+        version = "99.99.97"
+        versioned._REF_CACHE.pop(version, None)
+        newest_page = [{"sha": f"new-{index}"} for index in range(100)]
+        oldest_page = [
+            {"sha": "newest-in-oldest-page"},
+            {"sha": "earliest-after-release"},
+        ]
+        links = {"last": {"url": "https://api.github.com/commits?page=9"}}
+        with patch.object(versioned, "release_date", return_value="2025-01-01T00:00:00Z"), \
+             patch.object(versioned, "_resolve_local_ref", return_value=None), \
+             patch.object(
+                 versioned,
+                 "_github_get",
+                 side_effect=[(newest_page, links), (oldest_page, {})],
+             ):
+            self.assertEqual(
+                versioned.resolve_site_ref(version),
+                "earliest-after-release",
+            )
         versioned._REF_CACHE.pop(version, None)
 
 

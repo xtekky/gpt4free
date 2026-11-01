@@ -44,6 +44,30 @@ Chat and playground content is mostly dynamic and relies on the runtime global
 translations. Static translations live in `g4f/gui/server/locale.py`; add a page
 to `PAGES` and `COPY` only when its visible copy can be translated.
 
+## Static GitHub Pages mirror
+
+The public site at <https://g4f.dev> is statically hosted on GitHub Pages, so it
+cannot run the Flask middleware. `g4f.dev/scripts/build-locales.mjs` generates
+prefixed copies of every HTML page for each language in the community
+translation catalog (38 at the time of writing: `ar`, `bg`, `cs`, `da`, `de`,
+`el`, `es`, `et`, `fa`, `fi`, `fr`, `he`, `hi`, `hr`, `hu`, `id`, `it`, `ja`,
+`kk`, `ko`, `nb`, `nl`, `pl`, `pt`, `ro`, `ru`, `sk`, `sl`, `sq`, `sr`, `sv`,
+`th`, `tr`, `uk`, `ur`, `uz`, `vi`, `zh`). This is broader than the GUI, which
+serves only `en`, `es`, `fr`, and `de`. Examples are `/fr/chat/`,
+`/ja/chat/`, and `/pt/docs/`.
+
+Each copy gets the locale `lang` attribute (`dir="rtl"` for Arabic, Persian,
+Hebrew, and Urdu), a `<base>` pointing at the original page directory (so
+relative assets and manifests keep working without duplicating them), canonical
+and `hreflang` alternates for every generated language, and the same runtime
+translation bootstrap used by the GUI. Unprefixed URLs stay canonical for
+English, and `/en/...` is not generated; selecting English from a locale page
+returns to the unprefixed path.
+
+The GitHub Pages workflows run the generator before uploading the artifact, and
+the mirror sync commits the generated routes (they are gitignored in the source
+repository) so the mirror's own deploy publishes them.
+
 `GET /headers` returns request headers as JSON with common authentication and
 secret header names redacted. `GET /country-ip` returns
 `{"ip": ..., "country": ...}`. IP is the web server's `remote_addr`, not a

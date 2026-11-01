@@ -143,18 +143,28 @@ def _git(repository: str, *args: str) -> str | None:
         return None
 
 
-def _github_json(path: str) -> object | None:
+def _github_get(path: str) -> tuple[object | None, dict]:
+    """Return the JSON payload and pagination links for a GitHub API path."""
+    url = (
+        path
+        if path.startswith(("http://", "https://"))
+        else f"{GITHUB_API}{path}"
+    )
     try:
         response = _SESSION.get(
-            f"{GITHUB_API}{path}",
+            url,
             timeout=10,
             headers={"Accept": "application/vnd.github+json"},
         )
         if response.status_code != 200:
-            return None
-        return response.json()
+            return None, {}
+        return response.json(), response.links
     except (requests.RequestException, ValueError):
-        return None
+        return None, {}
+
+
+def _github_json(path: str) -> object | None:
+    return _github_get(path)[0]
 
 
 def release_date(version: str) -> str | None:
@@ -220,13 +230,32 @@ def _resolve_local_ref(date: str) -> str | None:
 
 
 def _resolve_remote_ref(date: str) -> str | None:
-    commits = _github_json(
-        f"/repos/{SITE_REPOSITORY}/commits?since={quote(date)}&per_page=100"
-    )
+    per_page = 100
+    path = f"/repos/{SITE_REPOSITORY}/commits?since={quote(date)}&per_page={per_page}"
+    commits, links = _github_get(path)
     if isinstance(commits, list) and commits:
-        # GitHub returns newest first; the last entry is the earliest commit
-        # at/after the release date.
-        return commits[-1].get("sha")
+        # GitHub returns commits newest first. The snapshot we want is the
+        # earliest one at/after the release date, so when the result spans
+        # several pages we have to read the *last* page instead of the first.
+        oldest = commits
+        last_url = (links.get("last") or {}).get("url")
+        if last_url:
+            last_commits, _ = _github_get(last_url)
+            if isinstance(last_commits, list) and last_commits:
+                oldest = last_commits
+        elif len(commits) >= per_page:
+            # Some proxies strip pagination headers; walk forward instead.
+            page = 2
+            while (
+                isinstance(commits, list)
+                and len(commits) >= per_page
+                and page <= 100
+            ):
+                commits, _ = _github_get(f"{path}&page={page}")
+                if isinstance(commits, list) and commits:
+                    oldest = commits
+                page += 1
+        return oldest[-1].get("sha")
     commits = _github_json(
         f"/repos/{SITE_REPOSITORY}/commits?until={quote(date)}&per_page=1"
     )
