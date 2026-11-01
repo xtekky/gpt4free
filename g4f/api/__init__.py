@@ -1045,6 +1045,11 @@ class Api:
             )
 
     def register_routes(self):
+        # Browsing APIs, live feeds, triggers and notifications.
+        from .browsing import register_browsing_routes
+
+        register_browsing_routes(self.app)
+
         if not AppConfig.gui:
 
             @self.app.get("/")

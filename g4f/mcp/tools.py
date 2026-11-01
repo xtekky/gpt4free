@@ -2600,3 +2600,308 @@ class NotebookListTool(MCPTool):
             return {"notebooks": notebooks, "count": len(notebooks)}
         except Exception as exc:
             return {"error": f"Notebook listing failed: {exc}"}
+
+
+class BrowsingSearchTool(MCPTool):
+    """Search free and paid browsing APIs through the g4f browsing catalog."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Search the web across keyless and configured paid APIs (Wikipedia, Hacker News, "
+            "DuckDuckGo, Brave, Tavily, SearXNG, arXiv, GitHub, ...). Returns titles, URLs, "
+            "snippets and per-API errors. No API key is required unless a paid API is selected."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The search query."},
+                "apis": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional API ids from the browsing catalog (e.g. wikipedia, brave).",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of results (default: 8).",
+                    "default": 8,
+                },
+            },
+            "required": ["query"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..browsing import search
+
+        query = (arguments.get("query") or "").strip()
+        if not query:
+            return {"error": "query parameter is required"}
+        try:
+            return await search(
+                query,
+                apis=arguments.get("apis") or [],
+                limit=int(arguments.get("limit") or 8),
+            )
+        except Exception as exc:
+            return {"error": f"Browsing search failed: {exc}"}
+
+
+class LiveFeedTool(MCPTool):
+    """Read an RSS/Atom feed as a live conversation."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Read any public RSS or Atom feed. Returns the feed metadata and entries; set "
+            "as_conversation=true to receive the same chat message format used by the live "
+            "feed conversation list in the UI."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "Absolute RSS/Atom feed URL."},
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of entries (default: 20).",
+                    "default": 20,
+                },
+                "as_conversation": {
+                    "type": "boolean",
+                    "description": "Return a conversation object instead of the raw feed.",
+                    "default": False,
+                },
+            },
+            "required": ["url"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..browsing import feed_to_conversation, fetch_feed
+
+        url = (arguments.get("url") or "").strip()
+        if not url:
+            return {"error": "url parameter is required"}
+        try:
+            feed = await fetch_feed(url, limit=int(arguments.get("limit") or 20))
+            if arguments.get("as_conversation"):
+                return feed_to_conversation(feed)
+            return feed
+        except Exception as exc:
+            return {"error": f"Feed request failed: {exc}"}
+
+
+class BrowsingTriggerTool(MCPTool):
+    """Create, list, run and delete prompt-created browsing triggers."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Manage browsing triggers. Use action=create with a natural-language prompt "
+            "(optionally a source url/query) to parse a trigger; action=list, action=run "
+            "(id required) or action=delete (id required). Run returns new matching items "
+            "and notifications with an action_prompt ready to send to a model."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["create", "list", "run", "delete"],
+                    "description": "Operation to perform (default: list).",
+                    "default": "list",
+                },
+                "prompt": {
+                    "type": "string",
+                    "description": "Natural-language trigger description for action=create.",
+                },
+                "source": {
+                    "type": "object",
+                    "description": "Optional source: {type: rss|web|search, url, query, api}.",
+                },
+                "id": {"type": "string", "description": "Trigger id for run/delete."},
+                "save": {
+                    "type": "boolean",
+                    "description": "When false, only parse a create prompt and return the draft.",
+                    "default": True,
+                },
+            },
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..browsing import (
+            create_trigger,
+            delete_trigger,
+            list_triggers,
+            parse_trigger_prompt,
+            run_trigger,
+        )
+
+        action = (arguments.get("action") or "list").lower()
+        try:
+            if action == "list":
+                triggers = list_triggers()
+                return {"triggers": triggers, "count": len(triggers)}
+            if action == "create":
+                prompt = (arguments.get("prompt") or "").strip()
+                if not prompt:
+                    return {"error": "prompt parameter is required"}
+                draft = parse_trigger_prompt(prompt, arguments.get("source"))
+                if arguments.get("save", True):
+                    return create_trigger(draft)
+                return {"trigger": draft, "saved": False}
+            if action == "run":
+                trigger_id = arguments.get("id")
+                if not trigger_id:
+                    return {"error": "id parameter is required"}
+                return await run_trigger(trigger_id)
+            if action == "delete":
+                trigger_id = arguments.get("id")
+                if not trigger_id:
+                    return {"error": "id parameter is required"}
+                return {"deleted": delete_trigger(trigger_id), "id": trigger_id}
+            return {"error": f"Unknown action '{action}'"}
+        except Exception as exc:
+            return {"error": f"Trigger operation failed: {exc}"}
+
+
+class BrowsingCatalogTool(MCPTool):
+    """List the free and paid browsing APIs known to g4f."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "List browsing APIs, their pricing tier, capabilities and whether their credential "
+            "is configured. Use the returned ids with BrowsingSearchTool."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "Optional category filter."},
+                "capability": {"type": "string", "description": "search, feed or fetch."},
+                "available_only": {
+                    "type": "boolean",
+                    "description": "Only return APIs usable in the current environment.",
+                    "default": False,
+                },
+            },
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..browsing import list_apis
+
+        apis = list_apis(
+            category=arguments.get("category"),
+            capability=arguments.get("capability"),
+            include_unavailable=not arguments.get("available_only", False),
+        )
+        return {"apis": apis, "count": len(apis), "available": sum(1 for api in apis if api["available"])}
+
+
+class FastBrowseTool(MCPTool):
+    """Fetch several URLs concurrently with fast browsing."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Fetch up to several URLs in parallel, extract readable text and return status, "
+            "content type, title and per-URL errors. Useful for quick research without a browser."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "urls": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "URLs to fetch in parallel.",
+                },
+                "max_words": {
+                    "type": "integer",
+                    "description": "Maximum words extracted per page (default: 800).",
+                    "default": 800,
+                },
+                "concurrency": {
+                    "type": "integer",
+                    "description": "Maximum parallel requests (default: 6).",
+                    "default": 6,
+                },
+            },
+            "required": ["urls"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..browsing import fast_browse
+
+        urls = arguments.get("urls") or []
+        if isinstance(urls, str):
+            urls = [urls]
+        if not urls:
+            return {"error": "urls parameter is required"}
+        try:
+            results = await fast_browse(
+                urls,
+                max_words=int(arguments.get("max_words") or 800),
+                concurrency=int(arguments.get("concurrency") or 6),
+            )
+            return {"results": results, "count": len(results)}
+        except Exception as exc:
+            return {"error": f"Fast browse failed: {exc}"}
+
+
+class BrowsingExecuteTool(MCPTool):
+    """Execute an allow-listed operation from the browsing API catalog."""
+
+    @property
+    def description(self) -> str:
+        return (
+            "Execute a browsing catalog API operation. Examples: api=rss operation=feed url=...; "
+            "api=wikipedia operation=search query=...; api=jina-reader operation=fetch url=..."
+        )
+
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "api": {
+                    "type": "string",
+                    "description": "Catalog id, e.g. rss, wikipedia, arxiv, brave.",
+                },
+                "operation": {
+                    "type": "string",
+                    "description": "search, feed or fetch. Defaults to search unless a url is given.",
+                },
+                "params": {
+                    "type": "object",
+                    "description": "Operation parameters: query, url, limit, max_words.",
+                },
+            },
+            "required": ["api"],
+        }
+
+    async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        from ..browsing import execute_api
+
+        api_id = arguments.get("api")
+        if not api_id:
+            return {"error": "api parameter is required"}
+        params = dict(arguments.get("params") or {})
+        if arguments.get("operation"):
+            params["operation"] = arguments["operation"]
+        try:
+            return {"api": api_id, "result": await execute_api(api_id, params=params)}
+        except Exception as exc:
+            return {"error": f"Browsing execute failed: {exc}"}

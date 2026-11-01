@@ -40,6 +40,12 @@ from .tools import (
     GithubRepoTool,
     GithubTextSearchTool,
     TokenOptimizerTool,
+    BrowsingSearchTool,
+    LiveFeedTool,
+    BrowsingTriggerTool,
+    BrowsingCatalogTool,
+    FastBrowseTool,
+    BrowsingExecuteTool,
 )
 from .pa_provider import (
     execute_safe_code,
@@ -74,6 +80,12 @@ __all__ = [
     "GithubRepoTool",
     "GithubTextSearchTool",
     "TokenOptimizerTool",
+    "BrowsingSearchTool",
+    "LiveFeedTool",
+    "BrowsingTriggerTool",
+    "BrowsingCatalogTool",
+    "FastBrowseTool",
+    "BrowsingExecuteTool",
     # Sandbox detection / safe mode
     "detect_sandbox",
     "get_sandbox_reasons",

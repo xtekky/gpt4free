@@ -65,6 +65,12 @@ from .tools import (
     BrowserExistsTool,
     NotebookCreateTool,
     NotebookListTool,
+    BrowsingSearchTool,
+    LiveFeedTool,
+    BrowsingTriggerTool,
+    BrowsingCatalogTool,
+    FastBrowseTool,
+    BrowsingExecuteTool,
 )
 
 
@@ -185,6 +191,12 @@ class MCPServer:
             "file_write": FileWriteTool(),
             "replace_string_in_file": ReplaceStringInFileTool(),
             "fetch_webpage": FetchWebpageTool(),
+            "browsing_search": BrowsingSearchTool(),
+            "live_feed": LiveFeedTool(),
+            "browsing_triggers": BrowsingTriggerTool(),
+            "browsing_apis": BrowsingCatalogTool(),
+            "fast_browse": FastBrowseTool(),
+            "browsing_execute": BrowsingExecuteTool(),
             "file_search_glob": FileSearchGlobTool(),
             "grep_search": GrepSearchTool(),
             "github_repo": GithubRepoTool(False, self.github_token),
