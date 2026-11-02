@@ -75,7 +75,7 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
     is not implemented.
     """
 
-    label = "OpenAI ChatGPT"
+    label = "ChatGPT Account"
     url = "https://chatgpt.com"
     working = True
     active_by_default = True
@@ -185,6 +185,22 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
                 await raise_for_status(response)
                 user = await response.json()
                 return {"id": user.get("id"), "name": user.get("name")}
+
+    @classmethod
+    async def get_models(cls, **kwargs) -> list[dict]:
+        """List the models the account can use (backend-api/models)."""
+        auth = cls._explicit_auth(kwargs) or cls.get_auth_result()
+        async with StreamSession(
+            cookies=auth.cookies, headers=cls._create_headers(auth), impersonate="chrome"
+        ) as session:
+            async with session.get(f"{cls.url}/backend-api/models") as response:
+                await raise_for_status(response)
+                data = await response.json()
+        return {
+            m.get("slug"): m
+            for m in data.get("models", [])
+            if "hidden" not in m.get("tags")
+        }
 
     @classmethod
     async def create_authed(
@@ -514,6 +530,12 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
             conversation.recipient = message.get("recipient", conversation.recipient)
             if message.get("author", {}).get("role") == "assistant":
                 conversation.message_id = message.get("id")
+                content = message.get("content") or {}
+                parts = content.get("parts") or []
+                # The snapshot carries the first text chunk; later patches only append.
+                if (content.get("content_type") == "text" and message.get("channel") in (None, "final")
+                        and conversation.recipient == "all" and parts and isinstance(parts[0], str) and parts[0]):
+                    yield parts[0]
                 if message.get("status") == "finished_successfully":
                     finish = (message.get("metadata") or {}).get("finish_details", {}).get("type")
                     if finish:
@@ -611,17 +633,12 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
         from ...requests.cdp import CDPSession
 
         async with CDPSession(proxy=proxy, headless=False) as session:
-            await session.call("Network.enable")
-            await session.call(
-                "Fetch.enable",
-                patterns=[{"urlPattern": "*backend-api/f/conversation*", "requestStage": "Request"}],
-            )
             await session.navigate(cls.url)
             # Wait for the login (up to 5 minutes, like the nodriver flow):
             # the profile button only exists for authenticated sessions.
             deadline = time.time() + 300
             while not await session.evaluate_js(
-                "!!document.querySelector('[data-testid=\"accounts-profile-button\"]')"
+                "!!document.querySelector('button[data-color=\"primary\"]')"
             ):
                 if time.time() > deadline:
                     raise MissingAuthError(
@@ -631,7 +648,7 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
             debug.log("OpenaiAccount: Login detected — waiting for the composer")
             deadline = time.time() + 30
             reloaded = False
-            while not await session.evaluate_js("!!document.querySelector('#prompt-textarea')"):
+            while not await session.evaluate_js("!!document.querySelector('.ProseMirror, [data-mobile-composer-prompt]')"):
                 if time.time() > deadline:
                     if reloaded:
                         raise MissingAuthError("OpenaiAccount: chat composer not found in the browser")
@@ -641,10 +658,41 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
                     debug.log("OpenaiAccount: composer not found — reloading the page")
                     await session.navigate(cls.url)
                 await asyncio.sleep(1)
+            # Wrap fetch to retain the headers used by the browser's own
+            # conversation request without interrupting the request.
+            await session.evaluate_js("""
+                (() => {
+                    if (window.__g4fOriginalFetch) return;
+                    const originalFetch = window.fetch;
+                    window.__g4fOriginalFetch = originalFetch;
+                    window.fetch = function(input, init) {
+                        const request = input instanceof Request ? input : null;
+                        const url = request ? request.url : String(input);
+                        if (new URL(url, location.href).pathname.includes('/backend-api/f/conversation')) {
+                            const headers = new Headers(request ? request.headers : undefined);
+                            if (init && init.headers) {
+                                new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+                            }
+                            const captured = Object.fromEntries(headers.entries());
+                            // The browser adds these itself, so fetch() never exposes them.
+                            captured['user-agent'] = navigator.userAgent;
+                            captured['accept-language'] = (navigator.languages || [navigator.language]).join(',');
+                            const uad = navigator.userAgentData;
+                            if (uad) {
+                                captured['sec-ch-ua'] = uad.brands.map(b => `"${b.brand}";v="${b.version}"`).join(', ');
+                                captured['sec-ch-ua-mobile'] = uad.mobile ? '?1' : '?0';
+                                captured['sec-ch-ua-platform'] = `"${uad.platform}"`;
+                            }
+                            window.__g4fCapturedConversationHeaders = captured;
+                        }
+                        return originalFetch.apply(this, arguments);
+                    };
+                })()
+            """)
             # Trigger a chat so the browser mints the authenticated request.
             await session.evaluate_js("""
                 (() => {
-                    const editor = document.querySelector('#prompt-textarea');
+                    const editor = document.querySelector('.ProseMirror, [data-mobile-composer-prompt]');
                     editor.focus();
                     document.execCommand('insertText', false, 'Hello');
                 })()
@@ -652,38 +700,22 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
             await asyncio.sleep(1)
             await session.evaluate_js("""
                 (() => {
-                    const button = document.querySelector('[data-testid="send-button"], [data-composer-submit]');
+                    const button = document.querySelector('form button[type="submit"]:not([disabled])');
                     if (button) button.click();
                 })()
             """)
-            # Capture the browser's own conversation request (up to 2 minutes).
-            # A queue (not wait_for_event) so requests paused while another
-            # one is processed are never lost.
-            queue: asyncio.Queue = asyncio.Queue()
-            session.add_event_handler("Fetch.requestPaused", queue)
             headers = None
             deadline = time.time() + 120
             while headers is None:
-                try:
-                    paused = await asyncio.wait_for(queue.get(), timeout=30)
-                except asyncio.TimeoutError:
-                    if time.time() > deadline:
-                        raise MissingAuthError(
-                            "OpenaiAccount: no conversation request captured in the browser"
-                        )
-                    continue
-                request = paused.get("request") or {}
-                found = {
-                    key.lower(): value for key, value in (request.get("headers") or {}).items()
-                    if not key.startswith(":")
-                }
-                # The sentinel tokens are single-use, but only the long-lived
-                # credentials are captured — let the browser request pass.
-                await session.call("Fetch.continueRequest", requestId=paused.get("requestId"))
-                if "authorization" in found:
-                    headers = found
-            # Resume requests paused while no one was listening anymore.
-            await session.call("Fetch.disable")
+                found = await session.evaluate_js("window.__g4fCapturedConversationHeaders || null")
+                if found and "authorization" in found:
+                    headers = {key.lower(): value for key, value in found.items()}
+                elif time.time() > deadline:
+                    raise MissingAuthError(
+                        "OpenaiAccount: no conversation request captured in the browser"
+                    )
+                else:
+                    await asyncio.sleep(0.5)
             cookies = await session.get_cookies([f"{cls.url}/"])
         return cls._create_auth_result(headers, cookies)
 
@@ -698,9 +730,9 @@ class OpenaiAccount(AccessTokenAuthMixin, AsyncAuthedProvider, ProviderModelMixi
         raw = headers.get("openai-sentinel-proof-token")
         if raw:
             try:
-                proof_token = json.loads(
-                    base64.b64decode(raw.split("gAAAAAB", 1)[-1].encode()).decode()
-                )
+                encoded = raw.split("gAAAAAB", 1)[-1]
+                encoded += "=" * (-len(encoded) % 4)
+                proof_token = json.loads(base64.urlsafe_b64decode(encoded.encode()).decode())
             except (ValueError, IndexError):
                 debug.log("OpenaiAccount: Could not decode proof token from capture")
         auth_headers = {name: headers[name] for name in cls._HAR_HEADERS_WHITELIST if name in headers}

@@ -26,13 +26,13 @@ def log(*text: Any, file: Optional[Any] = None) -> None:
     if logging:
         message = " ".join(map(str, text))
         logs.append(message)
-        log_handler(*text, file=file)
+        log_handler(*text, file=file, flush=True)
 
 
 def info(*text: Any, file: Optional[Any] = None) -> None:
     """Log an informational message if logging is enabled."""
     if logging:
-        log_handler(*text, file=file)
+        log_handler(*text, file=file, flush=True)
 
 
 def error(*error_args: Any, name: Optional[str] = None) -> None:

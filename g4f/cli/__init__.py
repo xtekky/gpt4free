@@ -621,7 +621,7 @@ def main():
                 async for chunk in provider.create_async_generator(
                     "", [{"role": "user", "content": "Hello"}]
                 ):
-                    print(chunk)
+                    print(repr(chunk))
             import asyncio
             asyncio.run(run())
         elif args.mode == "version":

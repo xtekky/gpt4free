@@ -736,6 +736,22 @@
     "login": false
   },
   {
+    "name": "OpenaiAccount",
+    "label": "OpenAI ChatGPT",
+    "parent": null,
+    "image": 1,
+    "audio": 0,
+    "video": 0,
+    "vision": false,
+    "nodriver": false,
+    "hf_space": false,
+    "active_by_default": true,
+    "auth": true,
+    "login_url": null,
+    "live": 0,
+    "login": false
+  },
+  {
     "name": "OpenAIFM",
     "label": "OpenAI.fm",
     "parent": null,

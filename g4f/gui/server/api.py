@@ -127,11 +127,11 @@ class Api:
                         else model
                         for model in models
                     ]
+                if isinstance(models, dict):
+                    models = [{"id": key, **value} for key, value in models.items()]
                 return [
                     get_model_data(provider, model)
-                    for model in (
-                        models.values() if isinstance(models, dict) else models
-                    )
+                    for model in models
                 ]
             elif hasattr(provider, "models"):
                 return provider.models

@@ -296,8 +296,8 @@ class AnyModelProviderMixin(ProviderModelMixin):
                     cls.model_aliases[alias] = model
 
     @classmethod
-    def get_grouped_models(cls, ignored: list[str] = []) -> dict[str, list[str]]:
-        unsorted_models = cls.get_models(ignored=ignored)
+    async def get_grouped_models(cls, ignored: list[str] = []) -> dict[str, list[str]]:
+        unsorted_models = await cls.get_models(ignored=ignored)
         groups = {key: [] for key in LABELS.keys()}
 
         # Always add default first

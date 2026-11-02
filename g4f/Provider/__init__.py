@@ -72,6 +72,7 @@ class ProviderLoader:
         "Ollama",
         "OmniRoute",
         "PiFreeflow",
+        "OpenaiAccount",
         "OpenAIFM",
         "OpenRouterFree",
         "ChatGPT",
