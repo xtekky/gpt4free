@@ -54,6 +54,9 @@ WebView polls /chat/ until 200, then loads it (2-thread executor: server + polle
 - Only arm64-v8a and x86_64 ABIs are bundled
 - Debug-signed; for release, add a signing config and run `assembleRelease`
 - Asset extraction version: bump `EXTRACTION_VERSION` in `MainActivity.java` when bundled assets change
+- Startup polls the page it displays (`/chat/`) on a fixed deadline and shows the
+  failure (with the HTTP status) instead of spinning forever; the bundled
+  `bootstrap.py` sets `G4F_NO_VERSION_CHECK=1` so rendering never waits on PyPI
 
 ## Media & clipboard support
 

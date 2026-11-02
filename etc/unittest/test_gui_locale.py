@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import requests
+from flask import Response
 
 from g4f.gui import get_gui_app
 from g4f.gui.server.locale import normalize_text, translate_text
@@ -72,6 +73,23 @@ class TestGuiLocale(unittest.TestCase):
             self.assertNotIn('href="/css/', html)
         finally:
             response.close()
+
+    def test_index_handles_prepared_response(self):
+        # render() returns a prepared Response for pages served from the
+        # local dist directory or the download cache. That response used to
+        # reach seo_document() unconverted, raising a TypeError and turning
+        # "/" into HTTP 500 on every launch after the page was cached.
+        cached = Response(DOCUMENT, mimetype="text/html")
+        cached.headers["Cache-Control"] = "public, max-age=31536000"
+        with patch("g4f.gui.server.website.render", return_value=cached):
+            response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("G4F AI Tools & Dashboard", html)
+        self.assertIn('<html lang="en">', html)
+        self.assertEqual(
+            response.headers["Cache-Control"], "public, max-age=31536000"
+        )
 
     def test_invalid_locales_and_pages(self):
         self.assertEqual(self.client.get("/xx/home.html").status_code, 404)

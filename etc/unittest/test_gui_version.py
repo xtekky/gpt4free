@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch
 
@@ -107,6 +108,31 @@ class TestVersionedHelpers(unittest.TestCase):
                 "earliest-after-release",
             )
         versioned._REF_CACHE.pop(version, None)
+
+
+class TestVersionUtils(unittest.TestCase):
+    def test_no_version_check_skips_network_lookup(self):
+        from g4f import version as version_module
+
+        with patch.dict(os.environ, {"G4F_NO_VERSION_CHECK": "1"}), \
+             patch.object(version_module, "get_pypi_version") as pypi, \
+             patch.object(version_module, "get_github_version") as github:
+            self.assertEqual(
+                version_module.VersionUtils().latest_version,
+                version_module.utils.current_version,
+            )
+        pypi.assert_not_called()
+        github.assert_not_called()
+
+    def test_version_check_enabled_by_default(self):
+        from g4f import version as version_module
+
+        with patch.dict(os.environ, {"G4F_NO_VERSION_CHECK": "0"}), \
+             patch.object(version_module, "get_pypi_version", return_value="9.9.9"), \
+             patch.object(version_module, "get_github_version", return_value="v9.9.9"):
+            self.assertIn(
+                version_module.VersionUtils().latest_version, ("9.9.9", "v9.9.9")
+            )
 
 
 class TestVersionedRoutes(unittest.TestCase):

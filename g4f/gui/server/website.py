@@ -265,9 +265,27 @@ class Website:
             result = render(filename)
         except requests.RequestException:
             abort(404)
-        if request.method == "GET" and filename in PAGES:
-            return seo_document(result, filename, "en")
-        return result
+        if request.method != "GET" or filename not in PAGES:
+            return result
+        # render() returns a prepared Response when the page is served from
+        # the local dist directory or from the download cache, and a plain
+        # HTML string when it was just fetched. seo_document() only accepts
+        # markup, so decorating a Response raised a TypeError (HTTP 500) on
+        # every cached request (e.g. the Android app polling "/").
+        if isinstance(result, Response):
+            if not (result.mimetype or "").startswith("text/html"):
+                return result
+            # send_from_directory() responses are in direct passthrough
+            # mode; materialise the body so it can be decorated.
+            result.direct_passthrough = False
+            response = Response(
+                seo_document(result.get_data(as_text=True), filename, "en"),
+                mimetype="text/html",
+            )
+            if "Cache-Control" in result.headers:
+                response.headers["Cache-Control"] = result.headers["Cache-Control"]
+            return response
+        return seo_document(result, filename, "en")
 
     def _agent(self):
         return render("agent")

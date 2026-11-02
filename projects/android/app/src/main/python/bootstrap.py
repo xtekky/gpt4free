@@ -28,6 +28,9 @@ def main(app_root: str, port: int, version: str | None = None) -> None:
     os.environ["G4F_VERSION"] = version or "0.1.0-android"
     os.environ["G4F_API_HOST"] = "127.0.0.1"
     os.environ["G4F_API_PORT"] = str(port)
+    # g4f.gui asks PyPI/GitHub for the latest version while rendering pages
+    # (and on every asset request when offline). Skip that lookup: it is
+    # pointless inside the app and used to stall the first paint.
     os.environ["G4F_NO_VERSION_CHECK"] = "1"
     # g4f resolves DIST_DIR relative to CWD: ./g4f.dev/dist
     os.chdir(app_root)

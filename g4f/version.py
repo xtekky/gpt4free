@@ -156,7 +156,13 @@ class VersionUtils:
         """
         Returns the latest available version of g4f.
         If not installed via PyPI, falls back to GitHub releases.
+        Set G4F_NO_VERSION_CHECK=1 to skip the network lookup (offline or
+        embedded environments such as the Android app).
         """
+        if environ.get("G4F_NO_VERSION_CHECK", "").strip().lower() not in (
+            "", "0", "false", "no",
+        ):
+            return self.current_version
         try:
             try:
                 from importlib.metadata import (

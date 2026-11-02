@@ -12,6 +12,7 @@ from ..Provider import ProviderUtils
 from ..Provider.template import OpenaiTemplate
 from ..config import get_cache_dir
 from ..config import AppConfig
+from .. import debug
 
 
 def create_custom_provider(
@@ -68,6 +69,55 @@ class AbstractClientFactory:
     # Registry of live/custom providers
     _live_providers_url = "https://g4f.dev/dist/js/providers.json"
     _live_providers: Dict[str, Dict] = {}
+    # Minimal registry used when the live provider list cannot be downloaded
+    # (offline device, blocked CDN, ...). Loading it must never fail: the
+    # built-in G4FSpace provider is resolved from it while ``g4f.gui`` is
+    # being imported, so an exception here broke the whole GUI at startup.
+    _fallback_live_providers: Dict[str, Dict] = {
+        "providers": {
+            "default": {"label": "default", "backupUrl": "https://g4f.space/v1"},
+        },
+        "defaultModels": {"default": "auto"},
+    }
+
+    @classmethod
+    def _fallback_registry(cls) -> Dict[str, Dict]:
+        return {
+            "providers": dict(cls._fallback_live_providers["providers"]),
+            "defaultModels": dict(cls._fallback_live_providers["defaultModels"]),
+        }
+
+    @classmethod
+    def _load_live_providers(cls, path: Path) -> Dict[str, Dict]:
+        """Load the live provider registry, preferring the daily cache.
+
+        Never blocks indefinitely and never raises: without a network the
+        minimal fallback registry is used instead.
+        """
+        try:
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict) and data.get("providers"):
+                    return data
+        except (OSError, ValueError):
+            pass
+        try:
+            response = requests.get(cls._live_providers_url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except (requests.RequestException, ValueError):
+            debug.log(f"Failed to load live providers from {cls._live_providers_url}")
+            return cls._fallback_registry()
+        if not isinstance(data, dict) or not data.get("providers"):
+            return cls._fallback_registry()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+        except OSError:
+            pass
+        return data
 
     @classmethod
     def create_provider(
@@ -112,13 +162,7 @@ class AbstractClientFactory:
                     / f"providers.json"
                 )
                 path.parent.mkdir(parents=True, exist_ok=True)
-                if path.exists():
-                    with open(path, "r", encoding="utf-8") as f:
-                        cls._live_providers = json.load(f)
-                if not cls._live_providers:
-                    cls._live_providers = requests.get(cls._live_providers_url).json()
-                    with open(path, "w", encoding="utf-8") as f:
-                        json.dump(cls._live_providers, f, indent=4)
+                cls._live_providers = cls._load_live_providers(path)
             if provider in cls._live_providers.get("providers", {}):
                 config = cls._live_providers["providers"][provider]
                 if (

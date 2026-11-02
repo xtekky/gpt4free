@@ -42,10 +42,14 @@ public class MainActivity extends Activity {
     private FrameLayout rootLayout;
     private ExecutorService executor;
     public static final int PORT = 1337;
+    // Startup wait budget for the embedded server, and the per-request read
+    // timeout (the first request may fetch the UI from the CDN).
+    private static final long STARTUP_TIMEOUT_MS = 120_000L;
+    private static final int READ_TIMEOUT_MS = 30_000;
     private static final String APP_DIR = "app";
-    // v7: g4f.dev assets are no longer embedded (GUI is CDN-fetched at
-    // runtime); bump cleans previously extracted g4f.dev files.
-    private static final String EXTRACTION_VERSION = "7";
+    // v8: bundled g4f package updated (GUI "/" route fix, version checks
+    // disabled on Android). Bump also cleans the stale extraction.
+    private static final String EXTRACTION_VERSION = "8";
 
     // File chooser (image / file upload from the chat UI)
     private static final int FILE_CHOOSER_REQUEST = 1001;
@@ -383,28 +387,70 @@ public class MainActivity extends Activity {
         loadChatWhenReady();
     }
 
+    /** URL of the chat UI served by the embedded Flask app. */
+    private String chatUrl() {
+        return "http://127.0.0.1:" + PORT + "/chat/";
+    }
+
     private void loadChatWhenReady() {
         executor.execute(() -> {
-            String url = "http://127.0.0.1:" + PORT + "/";
+            // Poll the page the WebView is actually going to show. Polling
+            // "/" used to succeed once and then return HTTP 500 on every
+            // later launch (cached page path), which left the splash screen
+            // spinning until the timeout expired.
+            String url = chatUrl();
+            long deadline = System.currentTimeMillis() + STARTUP_TIMEOUT_MS;
+            String lastError = "no response yet";
             boolean up = false;
-            for (int i = 0; i < 120; i++) {
+            int serverErrors = 0;
+            while (System.currentTimeMillis() < deadline) {
+                java.net.HttpURLConnection c = null;
+                boolean retry = true;
                 try {
-                    java.net.URL u = new java.net.URL(url);
-                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) u.openConnection();
-                    c.setConnectTimeout(1000);
-                    c.setReadTimeout(1000);
+                    c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                    c.setInstanceFollowRedirects(true);
+                    c.setConnectTimeout(2000);
+                    // The first request may download the chat UI from the
+                    // CDN, so give the server time before declaring failure.
+                    c.setReadTimeout(READ_TIMEOUT_MS);
                     int code = c.getResponseCode();
-                    c.disconnect();
-                    if (code == 200) { up = true; break; }
-                } catch (Exception ignored) {}
-                try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+                    if (code == 200) {
+                        up = true;
+                        break;
+                    }
+                    lastError = "HTTP " + code + " for " + url;
+                    // A 5xx may be a transient upstream/CDN hiccup, so retry
+                    // a few times. 4xx means the page is really gone.
+                    if (code < 500) {
+                        retry = false;
+                    } else if (++serverErrors >= 3) {
+                        retry = false;
+                    }
+                } catch (java.net.SocketTimeoutException e) {
+                    lastError = "timed out waiting for " + url;
+                } catch (Exception e) {
+                    lastError = String.valueOf(e);
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                if (!retry) break;
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    lastError = "interrupted";
+                    break;
+                }
             }
             final boolean ok = up;
+            final String detail = lastError;
+            android.util.Log.i("g4f-bootstrap", "startup " + (ok ? "ready" : "failed: " + detail));
             runOnUiThread(() -> {
                 if (ok) {
                     webView.loadUrl(url);
                 } else {
-                    showError("Server did not respond within 120s. Check logcat for [g4f-bootstrap].");
+                    showError("The g4f server is not serving " + url
+                        + "\n\n" + detail
+                        + "\n\nCheck logcat for [g4f-bootstrap] and [g4f-server].");
                 }
             });
         });
