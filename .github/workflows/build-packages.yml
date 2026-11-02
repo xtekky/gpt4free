@@ -205,11 +205,11 @@ jobs:
     # signed with the same key, so APKs can be installed as updates. Without
     # them the build falls back to the throwaway debug key (users must
     # uninstall before switching versions). See projects/android/README.md.
+    #
+    # Secrets: ANDROID_KEYSTORE_BASE64 (required to enable signing),
+    # ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
     env:
       G4F_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      G4F_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      G4F_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      G4F_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -227,11 +227,49 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Decode release keystore
+      - name: Decode and verify release keystore
         if: env.G4F_KEYSTORE_BASE64 != ''
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "$G4F_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/g4f-release.jks"
-          echo "G4F_KEYSTORE=$RUNNER_TEMP/g4f-release.jks" >> "$GITHUB_ENV"
+          set -euo pipefail
+          # Secrets keep whatever was pasted, including trailing newlines.
+          storepass="$(printf '%s' "${KEYSTORE_PASSWORD:-}" | tr -d '\r\n')"
+          keypass="$(printf '%s' "${KEY_PASSWORD:-}" | tr -d '\r\n')"
+          alias="${KEY_ALIAS:-g4f}"
+          alias="$(printf '%s' "$alias" | tr -d '\r\n')"
+          keystore="$RUNNER_TEMP/g4f-release.jks"
+
+          if [ -z "$storepass" ]; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD is empty"
+            exit 1
+          fi
+          if [ -z "$keypass" ]; then
+            keypass="$storepass"
+          fi
+
+          printf '%s' "$G4F_KEYSTORE_BASE64" | tr -d '\r\n \t' | base64 -d > "$keystore"
+
+          if ! keytool -list -keystore "$keystore" -storepass "$storepass" >/dev/null 2>&1; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD does not open the keystore (check for a typo or stray whitespace)"
+            exit 1
+          fi
+          if ! keytool -certreq -alias "$alias" -keystore "$keystore" \
+                 -storepass "$storepass" -keypass "$keypass" >/dev/null 2>&1; then
+            echo "::error::Cannot read key '$alias': ANDROID_KEY_ALIAS or ANDROID_KEY_PASSWORD is wrong"
+            keytool -list -keystore "$keystore" -storepass "$storepass" | grep -E "PrivateKeyEntry|SecretKeyEntry" || true
+            exit 1
+          fi
+
+          {
+            echo "G4F_KEYSTORE=$keystore"
+            echo "G4F_KEYSTORE_PASSWORD=$storepass"
+            echo "G4F_KEY_ALIAS=$alias"
+            echo "G4F_KEY_PASSWORD=$keypass"
+          } >> "$GITHUB_ENV"
+          echo "Release key '$alias' verified"
 
       - name: Build Android APK
         working-directory: projects/android

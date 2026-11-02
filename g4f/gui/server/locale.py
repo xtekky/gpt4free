@@ -230,8 +230,16 @@ def _seo_document(html, page, locale):
     )
 
 
-def _relative_url(value, path, locale):
-    """Make an internal URL relative to the locale root (see <base>)."""
+def _locale_url(value, path, locale):
+    """Resolve an internal URL to a root-absolute, locale-prefixed path.
+
+    Locale pages do not inject a ``<base>`` element any more: a base element
+    changes how fragment-only links (``#login``) and
+    ``history.pushState("#settings")`` resolve, which used to move
+    ``/de/chat/`` to ``/de/``. Resolving internal links here keeps them inside
+    the locale prefix without that side effect. Fragment-only and query-only
+    URLs are returned unchanged so they stay on the current page.
+    """
     if not value or value.startswith(("#", "?")):
         return value
     if _SCHEME.match(value) or value.startswith(("{{", "{%", "${")):
@@ -244,8 +252,9 @@ def _relative_url(value, path, locale):
     # Avoid /es/es/... when the source already contains a locale prefix.
     if len(segments) > 1 and segments[1].lower() in LOCALES:
         path_only = "/" + "/".join(segments[2:])
-    relative = path_only.lstrip("/") or "."
-    return urlunsplit(("", "", relative, resolved.query, resolved.fragment))
+    if locale != "en":
+        path_only = f"/{locale}{path_only if path_only.startswith('/') else '/' + path_only}"
+    return urlunsplit(("", "", path_only, resolved.query, resolved.fragment))
 
 
 def _rewrite_urls(html, path, locale):
@@ -256,7 +265,7 @@ def _rewrite_urls(html, path, locale):
 
         def rewrite_attr(attr):
             prefix, quote, value = attr.group(1), attr.group(2), attr.group(3)
-            return prefix + quote + _relative_url(value, path, locale) + quote
+            return prefix + quote + _locale_url(value, path, locale) + quote
 
         return _URL_ATTR.sub(rewrite_attr, tag)
 
@@ -317,15 +326,10 @@ def localize_document(html, locale, page=None, path="/"):
     html = _seo_document(html, page, locale)
     html = _translate_nodes(html, translations_for(locale, page))
     html = _rewrite_urls(html, path or "/", locale)
-    # The base tag must be inserted after URL rewriting so it is not rewritten.
+    # Links are already locale-prefixed; drop any upstream <base> so relative
+    # fragment links keep resolving against the current page instead of the
+    # locale root (e.g. #login on /de/chat/ must not become /de/#login).
     html = re.sub(r"<base\b[^>]*>", "", html, flags=re.I)
-    html = re.sub(
-        r"(<head\b[^>]*>)",
-        lambda match: match.group(1) + f'<base href="/{locale}/">',
-        html,
-        count=1,
-        flags=re.I,
-    )
     if _RUNTIME_MARKER not in html:
         script = _runtime_script(locale)
         html = re.sub(r"</body>", script + "</body>", html, count=1, flags=re.I)
@@ -347,7 +351,7 @@ class LocaleMiddleware:
     """Strip a leading /<locale> prefix before Flask routing.
 
     This lets every existing page, asset, and API route work under the locale
-    prefix, which is what makes relative links and <base> safe.
+    prefix without duplicate route definitions.
     """
 
     def __init__(self, wsgi_app):

@@ -106,6 +106,23 @@ Without a keystore the build falls back to the debug key, which keeps plain
 `assembleDebug` working. Builds signed with a different key than the installed
 app still need `adb uninstall dev.g4f.android` once.
 
+The CI step *Decode and verify release keystore* validates the secrets before
+building and names the failing one (`ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Check the same thing locally:
+
+```bash
+# store password opens the keystore?
+keytool -list -keystore ~/keystores/g4f-release.jks -storepass "$G4F_KEYSTORE_PASSWORD"
+# key alias + key password can read the private key?
+keytool -certreq -alias g4f -keystore ~/keystores/g4f-release.jks \
+  -storepass "$G4F_KEYSTORE_PASSWORD" -keypass "$G4F_KEY_PASSWORD" >/dev/null && echo key OK
+```
+
+`KeytoolException: Failed to read key <alias> ... keystore password was
+incorrect` means the key password does not match the store (PKCS12 stores
+verify both together). Regenerate with `create-keystore.sh`, which sets both to
+the same value, and update all secrets.
+
 ## Architecture
 
 ```

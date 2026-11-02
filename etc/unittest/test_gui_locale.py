@@ -30,14 +30,14 @@ class TestGuiLocale(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
         self.assertIn('<html lang="es">', html)
-        self.assertIn('<base href="/es/">', html)
+        self.assertNotIn("<base", html)
         self.assertIn('href="https://g4f.space/es/"', html)
         self.assertIn('hreflang="fr" href="https://g4f.space/fr/"', html)
         self.assertIn("Herramientas de IA de G4F", html)
-        self.assertNotIn('href="/es/providers/"', html)
-        self.assertIn('href="providers/"', html)
-        self.assertIn('href="."', html)
-        self.assertIn('src="dist/app.js"', html)
+        self.assertIn('href="/es/providers/"', html)
+        self.assertIn('href="/es/"', html)
+        self.assertIn('src="/es/dist/app.js"', html)
+        self.assertNotIn('href="/es/es/', html)
         self.assertIn("loadGlobalTranslations", html)
         self.assertIn("data-g4f-locale-runtime", html)
         self.assertIn("setSelectedLanguage", html)
@@ -60,15 +60,15 @@ class TestGuiLocale(unittest.TestCase):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200, path)
                 html = response.get_data(as_text=True)
-                self.assertIn('<base href="/es/">', html)
-                self.assertIn('href="providers/"', html)
+                self.assertNotIn("<base", html)
+                self.assertIn('href="/es/providers/"', html)
 
         response = self.client.get("/de/playground/")
         try:
             self.assertEqual(response.status_code, 200)
             html = response.get_data(as_text=True)
             self.assertIn('<html lang="de">', html)
-            self.assertIn('<base href="/de/">', html)
+            self.assertNotIn("<base", html)
             self.assertIn("KI-Playground", html)
             self.assertNotIn('href="/css/', html)
         finally:
@@ -108,7 +108,22 @@ class TestGuiLocale(unittest.TestCase):
         self.assertIn('<html lang="de">', html)
         self.assertIn("Verfügbare Anbieter", html)
         self.assertIn('rel="canonical" href="https://g4f.space/de/providers/"', html)
-        self.assertIn('href="providers/"', html)
+        self.assertIn('href="/de/providers/"', html)
+        self.assertNotIn("<base", html)
+
+    def test_fragment_and_query_links_stay_on_current_page(self):
+        document = DOCUMENT.replace(
+            '<a href="/">Home</a>',
+            '<a href="/">Home</a><a href="#login">Login</a><a href="?q=1">Query</a>',
+        )
+        with patch("g4f.gui.server.website.render", return_value=document):
+            response = self.client.get("/de/chat/")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        # Without a <base> these must resolve against /de/chat/, not /de/.
+        self.assertIn('href="#login"', html)
+        self.assertIn('href="?q=1"', html)
+        self.assertNotIn("<base", html)
 
     def test_headers_and_country_ip(self):
         response = self.client.get("/headers", headers={"Authorization": "secret", "X-Test": "ok"})
