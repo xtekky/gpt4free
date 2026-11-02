@@ -17,6 +17,7 @@ from g4f.mcp.tools import (
     FileReadTool,
     FileListTool,
     FileDeleteTool,
+    FileSearchGlobTool,
 )
 from g4f.mcp.pa_provider import execute_safe_code, get_workspace_dir, SAFE_MODULES
 
@@ -365,6 +366,71 @@ class TestFilesTools(unittest.IsolatedAsyncioTestCase):
         read_tool = FileReadTool()
         result = await read_tool.execute({"path": "../../etc/passwd"})
         self.assertIn("error", result)
+
+
+class TestFileSearchGlobTool(unittest.IsolatedAsyncioTestCase):
+    """Tests for workspace glob search arguments and directory pruning."""
+
+    def _make_workspace(self, tmp: str) -> Path:
+        root = Path(tmp)
+        (root / "src" / "nested").mkdir(parents=True)
+        (root / "src" / "app.js").write_text("app")
+        (root / "src" / "nested" / "deep.js").write_text("deep")
+        (root / "root.js").write_text("root")
+        (root / "provider.pa.js").write_text("provider")
+        for heavy in ("node_modules/pkg", ".toolchain/bin", ".venv/lib"):
+            directory = root / heavy
+            directory.mkdir(parents=True)
+            (directory / "ignored.js").write_text("ignored")
+        return root
+
+    async def test_glob_search_skips_dependency_and_tool_dirs(self):
+        """node_modules/.toolchain/.venv must not slow down or pollute results."""
+        from g4f.mcp import pa_provider
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = self._make_workspace(tmp)
+            with mock.patch.object(
+                pa_provider, "get_workspace_dir", return_value=workspace
+            ):
+                result = await FileSearchGlobTool().execute({"query": "**/*.js"})
+        self.assertNotIn("error", result)
+        self.assertEqual(
+            sorted(result["matches"]),
+            ["src/app.js", "src/nested/deep.js"],
+        )
+
+    async def test_glob_search_accepts_snake_case_arguments(self):
+        """Clients send max_results/recursive; both must be honored."""
+        from g4f.mcp import pa_provider
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = self._make_workspace(tmp)
+            with mock.patch.object(
+                pa_provider, "get_workspace_dir", return_value=workspace
+            ):
+                limited = await FileSearchGlobTool().execute(
+                    {"query": "**/*.js", "max_results": 1}
+                )
+                flat = await FileSearchGlobTool().execute(
+                    {"query": "*.js", "recursive": False}
+                )
+        self.assertNotIn("error", limited)
+        self.assertEqual(limited["count"], 1)
+        self.assertEqual(sorted(flat["matches"]), ["provider.pa.js", "root.js"])
+
+    async def test_glob_search_zero_results_returns_immediately(self):
+        from g4f.mcp import pa_provider
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = self._make_workspace(tmp)
+            with mock.patch.object(
+                pa_provider, "get_workspace_dir", return_value=workspace
+            ):
+                result = await FileSearchGlobTool().execute(
+                    {"query": "**/*.js", "maxResults": 0}
+                )
+        self.assertEqual(result, {"pattern": "**/*.js", "matches": [], "count": 0})
 
 
 class TestSafeCodeExecution(unittest.TestCase):

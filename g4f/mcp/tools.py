@@ -21,7 +21,7 @@ This module provides MCP tool implementations that wrap gpt4free capabilities:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
 import asyncio
 import base64
@@ -1424,6 +1424,54 @@ class FetchWebpageTool(MCPTool):
         return {"query": query, "results": results}
 
 
+#: Directories that recursive workspace searches never descend into.  They
+#: are dependency, cache, and tool directories that can contain hundreds of
+#: thousands of files without holding anything a workspace search looks for.
+#: Walking them made ``file_search_glob`` take minutes on large workspaces.
+SKIP_SCAN_DIRS = frozenset(
+    {
+        ".git",
+        ".hg",
+        ".svn",
+        "__pycache__",
+        "node_modules",
+        ".venv",
+        "venv",
+        "site-packages",
+        ".toolchain",
+        ".cache",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".tox",
+    }
+)
+
+#: Maximum wall-clock seconds a single workspace glob search may run before
+#: returning the matches found so far.  Prevents an MCP call from hanging on
+#: very large trees (for example a 20 GB media directory).
+GLOB_SEARCH_TIMEOUT = 10.0
+
+_GLOB_META = re.compile(r"[*?[]")
+
+
+def _static_glob_prefix(pattern: str) -> str:
+    """Return the leading, glob-free directory part of *pattern*.
+
+    ``src/**/*.py`` has the prefix ``src`` so the walk can start there instead
+    of at the workspace root.  Returns ``""`` when the pattern starts with a
+    wildcard (for example ``**/*.py``).
+    """
+    prefix = []
+    for part in pattern.replace("\\", "/").split("/"):
+        if not part:
+            continue
+        if _GLOB_META.search(part):
+            break
+        prefix.append(part)
+    return "/".join(prefix)
+
+
 class FileSearchGlobTool(MCPTool):
     """Search for files in the workspace by glob pattern."""
 
@@ -1449,39 +1497,141 @@ class FileSearchGlobTool(MCPTool):
                     "description": "The maximum number of results to return (default: 50)",
                     "default": 50,
                 },
+                "recursive": {
+                    "type": "boolean",
+                    "description": "If true, search subdirectories as well (default: true)",
+                    "default": True,
+                },
             },
             "required": ["query"],
         }
+
+    def _search(
+        self,
+        workspace: "Path",
+        pattern: str,
+        max_results: int,
+        recursive: bool = True,
+    ) -> Dict[str, Any]:
+        """Walk *workspace* and collect matching relative paths.
+
+        Uses :func:`os.walk` (which does not ``stat`` regular files) and only
+        stats the patterns that actually match.  The previous implementation
+        called ``Path.is_file()`` on every entry, which is very slow on large
+        or network-backed workspaces.
+        """
+        from pathlib import Path
+
+        workspace = Path(workspace)
+        matches = []
+        scanned = 0
+
+        start = workspace
+        prefix = _static_glob_prefix(pattern)
+        if prefix:
+            candidate = (workspace / prefix).resolve()
+            try:
+                candidate.relative_to(workspace)
+                if candidate.is_dir():
+                    start = candidate
+            except (ValueError, OSError):
+                pass
+
+        deadline = time.monotonic() + GLOB_SEARCH_TIMEOUT
+        timed_out = False
+
+        for dirpath, dirnames, filenames in os.walk(start, followlinks=False):
+            # Prune heavy directories instead of descending into them.
+            dirnames[:] = [
+                name
+                for name in dirnames
+                if name not in SKIP_SCAN_DIRS
+                and not (self.safe_mode and name.startswith("."))
+            ]
+
+            rel_dir = os.path.relpath(dirpath, workspace)
+            for name in filenames:
+                scanned += 1
+                # Also honor the deadline inside very large flat directories.
+                if scanned % 2048 == 0 and time.monotonic() >= deadline:
+                    timed_out = True
+                    break
+                rel_str = (
+                    name
+                    if rel_dir == "."
+                    else f"{rel_dir.replace(os.sep, '/')}/{name}"
+                )
+                if not (
+                    fnmatch.fnmatch(rel_str, pattern)
+                    or fnmatch.fnmatch(name, pattern)
+                ):
+                    continue
+                if self.is_hidden_file(rel_str):
+                    continue
+                if not os.path.isfile(os.path.join(dirpath, name)):
+                    continue
+                matches.append(rel_str)
+                if len(matches) >= max_results:
+                    return self._result(
+                        pattern, matches, scanned, timed_out=False
+                    )
+
+            if not recursive:
+                break
+            if time.monotonic() >= deadline:
+                timed_out = True
+                break
+
+        return self._result(pattern, matches, scanned, timed_out)
+
+    @staticmethod
+    def _result(
+        pattern: str,
+        matches: List[str],
+        scanned: int,
+        timed_out: bool,
+    ) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "pattern": pattern,
+            "matches": matches,
+            "count": len(matches),
+        }
+        if timed_out:
+            result["truncated"] = True
+            result["scanned"] = scanned
+        return result
 
     async def execute(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         from .pa_provider import get_workspace_dir, get_secret_workspace_dir
 
         pattern = arguments.get("query", "")
-        max_results = int(arguments.get("maxResults", 50))
+        # Accept both the schema name and the snake_case variant used by some
+        # clients; the latter used to be silently ignored.
+        raw_max_results = arguments.get(
+            "maxResults", arguments.get("max_results", 50)
+        )
+        try:
+            max_results = int(raw_max_results)
+        except (TypeError, ValueError):
+            return {"error": "maxResults must be a number"}
+        max_results = max(0, max_results)
+        recursive = bool(arguments.get("recursive", True))
 
         if not pattern:
             return {"error": "query parameter is required"}
+        if max_results == 0:
+            return {"pattern": pattern, "matches": [], "count": 0}
 
         user_id = arguments.get("user_id")
         workspace_secret = arguments.get("workspace_secret")
         root = get_workspace_dir().resolve()
         workspace = get_secret_workspace_dir(user_id).resolve() if (workspace_secret and user_id) else root
         try:
-            matches = []
-            for entry in workspace.rglob("*"):
-                if not entry.is_file():
-                    continue
-                rel = entry.relative_to(workspace)
-                rel_str = rel.as_posix()
-                if self.is_hidden_file(rel_str):
-                    continue
-                if fnmatch.fnmatch(rel_str, pattern) or fnmatch.fnmatch(
-                    entry.name, pattern
-                ):
-                    matches.append(rel_str)
-                if len(matches) >= max_results:
-                    break
-            return {"pattern": pattern, "matches": matches, "count": len(matches)}
+            # Filesystem walking is blocking: keep it off the event loop so the
+            # MCP server can still answer other requests while it runs.
+            return await asyncio.to_thread(
+                self._search, workspace, pattern, max_results, recursive
+            )
         except Exception as exc:
             return {"error": f"File search failed: {exc}"}
 
