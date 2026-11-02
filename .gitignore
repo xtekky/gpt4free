@@ -23,3 +23,6 @@ g4f.dev
 # Automatic development pipeline runtime
 .dev-pipeline/
 .pi/
+# Android signing keys must never be committed
+*.jks
+*.keystore

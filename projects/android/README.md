@@ -15,6 +15,19 @@ adb install -r g4f-v8.5.9.apk
 
 Or copy the APK to a phone and open it (enable "Install unknown apps").
 
+Release APKs are signed with the build runner's debug key, so a locally built
+APK (signed with your own `~/.android/debug.keystore`) cannot be installed over
+one. Android reports this as "App not installed". Uninstall the existing app
+once, then install the local build:
+
+```bash
+adb uninstall dev.g4f.android
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Installs coming from the same source keep working afterwards (`adb install -r`).
+The same applies in reverse when switching back to a release APK.
+
 Watch startup logs:
 
 ```bash
@@ -38,6 +51,61 @@ cd android
 The build checks that Brotli is included in the APK for both bundled ABIs.
 To check an existing APK: `python3 check_brotli.py app/build/outputs/apk/debug/app-debug.apk`.
 
+## Signing key
+
+Android only installs an APK that is signed with the same key as the installed
+app. Without a configured key every build (local and CI) uses a throwaway debug
+key, so switching builds always requires an uninstall first.
+
+Create one key and reuse it everywhere:
+
+```bash
+cd projects/android
+./create-keystore.sh              # prompts for a password, default ~/keystores/g4f-release.jks
+base64 -w0 ~/keystores/g4f-release.jks   # paste into a GitHub secret
+```
+
+Or manually (same password for store and key — PKCS12 keystores, the JDK
+default, cannot hold two different ones):
+
+```bash
+keytool -genkeypair -v -keystore ~/keystores/g4f-release.jks -alias g4f \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass '<password>' -keypass '<password>' -dname "CN=G4F, O=gpt4free, C=DE"
+```
+
+`keytool: keystore password was incorrect` when *creating* a key means the
+target file already exists and is opened with a different password. Remove the
+leftover file (only if nothing was signed with it yet) or point at a new path;
+`keytool -list -keystore <file>` tells you whether the password works.
+
+Keep the keystore out of the repository (`*.jks` / `*.keystore` are ignored).
+Then either export the values locally:
+
+```bash
+export G4F_KEYSTORE=~/keystores/g4f-release.jks
+export G4F_KEYSTORE_PASSWORD=...
+export G4F_KEY_ALIAS=g4f                   # optional, defaults to "g4f"
+export G4F_KEY_PASSWORD=...                # optional, defaults to the store password
+./gradlew assembleRelease                   # or: ../../android-tools/gradle-8.7/bin/gradle assembleRelease
+```
+
+or pass `-Pg4fKeystore=... -Pg4fKeystorePassword=... -Pg4fKeyAlias=...`.
+
+For CI, add these repository secrets and `build-android` uses them
+automatically when `ANDROID_KEYSTORE_BASE64` is present:
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | base64 of `g4f-release.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | store password |
+| `ANDROID_KEY_ALIAS` | key alias |
+| `ANDROID_KEY_PASSWORD` | key password |
+
+Without a keystore the build falls back to the debug key, which keeps plain
+`assembleDebug` working. Builds signed with a different key than the installed
+app still need `adb uninstall dev.g4f.android` once.
+
 ## Architecture
 
 ```
@@ -52,7 +120,8 @@ WebView polls /chat/ until 200, then loads it (2-thread executor: server + polle
 
 - `chaquopy {}` block is top-level in `app/build.gradle` (Chaquopy 17 DSL)
 - Only arm64-v8a and x86_64 ABIs are bundled
-- Debug-signed; for release, add a signing config and run `assembleRelease`
+- `assembleRelease` uses the optional stable key (see [Signing key](#signing-key)),
+  falling back to the debug key; `assembleDebug` always uses the debug key
 - Asset extraction version: bump `EXTRACTION_VERSION` in `MainActivity.java` when bundled assets change
 - Startup polls the page it displays (`/chat/`) on a fixed deadline and shows the
   failure (with the HTTP status) instead of spinning forever; the bundled

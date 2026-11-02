@@ -201,6 +201,15 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     needs: prepare
+    # Optional stable release key. When these secrets exist, every release is
+    # signed with the same key, so APKs can be installed as updates. Without
+    # them the build falls back to the throwaway debug key (users must
+    # uninstall before switching versions). See projects/android/README.md.
+    env:
+      G4F_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      G4F_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      G4F_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      G4F_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -217,6 +226,12 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Decode release keystore
+        if: env.G4F_KEYSTORE_BASE64 != ''
+        run: |
+          echo "$G4F_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/g4f-release.jks"
+          echo "G4F_KEYSTORE=$RUNNER_TEMP/g4f-release.jks" >> "$GITHUB_ENV"
 
       - name: Build Android APK
         working-directory: projects/android
