@@ -151,12 +151,12 @@ API_CATALOG: List[Dict] = [
         "name": "Tavily",
         "category": "search",
         "pricing": "free-tier",
-        "requires_key": True,
+        "requires_key": False,
         "env_var": "TAVILY_API_KEY",
         "base_url": "https://api.tavily.com",
         "capabilities": ["search", "fetch"],
         "docs_url": "https://docs.tavily.com/",
-        "description": "Search API tuned for LLM agents.",
+        "description": "Search API with a keyless access mode; set TAVILY_API_KEY for higher limits.",
     },
     {
         "id": "serper",
@@ -174,13 +174,49 @@ API_CATALOG: List[Dict] = [
         "id": "exa",
         "name": "Exa",
         "category": "search",
-        "pricing": "paid",
-        "requires_key": True,
+        "pricing": "free-tier",
+        "requires_key": False,
         "env_var": "EXA_API_KEY",
-        "base_url": "https://api.exa.ai",
+        "base_url": "https://mcp.exa.ai/mcp",
         "capabilities": ["search"],
         "docs_url": "https://docs.exa.ai/",
-        "description": "Neural web search for research and agents.",
+        "description": "Neural web search via Exa's keyless MCP endpoint; set EXA_API_KEY for higher limits.",
+    },
+    {
+        "id": "parallel",
+        "name": "Parallel",
+        "category": "search",
+        "pricing": "free",
+        "requires_key": False,
+        "env_var": "PARALLEL_API_KEY",
+        "base_url": "https://search.parallel.ai/mcp",
+        "capabilities": ["search"],
+        "docs_url": "https://parallel.ai/",
+        "description": "Keyless Parallel Search MCP; set PARALLEL_API_KEY for authenticated usage.",
+    },
+    {
+        "id": "firecrawl",
+        "name": "Firecrawl",
+        "category": "search",
+        "pricing": "free-tier",
+        "requires_key": False,
+        "env_var": "FIRECRAWL_API_KEY",
+        "base_url": "https://mcp.firecrawl.dev/v2/mcp",
+        "capabilities": ["search", "fetch"],
+        "docs_url": "https://docs.firecrawl.dev/",
+        "description": "Keyless web search via the Firecrawl MCP; a key enables crawling/scraping.",
+    },
+    {
+        "id": "tinyfish",
+        "name": "TinyFish",
+        "category": "search",
+        "pricing": "free",
+        "requires_key": False,
+        "env_var": "TINYFISH_API_KEY",
+        "base_url": "https://agent.tinyfish.ai/mcp",
+        "capabilities": ["search"],
+        "docs_url": "https://tinyfish.ai/",
+        "description": "Keyless TinyFish MCP search; set TINYFISH_API_KEY for authenticated usage.",
     },
     {
         "id": "newsapi",
@@ -262,12 +298,42 @@ def list_apis(
     return result
 
 
+DEFAULT_SEARCH_APIS = (
+    "exa",
+    "parallel",
+    "tavily",
+    "firecrawl",
+    "tinyfish",
+    "wikipedia",
+    "hackernews",
+    "duckduckgo",
+)
+
+
 def resolve_apis(api_ids: Optional[Iterable[str]] = None) -> List[Dict]:
-    """Resolve ids to available specs; fall back to keyless search APIs."""
+    """Resolve ids to available specs.
+
+    Without explicit ids the keyless OpenCode-style providers are preferred,
+    followed by Wikipedia, Hacker News and DuckDuckGo.  Override with
+    ``G4F_SEARCH_APIS=exa,wikipedia``.
+    """
     specs: List[Dict] = []
     for api_id in api_ids or []:
         spec = get_api(api_id)
         if spec and api_available(spec):
+            specs.append(spec)
+    if specs:
+        return specs
+
+    configured = os.environ.get("G4F_SEARCH_APIS", "")
+    default_ids = (
+        [item.strip() for item in configured.split(",") if item.strip()]
+        if configured
+        else list(DEFAULT_SEARCH_APIS)
+    )
+    for api_id in default_ids:
+        spec = get_api(api_id)
+        if spec and api_available(spec) and "search" in spec["capabilities"]:
             specs.append(spec)
     if specs:
         return specs

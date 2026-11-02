@@ -38,16 +38,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
         go build -trimpath -ldflags "-s -w" -o /out/g4f-go .
 
 # ---------------------------------------------------------------------------
-# Stage 2: Node.js 24 distribution
-#
-# Staged from the official Node 24 image so the slim image carries the newest
-# Node.js 24 runtime and npm without depending on Debian's older distro package.
-# ---------------------------------------------------------------------------
-# hadolint ignore=DL3006
-FROM ${NODE_IMAGE} AS node-dist
-
-# ---------------------------------------------------------------------------
-# Stage 3: Python dependencies from the Debian interpreter
+# Stage 2: Python dependencies from the Debian interpreter
 #
 # A venv keeps pip out of Debian's externally-managed system Python (PEP 668)
 # and gives the runtime stage a self-contained tree to copy. Built on the same
@@ -76,7 +67,7 @@ RUN /venv/bin/pip install --no-cache-dir -r requirements-slim.txt && \
     find /venv -type f -name '*.pyc' -delete
 
 # ---------------------------------------------------------------------------
-# Stage 4: minimal runtime
+# Stage 3: minimal runtime
 # ---------------------------------------------------------------------------
 # hadolint ignore=DL3006
 FROM ${SANDBOX_BASE}
@@ -97,8 +88,6 @@ ENV G4F_VERSION=$G4F_VERSION \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
-    ffmpeg \
-    flac \
     curl \
     ca-certificates \
     libstdc++6 \
@@ -110,19 +99,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the pre-built Python environment from the builder stage
 COPY --from=builder /venv /venv
-
-# Node.js 24: newest Node 24 runtime and npm copied from the official node image
-# instead of Debian's older nodejs package. The npm/npx/corepack symlinks match
-# the layout of the desktop image.
-COPY --from=node-dist /usr/local/bin/node /usr/local/bin/node
-COPY --from=node-dist /usr/local/include/node /usr/local/include/node
-COPY --from=node-dist /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs && \
-    ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
-    ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
-    ln -sf ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack && \
-    rm -rf /usr/local/lib/node_modules/npm/docs \
-           /usr/local/lib/node_modules/npm/man
 
 # The g4f-go launcher compiled in the first stage. It stays available for the
 # sandbox/client helpers; the API itself runs on the Debian interpreter above.

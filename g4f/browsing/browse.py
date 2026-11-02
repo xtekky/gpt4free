@@ -9,6 +9,7 @@ instead of aborting the whole browse.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import time
@@ -315,12 +316,22 @@ async def _search_brave(session, query: str, limit: int) -> List[Dict]:
 
 async def _search_tavily(session, query: str, limit: int) -> List[Dict]:
     key = os.environ.get("TAVILY_API_KEY")
-    if not key:
-        raise ValueError("TAVILY_API_KEY is not configured")
+    headers = {
+        **_headers(),
+        "X-Client-Name": "g4f",
+        "X-Tavily-Access-Mode": "keyless",
+    }
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
     async with session.post(
         "https://api.tavily.com/search",
-        json={"api_key": key, "query": query, "max_results": limit},
-        headers=_headers(),
+        json={
+            "query": query,
+            "search_depth": "basic",
+            "chunks_per_source": 3,
+            "max_results": limit,
+        },
+        headers=headers,
     ) as response:
         if response.status >= 400:
             raise ValueError(f"HTTP {response.status} from Tavily")
@@ -350,21 +361,253 @@ async def _search_serper(session, query: str, limit: int) -> List[Dict]:
     ]
 
 
-async def _search_exa(session, query: str, limit: int) -> List[Dict]:
-    key = os.environ.get("EXA_API_KEY")
-    if not key:
-        raise ValueError("EXA_API_KEY is not configured")
+def _json_from_text(text: str):
+    """Parse JSON, tolerating an SSE/fenced or prefixed payload."""
+    if not text:
+        return None
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except (ValueError, TypeError):
+        pass
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start : end + 1])
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+def _parse_mcp_response(text: str) -> Optional[Dict]:
+    """Parse an MCP JSON-RPC response delivered as JSON or text/event-stream."""
+    candidates = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if line.startswith("data:"):
+            chunk = line[5:].strip()
+            if chunk and chunk != "[DONE]":
+                candidates.append(chunk)
+    candidates.append(text or "")
+    for candidate in candidates:
+        data = _json_from_text(candidate)
+        if isinstance(data, dict) and ("result" in data or "error" in data):
+            return data
+    return None
+
+
+async def _mcp_call(
+    session,
+    url: str,
+    tool: str,
+    arguments: Dict,
+    headers: Optional[Dict] = None,
+    timeout: float = 25.0,
+    session_id: Optional[str] = None,
+) -> Dict:
+    """Call a tool on a streamable-HTTP MCP server (JSON or SSE response)."""
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": tool, "arguments": arguments},
+    }
+    request_headers = {
+        **_headers(),
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+        **(headers or {}),
+    }
+    if session_id:
+        request_headers["Mcp-Session-Id"] = session_id
     async with session.post(
-        "https://api.exa.ai/search",
-        json={"query": query, "numResults": limit, "contents": {"text": {"maxCharacters": 600}}},
-        headers={**_headers(), "x-api-key": key},
+        url,
+        json=payload,
+        headers=request_headers,
+        timeout=timeout,
     ) as response:
+        body = await response.text()
         if response.status >= 400:
-            raise ValueError(f"HTTP {response.status} from Exa")
-        data = await response.json(content_type=None)
+            raise ValueError(f"HTTP {response.status} from MCP {url}: {body[:200]}")
+    data = _parse_mcp_response(body)
+    if data is None:
+        raise ValueError(f"Invalid MCP response from {url}")
+    if data.get("error"):
+        error = data["error"]
+        message = error.get("message") if isinstance(error, dict) else str(error)
+        raise ValueError(f"MCP error: {message}")
+    return data.get("result", data)
+
+
+def _mcp_content_text(result: Dict) -> str:
+    if not isinstance(result, dict):
+        return ""
+    parts = []
+    for item in result.get("content") or []:
+        if isinstance(item, dict) and item.get("type") == "text" and item.get("text"):
+            parts.append(str(item["text"]))
+    return "\n".join(parts)
+
+
+def parse_exa_text(text: str, limit: int = 10) -> List[Dict]:
+    """Parse the block format returned by Exa's ``web_search_exa`` tool."""
+    results = []
+    for block in (text or "").split("\n\n---\n\n"):
+        url = re.search(r"^URL:\s*(.+)$", block, re.MULTILINE)
+        if not url:
+            continue
+        title = re.search(r"^Title:\s*(.+)$", block, re.MULTILINE)
+        published = re.search(r"^Published:\s*(.+)$", block, re.MULTILINE)
+        content = re.search(r"^(?:Highlights|Text):\s*\n?([\s\S]*)$", block, re.MULTILINE)
+        pub = published.group(1).strip() if published else ""
+        results.append(
+            _result(
+                "exa",
+                title.group(1).strip() if title else "",
+                url.group(1).strip(),
+                content.group(1).strip() if content else "",
+                "" if not pub or pub == "N/A" else pub,
+            )
+        )
+        if len(results) >= limit:
+            break
+    return results
+
+
+async def _search_exa(session, query: str, limit: int) -> List[Dict]:
+    url = "https://mcp.exa.ai/mcp"
+    key = os.environ.get("EXA_API_KEY")
+    if key:
+        url = f"{url}?exaApiKey={quote_plus(key)}"
+    result = await _mcp_call(
+        session,
+        url,
+        "web_search_exa",
+        {"query": query, "numResults": limit},
+    )
+    structured = result.get("structuredContent") if isinstance(result, dict) else None
+    rows = (structured or {}).get("results") if isinstance(structured, dict) else None
+    if rows:
+        return [
+            _result(
+                "exa",
+                row.get("title", ""),
+                row.get("url", ""),
+                row.get("text") or row.get("summary") or "",
+                row.get("publishedDate") or row.get("published") or "",
+            )
+            for row in rows[:limit]
+        ]
+    return parse_exa_text(_mcp_content_text(result), limit=limit)
+
+
+async def _search_parallel(session, query: str, limit: int) -> List[Dict]:
+    key = os.environ.get("PARALLEL_API_KEY")
+    headers = {"User-Agent": _headers()["User-Agent"]}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    result = await _mcp_call(
+        session,
+        "https://search.parallel.ai/mcp",
+        "web_search",
+        {"objective": query, "search_queries": [query]},
+        headers=headers,
+    )
+    structured = result.get("structuredContent") if isinstance(result, dict) else None
+    if not isinstance(structured, dict):
+        structured = _json_from_text(_mcp_content_text(result)) or {}
+    rows = structured.get("results") or []
     return [
-        _result("exa", row.get("title", ""), row.get("url", ""), row.get("text", ""), row.get("publishedDate", ""))
-        for row in (data.get("results") or [])[:limit]
+        _result(
+            "parallel",
+            row.get("title", ""),
+            row.get("url", ""),
+            "\n".join(row.get("excerpts") or []) or row.get("content") or "",
+            row.get("publish_date") or "",
+        )
+        for row in rows[:limit]
+    ]
+
+
+async def _search_firecrawl(session, query: str, limit: int) -> List[Dict]:
+    key = os.environ.get("FIRECRAWL_API_KEY")
+    headers = {"User-Agent": _headers()["User-Agent"]}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    result = await _mcp_call(
+        session,
+        "https://mcp.firecrawl.dev/v2/mcp",
+        "firecrawl_search",
+        {"query": query, "limit": limit},
+        headers=headers,
+    )
+    data = _json_from_text(_mcp_content_text(result)) or {}
+    rows = (data.get("data") or {}).get("web") or data.get("web") or []
+    return [
+        _result("firecrawl", row.get("title", ""), row.get("url", ""), row.get("description", ""))
+        for row in rows[:limit]
+    ]
+
+
+async def _tinyfish_session(session, headers: Dict, timeout: float = 25.0) -> Optional[str]:
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "g4f", "version": "1.0"},
+        },
+    }
+    request_headers = {
+        **_headers(),
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+        **headers,
+    }
+    async with session.post(
+        "https://agent.tinyfish.ai/mcp",
+        json=payload,
+        headers=request_headers,
+        timeout=timeout,
+    ) as response:
+        await response.text()
+        session_id = response.headers.get("Mcp-Session-Id") or response.headers.get("mcp-session-id")
+        if response.status >= 400:
+            return None
+    if not session_id:
+        return None
+    async with session.post(
+        "https://agent.tinyfish.ai/mcp",
+        json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        headers={**request_headers, "Mcp-Session-Id": session_id},
+        timeout=timeout,
+    ) as response:
+        await response.text()
+    return session_id
+
+
+async def _search_tinyfish(session, query: str, limit: int) -> List[Dict]:
+    key = os.environ.get("TINYFISH_API_KEY")
+    headers = {"User-Agent": _headers()["User-Agent"], "X-TinyFish-Access-Mode": "keyless"}
+    if key:
+        headers["X-API-Key"] = key
+    session_id = await _tinyfish_session(session, headers)
+    result = await _mcp_call(
+        session,
+        "https://agent.tinyfish.ai/mcp",
+        "search",
+        {"query": query},
+        headers=headers,
+        session_id=session_id,
+    )
+    data = _json_from_text(_mcp_content_text(result)) or {}
+    rows = data.get("results") or []
+    return [
+        _result("tinyfish", row.get("title", ""), row.get("url", ""), row.get("snippet", ""))
+        for row in rows[:limit]
     ]
 
 
@@ -410,6 +653,9 @@ _SEARCHERS = {
     "tavily": _search_tavily,
     "serper": _search_serper,
     "exa": _search_exa,
+    "parallel": _search_parallel,
+    "firecrawl": _search_firecrawl,
+    "tinyfish": _search_tinyfish,
     "newsapi": _search_newsapi,
     "duckduckgo": _search_duckduckgo,
 }

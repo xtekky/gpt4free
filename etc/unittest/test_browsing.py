@@ -15,7 +15,8 @@ from g4f.browsing import (
     search,
 )
 from g4f.browsing import triggers as trigger_module
-from g4f.browsing.browse import extract_text
+from g4f.browsing.browse import extract_text, parse_exa_text
+from g4f.browsing.browse import _parse_mcp_response
 
 RSS = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -61,9 +62,11 @@ class TestCatalog(unittest.TestCase):
         apis = {api["id"]: api for api in list_apis()}
         self.assertTrue(apis["rss"]["available"])
         self.assertTrue(apis["wikipedia"]["available"])
-        self.assertFalse(apis["tavily"]["available"])
+        self.assertTrue(apis["parallel"]["available"])
+        self.assertTrue(apis["tinyfish"]["available"])
+        self.assertFalse(apis["brave"]["available"])
         self.assertEqual(apis["tavily"]["pricing"], "free-tier")
-        self.assertEqual(apis["exa"]["pricing"], "paid")
+        self.assertEqual(apis["exa"]["pricing"], "free-tier")
 
     def test_credentials_are_never_serialized(self):
         with patch.dict(os.environ, {"TAVILY_API_KEY": "super-secret"}, clear=False):
@@ -116,6 +119,48 @@ class TestBrowse(unittest.TestCase):
         self.assertIn("Hi", text)
         self.assertIn("there", text)
         self.assertNotIn("bad()", text)
+
+    def test_exa_mcp_text_parser(self):
+        text = (
+            "URL: https://example.com/a\n"
+            "Title: Example A\n"
+            "Published: 2025-01-01T00:00:00Z\n"
+            "Highlights:\nFirst snippet\n\n---\n\n"
+            "URL: https://example.com/b\n"
+            "Title: Example B\n"
+            "Published: N/A\n"
+            "Text:\nSecond snippet"
+        )
+        results = parse_exa_text(text, limit=5)
+        self.assertEqual([row["url"] for row in results], ["https://example.com/a", "https://example.com/b"])
+        self.assertEqual(results[0]["title"], "Example A")
+        self.assertEqual(results[1]["published"], "")
+        self.assertIn("Second snippet", results[1]["snippet"])
+
+    def test_mcp_sse_response_parser(self):
+        body = 'event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"ok"}]}}\n\n'
+        parsed = _parse_mcp_response(body)
+        self.assertEqual(parsed["result"]["content"][0]["text"], "ok")
+
+    def test_keyless_opencode_providers_are_in_catalog(self):
+        apis = {api["id"]: api for api in list_apis(capability="search")}
+        for api_id in ("exa", "parallel", "tavily", "firecrawl", "tinyfish"):
+            self.assertIn(api_id, apis)
+            self.assertTrue(apis[api_id]["available"])
+
+    def test_default_search_uses_keyless_opencode_providers(self):
+        from g4f.browsing import resolve_apis
+
+        ids = [api["id"] for api in resolve_apis()]
+        for api_id in ("exa", "parallel", "tavily", "firecrawl", "tinyfish"):
+            self.assertIn(api_id, ids)
+
+    def test_default_search_can_be_overridden(self):
+        from g4f.browsing import resolve_apis
+
+        with patch.dict(os.environ, {"G4F_SEARCH_APIS": "wikipedia,exa"}, clear=False):
+            ids = [api["id"] for api in resolve_apis()]
+        self.assertEqual(ids, ["wikipedia", "exa"])
 
 
 class TestTriggers(unittest.IsolatedAsyncioTestCase):

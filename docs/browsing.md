@@ -26,19 +26,26 @@ GET /v1/browsing/apis?capability=search&include_unavailable=false
 | `arxiv` | free | – | search, feed |
 | `jina-reader` | free-tier | optional `JINA_API_KEY` | fetch |
 | `brave` | free-tier | `BRAVE_API_KEY` | search |
-| `tavily` | free-tier | `TAVILY_API_KEY` | search, fetch |
+| `tavily` | free-tier | keyless, optional `TAVILY_API_KEY` | search, fetch |
 | `serper` | free-tier | `SERPER_API_KEY` | search |
-| `exa` | paid | `EXA_API_KEY` | search |
+| `exa` | free-tier | keyless, optional `EXA_API_KEY` | search |
+| `parallel` | free | keyless, optional `PARALLEL_API_KEY` | search |
+| `firecrawl` | free-tier | keyless search, optional `FIRECRAWL_API_KEY` | search, fetch |
+| `tinyfish` | free | keyless, optional `TINYFISH_API_KEY` | search |
 | `newsapi` | free-tier | `NEWSAPI_KEY` | search, feed |
-| `firecrawl` | paid | `FIRECRAWL_API_KEY` | fetch |
 
 Search several sources at once (keyless defaults are used when `apis` is
-omitted):
+omitted). The default set mirrors OpenCode's free search providers: Exa,
+Parallel, Tavily, Firecrawl, TinyFish, Wikipedia, Hacker News and DuckDuckGo.
+Override it with `G4F_SEARCH_APIS=exa,wikipedia`. The top-level endpoint accepts
+GET or POST:
 
 ```bash
-curl -X POST http://localhost:8080/v1/browsing/search \
+curl 'http://localhost:8080/v1/search?q=small+language+models&apis=exa,parallel&limit=5'
+
+curl -X POST http://localhost:8080/v1/search \
   -H 'content-type: application/json' \
-  -d '{"query":"small language models","apis":["wikipedia","hackernews"],"limit":5}'
+  -d '{"query":"small language models","apis":["wikipedia","exa"],"limit":5}'
 ```
 
 Fast browsing fetches up to `concurrency` pages in parallel and extracts
@@ -83,7 +90,9 @@ The response is a normal g4f conversation:
 
 `feedSeen` lets a client append only new entries. In the chat playground,
 **＋ Feed** adds a feed to the conversation list; it is refreshed every five
-minutes and new entries raise a notification.
+minutes and new entries raise a notification. The public site chat
+(`g4f.dev/chat`) gets the same **Live Feed**, **Trigger from Prompt** and bell
+controls from `chat/g4f-browsing.js`.
 
 The parser uses the standard library only. `G4F_BROWSING_ALLOW_LOCAL=1`
 permits loopback/private feed URLs (for local testing); private addresses are

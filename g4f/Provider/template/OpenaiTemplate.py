@@ -47,7 +47,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 
             api_key = AuthManager.load_api_key(cls)
         if api_key and cls.models_needs_auth and cls.quota_url is None:
-            cls.quota_url = f"{cls.base_url}/models"
+            cls.quota_url = f"{cls.base_url or cls.backup_url}/models"
         if cls.quota_url is not None:
             return await super().get_quota(api_key=api_key, **kwargs)
         if not api_key and cls.needs_auth:

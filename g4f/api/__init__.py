@@ -162,6 +162,7 @@ section{padding:28px 0 92px}.section-head{display:flex;justify-content:space-bet
 <a class="card" href="/docs"><h3>Responses</h3><p>A modern response interface for multi-turn reasoning and richer output types.</p><span class="endpoint">POST /v1/responses</span></a>
 <a class="card" href="/docs"><h3>Messages</h3><p>Anthropic-style requests for teams moving between compatible providers.</p><span class="endpoint">POST /v1/messages</span></a>
 <a class="card" href="/docs"><h3>Media generation</h3><p>Generate images and other supported media from the same API surface.</p><span class="endpoint">POST /v1/media/generate</span></a>
+<a class="card" href="/docs"><h3>Web search</h3><p>Search keyless providers such as Exa, Parallel, Tavily, Firecrawl, TinyFish, Wikipedia and Hacker News.</p><span class="endpoint">GET/POST /v1/search</span></a>
 <a class="card" href="/v1/models"><h3>Model catalog</h3><p>Inspect the models and provider options available on this server right now.</p><span class="endpoint">GET /v1/models</span></a>
 <a class="card" href="/docs"><h3>Live schema</h3><p>Try requests in your browser and inspect the generated OpenAPI contract.</p><span class="endpoint">GET /docs</span></a>
 </div></section><section><div class="section-head"><h2>Start here</h2><span>curl · JSON · streamable</span></div><div class="code-box"><button class="copy" onclick="copyExample(this)">copy</button><pre id="example">curl -X POST /v1/chat/completions \\

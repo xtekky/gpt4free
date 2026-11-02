@@ -64,6 +64,33 @@ def register_browsing_routes(app: FastAPI) -> None:
             "available": sum(1 for api in apis if api["available"]),
         }
 
+    @app.api_route("/v1/search", methods=["GET", "POST"], tags=["browsing"])
+    async def search_endpoint(request: Request):
+        """Top-level search endpoint (GET query params or POST JSON)."""
+        if request.method == "GET":
+            params = request.query_params
+            apis_param = params.get("apis") or ""
+            body = {
+                "query": params.get("q") or params.get("query") or "",
+                "apis": [item.strip() for item in apis_param.split(",") if item.strip()],
+                "limit": params.get("limit") or 10,
+                "timeout": params.get("timeout") or 20.0,
+            }
+        else:
+            body = await _json_body(request)
+        query = body.get("query") or body.get("q") or ""
+        if not str(query).strip():
+            return _error("A query is required")
+        try:
+            return await search(
+                str(query),
+                apis=body.get("apis") or [],
+                limit=int(body.get("limit") or 10),
+                timeout=float(body.get("timeout") or 20.0),
+            )
+        except Exception as exc:
+            return _error(f"{type(exc).__name__}: {exc}", HTTP_500_INTERNAL_SERVER_ERROR)
+
     @app.post("/v1/browsing/search", tags=["browsing"])
     async def browsing_search(request: Request):
         body = await _json_body(request)
