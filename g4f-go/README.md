@@ -83,7 +83,7 @@ g4f-go gui                  launch the web GUI
 g4f-go status               show runtime download/install status
 g4f-go browser install      install the headless browser (Lightpanda) for this OS
 g4f-go browser serve        run the browser's CDP server in the foreground
-g4f-go sandbox [command]    run the g4f sandbox container (g4f-sandbox)
+g4f-go sandbox [command]    run the g4f sandbox container (embedded launcher)
 g4f-go start-desktop-sandbox [--app TOOL] [options]  start the desktop sandbox
 g4f-go sandbox-cli [args]   run sandbox-cli in the desktop container
 g4f-go polli-sandbox        create a Polli cloud sandbox with g4f-go + sandbox-cli
@@ -187,7 +187,7 @@ removing just the Python package.
 
 ## Sandbox container (`sandbox`, `sandbox-cli`)
 
-`g4f-go` embeds the `g4f-sandbox` launcher, so one binary can also run the
+`g4f-go` embeds the sandbox launcher, so one binary can also run the
 sandbox desktop/API container:
 
 ```
@@ -226,7 +226,8 @@ neither CLI is present, `g4f-go sandbox` installs Podman with the host package
 manager (`apt`, `dnf`, `pacman`, `zypper`, `apk`, Homebrew, `winget`, Chocolatey
 or Scoop) before pulling the image. Set `G4F_SANDBOX_INSTALL_PODMAN=0` to
 disable that automatic install. The full launcher options and environment
-variables are the same as [`sandbox-launcher`](../sandbox-launcher/README.md).
+variables are available with `g4f-go sandbox help` and in the
+[sandbox desktop documentation](../docs/sandbox-desktop.md).
 
 On **Termux/Android** the launcher selects [udocker](https://github.com/indigo-dc/udocker)
 instead: it pulls and runs the same sandbox images in user space, without root

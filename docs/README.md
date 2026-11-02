@@ -29,7 +29,7 @@ git clone --depth 1 https://github.com/gpt4free/g4f.dev.git ../g4f.dev
 
 ## Guides
 
-- [Sandbox desktop](sandbox-desktop.md) — standalone launcher, start script,
+- [Sandbox desktop](sandbox-desktop.md) — `g4f-go sandbox` launcher, start script,
   clipboard, scaling, app volume, user id, `G4F_API_KEY`, domain routing, tray
   and Polli install
 - [Qwen Chat sessions and automatic token refresh](qwen-sessions.md)

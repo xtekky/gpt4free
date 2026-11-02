@@ -169,34 +169,6 @@ jobs:
           path: g4f-go/dist/g4f-go-*-darwin-amd64.zip
           if-no-files-found: error
 
-  # Standalone sandbox launcher (Docker/Podman backed).
-  # The binary is a few MB and never embeds the image; it pulls the multi-arch
-  # API-only image by default and the desktop image only with --desktop.
-  build-sandbox-launcher:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-          cache-dependency-path: sandbox-launcher/go.mod
-      - name: Test launcher
-        working-directory: sandbox-launcher
-        run: go test ./...
-      - name: Cross-compile sandbox launchers (all platforms)
-        working-directory: sandbox-launcher
-        env:
-          G4F_VERSION: ${{ needs.prepare.outputs.version }}
-        run: ./build-all.sh
-      - name: Upload g4f-sandbox launchers
-        uses: actions/upload-artifact@v4
-        with:
-          name: g4f-sandbox
-          path: sandbox-launcher/dist/*.zip
-          if-no-files-found: error
-
   # Android App APK
   build-android:
     runs-on: ubuntu-latest
@@ -404,7 +376,7 @@ jobs:
   # Release Creation
   create-release:
     runs-on: ubuntu-latest
-    needs: [prepare, build-pypi, build-g4f-go, build-sandbox-launcher, build-android, build-extension]
+    needs: [prepare, build-pypi, build-g4f-go, build-android, build-extension]
     if: needs.prepare.outputs.is_release == 'true'
     permissions:
       contents: write
@@ -426,11 +398,6 @@ jobs:
           path: ./release/g4f-go/individual
           pattern: g4f-go-*
           merge-multiple: true
-      - name: Download g4f-sandbox launcher artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: g4f-sandbox
-          path: ./release/sandbox-launcher
       - name: Download Android APK artifacts
         uses: actions/download-artifact@v4
         with:
@@ -448,7 +415,6 @@ jobs:
           cp -v ./release/pypi/* ./release/flat/ 2>/dev/null || true
           cp -v ./release/g4f-go/dist/*.zip ./release/flat/ 2>/dev/null || true
           cp -v ./release/g4f-go/individual/* ./release/flat/ 2>/dev/null || true
-          cp -v ./release/sandbox-launcher/* ./release/flat/ 2>/dev/null || true
           cp -v ./release/android/* ./release/flat/ 2>/dev/null || true
           cp -v ./release/extension/* ./release/flat/ 2>/dev/null || true
           echo "--- Final release assets ---"
@@ -472,13 +438,7 @@ jobs:
             - macOS x64: `g4f-go-${{ needs.prepare.outputs.version }}-darwin-amd64.zip`
             - macOS ARM64: `g4f-go-${{ needs.prepare.outputs.version }}-darwin-arm64.zip`
             - FreeBSD amd64: `g4f-go-${{ needs.prepare.outputs.version }}-freebsd-amd64.zip`
-
-            **Standalone sandbox launcher (Docker/Podman, image pulled on demand):**
-            - Windows amd64/arm64: `g4f-sandbox-${{ needs.prepare.outputs.version }}-windows-<arch>.zip`
-            - Linux amd64/arm64: `g4f-sandbox-${{ needs.prepare.outputs.version }}-linux-<arch>.zip`
-            - macOS amd64/arm64: `g4f-sandbox-${{ needs.prepare.outputs.version }}-darwin-<arch>.zip`
-            - Termux/Android arm64: `g4f-sandbox-${{ needs.prepare.outputs.version }}-android-arm64.zip` (native Python API, no Docker)
-            - Defaults to the small API-only image (`latest-slim`); `--desktop` pulls the full desktop image only when needed.
+            - Sandbox: `g4f-go sandbox` starts the small API-only image (`latest-slim`); `g4f-go sandbox --desktop` pulls the full desktop image only when needed. Termux/Android uses udocker automatically.
 
             **Android App:**
             - Android APK: `g4f-${{ needs.prepare.outputs.version }}.apk`

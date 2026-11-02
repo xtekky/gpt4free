@@ -12,10 +12,9 @@ The `.github/workflows/build-packages.yml` workflow automatically builds multipl
 2. **Windows Executable** - Standalone .exe file built with Nuitka  
 3. **Linux Executable** - Standalone binary for Linux systems built with Nuitka
 4. **macOS Executable** - Standalone binary for macOS systems built with Nuitka (x64 and ARM64)
-5. **Sandbox Launcher** - Small standalone `g4f-sandbox` executable for Windows, Linux and macOS (amd64 and arm64); it pulls the multi-arch sandbox image on demand instead of embedding it
-6. **Debian Packages** - .deb files for Ubuntu/Debian (amd64, arm64, armhf)
-7. **WinGet Package** - Windows Package Manager manifest
-8. **Docker Images** - Multi-architecture container images
+5. **Debian Packages** - .deb files for Ubuntu/Debian (amd64, arm64, armhf)
+6. **WinGet Package** - Windows Package Manager manifest
+7. **Docker Images** - Multi-architecture container images
 
 ### Triggering a Build
 
@@ -49,7 +48,6 @@ After a successful build, packages are available:
 - **GitHub Releases**: All executables and packages as release assets
   - Python packages (wheel and source distribution)
   - Standalone executables for Windows, Linux, and macOS
-  - `g4f-sandbox` launcher zips for Windows, Linux, and macOS (amd64/arm64)
   - Debian packages for AMD64, ARM64, and ARMv7 architectures
   - WinGet manifest files
 - **PyPI**: `pip install g4f`
