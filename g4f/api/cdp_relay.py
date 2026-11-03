@@ -952,23 +952,65 @@ async def cdp_ws_endpoint(ws: WebSocket, target_id: str) -> None:
         pass
 
 
-async def _evaluate_in_frame_path(call, frame_path: List[int], expression: str):
-    """Evaluate JavaScript in the frame addressed by its iframe-index path."""
-    from ..mcp.browser_dom import _evaluate_in_frame
-
+async def _frame_ids(call, frame_path: List[int]) -> List[str]:
+    """Frame IDs from the main frame down to the frame at *frame_path*."""
     tree = await call("Page.getFrameTree")
     node = tree.get("frameTree")
     if not node:
         raise ValueError("Frame tree is unavailable")
+    ids = [(node.get("frame") or {}).get("id")]
     for index in frame_path:
         children = node.get("childFrames") or []
         if index >= len(children):
             raise ValueError("Frame path does not exist")
         node = children[index]
-    frame_id = (node.get("frame") or {}).get("id")
-    if not frame_id:
+        ids.append((node.get("frame") or {}).get("id"))
+    if not all(ids):
         raise ValueError("Frame ID is unavailable")
-    return await _evaluate_in_frame(call, frame_id, expression)
+    return ids
+
+
+async def _evaluate_in_frame_path(call, frame_path: List[int], expression: str):
+    """Evaluate JavaScript in the frame addressed by its iframe-index path."""
+    from ..mcp.browser_dom import _evaluate_in_frame
+
+    ids = await _frame_ids(call, frame_path)
+    return await _evaluate_in_frame(call, ids[-1], expression, root=not frame_path)
+
+
+async def _native_click(call, frame_path: List[int], rect_js: str) -> dict:
+    """Click an element with real mouse input events (works for captcha widgets).
+
+    The element's center is measured inside its own frame, then translated to
+    main-frame viewport coordinates through each ancestor <iframe>.
+    """
+    from ..mcp.browser_dom import FRAME_OFFSET_JS, _evaluate_in_frame
+
+    ids = await _frame_ids(call, frame_path)
+    rect = await _evaluate_in_frame(call, ids[-1], rect_js, root=not frame_path)
+    if not isinstance(rect, dict) or not rect.get("ok"):
+        return rect if isinstance(rect, dict) else {"ok": False, "error": "Element not found"}
+    x, y = float(rect["x"]), float(rect["y"])
+    for depth, index in enumerate(frame_path):
+        offset = await _evaluate_in_frame(call, ids[depth], FRAME_OFFSET_JS % index, root=depth == 0)
+        if not offset:
+            return {"ok": False, "error": "iframe element not found"}
+        x += offset["x"]
+        y += offset["y"]
+    await call("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=y)
+    await call("Input.dispatchMouseEvent", type="mousePressed", x=x, y=y, button="left", buttons=1, clickCount=1)
+    await call("Input.dispatchMouseEvent", type="mouseReleased", x=x, y=y, button="left", buttons=0, clickCount=1)
+    return {"ok": True, "native": True, "x": x, "y": y}
+
+
+async def _try_native_click(call, frame_path: List[int], rect_js: str) -> Optional[dict]:
+    """Native click, or ``None`` so the caller falls back to a JS click."""
+    try:
+        result = await _native_click(call, frame_path, rect_js)
+    except Exception as e:
+        debug.warning(f"CDP relay: native click failed, using JS click: {e}")
+        return None
+    return result if result.get("ok") else None
 
 
 def register_cdp_relay(app) -> None:
@@ -1155,6 +1197,8 @@ def register_cdp_relay(app) -> None:
     async def _browser_action(target_id: str, payload: dict = Body(...)) -> dict:
         from ..mcp.browser_dom import (
             click_js,
+            click_rect_js,
+            selector_click_rect_js,
             debug_js,
             select_js,
             type_js,
@@ -1172,6 +1216,7 @@ def register_cdp_relay(app) -> None:
             ):
                 raise HTTPException(status_code=400, detail="Invalid frame path")
             kind = payload.get("type")
+            rect_js = None
             if kind == "debug":
                 js = debug_js(_debug_js_source())
             elif "selector" in payload:
@@ -1180,6 +1225,7 @@ def register_cdp_relay(app) -> None:
                 selector = str(payload["selector"])
                 if kind == "click":
                     js = selector_click_js(selector)
+                    rect_js = selector_click_rect_js(selector)
                 elif kind == "type":
                     js = selector_type_js(selector, str(payload.get("value", "")), True, bool(payload.get("submit")))
                 elif kind == "select":
@@ -1192,6 +1238,7 @@ def register_cdp_relay(app) -> None:
                 index = int(payload["index"])
                 if kind == "click":
                     js = click_js(index)
+                    rect_js = click_rect_js(index)
                 elif kind == "type":
                     js = type_js(index, str(payload.get("value", "")), True, bool(payload.get("submit")))
                 elif kind == "select":
@@ -1202,12 +1249,14 @@ def register_cdp_relay(app) -> None:
             raise HTTPException(status_code=400, detail="Invalid action")
         if target_id in relay.known:
             try:
-                if frame_path:
-                    result = await _evaluate_in_frame_path(
-                        lambda method, **params: relay.call(target_id, method, **params),
-                        frame_path,
-                        js,
-                    )
+                call = lambda method, **params: relay.call(target_id, method, **params)
+                result = None
+                if rect_js:
+                    result = await _try_native_click(call, frame_path or [], rect_js)
+                if result is not None:
+                    pass
+                elif frame_path:
+                    result = await _evaluate_in_frame_path(call, frame_path, js)
                 else:
                     result = await relay.evaluate(target_id, js)
             except ValueError as exc:
@@ -1219,7 +1268,12 @@ def register_cdp_relay(app) -> None:
             if session is None or not session.is_alive:
                 raise HTTPException(status_code=409, detail="Target is not open")
             try:
-                if frame_path:
+                result = None
+                if rect_js:
+                    result = await _try_native_click(session.call, frame_path or [], rect_js)
+                if result is not None:
+                    pass
+                elif frame_path:
                     result = await _evaluate_in_frame_path(session.call, frame_path, js)
                 else:
                     result = await session.evaluate_js(js)

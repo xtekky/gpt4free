@@ -4,7 +4,7 @@ import asyncio
 import random
 from abc import abstractmethod
 import json
-from inspect import signature, Parameter
+from inspect import signature, Parameter, iscoroutinefunction
 import threading
 from typing import Optional, _GenericAlias, AsyncIterator
 from pathlib import Path
@@ -435,7 +435,8 @@ class ProviderModelMixin:
                 return selected_model
             debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
             return alias
-        for m in cls.get_models(**kwargs):
+        
+        for m in [] if iscoroutinefunction(cls.get_models) else cls.get_models(**kwargs):
             if not model or model == "auto":
                 if m == "auto" or m.endswith("/free"):
                     cls.default_model = m

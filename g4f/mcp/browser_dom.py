@@ -10,7 +10,7 @@ _INTERACTIVE = (
     "[contenteditable=\"true\"],[contenteditable=\"\"],"
     # SVG icons are common click targets (onclick on the <svg> or a wrapper).
     # SVGElement has no .click(), so click_js falls back to dispatchEvent.
-    "[role=\"button\"], div > svg, span > svg, #g4f-debug-panel"
+    "[role=\"button\"],[role=\"checkbox\"],[role=\"radio\"],[role=\"switch\"], div > svg, span > svg, #g4f-debug-panel"
 )
 
 # Evaluates to a standalone, script-free HTML copy with data-index on interactive elements.
@@ -178,6 +178,32 @@ def click_js(index: int) -> str:
       else el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, view: window}));
       return {ok: true, tag: el.tagName.toLowerCase()};
     })()"""
+
+
+_RECT_BODY = """
+      el.scrollIntoView({block: 'center', inline: 'center'});
+      const r = el.getBoundingClientRect();
+      return {ok: true, x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height};
+    """
+
+
+def click_rect_js(index: int) -> str:
+    """Scroll the indexed element into view and return its center in frame coordinates."""
+    return "(() => {" + (_FIND % (index, index)) + _RECT_BODY + "})()"
+
+
+def selector_click_rect_js(selector: str) -> str:
+    """Selector variant of :func:`click_rect_js`."""
+    return _selector_js(selector, _RECT_BODY)
+
+
+FRAME_OFFSET_JS = """(() => {
+  const f = document.querySelectorAll('iframe')[%d];
+  if (!f) return null;
+  f.scrollIntoView({block: 'center', inline: 'center'});
+  const r = f.getBoundingClientRect();
+  return {x: r.left + f.clientLeft, y: r.top + f.clientTop};
+})()"""
 
 
 def type_js(index: int, text: str, clear: bool = True, submit: bool = False) -> str:

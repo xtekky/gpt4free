@@ -1411,6 +1411,35 @@ class TestBrowserIframeClick(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "Frame path does not exist"):
             await _evaluate_in_frame_path(call, [0], "click()")
 
+    async def test_native_click_translates_iframe_offsets(self):
+        from g4f.api.cdp_relay import _native_click
+
+        calls = []
+
+        async def call(method, **params):
+            calls.append((method, params))
+            if method == "Page.getFrameTree":
+                return {"frameTree": {"frame": {"id": "root"}, "childFrames": [{"frame": {"id": "f"}}]}}
+            if method == "Page.createIsolatedWorld":
+                return {"executionContextId": 7}
+            if method == "Runtime.evaluate":
+                if params.get("contextId") == 7:
+                    return {"result": {"value": {"ok": True, "x": 10, "y": 20}}}
+                return {"result": {"value": {"x": 100, "y": 200}}}
+            return {}
+
+        result = await _native_click(call, [0], "rect()")
+        self.assertEqual((result["x"], result["y"]), (110, 220))
+        mouse = [p["type"] for m, p in calls if m == "Input.dispatchMouseEvent"]
+        self.assertEqual(mouse, ["mouseMoved", "mousePressed", "mouseReleased"])
+
+    def test_aria_checkbox_roles_are_indexed(self):
+        from g4f.mcp.browser_dom import SNAPSHOT_JS, click_js
+
+        for role in ("checkbox", "radio", "switch"):
+            self.assertIn(f'[role=\\"{role}\\"]', SNAPSHOT_JS)
+            self.assertIn(f'[role=\\"{role}\\"]', click_js(0))
+
     def test_copy_click_listener_tracks_iframe_path(self):
         from g4f.api.cdp_relay import _COPY_SCRIPT
 
