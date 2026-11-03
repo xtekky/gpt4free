@@ -1,6 +1,7 @@
 package freeflow
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -46,7 +47,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestNodeVersionSupported(t *testing.T) {
+func TestRuntimeVersionSupported(t *testing.T) {
 	for _, version := range []string{"v22.19.0", "22.19.0", "v24.0.1", "v23.0.0"} {
 		if !nodeVersionSupported(version) {
 			t.Errorf("nodeVersionSupported(%q) = false, want true", version)
@@ -56,6 +57,167 @@ func TestNodeVersionSupported(t *testing.T) {
 		if nodeVersionSupported(version) {
 			t.Errorf("nodeVersionSupported(%q) = true, want false", version)
 		}
+	}
+	for _, version := range []string{"1.0.0", "v1.2.3", "2.0.0"} {
+		if !bunVersionSupported(version) {
+			t.Errorf("bunVersionSupported(%q) = false, want true", version)
+		}
+	}
+	for _, version := range []string{"", "0.9.9", "1.nope", "nope"} {
+		if bunVersionSupported(version) {
+			t.Errorf("bunVersionSupported(%q) = true, want false", version)
+		}
+	}
+}
+
+func TestSelectRuntime(t *testing.T) {
+	tests := []struct {
+		name     string
+		paths    map[string]string
+		versions map[string]string
+		wantName string
+		wantPath string
+		wantArgs []string
+		wantErr  bool
+	}{
+		{
+			name:     "prefers supported node",
+			paths:    map[string]string{"node": "/bin/node", "bun": "/bin/bun"},
+			versions: map[string]string{"/bin/node": "v22.19.0", "/bin/bun": "1.2.0"},
+			wantName: "node",
+			wantPath: "/bin/node",
+			wantArgs: []string{"--experimental-strip-types", "daemon.ts"},
+		},
+		{
+			name:     "falls back from old node to bun",
+			paths:    map[string]string{"node": "/bin/node", "bun": "/bin/bun"},
+			versions: map[string]string{"/bin/node": "v22.18.0", "/bin/bun": "1.2.0"},
+			wantName: "bun",
+			wantPath: "/bin/bun",
+			wantArgs: []string{"run", "daemon.ts"},
+		},
+		{
+			name:     "uses bun when node is absent",
+			paths:    map[string]string{"bun": "/bin/bun"},
+			versions: map[string]string{"/bin/bun": "1.2.0"},
+			wantName: "bun",
+			wantPath: "/bin/bun",
+			wantArgs: []string{"run", "daemon.ts"},
+		},
+		{
+			name:     "rejects when neither runtime is supported",
+			paths:    map[string]string{"node": "/bin/node", "bun": "/bin/bun"},
+			versions: map[string]string{"node": "v20.0.0", "/bin/node": "v20.0.0", "/bin/bun": "0.9.0"},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := selectRuntime(
+				func(name string) (string, error) {
+					path, ok := tt.paths[name]
+					if !ok {
+						return "", errors.New("not found")
+					}
+					return path, nil
+				},
+				func(path string) (string, error) {
+					version, ok := tt.versions[path]
+					if !ok {
+						return "", errors.New("version unavailable")
+					}
+					return version, nil
+				},
+			)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("selectRuntime() expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("selectRuntime(): %v", err)
+			}
+			if got.name != tt.wantName || got.path != tt.wantPath {
+				t.Fatalf("selectRuntime() = %+v, want %s at %s", got, tt.wantName, tt.wantPath)
+			}
+			if args := got.args("daemon.ts"); !equalStrings(args, tt.wantArgs) {
+				t.Fatalf("runtime args = %q, want %q", args, tt.wantArgs)
+			}
+		})
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestSelectPackageInstaller(t *testing.T) {
+	tests := []struct {
+		name     string
+		goos     string
+		paths    map[string]string
+		wantName string
+		wantPath string
+		wantErr  bool
+	}{
+		{
+			name:     "prefers npm",
+			goos:     "linux",
+			paths:    map[string]string{"npm": "/bin/npm", "bun": "/bin/bun"},
+			wantName: "npm",
+			wantPath: "/bin/npm",
+		},
+		{
+			name:     "uses Bun when npm is absent",
+			goos:     "linux",
+			paths:    map[string]string{"bun": "/bin/bun"},
+			wantName: "Bun",
+			wantPath: "/bin/bun",
+		},
+		{
+			name:     "uses npm cmd on Windows",
+			goos:     "windows",
+			paths:    map[string]string{"npm.cmd": "C:/npm.cmd", "bun": "C:/bun.exe"},
+			wantName: "npm",
+			wantPath: "C:/npm.cmd",
+		},
+		{
+			name:    "reports missing installers",
+			goos:    "linux",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := selectPackageInstaller(func(name string) (string, error) {
+				path, ok := tt.paths[name]
+				if !ok {
+					return "", errors.New("not found")
+				}
+				return path, nil
+			}, tt.goos)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("selectPackageInstaller() expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("selectPackageInstaller(): %v", err)
+			}
+			if got.name != tt.wantName || got.path != tt.wantPath {
+				t.Fatalf("selectPackageInstaller() = %+v, want %s at %s", got, tt.wantName, tt.wantPath)
+			}
+		})
 	}
 }
 

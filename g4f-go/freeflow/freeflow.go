@@ -56,10 +56,6 @@ func Run(args []string) int {
 		printHelp()
 		return 0
 	case "install":
-		if err := ensureNode(); err != nil {
-			fmt.Fprintln(os.Stderr, "freeflow:", err)
-			return 1
-		}
 		src, err := ensurePackage(opts.Force)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "freeflow:", err)
@@ -133,13 +129,15 @@ func printHelp() {
 
 Usage:
   g4f-go freeflow [serve] [--port N]   install (if needed) and run the proxy
-  g4f-go freeflow install [--force]    install/update the npm package only
+  g4f-go freeflow install [--force]    install/update the proxy package only
   g4f-go freeflow status [--port N]    show the package, endpoint and API key
   g4f-go freeflow help                 show this help
 
 The proxy listens on http://127.0.0.1:28180/v1 by default. Clients use the
 bearer token from ~/.pi/agent/token (or PI_FREEFLOW_DATA_DIR/token). The
 daemon keeps running until Ctrl-C; its log is written next to the token.
+Node.js >=22.19 is preferred; Bun >=1.0 is used when Node.js is unavailable
+or too old. npm or Bun is needed to install the package.
 
 Environment:
   PI_FREEFLOW_PORT       proxy port (default 28180)
@@ -150,7 +148,8 @@ Environment:
 }
 
 func serve(opts Options) int {
-	if err := ensureNode(); err != nil {
+	jsRuntime, err := findRuntime()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "freeflow:", err)
 		return 1
 	}
@@ -162,12 +161,6 @@ func serve(opts Options) int {
 	daemonDir, daemon, err := stageDaemon(src)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "freeflow:", err)
-		return 1
-	}
-
-	node, err := exec.LookPath("node")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "freeflow: node is not on PATH")
 		return 1
 	}
 
@@ -183,7 +176,7 @@ func serve(opts Options) int {
 
 	fmt.Printf("Starting %s on http://127.0.0.1:%d/v1 (Ctrl-C to stop)\n", Plugin, port)
 
-	cmd := exec.Command(node, "--experimental-strip-types", daemon)
+	cmd := exec.Command(jsRuntime.path, jsRuntime.args(daemon)...)
 	cmd.Dir = daemonDir
 	cmd.Env = env
 	cmd.Stdin = os.Stdin
@@ -304,21 +297,64 @@ func probeHealth(port int) (string, error) {
 	return "running", nil
 }
 
-// ensureNode verifies a Node.js version that supports --experimental-strip-types.
-func ensureNode() error {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		return fmt.Errorf("Node.js is required (>=22.19); install it or use sandbox-cli start-freeflow-api")
+type jsRuntime struct {
+	name string
+	path string
+}
+
+type packageInstaller struct {
+	name string
+	path string
+}
+
+func (r jsRuntime) args(daemon string) []string {
+	if r.name == "bun" {
+		return []string{"run", daemon}
 	}
-	out, err := exec.Command(node, "--version").Output()
-	if err != nil {
-		return fmt.Errorf("cannot run node: %w", err)
+	return []string{"--experimental-strip-types", daemon}
+}
+
+func findRuntime() (jsRuntime, error) {
+	return selectRuntime(exec.LookPath, func(path string) (string, error) {
+		out, err := exec.Command(path, "--version").Output()
+		return strings.TrimSpace(string(out)), err
+	})
+}
+
+func selectRuntime(lookPath func(string) (string, error), version func(string) (string, error)) (jsRuntime, error) {
+	node, nodeErr := lookPath("node")
+	if nodeErr == nil {
+		nodeVersion, err := version(node)
+		if err == nil && nodeVersionSupported(nodeVersion) {
+			return jsRuntime{name: "node", path: node}, nil
+		}
+		if err != nil {
+			nodeErr = fmt.Errorf("cannot run Node.js: %w", err)
+		} else {
+			nodeErr = fmt.Errorf("Node.js %s is too old (requires >=22.19)", nodeVersion)
+		}
 	}
-	version := strings.TrimSpace(string(out))
-	if !nodeVersionSupported(version) {
-		return fmt.Errorf("Node.js %s is too old; pi-freeflow needs >=22.19", version)
+
+	bun, bunErr := lookPath("bun")
+	if bunErr == nil {
+		bunVersion, err := version(bun)
+		if err == nil && bunVersionSupported(bunVersion) {
+			return jsRuntime{name: "bun", path: bun}, nil
+		}
+		if err != nil {
+			bunErr = fmt.Errorf("cannot run Bun: %w", err)
+		} else {
+			bunErr = fmt.Errorf("Bun %s is too old or invalid (requires >=1.0)", bunVersion)
+		}
 	}
-	return nil
+
+	if nodeErr != nil && bunErr != nil {
+		return jsRuntime{}, fmt.Errorf("Node.js >=22.19 or Bun >=1.0 is required (%v; %v); install one or use sandbox-cli start-freeflow-api", nodeErr, bunErr)
+	}
+	if nodeErr != nil {
+		return jsRuntime{}, fmt.Errorf("Node.js >=22.19 or Bun >=1.0 is required (%v); install one or use sandbox-cli start-freeflow-api", nodeErr)
+	}
+	return jsRuntime{}, fmt.Errorf("Node.js >=22.19 or Bun >=1.0 is required (%v); install one or use sandbox-cli start-freeflow-api", bunErr)
 }
 
 func nodeVersionSupported(version string) bool {
@@ -339,6 +375,35 @@ func nodeVersionSupported(version string) bool {
 		return false
 	}
 	return major == 22 && minor >= 19
+}
+
+func selectPackageInstaller(lookPath func(string) (string, error), goos string) (packageInstaller, error) {
+	npm, npmErr := lookPath("npm")
+	if npmErr != nil && goos == "windows" {
+		npm, npmErr = lookPath("npm.cmd")
+	}
+	if npmErr == nil {
+		return packageInstaller{name: "npm", path: npm}, nil
+	}
+	bun, bunErr := lookPath("bun")
+	if bunErr == nil {
+		return packageInstaller{name: "Bun", path: bun}, nil
+	}
+	return packageInstaller{}, fmt.Errorf("npm or Bun is required to install %s (npm: %v; Bun: %v)", Plugin, npmErr, bunErr)
+}
+
+func bunVersionSupported(version string) bool {
+	version = strings.TrimPrefix(strings.TrimSpace(version), "v")
+	parts := strings.SplitN(version, ".", 3)
+	if len(parts) < 2 {
+		return false
+	}
+	major, err := strconv.Atoi(parts[0])
+	if err != nil || major < 1 {
+		return false
+	}
+	_, err = strconv.Atoi(parts[1])
+	return err == nil
 }
 
 // findPackage returns the installed pi-freeflow package directory. It prefers
@@ -375,40 +440,40 @@ func isPackageDir(dir string) bool {
 	return false
 }
 
-// ensurePackage installs pi-freeflow with npm when it is not present. Force
-// reinstalls it into g4f-go's own directory even if another host has a copy.
+// ensurePackage installs pi-freeflow with npm or Bun when it is not present.
+// Force reinstalls it into g4f-go's own directory even if another host has a copy.
 func ensurePackage(force bool) (string, error) {
 	if !force {
 		if src, err := findPackage(); err == nil {
 			return src, nil
 		}
 	}
-	npm, err := exec.LookPath("npm")
+	installer, err := selectPackageInstaller(exec.LookPath, runtime.GOOS)
 	if err != nil {
-		if runtime.GOOS == "windows" {
-			if npm, err = exec.LookPath("npm.cmd"); err != nil {
-				return "", fmt.Errorf("npm is required to install %s", Plugin)
-			}
-		} else {
-			return "", fmt.Errorf("npm is required to install %s", Plugin)
-		}
+		return "", err
 	}
 	root := installRoot()
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return "", err
 	}
 	fmt.Fprintf(os.Stderr, "Installing %s into %s\n", DefaultInstallSpec, root)
-	cmd := exec.Command(npm, "install", "--prefix", root, "--no-audit", "--no-fund", DefaultInstallSpec)
+	var cmd *exec.Cmd
+	if installer.name == "npm" {
+		cmd = exec.Command(installer.path, "install", "--prefix", root, "--no-audit", "--no-fund", DefaultInstallSpec)
+	} else {
+		cmd = exec.Command(installer.path, "add", DefaultInstallSpec)
+		cmd.Dir = root
+	}
 	cmd.Env = os.Environ()
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("npm install %s failed: %w", DefaultInstallSpec, err)
+		return "", fmt.Errorf("%s install %s failed: %w", installer.name, DefaultInstallSpec, err)
 	}
 	src := filepath.Join(root, "node_modules", Plugin)
 	if !isPackageDir(src) {
-		return "", fmt.Errorf("npm install %s did not create %s", DefaultInstallSpec, src)
+		return "", fmt.Errorf("%s install %s did not create %s", installer.name, DefaultInstallSpec, src)
 	}
 	return src, nil
 }

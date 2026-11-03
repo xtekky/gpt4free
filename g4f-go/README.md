@@ -262,9 +262,10 @@ It exposes the OpenAI-compatible endpoint `http://127.0.0.1:28180/v1` and
 prints the bearer token from `~/.pi/agent/token`. The daemon stays in the
 foreground until Ctrl-C, and logs to `~/.pi/agent/pi-freeflow.log`. Existing
 OMP/Pi installs are reused when present; otherwise the package is installed
-with `npm` (Node.js >= 22.19 is required). Set `G4F_FREEFLOW_HOME` to move the
-private install, or `PI_FREEFLOW_DATA_DIR`/`PI_FREEFLOW_PORT` to match the
-extension's own settings.
+with `npm` or Bun. Node.js >= 22.19 is preferred; Bun >= 1.0 runs the
+TypeScript daemon when Node.js is unavailable or too old. Set
+`G4F_FREEFLOW_HOME` to move the private install, or
+`PI_FREEFLOW_DATA_DIR`/`PI_FREEFLOW_PORT` to match the extension's own settings.
 
 ## Polli cloud sandbox (`polli-sandbox`)
 
