@@ -342,6 +342,55 @@ async def _search_tavily(session, query: str, limit: int) -> List[Dict]:
     ]
 
 
+_KEENABLE_BASE = "https://api.keenable.ai/v1"
+
+
+def _keenable_endpoint(path: str):
+    """Return ``(url, headers)``: keyed with KEENABLE_API_KEY, else the keyless public pool."""
+    key = (os.environ.get("KEENABLE_API_KEY") or "").strip()
+    headers = {**_headers()}
+    if key:
+        headers["X-API-Key"] = key
+        return f"{_KEENABLE_BASE}/{path}", headers
+    headers["X-Keenable-Title"] = "g4f"
+    return f"{_KEENABLE_BASE}/{path}/public", headers
+
+
+async def _search_keenable(session, query: str, limit: int) -> List[Dict]:
+    url, headers = _keenable_endpoint("search")
+    async with session.post(
+        url,
+        json={"query": query, "max_results": limit},
+        headers=headers,
+    ) as response:
+        if response.status >= 400:
+            raise ValueError(f"HTTP {response.status} from Keenable")
+        data = await response.json(content_type=None)
+    return [
+        _result(
+            "keenable",
+            row.get("title", ""),
+            row.get("url", ""),
+            row.get("description") or row.get("snippet") or "",
+            row.get("published_at") or "",
+        )
+        for row in (data.get("results") or [])[:limit]
+        if row.get("url")
+    ]
+
+
+async def _fetch_keenable(session, url: str, max_chars: int = 20000) -> Dict:
+    endpoint, headers = _keenable_endpoint("fetch")
+    async with session.get(
+        endpoint,
+        params={"url": url, "max_chars": max_chars},
+        headers=headers,
+    ) as response:
+        if response.status >= 400:
+            raise ValueError(f"HTTP {response.status} from Keenable")
+        return await response.json(content_type=None)
+
+
 async def _search_serper(session, query: str, limit: int) -> List[Dict]:
     key = os.environ.get("SERPER_API_KEY")
     if not key:
@@ -652,6 +701,7 @@ _SEARCHERS = {
     "brave": _search_brave,
     "tavily": _search_tavily,
     "serper": _search_serper,
+    "keenable": _search_keenable,
     "exa": _search_exa,
     "parallel": _search_parallel,
     "firecrawl": _search_firecrawl,
@@ -797,6 +847,17 @@ async def execute_api(
             ) as session:
                 text = await _get_text(session, reader_url, headers=_headers())
             return {"api": api_id, "url": url, "content": text[:20000]}
+        if api_id == "keenable":
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as session:
+                data = await _fetch_keenable(session, url)
+            return {
+                "api": api_id,
+                "url": data.get("url") or url,
+                "title": data.get("title", ""),
+                "content": (data.get("content") or "")[:20000],
+            }
         if api_id == "firecrawl":
             key = os.environ.get("FIRECRAWL_API_KEY")
             if not key:

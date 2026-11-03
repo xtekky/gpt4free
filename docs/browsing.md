@@ -32,6 +32,7 @@ GET /v1/browsing/apis?capability=search&include_unavailable=false
 | `parallel` | free | keyless, optional `PARALLEL_API_KEY` | search |
 | `firecrawl` | free-tier | keyless search, optional `FIRECRAWL_API_KEY` | search, fetch |
 | `tinyfish` | free | keyless, optional `TINYFISH_API_KEY` | search |
+| `keenable` | free-tier | keyless, optional `KEENABLE_API_KEY` | search, fetch |
 | `newsapi` | free-tier | `NEWSAPI_KEY` | search, feed |
 
 Search several sources at once (keyless defaults are used when `apis` is

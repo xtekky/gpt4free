@@ -163,6 +163,90 @@ class TestBrowse(unittest.TestCase):
         self.assertEqual(ids, ["wikipedia", "exa"])
 
 
+class _FakeResponse:
+    def __init__(self, payload, status=200):
+        self.status = status
+        self._payload = payload
+
+    async def json(self, content_type=None):
+        return self._payload
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakeSession:
+    def __init__(self, payload, status=200):
+        self.calls = []
+        self._payload = payload
+        self._status = status
+
+    def post(self, url, **kwargs):
+        self.calls.append(("POST", url, kwargs))
+        return _FakeResponse(self._payload, self._status)
+
+    def get(self, url, **kwargs):
+        self.calls.append(("GET", url, kwargs))
+        return _FakeResponse(self._payload, self._status)
+
+
+class TestKeenable(unittest.IsolatedAsyncioTestCase):
+    def test_keenable_is_keyless_in_catalog(self):
+        apis = {api["id"]: api for api in list_apis(capability="search")}
+        self.assertIn("keenable", apis)
+        self.assertTrue(apis["keenable"]["available"])
+        self.assertIn("fetch", apis["keenable"]["capabilities"])
+
+    async def test_search_keyless_uses_public_endpoint(self):
+        from g4f.browsing.browse import _search_keenable
+
+        session = _FakeSession({"results": [
+            {"title": "A", "url": "https://a.example", "description": "desc"},
+            {"title": "no url"},
+            {"title": "B", "url": "https://b.example", "snippet": "snip"},
+        ]})
+        with patch.dict(os.environ, {"KEENABLE_API_KEY": ""}, clear=False):
+            rows = await _search_keenable(session, "q", 5)
+        method, url, kwargs = session.calls[0]
+        self.assertEqual((method, url), ("POST", "https://api.keenable.ai/v1/search/public"))
+        self.assertEqual(kwargs["headers"]["X-Keenable-Title"], "g4f")
+        self.assertNotIn("X-API-Key", kwargs["headers"])
+        self.assertEqual(kwargs["json"], {"query": "q", "max_results": 5})
+        self.assertEqual([row["url"] for row in rows], ["https://a.example", "https://b.example"])
+        self.assertEqual(rows[1]["snippet"], "snip")
+
+    async def test_search_with_key_uses_keyed_endpoint(self):
+        from g4f.browsing.browse import _search_keenable
+
+        session = _FakeSession({"results": []})
+        with patch.dict(os.environ, {"KEENABLE_API_KEY": "kn-secret"}, clear=False):
+            await _search_keenable(session, "q", 3)
+        _, url, kwargs = session.calls[0]
+        self.assertEqual(url, "https://api.keenable.ai/v1/search")
+        self.assertEqual(kwargs["headers"]["X-API-Key"], "kn-secret")
+        self.assertNotIn("X-Keenable-Title", kwargs["headers"])
+
+    async def test_search_http_error_raises(self):
+        from g4f.browsing.browse import _search_keenable
+
+        with self.assertRaises(ValueError):
+            await _search_keenable(_FakeSession({}, status=429), "q", 3)
+
+    async def test_fetch_keyless_uses_public_endpoint(self):
+        from g4f.browsing.browse import _fetch_keenable
+
+        session = _FakeSession({"url": "https://example.com/", "title": "Example", "content": "# Hi"})
+        with patch.dict(os.environ, {"KEENABLE_API_KEY": ""}, clear=False):
+            data = await _fetch_keenable(session, "https://example.com", max_chars=500)
+        method, url, kwargs = session.calls[0]
+        self.assertEqual((method, url), ("GET", "https://api.keenable.ai/v1/fetch/public"))
+        self.assertEqual(kwargs["params"], {"url": "https://example.com", "max_chars": 500})
+        self.assertEqual(data["content"], "# Hi")
+
+
 class TestTriggers(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
