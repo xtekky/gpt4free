@@ -34,6 +34,7 @@ git clone --depth 1 https://github.com/gpt4free/g4f.dev.git ../g4f.dev
   and Polli install
 - [Qwen Chat sessions and automatic token refresh](qwen-sessions.md)
 - [API Route authenticated provider](api-route.md)
+- [UberLLM provider](uberllm.md)
 - [Browsing APIs, live feeds, triggers and notifications](browsing.md)
 - [Custom model routing with `config.yaml`](config-yaml-routing.md)
 - [Automatic development pipeline](dev-pipeline.md)
