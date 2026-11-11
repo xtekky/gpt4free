@@ -1,10 +1,5 @@
 requests
 aiohttp
-fastapi
-uvicorn
-websockets
-python-multipart
-httpx2
 brotli
 pycryptodome
 nest-asyncio2
