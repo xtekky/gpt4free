@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -100,7 +101,7 @@ func extractZip(r io.ReaderAt, size int64, dest string) error {
 	}
 	var top string
 	for _, f := range zr.File {
-		parts := strings.Split(filepath.Clean(f.Name), string(os.PathSeparator))
+		parts := strings.Split(path.Clean(f.Name), "/")
 		if len(parts) > 0 && parts[0] != "." && top == "" {
 			top = parts[0]
 		}
@@ -113,10 +114,11 @@ func extractZip(r io.ReaderAt, size int64, dest string) error {
 		if strings.Contains(f.Name, "..") {
 			return fmt.Errorf("unsafe path in archive: %s", f.Name)
 		}
-		rel := f.Name
-		if top != "" {
-			rel = strings.TrimPrefix(f.Name, top+"/")
-			rel = strings.TrimPrefix(rel, top)
+		rel := strings.TrimPrefix(f.Name, "./")
+		if rel == top {
+			rel = ""
+		} else if top != "" {
+			rel = strings.TrimPrefix(rel, top+"/")
 		}
 		rel = strings.TrimPrefix(rel, "/")
 		name := filepath.Clean(rel)
