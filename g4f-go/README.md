@@ -43,6 +43,14 @@ them, delete that directory or run `g4f-go cache clear`.
 `G4F_PYTHON_ONLY=1 g4f-go --version` prints the downloaded interpreter path
 without running gpt4free (useful for wrapping the runtime from other tools).
 
+On Windows, if `python-home/python.exe` is missing, check whether antivirus
+quarantined it and restore it only if you trust the downloaded runtime. Retry
+`g4f-go` to extract the verified cached archive again.
+
+Alternatively, `uv tool install "g4f[all]"` installs the `g4f` CLI separately;
+run `g4f api` or `g4f gui` directly. This does not replace the isolated runtime
+used by `g4f-go`.
+
 ## Installing on Termux
 
 The installer detects Android/Termux and installs the `android-arm64` release

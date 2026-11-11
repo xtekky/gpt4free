@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -272,8 +273,8 @@ func extractRuntime(binDir, cachePath string) error {
 		if err != nil {
 			return err
 		}
-		clean := filepath.Clean(hdr.Name)
-		parts := strings.Split(clean, string(os.PathSeparator))
+		clean := path.Clean(hdr.Name)
+		parts := strings.Split(clean, "/")
 		if len(parts) > 0 && parts[0] != "." && parts[0] != "" && top == "" {
 			top = parts[0]
 		}
@@ -300,10 +301,11 @@ func extractRuntime(binDir, cachePath string) error {
 		if strings.Contains(hdr.Name, "..") {
 			return fmt.Errorf("unsafe path in archive: %s", hdr.Name)
 		}
-		rel := hdr.Name
-		if top != "" {
+		rel := strings.TrimPrefix(hdr.Name, "./")
+		if rel == top {
+			rel = ""
+		} else if top != "" {
 			rel = strings.TrimPrefix(rel, top+"/")
-			rel = strings.TrimPrefix(rel, top)
 		}
 		rel = strings.TrimPrefix(rel, "/")
 		rel = strings.TrimPrefix(rel, "./")
@@ -464,7 +466,7 @@ func ensureRuntime() (string, error) {
 	if IsTermuxSystem() {
 		return ensureTermuxRuntime()
 	}
-		
+
 	binDir := installDir()
 	exe, err := pythonExecutable(binDir)
 	if err == nil {
@@ -487,21 +489,37 @@ func ensureRuntime() (string, error) {
 		return "", err
 	}
 
-	// Extract unless already done (stamp written after successful extract).
+	return installDownloadedRuntime(binDir, cachePath)
+}
+
+func installDownloadedRuntime(binDir, cachePath string) (string, error) {
+	// A missing interpreter invalidates older success stamps. Android may still
+	// need to build its runner from an already extracted runtime.
 	okStamp := installedOkName(binDir)
-	if _, err := os.Stat(okStamp); err != nil {
+	_, stampErr := os.Stat(okStamp)
+	extracted := stampErr != nil || runtime.GOOS != "android"
+	if extracted {
+		if err := os.Remove(okStamp); err != nil && !os.IsNotExist(err) {
+			return "", err
+		}
 		fmt.Println("runtime: extracting (this can take a minute)...")
 		start := time.Now()
 		if err := extractRuntime(binDir, cachePath); err != nil {
 			return "", fmt.Errorf("extract runtime: %w", err)
 		}
-		if err := os.WriteFile(okStamp, []byte("ok"), 0o644); err != nil {
-			return "", err
-		}
 		fmt.Printf("runtime: extracted in %s\n", time.Since(start).Round(time.Second))
 	}
 
-	return finalizeRuntime(binDir)
+	exe, err := finalizeRuntime(binDir)
+	if err != nil {
+		return "", err
+	}
+	if extracted {
+		if err := os.WriteFile(okStamp, []byte("ok"), 0o644); err != nil {
+			return "", err
+		}
+	}
+	return exe, nil
 }
 
 // Check if a command/binary exists in PATH
@@ -523,6 +541,9 @@ func finalizeRuntime(binDir string) (string, error) {
 	}
 	exe, err := pythonExecutable(binDir)
 	if err != nil {
+		if runtime.GOOS == "windows" {
+			return "", fmt.Errorf("python runtime extracted but %s is missing; check whether antivirus quarantined it, then retry: %w", filepath.Join(binDir, "python-home", "python.exe"), err)
+		}
 		return "", err
 	}
 	if _, err := os.Stat(exe); err != nil {
