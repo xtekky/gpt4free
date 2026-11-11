@@ -219,6 +219,18 @@ API_CATALOG: List[Dict] = [
         "description": "Keyless TinyFish MCP search; set TINYFISH_API_KEY for authenticated usage.",
     },
     {
+        "id": "keenable",
+        "name": "Keenable",
+        "category": "search",
+        "pricing": "free-tier",
+        "requires_key": False,
+        "env_var": "KEENABLE_API_KEY",
+        "base_url": "https://api.keenable.ai/v1",
+        "capabilities": ["search", "fetch"],
+        "docs_url": "https://docs.keenable.ai/",
+        "description": "Independent web index for agents with keyless search and markdown fetch; set KEENABLE_API_KEY for higher limits.",
+    },
+    {
         "id": "newsapi",
         "name": "NewsAPI",
         "category": "news",
