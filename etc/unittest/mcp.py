@@ -1361,7 +1361,10 @@ class TestMCPServerShellActivation(unittest.TestCase):
 
 class TestBrowserIframeClick(unittest.IsolatedAsyncioTestCase):
     async def test_frame_path_evaluates_in_nested_frame(self):
-        from g4f.api.cdp_relay import _evaluate_in_frame_path
+        try:
+            from g4f.api.cdp_relay import _evaluate_in_frame_path
+        except (ImportError, RuntimeError) as exc:
+            self.skipTest(f"CDP relay requirements unavailable: {exc}")
 
         calls = []
 
@@ -1403,7 +1406,10 @@ class TestBrowserIframeClick(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_frame_path_rejects_missing_frame(self):
-        from g4f.api.cdp_relay import _evaluate_in_frame_path
+        try:
+            from g4f.api.cdp_relay import _evaluate_in_frame_path
+        except (ImportError, RuntimeError) as exc:
+            self.skipTest(f"CDP relay requirements unavailable: {exc}")
 
         async def call(method, **params):
             return {"frameTree": {"frame": {"id": "root"}, "childFrames": []}}
@@ -1444,7 +1450,10 @@ class TestBrowserIframeClick(unittest.IsolatedAsyncioTestCase):
             self.assertIn(f'[role=\\"{role}\\"]', click_js(0))
 
     def test_copy_click_listener_tracks_iframe_path(self):
-        from g4f.api.cdp_relay import _COPY_SCRIPT
+        try:
+            from g4f.api.cdp_relay import _COPY_SCRIPT
+        except (ImportError, RuntimeError) as exc:
+            self.skipTest(f"CDP relay requirements unavailable: {exc}")
 
         self.assertIn("bindClicks(frame.contentDocument, [...framePath, index])", _COPY_SCRIPT)
         self.assertIn("frame_path: framePath", _COPY_SCRIPT)
@@ -1501,9 +1510,9 @@ class TestMCPApiRoute(unittest.TestCase):
             import uvicorn  # noqa: F401
             from fastapi.testclient import TestClient
             import g4f.api
+            self.client = TestClient(g4f.api.create_app())
         except (ImportError, RuntimeError) as exc:
             self.skipTest(f"fastapi TestClient unavailable: {exc}")
-        self.client = TestClient(g4f.api.create_app())
 
     def _rpc(self, payload):
         return self.client.post("/mcp", json=payload)
