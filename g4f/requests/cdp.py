@@ -44,6 +44,7 @@ import asyncio
 import base64
 import json
 import logging
+import math
 import os
 import shutil
 import platform
@@ -477,26 +478,40 @@ def _close_shared_browser_idle():
     handle we hold instead, so they don't linger forever.
     """
     global _shared_browser_process, _shared_browser_port, _shared_browser_adopted
-    closed = False
-    if _shared_browser_port is not None and not _shared_browser_adopted:
-        closed = _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
-    if not closed:
-        _kill_shared_browser_process()
-    _shared_browser_process = None
-    _shared_browser_port = None
-    _shared_browser_adopted = False
+    global _shared_browser_idle_timer
+    with _shared_browser_lock:
+        if _shared_browser_idle_timer is not threading.current_thread() or _shared_browser_refcount:
+            return
+        _shared_browser_idle_timer = None
+        closed = False
+        if _shared_browser_port is not None and not _shared_browser_adopted:
+            closed = _close_browser_via_cdp("127.0.0.1", _shared_browser_port)
+        if closed and _shared_browser_process:
+            try:
+                _shared_browser_process.wait(timeout=10)
+            except Exception:
+                closed = False
+        if not closed:
+            _kill_shared_browser_process()
+        _shared_browser_process = None
+        _shared_browser_port = None
+        _shared_browser_adopted = False
 
 def _schedule_idle_shutdown():
     """Schedule browser termination after idle timeout (call under lock)."""
     global _shared_browser_idle_timer
     if _shared_browser_idle_timer:
         _shared_browser_idle_timer.cancel()
-    _shared_browser_idle_timer = threading.Timer(
-        _SHARED_BROWSER_IDLE_TIMEOUT, _close_shared_browser_idle
-    )
+    try:
+        timeout = float(os.environ.get("G4F_BROWSER_IDLE_TIMEOUT", _SHARED_BROWSER_IDLE_TIMEOUT))
+        if not math.isfinite(timeout) or timeout < 0:
+            raise ValueError
+    except ValueError:
+        timeout = _SHARED_BROWSER_IDLE_TIMEOUT
+    _shared_browser_idle_timer = threading.Timer(timeout, _close_shared_browser_idle)
     _shared_browser_idle_timer.daemon = True
     _shared_browser_idle_timer.start()
-    debug.log(f"CDP: Browser.close scheduled in {_SHARED_BROWSER_IDLE_TIMEOUT}s (idle)")
+    debug.log(f"CDP: Browser.close scheduled in {timeout}s (idle)")
 
 
 def _cancel_idle_shutdown():
@@ -1118,6 +1133,7 @@ class CDPSession:
         self._event_filter: Optional[set] = None
         self._closing = False
         self._connection_lost = False
+        self._shared_browser_ref_acquired = False
         # True when this session runs through the browser-extension relay
         # (g4f/api/cdp_relay.py) instead of a local Chrome CDP port.
         self._via_extension = False
@@ -1150,7 +1166,11 @@ class CDPSession:
         return not self._closing and not self._connection_lost and self.ws is not None and not self.ws.closed
 
     async def start(self):
-        result = await self._start()
+        try:
+            result = await self._start()
+        except BaseException:
+            await self.close()
+            raise
         if self.target_id:
             _open_sessions[self.target_id] = self
         return result
@@ -1172,13 +1192,14 @@ class CDPSession:
         ):
             return await self._start_via_webview()
 
+        # Reserve the browser before looking it up so an idle timer cannot
+        # close it between lookup and creating the tab.
+        acquire_shared_browser_ref()
+        self._shared_browser_ref_acquired = True
         if self.port is None:
             self.port = get_shared_browser(
                 self.host, self.port, self.headless, self.proxy, self.browser_args, self.disable_web_security,
             )
-
-        # Acquire a reference so the shared browser stays alive for this tab
-        acquire_shared_browser_ref()
 
         # Create a new tab target
         ws_url = None
@@ -1212,7 +1233,6 @@ class CDPSession:
             try:
                 return await self._start_via_browser_socket()
             except Exception as e:
-                release_shared_browser_ref()
                 raise RuntimeError(
                     f"Failed to create new tab target on port {self.port}: {e}"
                 ) from e
@@ -2478,7 +2498,8 @@ return (
 
         # Release our tab; browser stays alive for reuse by other tabs.
         # Extension/webview mode never acquired a shared-browser reference.
-        if not self._via_extension and not self._via_webview:
+        if self._shared_browser_ref_acquired:
+            self._shared_browser_ref_acquired = False
             release_shared_browser_ref()
 
     async def __aenter__(self):

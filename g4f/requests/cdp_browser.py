@@ -632,8 +632,13 @@ class CDPBrowser:
         await session.start()
         tab = CDPTab(session)
         self._tabs.append(tab)
-        if url and url != "about:blank":
-            await tab.get(url)
+        try:
+            if url and url != "about:blank":
+                await tab.get(url)
+        except BaseException:
+            self._tabs.remove(tab)
+            await tab.close()
+            raise
         return tab
 
     async def stop(self):
