@@ -8,9 +8,11 @@ tab closes.
 
 import asyncio
 import json
+import os
 import time
 import urllib.request
 import unittest
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from g4f.requests.cdp import (
     CDPSession,
@@ -37,6 +39,7 @@ def _force_terminate_shared_browser():
                 pass
             cdp_module._shared_browser_process = None
         cdp_module._shared_browser_port = None
+        cdp_module._shared_browser_adopted = False
 
 
 def _browser_alive(host: str, port: int) -> bool:
@@ -86,6 +89,128 @@ class TestRefcount(unittest.TestCase):
         self.assertTrue(release_shared_browser_ref())   # 1 -> 0, last ref
         # Should not go negative
         self.assertEqual(cdp_module._shared_browser_refcount, 0)
+
+
+class TestBrowserIdleShutdown(unittest.TestCase):
+    def setUp(self):
+        _force_terminate_shared_browser()
+
+    def tearDown(self):
+        _force_terminate_shared_browser()
+
+    def test_idle_timeout_configuration(self):
+        for value, expected in (("", 60), ("2.5", 2.5), ("0", 0),
+                                ("-1", 60), ("nan", 60), ("invalid", 60)):
+            with self.subTest(value=value), patch.dict(os.environ, {"G4F_BROWSER_IDLE_TIMEOUT": value}):
+                with patch.object(cdp_module.threading, "Timer") as timer:
+                    release_shared_browser_ref()
+                    self.assertEqual(timer.call_args.args[0], expected)
+
+    def test_idle_shutdown_ignores_stale_timer_and_active_session(self):
+        timer = MagicMock()
+        with patch.object(cdp_module, "_close_browser_via_cdp") as close:
+            cdp_module._shared_browser_port = 1234
+            cdp_module._shared_browser_idle_timer = timer
+            cdp_module._close_shared_browser_idle()
+            close.assert_not_called()
+            with patch.object(cdp_module.threading, "current_thread", return_value=timer):
+                cdp_module._shared_browser_refcount = 1
+                cdp_module._close_shared_browser_idle()
+                close.assert_not_called()
+                cdp_module._shared_browser_refcount = 0
+                close.return_value = True
+                cdp_module._close_shared_browser_idle()
+                close.assert_called_once_with("127.0.0.1", 1234)
+                self.assertIsNone(cdp_module._shared_browser_port)
+
+    def test_idle_shutdown_leaves_external_browser_running(self):
+        timer = MagicMock()
+        cdp_module._shared_browser_port = 1234
+        cdp_module._shared_browser_adopted = True
+        cdp_module._shared_browser_idle_timer = timer
+        with patch.object(cdp_module.threading, "current_thread", return_value=timer), \
+             patch.object(cdp_module, "_close_browser_via_cdp") as close:
+            cdp_module._close_shared_browser_idle()
+            close.assert_not_called()
+
+    def test_idle_shutdown_reaps_owned_process(self):
+        timer = MagicMock()
+        process = MagicMock()
+        cdp_module._shared_browser_port = 1234
+        cdp_module._shared_browser_process = process
+        cdp_module._shared_browser_idle_timer = timer
+        with patch.object(cdp_module.threading, "current_thread", return_value=timer), \
+             patch.object(cdp_module, "_close_browser_via_cdp", return_value=True):
+            cdp_module._close_shared_browser_idle()
+        process.wait.assert_called_once_with(timeout=10)
+        self.assertIsNone(cdp_module._shared_browser_process)
+
+
+class TestBrowserStartupCleanup(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        _force_terminate_shared_browser()
+
+    async def asyncTearDown(self):
+        _force_terminate_shared_browser()
+
+    async def test_failed_connection_releases_reference_once(self):
+        session = CDPSession(port=1234)
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps({
+            "id": "test", "webSocketDebuggerUrl": "ws://localhost"
+        }).encode()
+        with patch.object(cdp_module.urllib.request, "urlopen", return_value=response), \
+             patch.object(session, "connect", new_callable=AsyncMock, side_effect=RuntimeError("failed")):
+            with self.assertRaisesRegex(RuntimeError, "failed"):
+                await session.start()
+            self.assertEqual(cdp_module._shared_browser_refcount, 0)
+            self.assertIsNotNone(cdp_module._shared_browser_idle_timer)
+            await session.close()
+            self.assertEqual(cdp_module._shared_browser_refcount, 0)
+
+    async def test_navigation_failure_closes_tab(self):
+        from g4f.requests.cdp_browser import CDPBrowser
+
+        session = MagicMock()
+        session.start = AsyncMock()
+        session.navigate = AsyncMock(side_effect=RuntimeError("navigation failed"))
+        session.close = AsyncMock()
+        browser = CDPBrowser()
+        with patch("g4f.requests.cdp_browser.CDPSession", return_value=session):
+            with self.assertRaisesRegex(RuntimeError, "navigation failed"):
+                await browser.get("https://example.com")
+        session.close.assert_awaited_once()
+        self.assertEqual(browser._tabs, [])
+
+    async def test_cancelled_start_releases_reference(self):
+        session = CDPSession(port=1234)
+        with patch.object(cdp_module.urllib.request, "urlopen", side_effect=OSError), \
+             patch.object(cdp_module.asyncio, "sleep", new_callable=AsyncMock,
+                          side_effect=asyncio.CancelledError):
+            with self.assertRaises(asyncio.CancelledError):
+                await session.start()
+        self.assertEqual(cdp_module._shared_browser_refcount, 0)
+        self.assertIsNotNone(cdp_module._shared_browser_idle_timer)
+
+    async def test_openai_auth_closes_tab_on_success_and_failure(self):
+        from g4f.Provider.needs_auth.OpenaiChat import OpenaiChat
+
+        for error in (None, RuntimeError("authentication failed")):
+            with self.subTest(error=error):
+                session = MagicMock()
+                session.start = AsyncMock()
+                session.navigate = AsyncMock()
+                session.close = AsyncMock()
+                with patch("g4f.requests.has_cdp", True), \
+                     patch("g4f.requests.cdp_browser.CDPSession", return_value=session), \
+                     patch.object(OpenaiChat, "_nodriver_auth_page",
+                                  new_callable=AsyncMock, side_effect=error):
+                    if error:
+                        with self.assertRaisesRegex(RuntimeError, "authentication failed"):
+                            await OpenaiChat.nodriver_auth()
+                    else:
+                        await OpenaiChat.nodriver_auth()
+                session.close.assert_awaited_once()
 
 
 @unittest.skipUnless(
@@ -202,6 +327,21 @@ class TestCDPSessionParallel(unittest.TestCase):
                 await s2.navigate("about:blank")
             finally:
                 await s2.close()
+
+        asyncio.run(run())
+
+    def test_browser_closes_after_configured_idle_timeout(self):
+        async def run():
+            with patch.dict(os.environ, {"G4F_BROWSER_IDLE_TIMEOUT": "0.1"}):
+                session = CDPSession(headless=True)
+                await session.start()
+                port = session.port
+                await session.close()
+                for _ in range(100):
+                    if not _browser_alive("127.0.0.1", port):
+                        break
+                    await asyncio.sleep(0.1)
+                self.assertFalse(_browser_alive("127.0.0.1", port))
 
         asyncio.run(run())
 
