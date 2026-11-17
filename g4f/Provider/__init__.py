@@ -39,7 +39,6 @@ class ProviderLoader:
         "Cloudflare",
         "CohereForAI_C4AI_Command",
         "Copilot",
-        "CopilotApp",
         "DeepInfra",
         "DeepSeek",
         "EdgeTTS",
