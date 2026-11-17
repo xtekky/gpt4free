@@ -121,7 +121,6 @@ default = Model(
     base_provider="",
     best_provider=IterListProvider(
         [
-            "CopilotApp",
             "Ollama",
             "DeepInfra",
             "OperaAria",
@@ -170,14 +169,14 @@ agent_tools = Model(
 gpt_4 = Model(
     name="gpt-4",
     base_provider="OpenAI",
-    best_provider=IterListProvider(["CopilotApp", "Yqcloud", "OpenaiChat"]),
+    best_provider=IterListProvider(["Yqcloud", "OpenaiChat"]),
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name="gpt-4o",
     base_provider="OpenAI",
-    best_provider=IterListProvider(["CopilotApp", "OpenaiChat"]),
+    best_provider=IterListProvider(["OpenaiChat"]),
 )
 
 gpt_4o_mini = Model(

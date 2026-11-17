@@ -15,7 +15,6 @@ model_map = {
     "Pollinations": "",
     "OperaAria": "",
     "GLM": "",
-    "CopilotApp": "",
     "GeminiPro": "",
     "G4FSpace": "auto",
     "Grok": "auto",
@@ -27,7 +26,6 @@ model_map = {
     "AgentTools": "Agent Tools (MCP)"
   },
   "gpt-4": {
-    "CopilotApp": "chat",
     "Yqcloud": "gpt-4",
     "ChatGPT": "",
     "Airforce": "gpt-4",
@@ -38,7 +36,6 @@ model_map = {
     "Puter": "openrouter:openai/gpt-4"
   },
   "gpt-4o": {
-    "CopilotApp": "chat",
     "ChatGPT": "",
     "Airforce": "gpt-4o",
     "Copilot": "Copilot",
@@ -50,7 +47,6 @@ model_map = {
   "gpt-4o-mini": {
     "ChatGPT": "",
     "Airforce": "gpt-4o-mini",
-    "CopilotApp": "chat",
     "GithubCopilot": "gpt-4o-mini",
     "KiloCode": "openai/gpt-4o-mini-2024-07-18",
     "Pollinations": "openai-fast",
@@ -64,7 +60,6 @@ model_map = {
     "OpenaiAccount": "o1",
     "Airforce": "o1",
     "Copilot": "Think Deeper",
-    "CopilotApp": "reasoning",
     "ChatGPT": "",
     "Puter": "infron:openai/o1"
   },
@@ -77,7 +72,6 @@ model_map = {
   "o3-mini": {
     "ChatGPT": "",
     "Airforce": "o3-mini",
-    "CopilotApp": "reasoning",
     "Arena": "o3-mini",
     "Puter": "infron:openai/o3-mini"
   },

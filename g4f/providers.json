@@ -240,22 +240,6 @@
     "login": false
   },
   {
-    "name": "CopilotApp",
-    "label": "Copilot App",
-    "parent": null,
-    "image": 0,
-    "audio": 0,
-    "video": 0,
-    "vision": false,
-    "nodriver": false,
-    "hf_space": false,
-    "active_by_default": true,
-    "auth": false,
-    "login_url": null,
-    "live": 0,
-    "login": false
-  },
-  {
     "name": "DeepInfra",
     "label": "DeepInfra",
     "parent": null,

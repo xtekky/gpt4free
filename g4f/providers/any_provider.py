@@ -33,7 +33,6 @@ from .any_model_map import (
 # Add providers to existing models on map
 PROVIDERS_LIST_2 = [
     "OpenaiChat",
-    "CopilotApp",
     "Pollinations",
     "Gemini",
     "Grok",
