@@ -5,7 +5,7 @@ import os
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from g4f.Provider import ProviderLoader, UberLLM
+from g4f.Provider import ProviderLoader, MartLLM
 from g4f.client import Client
 from g4f.errors import MissingAuthError
 from g4f.tools.auth import AuthManager
@@ -14,17 +14,17 @@ from g4f.tools.auth import AuthManager
 OPENAI_TEMPLATE_MODULE = importlib.import_module("g4f.Provider.template.OpenaiTemplate")
 
 
-class TestUberLLM(unittest.TestCase):
+class TestMartLLM(unittest.TestCase):
     def setUp(self):
-        self.models_patch = patch.object(UberLLM, "models", {})
+        self.models_patch = patch.object(MartLLM, "models", {})
         self.models_patch.start()
         self.addCleanup(self.models_patch.stop)
 
     def test_named_provider_and_environment_key(self):
-        self.assertIs(ProviderLoader.from_name("UberLLM"), UberLLM)
-        self.assertIn("UberLLM", ProviderLoader.extra)
-        with patch.dict(os.environ, {"UBERLLM_API_KEY": "ull-test-value"}, clear=True):
-            self.assertEqual(AuthManager.load_api_key(UberLLM), "ull-test-value")
+        self.assertIs(ProviderLoader.from_name("MartLLM"), MartLLM)
+        self.assertIn("MartLLM", ProviderLoader.extra)
+        with patch.dict(os.environ, {"MARTLLM_API_KEY": "ull-test-value"}, clear=True):
+            self.assertEqual(AuthManager.load_api_key(MartLLM), "ull-test-value")
 
     @patch.object(OPENAI_TEMPLATE_MODULE.requests, "get")
     def test_model_discovery_works_without_a_key(self, get):
@@ -32,16 +32,16 @@ class TestUberLLM(unittest.TestCase):
             "data": [{"id": "deepseek/deepseek-v4.1-flash"}, {"id": "anthropic/claude-sonnet-4.6"}]
         }
         with patch.dict(os.environ, {}, clear=True):
-            models = UberLLM.get_models(timeout=10)
+            models = MartLLM.get_models(timeout=10)
         self.assertEqual(list(models), ["deepseek/deepseek-v4.1-flash", "anthropic/claude-sonnet-4.6"])
-        self.assertEqual(get.call_args.args[0], "https://api.uberllm.dev/v1/models")
+        self.assertEqual(get.call_args.args[0], "https://api.martllm.com/v1/models")
         self.assertNotIn("Authorization", get.call_args.kwargs["headers"])
 
     def test_chat_requires_a_key_without_network_io(self):
         with patch.dict(os.environ, {}, clear=True), patch.object(
             OPENAI_TEMPLATE_MODULE, "StreamSession"
         ) as session_type:
-            client = Client(provider=UberLLM)
+            client = Client(provider=MartLLM)
             with self.assertRaises(MissingAuthError):
                 client.chat.completions.create(
                     model="deepseek/deepseek-v4.1-flash",
@@ -66,11 +66,11 @@ class TestUberLLM(unittest.TestCase):
         session.post.return_value = response
         session_type.return_value = session
 
-        client = Client(provider=UberLLM, api_key="ull-test-value")
+        client = Client(provider=MartLLM, api_key="ull-test-value")
         result = client.chat.completions.create(
             model="anthropic/claude-sonnet-4.6", messages=[{"role": "user", "content": "Reply OK"}], stream=False,
         )
         self.assertEqual(result.choices[0].message.content, "OK")
-        self.assertEqual(session.post.call_args.args[0], "https://api.uberllm.dev/v1/chat/completions")
+        self.assertEqual(session.post.call_args.args[0], "https://api.martllm.com/v1/chat/completions")
         self.assertEqual(session.post.call_args.kwargs["json"]["model"], "anthropic/claude-sonnet-4.6")
         self.assertEqual(session_type.call_args.kwargs["headers"]["Authorization"], "Bearer ull-test-value")

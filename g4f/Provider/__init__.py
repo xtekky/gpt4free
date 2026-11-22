@@ -112,7 +112,7 @@ class ProviderLoader:
         "Replicate",
         "ThebApi",
         "Together",
-        "UberLLM",
+        "MartLLM",
         "xAI",
     ]
     loaded = {}
