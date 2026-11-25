@@ -234,8 +234,8 @@ class AnyModelProviderMixin(ProviderModelMixin):
                         ProviderLoader.from_name("OpenaiAccount"),
                     ]
                 ):
-                    models = await cls.get_provider_models(provider)
-                    for model in provider.get_models():
+                    provider_models = await cls.get_provider_models(provider)
+                    for model in provider_models:
                         clean = clean_name(model)
                         if clean in cls.model_map:
                             cls.model_map[clean].update({provider.__name__: model})

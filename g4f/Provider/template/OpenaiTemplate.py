@@ -168,7 +168,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if (not cls.needs_auth or cls.models_needs_auth or api_key) and data:
                     cls.live += 1
                 cls.image_models = [
-                    model.get("name")
+                    model.get("model")
+                    if model.get("model")
+                    else model.get("name")
                     if cls.use_model_names
                     else model.get("id", model.get("name"))
                     for model in data
@@ -178,23 +180,31 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 ]
                 cls.vision_models = cls.vision_models.copy()
                 cls.vision_models += [
-                    model.get("name")
+                    model.get("model")
+                    if model.get("model")
+                    else model.get("name")
                     if cls.use_model_names
                     else model.get("id", model.get("name"))
                     for model in data
                     if model.get("vision")
                 ]
                 cls.models = {
-                    model.get("name")
+                    model.get("model")
+                    if model.get("model")
+                    else model.get("name")
                     if cls.use_model_names
                     else model.get("id", model.get("name")): model
                     for model in data
                 }
                 for key, value in cls.models.items():
                     value.pop("id")
-                    cls.models[key] = {"id": key, **value}
+                    cls.models[key] = {"id": value.get("name")
+                    if cls.use_model_names
+                    else value.get("id", value.get("name")), **value}
                 cls.models_count = {
-                    model.get("name")
+                    model.get("model")
+                    if model.get("model")
+                    else model.get("name")
                     if cls.use_model_names
                     else model.get("id", model.get("name")): len(
                         model.get("providers", [])
