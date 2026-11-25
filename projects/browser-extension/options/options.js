@@ -18,6 +18,7 @@ async function init() {
   wireEvents();
   loadModelOptions();
   refreshCdpUI();
+  initTracking();
 }
 
 /* ---------------- CDP bridge (browser as provider) ---------------- */
@@ -195,4 +196,41 @@ async function loadModelOptions() {
   } catch {
     /* server offline — leave defaults */
   }
+}
+
+
+/* ---------------- Account tracking (opt-in) ---------------- */
+
+const TRACK_PERMISSIONS = {
+  chatgpt: ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+  gemini: ["https://gemini.google.com/*"],
+  google_ai: ["https://www.google.com/*"],
+  google_search: ["https://www.google.com/*"],
+};
+
+async function initTracking() {
+  const { trackSources = {}, chatgptImportStatus = "" } = await chrome.storage.local.get(["trackSources", "chatgptImportStatus"]);
+  $("#chatgpt-import-status").textContent = chatgptImportStatus;
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.chatgptImportStatus) {
+      $("#chatgpt-import-status").textContent = changes.chatgptImportStatus.newValue || "";
+    }
+  });
+  document.querySelectorAll("input[data-track]").forEach((box) => {
+    const key = box.dataset.track;
+    box.checked = !!trackSources[key];
+    box.addEventListener("change", async () => {
+      if (box.checked) {
+        const granted = await chrome.permissions.request({ origins: TRACK_PERMISSIONS[key] });
+        if (!granted) {
+          box.checked = false;
+          return;
+        }
+      }
+      const current = (await chrome.storage.local.get("trackSources")).trackSources || {};
+      current[key] = box.checked;
+      await chrome.storage.local.set({ trackSources: current });
+      await chrome.runtime.sendMessage({ type: "g4f:tracker:sync" });
+    });
+  });
 }

@@ -21,6 +21,7 @@ import { toast, bindCopyHandlers, escapeHtml } from "../lib/ui.js";
 
 const $ = (sel) => document.querySelector(sel);
 const EMBED_KEY = "g4fEmbedMode"; // "embed" | "native" (chrome.storage.local)
+const PANEL_HEADER_STATE_KEY = "g4fPanelHeaderCollapsed";
 
 /**
  * Chat app URL, derived from the configured server URL: the public
@@ -70,6 +71,7 @@ chrome.storage.session.onChanged.addListener((changes, area) => {
 
 async function init() {
   settings = await getSettings();
+  await restoreHeaderState();
   bindCopyHandlers(document, () => toast($("#toast-root"), "Copied"));
 
   const mode = await getMode();
@@ -90,6 +92,22 @@ async function init() {
   }
   await consumePreset();   // context-menu handoff
   await consumeHandoff();  // popup handoff
+}
+
+function setHeaderCollapsed(collapsed) {
+  document.body.classList.toggle("panel-header-collapsed", collapsed);
+  $("#panel-header-show").hidden = !collapsed;
+}
+
+async function restoreHeaderState() {
+  const { [PANEL_HEADER_STATE_KEY]: collapsed = false } =
+    await chrome.storage.local.get(PANEL_HEADER_STATE_KEY);
+  setHeaderCollapsed(collapsed);
+}
+
+async function saveHeaderState(collapsed) {
+  setHeaderCollapsed(collapsed);
+  await chrome.storage.local.set({ [PANEL_HEADER_STATE_KEY]: collapsed });
 }
 
 /* ------------------------------------------------------------------ */
@@ -385,6 +403,11 @@ function renderHistory() {
 /* ------------------------------------------------------------------ */
 
 function wireEvents() {
+  document.querySelectorAll("[data-panel-header-collapse]").forEach((button) =>
+    button.addEventListener("click", () => saveHeaderState(true))
+  );
+  $("#panel-header-show").addEventListener("click", () => saveHeaderState(false));
+
   $("#new-chat").addEventListener("click", resetChat);
   $("#history-btn").addEventListener("click", () => {
     const drawer = $("#history-drawer");

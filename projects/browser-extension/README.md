@@ -20,11 +20,17 @@ context, image generation, quick actions — with all conversations stored
   Summarize. The prompt is injected straight into the embedded chat.
 - 🧩 **CDP bridge** — let a local g4f server drive this browser as a provider
   (optional, off by default)
+- **ChatGPT history import** — opt in under Account tracking, then open or
+  reload a signed-in `chatgpt.com` tab. The extension imports non-archived
+  conversations, checks for updates every 10 minutes while the tab is open,
+  and hands text messages to the embedded chat when it is open. Attachments
+  are not imported. Import status and errors appear in extension settings.
 - ⌨️ Shortcuts: `Alt+Shift+G` (open assistant), `Alt+Shift+S` (toggle side panel)
 
 > **Privacy:** there is no account, no OAuth and no cloud sync. Conversations
 > never leave your browser storage (IndexedDB for the embedded chat,
-> `chrome.storage.local` for lite mode).
+> `chrome.storage.local` for lite mode). When ChatGPT tracking is enabled,
+> the extension reads your ChatGPT history using your signed-in session.
 
 ## Setup
 

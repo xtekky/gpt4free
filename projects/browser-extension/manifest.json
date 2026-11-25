@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "gpt4free — Free AI Assistant",
+  "name": "gpt4free \u2014 Free AI Assistant",
   "short_name": "g4f",
-  "description": "Chat with free AI models from your browser. Powered by gpt4free — sidebar chat with the full g4f.dev chat, page context, image generation and more.",
+  "description": "Chat with free AI models from your browser. Powered by gpt4free \u2014 sidebar chat with the full g4f.dev chat, page context, image generation and more.",
   "version": "0.2.0",
   "minimum_chrome_version": "116",
   "icons": {
@@ -34,6 +34,7 @@
   },
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "sidePanel",
     "contextMenus",
     "scripting",
@@ -51,7 +52,10 @@
     "http://127.0.0.1:*/*",
     "http://0.0.0.0:*/*"
   ],
-  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
   "commands": {
     "_execute_action": {
       "suggested_key": {
@@ -67,8 +71,27 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
-      "matches": ["http://localhost/*", "http://127.0.0.1/*"]
+      "resources": [
+        "assets/*"
+      ],
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://g4f.dev/chat/*",
+        "https://g4f.dev/*/chat/*",
+        "http://127.0.0.1:*/chat/*",
+        "http://localhost:*/chat/*"
+      ],
+      "js": [
+        "content/bridge.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }

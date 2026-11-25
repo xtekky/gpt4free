@@ -179,9 +179,91 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
+const TRACK_ORIGINS = {
+  chatgpt: ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+  gemini: ["https://gemini.google.com/*"],
+  google_ai: ["https://www.google.com/search*"],
+  google_search: ["https://www.google.com/search*"],
+};
+
+// Opt-in: the tracker script is only registered for sources the user enabled.
+async function syncTracker() {
+  const { trackSources = {} } = await chrome.storage.local.get("trackSources");
+  const matches = [...new Set(Object.entries(trackSources)
+    .filter(([, on]) => on).flatMap(([key]) => TRACK_ORIGINS[key] || []))];
+  try {
+    await chrome.scripting.unregisterContentScripts({ ids: ["g4f-tracker"] });
+  } catch {}
+  if (matches.length) {
+    await chrome.scripting.registerContentScripts([{
+      id: "g4f-tracker", matches, js: ["content/tracker.js", "content/chatgpt-history.js"], runAt: "document_idle", persistAcrossSessions: true,
+    }]);
+  }
+}
+chrome.runtime.onInstalled.addListener(syncTracker);
+chrome.runtime.onStartup.addListener(syncTracker);
+
+let trackedChatWrites = Promise.resolve();
+function serializeTrackedChatWrite(operation) {
+  const result = trackedChatWrites.then(operation);
+  trackedChatWrites = result.catch((error) => console.error("Tracked chat storage failed:", error));
+  return result;
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     switch (msg?.type) {
+      case "g4f:tracked": {
+        await serializeTrackedChatWrite(async () => {
+          const { trackSources = {} } = await chrome.storage.local.get("trackSources");
+          const conv = msg.conversation;
+          if (conv && trackSources[conv.source]) {
+            const { trackedChats = {} } = await chrome.storage.local.get("trackedChats");
+            trackedChats[`${conv.source}:${conv.id}`] = conv;
+            await chrome.storage.local.set({ trackedChats });
+          }
+        });
+        sendResponse({ ok: true });
+        break;
+      }
+      case "g4f:chatgpt:store": {
+        await serializeTrackedChatWrite(async () => {
+          const conv = msg.conversation;
+          const key = `trackedChat:chatgpt:${conv.id}`;
+          const versionKey = `chatgptVersion:${conv.id}`;
+          const stored = await chrome.storage.local.get(["trackSources", versionKey]);
+          if (!stored.trackSources?.chatgpt) throw new Error("ChatGPT tracking is disabled");
+          if (msg.version === null || stored[versionKey] !== msg.version) {
+            await chrome.storage.local.set({ [key]: conv, [versionKey]: msg.version });
+          }
+        });
+        sendResponse({ ok: true });
+        break;
+      }
+      case "g4f:tracked:ack": {
+        await serializeTrackedChatWrite(async () => {
+          const snapshots = msg.conversations || [];
+          const keys = snapshots.map((c) => `trackedChat:${c.source}:${c.id}`);
+          const stored = await chrome.storage.local.get(["trackedChats", ...keys]);
+          const trackedChats = stored.trackedChats || {};
+          const remove = [];
+          for (const conv of snapshots) {
+            const key = `trackedChat:${conv.source}:${conv.id}`;
+            if (JSON.stringify(stored[key]) === JSON.stringify(conv)) remove.push(key);
+            const legacyKey = `${conv.source}:${conv.id}`;
+            if (JSON.stringify(trackedChats[legacyKey]) === JSON.stringify(conv)) delete trackedChats[legacyKey];
+          }
+          await chrome.storage.local.set({ trackedChats });
+          if (remove.length) await chrome.storage.local.remove(remove);
+        });
+        sendResponse({ ok: true });
+        break;
+      }
+      case "g4f:tracker:sync": {
+        await syncTracker();
+        sendResponse({ ok: true });
+        break;
+      }
       case MESSAGE_TYPES.MODELS: {
         try {
           const settings = await getSettings();
@@ -271,7 +353,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       default:
         sendResponse({ ok: false, error: "Unknown message type" });
     }
-  })();
+  })().catch((error) => {
+    console.error("Extension message failed:", error);
+    sendResponse({ ok: false, error: String(error?.message || error) });
+  });
   return true; // async sendResponse
 });
 

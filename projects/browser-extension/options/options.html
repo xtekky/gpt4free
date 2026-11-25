@@ -47,6 +47,17 @@
     </section>
 
     <section class="card">
+      <h2>Account tracking <span class="optional">(opt-in)</span></h2>
+      <p class="hint">Save new conversations from these sites so you can import them into <code>g4f.dev/chat</code>. Everything is off by default, stays in this browser, and enabling a source asks for permission to read that site.</p>
+      <div class="field"><label><input type="checkbox" data-track="chatgpt" /> ChatGPT</label></div>
+      <p class="hint">ChatGPT imports all non-archived conversations while a signed-in chatgpt.com tab is open, then checks for updates every 10 minutes. After enabling, reload or open that tab. Text messages are imported; attachments are not.</p>
+      <p id="chatgpt-import-status" class="hint" role="status"></p>
+      <div class="field"><label><input type="checkbox" data-track="gemini" /> Gemini</label></div>
+      <div class="field"><label><input type="checkbox" data-track="google_ai" /> Google AI mode</label></div>
+      <div class="field"><label><input type="checkbox" data-track="google_search" /> Google Search</label></div>
+    </section>
+
+    <section class="card">
       <h2>Chat defaults</h2>
 
       <div class="field">
