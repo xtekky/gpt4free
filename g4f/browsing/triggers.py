@@ -52,6 +52,7 @@ def _store_path() -> Path:
 
 
 def _load() -> List[Dict]:
+    return [] # Disable loading triggers from store
     path = _store_path()
     if not path.exists():
         return []
