@@ -447,6 +447,15 @@ class AndroidContainerCatalogTests(unittest.TestCase):
         self.assertIn("applyModifiers(data, null)", html)
         self.assertIn("char.toUpperCase().charCodeAt(0) & 0x1f", modifier_block)
 
+    def test_native_build_cache_is_not_committed(self):
+        ignore = (REPO / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("/projects/android/app/.cxx/", ignore)
+        for name in ("CMakeLists.txt", "pty.cpp", "linkfix.cpp"):
+            self.assertTrue((CPP / name).is_file(), name)
+        cmake = (CPP / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("add_library(g4f_pty SHARED pty.cpp)", cmake)
+        self.assertIn("add_library(g4f_linkfix SHARED linkfix.cpp)", cmake)
+
     def test_proot_is_shipped_as_native_libraries(self):
         # Android forbids execve() from app-writable storage, so PRoot and its
         # static loader must come from the APK's read-only nativeLibraryDir.
@@ -480,9 +489,11 @@ class AndroidContainerCatalogTests(unittest.TestCase):
         self.assertIn('"setup.py", "README.md", "requirements.txt"', manager)
         self.assertIn('"PYTHONPATH=/g4f-src"', manager)
         self.assertIn('"G4F_PYTHON=/opt/g4f-venv/bin/python"', manager)
+        self.assertIn('"PYTHONHOME="', manager)
         self.assertIn('"export G4F_PYTHON=/opt/g4f-venv/bin/python; "', manager)
         self.assertIn('"export G4F_PYTHON=/opt/g4f-venv/bin/python\\n"', manager)
         self.assertIn('"unset PYTHONHOME\\n"', manager)
+        self.assertIn('copyAssetFile("container/bin/g4f-go"', manager)
         # Re-extracting over a half-configured rootfs is what caused repeated
         # apt exit 100; every install starts from a clean filesystem.
         self.assertIn("            reset();\n            File rootfsArchive", manager)

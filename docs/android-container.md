@@ -60,10 +60,14 @@ all repository `bin/` commands plus the Linux arm64 `g4f-go` binary into
 `G4F_PYTHON=/opt/g4f-venv/bin/python` is exported in every session and in
 `/etc/profile.d/g4f.sh`, so `g4f-go` inside the container reuses the bundled
 venv interpreter instead of trying to download a CPython archive over HTTPS
-(which can fail when the container has no CA certificates). The same profile and
-every launcher also clear `PYTHONHOME`; a stale value makes CPython fail at
-startup with `No module named encodings` / `Failed to get codec of filesystem
-encoding`. `runtime.curl`
+(which can fail when the container has no CA certificates). `g4f-go` also
+detects that explicit `G4F_PYTHON` and no longer points `PYTHONHOME` at its own
+downloaded runtime, which would break the venv interpreter in the same way.
+`writeLaunchers()` also refreshes `g4f-go` from the APK on reconnect, so an app
+update repairs an existing container without reinstalling it. The same profile
+and every launcher also clear `PYTHONHOME`; a stale value makes
+CPython fail at startup with `No module named encodings` / `Failed to get codec
+of filesystem encoding`. `runtime.curl`
 pins a static musl curl with an embedded CA bundle; `prepare_curl.py` verifies
 its archive and binary hashes and places it in `container/bin` so `sandbox-cli`
 can download installers without apt or system certificates. The Android

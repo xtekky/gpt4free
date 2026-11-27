@@ -289,6 +289,7 @@ public final class ContainerManager {
                 // platform CPython at runtime fails when HTTPS/CA setup is
                 // unavailable inside PRoot.
                 "G4F_PYTHON=/opt/g4f-venv/bin/python",
+                "PYTHONHOME=",
                 "TERM=xterm-256color",
                 "LANG=C.UTF-8",
                 "PROOT_LOADER=" + prootLoader().getAbsolutePath(),
@@ -398,6 +399,10 @@ public final class ContainerManager {
         writeShellProfile();
         writeApiLauncher();
         writeDesktopLauncher();
+        // g4f-go itself carries part of that fix. Refreshing it from the APK
+        // repairs existing containers after an app update without a full
+        // reinstall; copyAssetFile keeps the executable bit.
+        copyAssetFile("container/bin/g4f-go", new File(binDir, "g4f-go"));
     }
 
     /** g4f's --bind option takes one host:port value, not separate --port. */

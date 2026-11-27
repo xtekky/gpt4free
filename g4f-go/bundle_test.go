@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -128,6 +129,7 @@ func TestEnsureBundleReextractsOnRevisionChange(t *testing.T) {
 }
 
 func TestBundleEnvPrependsBundleToPythonPath(t *testing.T) {
+	t.Setenv("G4F_PYTHON", "")
 	binDir := t.TempDir()
 	env := bundleEnv(binDir)
 
@@ -148,7 +150,46 @@ func TestBundleEnvPrependsBundleToPythonPath(t *testing.T) {
 	}
 }
 
+func TestPipEnvWithExplicitPythonKeepsExternalStdlib(t *testing.T) {
+	t.Setenv("G4F_PYTHON", "/opt/g4f-venv/bin/python")
+	t.Setenv("PYTHONHOME", "/stale/python-home")
+	binDir := t.TempDir()
+	env := pipEnv(binDir)
+
+	home := ""
+	path := ""
+	for _, kv := range env {
+		switch {
+		case strings.HasPrefix(kv, "PYTHONHOME="):
+			home = strings.TrimPrefix(kv, "PYTHONHOME=")
+		case strings.HasPrefix(kv, "PYTHONPATH="):
+			path = strings.TrimPrefix(kv, "PYTHONPATH=")
+		}
+	}
+	if home != "" {
+		t.Fatalf("PYTHONHOME = %q, want empty for G4F_PYTHON", home)
+	}
+	if strings.Contains(path, "python-home") {
+		t.Fatalf("PYTHONPATH = %q, must not point at the downloaded runtime", path)
+	}
+}
+
+func TestBundleEnvWithExplicitPythonOnlyAddsBundle(t *testing.T) {
+	t.Setenv("G4F_PYTHON", "/opt/g4f-venv/bin/python")
+	binDir := t.TempDir()
+	want := bundleDir(binDir)
+	for _, kv := range bundleEnv(binDir) {
+		if strings.HasPrefix(kv, "PYTHONHOME=") && strings.TrimPrefix(kv, "PYTHONHOME=") != "" {
+			t.Fatalf("unexpected PYTHONHOME: %q", kv)
+		}
+		if strings.HasPrefix(kv, "PYTHONPATH=") && strings.TrimPrefix(kv, "PYTHONPATH=") != want {
+			t.Fatalf("PYTHONPATH = %q, want only %q", kv, want)
+		}
+	}
+}
+
 func TestBundlePipCacheDir(t *testing.T) {
+	t.Setenv("G4F_PYTHON", "")
 	config := t.TempDir()
 	t.Setenv("G4F_CONFIG_DIR", config)
 	t.Setenv("G4F_CACHE_DIR", "")
@@ -159,6 +200,33 @@ func TestBundlePipCacheDir(t *testing.T) {
 		}
 	}
 	t.Fatalf("bundle env missing %q", want)
+}
+
+func TestPythonEnvClearsInheritedPythonHome(t *testing.T) {
+	t.Setenv("G4F_PYTHON", "/opt/g4f-venv/bin/python")
+	t.Setenv("PYTHONHOME", "/stale/python-home")
+
+	got := pythonEnv("PYTHONUTF8=1")
+	count := 0
+	for _, kv := range got {
+		if strings.HasPrefix(kv, "PYTHONHOME=") {
+			count++
+			if value := strings.TrimPrefix(kv, "PYTHONHOME="); value != "" {
+				t.Fatalf("PYTHONHOME = %q, want empty", value)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly one PYTHONHOME entry, got %d in %v", count, got)
+	}
+}
+
+func TestPythonEnvKeepsExplicitPythonHomeOverride(t *testing.T) {
+	t.Setenv("PYTHONHOME", "/stale/python-home")
+	got := pythonEnv("PYTHONHOME=/wanted/python-home")
+	if !strings.Contains(strings.Join(got, "\n"), "PYTHONHOME=/wanted/python-home") {
+		t.Fatalf("explicit PYTHONHOME override missing from %v", got)
+	}
 }
 
 func TestMergeEnvOverridesExistingKeys(t *testing.T) {

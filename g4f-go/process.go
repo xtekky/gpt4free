@@ -29,6 +29,15 @@ export PYTHONUTF8=1
 exec "$PY" "$@"
 `
 
+// pythonEnv builds the environment for every interpreter subprocess. A stale
+// PYTHONHOME inherited from the parent would make CPython fail before g4f-go
+// code runs ("No module named encodings"), so clear it by default. Command-
+// specific overrides (for example pipEnv pointing at the downloaded runtime)
+// are applied afterwards and can restore the correct value.
+func pythonEnv(extra ...string) []string {
+	return mergeEnv(mergeEnv(os.Environ(), "PYTHONHOME="), extra...)
+}
+
 // runPython executes the embedded interpreter with `-m g4f` args and forwards
 // stdin/stdout/stderr. The pip bootstrap passes different env via pipEnv().
 func runPython(ctx context.Context, exe string, args []string, extraEnv ...string) (int, error) {
@@ -36,7 +45,7 @@ func runPython(ctx context.Context, exe string, args []string, extraEnv ...strin
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = mergeEnv(os.Environ(), extraEnv...)
+	cmd.Env = pythonEnv(extraEnv...)
 	err := cmd.Run()
 	if err != nil {
 		if ctx.Err() != nil {
@@ -81,7 +90,7 @@ func mergeEnv(base []string, extra ...string) []string {
 // cheap capability probes such as checking whether a module is importable.
 func capturePython(exe string, args []string, extraEnv ...string) (string, error) {
 	cmd := exec.Command(exe, args...)
-	cmd.Env = mergeEnv(os.Environ(), extraEnv...)
+	cmd.Env = pythonEnv(extraEnv...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = io.Discard

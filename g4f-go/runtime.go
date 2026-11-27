@@ -200,19 +200,35 @@ func ensurePip(binDir, exe string) error {
 	return nil
 }
 
+// usesExternalPython reports whether the interpreter is managed outside the
+// g4f-go download: Termux's python package, or an explicit G4F_PYTHON such as
+// the Android container's /opt/g4f-venv/bin/python. Those interpreters have
+// their own stdlib, so pointing PYTHONHOME at the downloaded runtime makes
+// CPython fail at startup with "No module named encodings".
+func usesExternalPython() bool {
+	return IsTermuxSystem() || strings.TrimSpace(os.Getenv("G4F_PYTHON")) != ""
+}
+
+// externalPythonEnv isolates pip and bundled modules without changing where
+// CPython looks for its stdlib. PYTHONHOME is set to the empty string so an
+// inherited bad value is cleared even when the parent shell did not unset it.
+func externalPythonEnv() []string {
+	return []string{
+		"PYTHONHOME=",
+		"PYTHONNOUSERSITE=1",
+		"PYTHONDONTWRITEBYTECODE=1",
+		"PYTHONUTF8=1",
+	}
+}
+
 // pipEnv restricts pip to the downloaded runtime so installs never touch the
 // host Python. pbs installs are a full layout: lib/pythonX.Y/site-packages
 // (unix) or Lib/site-packages (windows) inside the interpreter home.
-// On Termux we use the system python, so we must NOT override PYTHONHOME
-// (that would break the system interpreter); only set user-site isolation.
+// External interpreters (Termux and G4F_PYTHON) must keep their own stdlib.
 func pipEnv(binDir string) []string {
 	cache := []string{"PIP_CACHE_DIR=" + filepath.Join(pythonCacheDir(), "pip"), "PIP_NO_CACHE_DIR=0"}
-	if IsTermuxSystem() {
-		return append(cache, []string{
-			"PYTHONNOUSERSITE=1",
-			"PYTHONDONTWRITEBYTECODE=1",
-			"PYTHONUTF8=1",
-		}...)
+	if usesExternalPython() {
+		return append(cache, externalPythonEnv()...)
 	}
 	home := pythonHome(binDir)
 	lib := filepath.Join(home, "Lib", "site-packages")
