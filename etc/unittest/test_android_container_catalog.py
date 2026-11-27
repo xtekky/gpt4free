@@ -531,6 +531,15 @@ class AndroidContainerCatalogTests(unittest.TestCase):
             with self.subTest(needle=needle):
                 self.assertIn(needle, workflow)
 
+    def test_release_android_sdk_setup_avoids_removed_tools_package(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        setup = workflow[workflow.index("      - name: Install Android NDK and CMake"):
+                         workflow.index("      - name: Decode and verify release keystore")]
+        self.assertIn("uses: android-actions/setup-android@v4.0.4", setup)
+        self.assertIn("packages: 'platform-tools'", setup)
+        self.assertNotIn("tools platform-tools", setup)
+        self.assertIn('sdkmanager "ndk;26.3.11579264" "cmake;3.22.1"', setup)
+
     def test_failed_provisioning_is_visible(self):
         service = (JAVA / "ContainerService.java").read_text(encoding="utf-8")
         for needle in ('private volatile String provisioningError;',

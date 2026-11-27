@@ -208,7 +208,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Install Android NDK and CMake
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4.0.4
+        with:
+          # v3 installed the removed SDK `tools` package by default and failed
+          # with "Failed to find package 'tools'". The command-line tools that
+          # replace it are installed by the action itself.
+          packages: 'platform-tools'
 
       - name: Install native build tools
         run: |
