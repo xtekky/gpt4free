@@ -1,4 +1,0 @@
-/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/RelWithDebInfo/i6a253g2/arm64-v8a/CMakeFiles/g4f_pty.dir
-/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/RelWithDebInfo/i6a253g2/arm64-v8a/CMakeFiles/g4f_linkfix.dir
-/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/RelWithDebInfo/i6a253g2/arm64-v8a/CMakeFiles/edit_cache.dir
-/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/RelWithDebInfo/i6a253g2/arm64-v8a/CMakeFiles/rebuild_cache.dir
