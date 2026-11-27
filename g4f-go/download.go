@@ -28,7 +28,7 @@ type RuntimeManifest struct {
 
 // RuntimeSpec is a single platform's runtime download.
 type RuntimeSpec struct {
-	Kind   string `json:"kind"` // "pbs" (install_only tarball) or "android"
+	Kind   string `json:"kind"` // "pbs" (install_only tarball)
 	Arch   string `json:"arch"`
 	URL    string `json:"url"`
 	Size   int64  `json:"size"`
@@ -36,11 +36,9 @@ type RuntimeSpec struct {
 }
 
 // runtimeManifestKey returns the runtime.json entry used for this host:
-// "linux-x64", "linux-arm64", "windows-amd64", "darwin-*" or "android".
+// "linux-x64", "linux-arm64", "windows-amd64" or "darwin-*".
+// Termux/Android uses the system python package and never reads this manifest.
 func runtimeManifestKey() string {
-	if runtime.GOOS == "android" {
-		return "android"
-	}
 	arch := goArchToken()
 	switch runtime.GOOS {
 	case "linux":
@@ -410,59 +408,107 @@ func copySymlinkTarget(target, linkname string) error {
 	return os.WriteFile(target, data, 0o755)
 }
 
+const defaultTermuxPrefix = "/data/data/com.termux/files/usr"
+
+// termuxPrefix returns the Termux installation prefix. PREFIX is set by
+// Termux; the fallback keeps Android builds usable when launched from a
+// minimal shell wrapper.
+func termuxPrefix() string {
+	if prefix := strings.TrimSpace(os.Getenv("PREFIX")); prefix != "" {
+		return prefix
+	}
+	return defaultTermuxPrefix
+}
+
+// IsTermuxSystem reports whether this launcher is running in Termux. Android
+// builds are shipped for Termux, so GOOS alone is authoritative there; on
+// other hosts we require explicit Termux environment markers so a normal
+// desktop Python runtime is never mistaken for Termux.
 func IsTermuxSystem() bool {
-	// Check for Termux specific environment variable or directory
-	if os.Getenv("TERMUX_VERSION") != "" {
+	if runtime.GOOS == "android" || os.Getenv("TERMUX_VERSION") != "" {
 		return true
 	}
-	_, err := os.Stat("/data/data/com.termux/files/usr")
-	return !os.IsNotExist(err)
+	prefix := strings.TrimSpace(os.Getenv("PREFIX"))
+	return prefix != "" && strings.Contains(prefix, "com.termux")
 }
 
-// ensureTermuxRuntime installs python and build dependencies via Termux's
-// package manager and returns the system python path. No CPython download is
-// needed — Termux provides a native python package.
+// findTermuxPython returns the executable installed by Termux's python
+// package. Paths under $PREFIX are preferred over PATH lookups so a host
+// python cannot be picked up by mistake.
+func findTermuxPython(prefix string) (string, error) {
+	for _, name := range []string{"python3", "python"} {
+		exe := filepath.Join(prefix, "bin", name)
+		info, err := os.Stat(exe)
+		if err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0 {
+			return exe, nil
+		}
+	}
+	return "", fmt.Errorf("python not found in Termux prefix %s (run 'pkg install python')", prefix)
+}
+
+// ensureTermuxRuntime uses the interpreter from Termux's python package. No
+// CPython download, dlopen runner or build toolchain is needed.
 func ensureTermuxRuntime() (string, error) {
-	// Packages required for g4f and native extensions.
-	required := []string{"python", "clang", "make", "libxml2", "libxslt", "libjpeg-turbo", "libpng"}
-	var missing []string
-	for _, pkg := range required {
-		if !termuxPackageInstalled(pkg) {
-			missing = append(missing, pkg)
+	prefix := termuxPrefix()
+	if py, err := findTermuxPython(prefix); err == nil {
+		return py, nil
+	}
+
+	fmt.Println("Installing Termux packages: python")
+	pkg := filepath.Join(prefix, "bin", "pkg")
+	if _, err := os.Stat(pkg); err != nil {
+		var lookErr error
+		pkg, lookErr = exec.LookPath("pkg")
+		if lookErr != nil {
+			return "", fmt.Errorf("pkg not found in Termux prefix %s: %w", prefix, lookErr)
 		}
 	}
-	if len(missing) > 0 {
-		fmt.Printf("Installing Termux packages: %s\n", strings.Join(missing, ", "))
-		args := append([]string{"install", "-y"}, missing...)
-		cmd := exec.Command("pkg", args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return "", fmt.Errorf("pkg install failed: %w", err)
+	cmd := exec.Command(pkg, "install", "-y", "python")
+	cmd.Env = append(os.Environ(), "PREFIX="+prefix)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("pkg install python failed: %w", err)
+	}
+	return findTermuxPython(prefix)
+}
+
+// pythonFromEnvironment lets a launcher point g4f-go at an interpreter that is
+// already installed (Termux python, the Android container's venv, or a host
+// python). It must never trigger a download: that is the only way to keep
+// g4f-go working on machines where HTTPS downloads fail (e.g. missing CA
+// certificates under PRoot).
+func pythonFromEnvironment() (string, error) {
+	value := strings.TrimSpace(os.Getenv("G4F_PYTHON"))
+	if value == "" {
+		return "", nil
+	}
+	exe := value
+	if !filepath.IsAbs(exe) {
+		found, err := exec.LookPath(exe)
+		if err != nil {
+			return "", fmt.Errorf("G4F_PYTHON %q not found in PATH: %w", value, err)
 		}
+		exe = found
 	}
-
-	py, err := exec.LookPath("python3")
+	info, err := os.Stat(exe)
 	if err != nil {
-		py, err = exec.LookPath("python")
+		return "", fmt.Errorf("G4F_PYTHON %q is not accessible: %w", value, err)
 	}
-	if err != nil {
-		return "", fmt.Errorf("python not found in Termux PATH (run 'pkg install python')")
+	if info.IsDir() || info.Mode().Perm()&0o111 == 0 {
+		return "", fmt.Errorf("G4F_PYTHON %q is not an executable file", value)
 	}
-	return py, nil
+	return exe, nil
 }
 
-// termuxPackageInstalled checks if a Termux package is already installed
-// using dpkg.
-func termuxPackageInstalled(pkg string) bool {
-	cmd := exec.Command("dpkg", "-s", pkg)
-	return cmd.Run() == nil
-}
-
-// ensureRuntime is the top-level entry point. It downloads (if needed) and
-// extracts the platform runtime into binDir, then returns the python
-// executable/launcher path.
+// ensureRuntime is the top-level entry point. An explicit G4F_PYTHON always
+// wins; Termux uses its system python package; every other platform downloads
+// and extracts a pinned CPython runtime into binDir before returning the
+// interpreter path.
 func ensureRuntime() (string, error) {
+	if py, err := pythonFromEnvironment(); err != nil || py != "" {
+		return py, err
+	}
 	if IsTermuxSystem() {
 		return ensureTermuxRuntime()
 	}

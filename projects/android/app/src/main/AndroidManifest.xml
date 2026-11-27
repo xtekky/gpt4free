@@ -9,14 +9,17 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:label="G4F Chat"
+        android:label="G4F"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.G4F"
         android:usesCleartextTraffic="true"
-        android:hardwareAccelerated="true"
-        android:extractNativeLibs="true">
+        android:hardwareAccelerated="true">
 
         <!-- Master switch for WebView remote debugging (DevTools socket
              @webview_devtools_remote_<pid>, used by provider automation /
@@ -24,9 +27,11 @@
              should not expose the socket. -->
         <meta-data android:name="WebViewDebug" android:value="true" />
 
+        <!-- v2 entry point: Debian container, optional desktop, PTY terminal. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".container.ContainerActivity"
             android:exported="true"
+            android:label="G4F Container"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -34,5 +39,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Classic Chaquopy chat remains available from the container UI. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="G4F Chat"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize" />
+
+        <service
+            android:name=".container.ContainerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="localLinuxContainer" />
+        </service>
     </application>
 </manifest>

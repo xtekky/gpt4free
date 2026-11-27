@@ -2,8 +2,9 @@
 # build-all.sh
 #
 # Cross-compiles the g4f-go launcher for every supported OS/arch and packs a
-# release zip per platform. The runtime is NOT embedded: it downloads from
-# python.org / python-build-standalone on first run (see runtime.json).
+# release zip per platform. The runtime is NOT embedded: desktop platforms
+# download python-build-standalone on first run (see runtime.json), while the
+# Android/Termux release uses the python package installed by Termux.
 # `./fetch-python.sh` only pins sizes+shas; the launcher builds without it.
 #
 # Usage:
@@ -19,8 +20,9 @@ VERSION="${G4F_VERSION:-0.1.0}"
 OUT="${OUT:-$HERE/dist}"
 mkdir -p "$OUT"
 
-# Refresh the embedded Python bundle (remote_desktop + web assets) so releases
-# always ship the current sources from projects/.
+# Refresh the embedded commands (bin/) and Python bundle (remote_desktop + web
+# assets) so releases always ship the current sources without tracked copies.
+"$HERE/sync-assets.sh"
 "$HERE/sync-bundle.sh"
 
 # Optional OS filter: maps the fetch-python.sh platform names onto GOOS.

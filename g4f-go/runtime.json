@@ -1,14 +1,7 @@
 {
-  "comment": "Runtime archives are downloaded at first run (never embedded in the binary). pbs = python-build-standalone (astral-sh), pyorg = python.org. SHA256 listed as empty must be filled after downloading (curl ... | sha256sum) and re-pinned.",
+  "comment": "Runtime archives are downloaded at first run (never embedded in the binary). pbs = python-build-standalone (astral-sh). Termux/Android builds use Termux's python package and are not listed here. SHA256 listed as empty must be filled after downloading (curl ... | sha256sum) and re-pinned.",
   "pbs_tag": "20261026",
   "platforms": {
-    "android": {
-      "arch": "any",
-      "kind": "android",
-      "sha256": "cfd4f0fdaff465ba62ebf3c3df2c8c410d0802fef3f98897082460df704cfef6",
-      "size": 24343902,
-      "url": "https://www.python.org/ftp/python/3.15.2/python-3.15.2-aarch64-linux-android.tar.gz"
-    },
     "darwin-arm64": {
       "arch": "arm64",
       "kind": "pbs",

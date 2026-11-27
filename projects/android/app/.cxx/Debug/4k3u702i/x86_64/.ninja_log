@@ -1,0 +1,7 @@
+# ninja log v5
+0	413	1795743813023002798	CMakeFiles/g4f_pty.dir/pty.cpp.o	9f1766027e8c06dc
+413	553	1795743813144003139	/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/Debug/4k3u702i/obj/x86_64/libg4f_pty.so	aa1ea7f00963dc5b
+52	92	1795750437959927770	/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/Debug/4k3u702i/obj/x86_64/libg4f_linkfix.so	96fa599e1b22ecde
+2	52	1795750437918925794	CMakeFiles/g4f_linkfix.dir/linkfix.cpp.o	bd70a76b05fa9ae0
+3	38	1795750944613680026	/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/Debug/4k3u702i/obj/x86_64/libg4f_linkfix.so	66ff529cf82bb067
+2	122	1795750944684674089	/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/Debug/4k3u702i/obj/x86_64/libg4f_pty.so	20fbfcc1c5b03a25

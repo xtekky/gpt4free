@@ -1,4 +1,4 @@
-.PHONY: all fetch bundle build clean vet test
+.PHONY: all fetch bundle assets build clean vet test dev
 
 all: fetch bundle build
 
@@ -10,19 +10,23 @@ fetch:
 bundle:
 	./sync-bundle.sh
 
+# Regenerate the embedded bin/ commands (sandbox-cli, bootstrap, installer, ...)
+assets:
+	./sync-assets.sh
+
 # Cross-compile launchers for every platform and zip releases into dist/
-build:
+build: assets
 	./build-all.sh
 
 clean:
 	rm -rf dist
 
-vet:
+vet: assets
 	go vet ./...
 
-test:
+test: assets
 	go test ./...
 
 # Single-platform dev build (fast iteration)
-dev:
+dev: assets
 	go build -o g4f-go .

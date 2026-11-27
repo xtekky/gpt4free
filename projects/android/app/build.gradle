@@ -4,17 +4,18 @@ plugins {
 }
 
 // Version comes from the git tag in CI (-PappVersionName or G4F_VERSION env,
-// e.g. v8.5.9 -> 8.5.9). Local builds use the "0.1.0" fallback.
+// e.g. v8.5.9 -> 8.5.9). Local builds use the "2.0.0" fallback, which is the
+// first version with the rootless Debian container and PTY terminal.
 def g4fVersionProperty = project.findProperty("appVersionName")
         ?: System.getenv("G4F_VERSION")
-def g4fVersionName = ((g4fVersionProperty ?: "0.1.0") as String).replaceFirst(/^v/, "")
+def g4fVersionName = ((g4fVersionProperty ?: "2.0.0") as String).replaceFirst(/^v/, "")
 // Local builds (no version property) get a high versionCode so the package
 // installer never rejects them as a downgrade of an installed release APK
 // (releases use e.g. 80900). Any build signed with a different key still
 // needs an uninstall first, since Android refuses mismatching signatures.
 // Keep the arithmetic on one line: Groovy ends the statement at the end of
 // the first line, so a leading "+" on the next line is parsed separately and
-// the code silently becomes just major * 10000 (0 for the "0.1.0" fallback).
+// the code silently becomes just major * 10000 (20000 for the "2.0.0" fallback).
 def g4fVersionCode = 999999
 if (g4fVersionProperty != null) {
     def versionMatch = (g4fVersionName =~ /(\d+)\.(\d+)\.(\d+)/)
@@ -65,8 +66,20 @@ android {
         versionName g4fVersionName
 
         ndk {
-            // Chaquopy supports: arm64-v8a, armeabi-v7a, x86, x86_64
+            // Chaquopy and the container catalog both support these ABIs.
             abiFilters 'arm64-v8a', 'x86_64'
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags '-std=c++17'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path 'src/main/cpp/CMakeLists.txt'
+            version '3.22.1'
         }
     }
 
@@ -117,10 +130,86 @@ android {
     }
 
     packagingOptions {
+        // PRoot and its loader are exec'd from nativeLibraryDir, so AGP must
+        // extract the native libraries instead of loading them from the APK.
+        jniLibs {
+            useLegacyPackaging true
+        }
         resources {
             excludes += ['META-INF/DEPENDENCIES']
         }
     }
+}
+
+// One APK asset tree cannot hold both architectures; default to arm64-v8a.
+def containerPythonAbi = project.findProperty("containerPythonAbi") ?: "arm64-v8a"
+
+// sandbox-cli (and the installers it launches) need curl. The pinned static
+// musl build embeds a CA bundle, so it works without apt or system certs.
+task prepareCurlBinary(type: Exec) {
+    dependsOn 'copyG4fAssets'
+    commandLine 'python3', "${rootDir}/prepare_curl.py", '--abi', containerPythonAbi
+    inputs.file("src/main/assets/container/catalog.json")
+    inputs.file("${rootDir}/prepare_curl.py")
+    inputs.file("${rootDir}/prepare_proot.py")
+    outputs.dir("build/curl-bin")
+}
+
+// The container's /desktop/ client is built from the pinned upstream noVNC
+// release plus the sandbox-desktop branding/touch controls. Generated files
+// stay out of git; the APK gets them from src/main/assets/container/scripts/novnc.
+task prepareNovncClient(type: Exec) {
+    dependsOn 'copyG4fAssets'
+    commandLine 'python3', "${rootDir}/prepare_novnc.py"
+    inputs.file("src/main/assets/container/catalog.json")
+    inputs.file("${rootDir}/prepare_novnc.py")
+    inputs.file("${rootDir}/prepare_proot.py")
+    inputs.file("${rootDir}/../../bin/novnc-brand.sh")
+    inputs.file("${rootDir}/../../docker/g4f.svg")
+    inputs.file("${rootDir}/../../docker/novnc-index.html")
+    inputs.file("${rootDir}/../../docker/novnc-controls.js")
+    inputs.file("${rootDir}/../../docker/novnc-controls.css")
+    inputs.file("${rootDir}/../../docker/novnc-manifest.webmanifest")
+    inputs.file("${rootDir}/../../docker/novnc-sw.js")
+    outputs.dir("${rootDir}/build/novnc-client")
+}
+
+task copyNovncAssets(type: Copy) {
+    dependsOn prepareNovncClient
+    doFirst {
+        delete("src/main/assets/container/scripts/novnc")
+    }
+    from("${rootDir}/build/novnc-client")
+    into("src/main/assets/container/scripts/novnc")
+}
+
+// All repository bin commands go into the container's PATH. The Linux arm64
+// g4f-go binary runs under Debian/PRoot; the Android build is kept separately
+// for Termux installs and is not executable from the Debian rootfs.
+task copyContainerBinAssets(type: Copy) {
+    dependsOn prepareCurlBinary
+    from("${rootDir}/../../bin") {
+        include "*"
+    }
+    from("${rootDir}/../../g4f-go/dist/linux-arm64/g4f-go") {
+        rename { "g4f-go" }
+    }
+    from("${rootDir}/build/curl-bin/${containerPythonAbi}/curl") {
+        rename { "curl" }
+    }
+    into("src/main/assets/container/bin")
+}
+
+// The pinned prebuilt overlay has /opt/g4f-venv but no /usr/bin/python3.
+// Extract the pinned Debian packages at build time instead of running apt
+// on the phone. Nothing generated is committed: artifacts live in build/.
+task preparePythonRuntime(type: Exec) {
+    dependsOn 'copyG4fAssets'
+    commandLine 'python3', "${rootDir}/prepare_python.py", '--abi', containerPythonAbi
+    inputs.file("src/main/assets/container/catalog.json")
+    inputs.file("${rootDir}/prepare_python.py")
+    inputs.file("${rootDir}/prepare_proot.py")
+    outputs.dir("src/main/assets/container/python")
 }
 
 task copyG4fAssets(type: Copy) {
@@ -131,14 +220,33 @@ task copyG4fAssets(type: Copy) {
         into("g4f")
         exclude "**/__pycache__", "**/*.pyc", "**/.git*"
     }
+    // The container installs gpt4free with pip from the same source tree.
+    from("${rootDir}/../..") {
+        include "setup.py", "README.md", "requirements.txt"
+        into "g4f"
+    }
     into("src/main/assets")
 }
 
-preBuild.dependsOn copyG4fAssets
+// Android blocks execve() from app-writable storage, so PRoot and its static
+// loader are extracted from the pinned Termux .deb into jniLibs before AGP
+// packages the APK. They end up in the read-only nativeLibraryDir.
+task prepareProotLibs(type: Exec) {
+    dependsOn copyG4fAssets
+    commandLine 'python3', "${rootDir}/prepare_proot.py"
+    inputs.file("src/main/assets/container/catalog.json")
+    inputs.file("${rootDir}/prepare_proot.py")
+    outputs.dir("src/main/jniLibs")
+}
+
+preBuild.dependsOn copyG4fAssets, copyContainerBinAssets, copyNovncAssets, prepareProotLibs, preparePythonRuntime
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.8.0'
+    // Debian rootfs (.tar.gz) and Termux runtime packages (.deb -> ar -> data.tar.xz).
+    implementation 'org.apache.commons:commons-compress:1.26.2'
+    implementation 'org.tukaani:xz:1.9'
 }
 
 ['Debug', 'Release'].each { variant ->

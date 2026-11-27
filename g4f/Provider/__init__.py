@@ -266,6 +266,7 @@ class ProviderLoader:
             cls.loaded[name].url = "https://kilo.ai"
             cls.loaded[name].active_by_default = True
             cls.loaded[name].default_model = "kilo-auto/free"
+            cls.loaded[name].default_vision_model = "openrouter/free"
             return cls.loaded[name]
         elif name == "LLM7":
             from ..client.factory import AbstractClientFactory

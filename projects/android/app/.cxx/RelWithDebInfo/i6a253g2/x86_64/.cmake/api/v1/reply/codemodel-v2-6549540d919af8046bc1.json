@@ -1,0 +1,69 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-RelWithDebInfo-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "RelWithDebInfo",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "g4f_container_native",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "g4f_linkfix::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-g4f_linkfix-RelWithDebInfo-3eb41de04fc86804004d.json",
+					"name" : "g4f_linkfix",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "g4f_pty::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-g4f_pty-RelWithDebInfo-0137c948a08ee9bc2244.json",
+					"name" : "g4f_pty",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/RelWithDebInfo/i6a253g2/x86_64",
+		"source" : "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/src/main/cpp"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

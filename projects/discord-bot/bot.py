@@ -35,6 +35,7 @@ from g4f.Provider import G4FSpace
 
 from mcp_tools import MCPToolManager, ALL_AVAILABLE_TOOLS, SAFE_DEFAULT_TOOLS
 from live_feed import LiveFeed
+from buffer_client import BufferClient
 
 load_dotenv()
 
@@ -69,12 +70,14 @@ PUBLIC_BASE = os.getenv("G4F_PUBLIC_BASE", API_BASE)
 # Prefer G4F_API_KEY; keep G4F_PUBLIC_API_KEY as a backwards-compatible alias.
 FEED_API_KEY = os.getenv("G4F_API_KEY") or os.getenv("G4F_PUBLIC_API_KEY", "")
 MEMBERS_BASE = os.getenv("G4F_MEMBERS_BASE", "https://auth.g4f.space")
-ERRORS_URL = os.getenv("G4F_ERRORS_URL", "https://g4f.space/api/errors")
+ERRORS_URL = os.getenv("G4F_ERRORS_URL", "")
 MODELS_URL = os.getenv("G4F_MODELS_URL", "https://g4f.space/v1/models")
-FEED_POLL_INTERVAL = int(os.getenv("G4F_FEED_POLL_INTERVAL", "15"))
+FEED_POLL_INTERVAL = int(os.getenv("G4F_FEED_POLL_INTERVAL", "30"))
 HEAVY_TOKEN_THRESHOLD = int(os.getenv("G4F_HEAVY_TOKEN_THRESHOLD", "10000"))
 FEED_SUMMARY_INTERVAL = int(os.getenv("G4F_FEED_SUMMARY_INTERVAL", "3600"))
-FEED_MAX_POSTS_PER_CYCLE = int(os.getenv("G4F_FEED_MAX_POSTS_PER_CYCLE", "5"))
+FEED_MAX_POSTS_PER_CYCLE = int(os.getenv("G4F_FEED_MAX_POSTS_PER_CYCLE", "2"))
+POST_SERVER_ERRORS = os.getenv("G4F_POST_SERVER_ERRORS", "").lower() in ("1", "true", "yes")
+MIN_MODEL_REQUESTS = int(os.getenv("G4F_MIN_MODEL_REQUESTS", "5"))
 
 # Simple validation for runtime model names.
 ALLOWED_MODEL_CHARS = set(
@@ -161,6 +164,43 @@ TRANSLATE_CHANNELS = {
     for x in _translate_channels_env.split(",")
     if x.strip().isdigit()
 }
+
+# ---------------------------------------------------------------------------
+# Announcements channel -> Buffer.com sync
+# ---------------------------------------------------------------------------
+# Messages (text + images) posted in the configured announcements channel(s)
+# are automatically forwarded to your Buffer.com account.
+#
+# Env vars:
+# - G4F_ANNOUNCEMENTS_CHANNEL: comma-separated channel id(s)
+# - BUFFER_API_KEY: Buffer API key (or BUFFER_ACCESS_TOKEN)
+# - BUFFER_CHANNEL_IDS: optional comma-separated Buffer channel IDs
+#                       (auto-discovers all active channels if unset)
+# - BUFFER_MODE: addToQueue (default), shareNow, or shareNext
+_announcements_env = (
+    os.getenv("G4F_ANNOUNCEMENTS_CHANNEL")
+    or os.getenv("G4F_ANNOUNCEMENTS_CHANNELS", "")
+)
+ANNOUNCEMENTS_CHANNELS = {
+    int(x.strip())
+    for x in _announcements_env.split(",")
+    if x.strip().isdigit()
+}
+BUFFER_API_KEY = os.getenv("BUFFER_API_KEY") or os.getenv("BUFFER_ACCESS_TOKEN", "")
+_buffer_channels_env = os.getenv("BUFFER_CHANNEL_IDS", "")
+BUFFER_CHANNEL_IDS = [
+    c.strip() for c in _buffer_channels_env.split(",") if c.strip()
+]
+BUFFER_MODE = os.getenv("BUFFER_MODE", "addToQueue")
+buffer_client: Optional[BufferClient] = (
+    BufferClient(
+        api_key=BUFFER_API_KEY,
+        channel_ids=BUFFER_CHANNEL_IDS,
+        mode=BUFFER_MODE,
+    )
+    if BUFFER_API_KEY
+    else None
+)
 
 # ---------------------------------------------------------------------------
 # Honeypot channels
@@ -739,10 +779,90 @@ async def errors(
     )
 
 
+_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+
+
+def _extract_announcement_payload(message: discord.Message) -> tuple[str, List[str]]:
+    """Extract text and unique image URLs from a Discord announcement message."""
+    text = (message.content or "").strip()
+    image_urls: List[str] = []
+    seen: set[str] = set()
+
+    def _add_url(url: Optional[str]) -> None:
+        if url and isinstance(url, str) and url.startswith(("http://", "https://")) and url not in seen:
+            seen.add(url)
+            image_urls.append(url)
+
+    for att in message.attachments:
+        ctype = (att.content_type or "").lower()
+        fname = (att.filename or "").lower()
+        if ctype.startswith("image/") or fname.endswith(_IMAGE_EXTENSIONS):
+            _add_url(att.url)
+
+    embed_parts: List[str] = []
+    for emb in message.embeds:
+        if emb.image and emb.image.url:
+            _add_url(emb.image.url)
+        if emb.thumbnail and emb.thumbnail.url:
+            _add_url(emb.thumbnail.url)
+        if not text:
+            if emb.title:
+                embed_parts.append(emb.title.strip())
+            if emb.description:
+                embed_parts.append(emb.description.strip())
+
+    if not text and embed_parts:
+        text = "\n\n".join(embed_parts)
+
+    return text, image_urls
+
+
+async def _sync_announcement_to_buffer(message: discord.Message) -> None:
+    """Forward an announcement message (text + images) to Buffer.com."""
+    if buffer_client is None:
+        log.warning(
+            "Announcement in channel %s skipped: BUFFER_API_KEY is not configured",
+            message.channel.id,
+        )
+        return
+
+    text, image_urls = _extract_announcement_payload(message)
+    if not text and not image_urls:
+        return
+
+    try:
+        posts = await buffer_client.create_post(text=text, image_urls=image_urls)
+        log.info(
+            "Synced announcement %s to %d Buffer channel(s) (images=%d)",
+            message.id,
+            len(posts),
+            len(image_urls),
+        )
+        try:
+            await message.add_reaction("✅")
+        except discord.HTTPException:
+            pass
+    except Exception:
+        log.exception("Failed to post announcement %s to Buffer.com", message.id)
+        try:
+            await message.add_reaction("⚠️")
+        except discord.HTTPException:
+            pass
+
+
 @bot.event
 async def on_message(message: discord.Message):
     # Let slash commands etc. work as usual.
     await bot.process_commands(message)
+
+    if bot.user and message.author.id == bot.user.id:
+        return
+
+    # --- Announcements channel -> Buffer.com ---
+    if ANNOUNCEMENTS_CHANNELS and message.channel.id in ANNOUNCEMENTS_CHANNELS:
+        if not message.author.bot or message.webhook_id is not None:
+            await _sync_announcement_to_buffer(message)
+        return
 
     if message.author.bot:
         return
@@ -875,6 +995,13 @@ async def on_ready():
     except Exception:
         log.exception("Failed to sync slash commands")
 
+    if ANNOUNCEMENTS_CHANNELS:
+        log.info(
+            "Announcements sync enabled → channels=%s (buffer=%s)",
+            sorted(ANNOUNCEMENTS_CHANNELS),
+            "configured" if buffer_client else "missing BUFFER_API_KEY",
+        )
+
     # Load the live feed cog if a channel was configured.
     if LIVE_FEED_CHANNEL:
         existing = bot.get_cog("LiveFeed")
@@ -893,6 +1020,8 @@ async def on_ready():
                     heavy_token_threshold=HEAVY_TOKEN_THRESHOLD,
                     summary_interval=FEED_SUMMARY_INTERVAL,
                     max_posts_per_cycle=FEED_MAX_POSTS_PER_CYCLE,
+                    post_server_errors=POST_SERVER_ERRORS,
+                    min_model_requests=MIN_MODEL_REQUESTS,
                 )
             )
             log.info("Live feed cog loaded → channel %s", LIVE_FEED_CHANNEL)

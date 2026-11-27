@@ -38,6 +38,7 @@ git clone --depth 1 https://github.com/gpt4free/g4f.dev.git ../g4f.dev
 - [Custom model routing with `config.yaml`](config-yaml-routing.md)
 - [Automatic development pipeline](dev-pipeline.md)
 - [Reasoning standardization](reasoning-standardization.md)
+- [Android container app](android-container.md) — rootless Debian, optional desktop, in-app PTY terminal
 - [Build workflow](build-workflow.md)
 - [ARM64 build plan](arm64-build-plan.md)
 - [AArch64 compatibility](aarch64-compatibility.md)

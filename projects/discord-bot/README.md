@@ -65,6 +65,10 @@ All settings live in `.env`:
 | `G4F_PROXY` | *(none)* | Optional proxy for g4f requests |
 | `G4F_ENABLED_TOOLS` | *(safe set)* | Comma-separated MCP tools to enable at startup |
 | `G4F_MAX_TOOL_LOOPS` | `4` | Max tool-calling rounds before forcing a final answer |
+| `G4F_ANNOUNCEMENTS_CHANNEL` | *(unset)* | Discord channel ID(s) whose updates + images are posted to Buffer.com |
+| `BUFFER_API_KEY` | *(unset)* | Buffer.com API key for announcements sync |
+| `BUFFER_CHANNEL_IDS` | *(auto-discover)* | Optional comma-separated Buffer channel IDs |
+| `BUFFER_MODE` | `addToQueue` | Buffer scheduling mode (`addToQueue`, `shareNow`, `shareNext`) |
 
 ## MCP tools
 
@@ -188,20 +192,23 @@ G4F_MEMBERS_BASE=https://auth.g4f.space      # set empty to disable new-user pos
 | `G4F_PUBLIC_BASE` | = `G4F_API_BASE` | Public base URL for Discord-accessible image/thumbnail links. |
 | `G4F_MEMBERS_BASE` | `https://auth.g4f.space` | Members API base URL for new-user posts. Empty = disabled. |
 | `G4F_MODELS_URL` | `https://g4f.space/v1/models` | Models endpoint watched for 🆕 new-model posts. Empty = disabled. |
-| `G4F_FEED_POLL_INTERVAL` | `15` | Seconds between polls. |
+| `G4F_FEED_POLL_INTERVAL` | `30` | Seconds between polls. |
 | `G4F_HEAVY_TOKEN_THRESHOLD` | `10000` | Token count that flags a completion as "heavy". |
 | `G4F_FEED_SUMMARY_INTERVAL` | `3600` | Seconds between activity summaries. |
-| `G4F_FEED_MAX_POSTS_PER_CYCLE` | `5` | Max embeds per poll cycle (anti-spam). |
+| `G4F_FEED_MAX_POSTS_PER_CYCLE` | `2` | Max embeds per poll cycle (anti-spam). |
+| `G4F_POST_SERVER_ERRORS` | `false` | Whether to post `5xx` server errors to the feed. |
+| `G4F_MIN_MODEL_REQUESTS` | `5` | Minimum request count before announcing a new model. |
 
 ## Project structure
 
 ```
 projects/discord-bot/
-├── bot.py          # Main bot logic (commands, tool-calling loop)
-├── live_feed.py    # Live activity feed cog (image/tool/token/new-user events)
-├── mcp_tools.py    # MCP tool manager (definitions, execution, display)
-├── .env.example    # Template environment file
-└── README.md       # This file
+├── bot.py            # Main bot logic (commands, tool-calling loop, announcements)
+├── buffer_client.py  # Async Buffer.com GraphQL client for announcements sync
+├── live_feed.py      # Live activity feed cog (image/tool/token/new-user events)
+├── mcp_tools.py      # MCP tool manager (definitions, execution, display)
+├── .env.example      # Template environment file
+└── README.md         # This file
 ```
 
 ## Notes

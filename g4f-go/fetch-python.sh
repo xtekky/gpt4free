@@ -8,7 +8,7 @@
 #
 # Usage:
 #   ./fetch-python.sh            # download all platforms
-#   ./fetch-python.sh linux      # single platform group (linux|windows|darwin|android)
+#   ./fetch-python.sh linux      # single platform group (linux|windows|darwin)
 #
 # Requirements: bash, curl, python3 (for sha256/size pinning)
 #
@@ -33,8 +33,8 @@ PY
 
 WANT="${1:-all}"
 case "$WANT" in
-  linux|windows|darwin|android|all) ;;
-  *) echo "Unknown filter: $WANT (expected linux|windows|darwin|android|all)" >&2; exit 1 ;;
+  linux|windows|darwin|all) ;;
+  *) echo "Unknown filter: $WANT (expected linux|windows|darwin|all)" >&2; exit 1 ;;
 esac
 
 if ! command -v python3 >/dev/null; then
@@ -68,4 +68,4 @@ pick_urls | while read -r name url; do
   pin "$name" "$url"
 done
 
-echo "Done. Build with ./build-all.sh (or: go build -o g4f-go .)"
+echo "Done. Build with ./build-all.sh (or: ./sync-assets.sh && go build -o g4f-go .)"

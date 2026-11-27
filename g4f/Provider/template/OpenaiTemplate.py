@@ -178,40 +178,45 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     or model.get("type") == "image"
                     or model.get("supports_images")
                 ]
+                for model in data:
+                    if not model.get("image") and model.get("type") != "image" and not model.get("supports_images"):
+                        continue
+                    if cls.use_model_names:
+                        cls.image_models.append(model.get("name"))
+                        continue
+                    cls.image_models.append(
+                        model.get("model") if model.get("model")
+                        else model.get("id", model.get("name"))
+                    )
                 cls.vision_models = cls.vision_models.copy()
-                cls.vision_models += [
-                    model.get("model")
-                    if model.get("model")
-                    else model.get("name")
-                    if cls.use_model_names
-                    else model.get("id", model.get("name"))
-                    for model in data
-                    if model.get("vision")
-                ]
-                cls.models = {
-                    model.get("model")
-                    if model.get("model")
-                    else model.get("name")
-                    if cls.use_model_names
-                    else model.get("id", model.get("name")): model
-                    for model in data
-                }
-                for key, value in cls.models.items():
-                    value.pop("id")
-                    cls.models[key] = {"id": value.get("name")
-                    if cls.use_model_names
-                    else value.get("id", value.get("name")), **value}
-                cls.models_count = {
-                    model.get("model")
-                    if model.get("model")
-                    else model.get("name")
-                    if cls.use_model_names
-                    else model.get("id", model.get("name")): len(
+                for model in data:
+                    if not model.get("vision"):
+                        continue
+                    if cls.use_model_names:
+                        cls.vision_models.append(model.get("name"))
+                        continue
+                    cls.vision_models.append(
+                        model.get("model") if model.get("model")
+                        else model.get("id", model.get("name"))
+                    )
+                cls.models = {}
+                for model in data:
+                    if cls.use_model_names:
+                        model_id = model.get("name")
+                    else:
+                        model_id = model.get("model") if model.get("model") else model.get("id", model.get("name"))
+                    cls.models[model_id] = {"id": model_id, **model}
+                cls.models_count = {}
+                for model in data:
+                    if not len(model.get("providers", [])):
+                        continue
+                    if cls.use_model_names:
+                        model_id = model.get("name")
+                    else:
+                        model_id = model.get("model") if model.get("model") else model.get("id", model.get("name"))
+                    cls.models_count[model_id] = len(
                         model.get("providers", [])
                     )
-                    for model in data
-                    if len(model.get("providers", [])) > 1
-                }
                 if cls.sort_models and isinstance(cls.models, list):
                     cls.models.sort()
             except MissingAuthError:

@@ -2360,7 +2360,12 @@ configure_opencode_g4f() {
                 }
             }
         } + (if $selected == 1 then {"model": ("g4f/" + $model)} else {} end)))' 2>/dev/null); then
-        die "OPENCODE_CONFIG_CONTENT must contain valid JSON to enable the g4f provider"
+        # A missing or empty inline config must never block launching OpenCode.
+        # Stay silent when nothing was set; only report a non-empty bad value.
+        if [ -n "$previous" ]; then
+            log "OPENCODE_CONFIG_CONTENT is not valid JSON; continuing without the g4f provider override"
+        fi
+        return 0
     fi
     export OPENCODE_CONFIG_CONTENT="$config"
 }
@@ -2846,6 +2851,7 @@ polli_sandbox_install_menu() {
         /usr/local/bin/sandbox-cli \
         /usr/local/bin/patch-xfce-menu.py \
         /usr/local/bin/polli-sandbox-bootstrap.sh \
+        /usr/local/bin/install-desktop.sh \
         /usr/local/bin/sandbox-docs \
         /usr/local/bin/sandbox-discover \
         /usr/local/bin/start-browser \

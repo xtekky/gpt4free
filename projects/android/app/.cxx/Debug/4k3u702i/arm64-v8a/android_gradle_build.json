@@ -1,0 +1,45 @@
+{
+  "buildFiles": [
+    "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/src/main/cpp/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/heiner/android-tools/android-sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/Debug/4k3u702i/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/heiner/android-tools/android-sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/.cxx/Debug/4k3u702i/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "g4f_linkfix::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "g4f_linkfix",
+      "output": "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/Debug/4k3u702i/obj/arm64-v8a/libg4f_linkfix.so",
+      "runtimeFiles": []
+    },
+    "g4f_pty::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "g4f_pty",
+      "output": "/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/Debug/4k3u702i/obj/arm64-v8a/libg4f_pty.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/home/heiner/android-tools/android-sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/linux-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/home/heiner/android-tools/android-sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

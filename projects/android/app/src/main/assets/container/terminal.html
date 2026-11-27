@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>G4F Terminal</title>
+<link rel="stylesheet" href="xterm/xterm.min.css">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #101411; color: #d6dad3; font-family: monospace; }
+  button { background: #232a24; color: #c4f06c; border: 1px solid #3b473d; border-radius: 6px; padding: 5px 10px; font-family: inherit; font-size: 12px; white-space: nowrap; }
+  button:active { background: #31402f; }
+  button.active { border-color: #c4f06c; color: #fff; background: #31402f; }
+  #header { flex: 0 0 auto; background: #181d19; border-bottom: 1px solid #2b332c; }
+  #bar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; overflow: hidden; }
+  #fixed-tabs { display: flex; gap: 4px; flex: 0 0 auto; }
+  #tabs-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    scrollbar-width: none;
+  }
+  #tabs-scroll::-webkit-scrollbar { display: none; }
+  #tabs { display: flex; gap: 4px; min-width: max-content; }
+  #actions { display: flex; gap: 4px; flex: 0 0 auto; margin-left: auto; }
+  #keys { display: flex; gap: 4px; flex: 0 0 auto; overflow-x: auto; padding: 6px 8px; background: #181d19; border-top: 1px solid #2b332c; }
+  #keys button { padding: 4px 8px; font-size: 11px; }
+  #stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .term { position: absolute; inset: 0; display: none; padding: 6px; }
+  .term.active { display: block; }
+  .term .xterm { height: 100%; }
+  .term .xterm-viewport {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  .term .xterm-screen {
+    -webkit-user-select: text;
+    user-select: text;
+    touch-action: pan-y;
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <div id="bar">
+    <div id="fixed-tabs">
+      <button id="fixed-chat" onclick="openChat()">Chat</button>
+      <button id="fixed-api" onclick="ensureSession('api')">API</button>
+      <button id="fixed-desktop" onclick="openDesktop()">Desktop</button>
+    </div>
+    <div id="tabs-scroll"><div id="tabs"></div></div>
+    <div id="actions">
+      <button onclick="newSession('shell')">+ Shell</button>
+      <button onclick="closeActive()">Close</button>
+      <button onclick="closeAll()">Close All</button>
+    </div>
+  </div>
+</div>
+<div id="stage"></div>
+<div id="keys">
+  <button id="key-esc" data-key="esc" tabindex="-1">Esc</button>
+  <button data-key="tab" tabindex="-1">Tab</button>
+  <button id="key-ctrl" data-key="ctrl" tabindex="-1">Ctrl</button>
+  <button id="key-alt" data-key="alt" tabindex="-1">Alt</button>
+  <button data-key="left" tabindex="-1">←</button>
+  <button data-key="up" tabindex="-1">↑</button>
+  <button data-key="down" tabindex="-1">↓</button>
+  <button data-key="right" tabindex="-1">→</button>
+  <button data-key="home" tabindex="-1">Home</button>
+  <button data-key="end" tabindex="-1">End</button>
+  <button data-key="ctrlc" tabindex="-1">^C</button>
+  <button data-key="ctrld" tabindex="-1">^D</button>
+  <button id="copy-selection" onmousedown="event.preventDefault(); return false;" onclick="copySelection()" tabindex="-1">Copy</button>
+  <button onmousedown="event.preventDefault(); return false;" onclick="selectAll()" tabindex="-1">All</button>
+</div>
+
+<script src="xterm/xterm.min.js"></script>
+<script src="xterm/addon-fit.min.js"></script>
+<script>
+(function () {
+  var bridge = window.AndroidTerminal;
+  var sessions = {};
+  var singletonIds = { api: null, desktop: null };
+  var active = null;
+  var fixedTab = null;
+  var modifiers = { ctrl: false, alt: false };
+  var selectionCache = '';
+
+  function encoded(text) {
+    var bytes = new TextEncoder().encode(text);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  function decoded(base64) {
+    var binary = atob(base64 || '');
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function writeSession(session, text) {
+    if (session && session.term && text) session.term.write(text);
+  }
+
+  function fitSession(session) {
+    if (!session || !session.fit || !session.div.classList.contains('active')) return;
+    try { session.fit.fit(); } catch (err) { /* hidden or not measured yet */ }
+  }
+
+  function focusActive() {
+    var session = sessions[active];
+    if (session && session.term) session.term.focus();
+  }
+
+  function scrollTabIntoView(id) {
+    var tab = id === null ? null : document.getElementById('tab-' + id);
+    var scroller = document.getElementById('tabs-scroll');
+    if (!tab || !scroller) return;
+    var tabRect = tab.getBoundingClientRect();
+    var scrollRect = scroller.getBoundingClientRect();
+    if (tabRect.left < scrollRect.left) {
+      scroller.scrollLeft -= scrollRect.left - tabRect.left + 8;
+    } else if (tabRect.right > scrollRect.right) {
+      scroller.scrollLeft += tabRect.right - scrollRect.right + 8;
+    }
+  }
+
+  function paint() {
+    Object.keys(sessions).forEach(function (key) {
+      sessions[key].div.classList.toggle('active', key === active);
+      var tab = document.getElementById('tab-' + key);
+      if (tab) tab.classList.toggle('active', key === active);
+    });
+    ['chat', 'api', 'desktop'].forEach(function (name) {
+      var button = document.getElementById('fixed-' + name);
+      if (button) button.classList.toggle('active', fixedTab === name);
+    });
+    fitSession(sessions[active]);
+    scrollTabIntoView(active);
+    document.getElementById('key-ctrl').classList.toggle('active', modifiers.ctrl);
+    document.getElementById('key-alt').classList.toggle('active', modifiers.alt);
+  }
+
+  function activate(id) {
+    active = id;
+    var kind = sessions[id] ? sessions[id].kind : null;
+    fixedTab = (kind === 'api' || kind === 'desktop') ? kind : null;
+    paint();
+    focusActive();
+  }
+
+  function setFixed(name) {
+    active = null;
+    fixedTab = name;
+    paint();
+  }
+
+  function removeSessionDom(id) {
+    var session = sessions[id];
+    if (session && session.div.parentNode) session.div.parentNode.removeChild(session.div);
+    var tab = document.getElementById('tab-' + id);
+    if (tab && tab.parentNode) tab.parentNode.removeChild(tab);
+    delete sessions[id];
+    if (active === id) active = null;
+  }
+
+  function removeSingletonStale(kind) {
+    Object.keys(sessions).forEach(function (id) {
+      if (sessions[id].kind === kind && sessions[id].singleton) removeSessionDom(id);
+    });
+    singletonIds[kind] = null;
+  }
+
+  function makeTab(id, label) {
+    var tab = document.createElement('button');
+    tab.textContent = label;
+    tab.onclick = function () { activate(id); };
+    tab.id = 'tab-' + id;
+    document.getElementById('tabs').appendChild(tab);
+    return tab;
+  }
+
+  function welcomeMessage(session) {
+    if (!session || session.kind !== 'shell') return;
+    var accent = '\x1b[38;2;196;240;108m';
+    var dim = '\x1b[38;2;150;160;150m';
+    var reset = '\x1b[0m';
+    session.term.writeln(dim + 'g4f Shell' + reset);
+    session.term.writeln('Tools:  ' + accent + 'sandbox-cli list' + reset
+      + '  ' + dim + '(list available tools)' + reset);
+    session.term.writeln('Run:    ' + accent + 'sandbox-cli <tool>' + reset
+      + '  ' + dim + '(install and run a tool)' + reset);
+    session.term.writeln('Also:   ' + accent + 'g4f-go' + reset
+      + '  ' + dim + '(g4f launcher CLI)' + reset);
+    session.term.writeln('');
+  }
+
+  // xterm selects with mouse events, while Android touch drags normally scroll.
+  // Turn a mostly-horizontal finger drag into a synthetic mouse drag. The move
+  // and up events must go to the same xterm element as the initial down event;
+  // dispatching them on document means xterm never sees the range change.
+  function installTouchSelection(session) {
+    var viewport = session.div.querySelector('.xterm-viewport');
+    if (!viewport) return;
+    var element = session.term.element || session.div.querySelector('.xterm');
+    var start = null;
+    var last = null;
+    var selecting = false;
+    var range = null;
+
+    function point(touch) {
+      return { x: touch.clientX, y: touch.clientY };
+    }
+
+    function near(a, b) {
+      return Math.abs(a.x - b.x) <= 28 && Math.abs(a.y - b.y) <= 28;
+    }
+
+    function mouse(type, p, target) {
+      var event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: p.x,
+        clientY: p.y,
+        button: 0,
+        buttons: type === 'mouseup' ? 0 : 1
+      });
+      (target || element).dispatchEvent(event);
+    }
+
+    function begin(anchor, p) {
+      start = anchor;
+      last = p;
+      selecting = true;
+      session.selection = '';
+      mouse('mousedown', anchor, element);
+      mouse('mousemove', p, element);
+    }
+
+    viewport.addEventListener('touchstart', function (event) {
+      if (event.touches.length !== 1 || modifiers.ctrl || modifiers.alt) return;
+      var p = point(event.touches[0]);
+      // Touching an endpoint of the previous selection adjusts that end by
+      // anchoring the new drag at the opposite endpoint.
+      if (range && (near(p, range.focus) || near(p, range.anchor))) {
+        var anchor = near(p, range.focus) ? range.anchor : range.focus;
+        begin(anchor, p);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      start = p;
+      last = p;
+      selecting = false;
+      session.selection = '';
+    }, { passive: false, capture: true });
+
+    viewport.addEventListener('touchmove', function (event) {
+      if (!start || event.touches.length !== 1) return;
+      var p = point(event.touches[0]);
+      if (!selecting) {
+        var dx = p.x - start.x;
+        var dy = p.y - start.y;
+        if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy)) return;
+        begin(start, p);
+      } else {
+        last = p;
+        mouse('mousemove', p, element);
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    }, { passive: false, capture: true });
+
+    function finish(event) {
+      if (!start) return;
+      if (selecting) {
+        event.preventDefault();
+        event.stopPropagation();
+        mouse('mouseup', last || start, element);
+        var text = session.term.getSelection();
+        if (text) {
+          session.selection = text;
+          copySelection();
+        }
+        range = { anchor: start, focus: last || start };
+      } else {
+        range = null;
+      }
+      start = null;
+      last = null;
+      selecting = false;
+    }
+
+    viewport.addEventListener('touchend', finish, { passive: false, capture: true });
+    viewport.addEventListener('touchcancel', finish, { passive: false, capture: true });
+  }
+
+  function createSession(id, kind, singleton) {
+    if (!id || sessions[id]) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'term';
+    wrap.id = 'term-' + id;
+    var m = metrics();
+    var term = new Terminal({
+      cols: m.cols,
+      rows: m.rows,
+      cursorBlink: true,
+      fontFamily: 'monospace',
+      fontSize: 12,
+      lineHeight: 1.25,
+      scrollback: 5000,
+      rightClickSelectsWord: true,
+      theme: {
+        background: '#101411',
+        foreground: '#d6dad3',
+        cursor: '#c4f06c',
+        selectionBackground: '#31402f'
+      }
+    });
+    var fit = new FitAddon.FitAddon();
+    term.loadAddon(fit);
+    term.open(wrap);
+    var session = { div: wrap, term: term, fit: fit, kind: kind,
+                    singleton: !!singleton, stopped: false, selection: '' };
+    sessions[id] = session;
+    document.getElementById('stage').appendChild(wrap);
+    if (!singleton) makeTab(id, kind + ' #' + id);
+    term.onData(function (data) {
+      if (!data) return;
+      session.selection = '';
+      var out = applyModifiers(data, null);
+      if (modifiers.ctrl || modifiers.alt) clearModifiers();
+      bridge.send(id, encoded(out));
+    });
+    term.onSelectionChange(function () {
+      var text = term.getSelection();
+      if (text) session.selection = text;
+    });
+    term.onResize(function (size) {
+      bridge.resize(id, size.cols, size.rows);
+    });
+    installTouchSelection(session);
+    welcomeMessage(session);
+    activate(id);
+  }
+
+  function metrics() {
+    var header = document.getElementById('header');
+    var keys = document.getElementById('keys');
+    var reserved = (header ? header.offsetHeight : 44)
+        + (keys ? keys.offsetHeight : 36) + 8;
+    return {
+      cols: Math.max(20, Math.floor((window.innerWidth - 16) / 7.3)),
+      rows: Math.max(8, Math.floor((window.innerHeight - reserved) / 15))
+    };
+  }
+
+  window.newSession = function (kind) {
+    var id = bridge.newSession(kind);
+    if (!id) return;
+    createSession(id, kind, false);
+  };
+
+  // Chat/API/Desktop are fixed tabs: never create a second one.
+  window.ensureSession = function (kind) {
+    var existing = singletonIds[kind];
+    if (existing && sessions[existing]) {
+      activate(existing);
+      return existing;
+    }
+    removeSingletonStale(kind);
+    var id = bridge.ensureSession ? bridge.ensureSession(kind) : bridge.newSession(kind);
+    if (!id) return;
+    singletonIds[kind] = id;
+    if (kind !== 'desktop') createSession(id, kind, true);
+    return id;
+  };
+
+  window.openChat = function () {
+    bridge.openChat();
+    setFixed('chat');
+  };
+
+  window.openDesktop = function () {
+    bridge.openDesktop();
+    setFixed('desktop');
+  };
+
+  window.__g4fSetFixedTab = function (name) { setFixed(name); };
+
+  window.__g4fClearFixedTab = function () {
+    if (active !== null && sessions[active]) activate(active);
+    else { fixedTab = null; paint(); }
+  };
+
+  window.closeActive = function () {
+    if (active === null) return;
+    var session = sessions[active];
+    bridge.close(active);
+    if (session && session.singleton) singletonIds[session.kind] = null;
+    removeSessionDom(active);
+    var remaining = Object.keys(sessions);
+    if (remaining.length) activate(remaining[remaining.length - 1]);
+    else { fixedTab = null; paint(); }
+  };
+
+  window.closeAll = function () {
+    if (bridge && bridge.closeAll) bridge.closeAll();
+    Object.keys(sessions).forEach(removeSessionDom);
+    singletonIds.api = null;
+    singletonIds.desktop = null;
+    active = null;
+    fixedTab = null;
+    modifiers.ctrl = false;
+    modifiers.alt = false;
+    paint();
+  };
+
+  window.__g4fSyncTabs = function () {
+    var raw = bridge.sessions ? bridge.sessions() : '';
+    var known = {};
+    raw.split(',').forEach(function (pair) {
+      var parts = pair.split(':');
+      if (parts.length < 2) return;
+      var id = parts[0];
+      var label = parts[1];
+      known[id] = true;
+      if (label === 'api' || label === 'desktop') {
+        if (!singletonIds[label] || !sessions[singletonIds[label]]) {
+          removeSingletonStale(label);
+          singletonIds[label] = id;
+          // The desktop session only runs Xvnc/startxfce4 in the background.
+          // Rendering its PTY would show the display server terminal instead of
+          // the /desktop/ VNC page, so keep it out of the terminal tab bar.
+          if (label !== 'desktop') createSession(id, label, true);
+        }
+      } else if (label === 'shell' && !sessions[id]) {
+        // Restore every shell session as its own tab after a reload/reconnect;
+        // + Shell can open as many as the service is running.
+        createSession(id, 'shell', false);
+      }
+    });
+    Object.keys(sessions).forEach(function (id) {
+      if (!known[id]) removeSessionDom(id);
+    });
+    var status = bridge.status ? bridge.status() : '';
+    var canStart = status.indexOf('not installed') < 0
+        && status.indexOf('unavailable') < 0
+        && status.indexOf('Installing') < 0
+        && status.indexOf('Provisioning') < 0;
+    if (canStart && !Object.keys(sessions).length) window.newSession('shell');
+  };
+
+  window.__g4fTermWrite = function (id, base64) {
+    var session = sessions[id];
+    if (!session) return;
+    writeSession(session, new TextDecoder().decode(decoded(base64)));
+  };
+
+  window.__g4fTermExit = function (id, code, stopped) {
+    var session = sessions[id];
+    if (!session) return;
+    writeSession(session, stopped ? '\r\n[stopped]\r\n'
+                                  : '\r\n[process exited ' + code + ']\r\n');
+    session.stopped = true;
+    if (session.singleton && singletonIds[session.kind] === id) {
+      singletonIds[session.kind] = null;
+    }
+  };
+
+  window.__g4fSessionCount = function () { return Object.keys(sessions).length; };
+
+  function specialKey(name) {
+    var keys = {
+      esc: '\u001b', tab: '\t', left: '\u001b[D', up: '\u001b[A',
+      down: '\u001b[B', right: '\u001b[C', home: '\u001b[H', end: '\u001b[F',
+      pgup: '\u001b[5~', pgdn: '\u001b[6~', ctrlc: '\u0003', ctrld: '\u0004'
+    };
+    return keys[name] || '';
+  }
+
+  function applyModifiers(data, name) {
+    if (!data) return data;
+    var char = (typeof name === 'string' && name.length === 1)
+        ? name
+        : (data.length === 1 ? data : null);
+    if (modifiers.ctrl && char) {
+      return String.fromCharCode(char.toUpperCase().charCodeAt(0) & 0x1f);
+    }
+    if (!modifiers.ctrl && !modifiers.alt) return data;
+    var match = data.match(/^\u001b\[([0-9;]*)?([A-Z~])$/);
+    if (match) {
+      var parameter = modifiers.ctrl ? '1;5' : '1;3';
+      return '\u001b[' + parameter + match[2];
+    }
+    if (modifiers.alt && name === null && data.length === 1) {
+      return '\u001b' + data;
+    }
+    return data;
+  }
+
+  function clearModifiers() {
+    modifiers.ctrl = false;
+    modifiers.alt = false;
+    paint();
+  }
+
+  document.getElementById('keys').addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-key]');
+    if (!button) return;
+    var name = button.getAttribute('data-key');
+    if (name === 'ctrl') {
+      modifiers.ctrl = !modifiers.ctrl;
+      modifiers.alt = false;
+      paint();
+      focusActive();
+      return;
+    }
+    if (name === 'alt') {
+      modifiers.alt = !modifiers.alt;
+      modifiers.ctrl = false;
+      paint();
+      focusActive();
+      return;
+    }
+    var data = applyModifiers(specialKey(name), name);
+    if (data && active !== null) bridge.send(active, encoded(data));
+    clearModifiers();
+    focusActive();
+  });
+
+  function selectedText() {
+    var session = sessions[active];
+    if (!session || !session.term) return '';
+    // The Copy button can blur the terminal and clear xterm's live selection,
+    // so keep the last one until the next keystroke or touch.
+    return session.term.getSelection() || session.selection
+        || window.getSelection().toString();
+  }
+
+  window.selectAll = function () {
+    var session = sessions[active];
+    if (!session || !session.term) return;
+    session.term.selectAll();
+    session.term.focus();
+  };
+
+  window.copySelection = function () {
+    var text = selectedText();
+    if (!text) return;
+    if (bridge.copy) bridge.copy(encoded(text));
+    else if (navigator.clipboard) navigator.clipboard.writeText(text);
+    focusActive();
+  };
+
+  window.__g4fCopySelection = copySelection;
+
+  function relayout() {
+    var m = metrics();
+    Object.keys(sessions).forEach(function (id) {
+      var session = sessions[id];
+      if (session.term && (session.term.cols !== m.cols
+          || session.term.rows !== m.rows)) {
+        session.term.resize(m.cols, m.rows);
+      }
+    });
+    fitSession(sessions[active]);
+  }
+
+  function scheduleRelayout() {
+    window.requestAnimationFrame(relayout);
+  }
+
+  window.addEventListener('resize', scheduleRelayout);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleRelayout);
+  }
+
+  window.__g4fSyncTabs();
+})();
+</script>
+</body>
+</html>

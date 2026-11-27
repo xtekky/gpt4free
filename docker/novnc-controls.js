@@ -44,6 +44,7 @@
   let quality = "medium";
   let toolbarTimer = null;
   let toastTimer = null;
+  let nativeFullscreen = false;
 
   /* The on-screen keyboard shrinks the *visual* viewport on iOS/Android but
      leaves fixed elements anchored to the layout viewport, so the toolbar and
@@ -358,6 +359,21 @@
 
   /* -------------------------------------------------------------------- misc */
 
+  /* Android WebView does not always grant the HTML Fullscreen API to a page
+     inside an iframe. The native bridge hides the app's chrome in that case so
+     the Full button still gives a real full-screen desktop. */
+  function setNativeFullscreen(enabled) {
+    const bridge = window.AndroidDesktop;
+    if (!bridge || typeof bridge.setFullscreen !== "function") return false;
+    try {
+      bridge.setFullscreen(enabled ? "true" : "false");
+      nativeFullscreen = enabled;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function toggleFullscreen() {
     const root = document.documentElement;
     const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
@@ -369,13 +385,21 @@
       }
       return;
     }
+    if (nativeFullscreen) {
+      setNativeFullscreen(false);
+      return;
+    }
     const request = root.requestFullscreen || root.webkitRequestFullscreen;
     if (!request) {
-      flash("fullscreen not supported");
+      if (!setNativeFullscreen(true)) flash("fullscreen not supported");
       return;
     }
     const result = request.call(root);
-    if (result && result.catch) result.catch(() => flash("fullscreen blocked"));
+    if (result && result.catch) {
+      result.catch(() => {
+        if (!setNativeFullscreen(true)) flash("fullscreen blocked");
+      });
+    }
   }
 
   function toggleControl() {
@@ -508,6 +532,14 @@
       flash("desktop installed");
     });
     registerServiceWorker();
+
+    for (const event of ["fullscreenchange", "webkitfullscreenchange"]) {
+      document.addEventListener(event, () => {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          nativeFullscreen = false;
+        }
+      });
+    }
 
     bind("close-keyboard", "click", () => togglePanel("keyboard", false));
     bind("close-shortcuts", "click", () => togglePanel("shortcuts", false));

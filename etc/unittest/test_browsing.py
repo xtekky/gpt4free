@@ -342,5 +342,34 @@ class TestNotifications(unittest.TestCase):
         notifications.clear()
 
 
+class TestCoreSearchProviders(unittest.IsolatedAsyncioTestCase):
+    def test_core_search_providers_registered(self):
+        from g4f.browsing.browse import _SEARCHERS
+        from g4f.browsing.catalog import get_api
+
+        for provider_id in ("google", "google_ai", "youtube"):
+            self.assertIn(provider_id, _SEARCHERS)
+            spec = get_api(provider_id)
+            self.assertIsNotNone(spec)
+            self.assertIn("search", spec["capabilities"])
+
+    async def test_search_dispatches_to_youtube_and_google(self):
+        import importlib
+        browse_mod = importlib.import_module("g4f.browsing.browse")
+
+        with patch.dict(
+            browse_mod._SEARCHERS,
+            {
+                "youtube": AsyncMock(return_value=[{"source": "youtube", "title": "YT Hit", "url": "https://www.youtube.com/watch?v=123", "snippet": "Video"}]),
+                "google": AsyncMock(return_value=[{"source": "google", "title": "Google Hit", "url": "https://example.com", "snippet": "Web"}]),
+            },
+        ):
+            res = await browse_mod.search("test query", apis=["youtube", "google"], limit=5)
+
+        self.assertEqual(len(res["results"]), 2)
+        sources = {r["source"] for r in res["results"]}
+        self.assertEqual(sources, {"youtube", "google"})
+
+
 if __name__ == "__main__":
     unittest.main()

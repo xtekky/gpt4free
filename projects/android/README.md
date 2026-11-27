@@ -1,7 +1,55 @@
 # G4F Android App
 
-Native Android app embedding the g4f Python server via [Chaquopy](https://chaquo.com/chaquopy).
-The Flask GUI (`g4f.gui`) runs in-process and a WebView loads `http://127.0.0.1:1337/chat/`.
+Version 2 opens a **rootless Debian 12 container** on launch. PRoot runs gpt4free
+inside that container, an in-app terminal controls shell/API/desktop
+sessions, and the graphical desktop is **optional**. The original Chaquopy
+in-process chat is still available through the **Classic** button.
+
+Inspired by the architecture of [LinuxOnAndroid](https://github.com/devwithzachary/LinuxOnAndroid)
+(PRoot + Android PTY), but implemented independently in this repository. No code
+or binaries from that GPL project are copied here; PRoot and its Android support
+libraries come from the pinned Termux package repository. PRoot and its loader are
+extracted at build time into the APK's native library directory, while the support
+libraries are downloaded and verified on first install.
+
+## Container mode (v2)
+
+| Feature | Details |
+| --- | --- |
+| Distribution | Debian 12 (bookworm), official debuerreotype rootfs, SHA-256 pinned |
+| Isolation | PRoot user-space chroot, no root, no unlocked bootloader |
+| ABIs | `arm64-v8a`, `x86_64` |
+| Desktop | Opt-in: XFCE with a D-Bus session, TigerVNC and noVNC at `http://127.0.0.1:1337/desktop/` |
+| API | `python -m g4f api --bind 127.0.0.1:1337 --debug --no-reload` (bundled GUI at `/chat/`) |
+| Terminal | local renderer over a native PTY with Termux-style keys and copy; repo `bin/` commands and Linux `g4f-go` on `PATH` |
+| Background | Foreground service + partial wake lock keeps sessions alive |
+
+### First run
+
+1. Launch the app. The launcher opens `G4F Container`.
+2. Leave **Desktop** unchecked for a lighter install, or check it to add XFCE.
+3. Tap **Install**. The app downloads and verifies the rootfs and PRoot support
+   libraries. When a prebuilt g4f overlay is pinned in `catalog.json`, it is
+   extracted immediately; otherwise a **setup** terminal runs `apt` and
+   `pip install`. Network failures show a retry hint instead of hanging.
+4. When setup finishes, the API starts automatically; the Desktop service also
+   starts when Desktop was installed. The **Chat**, **API** and **Desktop** tabs
+   are always the first three tabs and never duplicate.
+5. **+ Shell** opens additional terminal tabs. **Stop** closes all sessions and
+   the status shows a stopped message instead of an exit error.
+
+The app binds the bundled gpt4free source at `/g4f-src` inside the container, so
+the version running in Debian matches the APK version without a separate clone.
+The pinned overlay is paired with a bundled Debian Python runtime, so API and
+Chat do not need apt or pip on the phone. A pinned desktop overlay does the same
+for XFCE/VNC when **Desktop** is checked. The Android `g4f-go` build is not used
+inside Debian; it needs Android's linker, so the container gets the Linux arm64
+binary instead, with the repo `bin/` commands on `PATH` in login shells. A
+pinned static curl is included there too, so `sandbox-cli` can fetch installers
+over HTTPS without installing Debian packages on the phone.
+
+> The **Classic** button launches the old Chaquopy server on the same port 1337.
+> Stop the container API session first to avoid a port conflict.
 
 ## Install (prebuilt APK)
 
@@ -38,7 +86,8 @@ If startup fails, the WebView shows the error message instead of a white screen.
 
 ## Build from source
 
-Toolchain expected in `~/android-tools` (JDK 17, Gradle 8.7, Android SDK 34):
+Toolchain expected in `~/android-tools` (JDK 17, Gradle 8.7, Android SDK 34,
+NDK 26.3.11579264 and CMake 3.22.1 for the native PTY library):
 
 ```bash
 export JAVA_HOME=~/android-tools/jdk
@@ -123,7 +172,18 @@ incorrect` means the key password does not match the store (PKCS12 stores
 verify both together). Regenerate with `create-keystore.sh`, which sets both to
 the same value, and update all secrets.
 
-## Architecture
+## Container architecture (v2)
+
+```
+ContainerActivity (launcher)
+ ├─ ContainerService (foreground, wake lock)
+ │   ├─ ContainerManager: verified downloads → rootfs + support libs + scripts
+ │   └─ TerminalSession × N: native PTY → PRoot → /bin/bash inside Debian
+ ├─ terminal.html (local renderer) ← base64 PTY output / → keystrokes
+ └─ content WebView → /chat/ (1337) or /desktop/ (noVNC on 1337)
+```
+
+## Classic mode internals
 
 ```
 MainActivity (Java)
@@ -140,6 +200,8 @@ WebView polls /chat/ until 200, then loads it (2-thread executor: server + polle
 - `assembleRelease` uses the optional stable key (see [Signing key](#signing-key)),
   falling back to the debug key; `assembleDebug` always uses the debug key
 - Asset extraction version: bump `EXTRACTION_VERSION` in `MainActivity.java` when bundled assets change
+- `prepare_proot.py` extracts PRoot and its loader from the pinned `.deb` into `app/src/main/jniLibs` before every build; Android cannot exec binaries from app-writable storage
+- `libg4f_linkfix.so` is preloaded into container processes so dpkg can back up `/var/lib/dpkg/status` on kernels where PRoot cannot create hard links in app data
 - Startup polls the page it displays (`/chat/`) on a fixed deadline and shows the
   failure (with the HTTP status) instead of spinning forever; the bundled
   `bootstrap.py` sets `G4F_NO_VERSION_CHECK=1` so rendering never waits on PyPI
@@ -165,3 +227,21 @@ installable Chrome, so `CDPSession` attaches to the app's own **WebView**:
 - On close, the session navigates the WebView back to the page it showed before automation
 - Limitation: there is only one WebView, so sessions cannot run in parallel tabs and
   automation navigation is visible in the app UI
+
+## Container runtime sources and licenses
+
+The APK bundles only the extracted PRoot executable and loader (from the pinned
+Termux package below) in its native library directory. On first install the app
+downloads and verifies these exact artifacts:
+
+| Component | Source | License |
+| --- | --- | --- |
+| Debian 12 rootfs | debuerreotype/docker-debian-artifacts (pinned commit) | Debian free software licenses |
+| PRoot 5.1.107.102 | Termux package repository | GPL-2.0-or-later |
+| libtalloc 2.5.0 | Termux package repository | GPL-3.0-or-later |
+| libandroid-shmem 0.7 | Termux package repository | BSD-3-Clause |
+| curl 8.23.0 (static musl) | stunnel/static-curl release | curl (MIT-like) |
+
+Hashes are pinned in `app/src/main/assets/container/catalog.json`; a changed
+upstream artifact fails the install instead of being silently accepted. See
+`docs/android-container.md` for a deeper walkthrough of the container layout.

@@ -20,10 +20,11 @@ Configuration is read from environment variables (see bot.py):
                                   links (defaults to G4F_API_BASE)
     G4F_MEMBERS_BASE            — members API base URL (default: https://auth.g4f.space)
     G4F_MODELS_URL              — models endpoint to watch (default: https://g4f.space/v1/models)
-    G4F_FEED_POLL_INTERVAL      — seconds between polls (default: 15)
+    G4F_FEED_POLL_INTERVAL      — seconds between polls (default: 30)
     G4F_HEAVY_TOKEN_THRESHOLD   — token count to flag as "heavy" (default: 10000)
     G4F_FEED_SUMMARY_INTERVAL   — seconds between summaries (default: 3600)
-    G4F_FEED_MAX_POSTS_PER_CYCLE— max embeds per poll cycle (default: 5)
+    G4F_FEED_MAX_POSTS_PER_CYCLE— max embeds per poll cycle (default: 2)
+    G4F_POST_SERVER_ERRORS      — post 5xx server errors to feed (default: false)
 """
 
 from __future__ import annotations
@@ -88,6 +89,8 @@ def _is_messages_path(path: str) -> bool:
 
 
 def _is_chat_like_path(path: str) -> bool:
+    if path == "/backend-api/v2/conversation":
+        return True
     return _is_chat_path(path) or _is_responses_path(path) or _is_messages_path(path)
 
 
@@ -303,6 +306,7 @@ def _format_duration(ms: int) -> str:
         return f"{ms}ms"
     return f"{ms / 1000:.1f}s"
 
+
 def _parse_iso_timestamp(value: str) -> Optional[datetime]:
     """Parse an ISO-8601 timestamp (e.g. ``2026-04-13T10:56:40.027Z``)."""
     if not value or not isinstance(value, str):
@@ -311,6 +315,7 @@ def _parse_iso_timestamp(value: str) -> Optional[datetime]:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
+
 
 # ---------------------------------------------------------------------------
 # LiveFeed cog
@@ -330,12 +335,14 @@ class LiveFeed(commands.Cog):
         api_key: Optional[str],
         public_base: str,
         members_base: Optional[str],
-        errors_url: Optional[str] = "https://g4f.space/api/errors",
+        errors_url: Optional[str] = None,
         models_url: Optional[str] = "https://g4f.space/v1/models",
-        poll_interval: int = 15,
+        poll_interval: int = 30,
         heavy_token_threshold: int = 10_000,
         summary_interval: int = 3600,
-        max_posts_per_cycle: int = 5,
+        max_posts_per_cycle: int = 2,
+        post_server_errors: bool = False,
+        min_model_requests: int = 5,
     ):
         self.bot = bot
         self.channel_id = channel_id
@@ -347,10 +354,13 @@ class LiveFeed(commands.Cog):
         self.models_url = models_url.rstrip("/") if models_url else None
         self.heavy_token_threshold = heavy_token_threshold
         self.max_posts_per_cycle = max_posts_per_cycle
+        self.post_server_errors = post_server_errors
+        self.min_model_requests = min_model_requests
         self._summary_interval = summary_interval
 
         self._last_log_id: int = 0
         self._initialized: bool = False
+        self._user_initialized: bool = False
         self._seen_user_keys: Set[str] = set()
         self._seen_api_error_ids: Set[int] = set()
         self._initialized_api_errors: bool = False
@@ -404,7 +414,7 @@ class LiveFeed(commands.Cog):
     # Polling loop
     # ------------------------------------------------------------------
 
-    @tasks.loop(seconds=15)
+    @tasks.loop(seconds=30)
     async def poll(self) -> None:
         """Main polling loop — runs every *poll_interval* seconds."""
         try:
@@ -447,6 +457,7 @@ class LiveFeed(commands.Cog):
         url = f"{self.api_base}/api/logs?limit=100"
         try:
             async with session.get(url) as resp:
+                log.debug("%s -> %s", url, resp.status)
                 if resp.status != 200:
                     return
                 data = await resp.json()
@@ -463,7 +474,7 @@ class LiveFeed(commands.Cog):
             log.info("LiveFeed initialised at log id %d", self._last_log_id)
             return
 
-        new_entries = [e for e in entries if e.get("id", 0) > self._last_log_id]
+        new_entries = [e for e in entries if e.get("id", 0) > self._last_log_id and e.get("status") != 501]
         if not new_entries:
             return
 
@@ -490,6 +501,7 @@ class LiveFeed(commands.Cog):
         url = f"{self.members_base}/members/api/recent-users?limit=20"
         try:
             async with session.get(url) as resp:
+                log.debug("%s -> %s", url, resp.status)
                 if resp.status != 200:
                     return
                 data = await resp.json()
@@ -506,15 +518,17 @@ class LiveFeed(commands.Cog):
         cutoff = now - timedelta(hours=48)
         users = [
             u for u in users
-            if (ts := _parse_iso_timestamp(u.get("created_at", ""))) is not None
-            and ts >= cutoff
+            if (ts := _parse_iso_timestamp(u.get("created_at", ""))) is None
+            or ts >= cutoff
         ]
         if not users:
             return
 
-        if not self._initialized:
+        if not self._user_initialized:
+            self._user_initialized = True
             for u in users:
                 self._seen_user_keys.add(f"{u.get('provider')}:{u.get('username')}")
+            log.info("LiveFeed initialized users with %d entries", len(self._seen_user_keys))
             return
 
         for user in users:
@@ -555,7 +569,7 @@ class LiveFeed(commands.Cog):
 
         if not self._initialized_api_errors:
             for e in entries:
-                if isinstance(e, dict) and e.get("id") is not None:
+                if isinstance(e, dict) and e.get("id") is not None and e.get("status") != 501:
                     self._seen_api_error_ids.add(e["id"])
             self._initialized_api_errors = True
             log.info("LiveFeed initialized API errors with %d entries", len(self._seen_api_error_ids))
@@ -567,6 +581,7 @@ class LiveFeed(commands.Cog):
             if isinstance(e, dict)
             and e.get("id") is not None
             and e.get("id") not in self._seen_api_error_ids
+            and e.get("status") != 501
         ]
         if not new_entries:
             return
@@ -611,7 +626,9 @@ class LiveFeed(commands.Cog):
         current_ids = {
             str(m.get("id"))
             for m in models
-            if isinstance(m, dict) and m.get("id") is not None
+            if isinstance(m, dict)
+            and m.get("id") is not None
+            and m.get("requests", 0) > self.min_model_requests
         }
         if not current_ids:
             return
@@ -625,7 +642,9 @@ class LiveFeed(commands.Cog):
         new_models = [
             m
             for m in models
-            if isinstance(m, dict) and str(m.get("id")) not in self._seen_model_ids
+            if isinstance(m, dict)
+            and str(m.get("id")) not in self._seen_model_ids
+            and m.get("requests", 0) > self.min_model_requests
         ]
         if not new_models:
             return
@@ -634,7 +653,7 @@ class LiveFeed(commands.Cog):
         if len(self._seen_model_ids) > 5000:
             self._seen_model_ids = set(sorted(self._seen_model_ids)[-2500:])
 
-        for model in new_models:
+        for model in new_models[:self.max_posts_per_cycle]:
             self._stats["new_models"] += 1
             await self._post_new_model(model)
 
@@ -648,6 +667,8 @@ class LiveFeed(commands.Cog):
         status = entry.get("status", 200)
 
         if status >= 500:
+            if not self.post_server_errors:
+                return False
             return await self._post_error(entry)
 
         if _is_image_path(path):

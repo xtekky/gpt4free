@@ -27,9 +27,9 @@ ARG SANDBOX_BASE=debian:trixie-slim
 # Compiled from the g4f-go/ sources rather than copied out of the repo's
 # prebuilt dist/ tree, so the binary always matches the checkout. Go
 # cross-compiles, so the stage runs on the build platform and emits a static
-# binary for the target arch. g4f-go/bundle, g4f-go/embed and the Polli
-# embedded assets are committed, so a plain `go build` works without a
-# preparation step.
+# binary for the target arch. g4f-go/bundle and g4f-go/embed are committed;
+# the Polli command assets are generated from bin/ by sync-assets.sh below, so
+# no duplicate command copies are tracked in g4f-go/polli/assets/.
 # ---------------------------------------------------------------------------
 # hadolint ignore=DL3006
 FROM --platform=$BUILDPLATFORM ${GO_BUILDER} AS g4f-go-builder
@@ -37,12 +37,14 @@ FROM --platform=$BUILDPLATFORM ${GO_BUILDER} AS g4f-go-builder
 ARG TARGETOS=linux
 ARG TARGETARCH
 
-WORKDIR /src
+WORKDIR /src/g4f-go
 # Dependency layer first: it only invalidates when go.mod/go.sum change.
 COPY g4f-go/go.mod g4f-go/go.sum ./
 RUN go mod download
 COPY g4f-go/ ./
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+COPY bin/ /src/bin/
+RUN ./sync-assets.sh && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
         go build -trimpath -ldflags "-s -w" -o /out/g4f-go .
 
 # ---------------------------------------------------------------------------

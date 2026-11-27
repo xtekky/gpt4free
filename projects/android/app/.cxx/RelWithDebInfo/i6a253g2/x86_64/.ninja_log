@@ -1,0 +1,5 @@
+# ninja log v5
+1	92	1795781402273177250	CMakeFiles/g4f_linkfix.dir/linkfix.cpp.o	12e5fd4efd91d8bd
+93	133	1795781402313177390	/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/RelWithDebInfo/i6a253g2/obj/x86_64/libg4f_linkfix.so	acab3f413e7b30c1
+0	792	1795781402968179682	CMakeFiles/g4f_pty.dir/pty.cpp.o	220bd0d6e83a76c6
+793	907	1795781403073180050	/home/heiner/.g4f/workspace/gpt4free/projects/android/app/build/intermediates/cxx/RelWithDebInfo/i6a253g2/obj/x86_64/libg4f_pty.so	4e19611fbc464802

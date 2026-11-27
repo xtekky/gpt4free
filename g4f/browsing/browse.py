@@ -691,6 +691,79 @@ async def _search_duckduckgo(session, query: str, limit: int) -> List[Dict]:
     ]
 
 
+async def _search_google(session, query: str, limit: int) -> List[Dict]:
+    from ..Provider.search.GoogleSearch import GoogleSearch
+    from ..providers.response import SearchResults
+
+    messages = [{"role": "user", "content": query}]
+    results: List[Dict] = []
+    async for chunk in GoogleSearch.create_async_generator("search", messages):
+        if isinstance(chunk, SearchResults):
+            for item in chunk.results[:limit]:
+                if isinstance(item, dict):
+                    results.append(
+                        _result(
+                            "google",
+                            item.get("title", ""),
+                            item.get("url", ""),
+                            item.get("snippet", "") or item.get("text", ""),
+                        )
+                    )
+    return results[:limit]
+
+
+async def _search_google_ai(session, query: str, limit: int) -> List[Dict]:
+    from ..Provider.search.GoogleAiMode import GoogleAiMode
+    from ..providers.response import SearchResults
+
+    messages = [{"role": "user", "content": query}]
+    results: List[Dict] = []
+    ai_chunks: List[str] = []
+    async for chunk in GoogleAiMode.create_async_generator("ai-mode", messages):
+        if isinstance(chunk, SearchResults):
+            for item in chunk.results[:limit]:
+                if isinstance(item, dict):
+                    results.append(
+                        _result(
+                            "google_ai",
+                            item.get("title", ""),
+                            item.get("url", ""),
+                            item.get("snippet", "") or item.get("text", ""),
+                        )
+                    )
+        elif isinstance(chunk, str):
+            ai_chunks.append(chunk)
+
+    if ai_chunks and not results:
+        summary = "".join(ai_chunks).strip()
+        if summary:
+            results.append(
+                _result("google_ai", f"Google AI Mode: {query}", "https://www.google.com/search", summary[:600])
+            )
+    return results[:limit]
+
+
+async def _search_youtube(session, query: str, limit: int) -> List[Dict]:
+    from ..Provider.search.YouTube import YouTube
+
+    yt = YouTube()
+    rows = await yt.search(query, max_results=limit)
+    results: List[Dict] = []
+    for row in rows[:limit]:
+        duration = row.get("duration")
+        snippet = f"YouTube video ({duration}s)" if duration else "YouTube video"
+        results.append(
+            _result(
+                "youtube",
+                row.get("title") or "",
+                row.get("url") or "",
+                snippet,
+                extra={"id": row.get("id"), "duration": duration},
+            )
+        )
+    return results
+
+
 _SEARCHERS = {
     "wikipedia": _search_wikipedia,
     "hackernews": _search_hackernews,
@@ -708,6 +781,9 @@ _SEARCHERS = {
     "tinyfish": _search_tinyfish,
     "newsapi": _search_newsapi,
     "duckduckgo": _search_duckduckgo,
+    "google": _search_google,
+    "google_ai": _search_google_ai,
+    "youtube": _search_youtube,
 }
 
 

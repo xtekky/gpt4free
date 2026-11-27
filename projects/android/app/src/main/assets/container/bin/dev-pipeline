@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Entry point for the automatic development pipeline.
+
+Usage:
+    bin/dev-pipeline status
+    bin/dev-pipeline doctor
+    bin/dev-pipeline run --dry-run
+    bin/dev-pipeline run --max-tasks 1
+"""
+
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from tools.dev_pipeline.cli import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

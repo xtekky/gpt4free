@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Publish Markdown docs from this checkout to the g4f.dev static site.
+
+Usage:
+    bin/publish-docs --check
+    bin/publish-docs
+    bin/publish-docs --clean
+
+The source of truth is ``docs/`` in this repository. The target defaults to
+``../g4f.dev/docs``; use ``--target`` for another checkout.
+"""
+
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from tools.docs_publish import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

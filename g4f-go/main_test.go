@@ -7,10 +7,6 @@ import (
 )
 
 func TestEnsureG4FPackage_NoLookupNeededForNonUpgradeWhenInstalled(t *testing.T) {
-	if IsTermuxSystem() {
-		t.Skip("termux runtime path uses system python flow")
-	}
-
 	binDir := t.TempDir()
 	stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
 	if err := os.MkdirAll(filepath.Dir(stamp), 0o755); err != nil {
@@ -26,10 +22,6 @@ func TestEnsureG4FPackage_NoLookupNeededForNonUpgradeWhenInstalled(t *testing.T)
 }
 
 func TestEnsureG4FPackage_NoLookupNeededForMatchingPin(t *testing.T) {
-	if IsTermuxSystem() {
-		t.Skip("termux runtime path uses system python flow")
-	}
-
 	binDir := t.TempDir()
 	stamp := filepath.Join(binDir, ".g4f-runtime", ".installed")
 	if err := os.MkdirAll(filepath.Dir(stamp), 0o755); err != nil {
@@ -55,10 +47,6 @@ func TestEnsureG4FPackage_NoLookupNeededForMatchingPin(t *testing.T) {
 }
 
 func TestEnsureG4FPackage_BuiltinSkipsAutoUpgrade(t *testing.T) {
-	if IsTermuxSystem() {
-		t.Skip("termux runtime path uses system python flow")
-	}
-
 	binDir := t.TempDir()
 	if err := markBuiltinG4F(binDir); err != nil {
 		t.Fatalf("markBuiltinG4F: %v", err)

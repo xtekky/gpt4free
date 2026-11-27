@@ -28,9 +28,7 @@ class TestSandboxCliUrls(unittest.TestCase):
         self.assertEqual(result.stdout, "tool launched: help\n")
 
     def test_polli_asset_launch_does_not_print_public_urls(self):
-        text = (CLI.parents[1] / "g4f-go" / "polli" / "assets" / "sandbox-cli").read_text(
-            encoding="utf-8"
-        )
+        text = CLI.read_text(encoding="utf-8")
         start = text.index("launch() {")
         body = text[start:text.index("\n}\n", start)]
         self.assertNotIn("public_urls", body)
@@ -42,6 +40,14 @@ class TestSandboxCliUrls(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Public Urls", result.stdout)
         self.assertIn("http://g4f.g4f.local/", result.stdout)
+
+    def test_opencode_inline_config_is_optional(self):
+        text = CLI.read_text(encoding="utf-8")
+        start = text.index("configure_opencode_g4f()")
+        body = text[start:text.index("\n}\n", start)]
+        self.assertNotIn("die ", body)
+        self.assertIn('if [ -n "$previous" ]; then', body)
+        self.assertIn("return 0", body)
 
 
 if __name__ == "__main__":

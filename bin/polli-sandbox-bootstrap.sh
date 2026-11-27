@@ -66,12 +66,16 @@ if [ "$DESKTOP" = 0 ]; then
 fi
 
 log "installing the Xfce + TigerVNC desktop..."
-apt-get install -y -qq --no-install-recommends \
-    xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
-    dbus-x11 x11-xserver-utils x11-xkb-utils tigervnc-standalone-server \
-    fonts-dejavu-core fonts-noto-core fonts-noto-color-emoji \
-    librsvg2-common adwaita-icon-theme gtk-update-icon-cache \
-    procps
+[ -x /usr/local/bin/install-desktop.sh ] || {
+    printf 'polli-sandbox-bootstrap: install-desktop.sh is missing\n' >&2
+    exit 1
+}
+# The shared installer owns apt retries and the noVNC UI overlay; the sandbox
+# image already ships the branded client, so no G4F_DESKTOP_NOVNC_ASSETS here.
+G4F_DESKTOP_PACKAGES='xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal dbus-x11 x11-xserver-utils x11-xkb-utils tigervnc-standalone-server fonts-dejavu-core fonts-noto-core fonts-noto-color-emoji librsvg2-common adwaita-icon-theme gtk-update-icon-cache procps' \
+G4F_DESKTOP_UPDATE_ATTEMPTS=1 \
+G4F_DESKTOP_LOG_PREFIX='==>' \
+    /usr/local/bin/install-desktop.sh
 
 if [ -f /etc/xdg/menus/xfce-applications.menu ]; then
     /usr/local/bin/patch-xfce-menu.py

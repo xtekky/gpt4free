@@ -11,6 +11,80 @@ import (
 	"testing"
 )
 
+func TestEnsureRuntimeUsesConfiguredPython(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses unix executable permissions")
+	}
+	py := filepath.Join(t.TempDir(), "python3")
+	if err := os.WriteFile(py, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("G4F_PYTHON", py)
+
+	got, err := ensureRuntime()
+	if err != nil || got != py {
+		t.Fatalf("ensureRuntime() = %q, %v; want configured python %q", got, err, py)
+	}
+
+	t.Setenv("G4F_PYTHON", filepath.Join(t.TempDir(), "missing"))
+	if _, err := ensureRuntime(); err == nil {
+		t.Fatal("expected an error for a missing G4F_PYTHON")
+	}
+}
+
+func TestEnsureRuntimeUsesTermuxPython(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Termux uses unix paths")
+	}
+	prefix := t.TempDir()
+	bin := filepath.Join(prefix, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	py := filepath.Join(bin, "python3")
+	if err := os.WriteFile(py, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TERMUX_VERSION", "1")
+	t.Setenv("PREFIX", prefix)
+
+	got, err := ensureRuntime()
+	if err != nil || got != py {
+		t.Fatalf("ensureRuntime() = %q, %v; want Termux python %q", got, err, py)
+	}
+}
+
+func TestFindTermuxPythonUsesPrefix(t *testing.T) {
+	prefix := t.TempDir()
+	bin := filepath.Join(prefix, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	py := filepath.Join(bin, "python3")
+	if err := os.WriteFile(py, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := findTermuxPython(prefix)
+	if err != nil || got != py {
+		t.Fatalf("findTermuxPython() = %q, %v; want %q", got, err, py)
+	}
+}
+
+func TestFindTermuxPythonRequiresExecutable(t *testing.T) {
+	prefix := t.TempDir()
+	bin := filepath.Join(prefix, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(bin, "python3"), []byte("not executable"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := findTermuxPython(prefix); err == nil {
+		t.Fatal("expected an error when python3 is not executable")
+	}
+}
+
 func TestRuntimeArchivesPreserveTopPrefixedNames(t *testing.T) {
 	for _, format := range []string{"tar.gz", "zip"} {
 		t.Run(format, func(t *testing.T) {
@@ -41,7 +115,7 @@ func TestRuntimeArchivesPreserveTopPrefixedNames(t *testing.T) {
 
 func TestInstallDownloadedRuntimeRepairsStaleStamp(t *testing.T) {
 	if runtime.GOOS == "android" {
-		t.Skip("Android builds a separate runner")
+		t.Skip("Android uses the Termux python package")
 	}
 	dir := t.TempDir()
 	stamp := installedOkName(dir)
@@ -81,12 +155,12 @@ func writeTestRuntimeArchive(t *testing.T, name string, files map[string]string)
 	var buf bytes.Buffer
 	if filepath.Ext(name) == ".zip" {
 		zw := zip.NewWriter(&buf)
-		for name, contents := range files {
-			w, err := zw.Create(name)
+		for path, content := range files {
+			w, err := zw.Create(path)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := w.Write([]byte(contents)); err != nil {
+			if _, err := w.Write([]byte(content)); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -94,20 +168,20 @@ func writeTestRuntimeArchive(t *testing.T, name string, files map[string]string)
 			t.Fatal(err)
 		}
 	} else {
-		gz := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(gz)
-		for name, contents := range files {
-			if err := tw.WriteHeader(&tar.Header{Name: name, Mode: 0o755, Size: int64(len(contents))}); err != nil {
+		gw := gzip.NewWriter(&buf)
+		tw := tar.NewWriter(gw)
+		for path, content := range files {
+			if err := tw.WriteHeader(&tar.Header{Name: path, Mode: 0o644, Size: int64(len(content))}); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := tw.Write([]byte(contents)); err != nil {
+			if _, err := tw.Write([]byte(content)); err != nil {
 				t.Fatal(err)
 			}
 		}
 		if err := tw.Close(); err != nil {
 			t.Fatal(err)
 		}
-		if err := gz.Close(); err != nil {
+		if err := gw.Close(); err != nil {
 			t.Fatal(err)
 		}
 	}

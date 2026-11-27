@@ -87,6 +87,9 @@ func TestEmbeddedSandboxAssets(t *testing.T) {
 	if len(bootstrapScript) == 0 || !strings.HasPrefix(string(bootstrapScript), "#!/usr/bin/env bash") {
 		t.Fatal("embedded polli bootstrap is missing or not a bash script")
 	}
+	if len(installDesktopScript) == 0 || !strings.HasPrefix(string(installDesktopScript), "#!/bin/sh") {
+		t.Fatal("embedded desktop installer is missing or not a shell script")
+	}
 }
 
 func TestEmbeddedSandboxAssetsMatchBin(t *testing.T) {
@@ -96,6 +99,7 @@ func TestEmbeddedSandboxAssetsMatchBin(t *testing.T) {
 	}{
 		{"sandbox-cli", sandboxCLI},
 		{"polli-sandbox-bootstrap.sh", bootstrapScript},
+		{"install-desktop.sh", installDesktopScript},
 		{"patch-xfce-menu.py", patchXfceMenu},
 		{"sandbox-discover", sandboxDiscover},
 		{"sandbox-docs", sandboxDocs},
@@ -107,7 +111,7 @@ func TestEmbeddedSandboxAssetsMatchBin(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !bytes.Equal(asset.data, source) {
-				t.Fatalf("embedded %s differs from bin/%s; copy the updated file to g4f-go/polli/assets/", asset.name, asset.name)
+				t.Fatalf("embedded %s differs from bin/%s; run g4f-go/sync-assets.sh", asset.name, asset.name)
 			}
 		})
 	}

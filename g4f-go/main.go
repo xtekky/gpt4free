@@ -323,12 +323,6 @@ func runPinOnly(binDir, pin string) int {
 // non-empty pin (from -v or a previous run) installs exactly that version;
 // a pinned install never auto-upgrades.
 func ensureG4FPackage(binDir, py string, args []string, pin string) error {
-	// On Termux we use the system python (no downloaded runtime), so skip
-	// the downloaded-runtime g4f install/upgrade logic that targets
-	// binDir/python-home.
-	if IsTermuxSystem() {
-		return nil
-	}
 	if needsInstall(binDir, pin) {
 		// First call, or the pin changed: (re)install g4f.
 		start := time.Now()

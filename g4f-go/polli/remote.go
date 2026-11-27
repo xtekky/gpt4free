@@ -154,6 +154,7 @@ func uploadAssets(id string, g4fGo []byte) error {
 	files := []assetFile{
 		{"usr/local/bin/sandbox-cli", sandboxCLI, 0o755},
 		{"usr/local/bin/polli-sandbox-bootstrap.sh", bootstrapScript, 0o755},
+		{"usr/local/bin/install-desktop.sh", installDesktopScript, 0o755},
 		{"usr/local/bin/patch-xfce-menu.py", patchXfceMenu, 0o755},
 		{"usr/local/bin/sandbox-discover", sandboxDiscover, 0o755},
 		{"usr/local/bin/sandbox-docs", sandboxDocs, 0o755},

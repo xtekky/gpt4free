@@ -49,7 +49,9 @@ Options:
   -h, --help              Show this help
 
 After installing, the first \`g4f-go\` run downloads a CPython runtime into
-~/.g4f/ (this needs network access, but no system Python).
+~/.g4f/ (this needs network access, but no system Python). Set G4F_PYTHON to
+an existing interpreter to skip that download entirely; Termux builds always
+use the Termux \`python\` package.
 EOF
 }
 

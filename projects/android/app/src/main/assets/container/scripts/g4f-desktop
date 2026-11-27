@@ -1,0 +1,74 @@
+#!/bin/sh
+# Start the X display, TigerVNC and an XFCE session with a real D-Bus bus.
+#
+# Running bare `startxfce4` under PRoot leaves DBUS_SESSION_BUS_ADDRESS unset,
+# and XFCE then shows only "Unable to contact settings server". dbus-run-session
+# creates and owns the session bus for the lifetime of the desktop session.
+set -eu
+unset DBUS_SESSION_BUS_ADDRESS
+export DISPLAY=:1
+export XDG_RUNTIME_DIR=/tmp/g4f-desktop-runtime
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+
+socket=/tmp/.X11-unix/X1
+lock=/tmp/.X1-lock
+xfce_pidfile=/tmp/.g4f-xfce.pid
+vnc_pid=''
+
+# Reuse a live Xvnc from an earlier session instead of killing the desktop.
+# Stale lock/socket files from a stopped container must not block a restart.
+if [ -S "$socket" ] && [ -f "$lock" ]; then
+    vnc_pid=$(cat "$lock" 2>/dev/null || true)
+    if [ -z "$vnc_pid" ] || ! kill -0 "$vnc_pid" 2>/dev/null; then
+        vnc_pid=''
+        rm -f "$lock" "$socket"
+    fi
+elif [ -e "$socket" ] || [ -e "$lock" ]; then
+    rm -f "$lock" "$socket"
+fi
+
+if [ -z "$vnc_pid" ]; then
+    Xvnc :1 -geometry 1280x720 -depth 24 -SecurityTypes None -nolisten tcp &
+    vnc_pid=$!
+    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+        if [ -S "$socket" ]; then break; fi
+        sleep 1
+    done
+    if [ ! -S "$socket" ]; then
+        echo "Xvnc :1 did not start" >&2
+        kill "$vnc_pid" 2>/dev/null || true
+        exit 1
+    fi
+fi
+
+xfce_pid=$(cat "$xfce_pidfile" 2>/dev/null || true)
+if [ -z "$xfce_pid" ] || ! kill -0 "$xfce_pid" 2>/dev/null; then
+    rm -f "$xfce_pidfile"
+    # Older launchers wrote no pidfile; drop any session manager they left
+    # behind so the replacement gets a clean D-Bus session.
+    if command -v pkill >/dev/null 2>&1; then
+        pkill -f '[x]fce4-session' 2>/dev/null || true
+        pkill -f '[x]fsettingsd' 2>/dev/null || true
+    fi
+    if command -v dbus-run-session >/dev/null 2>&1; then
+        dbus-run-session -- startxfce4 &
+    elif command -v dbus-launch >/dev/null 2>&1; then
+        ( dbus_env=$(dbus-launch --sh-syntax --exit-with-session) || exit 1
+          eval "$dbus_env"
+          exec startxfce4 ) &
+    else
+        echo "XFCE needs a D-Bus session (install dbus-x11)" >&2
+        exit 1
+    fi
+    echo $! > "$xfce_pidfile"
+fi
+echo "Desktop display :1 and VNC are running"
+
+# Keep the foreground session alive while VNC is up. If Xvnc dies the Desktop
+# tab shows the error instead of a page that silently never connects.
+while kill -0 "$vnc_pid" 2>/dev/null; do
+    sleep 5
+done
+echo "Xvnc :1 exited" >&2
+exit 1

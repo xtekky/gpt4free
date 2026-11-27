@@ -14,14 +14,12 @@ g4f-go -m remote_desktop --port 8000
 
 ## How it works
 
-1. The binary embeds only a small manifest (`runtime.json`) that pins the
-   CPython archive URL, size, and sha256 per platform
-   (pbs install-only tarballs for desktop, the official python.org Android
-   package for Termux).
-2. On first run `g4f-go` picks the entry for its host OS/arch, downloads the
-   archive into `~/.g4f/python-embed/` (or the app dir on Android), printing a
-   `\r` progress line (percent, bytes, throughput, ETA), verifies the sha256,
-   and extracts it.
+1. On desktop platforms the binary embeds a small manifest (`runtime.json`)
+   that pins the CPython archive URL, size, and sha256 per platform
+   (python-build-standalone install-only tarballs).
+2. On first desktop run `g4f-go` picks the entry for its host OS/arch, downloads
+   the archive into `~/.g4f/python-embed/`, printing a `\r` progress line
+   (percent, bytes, throughput, ETA), verifies the sha256, and extracts it.
 3. It then bootstraps pip (`ensurepip`), installs `g4f[slim]` into the
    interpreter, writes a `.installed` stamp, and finally runs your command.
 4. Subsequent runs skip straight to step 3 — the runtime is cached until the
@@ -29,12 +27,25 @@ g4f-go -m remote_desktop --port 8000
 5. The embedded Python bundle (see below) is extracted into the runtime on
    first use and refreshed whenever its revision changes.
 
+On Android/Termux no CPython archive is downloaded. The launcher uses the
+interpreter from Termux's `python` package (`$PREFIX/bin/python3`) and installs
+`g4f[slim]` into that environment with pip.
+
+Set `G4F_PYTHON=/path/to/python3` to use an interpreter that is already
+installed (for example the Android container's `/opt/g4f-venv/bin/python`).
+This skips every runtime download, which is useful when HTTPS downloads fail
+because of missing CA certificates:
+
+```
+G4F_PYTHON=/opt/g4f-venv/bin/python g4f-go sandbox
+```
+
 Downloads go to:
 
 | Platform | Location |
 |---|---|
 | Linux / macOS / Windows | `~/.g4f/python-embed/` |
-| Android (Termux) | app-private dir (`G4F_ANDROID_FILES_DIR`, defaults to `$HOME/g4f-go-runtime`) |
+| Android (Termux) | `$PREFIX` (Termux system Python; stamps in `$HOME/g4f-go-runtime`) |
 
 Pip downloads used by the launcher (including bundled module dependencies) are
 cached in `~/.g4f/cache/pip` (`G4F_CACHE_DIR/pip` when overridden). To remove
@@ -63,13 +74,17 @@ curl -fsSL https://raw.githubusercontent.com/xtekky/gpt4free/main/bin/install.sh
 g4f-go sandbox
 ```
 
-Pass `--prefix DIR` (or `G4F_GO_PREFIX`) to install somewhere else. On Termux
-the sandbox launcher uses udocker automatically; it is installed with pip on
-first use (run `pkg install python` first).
+`g4f-go` installs `g4f[slim]` into Termux's Python environment on first use.
+If `python3` is missing, it runs `pkg install python` for you.
+
+Pass `--prefix DIR` (or `G4F_GO_PREFIX`) to install the launcher somewhere else.
+On Termux the sandbox launcher uses udocker automatically; it is installed with
+pip on first use.
 
 ## Building
 
 ```
+./sync-assets.sh            # refresh embedded bin/ commands (sandbox-cli, ...)
 go build -o g4f-go .        # linux host build (fast iteration)
 ./build-all.sh              # cross-compile + zip releases for all targets
 ./build-all.sh android      # only the android target
@@ -78,7 +93,10 @@ go build -o g4f-go .        # linux host build (fast iteration)
 ```
 
 The manifest is embedded via `go:embed runtime.json` and the Python bundle via
-`go:embed all:bundle`; the binary builds without network access.
+`go:embed all:bundle`; the binary builds without network access. The Polli
+commands under `polli/assets/` are generated from `bin/` by `sync-assets.sh`,
+which `build-all.sh`, `make build` and `make test` run automatically. Edit the
+scripts in `bin/`, not the generated copies.
 
 ## Usage
 
@@ -524,13 +542,11 @@ so existing installations re-extract it.
 | Linux | amd64, arm64 | python-build-standalone install-only tarball |
 | Windows | amd64 | python-build-standalone install-only tarball |
 | macOS | amd64, arm64 | python-build-standalone install-only tarball |
-| Android | arm64 (Termux) | official python.org `*-linux-android` package |
+| Android | arm64 (Termux) | Termux `python` package (`$PREFIX/bin/python3`) |
 
-Android note: the python.org Android package ships `libpython3.15.so` +
-stdlib but no `python` executable. `g4f-go` detects Termux
-(`pm list packages`), merges the tarball into the app dir, and compiles a tiny
-C runner with Termux's clang that `dlopen`s libpython — the same technique as
-CPython's own android testbed.
+Android note: the Android release is built for Termux. It does not download a
+separate CPython runtime and does not use a dlopen runner; all Python commands
+use the native Termux interpreter.
 
 ## Layout after first run (`~/.g4f/python-embed/`)
 
@@ -556,7 +572,7 @@ VCRUNTIME140*.dll          Windows runtime DLLs (Windows package only)
 
 ## Limitations
 
-- The runtime is materialized on disk (CPython cannot run a 100%-in-memory
-  interpreter reliably); first run downloads ~50–800 MB depending on platform.
+- On desktop platforms the runtime is materialized on disk (CPython cannot run
+  a 100%-in-memory interpreter reliably); first run downloads ~50–800 MB.
 - macOS builds must be signed/notarized by the distributor for Gatekeeper.
-- Android builds need Termux installed to compile the dlopen runner on device.
+- Android builds require Termux with its `python` package installed.

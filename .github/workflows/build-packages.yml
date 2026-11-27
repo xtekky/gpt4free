@@ -95,7 +95,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          # The android-arm64 cross-build needs -checklinkname=0 for anet,
+          # which is only available in Go 1.23+.
+          go-version: "1.23"
           cache-dependency-path: g4f-go/go.mod
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -168,6 +170,12 @@ jobs:
           name: g4f-go-darwin-amd64
           path: g4f-go/dist/g4f-go-*-darwin-amd64.zip
           if-no-files-found: error
+      - name: Upload g4f-go android-arm64
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4f-go-android-arm64
+          path: g4f-go/dist/g4f-go-*-android-arm64.zip
+          if-no-files-found: error
 
   # Android App APK
   build-android:
@@ -198,6 +206,15 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Install Android NDK and CMake
+        uses: android-actions/setup-android@v3
+
+      - name: Install native build tools
+        run: |
+          set -euo pipefail
+          sdkmanager "ndk;26.3.11579264" "cmake;3.22.1"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/26.3.11579264" >> "$GITHUB_ENV"
 
       - name: Decode and verify release keystore
         if: env.G4F_KEYSTORE_BASE64 != ''
@@ -413,6 +430,7 @@ jobs:
           mkdir -p ./release/flat
           find ./release -type f | sort
           cp -v ./release/pypi/* ./release/flat/ 2>/dev/null || true
+          cp -v ./release/g4f-go/*.zip ./release/flat/ 2>/dev/null || true
           cp -v ./release/g4f-go/dist/*.zip ./release/flat/ 2>/dev/null || true
           cp -v ./release/g4f-go/individual/* ./release/flat/ 2>/dev/null || true
           cp -v ./release/android/* ./release/flat/ 2>/dev/null || true
@@ -435,6 +453,7 @@ jobs:
             - Windows amd64: `g4f-go-${{ needs.prepare.outputs.version }}-windows-amd64.zip`
             - Linux x64: `g4f-go-${{ needs.prepare.outputs.version }}-linux-amd64.zip`
             - Linux ARM64: `g4f-go-${{ needs.prepare.outputs.version }}-linux-arm64.zip`
+            - Android/Termux arm64: `g4f-go-${{ needs.prepare.outputs.version }}-android-arm64.zip` (uses Termux's `python` package)
             - macOS x64: `g4f-go-${{ needs.prepare.outputs.version }}-darwin-amd64.zip`
             - macOS ARM64: `g4f-go-${{ needs.prepare.outputs.version }}-darwin-arm64.zip`
             - FreeBSD amd64: `g4f-go-${{ needs.prepare.outputs.version }}-freebsd-amd64.zip`
