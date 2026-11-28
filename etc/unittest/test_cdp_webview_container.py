@@ -6,8 +6,10 @@ the environment hand-off that makes provider automation work there too.
 """
 
 import os
+import tempfile
 import unittest
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import mock_open, patch
 
 from g4f.requests import cdp
 
@@ -66,6 +68,54 @@ class WebViewContainerSocketTests(unittest.TestCase):
             clear=True,
         ):
             self.assertTrue(cdp._webview_auto_detect())
+
+    def test_socket_file_marks_container_without_env(self):
+        # A container API session can lose prootEnv(); the app writes the
+        # socket name into the bind-mounted scripts directory instead.
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp) / "webview-devtools-socket"
+            marker.write_text("@webview_devtools_remote_42\n", encoding="utf-8")
+            with patch.object(
+                cdp, "_CONTAINER_WEBVIEW_SOCKET_FILE", str(marker)
+            ), patch.dict(os.environ, {}, clear=True), patch(
+                "os.path.exists", return_value=False
+            ), patch("builtins.__import__", side_effect=ImportError):
+                self.assertTrue(cdp._is_android())
+                self.assertEqual(
+                    cdp._find_webview_devtools_socket(),
+                    "webview_devtools_remote_42",
+                )
+
+    def test_socket_scan_fallback(self):
+        proc = (
+            "00000000 00000000 00000000 00000000 000000000000 "
+            "@webview_devtools_remote_77\n"
+        )
+        with patch.dict(os.environ, {}, clear=True), patch.object(
+            cdp, "_container_webview_socket", return_value=""
+        ), patch("builtins.open", mock_open(read_data=proc)):
+            self.assertEqual(
+                cdp._find_webview_devtools_socket(),
+                "webview_devtools_remote_77",
+            )
+
+    def test_reachable_socket_beats_stale_handoff(self):
+        def request(name, path, timeout=5.0):
+            return {"Browser": "WebView"} if name == "webview_devtools_remote_77" else None
+
+        with patch.dict(
+            os.environ,
+            {"G4F_WEBVIEW_DEVTOOLS_SOCKET": "webview_devtools_remote_1"},
+            clear=True,
+        ), patch.object(
+            cdp, "_webview_devtools_socket_scan",
+            return_value=["webview_devtools_remote_77"],
+        ), patch.object(cdp, "_webview_devtools_request", side_effect=request):
+            self.assertEqual(
+                cdp._resolve_webview_devtools_socket(),
+                "webview_devtools_remote_77",
+            )
+            self.assertTrue(cdp._find_webview_devtools_socket_exists())
 
 
 if __name__ == "__main__":

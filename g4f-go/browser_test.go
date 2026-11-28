@@ -49,6 +49,26 @@ func TestHeadlessActive(t *testing.T) {
 	}
 }
 
+func TestAndroidWebViewSkipsBrowserAutoStart(t *testing.T) {
+	t.Setenv("G4F_CONTAINER", "")
+	t.Setenv("G4F_WEBVIEW_DEVTOOLS_SOCKET", "")
+	os.Unsetenv("G4F_CONTAINER")
+	os.Unsetenv("G4F_WEBVIEW_DEVTOOLS_SOCKET")
+	if androidWebViewConfigured() {
+		t.Fatal("no Android markers set")
+	}
+
+	t.Setenv("G4F_CONTAINER", "1")
+	if !androidWebViewConfigured() {
+		t.Fatal("G4F_CONTAINER=1 should mark the Android container")
+	}
+	t.Setenv("G4F_CONTAINER", "")
+	t.Setenv("G4F_WEBVIEW_DEVTOOLS_SOCKET", "webview_devtools_remote_42")
+	if !androidWebViewConfigured() {
+		t.Fatal("a WebView socket should mark the Android container")
+	}
+}
+
 func TestIsTruthy(t *testing.T) {
 	for _, v := range []string{"1", "true", "TRUE", " yes ", "on"} {
 		if !isTruthy(v) {

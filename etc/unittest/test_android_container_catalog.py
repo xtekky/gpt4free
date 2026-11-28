@@ -290,6 +290,15 @@ class AndroidContainerCatalogTests(unittest.TestCase):
         cdp = (REPO / "g4f" / "requests" / "cdp.py").read_text(encoding="utf-8")
         self.assertIn("G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_", manager)
         self.assertIn("android.os.Process.myPid()", manager)
+        # The API launcher and the shell profile must carry the hand-off even
+        # when a session was started without prootEnv(), and the scripts dir
+        # gets a socket file for sessions that lose the environment entirely.
+        self.assertIn('"export G4F_CONTAINER=1\\n" +', manager)
+        self.assertIn(
+            '"export G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_"',
+            manager,
+        )
+        self.assertIn('new File(scripts, "webview-devtools-socket")', manager)
         for needle in ("G4FAutomation",
                        "setWebContentsDebuggingEnabled(isWebViewDebugEnabled())",
                        'loadDataWithBaseURL("http://127.0.0.1:1337/"',

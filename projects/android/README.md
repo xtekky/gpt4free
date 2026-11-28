@@ -239,8 +239,10 @@ installable Chrome, so `CDPSession` attaches to the app's own **WebView**:
 - `CDPSession` (mode `webview`, auto-detected on Android or forced with `G4F_BROWSER_MODE=webview`)
   connects to that socket with an aiohttp `UnixConnector` and speaks plain CDP
 - In the Debian container the Python process has a different pid, so the app exports
-  `G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_<app pid>` into every session;
-  `ContainerActivity` provides the same `window.G4FAutomation` bridge as Classic mode
+  `G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_<app pid>` into every session,
+  the API launcher and shell profile, and a hand-off file at
+  `/g4f-scripts/webview-devtools-socket`; `ContainerActivity` provides the same
+  `window.G4FAutomation` bridge as Classic mode
 - On close, the session destroys its automation WebView (or navigates the fallback page back)
 - Limitation: automation needs the app UI/activity to be running, and sessions cannot run
   in parallel tabs when the app falls back to the single WebView

@@ -394,6 +394,12 @@ public final class ContainerManager {
 
     /** Re-apply our profile and launchers after install, overlay or reconnect. */
     public void writeLaunchers() throws IOException {
+        // The API session can be started without prootEnv() (for example after
+        // a reconnect). Record the app pid in the bind-mounted scripts dir so
+        // g4f can still find @webview_devtools_remote_<app pid>; a shell probe
+        // of /proc/net/unix is not reliable on modern Android.
+        writeFile(new File(scripts, "webview-devtools-socket"),
+                "webview_devtools_remote_" + android.os.Process.myPid() + "\n");
         // Older installs must also pick up new environment fixes (for example
         // clearing PYTHONHOME), so refresh the profile on every reconnect.
         writeShellProfile();
@@ -418,6 +424,11 @@ public final class ContainerManager {
                 // loads, and an inherited G4F_PYTHON from the old venv image
                 // would bypass g4f-go's own runtime. Clear both.
                 "unset PYTHONHOME G4F_PYTHON VIRTUAL_ENV PYTHONPATH\n" +
+                // Provider automation in the API must see the app's WebView
+                // even when the PTY session did not inherit prootEnv().
+                "export G4F_CONTAINER=1\n" +
+                "export G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_"
+                        + android.os.Process.myPid() + "\n" +
                 "export G4F_VNC_PORT=" + catalog.vncPort + "\n" +
                 "export G4F_NOVNC_DIR=/usr/share/novnc\n" +
                 "exec /g4f-bin/g4f-go api --bind 127.0.0.1:" +
@@ -440,6 +451,8 @@ public final class ContainerManager {
         profileDir.mkdirs();
         writeFile(new File(profileDir, "g4f.sh"),
                 "export G4F_CONTAINER=1\n" +
+                "export G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_"
+                        + android.os.Process.myPid() + "\n" +
                 // Shell sessions inherit this profile; clear any Python root
                 // left by a host/tool launcher. g4f-go manages its own runtime.
                 "unset PYTHONHOME G4F_PYTHON VIRTUAL_ENV PYTHONPATH\n" +

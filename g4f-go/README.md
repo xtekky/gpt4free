@@ -385,6 +385,8 @@ The automatic startup is skipped when:
 - the browser is not installed (`g4f-go browser install` first),
 - `G4F_BROWSER_PORT` is already set (an existing endpoint is reused),
 - `G4F_BROWSER_MODE` is set to something other than `cdp`,
+- the Android app container is detected (`G4F_CONTAINER=1` or
+  `G4F_WEBVIEW_DEVTOOLS_SOCKET`): the app's WebView supplies CDP over a socket,
 - headless mode is off — via `--no-headless` or `G4F_BROWSER_HEADLESS=false`.
 
 A PID file (`.autostart.pid`) lets the next run reclaim a browser that outlived

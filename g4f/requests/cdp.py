@@ -206,12 +206,14 @@ def lightpanda_auto_start_enabled(headless: bool) -> bool:
     Mirrors g4f-go's ``browserAutoStartEnv`` skip conditions: headless mode
     must be on, no CDP endpoint may be configured (``G4F_BROWSER_PORT``) and
     the transport must be plain CDP (``G4F_BROWSER_MODE`` unset or ``cdp``).
-    Android is skipped as well: there the app's WebView speaks CDP over its
-    abstract socket, so a second headless browser must not take over.
+    Android is skipped while the app's WebView speaks CDP over its abstract
+    socket, so a second headless browser must not take over. In the container
+    a dead activity makes the socket unreachable, and Lightpanda remains a
+    valid fallback there.
     """
     if not headless:
         return False
-    if _is_android():
+    if _is_android() and _webview_auto_detect():
         return False
     if os.environ.get("G4F_BROWSER_PORT"):
         return False
@@ -959,11 +961,7 @@ def _enable_webview_debugging() -> bool:
 
 def _find_webview_devtools_socket_exists() -> bool:
     """Return True when a WebView DevTools abstract socket is reachable."""
-    try:
-        _webview_devtools_request(_find_webview_devtools_socket(), "/json/version", timeout=2.0)
-        return True
-    except Exception:
-        return False
+    return _resolve_webview_devtools_socket(timeout=2.0) is not None
 
 def _disable_webview_debugging() -> bool:
     """Disable remote debugging for all WebViews in this app (process-wide).
@@ -1004,27 +1002,72 @@ def _find_webview_devtools_socket() -> str:
 
     Inside the container the app sets ``G4F_WEBVIEW_DEVTOOLS_SOCKET`` to the
     exact socket of the app process (the Python process has a different pid),
-    and ``G4F_WEBVIEW_PID`` carries the app pid for older launchers.
+    and ``G4F_WEBVIEW_PID`` carries the app pid for older launchers. A container
+    API session that lost the environment uses the socket file handed over by
+    ContainerManager instead.
     """
-    override = os.environ.get("G4F_WEBVIEW_DEVTOOLS_SOCKET", "").strip().lstrip("@")
+    override = (
+        os.environ.get("G4F_WEBVIEW_DEVTOOLS_SOCKET", "").strip().lstrip("@")
+        or _container_webview_socket()
+    )
     if override:
         return override
     app_pid = os.environ.get("G4F_WEBVIEW_PID", "").strip()
     own = f"webview_devtools_remote_{app_pid or os.getpid()}"
-    candidates = []
-    try:
-        with open("/proc/net/unix") as fp:
-            for line in fp:
-                name = line.split()[-1].lstrip("@")
-                if name.startswith("webview_devtools_remote_"):
-                    candidates.append(name)
-    except Exception:
-        pass
+    candidates = _webview_devtools_socket_scan()
     if own in candidates:
         return own
     if candidates:
         return candidates[0]
     return own
+
+
+def _webview_devtools_socket_scan() -> List[str]:
+    """List WebView DevTools socket names visible in /proc/net/unix."""
+    names = []
+    try:
+        with open("/proc/net/unix") as fp:
+            for line in fp:
+                name = line.split()[-1].lstrip("@")
+                if name.startswith("webview_devtools_remote_") and name not in names:
+                    names.append(name)
+    except Exception:
+        pass
+    return names
+
+
+def _webview_devtools_socket_candidates() -> List[str]:
+    """Socket names to probe, most likely first.
+
+    The hand-off value from the app is preferred, but it can be stale when the
+    app process was restarted after the container session started. Scanning
+    the shared /proc mount then recovers the current socket name.
+    """
+    app_pid = os.environ.get("G4F_WEBVIEW_PID", "").strip()
+    names = [
+        _find_webview_devtools_socket(),
+        f"webview_devtools_remote_{app_pid or os.getpid()}",
+    ]
+    names.extend(_webview_devtools_socket_scan())
+    unique = []
+    for name in names:
+        if name and name not in unique:
+            unique.append(name)
+    return unique
+
+
+def _resolve_webview_devtools_socket(timeout: float = 2.0) -> Optional[str]:
+    """Return the first WebView DevTools socket that actually answers."""
+    configured = _find_webview_devtools_socket()
+    for name in _webview_devtools_socket_candidates():
+        try:
+            if _webview_devtools_request(name, "/json/version", timeout=timeout):
+                if name != configured:
+                    debug.log(f"CDP: using live WebView socket @{name} (configured @{configured})")
+                return name
+        except Exception:
+            continue
+    return None
 
 def _webview_devtools_request(socket_name: str, path: str, timeout: float = 5.0):
     """HTTP GET against the WebView DevTools server over its abstract Unix socket."""
@@ -1547,7 +1590,7 @@ class CDPSession:
                 "CDP: could not enable WebView debugging — not running inside the Android app?"
             )
 
-        socket_name = _find_webview_devtools_socket()
+        socket_name = _resolve_webview_devtools_socket(timeout=2.0) or _find_webview_devtools_socket()
         # The DevTools socket appears shortly after debugging is enabled.
         targets = None
         deadline = time.time() + 10

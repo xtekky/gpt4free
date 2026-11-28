@@ -200,6 +200,11 @@ Classic mode:
   `G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_<app pid>` into every
   PRoot session. The container's Python process has a different pid, so it
   cannot derive the socket name itself.
+- The API launcher and shell profile export the same markers, and
+  `writeLaunchers()` records the socket name in
+  `/g4f-scripts/webview-devtools-socket`. This keeps the container API working
+  when a session was started without `prootEnv()`; g4f also probes the live
+  socket if a recorded pid became stale after an app restart.
 - `g4f.requests.cdp` treats `G4F_CONTAINER=1` as Android, resolves the socket
   from `G4F_WEBVIEW_DEVTOOLS_SOCKET` (or `G4F_WEBVIEW_PID`), and connects with
   `aiohttp.UnixConnector` exactly as in Classic mode. `CDPSession` creates a

@@ -805,12 +805,23 @@ func reapStaleBrowser() {
 	os.Remove(browserAutoStartPidPath())
 }
 
+// androidWebViewConfigured reports whether g4f runs inside the Android app's
+// container, where provider automation uses the app's WebView DevTools socket
+// instead of a separate Chrome/Lightpanda process.
+func androidWebViewConfigured() bool {
+	return os.Getenv("G4F_CONTAINER") == "1" || os.Getenv("G4F_WEBVIEW_DEVTOOLS_SOCKET") != ""
+}
+
 // browserAutoStartEnv starts the installed browser when g4f will run headless
 // and no CDP endpoint was configured, then returns the env vars that point g4f
 // at it plus a cleanup func. It is a no-op (nil, nil) when the browser is not
-// installed, an endpoint is already configured, or headless mode is off.
+// installed, an endpoint is already configured, headless mode is off, or the
+// Android app's WebView provides CDP over its socket.
 func browserAutoStartEnv(args []string) ([]string, func()) {
 	if !headlessActive(args) {
+		return nil, nil
+	}
+	if androidWebViewConfigured() {
 		return nil, nil
 	}
 	if os.Getenv("G4F_BROWSER_PORT") != "" {

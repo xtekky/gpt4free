@@ -97,6 +97,20 @@ class TestLightpandaDetection(unittest.TestCase):
         with unittest.mock.patch.dict(os.environ, {"G4F_BROWSER_MODE": "extension"}):
             self.assertFalse(lightpanda_auto_start_enabled(True))
 
+    def test_auto_start_skipped_on_android_with_webview(self):
+        # Android provider automation uses the app's WebView DevTools socket.
+        with unittest.mock.patch.object(cdp_module, "_is_android", return_value=True), unittest.mock.patch.object(
+            cdp_module, "_webview_auto_detect", return_value=True
+        ):
+            self.assertFalse(lightpanda_auto_start_enabled(True))
+
+    def test_auto_start_allowed_on_android_without_webview(self):
+        # A dead container activity leaves Lightpanda as the fallback browser.
+        with unittest.mock.patch.object(cdp_module, "_is_android", return_value=True), unittest.mock.patch.object(
+            cdp_module, "_webview_auto_detect", return_value=False
+        ), unittest.mock.patch.object(cdp_module, "find_lightpanda_path", return_value=__file__):
+            self.assertTrue(lightpanda_auto_start_enabled(True))
+
     def test_auto_start_allowed_for_cdp_mode(self):
         with unittest.mock.patch.dict(os.environ, {"G4F_BROWSER_MODE": "cdp"}):
             self.assertEqual(
