@@ -38,7 +38,7 @@ BUILD_VARIANT="${BUILD_VARIANT:-Debug}"
 
 ANDROID_PROJECT="/app/projects/android"
 GRADLE_VERSION="8.7"
-ANDROID_SDK_TOOLS_VERSION="11.0"
+ANDROID_SDK_TOOLS_VERSION="11076708"
 ANDROID_PLATFORM="android-34"
 BUILD_TOOLS_VERSION="34.0.0"
 NDK_VERSION="26.3.11579264"
@@ -106,14 +106,17 @@ install_gradle() {
     local url="https://services.gradle.org/distributions/${gradle_zip}"
     local tmp
     tmp="$(mktemp -d)"
-    trap 'rm -rf "$tmp"' RETURN
+    trap 'rm -rf "$tmp"; trap - RETURN' RETURN
     log "downloading Gradle $GRADLE_VERSION"
     curl -fsSL --retry 3 --retry-delay 2 -o "$tmp/$gradle_zip" "$url"
     mkdir -p "$ANDROID_TOOLS_DIR"
     unzip -qo "$tmp/$gradle_zip" -d "$ANDROID_TOOLS_DIR"
-    # unzip creates gradle-<version>/; rename to our stable GRADLE_HOME.
-    if [ -d "$ANDROID_TOOLS_DIR/gradle-$GRADLE_VERSION" ]; then
-        mv -f "$ANDROID_TOOLS_DIR/gradle-$GRADLE_VERSION" "$GRADLE_HOME"
+    # unzip creates gradle-<version>/; rename it only when GRADLE_HOME is a
+    # different path, otherwise mv would try to move the directory into itself.
+    local unzipped="$ANDROID_TOOLS_DIR/gradle-$GRADLE_VERSION"
+    if [ "$unzipped" != "$GRADLE_HOME" ]; then
+        rm -rf "$GRADLE_HOME"
+        mv -f "$unzipped" "$GRADLE_HOME"
     fi
     chmod +x "$GRADLE_HOME/bin/gradle"
     log "Gradle $GRADLE_VERSION installed at $GRADLE_HOME"
@@ -133,17 +136,15 @@ install_android_sdk() {
         local url="https://dl.google.com/android/repository/${sdk_zip}"
         local tmp
         tmp="$(mktemp -d)"
-        trap 'rm -rf "$tmp"' RETURN
+        trap 'rm -rf "$tmp"; trap - RETURN' RETURN
         log "downloading Android SDK command-line tools"
         curl -fsSL --retry 3 --retry-delay 2 -o "$tmp/$sdk_zip" "$url"
-        mkdir -p "$cmds_dir"
-        unzip -qo "$tmp/$sdk_zip" -d "$cmds_dir"
-        # unzip extracts cmdline-tools/ directly; move it under latest/.
-        if [ -x "$cmds_dir/bin/sdkmanager" ]; then
-            mkdir -p "$latest"
-            cp -a "$cmds_dir/." "$latest/"
-            rm -rf "$cmds_dir"/bin "$cmds_dir"/lib "$cmds_dir"/source.properties "$cmds_dir"/notice.txt
-        fi
+        mkdir -p "$cmds_dir" "$tmp/cmdline-tools-unpack"
+        # The archive contains cmdline-tools/; copy it under latest/.
+        unzip -qo "$tmp/$sdk_zip" -d "$tmp/cmdline-tools-unpack"
+        rm -rf "$latest" "$cmds_dir/cmdline-tools"
+        mkdir -p "$latest"
+        cp -a "$tmp/cmdline-tools-unpack/cmdline-tools/." "$latest/"
         chmod +x "$latest/bin/sdkmanager"
         log "Android SDK command-line tools installed"
     fi
