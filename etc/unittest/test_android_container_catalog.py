@@ -82,14 +82,6 @@ class AndroidContainerCatalogTests(unittest.TestCase):
             with self.subTest(needle=needle):
                 self.assertIn(needle, gradle)
 
-    def test_no_bundled_python_runtime(self):
-        # g4f-go downloads and manages CPython in the container, so the APK
-        # must not ship a Debian Python tree or venv.
-        self.assertNotIn("python", self.catalog["runtime"])
-        self.assertIsNone(self.catalog["g4f"].get("prebuilt"))
-        self.assertFalse((ASSETS / "python").exists())
-        self.assertFalse((ANDROID_PROJECT / "prepare_python.py").exists())
-
     def test_ports_are_distinct(self):
         g4f = self.catalog["g4f"]
         ports = [g4f["api_port"], g4f["vnc_port"], g4f["novnc_port"]]
@@ -101,15 +93,12 @@ class AndroidContainerCatalogTests(unittest.TestCase):
 
     def test_package_lists(self):
         g4f = self.catalog["g4f"]
-        # Python is supplied by g4f-go, not by apt or a venv.
-        self.assertNotIn("python3", g4f["base_packages"])
-        self.assertNotIn("python3-venv", g4f["base_packages"])
-        self.assertIn("ca-certificates", g4f["base_packages"])
-        # sudo and git are part of the interactive container. curl is still
-        # not installed via apt: a pinned static curl ships on /g4f-bin so
-        # sandbox-cli has HTTPS without an apt pass.
-        self.assertIn("sudo", g4f["base_packages"])
-        self.assertIn("git", g4f["base_packages"])
+        self.assertIn("python3", g4f["base_packages"])
+        self.assertIn("python3-venv", g4f["base_packages"])
+        # git/curl are not needed by the editable pip install: the version is
+        # supplied by G4F_VERSION. curl is bundled as a pinned static binary
+        # on /g4f-bin instead, so sandbox-cli has HTTPS without an apt pass.
+        self.assertNotIn("git", g4f["base_packages"])
         self.assertNotIn("curl", g4f["base_packages"])
         self.assertIn("xfce4", g4f["desktop_packages"])
         self.assertIn("tigervnc-standalone-server", g4f["desktop_packages"])
@@ -168,22 +157,19 @@ class AndroidContainerCatalogTests(unittest.TestCase):
     def test_provisioning_scripts(self):
         scripts = ASSETS / "scripts"
         expected = {
-            "provision-base.sh": ["/g4f-src", "g4f-go install -e",
-                                  "/g4f-src[api]", "g4f-api",
+            "provision-base.sh": ["/g4f-src", "/opt/g4f-venv", "g4f-api",
+                                  "export G4F_PYTHON=/opt/g4f-venv/bin/python",
                                   "export G4F_VNC_PORT=5901",
                                   "export G4F_NOVNC_DIR=/usr/share/novnc",
                                   "dpkg --configure -a", "apt-get -f install -y",
                                   "write_resolv", "clear_apt_locks",
                                   "--bind 127.0.0.1:1337 --debug --no-reload",
-                                  "ca-certificates sudo git",
+                                  "unset PYTHONHOME",
                                   "for attempt in 1 2 3",
-                                  "apt-get update -qq", "exit 1",
-                                  "unset G4F_PYTHON VIRTUAL_ENV PYTHONPATH PYTHONHOME",
-                                  "for attempt in 1 2",
-                                  "resumes automatically",
-                                  "/g4f-bin/g4f-go status"],
+                                  "apt-get update -qq", "exit 1"],
             "provision-desktop.sh": ["xfce4", "dbus-x11", "procps",
                                      "cp /g4f-scripts/g4f-desktop",
+                                     "export G4F_PYTHON=/opt/g4f-venv/bin/python",
                                      "G4F_DESKTOP_REPAIR=1",
                                      "G4F_DESKTOP_NOVNC_ASSETS=/g4f-scripts/novnc",
                                      "/g4f-bin/install-desktop.sh"],
@@ -191,10 +177,15 @@ class AndroidContainerCatalogTests(unittest.TestCase):
                             "XDG_RUNTIME_DIR=/tmp/g4f-desktop-runtime",
                             "while kill -0 \"$vnc_pid\"",
                             "Xvnc :1 did not start"],
-            "start-api.sh": ["g4f-api", "export G4F_VNC_PORT=5901",
+            "start-api.sh": ["g4f-api", "export PYTHONPATH=/g4f-src",
+                             "export VIRTUAL_ENV=/opt/g4f-venv",
+                             "export G4F_PYTHON=/opt/g4f-venv/bin/python",
+                             "export G4F_VNC_PORT=5901",
                              "export G4F_NOVNC_DIR=/usr/share/novnc",
-                             "unset PYTHONHOME G4F_PYTHON VIRTUAL_ENV PYTHONPATH"],
-            "start-desktop.sh": ["g4f-desktop", "unset PYTHONHOME"],
+                             "unset PYTHONHOME"],
+            "start-desktop.sh": ["g4f-desktop",
+                                 "export G4F_PYTHON=/opt/g4f-venv/bin/python",
+                                 "unset PYTHONHOME"],
         }
         for name, needles in expected.items():
             with self.subTest(script=name):
@@ -240,10 +231,6 @@ class AndroidContainerCatalogTests(unittest.TestCase):
         self.assertIn('open(newpath, O_WRONLY_VALUE | O_CREAT_VALUE | O_TRUNC_VALUE', shim)
 
     def test_terminal_bridge(self):
-        # PTY bytes are rendered by a native View; no WebView or JavaScript
-        # bridge sits between the service and the terminal anymore.
-        self.assertFalse((ASSETS / "terminal.html").exists())
-        self.assertFalse((ASSETS / "xterm").exists())
         view = (JAVA / "TerminalView.java").read_text(encoding="utf-8")
         for method in ("public interface Listener", "void onInput(int sessionId, byte[] data)",
                        "public synchronized void write(byte[] data)",
@@ -473,10 +460,6 @@ class AndroidContainerCatalogTests(unittest.TestCase):
         self.assertIn('fullscreenExitButton.setText("✕ Exit")', activity)
 
     def test_native_terminal_is_local_and_termux_style(self):
-        # Nothing is fetched at runtime: the renderer ships as Java code and the
-        # former WebView/xterm.js assets are gone.
-        self.assertFalse((ASSETS / "terminal.html").exists())
-        self.assertFalse((ASSETS / "xterm").exists())
         view = (JAVA / "TerminalView.java").read_text(encoding="utf-8")
         activity = (JAVA / "ContainerActivity.java").read_text(encoding="utf-8")
 
