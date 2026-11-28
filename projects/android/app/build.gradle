@@ -142,6 +142,7 @@ android {
 }
 
 // One APK asset tree cannot hold both architectures; default to arm64-v8a.
+// (The property name is kept for existing CI invocations.)
 def containerPythonAbi = project.findProperty("containerPythonAbi") ?: "arm64-v8a"
 
 // sandbox-cli (and the installers it launches) need curl. The pinned static
@@ -200,18 +201,9 @@ task copyContainerBinAssets(type: Copy) {
     into("src/main/assets/container/bin")
 }
 
-// The pinned prebuilt overlay has /opt/g4f-venv but no /usr/bin/python3.
-// Extract the pinned Debian packages at build time instead of running apt
-// on the phone. Nothing generated is committed: artifacts live in build/.
-task preparePythonRuntime(type: Exec) {
-    dependsOn 'copyG4fAssets'
-    commandLine 'python3', "${rootDir}/prepare_python.py", '--abi', containerPythonAbi
-    inputs.file("src/main/assets/container/catalog.json")
-    inputs.file("${rootDir}/prepare_python.py")
-    inputs.file("${rootDir}/prepare_proot.py")
-    outputs.dir("src/main/assets/container/python")
-}
-
+// g4f-go manages the container's CPython runtime. Nothing Python-related is
+// extracted or committed here; the launcher downloads the pinned archive on
+// first use and installs the bundled g4f source into it.
 task copyG4fAssets(type: Copy) {
     // Only the Python package is embedded. GUI assets are NOT embedded:
     // g4f.gui's website.py fetches the chat UI from the g4f.dev CDN at
@@ -239,7 +231,7 @@ task prepareProotLibs(type: Exec) {
     outputs.dir("src/main/jniLibs")
 }
 
-preBuild.dependsOn copyG4fAssets, copyContainerBinAssets, copyNovncAssets, prepareProotLibs, preparePythonRuntime
+preBuild.dependsOn copyG4fAssets, copyContainerBinAssets, copyNovncAssets, prepareProotLibs
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'

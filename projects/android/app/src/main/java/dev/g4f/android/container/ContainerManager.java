@@ -189,11 +189,8 @@ public final class ContainerManager {
             copyAssetTree("container/bin", binDir);
             ensureG4fSource();
 
-            // The prebuilt venv points at /usr/bin/python3; the pinned Debian
-            // runtime is bundled in the APK so no apt/pip pass is needed for
-            // the base install.
-            listener.onProgress("Installing bundled Python runtime");
-            copyAssetTree("container/python", rootfs);
+            // g4f-go provisions the container's CPython runtime on first use;
+            // the APK no longer carries a Debian Python tree or a venv.
 
             File baseMarker = new File(scripts, ".provisioned-base");
             if (prebuilt) {
@@ -275,7 +272,7 @@ public final class ContainerManager {
         // has to be enabled by the shell inside the container, not by the
         // host environment.
         argv.add("export LD_PRELOAD=/g4f-native/libg4f_linkfix.so; "
-                + "export G4F_PYTHON=/opt/g4f-venv/bin/python; " + shellCommand);
+                + shellCommand);
         return argv.toArray(new String[0]);
     }
 
@@ -284,11 +281,14 @@ public final class ContainerManager {
         return new String[] {
                 "HOME=/root",
                 "PATH=/g4f-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-                "PYTHONPATH=/g4f-src",
-                // g4f-go must use the bundled interpreter; downloading a
-                // platform CPython at runtime fails when HTTPS/CA setup is
-                // unavailable inside PRoot.
-                "G4F_PYTHON=/opt/g4f-venv/bin/python",
+                // g4f-go downloads and manages the CPython runtime inside the
+                // container; no external interpreter or PYTHONPATH is needed.
+                "G4F_CONTAINER=1",
+                // Provider automation attaches to this app's WebView DevTools
+                // socket. The container's Python process has a different pid,
+                // so hand it the app process' abstract socket name.
+                "G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_"
+                        + android.os.Process.myPid(),
                 "PYTHONHOME=",
                 "TERM=xterm-256color",
                 "LANG=C.UTF-8",
@@ -415,11 +415,12 @@ public final class ContainerManager {
         // server (websockify) and keeps the Desktop tab on the API port.
         writeFile(launcher, "#!/bin/sh\n" +
                 // A stale PYTHONHOME breaks CPython before its encodings package
-                // loads; every launcher must clear it.
-                "unset PYTHONHOME\n" +
+                // loads, and an inherited G4F_PYTHON from the old venv image
+                // would bypass g4f-go's own runtime. Clear both.
+                "unset PYTHONHOME G4F_PYTHON VIRTUAL_ENV PYTHONPATH\n" +
                 "export G4F_VNC_PORT=" + catalog.vncPort + "\n" +
                 "export G4F_NOVNC_DIR=/usr/share/novnc\n" +
-                "exec /opt/g4f-venv/bin/python -m g4f api --bind 127.0.0.1:" +
+                "exec /g4f-bin/g4f-go api --bind 127.0.0.1:" +
                 catalog.apiPort + " --debug --no-reload\n");
         chmod(launcher, 0755);
     }
@@ -440,10 +441,8 @@ public final class ContainerManager {
         writeFile(new File(profileDir, "g4f.sh"),
                 "export G4F_CONTAINER=1\n" +
                 // Shell sessions inherit this profile; clear any Python root
-                // left by a host/tool launcher before entering the venv.
-                "unset PYTHONHOME\n" +
-                "export VIRTUAL_ENV=/opt/g4f-venv\n" +
-                "export G4F_PYTHON=/opt/g4f-venv/bin/python\n" +
+                // left by a host/tool launcher. g4f-go manages its own runtime.
+                "unset PYTHONHOME G4F_PYTHON VIRTUAL_ENV PYTHONPATH\n" +
                 "export PATH=/g4f-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n");
     }
 

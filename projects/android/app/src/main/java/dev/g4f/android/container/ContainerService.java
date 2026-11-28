@@ -11,7 +11,6 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -144,6 +143,19 @@ public final class ContainerService extends Service {
                 : "Ready — desktop optional";
     }
 
+    /** True while the files are installing or the setup scripts are running.
+     *  Tapping Install again in that window either does nothing or, worse,
+     *  resets the rootfs a second time. The UI uses this to disable/confirm. */
+    public boolean isBusy() {
+        return installing || isProvisioningRunning();
+    }
+
+    /** True when the container is installed and base provisioning finished. */
+    public boolean isReady() {
+        return manager != null && manager.isInstalled() && manager.isProvisioned()
+                && !isBusy();
+    }
+
     /** Download and extract the filesystem. Runs off the main thread. */
     public void install(final boolean withDesktop) {
         if (manager == null || installing) return;
@@ -183,14 +195,27 @@ public final class ContainerService extends Service {
         });
     }
 
+    /** Wrap a provisioning script so its output is also persisted.
+     *
+     *  The terminal session is lost when the activity is recreated, and a
+     *  download that stalls on a phone otherwise leaves no evidence. The log
+     *  lives next to the scripts in the app's files dir, so it survives and
+     *  can be pulled with adb or shown later. `pipefail` keeps the script's
+     *  exit status instead of tee's. */
+    private static String loggedScript(String script) {
+        String log = "/g4f-scripts/" + script.replace(".sh", ".log");
+        return "bash -o pipefail -c 'bash /g4f-scripts/" + script
+                + " 2>&1 | tee -a " + log + "'";
+    }
+
     /** Run apt/pip provisioning inside a visible terminal session. */
     public void provision(boolean withDesktop) {
         if (manager == null || !manager.isInstalled()) return;
         provisioningError = null;
         notifyState(stateText());
-        String command = "bash /g4f-scripts/provision-base.sh";
+        String command = loggedScript("provision-base.sh");
         if (withDesktop) {
-            command += " && bash /g4f-scripts/provision-desktop.sh";
+            command += " && " + loggedScript("provision-desktop.sh");
         }
         startSession("setup", command);
     }
@@ -200,7 +225,7 @@ public final class ContainerService extends Service {
         if (manager == null || !manager.isInstalled()) return;
         if (manager.isDesktopInstalled()) return;
         provisioningError = null;
-        startSession("desktop-setup", "bash /g4f-scripts/provision-desktop.sh");
+        startSession("desktop-setup", loggedScript("provision-desktop.sh"));
     }
 
     /** Start API and, when installed, Desktop exactly once after provisioning. */
@@ -261,7 +286,7 @@ public final class ContainerService extends Service {
             case "desktop":
                 return startSession("desktop", "bash /g4f-scripts/start-desktop.sh");
             case "setup":
-                return startSession("setup", "bash /g4f-scripts/provision-base.sh");
+                return startSession("setup", loggedScript("provision-base.sh"));
             case "shell":
             default:
                 return startSession("shell", "bash -l");
@@ -313,6 +338,8 @@ public final class ContainerService extends Service {
                                         ? "incomplete (exit 0)"
                                         : "failed (exit " + exitCode + ")";
                                 provisioningError = "Provisioning " + reason + " — tap Install to retry";
+                                notifyProgress(provisioningError
+                                        + " (log: /g4f-scripts/provision-base.log)");
                                 notifyState(provisioningError);
                             }
                         } else if ("desktop-setup".equals(label) && manager != null) {
@@ -329,8 +356,12 @@ public final class ContainerService extends Service {
                                 provisioningError = "Desktop setup failed (exit " + exitCode +
                                         ") — tap Desktop to retry";
                             }
-                            notifyState(stateText());
                         }
+                        // Refresh after every setup/desktop-setup exit. A
+                        // successful base provision used to leave the old
+                        // "Provisioning gpt4free…" status on screen forever,
+                        // which invited a second Install tap that reset it.
+                        notifyState(stateText());
                         for (Listener listener : snapshotListeners()) {
                             listener.onTerminalExit(id, exitCode, stopped);
                         }
@@ -344,11 +375,11 @@ public final class ContainerService extends Service {
         return id;
     }
 
-    public void write(int sessionId, String base64) {
+    /** Write already-decoded keystrokes from the native terminal view. */
+    public void writeBytes(int sessionId, byte[] data) {
+        if (data == null || data.length == 0) return;
         TerminalSession session = findSession(sessionId);
-        if (session != null) {
-            session.write(Base64.decode(base64, Base64.DEFAULT));
-        }
+        if (session != null) session.write(data);
     }
 
     public void resize(int sessionId, int cols, int rows) {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -77,8 +79,69 @@ func installedOkName(binDir string) string {
 	return filepath.Join(binDir, ".g4f-runtime", ".runtime-ok")
 }
 
+const (
+	// downloadAttempts bounds retries of an interrupted runtime download.
+	// Mobile networks drop long GitHub transfers often; each retry resumes
+	// from the bytes already on disk instead of starting over.
+	downloadAttempts = 3
+	// downloadStallTimeout aborts a transfer that stops making progress.
+	// Without it a half-open connection on a phone would hang provisioning
+	// forever with no error to report.
+	downloadStallTimeout = 90 * time.Second
+)
+
+// downloadRetryDelay is a variable so tests do not sleep.
+var downloadRetryDelay = 2 * time.Second
+
+// downloadHTTPClient uses bounded dial/TLS/header timeouts but no overall
+// deadline: a 60 MB runtime transfer is expected to take minutes. Stalled
+// reads are caught by stallGuard instead.
+func downloadHTTPClient() *http.Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   20 * time.Second,
+		ResponseHeaderTimeout: 60 * time.Second,
+		ExpectContinueTimeout: 5 * time.Second,
+	}
+	return &http.Client{Transport: transport}
+}
+
+// stallGuard closes the response body when no bytes arrive for timeout.
+type stallGuard struct {
+	body    io.ReadCloser
+	timeout time.Duration
+	timer   *time.Timer
+	stalled atomic.Bool
+}
+
+func newStallGuard(body io.ReadCloser, timeout time.Duration) *stallGuard {
+	g := &stallGuard{body: body, timeout: timeout}
+	g.timer = time.AfterFunc(timeout, func() {
+		g.stalled.Store(true)
+		body.Close()
+	})
+	return g
+}
+
+func (g *stallGuard) Read(p []byte) (int, error) {
+	n, err := g.body.Read(p)
+	if n > 0 {
+		g.timer.Reset(g.timeout)
+	}
+	if err != nil && g.stalled.Load() {
+		return n, fmt.Errorf("no data for %s", g.timeout)
+	}
+	return n, err
+}
+
+func (g *stallGuard) Stop() { g.timer.Stop() }
+
 // downloadRuntime fetches the manifest URL for this host into cachePath
-// (verifying size + sha256 when pinned) and reports live progress to stderr.
+// (verifying size + sha256 when pinned) and reports live progress.
 func downloadRuntime(binDir, cachePath string, spec *RuntimeSpec) error {
 	if err := os.MkdirAll(filepath.Dir(partName(binDir)), 0o755); err != nil {
 		return err
@@ -98,55 +161,103 @@ func downloadRuntime(binDir, cachePath string, spec *RuntimeSpec) error {
 	fmt.Printf("  %s\n", spec.URL)
 	start := time.Now()
 
-	out, err := os.Create(partName(binDir))
+	var lastErr error
+	for attempt := 1; attempt <= downloadAttempts; attempt++ {
+		if attempt > 1 {
+			fmt.Printf("runtime: download interrupted (%v); retrying %d/%d\n",
+				lastErr, attempt, downloadAttempts)
+			time.Sleep(downloadRetryDelay)
+		}
+		lastErr = fetchRuntime(binDir, spec)
+		if lastErr == nil {
+			break
+		}
+	}
+	if lastErr != nil {
+		return fmt.Errorf("download failed after %d attempts: %w", downloadAttempts, lastErr)
+	}
+
+	if err := os.Rename(partName(binDir), cachePath); err != nil {
+		return err
+	}
+	fi, err := os.Stat(cachePath)
 	if err != nil {
 		return err
 	}
-	// Network http.Client with no default timeout: progress is what keeps the
-	// user informed, not a hard cutoff.
-	client := &http.Client{}
-	resp, err := client.Get(spec.URL)
-	if err != nil {
-		out.Close()
-		os.Remove(partName(binDir))
-		return fmt.Errorf("download failed: %w", err)
+	if spec.Size > 0 && fi.Size() != spec.Size {
+		return fmt.Errorf("size mismatch: got %d, expected %d (update runtime.json)", fi.Size(), spec.Size)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		out.Close()
-		os.Remove(partName(binDir))
-		return fmt.Errorf("download failed: HTTP %s", resp.Status)
+	fmt.Printf("runtime: downloaded %s in %s\n", humanBytes(fi.Size()), time.Since(start).Round(time.Second))
+	return verifyRuntime(cachePath, spec)
+}
+
+// fetchRuntime performs one transfer attempt and appends to the partial file
+// so a retry (or a later process) resumes where the previous one stopped.
+func fetchRuntime(binDir string, spec *RuntimeSpec) error {
+	part := partName(binDir)
+	offset := int64(0)
+	if fi, err := os.Stat(part); err == nil {
+		offset = fi.Size()
+	}
+	if spec.Size > 0 && offset > spec.Size {
+		if err := os.Truncate(part, 0); err != nil {
+			return err
+		}
+		offset = 0
+	}
+	if spec.Size > 0 && offset == spec.Size {
+		return nil
+	}
+	if offset > 0 {
+		fmt.Printf("runtime: resuming download at %s\n", humanBytes(offset))
 	}
 
-	// Prefer Content-Length; fall back to manifest size.
-	total := resp.ContentLength
-	if total <= 0 {
-		total = spec.Size
+	req, err := http.NewRequest(http.MethodGet, spec.URL, nil)
+	if err != nil {
+		return err
 	}
-	_, copyErr := copyWithProgress(out, resp.Body, total, start)
+	if offset > 0 {
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+	}
+	resp, err := downloadHTTPClient().Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	flags := os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// Server ignored Range (or we started at 0): rewrite from scratch.
+		offset = 0
+		flags = os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	case http.StatusPartialContent:
+	case http.StatusRequestedRangeNotSatisfiable:
+		os.Remove(part)
+		return fmt.Errorf("HTTP %s for range %d-", resp.Status, offset)
+	default:
+		return fmt.Errorf("HTTP %s", resp.Status)
+	}
+
+	out, err := os.OpenFile(part, flags, 0o644)
+	if err != nil {
+		return err
+	}
+	total := spec.Size
+	if total <= 0 {
+		total = offset + resp.ContentLength
+	}
+	guard := newStallGuard(resp.Body, downloadStallTimeout)
+	defer guard.Stop()
+	_, copyErr := copyWithProgressFrom(out, guard, offset, total, time.Now())
 	if cerr := out.Close(); copyErr == nil {
 		copyErr = cerr
 	}
 	if copyErr != nil {
-		os.Remove(partName(binDir))
+		// Keep the partial file: the next attempt resumes from here.
 		return fmt.Errorf("download interrupted: %w", copyErr)
 	}
-	if err := os.Rename(partName(binDir), cachePath); err != nil {
-		os.Remove(partName(binDir))
-		return err
-	}
-	fmt.Printf("runtime: downloaded %s in %s\n", humanBytes(total), time.Since(start).Round(time.Second))
-
-	if spec.Size > 0 {
-		fi, err := os.Stat(cachePath)
-		if err != nil {
-			return err
-		}
-		if fi.Size() != spec.Size {
-			return fmt.Errorf("size mismatch: got %d, expected %d (update runtime.json)", fi.Size(), spec.Size)
-		}
-	}
-	return verifyRuntime(cachePath, spec)
+	return nil
 }
 
 // verifyRuntime validates sha256 when pinned in the manifest.
@@ -173,8 +284,14 @@ func verifyRuntime(cachePath string, spec *RuntimeSpec) error {
 
 // copyWithProgress streams r into w while printing a \r-updated progress bar.
 func copyWithProgress(w io.Writer, r io.Reader, total int64, start time.Time) (int64, error) {
+	return copyWithProgressFrom(w, r, 0, total, start)
+}
+
+// copyWithProgressFrom is copyWithProgress for a resumed transfer: initial is
+// the number of bytes already on disk, so the bar starts at the real offset.
+func copyWithProgressFrom(w io.Writer, r io.Reader, initial, total int64, start time.Time) (int64, error) {
 	buf := make([]byte, 256*1024)
-	var written int64
+	written := initial
 	lastPrint := time.Time{}
 	for {
 		n, err := r.Read(buf)
@@ -474,8 +591,8 @@ func ensureTermuxRuntime() (string, error) {
 }
 
 // pythonFromEnvironment lets a launcher point g4f-go at an interpreter that is
-// already installed (Termux python, the Android container's venv, or a host
-// python). It must never trigger a download: that is the only way to keep
+// already installed (Termux python or a host python). It must never trigger a
+// download: that is the only way to keep
 // g4f-go working on machines where HTTPS downloads fail (e.g. missing CA
 // certificates under PRoot).
 func pythonFromEnvironment() (string, error) {

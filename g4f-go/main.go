@@ -223,6 +223,15 @@ func runMain() int {
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "usage: g4f-go install g4f")
 		}
+		// A fresh runtime can lack pip. `install`/`uninstall` never go through
+		// installG4F (which ensures pip), so bootstrap it here as well. The
+		// container's base provisioning relies on `g4f-go install -e ...`.
+		if args[0] == "install" {
+			if perr := ensurePip(binDir, py); perr != nil {
+				fmt.Fprintln(os.Stderr, "g4f-go:", perr)
+				return 1
+			}
+		}
 		code, err := runPython(ctx, py, append([]string{"-m", "pip"}, args...), pipEnv(binDir)...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "g4f-go:", err)

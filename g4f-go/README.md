@@ -20,6 +20,9 @@ g4f-go -m remote_desktop --port 8000
 2. On first desktop run `g4f-go` picks the entry for its host OS/arch, downloads
    the archive into `~/.g4f/python-embed/`, printing a `\r` progress line
    (percent, bytes, throughput, ETA), verifies the sha256, and extracts it.
+   The transfer is resumable: a stall of 90 s aborts the attempt, and up to
+   three attempts continue from the partial file with an HTTP Range request,
+   so flaky mobile connections finish instead of starting over.
 3. It then bootstraps pip (`ensurepip`), installs `g4f[slim]` into the
    interpreter, writes a `.installed` stamp, and finally runs your command.
 4. Subsequent runs skip straight to step 3 — the runtime is cached until the
@@ -32,12 +35,12 @@ interpreter from Termux's `python` package (`$PREFIX/bin/python3`) and installs
 `g4f[slim]` into that environment with pip.
 
 Set `G4F_PYTHON=/path/to/python3` to use an interpreter that is already
-installed (for example the Android container's `/opt/g4f-venv/bin/python`).
+installed (for example Termux's `python` or a host Python).
 This skips every runtime download, which is useful when HTTPS downloads fail
 because of missing CA certificates:
 
 ```
-G4F_PYTHON=/opt/g4f-venv/bin/python g4f-go sandbox
+G4F_PYTHON=/usr/bin/python3 g4f-go sandbox
 ```
 
 Downloads go to:

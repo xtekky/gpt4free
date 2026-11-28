@@ -3,7 +3,6 @@
 set -eu
 export DEBIAN_FRONTEND=noninteractive
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-export G4F_PYTHON=/opt/g4f-venv/bin/python
 
 log() { echo "[g4f-desktop] $*"; }
 

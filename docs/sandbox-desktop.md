@@ -338,7 +338,11 @@ sandbox-cli polli-sandbox   create/connect/manage hosted Polli sandboxes
 
 Tools install on first click (vendor installer, npm package,
 `pip install --user`, or Chrome's `.deb`), so the image stays small. The
-settings commands accept flags for scripting, for example
+installers write their launchers into per-user directories such as
+`~/.local/bin` and `~/.opencode/bin`; `sandbox-cli` links every installed
+launcher into `/usr/local/bin`, so tools like `opencode` also work from a plain
+terminal and not only from the menu. The settings commands accept flags for
+scripting, for example
 `sandbox-cli settings --api-key 'key' --model gpt-4o`,
 `sandbox-cli settings --show` and `sandbox-cli settings --json`.
 
