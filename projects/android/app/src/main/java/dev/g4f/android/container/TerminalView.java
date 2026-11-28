@@ -92,7 +92,9 @@ public final class TerminalView extends View {
     private final Typeface monoItalic = Typeface.create(Typeface.MONOSPACE, Typeface.ITALIC);
     private final float density;
     private final float handleRadius;
+    private final float handleHalfHeight;
     private final float handleTouchRadius;
+    private final float handleTouchHalfHeight;
 
     private float cellWidth;
     private float cellHeight;
@@ -176,7 +178,9 @@ public final class TerminalView extends View {
         padding = 4f * density;
         touchSlop = (int) (6f * density);
         handleRadius = 6f * density;
+        handleHalfHeight = 11f * density;
         handleTouchRadius = 14f * density;
+        handleTouchHalfHeight = 22f * density;
         handlePaint.setColor(0xffc4f06c);
         handlePaint.setStyle(Paint.Style.FILL);
         handleBorderPaint.setColor(DEFAULT_BG);
@@ -565,7 +569,7 @@ public final class TerminalView extends View {
         if (y < 0f) y = cellHeight;
         int menuX = (int) Math.max(0f, Math.min(x, getWidth() - 150f * density));
         int menuY = (int) Math.max(0f,
-                Math.min(y + handleRadius, getHeight() - 3f * cellHeight));
+                Math.min(y + handleHalfHeight, getHeight() - 3f * cellHeight));
         menu.showAtLocation(this, Gravity.TOP | Gravity.START, menuX, menuY);
     }
 
@@ -786,7 +790,8 @@ public final class TerminalView extends View {
         if (hy < 0f) return false;
         float dx = x - hx;
         float dy = y - hy;
-        return dx * dx + dy * dy <= handleTouchRadius * handleTouchRadius;
+        float scaledDy = dy * handleTouchRadius / handleTouchHalfHeight;
+        return dx * dx + scaledDy * scaledDy <= handleTouchRadius * handleTouchRadius;
     }
 
     private float handleX(int col, boolean startHandle) {
@@ -797,8 +802,9 @@ public final class TerminalView extends View {
     private float handleY(int line) {
         float top = lineTop(line);
         if (top < 0f) return -1f;
-        float y = top + cellHeight + handleRadius * 0.5f;
-        return Math.max(handleRadius, Math.min(getHeight() - handleRadius, y));
+        float y = top + cellHeight;
+        return Math.max(handleHalfHeight,
+                Math.min(getHeight() - handleHalfHeight, y));
     }
 
     private float lineTop(int line) {
@@ -1019,8 +1025,14 @@ public final class TerminalView extends View {
 
     private void drawHandle(Canvas canvas, float x, float y) {
         if (y < 0f) return;
-        canvas.drawCircle(x, y, handleRadius, handlePaint);
-        canvas.drawCircle(x, y, handleRadius, handleBorderPaint);
+        float left = x - handleRadius;
+        float top = y - handleHalfHeight;
+        float right = x + handleRadius;
+        float bottom = y + handleHalfHeight;
+        canvas.drawRoundRect(left, top, right, bottom,
+                handleRadius, handleRadius, handlePaint);
+        canvas.drawRoundRect(left, top, right, bottom,
+                handleRadius, handleRadius, handleBorderPaint);
     }
 
     private boolean isSelected(int line, int col) {

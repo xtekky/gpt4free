@@ -4,8 +4,7 @@
 # gpt4free Docker container.
 #
 # Installs (pinned, matches projects/android/README.md):
-#   * system deps: curl, unzip, zip, git, wget, xz-utils, file, OpenJDK 17,
-#     32-bit compat libs (needed by the Android NDK toolchain)
+#   * system deps: curl, unzip, zip, git, wget, xz-utils, file, OpenJDK 17
 #   * JDK 17 (JAVA_HOME)
 #   * Gradle 8.7 (GRADLE_HOME)
 #   * Android SDK command-line tools, platform 34, build-tools 34.0.0,
@@ -52,11 +51,12 @@ need_cmd() {
 install_system_deps() {
     log "installing system build dependencies"
     apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         curl ca-certificates unzip zip git wget xz-utils file \
         openjdk-17-jdk-headless \
-        libc6-i386 lib32ncurses6 lib32stdc++6 \
-        >/dev/null 2>&1
+        >/dev/null; then
+        die "failed to install system build dependencies"
+    fi
     log "system dependencies installed"
 }
 

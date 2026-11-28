@@ -60,11 +60,12 @@ need_cmd() {
 install_system_deps() {
     log "installing system build dependencies"
     apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    if ! DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         curl ca-certificates unzip zip git wget xz-utils file \
         openjdk-17-jdk-headless \
-        libc6-i386 lib32ncurses6 lib32stdc++6 \
-        >/dev/null 2>&1
+        >/dev/null; then
+        die "failed to install system build dependencies"
+    fi
     log "system dependencies installed"
 }
 
