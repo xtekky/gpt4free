@@ -22,6 +22,7 @@ libraries are downloaded and verified on first install.
 | Desktop | Opt-in: XFCE with a D-Bus session, TigerVNC and noVNC at `http://127.0.0.1:1337/desktop/` |
 | API | `g4f-go api --bind 127.0.0.1:1337 --debug --no-reload` (bundled GUI at `/chat/`) |
 | Terminal | native Android terminal view over a native PTY with Termux-style keys, copy and immersive fullscreen; repo `bin/` commands and Linux `g4f-go` on `PATH` |
+| App store | **Store** tab lists every `sandbox-cli list` tool plus every `/g4f-bin` command, with search; installers run in a visible terminal, built-ins are marked `built in`, and **Terminal** opens a bundled command ready to run |
 | Background | Foreground service + partial wake lock keeps sessions alive |
 
 ### First run
@@ -36,10 +37,15 @@ libraries are downloaded and verified on first install.
    the pinned CPython runtime and installs the bundled source. Network failures
    show a retry hint instead of hanging.
 4. When setup finishes, the API starts automatically; the Desktop service also
-   starts when Desktop was installed. The **Chat**, **API** and **Desktop** tabs
-   are always the first three tabs and never duplicate.
-5. **+ Shell** opens additional terminal tabs. **Stop** closes all sessions and
-   the status shows a stopped message instead of an exit error.
+   starts when Desktop was installed. The **Chat**, **API**, **Desktop** and
+   **Store** tabs are pinned before the shell tabs and never duplicate.
+5. **Store** reads `sandbox-cli list` from the container, shows all tools with
+   a search field, and **Install** runs `sandbox-cli install <tool>` in its own
+   terminal. The appended `g4f-bin commands` group lists every bundled command;
+   **Terminal** opens one at a shell prompt so arguments can be added first.
+   New tools and commands appear in the store without an APK update. **+ Shell**
+   opens additional terminal tabs, and **Stop** closes all sessions with a
+   stopped status instead of an exit error.
 
 The app binds the bundled gpt4free source at `/g4f-src` inside the container, so
 the version running in Debian matches the APK version without a separate clone.

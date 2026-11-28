@@ -519,6 +519,118 @@ class AndroidContainerCatalogTests(unittest.TestCase):
         self.assertIn("\"all\".equals(name)", activity)
         self.assertIn("showSoftInput(view", activity)
 
+    def test_android_terminal_has_draggable_selection_pips_and_normal_scroll(self):
+        view = (JAVA / "TerminalView.java").read_text(encoding="utf-8")
+
+        # A selection shows two pips that can be grabbed and moved independently.
+        for needle in ("draggingHandle", "handleDragsAnchor", "endpointIsAnchor",
+                       "handleAt(float x, float y)", "nearHandle(", "moveHandle(",
+                       "drawSelectionHandles(Canvas canvas)", "drawHandle(",
+                       "handlePaint", "handleTouchRadius", "selectionBounds()",
+                       "autoScrollSelection(float y)"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, view)
+
+        # Double tapping a word is a quicker way to start a selection than
+        # holding the long-press timeout.
+        self.assertIn("DOUBLE_TAP_TIMEOUT_MS", view)
+        self.assertIn("boolean doubleTap = now - lastTapTime", view)
+
+        # Natural scrolling: dragging down reveals older lines. The old
+        # inverted accumulator must not come back.
+        self.assertIn("scrollAccum += y - lastTouchY", view)
+        self.assertNotIn("scrollAccum += lastTouchY - y", view)
+
+    def test_android_terminal_selection_opens_context_menu(self):
+        view = (JAVA / "TerminalView.java").read_text(encoding="utf-8")
+
+        for needle in ("import android.widget.PopupWindow;",
+                       "private PopupWindow selectionMenu;",
+                       "private void showSelectionMenu()",
+                       "private void dismissSelectionMenu()",
+                       "new PopupWindow(content,",
+                       'menuButton("Copy", () ->',
+                       'menuButton("Select all", () ->',
+                       "menu.setOutsideTouchable(true)",
+                       "menu.showAtLocation(this, Gravity.TOP | Gravity.START",
+                       "if (up && getSelectedText() != null) showSelectionMenu();"):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, view)
+
+        # Gestures must offer actions instead of silently writing the clipboard.
+        self.assertNotIn("if (getSelectedText() != null) copySelection();", view)
+        # The key-row Copy button remains an explicit way to copy.
+        self.assertIn("public boolean copySelection()", view)
+
+    def test_app_store_lists_and_installs_sandbox_tools(self):
+        activity = (JAVA / "ContainerActivity.java").read_text(encoding="utf-8")
+        service = (JAVA / "ContainerService.java").read_text(encoding="utf-8")
+        store = (JAVA / "StoreView.java").read_text(encoding="utf-8")
+
+        # The store is a pinned tab beside Home/Chat/API/Desktop, not a shell
+        # command the user has to discover in the terminal banner.
+        self.assertIn('addFixedButton("store", "Store", v -> openStore())', activity)
+        for needle in ("private void openStore()", "private void ensureStoreView()",
+                       "private void reloadStore()",
+                       "private void installStoreTool(String tool)",
+                       "private void openBinCommand(String command)",
+                       "private boolean storeVisible()", "private void hideStore()",
+                       "new StoreView.Listener()", "public void onOpenCommand(String command)",
+                       'label.startsWith("store-")', 'label.startsWith("bin-")',
+                       "if (storeVisible())", "storeView.setVisibility(View.GONE)"):
+            with self.subTest(activity=needle):
+                self.assertIn(needle, activity)
+
+        # The catalog is read from the container, so new sandbox-cli tools show
+        # up without an APK update. Installs run in a visible PTY session.
+        for needle in ("public interface StoreListCallback",
+                       "public void listStoreTools(",
+                       "public int installStoreTool(String tool)",
+                       'manager.prootArgv("sandbox-cli list")',
+                       "captureSessions", "SAFE_TOOL.matcher(tool).matches()",
+                       '"sandbox-cli install " + tool + " </dev/null; exec bash -l"',
+                       'startSession("store-" + tool,',
+                       "SAFE_BIN = Pattern.compile", "public int openBinCommand(String command)",
+                       "SAFE_BIN.matcher(command).matches()",
+                       'startSession("bin-" + command, "exec bash -l")',
+                       'writeBytes(id, (command + " ").getBytes(StandardCharsets.UTF_8))'):
+            with self.subTest(service=needle):
+                self.assertIn(needle, service)
+
+        # Every listed id must pass the shell-command validation in the service.
+        source = (REPO / "bin" / "sandbox-cli").read_text(encoding="utf-8")
+        listing = source[source.index("list_tools() {"):source.index("trap publish_user_bins")]
+        listed = re.findall(r"^\s{8}([a-z0-9-]+)\s+\S", listing, re.MULTILINE)
+        pattern = re.search(r'SAFE_TOOL = Pattern\.compile\("([^"]+)"\)', service)
+        self.assertIsNotNone(pattern)
+        self.assertTrue(listed)
+        for tool in listed:
+            with self.subTest(tool=tool):
+                self.assertRegex(tool, "^" + pattern.group(1) + "$")
+
+        for needle in ("Sandbox App Store", "public int getToolsCount()",
+                       "public void showTools(String output)",
+                       "static List<Tool> parse(String output)",
+                       'search.setHint("Search tools")',
+                       'badge.setText("built in")',
+                       "install.setOnClickListener(v -> listener.onInstall(id))",
+                       'BIN_GROUP = "g4f-bin commands"',
+                       'terminal.setText("Terminal")',
+                       "listener.onOpenCommand(command)"):
+            with self.subTest(store=needle):
+                self.assertIn(needle, store)
+
+        # The listing must append the container's whole /g4f-bin inventory.
+        for needle in ("list_bin_tools", "G4F_BIN_DIR", "g4f-bin commands",
+                       "bin_command_description"):
+            with self.subTest(sandbox_cli=needle):
+                self.assertIn(needle, source)
+
+        android_doc = (REPO / "docs" / "android-container.md").read_text(
+            encoding="utf-8")
+        self.assertIn("**Store** reads `sandbox-cli list`", android_doc)
+        self.assertIn("g4f-bin commands", android_doc)
+
     def test_native_build_cache_is_not_committed(self):
         ignore = (REPO / ".gitignore").read_text(encoding="utf-8")
         self.assertIn("/projects/android/app/.cxx/", ignore)

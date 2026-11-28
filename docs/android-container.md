@@ -123,7 +123,7 @@ create its `/var/lib/dpkg/status-old` backup.
    `g4f-go api --debug`, which mounts the bundled GUI from the installed g4f
    package. With `G4F_VNC_PORT` exported by the launcher, the same server serves
    the noVNC client at `/desktop/`.
-6. Home, Chat, API and Desktop are pinned before the shell tabs. **Home** opens
+6. Home, Chat, API, Desktop and Store are pinned before the shell tabs. **Home** opens
    the locally served site home page at `http://127.0.0.1:1337/`; **Chat**
    starts the API session if needed and opens its bundled GUI at
    `http://127.0.0.1:1337/chat/`; **Desktop** opens
@@ -139,7 +139,13 @@ create its `/var/lib/dpkg/status-old` backup.
    when an iframe request is blocked, the `AndroidDesktop` bridge hides the
    app chrome and Android system bars instead. Closing an overlay hides its
    Close button, and stopping the container shows a stopped message rather than
-   an exit error.
+   an exit error. **Store** reads `sandbox-cli list` in a hidden PTY, renders a
+   searchable catalog of every sandbox tool, and runs
+   `sandbox-cli install <tool>` in a visible terminal when **Install** is tapped.
+   `list` also appends a `g4f-bin commands` group with every file bound at
+   `/g4f-bin`, using each script's first comment or docstring line as its
+   description; **Terminal** opens one in a shell with its name at the prompt.
+   New tools and commands appear without an APK update.
 
 ## Terminal implementation
 
@@ -160,7 +166,7 @@ available after `bash -l` resets `PATH`.
 The renderer handles 16/256/truecolour SGR, cursor addressing and movement,
 erase/insert/delete line and character operations, scroll regions, the alternate
 screen, wide characters and up to 5000 lines of scrollback. The fixed
-Home/Chat/API/Desktop tabs stay visible while any number of shell tabs scroll
+Home/Chat/API/Desktop/Store tabs stay visible while any number of shell tabs scroll
 horizontally so all of them remain reachable. Shell tabs are restored on
 reconnect. Each new shell opens with a short banner pointing to
 `sandbox-cli list`, `sandbox-cli <tool>` and `g4f-go`.

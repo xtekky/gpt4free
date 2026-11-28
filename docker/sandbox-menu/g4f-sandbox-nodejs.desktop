@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Latest Node.js
+Comment=Install the newest Node.js (Current) release and npm
+Exec=xfce4-terminal --disable-server --maximize --hide-borders --hide-menubar --title="Latest Node.js" --icon=g4f-sandbox-cli --command="/usr/local/bin/sandbox-cli nodejs"
+Icon=g4f-sandbox-cli
+Terminal=false
+Categories=X-G4F-Sandbox;X-G4F-Core;
+Keywords=node;nodejs;npm;javascript;runtime;;
+StartupNotify=false

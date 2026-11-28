@@ -5,15 +5,21 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.text.InputType;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 
 /**
  * Native terminal renderer for the container PTY.
@@ -53,6 +59,7 @@ public final class TerminalView extends View {
     private static final int DEFAULT_FG = 0xffd6dad3;
     private static final int DEFAULT_BG = 0xff101411;
     private static final int SB_LIMIT = 5000;
+    private static final long DOUBLE_TAP_TIMEOUT_MS = 300;
 
     private static final int[] ANSI = {
             0xff000000, 0xffcd0000, 0xff00cd00, 0xffcdcd00,
@@ -79,9 +86,13 @@ public final class TerminalView extends View {
 
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fillPaint = new Paint();
+    private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint handleBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Typeface mono = Typeface.MONOSPACE;
     private final Typeface monoItalic = Typeface.create(Typeface.MONOSPACE, Typeface.ITALIC);
     private final float density;
+    private final float handleRadius;
+    private final float handleTouchRadius;
 
     private float cellWidth;
     private float cellHeight;
@@ -134,6 +145,7 @@ public final class TerminalView extends View {
     private int selFocusLine = -1;
     private int selFocusCol;
     private boolean selectionMode;
+    private PopupWindow selectionMenu;
 
     private boolean ctrlPressed;
     private boolean altPressed;
@@ -148,6 +160,11 @@ public final class TerminalView extends View {
     private boolean longPressFired;
     private boolean draggingSelection;
     private boolean draggingScroll;
+    private int draggingHandle = -1; // -1 none, 0 start pip, 1 end pip
+    private boolean handleDragsAnchor;
+    private long lastTapTime;
+    private float lastTapX;
+    private float lastTapY;
     private int downLine;
     private int downCol;
     private final Runnable longPress = this::startLongPressSelection;
@@ -158,6 +175,13 @@ public final class TerminalView extends View {
         density = getResources().getDisplayMetrics().density;
         padding = 4f * density;
         touchSlop = (int) (6f * density);
+        handleRadius = 6f * density;
+        handleTouchRadius = 14f * density;
+        handlePaint.setColor(0xffc4f06c);
+        handlePaint.setStyle(Paint.Style.FILL);
+        handleBorderPaint.setColor(DEFAULT_BG);
+        handleBorderPaint.setStyle(Paint.Style.STROKE);
+        handleBorderPaint.setStrokeWidth(2f * density);
         textPaint.setTypeface(mono);
         textPaint.setTextSize(TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_SP, 12f, getResources().getDisplayMetrics()));
@@ -437,23 +461,12 @@ public final class TerminalView extends View {
 
     /** Copy the current selection (returns null when nothing is selected). */
     public String getSelectedText() {
-        if (selAnchorLine < 0 || selFocusLine < 0) return null;
-        int startLine;
-        int startCol;
-        int endLine;
-        int endCol;
-        if (selAnchorLine < selFocusLine
-                || (selAnchorLine == selFocusLine && selAnchorCol <= selFocusCol)) {
-            startLine = selAnchorLine;
-            startCol = selAnchorCol;
-            endLine = selFocusLine;
-            endCol = selFocusCol;
-        } else {
-            startLine = selFocusLine;
-            startCol = selFocusCol;
-            endLine = selAnchorLine;
-            endCol = selAnchorCol;
-        }
+        int[] bounds = selectionBounds();
+        if (bounds == null) return null;
+        int startLine = bounds[0];
+        int startCol = bounds[1];
+        int endLine = bounds[2];
+        int endCol = bounds[3];
         StringBuilder out = new StringBuilder();
         for (int line = startLine; line <= endLine; line++) {
             int length = lineLength(line);
@@ -472,9 +485,21 @@ public final class TerminalView extends View {
         return selAnchorLine >= 0 && selFocusLine >= 0;
     }
 
+    /** Ordered selection endpoints: start line/col, then end line/col. */
+    private int[] selectionBounds() {
+        if (!hasSelection()) return null;
+        if (selAnchorLine < selFocusLine
+                || (selAnchorLine == selFocusLine && selAnchorCol <= selFocusCol)) {
+            return new int[] {selAnchorLine, selAnchorCol, selFocusLine, selFocusCol};
+        }
+        return new int[] {selFocusLine, selFocusCol, selAnchorLine, selAnchorCol};
+    }
+
     public void clearSelection() {
+        dismissSelectionMenu();
         selAnchorLine = -1;
         selFocusLine = -1;
+        draggingHandle = -1;
         invalidate();
     }
 
@@ -503,21 +528,93 @@ public final class TerminalView extends View {
         return true;
     }
 
-    // ── Touch: scroll, long-press selection, tap for keyboard ──────────
+    /** Offer selection actions instead of copying to the clipboard immediately. */
+    private void showSelectionMenu() {
+        if (!hasSelection() || getSelectedText() == null) return;
+        dismissSelectionMenu();
+
+        LinearLayout content = new LinearLayout(getContext());
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundColor(Color.parseColor("#181d19"));
+        content.addView(menuButton("Copy", () -> {
+            copySelection();
+            dismissSelectionMenu();
+        }));
+        content.addView(menuButton("Select all", () -> {
+            selectAll();
+            post(this::showSelectionMenu);
+        }));
+
+        PopupWindow menu = new PopupWindow(content,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        menu.setOutsideTouchable(true);
+        menu.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#181d19")));
+        menu.setOnDismissListener(() -> {
+            if (selectionMenu == menu) selectionMenu = null;
+        });
+        selectionMenu = menu;
+
+        int[] bounds = selectionBounds();
+        float x = handleX(bounds[3], false);
+        float y = handleY(bounds[2]);
+        if (y < 0f) {
+            x = handleX(bounds[1], true);
+            y = handleY(bounds[0]);
+        }
+        if (y < 0f) y = cellHeight;
+        int menuX = (int) Math.max(0f, Math.min(x, getWidth() - 150f * density));
+        int menuY = (int) Math.max(0f,
+                Math.min(y + handleRadius, getHeight() - 3f * cellHeight));
+        menu.showAtLocation(this, Gravity.TOP | Gravity.START, menuX, menuY);
+    }
+
+    private Button menuButton(String label, Runnable action) {
+        Button button = new Button(getContext());
+        button.setText(label);
+        button.setTextSize(12f);
+        button.setAllCaps(false);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setPadding((int) (12f * density), 0, (int) (12f * density), 0);
+        button.setTextColor(Color.parseColor("#c4f06c"));
+        button.setBackgroundColor(Color.TRANSPARENT);
+        button.setOnClickListener(v -> action.run());
+        return button;
+    }
+
+    private void dismissSelectionMenu() {
+        if (selectionMenu != null) {
+            selectionMenu.dismiss();
+            selectionMenu = null;
+        }
+    }
+
+    // ── Touch: scroll, tap/long-press selection, draggable pips ────────
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        switch (event.getActionMasked()) {
+        float x = event.getX();
+        float y = event.getY();
+        int action = event.getActionMasked();
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
-                touchStartX = event.getX();
-                touchStartY = event.getY();
-                lastTouchY = touchStartY;
+                dismissSelectionMenu();
+                touchStartX = x;
+                touchStartY = y;
+                lastTouchY = y;
                 scrollAccum = 0;
                 longPressFired = false;
                 draggingSelection = false;
                 draggingScroll = false;
-                downLine = lineForY(touchStartY);
-                downCol = colForX(touchStartX);
+                draggingHandle = handleAt(x, y);
+                if (draggingHandle >= 0) {
+                    handleDragsAnchor = endpointIsAnchor(draggingHandle == 0);
+                    removeCallbacks(longPress);
+                    return true;
+                }
+                downLine = lineForY(y);
+                downCol = colForX(x);
                 postDelayed(longPress, 350);
                 return true;
             case MotionEvent.ACTION_MOVE:
@@ -526,16 +623,13 @@ public final class TerminalView extends View {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 removeCallbacks(longPress);
-                if (draggingSelection) {
-                    if (getSelectedText() != null) copySelection();
+                boolean up = action == MotionEvent.ACTION_UP;
+                if (draggingHandle >= 0 || draggingSelection) {
+                    if (up && getSelectedText() != null) showSelectionMenu();
                 } else if (!longPressFired && !draggingScroll) {
-                    clearSelection();
-                    requestFocus();
-                    showKeyboard();
+                    handleTap(x, y, up);
                 }
-                if (longPressFired && !draggingSelection) {
-                    if (getSelectedText() != null) copySelection();
-                }
+                draggingHandle = -1;
                 draggingSelection = false;
                 draggingScroll = false;
                 performClick();
@@ -545,9 +639,47 @@ public final class TerminalView extends View {
         }
     }
 
+    /** A tap shows the keyboard; a double tap selects the word under it. */
+    private void handleTap(float x, float y, boolean up) {
+        if (!up) {
+            lastTapTime = 0;
+            return;
+        }
+        boolean tap = Math.abs(x - touchStartX) + Math.abs(y - touchStartY) < touchSlop;
+        if (!tap) {
+            lastTapTime = 0;
+            requestFocus();
+            showKeyboard();
+            return;
+        }
+        long now = System.currentTimeMillis();
+        boolean doubleTap = now - lastTapTime <= DOUBLE_TAP_TIMEOUT_MS
+                && Math.abs(x - lastTapX) <= touchSlop * 2f
+                && Math.abs(y - lastTapY) <= touchSlop * 2f;
+        lastTapTime = now;
+        lastTapX = x;
+        lastTapY = y;
+        if (doubleTap) {
+            beginSelection(downLine, downCol, true);
+            lastTapTime = 0;
+            showSelectionMenu();
+            invalidate();
+            return;
+        }
+        clearSelection();
+        requestFocus();
+        showKeyboard();
+    }
+
     private void handleTouchMove(MotionEvent event) {
         float x = event.getX();
         float y = event.getY();
+        if (draggingHandle >= 0) {
+            autoScrollSelection(y);
+            moveHandle(x, y);
+            invalidate();
+            return;
+        }
         float dx = x - touchStartX;
         float dy = y - touchStartY;
         if (!longPressFired && !draggingSelection && !draggingScroll) {
@@ -557,16 +689,19 @@ public final class TerminalView extends View {
                 beginSelection(downLine, downCol, false);
                 draggingSelection = true;
             } else if (Math.abs(dy) > touchSlop) {
+                dismissSelectionMenu();
                 draggingScroll = true;
                 lastTouchY = touchStartY;
             }
         }
         if (draggingSelection) {
+            autoScrollSelection(y);
             selFocusLine = lineForY(y);
             selFocusCol = colForX(x);
             invalidate();
         } else if (draggingScroll) {
-            scrollAccum += lastTouchY - y;
+            // Natural scrolling: moving the finger down reveals older lines.
+            scrollAccum += y - lastTouchY;
             lastTouchY = y;
             while (scrollAccum >= cellHeight) {
                 scrollOffset = Math.min(sbCount, scrollOffset + 1);
@@ -603,6 +738,75 @@ public final class TerminalView extends View {
         }
     }
 
+    /** Move the grabbed pip while keeping the opposite selection end fixed. */
+    private void moveHandle(float x, float y) {
+        int line = clampLine(lineForY(y));
+        int col = Math.max(0, Math.min(cols - 1, colForX(x)));
+        if (handleDragsAnchor) {
+            selAnchorLine = line;
+            selAnchorCol = col;
+        } else {
+            selFocusLine = line;
+            selFocusCol = col;
+        }
+    }
+
+    private boolean endpointIsAnchor(boolean startEndpoint) {
+        boolean anchorIsStart = selAnchorLine < selFocusLine
+                || (selAnchorLine == selFocusLine && selAnchorCol <= selFocusCol);
+        return startEndpoint == anchorIsStart;
+    }
+
+    /** Keep a dragged pip reachable at the top/bottom edge of the view. */
+    private void autoScrollSelection(float y) {
+        float edge = cellHeight * 1.5f;
+        if (y < padding + edge && scrollOffset < sbCount) {
+            scrollOffset++;
+        } else if (y > getHeight() - padding - edge && scrollOffset > 0) {
+            scrollOffset--;
+        }
+    }
+
+    /** Return 0 for the start pip, 1 for the end pip, or -1 for no pip. */
+    private int handleAt(float x, float y) {
+        int[] bounds = selectionBounds();
+        if (bounds == null) return -1;
+        float startX = handleX(bounds[1], true);
+        float startY = handleY(bounds[0]);
+        float endX = handleX(bounds[3], false);
+        float endY = handleY(bounds[2]);
+        boolean nearStart = nearHandle(x, y, startX, startY);
+        boolean nearEnd = nearHandle(x, y, endX, endY);
+        if (nearStart && nearEnd) return x < (startX + endX) / 2f ? 0 : 1;
+        if (nearStart) return 0;
+        return nearEnd ? 1 : -1;
+    }
+
+    private boolean nearHandle(float x, float y, float hx, float hy) {
+        if (hy < 0f) return false;
+        float dx = x - hx;
+        float dy = y - hy;
+        return dx * dx + dy * dy <= handleTouchRadius * handleTouchRadius;
+    }
+
+    private float handleX(int col, boolean startHandle) {
+        float x = padding + (startHandle ? col : col + 1) * cellWidth;
+        return Math.max(handleRadius, Math.min(getWidth() - handleRadius, x));
+    }
+
+    private float handleY(int line) {
+        float top = lineTop(line);
+        if (top < 0f) return -1f;
+        float y = top + cellHeight + handleRadius * 0.5f;
+        return Math.max(handleRadius, Math.min(getHeight() - handleRadius, y));
+    }
+
+    private float lineTop(int line) {
+        int start = visibleStartLine();
+        if (line < start || line >= start + visibleRowCount()) return -1f;
+        return padding + (line - start) * cellHeight;
+    }
+
     private static boolean isWordChar(int cp) {
         if (cp <= 0) return false;
         return Character.isLetterOrDigit(cp) || cp == '_' || cp == '-' || cp == '.'
@@ -624,6 +828,7 @@ public final class TerminalView extends View {
     @Override
     protected void onDetachedFromWindow() {
         removeCallbacks(longPress);
+        dismissSelectionMenu();
         super.onDetachedFromWindow();
     }
 
@@ -712,6 +917,7 @@ public final class TerminalView extends View {
         if (scrollOffset == 0 && cursorVisible && hasFocus() && !altScreen) {
             drawCursor(canvas, start);
         }
+        drawSelectionHandles(canvas);
     }
 
     private void drawLine(Canvas canvas, int line, float top) {
@@ -801,6 +1007,20 @@ public final class TerminalView extends View {
             textPaint.setColor(DEFAULT_BG);
             canvas.drawText(new String(Character.toChars(cp)), left, top + baseline, textPaint);
         }
+    }
+
+    /** Draw the draggable start/end pips for the active selection. */
+    private void drawSelectionHandles(Canvas canvas) {
+        int[] bounds = selectionBounds();
+        if (bounds == null) return;
+        drawHandle(canvas, handleX(bounds[1], true), handleY(bounds[0]));
+        drawHandle(canvas, handleX(bounds[3], false), handleY(bounds[2]));
+    }
+
+    private void drawHandle(Canvas canvas, float x, float y) {
+        if (y < 0f) return;
+        canvas.drawCircle(x, y, handleRadius, handlePaint);
+        canvas.drawCircle(x, y, handleRadius, handleBorderPaint);
     }
 
     private boolean isSelected(int line, int col) {

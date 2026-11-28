@@ -46,6 +46,7 @@ public final class ContainerActivity extends Activity {
     private ContainerService service;
     private boolean bound;
     private WebView contentView;
+    private StoreView storeView;
     private Button closeButton;
     private Button fullscreenExitButton;
     private View fullscreenView;
@@ -240,6 +241,7 @@ public final class ContainerActivity extends Activity {
         addFixedButton("chat", "Chat", v -> openChat());
         addFixedButton("api", "API", v -> showApi());
         addFixedButton("desktop", "Desktop", v -> openDesktop());
+        addFixedButton("store", "Store", v -> openStore());
 
         tabBar.addView(tabButton("Full", v -> toggleFullscreen()));
         tabBar.addView(tabButton("+ Shell", v -> newShell()));
@@ -418,6 +420,7 @@ public final class ContainerActivity extends Activity {
     private void closeAll() {
         if (service != null) service.closeAllSessions();
         hideContent();
+        if (storeView != null) storeView.setVisibility(View.GONE);
         activeTerminal = null;
         activeFixedTab = null;
         styleTabs();
@@ -477,6 +480,107 @@ public final class ContainerActivity extends Activity {
         styleTabs();
     }
 
+    // ── Sandbox app store ──────────────────────────────────────────────
+
+    private void openStore() {
+        if (service == null || !service.isReady()) {
+            toast("Install the container first");
+            return;
+        }
+        ensureStoreView();
+        hideKeyboard();
+        if (contentView != null) contentView.setVisibility(View.GONE);
+        if (closeButton != null) closeButton.setVisibility(View.GONE);
+        for (TerminalView view : terminals.values()) view.setVisibility(View.GONE);
+        activeTerminal = null;
+        storeView.setVisibility(View.VISIBLE);
+        storeView.bringToFront();
+        activeFixedTab = "store";
+        styleTabs();
+        if (storeView.getToolsCount() == 0) reloadStore();
+    }
+
+    private void ensureStoreView() {
+        if (storeView != null) return;
+        storeView = new StoreView(this, new StoreView.Listener() {
+            @Override
+            public void onInstall(String tool) {
+                installStoreTool(tool);
+            }
+
+            @Override
+            public void onOpenCommand(String command) {
+                openBinCommand(command);
+            }
+        });
+        storeView.setVisibility(View.GONE);
+        stage.addView(storeView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
+    /** Ask the container for the current `sandbox-cli list` catalog. */
+    private void reloadStore() {
+        if (service == null) return;
+        storeView.showLoading();
+        service.listStoreTools(new ContainerService.StoreListCallback() {
+            @Override
+            public void onResult(String output) {
+                if (storeView != null) storeView.showTools(output);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (storeView != null) storeView.showError(message);
+            }
+        });
+    }
+
+    /** Show the install in its own terminal so the user sees every log line. */
+    private void installStoreTool(String tool) {
+        if (service == null) {
+            toast("Container is starting");
+            return;
+        }
+        try {
+            int id = service.installStoreTool(tool);
+            TerminalView view = terminals.get(id);
+            if (view != null) showTerminal(view, true);
+            toast("Installing " + tool + "…");
+        } catch (IllegalStateException | IllegalArgumentException error) {
+            toast(error.getMessage());
+        }
+    }
+
+    /** Show a bundled /g4f-bin command in a terminal, ready to be run. */
+    private void openBinCommand(String command) {
+        if (service == null) {
+            toast("Container is starting");
+            return;
+        }
+        try {
+            int id = service.openBinCommand(command);
+            TerminalView view = terminals.get(id);
+            if (view != null) showTerminal(view, true);
+            toast(command + " is ready — add arguments, then press Enter");
+        } catch (IllegalStateException | IllegalArgumentException error) {
+            toast(error.getMessage());
+        }
+    }
+
+    private boolean storeVisible() {
+        return storeView != null && storeView.getVisibility() == View.VISIBLE;
+    }
+
+    private void hideStore() {
+        if (storeView != null) storeView.setVisibility(View.GONE);
+        activeFixedTab = null;
+        if (activeTerminal == null && !terminals.isEmpty()) {
+            activeTerminal = terminals.values().iterator().next();
+            activeTerminal.setVisibility(View.VISIBLE);
+        }
+        styleTabs();
+    }
+
     // ── Session tabs ───────────────────────────────────────────────────
 
     private void syncSessions() {
@@ -504,7 +608,7 @@ public final class ContainerActivity extends Activity {
         }
 
         if (terminals.isEmpty() && !startingShell && !contentVisible()
-                && service.stateText().startsWith("Ready")) {
+                && !storeVisible() && service.stateText().startsWith("Ready")) {
             startingShell = true;
             try {
                 service.newSession("shell");
@@ -542,6 +646,8 @@ public final class ContainerActivity extends Activity {
         if ("api".equals(label)) return "API";
         if ("setup".equals(label)) return "Setup";
         if ("desktop-setup".equals(label)) return "Desktop setup";
+        if (label.startsWith("store-")) return label.substring(6);
+        if (label.startsWith("bin-")) return label.substring(4);
         return label + " #" + id;
     }
 
@@ -564,6 +670,7 @@ public final class ContainerActivity extends Activity {
     private void showTerminal(TerminalView view, boolean focus) {
         if (view == null) return;
         if (contentView != null) contentView.setVisibility(View.GONE);
+        if (storeView != null) storeView.setVisibility(View.GONE);
         if (closeButton != null) closeButton.setVisibility(View.GONE);
         activeTerminal = view;
         activeFixedTab = null;
@@ -761,6 +868,7 @@ public final class ContainerActivity extends Activity {
     private void openContent(String url) {
         ensureContentView();
         hideKeyboard();
+        if (storeView != null) storeView.setVisibility(View.GONE);
         contentView.loadUrl(url);
         contentView.setVisibility(View.VISIBLE);
         contentView.bringToFront();
@@ -952,6 +1060,7 @@ public final class ContainerActivity extends Activity {
         hideFullscreen();
         setNativeFullscreen(false);
         if (contentView != null) contentView.setVisibility(View.GONE);
+        if (storeView != null) storeView.setVisibility(View.GONE);
         if (closeButton != null) closeButton.setVisibility(View.GONE);
         activeFixedTab = null;
         if (activeTerminal == null && !terminals.isEmpty()) {
@@ -995,6 +1104,10 @@ public final class ContainerActivity extends Activity {
         }
         if (contentVisible()) {
             hideContent();
+            return;
+        }
+        if (storeVisible()) {
+            hideStore();
             return;
         }
         super.onBackPressed();

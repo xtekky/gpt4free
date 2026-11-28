@@ -12,6 +12,7 @@
 #   sandbox-cli upgrade         update the g4f package in the runtime
 #   sandbox-cli uninstall       remove g4f-go and its managed data
 #   sandbox-cli list            list the tools the desktop menu knows about
+#   sandbox-cli nodejs          install the newest Node.js (Current) + npm
 #   sandbox-cli urls            print the public URLs served by the g4f API
 #   sandbox-cli hosts           print the /etc/hosts entries for the app domains
 #   sandbox-cli harness         run a coding agent on the g4f API and models
@@ -65,6 +66,10 @@ FREEFLOW_PORT="${PI_FREEFLOW_PORT:-28180}"
 GOOSE_INSTALLER="https://github.com/block/goose/releases/download/stable/download_cli.sh"
 CURSOR_INSTALLER="https://cursor.com/install"
 OPENCLAW_INSTALLER="https://openclaw.ai/install.sh"
+# `sandbox-cli nodejs` (and the first npm install on a bare container) pulls the
+# newest Node.js "Current" release from NodeSource instead of Debian's older
+# package. Override the setup script URL for mirrors and tests.
+NODEJS_SETUP_URL="${NODEJS_SETUP_URL:-https://deb.nodesource.com/setup_current.x}"
 # Google publishes per-architecture .deb files; append the dpkg arch (amd64,
 # arm64) to this prefix. The .deb pulls its own Chrome runtime libraries.
 CHROME_DEB_BASE="https://dl.google.com/linux/direct/google-chrome-stable_current"
@@ -950,11 +955,28 @@ apply_sandbox_proxy() {
     trust_proxy_ca
 }
 
+# Install the newest Node.js release (npm included) from NodeSource. Return a
+# failure instead of exiting so ensure_node() can fall back to the Debian
+# packages when the NodeSource repo is unreachable (e.g. on a phone container).
+install_nodejs_latest() {
+    have curl || { log "curl is required to install the latest Node.js"; return 1; }
+    log "installing the latest Node.js (NodeSource current)..."
+    as_root env DEBIAN_FRONTEND=noninteractive \
+        bash -c 'set -o pipefail; curl -fsSL "$1" | bash -' _ "$NODEJS_SETUP_URL" \
+        || { log "NodeSource setup failed"; return 1; }
+    as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nodejs \
+        || { log "apt-get install nodejs failed"; return 1; }
+    have node && have npm
+}
+
 ensure_node() {
     have npm && return 0
     log "installing Node.js + npm (first run)..."
-    as_root apt-get update -qq || die "apt-get update failed"
-    as_root apt-get install -y -qq nodejs npm || die "could not install nodejs/npm"
+    if ! install_nodejs_latest; then
+        log "falling back to Debian's nodejs/npm packages"
+        as_root apt-get update -qq || die "apt-get update failed"
+        as_root apt-get install -y -qq nodejs npm || die "could not install nodejs/npm"
+    fi
     have npm || die "npm not found after installing nodejs/npm"
 }
 
@@ -3018,6 +3040,13 @@ run_tool() {
     apply_sandbox_api_key
     apply_sandbox_proxy
     case "$1" in
+        nodejs)
+            # The newest Node.js "Current" release with npm. `sandbox-cli
+            # install nodejs` installs it without opening the REPL, which is
+            # how the Android app store and the desktop menu use this entry.
+            install_nodejs_latest || die "could not install the latest Node.js"
+            log "Node.js $(node --version) and npm $(npm --version) are ready"
+            launch "Node.js (latest)" node "${@:2}" ;;
         remote-desktop)
             ensure_remote_desktop
             if [ "$INSTALL_ONLY" = 1 ]; then
@@ -4130,6 +4159,7 @@ usage: sandbox-cli <tool> [args...]   install (first click) and run a desktop to
        sandbox-cli upgrade            update the g4f package in the runtime
        sandbox-cli uninstall          remove g4f-go and its managed data
        sandbox-cli list               list the tools behind the desktop menu
+       sandbox-cli nodejs             install the newest Node.js (Current) + npm
        sandbox-cli urls               print the public URLs served by the g4f API
        sandbox-cli hosts              print the /etc/hosts entries for the app domains
        sandbox-cli harness            run a coding agent on the g4f API and models
@@ -4148,6 +4178,7 @@ list_tools() {
     printf '%s\n' "g4f"
     printf '  %-15s %s\n' \
         g4f-go          "g4f Go launcher CLI (preinstalled)" \
+        nodejs          "install the newest Node.js release and npm (NodeSource)" \
         package         "show, update or pin the g4f package" \
         update          "update the g4f-go launcher itself" \
         upgrade         "update the g4f package in the runtime" \
@@ -4267,12 +4298,75 @@ list_tools() {
         sgpt        "ShellGPT shell assistant" \
         gptme       "gptme terminal agent" \
         llm         "LLM CLI by Simon Willison"
+    # The Android container binds the repo's bin/ directory at /g4f-bin. List
+    # those commands too so the app store shows everything available in a
+    # shell, including commands that are not desktop-menu install targets.
+    list_bin_tools
 }
 
 # `sandbox-cli install <tool>` and the server entries exit without reaching
 # launch(), so publish on the way out too. Every install path then lands its
 # launchers in the system bin dir; the hook is idempotent.
 trap publish_user_bins EXIT
+
+# One-line description for a command bound at /g4f-bin: the first non-empty
+# comment or Python docstring line after the shebang. Binaries fall back to a
+# plain label.
+bin_command_description() {
+    local path="$1" line quote=""
+    # Do not read whole lines from large binaries such as curl or g4f-go.
+    if [ "$(head -c 2 "$path" 2>/dev/null)" != "#!" ]; then
+        printf '%s' "command from /g4f-bin"
+        return 0
+    fi
+    while IFS= read -r line || [ -n "$line" ]; do
+        line=${line%$'\r'}
+        if [ -n "$quote" ]; then
+            case "$line" in *"$quote"*) quote="" ;; esac
+            line=${line%%"$quote"*}
+            [ -n "$line" ] && { printf '%s' "$line"; return 0; }
+            continue
+        fi
+        case "$line" in
+            '#!'*|''|[[:space:]]*) continue ;;
+            '"""'*|"'''"*)
+                quote=${line:0:3}
+                line=${line:3}
+                if [ "$line" = "$quote" ]; then
+                    line=""
+                else
+                    line=${line%%"$quote"*}
+                fi
+                [ -n "$line" ] && { printf '%s' "$line"; return 0; }
+                ;;
+            '#'*)
+                line=${line#\#}
+                line=${line#"${line%%[![:space:]]*}"}
+                case "$line" in
+                    -*-*|coding:*|pylint:*|noqa:*|flake8:*) continue ;;
+                esac
+                [ -n "$line" ] && { printf '%s' "$line"; return 0; }
+                ;;
+            *) break ;;
+        esac
+    done < "$path"
+    printf '%s' "command from /g4f-bin"
+}
+
+# Get the full command inventory of the container. G4F_BIN_DIR is overridable
+# for tests and other sandboxes; the Android app uses /g4f-bin.
+list_bin_tools() {
+    local dir="${G4F_BIN_DIR:-/g4f-bin}" path name
+    [ -d "$dir" ] || return 0
+    printf '%s\n' "g4f-bin commands"
+    for path in "$dir"/*; do
+        # List every bundled command, including scripts that are run with an
+        # interpreter (bash/python) rather than executed directly.
+        [ -f "$path" ] || continue
+        name=${path##*/}
+        printf '  %-28s %s\n' "$name" "$(bin_command_description "$path")"
+    done
+}
 
 case "${1:-}" in
     ""|help|-h|--help)

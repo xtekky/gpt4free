@@ -15,6 +15,8 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -24,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 /** Foreground owner of the Debian container, its PTY sessions and wake lock. */
 public final class ContainerService extends Service {
@@ -40,6 +43,13 @@ public final class ContainerService extends Service {
         void onSessionsChanged();
     }
 
+    /** Result of reading the tool catalog from `sandbox-cli list`. */
+    public interface StoreListCallback {
+        void onResult(String output);
+
+        void onError(String message);
+    }
+
     public final class LocalBinder extends Binder {
         public ContainerService getService() {
             return ContainerService.this;
@@ -49,12 +59,17 @@ public final class ContainerService extends Service {
     private static final String TAG = "g4f-container";
     private static final String CHANNEL_ID = "g4f-container";
     private static final int NOTIFICATION_ID = 4701;
+    private static final Pattern SAFE_TOOL = Pattern.compile("[a-z0-9][a-z0-9-]{0,40}");
+    // /g4f-bin entries include scripts such as build-android.sh and dev-pipeline.
+    private static final Pattern SAFE_BIN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._+-]{0,63}");
 
     private final LocalBinder binder = new LocalBinder();
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final AtomicInteger nextSessionId = new AtomicInteger(1);
     private final Map<Integer, TerminalSession> sessions = new LinkedHashMap<>();
     private final Map<Integer, String> sessionLabels = new LinkedHashMap<>();
+    // Hidden PTY used to read `sandbox-cli list`; never rendered as a tab.
+    private final Map<Integer, TerminalSession> captureSessions = new LinkedHashMap<>();
     private final List<Listener> listeners = new ArrayList<>();
     private final Set<Integer> stoppedSessions = new HashSet<>();
 
@@ -96,6 +111,10 @@ public final class ContainerService extends Service {
     @Override
     public void onDestroy() {
         closeAllSessions();
+        synchronized (captureSessions) {
+            for (TerminalSession session : captureSessions.values()) session.close();
+            captureSessions.clear();
+        }
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         executor.shutdownNow();
         super.onDestroy();
@@ -291,6 +310,95 @@ public final class ContainerService extends Service {
             default:
                 return startSession("shell", "bash -l");
         }
+    }
+
+    /** Read `sandbox-cli list` in a hidden PTY for the app store.
+     *
+     *  The catalog comes from the container itself, so new tools appear in the
+     *  store as soon as sandbox-cli is updated. The session is deliberately not
+     *  registered in `sessions`: it has no tab and is not restored on reconnect.
+     *  TerminalSession posts callbacks on the main thread. */
+    public void listStoreTools(final StoreListCallback callback) {
+        if (manager == null || !manager.isInstalled()) {
+            callback.onError("Install the container first");
+            return;
+        }
+        if (isProvisioningRunning()) {
+            callback.onError("Setup is still running; wait before opening the Store");
+            return;
+        }
+        try {
+            final int id = nextSessionId.getAndIncrement();
+            final ByteArrayOutputStream output = new ByteArrayOutputStream();
+            TerminalSession.Callback capture = new TerminalSession.Callback() {
+                @Override
+                public void onData(byte[] data) {
+                    output.write(data, 0, data.length);
+                }
+
+                @Override
+                public void onExit(int exitCode) {
+                    synchronized (captureSessions) {
+                        captureSessions.remove(id);
+                    }
+                    if (exitCode == 0 && output.size() > 0) {
+                        callback.onResult(new String(output.toByteArray(),
+                                StandardCharsets.UTF_8));
+                    } else {
+                        callback.onError("sandbox-cli list failed (exit " + exitCode + ")");
+                    }
+                }
+            };
+            // Keep a strong reference until onExit; hold the lock across open so
+            // a fast exit cannot remove the entry before it is added.
+            synchronized (captureSessions) {
+                captureSessions.put(id, TerminalSession.open(id,
+                        manager.prootArgv("sandbox-cli list"), manager.prootEnv(),
+                        200, 200, capture));
+            }
+        } catch (RuntimeException error) {
+            Log.w(TAG, "Could not list sandbox tools", error);
+            callback.onError("Could not list tools: " + error.getMessage());
+        }
+    }
+
+    /** Install a store tool in a visible terminal, then leave a shell open.
+     *
+     *  stdin is disconnected so a failed installer cannot block on
+     *  sandbox-cli's "Press Enter to close" prompt. The tool id is validated
+     *  because it becomes part of a shell command. */
+    public int installStoreTool(String tool) {
+        if (tool == null || !SAFE_TOOL.matcher(tool).matches()) {
+            throw new IllegalArgumentException("Invalid tool name");
+        }
+        if (manager == null || !manager.isInstalled()) {
+            throw new IllegalStateException("Install the container first");
+        }
+        if (isProvisioningRunning()) {
+            throw new IllegalStateException("Setup is still running; wait before installing");
+        }
+        return startSession("store-" + tool,
+                "sandbox-cli install " + tool + " </dev/null; exec bash -l");
+    }
+
+    /** Open a shell with a /g4f-bin command ready at the prompt.
+     *
+     *  The command is written but not submitted: the user can add arguments
+     *  and press Enter. Only a bare filename is accepted, so a name read from
+     *  the container catalog cannot inject shell syntax. */
+    public int openBinCommand(String command) {
+        if (command == null || !SAFE_BIN.matcher(command).matches()) {
+            throw new IllegalArgumentException("Invalid command name");
+        }
+        if (manager == null || !manager.isInstalled()) {
+            throw new IllegalStateException("Install the container first");
+        }
+        if (isProvisioningRunning()) {
+            throw new IllegalStateException("Setup is still running; wait before using a command");
+        }
+        int id = startSession("bin-" + command, "exec bash -l");
+        writeBytes(id, (command + " ").getBytes(StandardCharsets.UTF_8));
+        return id;
     }
 
     private int startSession(String label, String shellCommand) {
