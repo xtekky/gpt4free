@@ -32,10 +32,14 @@ Common features:
   • Lightpanda installed by ``g4f-go browser install`` is detected in the
     shared config directory and preferred over Chrome whenever headless mode
     is on (see find_lightpanda_path / lightpanda_auto_start_enabled).
+    It is not started on Android, where the app's WebView is the browser.
   • Android app: creates dedicated automation WebViews through its DevTools
     socket (browser_mode="webview", auto-detected — no Chrome needed). Each
     target is shown in front of the app UI with a close button; WebView
-    debugging is disabled again when the last target is closed.
+    debugging is disabled again when the last target is closed. This also
+    works in the app's Debian/PRoot container (``G4F_CONTAINER=1``), which
+    receives the app process' socket via ``G4F_WEBVIEW_DEVTOOLS_SOCKET`` or
+    the ``/g4f-scripts/webview-devtools-socket`` hand-off file.
 """
 
 from __future__ import annotations
@@ -202,8 +206,12 @@ def lightpanda_auto_start_enabled(headless: bool) -> bool:
     Mirrors g4f-go's ``browserAutoStartEnv`` skip conditions: headless mode
     must be on, no CDP endpoint may be configured (``G4F_BROWSER_PORT``) and
     the transport must be plain CDP (``G4F_BROWSER_MODE`` unset or ``cdp``).
+    Android is skipped as well: there the app's WebView speaks CDP over its
+    abstract socket, so a second headless browser must not take over.
     """
     if not headless:
+        return False
+    if _is_android():
         return False
     if os.environ.get("G4F_BROWSER_PORT"):
         return False
@@ -869,8 +877,39 @@ def get_shared_browser(
 # Android WebView support — drive the app's own WebView via CDP.
 # ──────────────────────────────────────────────────────────────────────
 
+# The Android app bind-mounts its scripts directory into every PRoot session.
+# It writes the app process' DevTools socket here so Python can still find it
+# when an API session did not inherit prootEnv() (the container has neither
+# /system/build.prop nor the Chaquopy java bridge).
+_CONTAINER_WEBVIEW_SOCKET_FILE = "/g4f-scripts/webview-devtools-socket"
+
+
+def _container_webview_socket() -> str:
+    """Read the WebView socket name handed over by the Android app container."""
+    try:
+        with open(_CONTAINER_WEBVIEW_SOCKET_FILE) as fp:
+            name = fp.read().strip().lstrip("@")
+        if name.startswith("webview_devtools_remote_"):
+            return name
+    except Exception:
+        pass
+    return ""
+
+
 def _is_android() -> bool:
-    """Return True when running under Android (e.g. the Chaquopy app)."""
+    """Return True when running under Android.
+
+    Covers both the Chaquopy app (``import java``) and the Debian/PRoot
+    container started by the app, which sets ``G4F_CONTAINER=1`` and hands
+    over the app process' DevTools socket name. The container has no
+    ``/system`` mount and no java bridge, and sessions started through the
+    container API can lose the environment hand-off, so the socket file
+    written by ContainerManager is checked too.
+    """
+    if os.environ.get("G4F_CONTAINER") == "1":
+        return True
+    if os.environ.get("G4F_WEBVIEW_DEVTOOLS_SOCKET") or _container_webview_socket():
+        return True
     if os.path.exists("/system/build.prop"):
         return True
     try:
@@ -879,13 +918,29 @@ def _is_android() -> bool:
     except ImportError:
         return False
 
+
+def _webview_auto_detect() -> bool:
+    """Whether the app's WebView socket should be chosen automatically.
+
+    Classic Android always has one WebView driven by the app. The container
+    is a normal Linux rootfs that can also run Lightpanda or Chrome, so only
+    prefer the app socket while the activity's DevTools socket answers.
+    """
+    if not _is_android():
+        return False
+    if os.environ.get("G4F_CONTAINER") == "1":
+        return _find_webview_devtools_socket_exists()
+    return True
+
+
 def _enable_webview_debugging() -> bool:
     """Enable remote debugging for all WebViews in this app (process-wide).
 
     Returns True also when the call itself is not possible (no Chaquopy java
     bridge) but the app already enabled debugging itself — e.g. via the
-    ``WebViewDebug`` manifest meta-data handled in MainActivity. In that case
-    the DevTools socket exists and attaching is enough.
+    ``WebViewDebug`` manifest meta-data handled by the app activities, or the
+    container's ``G4F_WEBVIEW_DEVTOOLS_SOCKET``. In that case the DevTools
+    socket exists and attaching is enough.
     """
     try:
         from java import jclass
@@ -944,10 +999,18 @@ def _find_webview_devtools_socket() -> str:
     Find the abstract Unix socket name of the WebView DevTools server.
 
     The WebView listens on ``@webview_devtools_remote_<pid>`` in the app's
-    own process. Since Android 10 apps can no longer read /proc/net/unix,
-    so the pid based name is preferred and the scan is only a fallback.
+    own process. Android 10+ apps can no longer read /proc/net/unix, so the
+    pid based name is preferred and the scan is only a fallback.
+
+    Inside the container the app sets ``G4F_WEBVIEW_DEVTOOLS_SOCKET`` to the
+    exact socket of the app process (the Python process has a different pid),
+    and ``G4F_WEBVIEW_PID`` carries the app pid for older launchers.
     """
-    own = f"webview_devtools_remote_{os.getpid()}"
+    override = os.environ.get("G4F_WEBVIEW_DEVTOOLS_SOCKET", "").strip().lstrip("@")
+    if override:
+        return override
+    app_pid = os.environ.get("G4F_WEBVIEW_PID", "").strip()
+    own = f"webview_devtools_remote_{app_pid or os.getpid()}"
     candidates = []
     try:
         with open("/proc/net/unix") as fp:
@@ -1186,9 +1249,11 @@ class CDPSession:
         # WebView mode: attach to the Android app's own WebView through its
         # DevTools socket — there is no installable Chrome on Android. Forced
         # with G4F_BROWSER_MODE=webview, auto-detected on Android when no
-        # explicit CDP port is configured.
+        # explicit CDP port is configured. In the container the app socket is
+        # preferred only while it is reachable, so a headless session can still
+        # fall back to Lightpanda/Chrome inside the rootfs.
         if browser_mode == "webview" or (
-            browser_mode is None and self.port is None and _is_android()
+            browser_mode is None and self.port is None and _webview_auto_detect()
         ):
             return await self._start_via_webview()
 

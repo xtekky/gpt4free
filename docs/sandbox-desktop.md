@@ -324,6 +324,7 @@ interface for the sandbox:
 sandbox-cli <tool>          install <tool> if missing, then run it here
 sandbox-cli install <tool>  install only
 sandbox-cli list            list the known tools
+sandbox-cli nodejs          install the newest Node.js (Current) release + npm
 sandbox-cli settings        model, API key, HOME, provider and proxy
 sandbox-cli reset           clear the saved settings
 sandbox-cli package         show, update or pin the g4f package
@@ -336,9 +337,19 @@ sandbox-cli harness         pick a coding agent and a model from the g4f API
 sandbox-cli polli-sandbox   create/connect/manage hosted Polli sandboxes
 ```
 
+When `/g4f-bin` exists (Android container), `list` also appends a
+`g4f-bin commands` group with every bundled command and a short description.
+
 Tools install on first click (vendor installer, npm package,
 `pip install --user`, or Chrome's `.deb`), so the image stays small. The
-settings commands accept flags for scripting, for example
+`nodejs` entry installs the newest Node.js "Current" release and npm from
+NodeSource instead of Debian's older package; the same path is used when a
+bare container needs Node for its first npm-based tool. The
+installers write their launchers into per-user directories such as
+`~/.local/bin` and `~/.opencode/bin`; `sandbox-cli` links every installed
+launcher into `/usr/local/bin`, so tools like `opencode` also work from a plain
+terminal and not only from the menu. The settings commands accept flags for
+scripting, for example
 `sandbox-cli settings --api-key 'key' --model gpt-4o`,
 `sandbox-cli settings --show` and `sandbox-cli settings --json`.
 

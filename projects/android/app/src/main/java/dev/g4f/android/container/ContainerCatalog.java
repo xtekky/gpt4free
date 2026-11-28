@@ -35,7 +35,7 @@ public final class ContainerCatalog {
     public final Asset proot;
     public final Asset libtalloc;
     public final Asset libandroidShmem;
-    /** Optional overlay with /opt/g4f-venv and launchers already installed. */
+    /** Optional overlay with pre-provisioned launchers already installed. */
     public final Asset prebuilt;
     /** Optional overlay with XFCE, TigerVNC and noVNC already installed. */
     public final Asset desktopPrebuilt;

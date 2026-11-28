@@ -201,10 +201,9 @@ func ensurePip(binDir, exe string) error {
 }
 
 // usesExternalPython reports whether the interpreter is managed outside the
-// g4f-go download: Termux's python package, or an explicit G4F_PYTHON such as
-// the Android container's /opt/g4f-venv/bin/python. Those interpreters have
-// their own stdlib, so pointing PYTHONHOME at the downloaded runtime makes
-// CPython fail at startup with "No module named encodings".
+// g4f-go download: Termux's python package, or an explicit G4F_PYTHON. Those
+// interpreters have their own stdlib, so pointing PYTHONHOME at the downloaded
+// runtime makes CPython fail at startup with "No module named encodings".
 func usesExternalPython() bool {
 	return IsTermuxSystem() || strings.TrimSpace(os.Getenv("G4F_PYTHON")) != ""
 }

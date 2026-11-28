@@ -33,8 +33,11 @@ emblem). The desktop entrypoint also opens it at startup; set
 `sandbox-cli` installs tools on **first click** — a vendor install script,
 an npm package, a `pip install --user`, or Google's Chrome `.deb` — then runs
 them in that same terminal (Chrome opens on the desktop instead). The
- CLI is preinstalled in the image. Node.js 24 and  are also
-preinstalled (from the official  image) for the npm-based tools; the rest is installed on demand.
+ CLI is preinstalled in the image. Node.js 24 and npm are also
+preinstalled (from the official Node.js image) for the npm-based tools; the
+rest is installed on demand. On a bare container (for example the Android
+Debian container), the **Latest Node.js** entry — or the first npm-based tool —
+installs the newest Node.js "Current" release from NodeSource, with npm.
 
 ![](agents.png)
 
@@ -53,6 +56,7 @@ preinstalled (from the official  image) for the npm-based tools; the rest is ins
 | Codex     | `codex`     | npm `@openai/codex`         | `codex`        |
 | Copilot   | `copilot`   | npm `@github/copilot`       | `copilot`      |
 | Open g4f-go CLI          | `g4f-go`    | preinstalled in the image   | `g4f-go`       |
+| Latest Node.js           | `nodejs`    | NodeSource current release (apt `nodejs`) | `node`, `npm` |
 | Open Remote Desktop      | `remote-desktop` | g4f-go bundled module + pip `qrcode`, `python-xlib`, `pynput` | `g4f-go` |
 | Sandbox Settings         | `settings`  | none (writes a settings file) | —            |
 | Update or Change g4f Package | `package` | `g4f-go install` (pip) | —           |

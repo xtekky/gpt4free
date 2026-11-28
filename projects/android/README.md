@@ -20,8 +20,9 @@ libraries are downloaded and verified on first install.
 | Isolation | PRoot user-space chroot, no root, no unlocked bootloader |
 | ABIs | `arm64-v8a`, `x86_64` |
 | Desktop | Opt-in: XFCE with a D-Bus session, TigerVNC and noVNC at `http://127.0.0.1:1337/desktop/` |
-| API | `python -m g4f api --bind 127.0.0.1:1337 --debug --no-reload` (bundled GUI at `/chat/`) |
-| Terminal | local renderer over a native PTY with Termux-style keys and copy; repo `bin/` commands and Linux `g4f-go` on `PATH` |
+| API | `g4f-go api --bind 127.0.0.1:1337 --debug --no-reload` (bundled GUI at `/chat/`) |
+| Terminal | native Android terminal view over a native PTY with Termux-style keys, copy and immersive fullscreen; repo `bin/` commands and Linux `g4f-go` on `PATH` |
+| App store | **Store** tab lists every `sandbox-cli list` tool plus every `/g4f-bin` command, with search; installers run in a visible terminal, built-ins are marked `built in`, and **Terminal** opens a bundled command ready to run |
 | Background | Foreground service + partial wake lock keeps sessions alive |
 
 ### First run
@@ -30,19 +31,32 @@ libraries are downloaded and verified on first install.
 2. Leave **Desktop** unchecked for a lighter install, or check it to add XFCE.
 3. Tap **Install**. The app downloads and verifies the rootfs and PRoot support
    libraries. When a prebuilt g4f overlay is pinned in `catalog.json`, it is
-   extracted immediately; otherwise a **setup** terminal runs `apt` and
-   `pip install`. Network failures show a retry hint instead of hanging.
+   extracted immediately; otherwise a **setup** terminal installs
+   `ca-certificates`, `sudo` and `git` and runs
+   `g4f-go install -e /g4f-src[api]`, which downloads
+   the pinned CPython runtime and installs the bundled source. Network failures
+   show a retry hint instead of hanging.
 4. When setup finishes, the API starts automatically; the Desktop service also
-   starts when Desktop was installed. The **Chat**, **API** and **Desktop** tabs
-   are always the first three tabs and never duplicate.
-5. **+ Shell** opens additional terminal tabs. **Stop** closes all sessions and
-   the status shows a stopped message instead of an exit error.
+   starts when Desktop was installed. The **Chat**, **API**, **Desktop** and
+   **Store** tabs are pinned before the shell tabs and never duplicate.
+5. **Store** reads `sandbox-cli list` from the container, shows all tools with
+   a search field, and **Install** runs `sandbox-cli install <tool>` in its own
+   terminal. The appended `g4f-bin commands` group lists every bundled command;
+   **Terminal** opens one at a shell prompt so arguments can be added first.
+   New tools and commands appear in the store without an APK update. **+ Shell**
+   opens additional terminal tabs, and **Stop** closes all sessions with a
+   stopped status instead of an exit error.
 
 The app binds the bundled gpt4free source at `/g4f-src` inside the container, so
 the version running in Debian matches the APK version without a separate clone.
-The pinned overlay is paired with a bundled Debian Python runtime, so API and
-Chat do not need apt or pip on the phone. A pinned desktop overlay does the same
-for XFCE/VNC when **Desktop** is checked. The Android `g4f-go` build is not used
+Python is not embedded in the APK and no Debian venv is used: `g4f-go` downloads
+its pinned CPython runtime on first use and installs the bundled source into it
+with an editable pip install. API, Chat and the terminal all go through
+`g4f-go`, never through a hard-coded `python`/venv path. The first base setup
+downloads ~60 MB, so give it a few minutes; the download resumes after an
+interruption instead of starting over, and its output is kept in
+`/g4f-scripts/provision-base.log` for troubleshooting. A pinned desktop overlay
+adds XFCE/VNC when **Desktop** is checked. The Android `g4f-go` build is not used
 inside Debian; it needs Android's linker, so the container gets the Linux arm64
 binary instead, with the repo `bin/` commands on `PATH` in login shells. A
 pinned static curl is included there too, so `sandbox-cli` can fetch installers
@@ -179,7 +193,7 @@ ContainerActivity (launcher)
  ├─ ContainerService (foreground, wake lock)
  │   ├─ ContainerManager: verified downloads → rootfs + support libs + scripts
  │   └─ TerminalSession × N: native PTY → PRoot → /bin/bash inside Debian
- ├─ terminal.html (local renderer) ← base64 PTY output / → keystrokes
+ ├─ TerminalView (native) ← PTY output / → keystrokes
  └─ content WebView → /chat/ (1337) or /desktop/ (noVNC on 1337)
 ```
 
@@ -220,13 +234,16 @@ WebView polls /chat/ until 200, then loads it (2-thread executor: server + polle
 Providers that need a browser (e.g. Cloudflare) use `CDPSession`. On Android there is no
 installable Chrome, so `CDPSession` attaches to the app's own **WebView**:
 
-- `MainActivity` enables `WebView.setWebContentsDebuggingEnabled(true)`, which exposes the
-  DevTools abstract socket `@webview_devtools_remote_<pid>`
+- `MainActivity` and `ContainerActivity` enable `WebView.setWebContentsDebuggingEnabled(true)`,
+  which exposes the DevTools abstract socket `@webview_devtools_remote_<pid>`
 - `CDPSession` (mode `webview`, auto-detected on Android or forced with `G4F_BROWSER_MODE=webview`)
   connects to that socket with an aiohttp `UnixConnector` and speaks plain CDP
-- On close, the session navigates the WebView back to the page it showed before automation
-- Limitation: there is only one WebView, so sessions cannot run in parallel tabs and
-  automation navigation is visible in the app UI
+- In the Debian container the Python process has a different pid, so the app exports
+  `G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_<app pid>` into every session;
+  `ContainerActivity` provides the same `window.G4FAutomation` bridge as Classic mode
+- On close, the session destroys its automation WebView (or navigates the fallback page back)
+- Limitation: automation needs the app UI/activity to be running, and sessions cannot run
+  in parallel tabs when the app falls back to the single WebView
 
 ## Container runtime sources and licenses
 

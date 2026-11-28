@@ -8,8 +8,8 @@ services:
     volumes:
       - .:/app
     ports:
-      - '8080:8080'
-      - '1337:8080'
-      - '7900:7900'
+      - '8080:8080'   # g4f API server (G4F_API_PORT)
+      - '7900:7900'   # Classic desktop/noVNC login (G4F_LOGIN_URL)
     environment:
+      - G4F_API_PORT=8080   # API port, kept separate from Classic on 7900
       - OLLAMA_HOST=host.docker.internal

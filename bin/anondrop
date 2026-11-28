@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""Upload files to AnonDrop from the shell.
+
+Usage:
+    bin/anondrop FILE...
+    bin/anondrop drop FILE... [--chunked] [--direct | --download]
+    bin/anondrop remote URL [--direct | --download]
+    bin/anondrop direct SHARE_LINK [--filename NAME] [--download]
+    bin/anondrop list [--direct | --download]
+    bin/anondrop delete FILE_ID
+    bin/anondrop register
+
+See https://anondrop.io/info#api for the service API.
+"""
+
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from tools.anondrop import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

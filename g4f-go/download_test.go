@@ -5,9 +5,15 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"sync/atomic"
 	"testing"
 )
 
@@ -187,5 +193,60 @@ func writeTestRuntimeArchive(t *testing.T, name string, files map[string]string)
 	}
 	if err := os.WriteFile(name, buf.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestDownloadRuntimeResumesAfterInterruption(t *testing.T) {
+	payload := bytes.Repeat([]byte("g4f!"), 256*1024) // 1 MiB
+	sum := sha256.Sum256(payload)
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := requests.Add(1)
+		start := 0
+		if rng := r.Header.Get("Range"); rng != "" {
+			fmt.Sscanf(rng, "bytes=%d-", &start)
+		}
+		if n == 1 {
+			// Announce the full size but close the connection after half of
+			// it: the client must retry with a Range request and resume.
+			w.Header().Set("Content-Length", strconv.Itoa(len(payload)))
+			w.WriteHeader(http.StatusOK)
+			w.Write(payload[:len(payload)/2])
+			return
+		}
+		w.Header().Set("Content-Range",
+			fmt.Sprintf("bytes %d-%d/%d", start, len(payload)-1, len(payload)))
+		w.WriteHeader(http.StatusPartialContent)
+		w.Write(payload[start:])
+	}))
+	defer server.Close()
+
+	oldDelay := downloadRetryDelay
+	downloadRetryDelay = 0
+	defer func() { downloadRetryDelay = oldDelay }()
+
+	binDir := t.TempDir()
+	cache := filepath.Join(binDir, ".g4f-runtime", "runtime.tar.gz")
+	spec := &RuntimeSpec{
+		URL:    server.URL,
+		Size:   int64(len(payload)),
+		SHA256: fmt.Sprintf("%x", sum),
+	}
+	if err := downloadRuntime(binDir, cache, spec); err != nil {
+		t.Fatalf("downloadRuntime() error = %v", err)
+	}
+	got, err := os.ReadFile(cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatalf("downloaded %d bytes, want %d", len(got), len(payload))
+	}
+	if requests.Load() < 2 {
+		t.Fatalf("expected a resumed retry, got %d request(s)", requests.Load())
+	}
+	if _, err := os.Stat(partName(binDir)); !os.IsNotExist(err) {
+		t.Fatalf("partial download was not renamed: %v", err)
 	}
 }

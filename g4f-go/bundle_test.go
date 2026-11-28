@@ -151,7 +151,7 @@ func TestBundleEnvPrependsBundleToPythonPath(t *testing.T) {
 }
 
 func TestPipEnvWithExplicitPythonKeepsExternalStdlib(t *testing.T) {
-	t.Setenv("G4F_PYTHON", "/opt/g4f-venv/bin/python")
+	t.Setenv("G4F_PYTHON", "/usr/bin/python3")
 	t.Setenv("PYTHONHOME", "/stale/python-home")
 	binDir := t.TempDir()
 	env := pipEnv(binDir)
@@ -175,7 +175,7 @@ func TestPipEnvWithExplicitPythonKeepsExternalStdlib(t *testing.T) {
 }
 
 func TestBundleEnvWithExplicitPythonOnlyAddsBundle(t *testing.T) {
-	t.Setenv("G4F_PYTHON", "/opt/g4f-venv/bin/python")
+	t.Setenv("G4F_PYTHON", "/usr/bin/python3")
 	binDir := t.TempDir()
 	want := bundleDir(binDir)
 	for _, kv := range bundleEnv(binDir) {
@@ -203,7 +203,7 @@ func TestBundlePipCacheDir(t *testing.T) {
 }
 
 func TestPythonEnvClearsInheritedPythonHome(t *testing.T) {
-	t.Setenv("G4F_PYTHON", "/opt/g4f-venv/bin/python")
+	t.Setenv("G4F_PYTHON", "/usr/bin/python3")
 	t.Setenv("PYTHONHOME", "/stale/python-home")
 
 	got := pythonEnv("PYTHONUTF8=1")

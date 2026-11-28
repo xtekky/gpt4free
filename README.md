@@ -585,6 +585,18 @@ Install g4f-go (launcher):
 curl -fsSL https://raw.githubusercontent.com/xtekky/gpt4free/main/bin/install.sh | bash
 ```
 
+Drop a file to AnonDrop and get a share link:
+```bash
+bin/anondrop screenshot.png
+bin/anondrop screenshot.png --direct    # direct file URL
+bin/anondrop direct https://anondrop.io/abc123
+# large files, remote URLs and account operations
+bin/anondrop drop disk.img --chunked
+bin/anondrop remote https://example.com/report.pdf
+bin/anondrop register && bin/anondrop list --direct
+```
+See [docs/anondrop.md](docs/anondrop.md) for keys, `--json` output and options.
+
 Install (pip):
 ```bash
 pip install -U g4f[all]
