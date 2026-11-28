@@ -90,22 +90,205 @@
           "bytes": 7388
         }
       }
+    },
+    "python": {
+      "version": "3.11.2",
+      "source": "Debian 12 bookworm packages",
+      "packages": {
+        "arm64-v8a": [
+          {
+            "name": "libpython3.11-minimal",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/libpython3.11-minimal_3.11.2-6%2bdeb12u9_arm64.deb",
+            "sha256": "dd9847d2f77c5a924b1d3dd953b81f161db9374c94d03b9216191925350928c3",
+            "bytes": 813684
+          },
+          {
+            "name": "python3.11-minimal",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/python3.11-minimal_3.11.2-6%2bdeb12u9_arm64.deb",
+            "sha256": "617855dbf3299e03873926c75d61feaf3d36924586aecc1951a0b965a95bc694",
+            "bytes": 1861676
+          },
+          {
+            "name": "libpython3.11-stdlib",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/libpython3.11-stdlib_3.11.2-6%2bdeb12u9_arm64.deb",
+            "sha256": "9937cbe3f647aa89a590fec647438ce02098c113d1c6f70e4cb1230c368d42a4",
+            "bytes": 1750132
+          },
+          {
+            "name": "python3.11",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/python3.11_3.11.2-6%2bdeb12u9_arm64.deb",
+            "sha256": "f8d1726c2f5c61b42dbf7652cd9c01da23e55029e3c384a9f1802334fd964091",
+            "bytes": 575032
+          },
+          {
+            "name": "python3-minimal",
+            "url": "http://deb.debian.org/debian/pool/main/p/python3-defaults/python3-minimal_3.11.2-1%2bb1_arm64.deb",
+            "sha256": "f01c94963ace8a6fec59300427c95fc4ac204d752567dd2e4b36ee930755110f",
+            "bytes": 26296
+          },
+          {
+            "name": "python3",
+            "url": "http://deb.debian.org/debian/pool/main/p/python3-defaults/python3_3.11.2-1%2bb1_arm64.deb",
+            "sha256": "d31a6f8bdea49711f221baee0e27197c314d0cbe748c020262d32650aca5f017",
+            "bytes": 26284
+          },
+          {
+            "name": "libexpat1",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/e/expat/libexpat1_2.5.0-1%2bdeb12u5_arm64.deb",
+            "sha256": "4a733e7f636de4a4483e3e5d7b02dc8e788b115361a04dd58df89461ce2ae65a",
+            "bytes": 91748
+          },
+          {
+            "name": "libssl3",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/o/openssl/libssl3_3.0.22-1~deb12u2_arm64.deb",
+            "sha256": "3d04ecd8d0f57fed50d205abaeedfcc84c1960073ea085719c00add44b0ccd7f",
+            "bytes": 1829128
+          },
+          {
+            "name": "libsqlite3-0",
+            "url": "http://deb.debian.org/debian/pool/main/s/sqlite3/libsqlite3-0_3.40.1-2%2bdeb12u2_arm64.deb",
+            "sha256": "a690f7f2aa6435bd1fd7cbbd2216acb9acbb8c48c9721f2c195766375439eb13",
+            "bytes": 785596
+          },
+          {
+            "name": "libreadline8",
+            "url": "http://deb.debian.org/debian/pool/main/r/readline/libreadline8_8.2-1.3_arm64.deb",
+            "sha256": "f3b162b7c1e05430607e792ebdbfc417cbd1f1d32cf83664133ae63d811a72d2",
+            "bytes": 154776
+          },
+          {
+            "name": "libncursesw6",
+            "url": "http://deb.debian.org/debian/pool/main/n/ncurses/libncursesw6_6.4-4_arm64.deb",
+            "sha256": "cf32cb6751718872c6def448b82211eec494f688e2f1a3e6c71bfdaf6b0722c5",
+            "bytes": 121688
+          },
+          {
+            "name": "libtinfo6",
+            "url": "http://deb.debian.org/debian/pool/main/n/ncurses/libtinfo6_6.4-4_arm64.deb",
+            "sha256": "baef0f6776f84c7eed4f1146d6e5774689567dad43216894d41da02e6608e4b3",
+            "bytes": 324548
+          },
+          {
+            "name": "libnsl2",
+            "url": "http://deb.debian.org/debian/pool/main/libn/libnsl/libnsl2_1.3.0-2_arm64.deb",
+            "sha256": "8f9ba58b219779b43c4ccc78c79b0a23f721fc96323c202abb31e02f942104b3",
+            "bytes": 36908
+          },
+          {
+            "name": "libtirpc3",
+            "url": "http://deb.debian.org/debian/pool/main/libt/libtirpc/libtirpc3_1.3.3%2bds-1_arm64.deb",
+            "sha256": "deaf9ea54f74cab6690b4bc0b427f05cbe62cc073580d84f5f18a8d9e2ece401",
+            "bytes": 80940
+          }
+        ],
+        "x86_64": [
+          {
+            "name": "libpython3.11-minimal",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/libpython3.11-minimal_3.11.2-6%2bdeb12u9_amd64.deb",
+            "sha256": "69f41cfa3f4ba17284e538f843069d7529c53c207d2ae17a5b02785944870e33",
+            "bytes": 820928
+          },
+          {
+            "name": "python3.11-minimal",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/python3.11-minimal_3.11.2-6%2bdeb12u9_amd64.deb",
+            "sha256": "b5f855ab922dfcd5d1a3223b2118c3dae13ffc7751b0cd5dc24740386323a33a",
+            "bytes": 2054684
+          },
+          {
+            "name": "libpython3.11-stdlib",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/libpython3.11-stdlib_3.11.2-6%2bdeb12u9_amd64.deb",
+            "sha256": "10f13e000ee757f5f2d2d3569f9e30546214a0c850acd78695feae373bfa3e53",
+            "bytes": 1798408
+          },
+          {
+            "name": "python3.11",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/p/python3.11/python3.11_3.11.2-6%2bdeb12u9_amd64.deb",
+            "sha256": "4facf334e0e0830a87013852f8c3a1cfee11ad702f72f240adf9ad5b9a334e7c",
+            "bytes": 575032
+          },
+          {
+            "name": "python3-minimal",
+            "url": "http://deb.debian.org/debian/pool/main/p/python3-defaults/python3-minimal_3.11.2-1%2bb1_amd64.deb",
+            "sha256": "30f9618670e686d781afbfc713eb0830c29d2819e9cb2a0488800dad6bb99faa",
+            "bytes": 26312
+          },
+          {
+            "name": "python3",
+            "url": "http://deb.debian.org/debian/pool/main/p/python3-defaults/python3_3.11.2-1%2bb1_amd64.deb",
+            "sha256": "33f6dafbd1a6902d9063172ec7dbd4b2225e12009e0d7ec5c933a72c2f5f3b74",
+            "bytes": 26300
+          },
+          {
+            "name": "libexpat1",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/e/expat/libexpat1_2.5.0-1%2bdeb12u5_amd64.deb",
+            "sha256": "cae5ded666d8573dd33060bc66fbac21eea8b101a6b56e2af8bd590fcfa65d79",
+            "bytes": 107940
+          },
+          {
+            "name": "libssl3",
+            "url": "http://deb.debian.org/debian-security/pool/updates/main/o/openssl/libssl3_3.0.22-1~deb12u2_amd64.deb",
+            "sha256": "cb4784740daa9b3b0eaea2b444bbefa686794afbbf3d678d238c1fd9875f2efd",
+            "bytes": 2039888
+          },
+          {
+            "name": "libsqlite3-0",
+            "url": "http://deb.debian.org/debian/pool/main/s/sqlite3/libsqlite3-0_3.40.1-2%2bdeb12u2_amd64.deb",
+            "sha256": "a8d78b40e9b4e422224aeebfe0e4dfc243f6acf3532490b0c05480d4283d41e2",
+            "bytes": 838808
+          },
+          {
+            "name": "libreadline8",
+            "url": "http://deb.debian.org/debian/pool/main/r/readline/libreadline8_8.2-1.3_amd64.deb",
+            "sha256": "e02ebbd3701cf468dbf98d6d917fbe0325e881f07fe8b316150c8d2a64486e66",
+            "bytes": 165760
+          },
+          {
+            "name": "libncursesw6",
+            "url": "http://deb.debian.org/debian/pool/main/n/ncurses/libncursesw6_6.4-4_amd64.deb",
+            "sha256": "98fa7a53dc565a38b65fb70422ad08001bf5361d8fbc74255280c329996a6bec",
+            "bytes": 133824
+          },
+          {
+            "name": "libtinfo6",
+            "url": "http://deb.debian.org/debian/pool/main/n/ncurses/libtinfo6_6.4-4_amd64.deb",
+            "sha256": "072d908f38f51090ca28ca5afa3b46b2957dc61fe35094c0b851426859a49a51",
+            "bytes": 331352
+          },
+          {
+            "name": "libnsl2",
+            "url": "http://deb.debian.org/debian/pool/main/libn/libnsl/libnsl2_1.3.0-2_amd64.deb",
+            "sha256": "c0d83437fdb016cb289436f49f28a36be44b3e8f1f2498c7e3a095f709c0d6f8",
+            "bytes": 39480
+          },
+          {
+            "name": "libtirpc3",
+            "url": "http://deb.debian.org/debian/pool/main/libt/libtirpc/libtirpc3_1.3.3%2bds-1_amd64.deb",
+            "sha256": "2a46d5a5e9486da11ffeff5740931740d6deae4f92cd6098df060dc5dff1e1c7",
+            "bytes": 85192
+          }
+        ]
+      }
     }
   },
   "g4f": {
     "api_port": 1337,
     "vnc_port": 5901,
     "novnc_port": 6080,
-    "prebuilt": null,
+    "prebuilt": {
+      "url": "https://github.com/xtekky/gpt4free/releases/download/v8.9.4/g4f-bookworm-overlay-v2.tar.gz",
+      "sha256": "71d4889bc510e7812ec751b50638146469b9b28a565066141b13761611336fb0",
+      "bytes": 31441623
+    },
     "desktop_prebuilt": {
       "url": "https://github.com/xtekky/gpt4free/releases/download/v8.9.4/g4f-bookworm-desktop-v2.tar.gz",
       "sha256": "a19eba12eb1500b79e27a0dd8e0aa65ba4d6ee0f385368886821f9daabe545f6",
       "bytes": 244710270
     },
     "base_packages": [
-      "ca-certificates",
-      "sudo",
-      "git"
+      "python3",
+      "python3-pip",
+      "python3-venv",
+      "ca-certificates"
     ],
     "desktop_packages": [
       "xfce4",
