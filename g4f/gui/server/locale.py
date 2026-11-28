@@ -58,6 +58,7 @@ COMMON_COPY = {
         "Details": "Detalles", "Website": "Sitio web", "Models:": "Modelos:",
         "Auth:": "Acceso:", "Required": "Obligatorio", "Status:": "Estado:", "Working": "Disponible",
         "Language": "Idioma", "Translate UI": "Traducir interfaz",
+        "Write a Python function that finds all prime numbers up to n": "Escribe una función de Python que encuentre todos los números primos hasta n",
     },
     "fr": {
         "Access high-performance AI tools, web search, real-time backend logs, model status, and multi-provider endpoints.": "Accédez aux outils d'IA, à la recherche web, aux journaux en temps réel, à l'état des modèles et aux services de plusieurs fournisseurs.",
@@ -74,6 +75,7 @@ COMMON_COPY = {
         "Details": "Détails", "Website": "Site web", "Models:": "Modèles :",
         "Auth:": "Accès :", "Required": "Obligatoire", "Status:": "État :", "Working": "Disponible",
         "Language": "Langue", "Translate UI": "Traduire l'interface",
+        "Write a Python function that finds all prime numbers up to n": "Écrivez une fonction Python qui trouve tous les nombres premiers jusqu'à n",
     },
     "de": {
         "Access high-performance AI tools, web search, real-time backend logs, model status, and multi-provider endpoints.": "Nutze KI-Werkzeuge, Websuche, Echtzeitprotokolle, Modellstatus und Dienste mehrerer Anbieter.",
@@ -90,6 +92,7 @@ COMMON_COPY = {
         "Details": "Details", "Website": "Webseite", "Models:": "Modelle:",
         "Auth:": "Zugang:", "Required": "Erforderlich", "Status:": "Status:", "Working": "Verfügbar",
         "Language": "Sprache", "Translate UI": "Oberfläche übersetzen",
+        "Write a Python function that finds all prime numbers up to n": "Schreibe eine Python-Funktion, die alle Primzahlen bis n findet",
     },
 }
 

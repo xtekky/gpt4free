@@ -251,11 +251,15 @@ needed (without opening a browser) and runs `sandbox-cli` inside it, for
 example `g4f-go sandbox-cli settings` or `g4f-go sandbox-cli hosts`.
 
 The launcher uses Docker when it is installed and falls back to Podman. If
-neither CLI is present, `g4f-go sandbox` installs Podman with the host package
-manager (`apt`, `dnf`, `pacman`, `zypper`, `apk`, Homebrew, `winget`, Chocolatey
-or Scoop) before pulling the image. Set `G4F_SANDBOX_INSTALL_PODMAN=0` to
-disable that automatic install. The full launcher options and environment
-variables are available with `g4f-go sandbox help` and in the
+neither CLI is present, `g4f-go sandbox` first offers to install
+[Kiri](https://github.com/libracoder/kiri) (a lightweight, Docker-compatible
+container engine for macOS, Windows and Linux); a declined or failed Kiri
+install falls back to installing Podman with the host package manager
+(`apt`, `dnf`, `pacman`, `zypper`, `apk`, Homebrew, `winget`, Chocolatey
+or Scoop). Set `G4F_SANDBOX_INSTALL_KIRI=0` to disable the Kiri offer and
+`G4F_SANDBOX_INSTALL_PODMAN=0` to disable the Podman install. Pass
+`--engine kiri` to use Kiri explicitly. The full launcher options and
+environment variables are available with `g4f-go sandbox help` and in the
 [sandbox desktop documentation](../docs/sandbox-desktop.md).
 
 On **Termux/Android** the launcher selects [udocker](https://github.com/indigo-dc/udocker)
@@ -274,8 +278,8 @@ autodetection.
 
 ## Standalone pi-freeflow (`freeflow`)
 
-The free-model catalog behind `bin/dev-pipeline` is normally loaded as an
-extension by Pi or Oh My Pi (OMP). `g4f-go freeflow` installs the same
+The free-model catalog used by Pi or Oh My Pi (OMP) is normally loaded as an
+extension. `g4f-go freeflow` installs the same
 [`pi-freeflow`](https://github.com/trefeon/pi-freeflow) npm package into
 `~/.g4f/freeflow` and runs its proxy daemon directly, with no Pi/OMP host and
 no Python runtime:

@@ -16,7 +16,10 @@ def get_gui_app(demo: bool = False, timeout: int = None, stream_timeout: int = N
         raise MissingRequirementsError(
             f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}'
         )
-    app = create_app(False)
+    # Compress pages and static assets (HTML, CSS, JS) for the GUI. The
+    # compressor skips streaming responses, so SSE chat completions are
+    # unaffected.
+    app = create_app(True)
     app.demo = demo
     app.timeout = timeout
     app.stream_timeout = stream_timeout

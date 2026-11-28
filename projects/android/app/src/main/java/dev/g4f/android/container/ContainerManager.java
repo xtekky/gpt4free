@@ -5,6 +5,8 @@ import android.content.pm.PackageManager;
 import android.system.Os;
 import android.util.Log;
 
+import dev.g4f.android.mcp.MobileMcpServer;
+
 import org.apache.commons.compress.archivers.ar.ArArchiveEntry;
 import org.apache.commons.compress.archivers.ar.ArArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -298,7 +300,9 @@ public final class ContainerManager {
                 "ANDROID_ROOT=/system",
                 "TMPDIR=/tmp",
                 "G4F_VERSION=" + versionName,
-                "G4F_NO_VERSION_CHECK=1"
+                "G4F_NO_VERSION_CHECK=1",
+                "G4F_MOBILE_MCP=1",
+                "G4F_MOBILE_MCP_URL=" + MobileMcpServer.ENDPOINT
         };
     }
 
@@ -317,7 +321,7 @@ public final class ContainerManager {
 
     private void ensureG4fSource() throws IOException {
         File appDir = g4fSourceDir();
-        File marker = new File(appDir, ".container-src-v2");
+        File marker = new File(appDir, ".container-src-v3");
         if (marker.exists()) {
             return;
         }
@@ -431,6 +435,8 @@ public final class ContainerManager {
                         + android.os.Process.myPid() + "\n" +
                 "export G4F_VNC_PORT=" + catalog.vncPort + "\n" +
                 "export G4F_NOVNC_DIR=/usr/share/novnc\n" +
+                "export G4F_MOBILE_MCP=1\n" +
+                "export G4F_MOBILE_MCP_URL=" + MobileMcpServer.ENDPOINT + "\n" +
                 "exec /g4f-bin/g4f-go api --bind 127.0.0.1:" +
                 catalog.apiPort + " --debug --no-reload\n");
         chmod(launcher, 0755);
@@ -453,6 +459,8 @@ public final class ContainerManager {
                 "export G4F_CONTAINER=1\n" +
                 "export G4F_WEBVIEW_DEVTOOLS_SOCKET=webview_devtools_remote_"
                         + android.os.Process.myPid() + "\n" +
+                "export G4F_MOBILE_MCP=1\n" +
+                "export G4F_MOBILE_MCP_URL=" + MobileMcpServer.ENDPOINT + "\n" +
                 // Shell sessions inherit this profile; clear any Python root
                 // left by a host/tool launcher. g4f-go manages its own runtime.
                 "unset PYTHONHOME G4F_PYTHON VIRTUAL_ENV PYTHONPATH\n" +

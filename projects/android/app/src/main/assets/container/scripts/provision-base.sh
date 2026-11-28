@@ -53,12 +53,47 @@ if [ "$updated" != 1 ]; then
     exit 1
 fi
 
+log "installing CA certificate bundle"
+# Network steps below need the system bundle: Python/pip and g4f-go verify
+# HTTPS certificates. Install it first so a failed CA install cannot leave a
+# half-provisioned Python environment behind.
+installed_ca=0
+for attempt in 1 2 3; do
+    write_resolv
+    if apt-get install -y --no-install-recommends ca-certificates \
+        && update-ca-certificates; then
+        installed_ca=1
+        break
+    fi
+    log "CA bundle install failed (attempt $attempt/3), repairing and retrying"
+    dpkg --configure -a || true
+    write_resolv
+    apt-get update -qq || true
+    sleep 5
+done
+if [ "$installed_ca" != 1 ]; then
+    log "CA certificate bundle installation failed after 3 attempts"
+    exit 1
+fi
+write_resolv
+
+# Sessions start with `bash -lc`, so this profile makes the installed bundle
+# explicit for Python/requests, curl and git without touching their config.
+mkdir -p /etc/profile.d
+cat > /etc/profile.d/g4f-ca.sh <<'EOF'
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+export GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt
+EOF
+chmod 644 /etc/profile.d/g4f-ca.sh
+
 log "installing base packages"
 installed=0
 for attempt in 1 2; do
     write_resolv
     if apt-get install -y --no-install-recommends \
-        python3 python3-pip python3-venv ca-certificates; then
+        python3 python3-pip python3-venv; then
         installed=1
         break
     fi

@@ -29,8 +29,8 @@ pass `--no-compose` to use a direct `docker run` instead.
 
 The `g4f-go` release binary includes the sandbox launcher. Download `g4f-go`
 for Windows, Linux, macOS or Termux (amd64/arm64); the `sandbox` subcommand
-requires only Docker, Podman or, on Termux/Android, udocker. It does not embed
-the image, so the download is a few MB and the image is pulled on demand.
+requires only Docker, Podman, Kiri or, on Termux/Android, udocker. It does not
+embed the image, so the download is a few MB and the image is pulled on demand.
 
 ```bash
 g4f-go sandbox                    # small API-only sandbox (latest-slim)
@@ -62,6 +62,12 @@ g4f-go sandbox down
   `--backend termux` (API only). `G4F_SANDBOX_UDOCKER_DIR` moves the udocker
   root (default `~/.udocker`) and `G4F_SANDBOX_UDOCKER_EXECMODE` selects the
   execution mode (`P1`, `P2`, `F1`-`F4`, `R1`-`R3`, `S1`).
+- **Kiri** ([libracoder/kiri](https://github.com/libracoder/kiri)) is offered
+  automatically when no container engine is found: the launcher prompts to
+  install it and falls back to Podman if the offer is declined or fails. Set
+  `G4F_SANDBOX_INSTALL_KIRI=0` to skip the offer, or pass `--engine kiri` to
+  use Kiri explicitly. Kiri speaks the Docker Engine API, so the same sandbox
+  images run under it on macOS, Windows and Linux.
 
 ### Hosted Polli sandbox
 

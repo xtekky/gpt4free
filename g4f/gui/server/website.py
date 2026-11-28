@@ -34,10 +34,46 @@ _providers_cache_time: float = 0.0
 _providers_cards_cache: str | None = None
 _PROVIDERS_TTL: float = 300.0
 _template_cache: dict[str, str] = {}
+_latest_version_cache: tuple[float, str] | None = None
+_LATEST_VERSION_TTL: float = 300.0
 
 
 def redirect_home():
     return redirect("/chat/")
+
+
+def _latest_version() -> str:
+    """Return the version used for ``{{ v }}`` asset cache busting.
+
+    ``version.utils.latest_version`` performs a PyPI/GitHub lookup on first use.
+    Successful lookups are memoised, but failures are not, so an offline host
+    would block every page request for the full request timeout. Cache the
+    resolved value for a few minutes instead.
+    """
+    global _latest_version_cache
+    now = time.time()
+    if _latest_version_cache and now - _latest_version_cache[0] < _LATEST_VERSION_TTL:
+        return _latest_version_cache[1]
+    try:
+        value = version.utils.latest_version
+    except VersionNotFoundError:
+        value = version.utils.current_version
+    value = str(value)
+    _latest_version_cache = (now, value)
+    return value
+
+
+def _html_response(html: str) -> Response:
+    """Build a revalidatable HTML response for the local GUI snapshot.
+
+    The page is a few dozen kilobytes, so repeat visits should get a cheap
+    304 instead of downloading and re-parsing it. The ETag is derived from
+    the rendered markup (which already includes the cache-busting version).
+    """
+    response = Response(html, mimetype="text/html")
+    response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+    response.set_etag(hashlib.sha256(html.encode("utf-8")).hexdigest()[:32])
+    return response.make_conditional(request)
 
 
 def render(filename="home", download_url: str = GITHUB_URL):
@@ -52,31 +88,24 @@ def render(filename="home", download_url: str = GITHUB_URL):
             return redirect("/")
         if os.path.exists(path):
             if path.endswith(".html"):
-                try:
-                    latest_version = version.utils.latest_version
-                except VersionNotFoundError:
-                    latest_version = version.utils.current_version
                 with open(path, "r", encoding="utf-8") as f:
                     html = f.read()
-                return html.replace("{{ v }}", str(latest_version))
+                return _html_response(html.replace("{{ v }}", _latest_version()))
             # Web app manifests must be re-fetched promptly, otherwise
             # installability checks keep using a stale cached manifest.
-            # JS/CSS also revalidate (max-age=0 + ETag 304s): a 1-year cache
-            # pins stale modules after updates, since the ?v= cache-bust
-            # parameter is static for addon modules.
+            # JS/CSS keep a short max-age (they are versioned with ?v=) so a
+            # repeat visit does not revalidate every module; after an update
+            # the query string changes and the new files are fetched.
             if path.endswith((".webmanifest", ".json")):
                 max_age = 0
             elif path.endswith((".js", ".css")):
-                max_age = 0
+                max_age = 600
             else:
                 max_age = 31536000
             return send_from_directory(
                 os.path.dirname(path), os.path.basename(path), max_age=max_age
             )
-    try:
-        latest_version = version.utils.latest_version
-    except VersionNotFoundError:
-        latest_version = version.utils.current_version
+    latest_version = _latest_version()
     today = datetime.today().strftime("%Y-%m-%d")
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache", today)
     qs_suffix = ""
@@ -273,18 +302,19 @@ class Website:
         # markup, so decorating a Response raised a TypeError (HTTP 500) on
         # every cached request (e.g. the Android app polling "/").
         if isinstance(result, Response):
+            if result.status_code != 200:
+                return result
             if not (result.mimetype or "").startswith("text/html"):
                 return result
             # send_from_directory() responses are in direct passthrough
             # mode; materialise the body so it can be decorated.
             result.direct_passthrough = False
-            response = Response(
-                seo_document(result.get_data(as_text=True), filename, "en"),
-                mimetype="text/html",
-            )
+            decorated = seo_document(result.get_data(as_text=True), filename, "en")
+            response = Response(decorated, mimetype="text/html")
             if "Cache-Control" in result.headers:
                 response.headers["Cache-Control"] = result.headers["Cache-Control"]
-            return response
+            response.set_etag(hashlib.sha256(decorated.encode("utf-8")).hexdigest()[:32])
+            return response.make_conditional(request)
         return seo_document(result, filename, "en")
 
     def _agent(self):

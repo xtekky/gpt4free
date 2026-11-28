@@ -20,6 +20,7 @@ from g4f.mcp.tools import (
     FileSearchGlobTool,
 )
 from g4f.mcp.pa_provider import execute_safe_code, get_workspace_dir, SAFE_MODULES
+from g4f.mcp import mobile as mobile_module
 
 try:
     from ddgs import DDGS, DDGSError
@@ -31,6 +32,55 @@ except ImportError:
 
 # Total number of tools registered in MCPServer (derived at import time)
 _TOOL_COUNT = len(MCPServer().tools)
+
+
+class TestMobileMcpBridge(unittest.IsolatedAsyncioTestCase):
+    """Android action proxies are opt-in and forward only declared arguments."""
+
+    NAMES = {
+        "turnOnFlashlight", "turnOffFlashlight", "createContact", "sendEmail",
+        "showLocationOnMap", "openWifiSettings", "createCalendarEvent",
+    }
+
+    def test_disabled_by_default(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(mobile_module.mobile_mcp_enabled())
+            self.assertEqual(mobile_module.get_mobile_tools(), {})
+
+    def test_enabled_tools_match_gallery_actions(self):
+        with mock.patch.dict(os.environ, {"G4F_MOBILE_MCP": "1"}):
+            tools = mobile_module.get_mobile_tools()
+        self.assertEqual(set(tools), self.NAMES)
+        self.assertEqual(tools["createContact"].input_schema["required"],
+                         ["firstName", "lastName", "phoneNumber", "email"])
+        self.assertEqual(tools["createCalendarEvent"].input_schema["required"],
+                         ["datetime", "title"])
+
+    async def test_execute_forwards_to_native_server(self):
+        payload = {"jsonrpc": "2.0", "id": 1, "result": {
+            "content": [{"type": "text", "text": '{"result":"success"}'}],
+            "structuredContent": {"result": "success", "enabled": True},
+            "isError": False,
+        }}
+        response = mock.MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
+        opener = mock.MagicMock()
+        opener.open.return_value = response
+
+        with mock.patch.dict(os.environ, {
+            "G4F_MOBILE_MCP": "1",
+            "G4F_MOBILE_MCP_URL": "http://127.0.0.1:1338/mcp",
+        }), mock.patch.object(mobile_module.urllib.request, "build_opener",
+                              return_value=opener):
+            tool = mobile_module.get_mobile_tools()["turnOnFlashlight"]
+            result = await tool.execute({"origin": "http://127.0.0.1:1337", "extra": "ignored"})
+
+        self.assertEqual(result, {"result": "success", "enabled": True})
+        request = opener.open.call_args.args[0]
+        body = json.loads(request.data)
+        self.assertEqual(body["method"], "tools/call")
+        self.assertEqual(body["params"]["name"], "turnOnFlashlight")
+        self.assertEqual(body["params"]["arguments"], {})
 
 
 class TestMCPServer(unittest.IsolatedAsyncioTestCase):

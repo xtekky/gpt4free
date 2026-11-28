@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
+        android:name=".MobileMcpApplication"
         android:label="G4F"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.G4F"

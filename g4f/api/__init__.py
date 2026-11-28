@@ -867,11 +867,13 @@ def create_app():
 
 def create_app_debug():
     g4f.debug.logging = True
+    AppConfig.dev = True
     return create_app()
 
 
 def create_app_with_gui_and_debug():
     g4f.debug.logging = True
+    AppConfig.dev = True
     AppConfig.gui = True
     os.environ["G4F_ENABLE_AUDIT_LOG"] = os.environ.get("G4F_ENABLE_AUDIT_LOG", "1")
     return create_app()
@@ -879,6 +881,7 @@ def create_app_with_gui_and_debug():
 
 def create_app_with_demo_and_debug():
     g4f.debug.logging = True
+    AppConfig.dev = True
     AppConfig.gui = True
     AppConfig.demo = True
     return create_app()
@@ -3138,16 +3141,17 @@ def format_exception(
             provider = config.provider
         if config.model is not None:
             model = config.model
-    if isinstance(e, str):
-        message = e
-    elif isinstance(e, ModelNotFoundError):
-        message = "ModelNotFoundError: Model not found"
-    elif isinstance(e, ProviderNotFoundError):
-        message = "ProviderNotFoundError: Provider not found"
-    elif isinstance(e, MissingAuthError):
-        message = "MissingAuthError: Authentication required"
+    if not AppConfig.dev:
+        if isinstance(e, ModelNotFoundError):
+            message = "ModelNotFoundError: Model not found"
+        elif isinstance(e, ProviderNotFoundError):
+            message = "ProviderNotFoundError: Provider not found"
+        elif isinstance(e, MissingAuthError):
+            message = "MissingAuthError: Authentication required"
+        else:
+            message = "Request execution failed"
     else:
-        message = "Request execution failed"
+        message = f"{type(e).__name__}: {str(e)}" if isinstance(e, Exception) else str(e)
     return json.dumps(
         {
             "error": {"message": message},

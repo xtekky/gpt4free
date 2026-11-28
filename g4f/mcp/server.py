@@ -33,6 +33,7 @@ from ..image import EXTENSIONS_MAP
 from ..image.copy_images import get_media_dir, copy_media, get_source_url
 
 from .sandbox import detect_sandbox, safe_mode_enabled, shell_tool_enabled
+from .mobile import get_mobile_tools
 from .tools import (
     MarkItDownTool,
     TextToAudioTool,
@@ -214,6 +215,9 @@ class MCPServer:
             "notebook_create": NotebookCreateTool(),
             "notebook_list": NotebookListTool(),
         }
+        # Android on-device actions are provided by the app's native MCP
+        # server. They stay absent on hosts that do not enable the bridge.
+        self.tools.update(get_mobile_tools())
         # Shell / terminal command execution is only activated outside
         # sandboxes: safe mode (explicit or auto-detected) keeps it disabled.
         self.shell_enabled = not safe_mode and shell_tool_enabled()

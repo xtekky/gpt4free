@@ -42,6 +42,7 @@ public final class ContainerActivity extends Activity {
 
     private static final String TAG = "g4f-container-ui";
     private static final int NOTIFICATION_REQUEST = 3301;
+    private static final int MOBILE_MCP_CAMERA_REQUEST = 3302;
 
     private ContainerService service;
     private boolean bound;
@@ -150,6 +151,7 @@ public final class ContainerActivity extends Activity {
         // can attach to the app's WebView (no installable Chrome on Android).
         WebView.setWebContentsDebuggingEnabled(isWebViewDebugEnabled());
         requestNotificationsIfNeeded();
+        requestMobileMcpCameraIfNeeded();
         buildUi();
         startAndBindService();
     }
@@ -160,6 +162,15 @@ public final class ContainerActivity extends Activity {
                 != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS },
                     NOTIFICATION_REQUEST);
+        }
+    }
+
+    /** Camera permission is needed by the flashlight MCP tools. */
+    private void requestMobileMcpCameraIfNeeded() {
+        if (checkSelfPermission(Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { Manifest.permission.CAMERA },
+                    MOBILE_MCP_CAMERA_REQUEST);
         }
     }
 

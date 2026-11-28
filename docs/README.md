@@ -36,7 +36,6 @@ git clone --depth 1 https://github.com/gpt4free/g4f.dev.git ../g4f.dev
 - [API Route authenticated provider](api-route.md)
 - [Browsing APIs, live feeds, triggers and notifications](browsing.md)
 - [Custom model routing with `config.yaml`](config-yaml-routing.md)
-- [Automatic development pipeline](dev-pipeline.md)
 - [AnonDrop file drops (`bin/anondrop`)](anondrop.md)
 - [Reasoning standardization](reasoning-standardization.md)
 - [Android container app](android-container.md) — rootless Debian, optional desktop, in-app PTY terminal

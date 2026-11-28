@@ -224,9 +224,9 @@ def run_api_args(args):
         media_provider=args.media_provider,
         proxy=args.proxy,
         model=args.model,
-        gui=not args.no_gui,
-        demo=args.demo,
-        dev=args.debug,
+        gui=not args.no_gui or AppConfig.gui,
+        demo=args.demo or AppConfig.demo,
+        dev=args.debug or AppConfig.dev,
         timeout=args.timeout,
         stream_timeout=args.stream_timeout,
     )

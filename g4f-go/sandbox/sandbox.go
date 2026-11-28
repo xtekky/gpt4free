@@ -501,8 +501,8 @@ func (o *options) finish() error {
 		}
 		return fmt.Errorf("invalid domain suffix: %s", o.domainSuffix)
 	}
-	if o.engine != "" && o.engine != "docker" && o.engine != "podman" && o.engine != "udocker" {
-		return fmt.Errorf("engine must be docker, podman or udocker: %s", o.engine)
+	if o.engine != "" && o.engine != "docker" && o.engine != "podman" && o.engine != "kiri" && o.engine != "udocker" {
+		return fmt.Errorf("engine must be docker, podman, kiri or udocker: %s", o.engine)
 	}
 	if o.engine == "udocker" &&
 		(o.backend == "docker" || o.backend == "podman" || o.backend == "container") {
@@ -640,7 +640,7 @@ type engine struct {
 }
 
 func findEngine(preferred string) (engine, error) {
-	candidates := []string{"docker", "podman"}
+	candidates := []string{"docker", "podman", "kiri"}
 	if preferred != "" {
 		candidates = []string{preferred}
 	}
@@ -648,9 +648,12 @@ func findEngine(preferred string) (engine, error) {
 	for _, name := range candidates {
 		var path string
 		var err error
-		if name == "podman" {
+		switch name {
+		case "podman":
 			path, err = findPodmanBinary()
-		} else {
+		case "kiri":
+			path, err = findKiriBinary()
+		default:
 			path, err = exec.LookPath(name)
 		}
 		if err == nil {
@@ -658,19 +661,30 @@ func findEngine(preferred string) (engine, error) {
 		}
 		tried = append(tried, name)
 	}
-	return engine{}, fmt.Errorf("container engine not found (%s); install Docker Desktop or Podman (%s), or pass --engine",
-		strings.Join(tried, ", "), "https://docs.docker.com/get-docker/")
+	return engine{}, fmt.Errorf("container engine not found (%s); install Docker Desktop, Podman or Kiri (%s), or pass --engine",
+		strings.Join(tried, ", "), "https://runkiri.com/releases/")
 }
 
 // resolveEngine finds a usable container engine, installing Podman on a host
 // that has neither Docker nor Podman, and verifies that its daemon works.
+// When nothing is installed, the user is first offered to install Kiri (a
+// lightweight Docker-compatible engine); a declined or failed Kiri install
+// falls back to the historical automatic Podman install. An explicit
+// --engine docker is respected (no surprise install).
 func resolveEngine(o options) (engine, error) {
 	e, err := findEngine(o.engine)
 	if err != nil {
-		// No Docker and no Podman: install the Podman CLI so a fresh host can
-		// run the sandbox without a manual setup step. An explicit
-		// --engine docker is respected (no surprise Podman install).
-		if o.engine == "" || o.engine == "podman" {
+		// No Docker, Podman or Kiri found. Offer Kiri first unless Docker was
+		// pinned explicitly.
+		mayInstall := o.engine == "" || o.engine == "podman" || o.engine == "kiri"
+		if mayInstall {
+			if ierr := askInstallKiri(); ierr == nil {
+				e, err = findEngine("kiri")
+			}
+		}
+		if err != nil && mayInstall && o.engine != "kiri" {
+			// Kiri was declined, unavailable or failed to install; fall back to
+			// the historical automatic Podman install so a fresh host still works.
 			if ierr := installPodman(); ierr == nil {
 				e, err = findEngine("podman")
 			} else {
@@ -691,15 +705,23 @@ func resolveEngine(o options) (engine, error) {
 // most common failure on a fresh Windows/macOS install.
 func (e engine) checkReady() error {
 	if _, err := e.output("info"); err != nil {
-		// A freshly installed Podman on macOS/Windows has no machine yet;
-		// create and start the default one before giving up.
-		if filepath.Base(e.bin) == "podman" && (runtime.GOOS == "darwin" || runtime.GOOS == "windows") {
-			preparePodmanMachine()
+		// A freshly installed Podman or Kiri on macOS/Windows has no machine
+		// (or stopped instance) yet; start it before giving up.
+		base := filepath.Base(e.bin)
+		if (base == "podman" || base == "kiri") && (runtime.GOOS == "darwin" || runtime.GOOS == "windows") {
+			if base == "kiri" {
+				bin, _ := findKiriBinary()
+				if bin != "" {
+					_ = runInstallCommand(bin, "start")
+				}
+			} else {
+				preparePodmanMachine()
+			}
 			if _, retry := e.output("info"); retry == nil {
 				return nil
 			}
 		}
-		return fmt.Errorf("%s is installed but its daemon is not reachable; start Docker Desktop or the Docker/Podman service", filepath.Base(e.bin))
+		return fmt.Errorf("%s is installed but its daemon is not reachable; start Docker Desktop, Kiri or the Docker/Podman service", base)
 	}
 	return nil
 }
@@ -1227,10 +1249,12 @@ Options:
       --keep             With down/stop, stop without removing
       --pull             Pull the image even when it exists locally
       --no-pull          Never pull; fail when the image is missing
-      --engine NAME      docker, podman or udocker (default: autodetect)
-                         (when neither Docker nor Podman is installed, Podman
-                          is installed with the host package manager; opt out
-                          with G4F_SANDBOX_INSTALL_PODMAN=0)
+      --engine NAME      docker, podman, kiri or udocker (default: autodetect)
+                         (when neither Docker, Podman nor Kiri is installed,
+                          Kiri is offered first and Podman is installed if the
+                          offer is declined or fails; opt out of Kiri with
+                          G4F_SANDBOX_INSTALL_KIRI=0 and of Podman with
+                          G4F_SANDBOX_INSTALL_PODMAN=0)
       --backend NAME     auto, docker, podman, udocker or termux (default: auto)
       --udocker          Force the udocker backend (user-space containers)
       --termux           Force the native Termux Python backend (API only)

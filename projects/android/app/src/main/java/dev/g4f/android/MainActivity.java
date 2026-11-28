@@ -47,9 +47,9 @@ public class MainActivity extends Activity {
     private static final long STARTUP_TIMEOUT_MS = 120_000L;
     private static final int READ_TIMEOUT_MS = 30_000;
     private static final String APP_DIR = "app";
-    // v8: bundled g4f package updated (GUI "/" route fix, version checks
-    // disabled on Android). Bump also cleans the stale extraction.
-    private static final String EXTRACTION_VERSION = "8";
+    // v9: bundled g4f package updated with the mobile MCP bridge. Bump also
+    // cleans the stale extraction.
+    private static final String EXTRACTION_VERSION = "9";
 
     // File chooser (image / file upload from the chat UI)
     private static final int FILE_CHOOSER_REQUEST = 1001;
@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
 
     // Mic / camera permissions (audio recording, camera capture)
     private static final int WEB_PERMISSION_REQUEST = 1002;
+    private static final int MOBILE_MCP_CAMERA_REQUEST = 1003;
     private PermissionRequest pendingWebPermissionRequest;
     private static final String[] NEEDED_PERMISSIONS = {
         Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA
@@ -77,6 +78,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         executor = Executors.newFixedThreadPool(2);
+        if (checkSelfPermission(Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { Manifest.permission.CAMERA },
+                    MOBILE_MCP_CAMERA_REQUEST);
+        }
 
         if (!Python.isStarted()) {
             Python.start(new AndroidPlatform(getApplicationContext()));

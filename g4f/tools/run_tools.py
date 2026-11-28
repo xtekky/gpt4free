@@ -297,6 +297,41 @@ async def perform_web_search(
     return messages, sources
 
 
+def resolve_tool_message_names(messages: Messages) -> None:
+    """
+    Give ``role: tool`` messages a resolvable function name.
+
+    Some providers (e.g. Kimi) require the name, but the OpenAI API only
+    guarantees the ``tool_call_id`` on tool messages. Derive the name from the
+    assistant ``tool_calls`` (or a ``name:index`` style id) instead of using
+    the raw id as the name, which providers like Gemini reject.
+    """
+    tool_names_by_id = {}
+    for message in messages:
+        if (
+            isinstance(message, dict)
+            and message.get("role") == "assistant"
+            and isinstance(message.get("tool_calls"), list)
+        ):
+            for tool_call in message["tool_calls"]:
+                if not isinstance(tool_call, dict):
+                    continue
+                function = tool_call.get("function") or {}
+                if tool_call.get("id") and function.get("name"):
+                    tool_names_by_id[tool_call["id"]] = function["name"]
+    for message in messages:
+        if not isinstance(message, dict) or message.get("role") != "tool":
+            continue
+        tool_call_id = message.get("tool_call_id") or ""
+        name = tool_names_by_id.get(tool_call_id)
+        if not name and ":" in tool_call_id:
+            name = tool_call_id.split(":", 1)[0]
+        if name and (
+            not message.get("name") or message.get("name") == tool_call_id
+        ):
+            message["name"] = name
+
+
 async def async_iter_run_tools(
     provider: ProviderType,
     model: str,
@@ -319,10 +354,10 @@ async def async_iter_run_tools(
         saved_tokens += to_saved
         debug.log(f"Token Optimizer plugin: saved ~{to_saved} tokens")
 
-    # Kimi K3 tool messages need a resolvable tool name
-    for message in messages:
-        if isinstance(message, dict) and message.get("role") == "tool":
-            message["name"] = message.get("name", message.get("tool_call_id").split(":")[0])
+    # Kimi K3 tool messages need a resolvable tool name. Resolve it from the
+    # assistant tool_calls instead of using the raw tool_call_id (OpenAI ids
+    # such as "call_123" are not function names and break other providers).
+    resolve_tool_message_names(messages)
 
     # The `reasoning_content` in the thinking mode must be passed back to the API.
     for message in messages:

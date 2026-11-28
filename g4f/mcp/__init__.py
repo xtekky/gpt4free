@@ -12,9 +12,17 @@ through the Model Context Protocol standard, allowing AI assistants to access:
   directory (``~/.g4f/workspace`` by default, overridable with ``G4F_DIR``)
 - .pa.py custom provider loading and execution
 - Publishing workspace apps to Pollinations sites with the ``polli`` CLI
+- Optional Android on-device actions (flashlight, contacts, email, maps, WiFi,
+  calendar) proxied from the app's native MCP server
 """
 
 from .server import MCPServer
+from .mobile import (
+    MobileActionTool,
+    get_mobile_tools,
+    mobile_mcp_enabled,
+    mobile_mcp_url,
+)
 from .sandbox import (
     detect_sandbox,
     get_sandbox_reasons,
@@ -60,6 +68,11 @@ from .pa_provider import (
 
 __all__ = [
     "MCPServer",
+    # Android on-device action bridge
+    "MobileActionTool",
+    "get_mobile_tools",
+    "mobile_mcp_enabled",
+    "mobile_mcp_url",
     # Original tools
     "MarkItDownTool",
     "TextToAudioTool",

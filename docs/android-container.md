@@ -147,6 +147,22 @@ create its `/var/lib/dpkg/status-old` backup.
    description; **Terminal** opens one in a shell with its name at the prompt.
    New tools and commands appear without an APK update.
 
+## Mobile MCP endpoint
+
+Independently of the container, `MobileMcpApplication` starts a Java MCP server
+on `127.0.0.1:1338` with a single JSON-RPC endpoint at `/mcp` (plus `/health`).
+It exposes the seven MobileActions tools from Google AI Edge Gallery: flashlight
+on/off, create contact, send email, show location on a map, open WiFi settings and
+create calendar event. Only the torch uses a device API directly; the rest start
+Android intents so the user reviews and confirms the action in the native app.
+
+The container API launcher, shell profile and PRoot environment export
+`G4F_MOBILE_MCP=1` and `G4F_MOBILE_MCP_URL=http://127.0.0.1:1338/mcp`. The bundled
+`g4f/mcp/mobile.py` then registers matching proxies in the regular MCP registry,
+making the actions available to chat/`agent-tools` as well as direct MCP clients.
+The source tree refresh marker was bumped to `.container-src-v3` so existing
+installs pick up the bridge module after an app update.
+
 ## Terminal implementation
 
 `app/src/main/cpp/pty.cpp` allocates a pseudo-terminal with `posix_openpt()`,

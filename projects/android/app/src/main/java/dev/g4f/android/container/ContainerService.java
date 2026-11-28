@@ -60,7 +60,7 @@ public final class ContainerService extends Service {
     private static final String CHANNEL_ID = "g4f-container";
     private static final int NOTIFICATION_ID = 4701;
     private static final Pattern SAFE_TOOL = Pattern.compile("[a-z0-9][a-z0-9-]{0,40}");
-    // /g4f-bin entries include scripts such as build-android.sh and dev-pipeline.
+    // /g4f-bin entries include scripts such as build-android.sh.
     private static final Pattern SAFE_BIN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._+-]{0,63}");
 
     private final LocalBinder binder = new LocalBinder();

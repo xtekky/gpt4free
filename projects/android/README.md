@@ -207,6 +207,43 @@ MainActivity (Java)
 WebView polls /chat/ until 200, then loads it (2-thread executor: server + poller)
 ```
 
+## Mobile MCP server (on-device actions)
+
+The app starts a second, loopback-only MCP endpoint at
+`http://127.0.0.1:1338/mcp` when the process opens (`MobileMcpApplication`).
+It is independent of the g4f API on port 1337 and speaks JSON-RPC 2.0 over HTTP:
+
+```sh
+curl http://127.0.0.1:1338/health
+curl -X POST http://127.0.0.1:1338/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+The seven tools mirror Google AI Edge Gallery's `mobileactions` task:
+
+| Tool | Parameters |
+| --- | --- |
+| `turnOnFlashlight` / `turnOffFlashlight` | none |
+| `createContact` | `firstName`, `lastName`, `phoneNumber`, `email` |
+| `sendEmail` | `to`, `subject`, `body` |
+| `showLocationOnMap` | `location` |
+| `openWifiSettings` | none |
+| `createCalendarEvent` | `datetime` (`YYYY-MM-DDTHH:MM:SS`), `title` |
+
+Only the flashlight uses a direct device API; the other actions start Android
+intents, so the native app shows the draft and the user makes the final choice
+(send, save, or cancel). Camera permission is requested on first launch for the
+torch. The server only binds `127.0.0.1`, rejects non-local `Origin` headers,
+and ignores browser-style preflight requests from other origins.
+
+Both app modes enable the Python bridge (`G4F_MOBILE_MCP=1`,
+`G4F_MOBILE_MCP_URL=http://127.0.0.1:1338/mcp`), so these tools also appear in
+the regular MCP tool registry used by chat, `agent-tools` and WebMCP. Classic
+mode sets the variables in `bootstrap.py`; container mode sets them in the API
+launcher, shell profile and PRoot environment. Desktop installs without those
+variables keep their original tool list.
+
 ## Notes
 
 - `chaquopy {}` block is top-level in `app/build.gradle` (Chaquopy 17 DSL)

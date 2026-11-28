@@ -47,8 +47,10 @@ from ... import debug
 # JSON Schema keywords not supported by the Gemini API
 _UNSUPPORTED_SCHEMA_KEYS = {
     "patternProperties",
+    "propertyNames",
     "$schema",
     "$id",
+    "$ref",
     "$defs",
     "definitions",
     "if",
@@ -64,19 +66,82 @@ _UNSUPPORTED_SCHEMA_KEYS = {
     "writeOnly",
     "contentEncoding",
     "contentMediaType",
+    "dependentRequired",
+    "dependentSchemas",
+    "unevaluatedProperties",
+    "unevaluatedItems",
+    "minContains",
+    "maxContains",
     "additionalProperties",
     "enumDescriptions",
     "$comment",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "multipleOf",
+    "const",
 }
 
 
+def _split_schema_type(value: Any) -> Tuple[Any, bool]:
+    """Reduce a JSON Schema type (possibly a union) to one Gemini type."""
+    if not isinstance(value, list):
+        return value, False
+    nullable = False
+    types = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        if item.lower() == "null":
+            nullable = True
+        elif item not in types:
+            types.append(item)
+    return (types[0] if types else None), nullable
+
+
 def _sanitize_schema(schema: dict) -> dict:
-    """Recursively remove JSON Schema keywords unsupported by the Gemini API."""
+    """
+    Recursively make a JSON Schema acceptable to the Gemini API.
+
+    Besides removing keywords Gemini rejects, this repairs schemas that the
+    strict Antigravity/protobuf validation refuses:
+    - arrays without ``items``
+    - ``required`` entries that do not exist in ``properties``
+    - union types such as ``["string", "null"]``
+    """
     if not isinstance(schema, dict):
         return schema
     result = {}
+    nullable = False
     for k, v in schema.items():
         if k in _UNSUPPORTED_SCHEMA_KEYS:
+            continue
+        if k == "type":
+            v, is_nullable = _split_schema_type(v)
+            nullable = nullable or is_nullable
+            if not isinstance(v, str):
+                continue
+        if k == "properties":
+            if isinstance(v, dict):
+                result[k] = {
+                    name: _sanitize_schema(sub) if isinstance(sub, dict) else {}
+                    for name, sub in v.items()
+                }
+            continue
+        if k == "items":
+            if isinstance(v, list):
+                v = v[0] if v else {}
+            result[k] = _sanitize_schema(v) if isinstance(v, dict) else {
+                "type": "string"
+            }
+            continue
+        if k == "enum":
+            # Gemini only accepts string enum values; other primitives are
+            # rejected even when the declared type is numeric or boolean.
+            if isinstance(v, list):
+                result[k] = [
+                    item if isinstance(item, str) else json.dumps(item)
+                    for item in v
+                ]
             continue
         if isinstance(v, dict):
             result[k] = _sanitize_schema(v)
@@ -84,12 +149,65 @@ def _sanitize_schema(schema: dict) -> dict:
             result[k] = [_sanitize_schema(i) if isinstance(i, dict) else i for i in v]
         else:
             result[k] = v
+
+    if nullable:
+        result["nullable"] = True
+    if (
+        "type" not in result
+        and (
+            "properties" in result
+            or "required" in result
+            or "additionalProperties" in schema
+        )
+    ):
+        result["type"] = "object"
+    # Gemini requires array schemas to declare their item type.
+    if (
+        isinstance(result.get("type"), str)
+        and result["type"].lower() == "array"
+        and "items" not in result
+    ):
+        result["items"] = {"type": "string"}
+    required = result.get("required")
+    if "required" in result:
+        properties = result.get("properties")
+        if isinstance(required, list) and isinstance(properties, dict):
+            required = [
+                name
+                for name in required
+                if isinstance(name, str) and name in properties
+            ]
+        else:
+            required = []
+        if required:
+            result["required"] = required
+        else:
+            result.pop("required", None)
     return result
 
 
 def get_antigravity_oauth_creds_path() -> Path:
     """Get the default path for Antigravity OAuth credentials."""
     return Path.home() / ".antigravity" / "oauth_creds.json"
+
+
+def get_antigravity_accounts_dir() -> Path:
+    """Get the directory containing credentials for additional accounts."""
+    return Path.home() / ".antigravity" / "accounts"
+
+
+def get_antigravity_account_credentials_path(name: Optional[str] = None) -> Path:
+    """Get a stable credentials path for a named Antigravity account."""
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(name or "")).strip("._")
+    return get_antigravity_accounts_dir() / f"{safe_name or 'default'}.json"
+
+
+class AntigravityQuotaError(RateLimitError):
+    """Raised when an Antigravity account has exhausted its quota."""
+
+    def __init__(self, message: str = "Antigravity quota reached", retry_after: Optional[float] = None):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 # --- Constants ---
@@ -131,6 +249,16 @@ ANTIGRAVITY_STREAM_IDLE_TIMEOUT_MS = 300000
 
 ANTIGRAVITY_RAW_FALLBACK_MAX_LINES = 20000
 ANTIGRAVITY_ERROR_BODY_MAX_BYTES = 1024 * 1024
+
+AUTO_MODEL = "auto"
+DEFAULT_QUOTA_COOLDOWN = 3600
+QUOTA_ERROR_MARKERS = (
+    "resource_exhausted",
+    "quota",
+    "rate limit",
+    "rate_limit",
+    "too many requests",
+)
 
 ANTIGRAVITY_MODELS = [
     "claude-opus-4-6-thinking",
@@ -300,6 +428,161 @@ OAUTH_CALLBACK_PORT = CALLBACK_PORT
 OAUTH_CALLBACK_PATH = "/oauthcallback"
 
 TOOL_ID_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+
+def parse_antigravity_quota_error(
+    status: Optional[int], body: Any
+) -> Optional[AntigravityQuotaError]:
+    """Convert a quota/rate-limit response into an AntigravityQuotaError."""
+    if isinstance(body, str):
+        text = body
+    elif body is not None:
+        try:
+            text = json.dumps(body)
+        except (TypeError, ValueError):
+            text = str(body)
+    else:
+        text = ""
+    lowered = text.lower()
+    quota_reported = status == 429 or any(
+        marker in lowered for marker in QUOTA_ERROR_MARKERS
+    )
+    if not quota_reported:
+        return None
+
+    retry_after = None
+    try:
+        parsed = json.loads(text) if text.strip().startswith(("{", "[")) else None
+    except (json.JSONDecodeError, TypeError):
+        parsed = None
+    if isinstance(parsed, dict):
+        details = (parsed.get("error") or {}).get("details", [])
+        if isinstance(details, list):
+            for detail in details:
+                value = detail.get("retryDelay") if isinstance(detail, dict) else None
+                if value is None:
+                    continue
+                try:
+                    retry_after = float(str(value).rstrip("sS"))
+                except ValueError:
+                    continue
+                break
+    if retry_after is not None:
+        retry_after = max(1.0, retry_after)
+    summary = text.strip()[:500] or "quota reached"
+    return AntigravityQuotaError(
+        f"Antigravity quota reached (status {status}): {summary}",
+        retry_after=retry_after,
+    )
+
+
+def get_antigravity_model_family(model_name: str) -> str:
+    """Classify a model so quota exhaustion can be tracked per model family."""
+    name = strip_model_suffix(normalize_antigravity_model_id(model_name)).lower()
+    if "claude" in name:
+        return "claude"
+    if name.startswith("gemini-"):
+        return "gemini"
+    return "other"
+
+
+def is_midsize_gemini_model(model_name: str) -> bool:
+    """Mid-size Gemini models are Flash models without lite/pro/image suffixes."""
+    name = strip_model_suffix(normalize_antigravity_model_id(model_name))
+    if not name.startswith("gemini-") or "flash" not in name:
+        return False
+    return not any(
+        marker in name for marker in ("lite", "pro", "image", "agent")
+    )
+
+
+def get_auto_model_candidates(available_models: Optional[List[str]] = None) -> List[str]:
+    """
+    Resolve the "auto" model: first mid-size Gemini model, then a Claude model.
+    Dynamic models from the API are preferred over the built-in fallback list.
+    """
+    models: List[str] = []
+    for candidate in [*(available_models or []), *ANTIGRAVITY_MODELS]:
+        candidate = normalize_antigravity_model_id(candidate)
+        if candidate and candidate not in models:
+            models.append(candidate)
+
+    gemini = next((m for m in models if is_midsize_gemini_model(m)), None)
+    claude = None
+    for preferred in (
+        "claude-sonnet-4-6",
+        "claude-sonnet-4-5",
+        "claude-opus-4-6-thinking",
+        "claude-opus-4-5",
+    ):
+        if preferred in models:
+            claude = preferred
+            break
+    if claude is None:
+        claude = next((m for m in models if "claude" in m.lower()), None)
+
+    return [model for model in (gemini, claude) if model]
+
+
+def load_antigravity_accounts(env: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """Load all configured Antigravity credentials, newest sources last."""
+    env = env if env is not None else os.environ
+    accounts: List[Dict[str, Any]] = []
+    seen = set()
+
+    def add_account(creds: Any, name: Optional[str] = None, path: Optional[Path] = None):
+        if not isinstance(creds, dict):
+            return
+        if not (creds.get("refresh_token") or creds.get("access_token")):
+            return
+        identity = str(creds.get("refresh_token") or creds.get("email") or path)
+        if identity in seen:
+            return
+        seen.add(identity)
+        accounts.append({
+            "credentials": creds,
+            "name": name or creds.get("email") or (path.stem if path else f"account-{len(accounts) + 1}"),
+            "path": path,
+        })
+
+    raw_service_account = env.get("ANTIGRAVITY_SERVICE_ACCOUNT")
+    if raw_service_account:
+        try:
+            parsed = json.loads(raw_service_account)
+            if isinstance(parsed, dict) and isinstance(parsed.get("accounts"), list):
+                entries = parsed["accounts"]
+            elif isinstance(parsed, list):
+                entries = parsed
+            else:
+                entries = [parsed]
+            for entry in entries:
+                add_account(entry)
+        except (json.JSONDecodeError, TypeError) as e:
+            debug.log(f"Failed to parse ANTIGRAVITY_SERVICE_ACCOUNT: {e}")
+
+    accounts_dir = Path(env.get("ANTIGRAVITY_ACCOUNTS_DIR") or get_antigravity_accounts_dir())
+    if accounts_dir.is_dir():
+        for path in sorted(accounts_dir.glob("*.json")):
+            try:
+                with path.open("r") as f:
+                    creds = json.load(f)
+            except Exception as e:
+                debug.log(f"Failed to read Antigravity account {path}: {e}")
+                continue
+            add_account(creds, name=path.stem, path=path)
+
+    for path in (AntigravityAuthManager.get_cache_file(), get_antigravity_oauth_creds_path()):
+        if not path.exists():
+            continue
+        try:
+            with path.open("r") as f:
+                creds = json.load(f)
+        except Exception as e:
+            debug.log(f"Failed to read Antigravity credentials {path}: {e}")
+            continue
+        add_account(creds, name=path.stem, path=path)
+
+    return accounts
 
 
 def normalize_antigravity_model_id(model_name: str) -> str:
@@ -741,6 +1024,196 @@ def gemini_to_antigravity(
     return template
 
 
+def function_call_matches_response(
+    function_call: dict, function_response: dict
+) -> bool:
+    call_id = function_call.get("id")
+    response_id = function_response.get("id")
+    if call_id and response_id:
+        return call_id == response_id
+    call_name = function_call.get("name")
+    response_name = function_response.get("name")
+    if call_name and response_name:
+        return call_name == response_name
+    return not any([call_id, response_id, call_name, response_name])
+
+
+def function_call_to_text(function_call: dict) -> dict:
+    name = function_call.get("name") or "function"
+    args = function_call.get("args")
+    if isinstance(args, str):
+        args_text = args
+    else:
+        try:
+            args_text = json.dumps(args, ensure_ascii=False) if args else "{}"
+        except (TypeError, ValueError):
+            args_text = str(args)
+    return {"text": f"Called function {name} with arguments {args_text}"}
+
+
+def function_response_to_text(function_response_part: dict) -> dict:
+    function_response = function_response_part.get("functionResponse")
+    if not isinstance(function_response, dict):
+        try:
+            return {"text": json.dumps(function_response_part, ensure_ascii=False)}
+        except (TypeError, ValueError):
+            return {"text": str(function_response_part)}
+    name = function_response.get("name") or "function"
+    response = function_response.get("response")
+    if isinstance(response, dict) and "result" in response:
+        response = response["result"]
+    if not isinstance(response, str):
+        try:
+            response = json.dumps(response, ensure_ascii=False)
+        except (TypeError, ValueError):
+            response = str(response)
+    return {"text": f"Function {name} returned: {response}"}
+
+
+def normalize_antigravity_contents(contents: list) -> list:
+    """
+    Repair OpenAI-style histories so they satisfy Gemini turn ordering.
+
+    Gemini requires a functionCall turn to come immediately after a user turn
+    or a function response turn, and it rejects function responses that do not
+    answer a pending call. Clients may send consecutive assistant messages or a
+    truncated history that starts with a tool call (for example after context
+    compaction), which makes Gemini answer with a 400:
+
+        Please ensure that function call turn comes immediately after a user
+        turn or after a function response turn.
+
+    Merge consecutive turns, add a leading user turn when the history starts
+    with a model turn, and downgrade function calls/responses that cannot be
+    paired to plain text so the request stays valid. Histories that would end
+    with a model turn get a trailing user turn because Antigravity rejects
+    requests ending with a model turn.
+    """
+    if not isinstance(contents, list):
+        return contents
+
+    merged: List[Dict[str, Any]] = []
+    for content in contents:
+        if not isinstance(content, dict):
+            continue
+        raw_role = content.get("role")
+        role = "model" if raw_role in ("model", "assistant") else "user"
+        raw_parts = content.get("parts")
+        if isinstance(raw_parts, str):
+            raw_parts = [{"text": raw_parts}]
+        if not isinstance(raw_parts, list):
+            continue
+        parts = []
+        for part in raw_parts:
+            if not isinstance(part, dict):
+                continue
+            # Function calls only make sense in model turns and function
+            # responses only in user turns. Downgrade misplaced parts to text
+            # instead of sending a payload that Gemini will reject.
+            if role == "user" and isinstance(part.get("functionCall"), dict):
+                part = function_call_to_text(part["functionCall"])
+            elif role == "model" and isinstance(
+                part.get("functionResponse"), dict
+            ):
+                part = function_response_to_text(part)
+            # Empty text parts are invalid and would otherwise leave an empty
+            # turn behind (a common source of ordering errors).
+            if (
+                isinstance(part.get("text"), str)
+                and not part["text"].strip()
+                and len(part) == 1
+            ):
+                continue
+            parts.append(part)
+        if not parts:
+            continue
+        if merged and merged[-1]["role"] == role:
+            merged[-1]["parts"].extend(parts)
+        else:
+            merged.append({"role": role, "parts": parts})
+
+    if merged and merged[0]["role"] == "model":
+        merged.insert(
+            0,
+            {
+                "role": "user",
+                "parts": [{"text": ANTIGRAVITY_EMPTY_TEXT_PLACEHOLDER}],
+            },
+        )
+
+    pending_calls: List[Tuple[dict, dict]] = []
+    repaired: List[Dict[str, Any]] = []
+
+    def downgrade_pending_calls() -> None:
+        # A call can only be answered by the user turn that directly follows it.
+        # Anything left over can no longer be paired and must become plain text,
+        # otherwise Gemini rejects the whole request.
+        for model_content, function_call in pending_calls:
+            for index, part in enumerate(model_content.get("parts", [])):
+                if part.get("functionCall") is function_call:
+                    model_content["parts"][index] = function_call_to_text(
+                        function_call
+                    )
+                    break
+        pending_calls.clear()
+
+    for content in merged:
+        if content["role"] == "model":
+            repaired.append(content)
+            for part in content["parts"]:
+                function_call = part.get("functionCall")
+                if isinstance(function_call, dict):
+                    pending_calls.append((content, function_call))
+            continue
+
+        parts = []
+        for part in content["parts"]:
+            function_response = part.get("functionResponse")
+            if not isinstance(function_response, dict):
+                parts.append(part)
+                continue
+            match = next(
+                (
+                    index
+                    for index, (_, call) in enumerate(pending_calls)
+                    if function_call_matches_response(call, function_response)
+                ),
+                None,
+            )
+            if match is None:
+                parts.append(function_response_to_text(part))
+            else:
+                _, call = pending_calls.pop(match)
+                # Clients (and g4f's own tool loop) may put a tool_call_id in
+                # the name field; Gemini matches by name, so trust the call.
+                call_name = call.get("name")
+                if isinstance(call_name, str) and call_name:
+                    function_response["name"] = call_name
+                call_id = call.get("id")
+                if call_id and not function_response.get("id"):
+                    function_response["id"] = call_id
+                parts.append(part)
+        if parts:
+            repaired.append({"role": "user", "parts": parts})
+        downgrade_pending_calls()
+
+    downgrade_pending_calls()
+
+    # Antigravity rejects requests whose last turn is a model turn, for
+    # example when a client re-sends a finished assistant message after an
+    # interrupted or aborted response. Close the history with a minimal user
+    # turn so the request is accepted.
+    if not repaired or repaired[-1]["role"] == "model":
+        repaired.append(
+            {
+                "role": "user",
+                "parts": [{"text": ANTIGRAVITY_EMPTY_TEXT_PLACEHOLDER}],
+            }
+        )
+
+    return repaired
+
+
 def ensure_roles_in_contents(request_body: dict, model_name: str) -> dict:
     request_body.pop("model", None)
     if "system_instruction" in request_body:
@@ -793,6 +1266,8 @@ def ensure_roles_in_contents(request_body: dict, model_name: str) -> dict:
 
     contents = request_body.get("contents")
     if isinstance(contents, list):
+        contents = normalize_antigravity_contents(contents)
+        request_body["contents"] = contents
         for content in contents:
             if isinstance(content, dict):
                 if not content.get("role"):
@@ -1249,13 +1724,25 @@ class AntigravityAuthManager(AuthFileMixin):
     TOKEN_BUFFER_TIME = REFRESH_SKEW
     KV_TOKEN_KEY = "antigravity_oauth_token_cache"
 
-    def __init__(self, env: Dict[str, Any]):
+    def __init__(
+        self,
+        env: Dict[str, Any],
+        credentials: Optional[Dict[str, Any]] = None,
+        credentials_path: Optional[Path] = None,
+        name: Optional[str] = None,
+    ):
         self.env = env
+        self._credentials = credentials
+        self.credentials_path = credentials_path
+        self.name = name or (credentials or {}).get("email") or (
+            credentials_path.stem if credentials_path else None
+        )
         self._access_token: Optional[str] = None
         self._expiry: Optional[float] = None
         self._token_cache = {}
         self._working_base_url: Optional[str] = None
         self._project_id: Optional[str] = None
+        self.quota_until: Dict[str, float] = {}
 
     async def initialize_auth(self) -> None:
         cached = await self._get_cached_token()
@@ -1267,25 +1754,31 @@ class AntigravityAuthManager(AuthFileMixin):
                 self._expiry = expires_at
                 return
 
-        path = AntigravityAuthManager.get_cache_file()
-        if not path.exists():
-            path = get_antigravity_oauth_creds_path()
+        creds = self._credentials
+        path = self.credentials_path
+        if creds is None:
+            path = path or AntigravityAuthManager.get_cache_file()
+            if not path.exists():
+                path = get_antigravity_oauth_creds_path()
 
-        if path.exists():
-            try:
-                with path.open("r") as f:
-                    creds = json.load(f)
-            except Exception as e:
-                raise RuntimeError(
-                    f"Failed to read OAuth credentials from {path}: {e}"
-                )
-        else:
-            if "ANTIGRAVITY_SERVICE_ACCOUNT" not in self.env:
-                raise RuntimeError(
-                    "ANTIGRAVITY_SERVICE_ACCOUNT environment variable not set. "
-                    f"Please set it or create credentials at {get_antigravity_oauth_creds_path()}"
-                )
-            creds = json.loads(self.env["ANTIGRAVITY_SERVICE_ACCOUNT"])
+            if path.exists():
+                try:
+                    with path.open("r") as f:
+                        creds = json.load(f)
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to read OAuth credentials from {path}: {e}"
+                    )
+            else:
+                if "ANTIGRAVITY_SERVICE_ACCOUNT" not in self.env:
+                    raise RuntimeError(
+                        "ANTIGRAVITY_SERVICE_ACCOUNT environment variable not set. "
+                        f"Please set it or create credentials at {get_antigravity_oauth_creds_path()}"
+                    )
+                creds = json.loads(self.env["ANTIGRAVITY_SERVICE_ACCOUNT"])
+
+        self.credentials_path = path
+        self.name = self.name or creds.get("email") or (path.stem if path else None)
 
         if creds.get("project_id"):
             self._project_id = creds["project_id"]
@@ -1322,6 +1815,9 @@ class AntigravityAuthManager(AuthFileMixin):
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
+                    quota_error = parse_antigravity_quota_error(resp.status, text)
+                    if quota_error is not None:
+                        raise quota_error
                     raise RuntimeError(f"Token refresh failed: {text}")
                 resp_data = await resp.json()
                 access_token = resp_data.get("access_token")
@@ -1372,6 +1868,18 @@ class AntigravityAuthManager(AuthFileMixin):
         """Get the cached working base URL or default to first in list."""
         return self._working_base_url or BASE_URLS[0]
 
+    def is_quota_exhausted(self, model_family: str) -> bool:
+        """Whether this account is cooling down for a model family."""
+        until = self.quota_until.get(model_family)
+        return until is not None and until > time.time()
+
+    def mark_quota_reached(
+        self, model_family: str, retry_after: Optional[float] = None
+    ) -> None:
+        """Pause this account for a model family after a quota error."""
+        cooldown = retry_after if retry_after is not None else DEFAULT_QUOTA_COOLDOWN
+        self.quota_until[model_family] = time.time() + max(1.0, cooldown)
+
     async def call_endpoint(
         self,
         method: str,
@@ -1417,11 +1925,17 @@ class AntigravityAuthManager(AuthFileMixin):
                         elif resp.ok:
                             self._working_base_url = base_url
                             return await resp.json()
-                        else:
-                            last_error = f"HTTP {resp.status}: {await resp.text()}"
-                            debug.log(
-                                f"Antigravity endpoint {base_url} returned {resp.status}"
-                            )
+                        try:
+                            data = await resp.json()
+                            if isinstance(data, list):
+                                data = next(iter(data), {})
+                            message = data.get("error", {}).get("message", "")
+                            quota_error = parse_antigravity_quota_error(resp.status, message)
+                            if quota_error is not None:
+                                raise quota_error
+                            last_error = f"Error {resp.status}: {message}"
+                        except Exception as e:
+                            last_error = str(e)
             except Exception as e:
                 last_error = str(e)
                 debug.log(f"Antigravity endpoint {base_url} failed: {e}")
@@ -1725,6 +2239,7 @@ class AntigravityAuthManager(AuthFileMixin):
         project_id: str = "",
         no_browser: bool = False,
         credentials_path: Optional[Path] = None,
+        account: Optional[str] = None,
     ) -> "AntigravityAuthManager":
         tokens = await cls.interactive_login(
             project_id=project_id, no_browser=no_browser
@@ -1740,7 +2255,10 @@ class AntigravityAuthManager(AuthFileMixin):
             "client_secret": cls.OAUTH_CLIENT_SECRET,
         }
 
-        path = credentials_path or cls.get_cache_file()
+        if credentials_path is None:
+            path = get_antigravity_account_credentials_path(account or tokens.get("email"))
+        else:
+            path = Path(credentials_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         with path.open("w") as f:
@@ -1754,10 +2272,87 @@ class AntigravityAuthManager(AuthFileMixin):
         print(f"\n✓ Credentials saved to: {path}")
         print("=" * 60 + "\n")
 
-        auth_manager = cls(env=os.environ)
+        auth_manager = cls(
+            env=os.environ,
+            credentials=creds,
+            credentials_path=path,
+            name=account or tokens.get("email") or path.stem,
+        )
         auth_manager._access_token = tokens["access_token"]
         auth_manager._expiry = tokens["expiry_date"] / 1000
         return auth_manager
+
+
+class AntigravityAccountPool:
+    """
+    Pool of Antigravity OAuth accounts. Accounts that exhaust their quota for a
+    model family are skipped until their cooldown expires.
+    """
+
+    def __init__(
+        self,
+        env: Optional[Dict[str, Any]] = None,
+        managers: Optional[List[AntigravityAuthManager]] = None,
+    ):
+        self.env = env if env is not None else os.environ
+        try:
+            self.cooldown = max(
+                1, int(self.env.get("ANTIGRAVITY_QUOTA_COOLDOWN", DEFAULT_QUOTA_COOLDOWN))
+            )
+        except (TypeError, ValueError):
+            self.cooldown = DEFAULT_QUOTA_COOLDOWN
+        self._managers = managers if managers is not None else self._create_managers()
+
+    def _create_managers(self) -> List[AntigravityAuthManager]:
+        accounts = load_antigravity_accounts(self.env)
+        if not accounts:
+            return [AntigravityAuthManager(env=self.env)]
+        return [
+            AntigravityAuthManager(
+                env=self.env,
+                credentials=account["credentials"],
+                credentials_path=account["path"],
+                name=account["name"],
+            )
+            for account in accounts
+        ]
+
+    @property
+    def managers(self) -> List[AntigravityAuthManager]:
+        return self._managers
+
+    @property
+    def default_manager(self) -> AntigravityAuthManager:
+        return self._managers[0]
+
+    def add_manager(self, manager: AntigravityAuthManager) -> None:
+        if manager not in self._managers:
+            self._managers.insert(0, manager)
+
+    def available_accounts(
+        self, model_family: Optional[str] = None
+    ) -> List[AntigravityAuthManager]:
+        if not model_family:
+            return list(self._managers)
+        return [
+            manager
+            for manager in self._managers
+            if not manager.is_quota_exhausted(model_family)
+        ]
+
+    def mark_quota_reached(
+        self,
+        manager: AntigravityAuthManager,
+        model_family: str,
+        retry_after: Optional[float] = None,
+    ) -> None:
+        manager.mark_quota_reached(
+            model_family, retry_after if retry_after is not None else self.cooldown
+        )
+        debug.log(
+            f"Antigravity account {manager.name or 'default'} paused for "
+            f"{model_family} models after quota error"
+        )
 
 
 class AntigravityProvider:
@@ -1813,23 +2408,29 @@ class AntigravityProvider:
         messages: list, media: MediaListType
     ) -> List[Dict[str, Any]]:
         format_messages = []
+        tool_names_by_id: Dict[str, str] = {}
         for msg in messages:
-            role = "model" if msg["role"] == "assistant" else "user"
+            msg_role = msg.get("role")
+            role = "model" if msg_role == "assistant" else "user"
 
-            if msg["role"] == "tool":
+            if msg_role == "tool":
                 tool_result = msg.get("content", "")
-                func_response_part = {
-                    "functionResponse": {
-                        "name": msg.get("tool_call_id", "unknown_function"),
-                        "response": {
-                            "result": (
-                                tool_result
-                                if isinstance(tool_result, str)
-                                else json.dumps(tool_result)
-                            )
-                        },
-                    }
+                if tool_result is None:
+                    tool_result = ""
+                elif not isinstance(tool_result, str):
+                    tool_result = json.dumps(tool_result)
+                tool_call_id = msg.get("tool_call_id") or ""
+                tool_name = tool_names_by_id.get(tool_call_id)
+                message_name = msg.get("name")
+                if not tool_name and message_name and message_name != tool_call_id:
+                    tool_name = message_name
+                function_response = {
+                    "name": tool_name or "unknown_function",
+                    "response": {"result": tool_result},
                 }
+                if tool_call_id:
+                    function_response["id"] = tool_call_id
+                func_response_part = {"functionResponse": function_response}
                 if (
                     format_messages
                     and format_messages[-1]["role"] == "user"
@@ -1844,29 +2445,46 @@ class AntigravityProvider:
                     )
                 continue
 
-            elif msg["role"] == "assistant" and msg.get("tool_calls"):
+            elif msg_role == "assistant" and msg.get("tool_calls"):
                 parts = []
                 content = msg.get("content")
                 if isinstance(content, str) and content.strip():
                     parts.append({"text": content})
                 for tool_call in msg["tool_calls"]:
-                    if tool_call.get("type") == "function":
-                        func_call = {
-                            "name": tool_call["function"]["name"],
-                            "args": json.loads(tool_call["function"]["arguments"]),
-                        }
-                        if tool_call.get("id"):
-                            func_call["id"] = tool_call["id"]
-                        thought_sig = (
-                            tool_call.get("extra_content", {})
-                            .get("google", {})
-                            .get(
-                                "thought_signature", "skip_thought_signature_validator"
-                            )
+                    if not isinstance(tool_call, dict) or tool_call.get(
+                        "type"
+                    ) != "function":
+                        continue
+                    function = tool_call.get("function") or {}
+                    func_name = function.get("name")
+                    if not func_name:
+                        continue
+                    if tool_call.get("id"):
+                        tool_names_by_id[tool_call["id"]] = func_name
+                    func_args = function.get("arguments")
+                    if isinstance(func_args, str):
+                        try:
+                            func_args = json.loads(func_args) if func_args.strip() else {}
+                        except (TypeError, ValueError):
+                            func_args = {"input": func_args}
+                    if not isinstance(func_args, dict):
+                        func_args = {} if func_args is None else {"value": func_args}
+                    func_call = {
+                        "name": func_name,
+                        "args": func_args,
+                    }
+                    if tool_call.get("id"):
+                        func_call["id"] = tool_call["id"]
+                    thought_sig = (
+                        tool_call.get("extra_content", {})
+                        .get("google", {})
+                        .get(
+                            "thought_signature", "skip_thought_signature_validator"
                         )
-                        parts.append(
-                            {"functionCall": func_call, "thoughtSignature": thought_sig}
-                        )
+                    )
+                    parts.append(
+                        {"functionCall": func_call, "thoughtSignature": thought_sig}
+                    )
 
             elif isinstance(msg["content"], str):
                 parts = [{"text": msg["content"]}]
@@ -1971,11 +2589,17 @@ class AntigravityProvider:
             for tool in tools:
                 if tool.get("type") == "function" and "function" in tool:
                     func = tool["function"]
+                    name = func.get("name")
+                    if not name or not isinstance(name, str):
+                        continue
+                    parameters = _sanitize_schema(func.get("parameters") or {})
+                    if not isinstance(parameters, dict) or not parameters:
+                        parameters = {"type": "object", "properties": {}}
                     function_declarations.append(
                         {
-                            "name": func.get("name"),
+                            "name": name,
                             "description": func.get("description", ""),
-                            "parameters": _sanitize_schema(func.get("parameters", {})),
+                            "parameters": parameters,
                         }
                     )
             if function_declarations:
@@ -2047,6 +2671,17 @@ class AntigravityProvider:
             buffer = ""
             raw_lines = []
             yield_count = 0
+
+            def check_for_quota(data: Dict[str, Any]) -> None:
+                error = data.get("error")
+                if error is None and isinstance(data.get("response"), dict):
+                    error = data["response"].get("error")
+                if error is not None:
+                    status = error.get("code") if isinstance(error, dict) else None
+                    quota_error = parse_antigravity_quota_error(status, error)
+                    if quota_error is not None:
+                        raise quota_error
+
             async for chunk_bytes in stream.iter_any():
                 chunk = chunk_bytes.decode("utf-8", errors="replace")
                 buffer += chunk
@@ -2064,8 +2699,11 @@ class AntigravityProvider:
                         json_str = processed_line[6:]
                         try:
                             data = json.loads(json_str)
+                            check_for_quota(data)
                             yield_count += 1
                             yield data
+                        except AntigravityQuotaError:
+                            raise
                         except Exception as e:
                             debug.error(f"Error parsing SSE JSON: {e}")
                     elif trimmed == "" and raw_lines and yield_count > 0:
@@ -2077,8 +2715,12 @@ class AntigravityProvider:
                     processed_line = filter_sse_usage_metadata(trimmed)
                     json_str = processed_line[6:]
                     try:
-                        yield json.loads(json_str)
+                        data = json.loads(json_str)
+                        check_for_quota(data)
+                        yield data
                         yield_count += 1
+                    except AntigravityQuotaError:
+                        raise
                     except Exception as e:
                         debug.error(f"Error parsing final SSE JSON: {e}")
 
@@ -2089,7 +2731,10 @@ class AntigravityProvider:
                     items = parsed if isinstance(parsed, list) else [parsed]
                     for item in items:
                         if isinstance(item, dict):
+                            check_for_quota(item)
                             yield item
+                except AntigravityQuotaError:
+                    raise
                 except Exception as e:
                     debug.error(f"Failed to parse raw fallback JSON: {e}")
 
@@ -2101,9 +2746,13 @@ class AntigravityProvider:
         ) as session:
             async with session.post(url, json=payload) as resp:
                 if not resp.ok:
+                    body_text = await resp.text()
+                    quota_error = parse_antigravity_quota_error(resp.status, body_text)
+                    if quota_error is not None:
+                        raise quota_error
                     if resp.status == 503:
                         try:
-                            body = await resp.json(content_type=None)
+                            body = json.loads(body_text)
                             retry_delay = int(
                                 max(
                                     [
@@ -2122,7 +2771,21 @@ class AntigravityProvider:
                         if retry_delay <= 120:
                             await asyncio.sleep(retry_delay)
                             resp = await session.post(url, json=payload)
-                await raise_for_status(resp)
+                            if not resp.ok:
+                                body_text = await resp.text()
+                                quota_error = parse_antigravity_quota_error(
+                                    resp.status, body_text
+                                )
+                                if quota_error is not None:
+                                    raise quota_error
+                    try:
+                        data = await resp.json()
+                        if isinstance(data, list):
+                            data = next(iter(data), {})
+                        message = data.get("error", {}).get("message", "") or body_text
+                    except Exception as e:
+                        message = body_text
+                    await raise_for_status(resp, message=body_text)
 
                 usage_metadata = {}
                 openai_tool_calls = []
@@ -2207,9 +2870,12 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     - Gemini 3.1 / 3.5 / 3.6 / 3.7 / 3.8 Flash & Pro variants
     - Claude Sonnet 4.5/4.6 & Opus 4.5/4.6 via Antigravity proxy
     - Image generation models (gemini-3.1-flash-image)
+    - "auto" model: mid-size Gemini first, Claude when Gemini quota is reached
 
-    Requires OAuth2 credentials. Set ANTIGRAVITY_SERVICE_ACCOUNT environment
-    variable or create credentials at ~/.antigravity/oauth_creds.json
+    Requires OAuth2 credentials. Multiple accounts can be stored in
+    ~/.antigravity/accounts/ and are switched automatically when quota is
+    reached. Set ANTIGRAVITY_SERVICE_ACCOUNT or create credentials at
+    ~/.antigravity/oauth_creds.json for a single account.
     """
 
     label = "Google Antigravity"
@@ -2218,7 +2884,7 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://cloud.google.com/code-assist"
 
     default_model = "gemini-3-flash"
-    fallback_models = ANTIGRAVITY_MODELS
+    fallback_models = [AUTO_MODEL, *ANTIGRAVITY_MODELS]
 
     model_aliases = {
         "claude-sonnet-4.5": "claude-sonnet-4-5",
@@ -2235,6 +2901,19 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
     active_by_default = True
 
     auth_manager: AntigravityAuthManager = None
+    account_pool: Optional[AntigravityAccountPool] = None
+
+    @classmethod
+    def _get_account_pool(cls) -> AntigravityAccountPool:
+        if cls.account_pool is None:
+            cls.account_pool = AntigravityAccountPool(env=os.environ)
+        return cls.account_pool
+
+    @classmethod
+    def _get_auth_manager(cls) -> AntigravityAuthManager:
+        manager = cls._get_account_pool().default_manager
+        cls.auth_manager = manager
+        return manager
 
     @classmethod
     def get_models(cls, **kwargs) -> List[str]:
@@ -2246,24 +2925,24 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.log(f"Failed to fetch dynamic models: {e}")
 
         if cls.live == 0:
-            if cls.auth_manager is None:
-                cls.auth_manager = AntigravityAuthManager(env=os.environ)
-            if cls.auth_manager.get_access_token() is not None:
+            if cls._get_auth_manager().get_access_token() is not None:
                 cls.live += 1
 
-        return cls.models if cls.models else cls.fallback_models
+        models = list(cls.models) if cls.models else list(cls.fallback_models)
+        if AUTO_MODEL not in models:
+            models.insert(0, AUTO_MODEL)
+        return models
 
     @classmethod
     async def _fetch_models(cls) -> List[str]:
-        if cls.auth_manager is None:
-            cls.auth_manager = AntigravityAuthManager(env=os.environ)
+        auth_manager = cls._get_auth_manager()
 
-        await cls.auth_manager.initialize_auth()
+        await auth_manager.initialize_auth()
 
         try:
-            response = await cls.auth_manager.call_endpoint(
+            response = await auth_manager.call_endpoint(
                 method="fetchAvailableModels",
-                body={"project": cls.auth_manager.get_project_id()},
+                body={"project": auth_manager.get_project_id()},
             )
             models_dict = response.get("models", {})
             if isinstance(models_dict, dict):
@@ -2285,18 +2964,17 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def get_quota(cls, api_key: Optional[str] = None) -> dict:
-        if cls.auth_manager is None:
-            cls.auth_manager = AntigravityAuthManager(env=os.environ)
-        await cls.auth_manager.initialize_auth()
+        auth_manager = cls._get_auth_manager()
+        await auth_manager.initialize_auth()
 
-        access_token = cls.auth_manager.get_access_token()
-        project_id = cls.auth_manager.get_project_id()
+        access_token = auth_manager.get_access_token()
+        project_id = auth_manager.get_project_id()
         if not access_token or not project_id:
             raise MissingAuthError("Cannot fetch usage without valid authentication")
 
-        return await cls.auth_manager.call_endpoint(
+        return await auth_manager.call_endpoint(
             method="fetchAvailableModels",
-            body={"project": cls.auth_manager.get_project_id()},
+            body={"project": project_id},
         )
 
     @classmethod
@@ -2309,22 +2987,69 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         tools: Optional[list] = None,
         **kwargs,
     ) -> AsyncResult:
-        if cls.auth_manager is None:
-            cls.auth_manager = AntigravityAuthManager(env=os.environ)
+        pool = cls._get_account_pool()
+        model = cls.model_aliases.get(model, model)
+        if model == AUTO_MODEL:
+            models = get_auto_model_candidates(cls.models) or get_auto_model_candidates(
+                cls.fallback_models
+            )
+        else:
+            models = [model]
+        if not models:
+            models = ["gemini-3-flash"]
 
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
+        last_error: Optional[Exception] = None
+        for model_candidate in models:
+            model_family = get_antigravity_model_family(model_candidate)
+            tried_accounts = set()
+            while True:
+                available = [
+                    manager
+                    for manager in pool.available_accounts(model_family)
+                    if manager not in tried_accounts
+                ]
+                if not available:
+                    break
+                manager = available[0]
+                tried_accounts.add(manager)
+                provider = AntigravityProvider(env=os.environ, auth_manager=manager)
+                provider.available_models = list(cls.models or [])
+                emitted = False
+                try:
+                    async for chunk in provider.stream_content(
+                        model=model_candidate,
+                        messages=messages,
+                        stream=stream,
+                        media=media,
+                        tools=tools,
+                        **kwargs,
+                    ):
+                        emitted = True
+                        yield chunk
+                    return
+                except AntigravityQuotaError as e:
+                    last_error = e
+                    pool.mark_quota_reached(manager, model_family, e.retry_after)
+                    debug.log(
+                        f"Antigravity quota reached for {model_candidate} on account "
+                        f"{manager.name or 'default'}, trying another account or model"
+                    )
+                    if emitted:
+                        raise
+                except MissingAuthError as e:
+                    last_error = e
+                    debug.log(
+                        f"Antigravity authentication failed on account "
+                        f"{manager.name or 'default'}: {e}"
+                    )
+                    if emitted:
+                        raise
 
-        provider = AntigravityProvider(env=os.environ, auth_manager=cls.auth_manager)
-        async for chunk in provider.stream_content(
-            model=model,
-            messages=messages,
-            stream=stream,
-            media=media,
-            tools=tools,
-            **kwargs,
-        ):
-            yield chunk
+        if last_error is not None:
+            raise last_error
+        raise RateLimitError(
+            "Antigravity quota reached for all accounts and models"
+        )
 
     @classmethod
     async def login(
@@ -2332,29 +3057,28 @@ class Antigravity(AsyncGeneratorProvider, ProviderModelMixin):
         project_id: str = "",
         no_browser: bool = False,
         credentials_path: Optional[Path] = None,
+        account: Optional[str] = None,
     ) -> "AntigravityAuthManager":
         auth_manager = await AntigravityAuthManager.login_and_save(
             project_id=project_id,
             no_browser=no_browser,
             credentials_path=credentials_path,
+            account=account,
         )
         cls.auth_manager = auth_manager
+        cls.account_pool = None
+        cls._get_account_pool().add_manager(auth_manager)
         return auth_manager
 
     @classmethod
     def has_credentials(cls) -> bool:
-        cache_path = AntigravityAuthManager.get_cache_file()
-        if cache_path.exists():
-            return True
-        default_path = get_antigravity_oauth_creds_path()
-        if default_path.exists():
-            return True
-        if "ANTIGRAVITY_SERVICE_ACCOUNT" in os.environ:
-            return True
-        return False
+        return len(load_antigravity_accounts(os.environ)) > 0
 
     @classmethod
     def get_credentials_path(cls) -> Path:
+        accounts = load_antigravity_accounts(os.environ)
+        if accounts and accounts[0]["path"] is not None:
+            return accounts[0]["path"]
         cache_path = AntigravityAuthManager.get_cache_file()
         if cache_path.exists():
             return cache_path
@@ -2373,10 +3097,12 @@ async def main(args: Optional[List[str]] = None):
         epilog="""
 Examples:
   %(prog)s login                    # Interactive login with browser
+  %(prog)s login --account work     # Login as a named account
   %(prog)s login --no-browser       # Manual login (paste URL)
   %(prog)s login --project-id ID    # Login with specific project
-  %(prog)s status                   # Check authentication status
-  %(prog)s logout                   # Remove saved credentials
+  %(prog)s status                   # List all accounts
+  %(prog)s logout work              # Remove one account
+  %(prog)s logout                   # Remove all saved credentials
 """,
     )
 
@@ -2389,14 +3115,26 @@ Examples:
         help="Google Cloud project ID (optional, auto-discovered if not set)",
     )
     login_parser.add_argument(
+        "--account",
+        "-a",
+        default=None,
+        help="Account name for stored credentials (default: Google email)",
+    )
+    login_parser.add_argument(
         "--no-browser",
         "-n",
         action="store_true",
         help="Don't auto-open browser, print URL instead",
     )
 
-    subparsers.add_parser("status", help="Check authentication status")
-    subparsers.add_parser("logout", help="Remove saved credentials")
+    subparsers.add_parser("status", help="List all configured accounts")
+    logout_parser = subparsers.add_parser("logout", help="Remove saved credentials")
+    logout_parser.add_argument(
+        "account",
+        nargs="?",
+        default=None,
+        help="Account name or email to remove (default: all accounts)",
+    )
 
     args = parser.parse_args(args)
 
@@ -2405,6 +3143,7 @@ Examples:
             await Antigravity.login(
                 project_id=args.project_id,
                 no_browser=args.no_browser,
+                account=args.account,
             )
         except KeyboardInterrupt:
             print("\n\nLogin cancelled.")
@@ -2417,29 +3156,26 @@ Examples:
         print("\nAntigravity Authentication Status")
         print("=" * 40)
 
-        if Antigravity.has_credentials():
-            creds_path = Antigravity.get_credentials_path()
-            print(f"✓ Credentials found at: {creds_path}")
-            try:
-                with creds_path.open() as f:
-                    creds = json.load(f)
-
-                if creds.get("email"):
-                    print(f"  Email: {creds['email']}")
+        accounts = load_antigravity_accounts(os.environ)
+        if accounts:
+            print(f"✓ {len(accounts)} account(s) found:")
+            for account in accounts:
+                creds = account["credentials"]
+                email = creds.get("email")
+                print(
+                    f"  - {account['name']}"
+                    + (f" ({email})" if email and email != account["name"] else "")
+                )
+                print(f"    Source: {account['path'] or 'ANTIGRAVITY_SERVICE_ACCOUNT'}")
                 if creds.get("project_id"):
-                    print(f"  Project: {creds['project_id']}")
-
+                    print(f"    Project: {creds['project_id']}")
                 expiry = creds.get("expiry_date")
                 if expiry:
                     expiry_time = time.strftime(
                         "%Y-%m-%d %H:%M:%S", time.localtime(expiry / 1000)
                     )
-                    if expiry / 1000 > time.time():
-                        print(f"  Token expires: {expiry_time}")
-                    else:
-                        print(f"  Token expired: {expiry_time} (will auto-refresh)")
-            except Exception as e:
-                print(f"  (Could not read credential details: {e})")
+                    state = "expires" if expiry / 1000 > time.time() else "expired"
+                    print(f"    Token {state}: {expiry_time}")
         else:
             print("✗ No credentials found")
             print("\nRun 'antigravity login' to authenticate.")
@@ -2450,17 +3186,30 @@ Examples:
         print("=" * 40)
         removed = False
 
-        cache_path = AntigravityAuthManager.get_cache_file()
-        if cache_path.exists():
-            cache_path.unlink()
-            print(f"✓ Removed: {cache_path}")
-            removed = True
+        if args.account:
+            paths = [
+                account["path"]
+                for account in load_antigravity_accounts(os.environ)
+                if account["name"] == args.account
+                or account["credentials"].get("email") == args.account
+            ]
+            named_path = get_antigravity_account_credentials_path(args.account)
+            if named_path.exists() and named_path not in paths:
+                paths.append(named_path)
+        else:
+            paths = [
+                account["path"]
+                for account in load_antigravity_accounts(os.environ)
+                if account["path"] is not None
+            ]
 
-        default_path = get_antigravity_oauth_creds_path()
-        if default_path.exists():
-            default_path.unlink()
-            print(f"✓ Removed: {default_path}")
-            removed = True
+        for path in dict.fromkeys(paths):
+            try:
+                path.unlink()
+                print(f"✓ Removed: {path}")
+                removed = True
+            except OSError as e:
+                print(f"Could not remove {path}: {e}")
 
         if removed:
             print("\n✓ Credentials removed successfully.")

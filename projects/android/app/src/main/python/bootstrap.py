@@ -32,6 +32,11 @@ def main(app_root: str, port: int, version: str | None = None) -> None:
     # (and on every asset request when offline). Skip that lookup: it is
     # pointless inside the app and used to stall the first paint.
     os.environ["G4F_NO_VERSION_CHECK"] = "1"
+    # Bridge the seven on-device actions to the native MCP server started by
+    # MobileMcpApplication. The Python MCP registry then exposes them to chat
+    # and agent-tools just like any other tool.
+    os.environ["G4F_MOBILE_MCP"] = "1"
+    os.environ.setdefault("G4F_MOBILE_MCP_URL", "http://127.0.0.1:1338/mcp")
     # g4f resolves DIST_DIR relative to CWD: ./g4f.dev/dist
     os.chdir(app_root)
     if app_root not in sys.path:

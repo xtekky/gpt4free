@@ -166,7 +166,11 @@ class AndroidContainerCatalogTests(unittest.TestCase):
                                   "--bind 127.0.0.1:1337 --debug --no-reload",
                                   "unset PYTHONHOME",
                                   "for attempt in 1 2 3",
-                                  "apt-get update -qq", "exit 1"],
+                                  "apt-get update -qq", "exit 1",
+                                  "installing CA certificate bundle",
+                                  "apt-get install -y --no-install-recommends ca-certificates",
+                                  "update-ca-certificates",
+                                  "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"],
             "provision-desktop.sh": ["xfce4", "dbus-x11", "procps",
                                      "cp /g4f-scripts/g4f-desktop",
                                      "export G4F_PYTHON=/opt/g4f-venv/bin/python",
@@ -195,6 +199,11 @@ class AndroidContainerCatalogTests(unittest.TestCase):
                 self.assertTrue(content.startswith("#!/bin/sh"))
                 for needle in needles:
                     self.assertIn(needle, content)
+        base = (scripts / "provision-base.sh").read_text(encoding="utf-8")
+        ca_step = base.index("installing CA certificate bundle")
+        python_step = base.index("installing base packages")
+        self.assertLess(ca_step, python_step)
+        self.assertNotIn("python3 python3-pip python3-venv ca-certificates", base)
         # noVNC is served by the API at /desktop/, so the desktop launcher must
         # not start a second websockify HTTP server.
         self.assertNotIn("websockify",
@@ -760,6 +769,65 @@ class AndroidContainerCatalogTests(unittest.TestCase):
                        'Desktop setup failed'):
             with self.subTest(needle=needle):
                 self.assertIn(needle, service)
+
+    def test_mobile_mcp_server_and_python_bridge(self):
+        java_root = JAVA.parent
+        server = (java_root / "mcp" / "MobileMcpServer.java").read_text(encoding="utf-8")
+        actions = (java_root / "mcp" / "MobileActions.java").read_text(encoding="utf-8")
+        app = (java_root / "MobileMcpApplication.java").read_text(encoding="utf-8")
+        manifest = (ANDROID_PROJECT / "app" / "src" / "main"
+                    / "AndroidManifest.xml").read_text(encoding="utf-8")
+        manager = (JAVA / "ContainerManager.java").read_text(encoding="utf-8")
+        bootstrap = (ANDROID_PROJECT / "app" / "src" / "main" / "python"
+                     / "bootstrap.py").read_text(encoding="utf-8")
+        mobile_py = (REPO / "g4f" / "mcp" / "mobile.py").read_text(encoding="utf-8")
+
+        # Native server: loopback only, one JSON-RPC endpoint, MCP lifecycle.
+        for needle in ('new InetSocketAddress("127.0.0.1", PORT)',
+                       'public static final int PORT = 1338',
+                       '"/mcp".equals(path)', 'case "initialize"',
+                       'case "tools/list"', 'case "tools/call"',
+                       'case "ping"', '"jsonrpc", "2.0"',
+                       'executeOnMainThread', 'Forbidden origin'):
+            with self.subTest(server=needle):
+                self.assertIn(needle, server)
+
+        # The seven Google AI Edge Gallery actions keep their exact names.
+        for name in ("turnOnFlashlight", "turnOffFlashlight", "createContact",
+                     "sendEmail", "showLocationOnMap", "openWifiSettings",
+                     "createCalendarEvent"):
+            with self.subTest(action=name):
+                self.assertIn(f'add("{name}"', actions)
+                self.assertIn(f'("{name}"', mobile_py)
+
+        for needle in ("CameraManager.setTorchMode", "ContactsContract.Intents.Insert.ACTION",
+                       "Intent.ACTION_SEND", 'Uri.parse("geo:0,0?q="',
+                       "Settings.ACTION_WIFI_SETTINGS", "CalendarContract.Events.CONTENT_URI"):
+            with self.subTest(action_implementation=needle):
+                if needle == "CameraManager.setTorchMode":
+                    self.assertIn("setTorchMode(cameraId, enabled)", actions)
+                else:
+                    self.assertIn(needle, actions)
+
+        # Application-wide lifecycle avoids tying the endpoint to one Activity.
+        self.assertIn("android:name=\".MobileMcpApplication\"", manifest)
+        self.assertIn("MobileMcpServer.getInstance(this).start()", app)
+
+        # Both app modes enable the Python bridge to the native server.
+        self.assertIn('"G4F_MOBILE_MCP=1"', manager)
+        self.assertIn('"G4F_MOBILE_MCP_URL=" + MobileMcpServer.ENDPOINT', manager)
+        self.assertIn('export G4F_MOBILE_MCP=1', manager)
+        self.assertIn('os.environ["G4F_MOBILE_MCP"] = "1"', bootstrap)
+        self.assertIn('os.environ.setdefault("G4F_MOBILE_MCP_URL",', bootstrap)
+
+        # Gradle's copyG4fAssets task ships this module into both app modes;
+        # the canonical source registers the bridge in the MCP server.
+        self.assertIn("G4F_MOBILE_MCP", mobile_py)
+        server_py = (REPO / "g4f" / "mcp" / "server.py").read_text(encoding="utf-8")
+        self.assertIn("from .mobile import get_mobile_tools", server_py)
+        self.assertIn("self.tools.update(get_mobile_tools())", server_py)
+        gradle = (ANDROID_PROJECT / "app" / "build.gradle").read_text(encoding="utf-8")
+        self.assertIn('from("${rootDir}/../../g4f")', gradle)
 
 
 if __name__ == "__main__":

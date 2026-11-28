@@ -35,9 +35,6 @@ projects/android/app/src/main/assets/container/bin/
 # Polli's Go embeds are generated from bin/ by g4f-go/sync-assets.sh.
 /g4f-go/polli/assets/
 g4f.dev
-# Automatic development pipeline runtime
-.dev-pipeline/
-.pi/
 # Android signing keys must never be committed
 *.jks
 *.keystore
