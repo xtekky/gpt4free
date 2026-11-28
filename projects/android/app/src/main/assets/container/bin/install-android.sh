@@ -12,7 +12,7 @@
 #     NDK 26.3.11579264, CMake 3.22.1 (ANDROID_HOME), licenses accepted
 #
 # Usage (run inside the container, e.g. via `docker compose run`):
-#   docker compose run --rm gpt4free /app/docker/install-android.sh
+#   docker compose run --rm gpt4free /app/bin/install-android.sh
 #
 # Environment:
 #   ANDROID_TOOLS_DIR   install root (default: /opt/android-tools)
@@ -173,7 +173,7 @@ main() {
     log "  GRADLE_HOME=$GRADLE_HOME"
     log ""
     log "To build the APK inside the container:"
-    log "  docker compose run --rm gpt4free /app/docker/build-android.sh build"
+    log "  docker compose run --rm gpt4free /app/bin/build-android.sh build"
     log "============================================================"
 }
 

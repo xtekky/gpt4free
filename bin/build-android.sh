@@ -4,10 +4,10 @@
 # inside the gpt4free Docker container.
 #
 # Usage (run inside the container, e.g. via `docker compose run`):
-#   ./docker/build-android.sh          install toolchain + build the APK (default)
-#   ./docker/build-android.sh install  # install the toolchain only
-#   ./docker/build-android.sh build    # build the APK (installs toolchain first)
-#   ./docker/build-android.sh clean    # remove the installed toolchain
+#   ./bin/build-android.sh          install toolchain + build the APK (default)
+#   ./bin/build-android.sh install  # install the toolchain only
+#   ./bin/build-android.sh build    # build the APK (installs toolchain first)
+#   ./bin/build-android.sh clean    # remove the installed toolchain
 #
 # The gpt4free checkout is expected at /app (the compose bind mount), so the
 # Android project lives at /app/projects/android and the APK lands in
